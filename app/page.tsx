@@ -17,7 +17,7 @@ export default function Home() {
       <motion.img
         src="/cinema-flags-final-v2.png"
         alt="Cinematic Flags Background"
-        initial={{ scale: 1.1 }}
+        initial={{ scale: 1.15 }}
         animate={{ scale: 1 }}
         transition={{ duration: 8, ease: "easeInOut" }}
         className="absolute inset-0 w-full h-full object-cover z-0"
@@ -38,7 +38,7 @@ export default function Home() {
         }}
       />
 
-      {/* GOLD BUTTONS */}
+      {/* BUTTONS */}
       <motion.div
         className="absolute left-1/2 bottom-[15%] flex gap-12 -translate-x-1/2 z-20"
         initial={{ opacity: 0, y: 40 }}
