@@ -2,8 +2,11 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
   const handleClick = (lang: string) => {
     setTimeout(() => {
       window.location.href = `/home?lang=${lang}`;
@@ -12,7 +15,6 @@ export default function Home() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-black text-white">
-
       {/* CINEMATIC BACKGROUND */}
       <motion.img
         src="/cinema-flags-final-v2.png"
@@ -45,7 +47,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.6, duration: 1.2, ease: "easeOut" }}
       >
-        {/* SPANISH BUTTON */}
+        {/* Spanish Button */}
         <motion.button
           whileHover={{
             scale: 1.08,
@@ -76,7 +78,7 @@ export default function Home() {
           <span className="relative z-10">Vuela con nosotros</span>
         </motion.button>
 
-        {/* ENGLISH BUTTON */}
+        {/* English Button */}
         <motion.button
           whileHover={{
             scale: 1.08,
