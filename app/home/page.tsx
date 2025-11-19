@@ -78,7 +78,7 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* CENTER LOGO — LOWERED BY 45PX */}
+          {/* CENTER LOGO — LOWERED BY 85PX */}
           <a href={nav("/home")} className="flex justify-center items-center">
             <img
               src="/logo.png"
@@ -86,7 +86,7 @@ function HomePageContent() {
               style={{
                 width: "320px",
                 height: "auto",
-                marginTop: "45px",   // ⭐ NEW LOWER POSITION
+                marginTop: "85px",   // ⭐ LOWERED MORE
                 filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
               }}
             />
@@ -160,3 +160,4 @@ function HomePageContent() {
     </main>
   );
 }
+
