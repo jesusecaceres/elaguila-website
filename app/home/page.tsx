@@ -68,6 +68,8 @@ function HomePageContent() {
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+
+          {/* LEFT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="hover:text-yellow-300 transition">{L.noticias}</a>
             <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
@@ -75,20 +77,28 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          <a href={nav("/home")}>
+          {/* CENTER LOGO */}
+          <a href={nav("/home")} className="flex justify-center items-center">
             <img
-              src="/logo-layer-new.png"
+              src="/logo.png"
               alt="El Aguila Logo"
-              className="h-14 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]"
+              className="object-contain"
+              style={{
+                width: "420px",
+                height: "auto",
+                filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
+              }}
             />
           </a>
 
+          {/* RIGHT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
             <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
             <a href={nav("/tienda")} className="hover:text-yellow-300 transition">{L.tienda}</a>
             <a href={nav("/about")} className="hover:text-yellow-300 transition">{L.about}</a>
           </div>
+
         </div>
       </motion.nav>
 
