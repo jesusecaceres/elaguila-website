@@ -65,9 +65,10 @@ function HomePageContent() {
           background:
             "linear-gradient(to right, rgba(0,0,0,0.45), rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
           boxShadow: "0 0 25px rgba(255,215,0,0.35)",
+          height: "96px",        // <<< NARROWER HEADER
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
 
           {/* LEFT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
@@ -82,9 +83,8 @@ function HomePageContent() {
             <img
               src="/logo.png"
               alt="El Aguila Logo"
-              className="object-contain"
               style={{
-                width: "420px",
+                width: "320px",   // <<< SMALLER SO IT FITS PERFECT
                 height: "auto",
                 filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
               }}
@@ -112,7 +112,9 @@ function HomePageContent() {
       />
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-40 pb-32 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-48 pb-32 text-center">
+        {/* Notice pt-48 (was pt-40) so content clears the smaller header */}
+        
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
