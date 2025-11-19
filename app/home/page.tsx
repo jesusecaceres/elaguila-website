@@ -1,14 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
-export default function HomePage() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get("lang") || "es";
 
-  // TEXT CONTENT BASED ON LANGUAGE
   const content =
     lang === "es"
       ? {
@@ -30,7 +29,7 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen w-full text-white">
-      {/* BACKGROUND OVERLAY */}
+      {/* BACKGROUND */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -39,10 +38,7 @@ export default function HomePage() {
         }}
       />
 
-      {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-32 text-center">
-
-        {/* HEADLINE */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -52,7 +48,6 @@ export default function HomePage() {
           {content.headline}
         </motion.h1>
 
-        {/* SUBTEXT */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -62,7 +57,6 @@ export default function HomePage() {
           {content.subtext}
         </motion.p>
 
-        {/* NEWS BUTTON */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,7 +71,6 @@ export default function HomePage() {
           </a>
         </motion.div>
 
-        {/* MAGAZINE SECTION */}
         <section className="mt-28">
           <motion.h2
             initial={{ opacity: 0, y: 15 }}
@@ -103,5 +96,13 @@ export default function HomePage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center mt-20">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
