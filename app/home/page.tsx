@@ -65,9 +65,12 @@ function HomePageContent() {
           background:
             "linear-gradient(to right, rgba(0,0,0,0.45), rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
           boxShadow: "0 0 25px rgba(255,215,0,0.35)",
+          height: "96px", // PERFECT HEIGHT
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
+
+          {/* LEFT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="hover:text-yellow-300 transition">{L.noticias}</a>
             <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
@@ -75,21 +78,28 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* LOGO — EXACT SAME SIZE, NOW LOWERED */}
-          <a href={nav("/home")} className="mt-7">
+          {/* CENTER LOGO — LOWERED WITHOUT CHANGING SIZE */}
+          <a href={nav("/home")} className="flex justify-center items-center">
             <img
               src="/logo.png"
               alt="El Aguila Logo"
-              className="h-16 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]"
+              style={{
+                width: "320px",   // SAME EXACT SIZE
+                height: "auto",
+                marginTop: "10px",   // ⭐ LOGO LOWERED HERE
+                filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
+              }}
             />
           </a>
 
+          {/* RIGHT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
             <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
             <a href={nav("/tienda")} className="hover:text-yellow-300 transition">{L.tienda}</a>
             <a href={nav("/about")} className="hover:text-yellow-300 transition">{L.about}</a>
           </div>
+
         </div>
       </motion.nav>
 
@@ -103,7 +113,8 @@ function HomePageContent() {
       />
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-40 pb-32 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-48 pb-32 text-center">
+
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
