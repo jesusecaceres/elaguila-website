@@ -67,9 +67,7 @@ function HomePageContent() {
           boxShadow: "0 0 25px rgba(255,215,0,0.35)",
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-
-          {/* LEFT MENU */}
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="hover:text-yellow-300 transition">{L.noticias}</a>
             <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
@@ -77,16 +75,15 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* LOGO — original size, moved down slightly */}
-          <a href={nav("/home")} className="flex justify-center">
+          {/* LOGO — EXACT SAME SIZE, NOW LOWERED */}
+          <a href={nav("/home")} className="mt-7">
             <img
               src="/logo.png"
-              alt="El Águila Logo"
-              className="h-14 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)] translate-y-2"
+              alt="El Aguila Logo"
+              className="h-16 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]"
             />
           </a>
 
-          {/* RIGHT MENU */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
             <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
