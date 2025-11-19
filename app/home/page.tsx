@@ -65,7 +65,7 @@ function HomePageContent() {
           background:
             "linear-gradient(to right, rgba(0,0,0,0.45), rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
           boxShadow: "0 0 25px rgba(255,215,0,0.35)",
-          height: "96px", // PERFECT HEIGHT
+          height: "96px",
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
@@ -78,15 +78,15 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* CENTER LOGO — LOWERED WITHOUT CHANGING SIZE */}
+          {/* CENTER LOGO — LOWERED BY 20PX */}
           <a href={nav("/home")} className="flex justify-center items-center">
             <img
               src="/logo.png"
               alt="El Aguila Logo"
               style={{
-                width: "320px",   // SAME EXACT SIZE
+                width: "320px", // SAME SIZE
                 height: "auto",
-                marginTop: "10px",   // ⭐ LOGO LOWERED HERE
+                marginTop: "20px", // ⭐ EXACTLY 20PX LOWER
                 filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
               }}
             />
