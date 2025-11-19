@@ -78,15 +78,15 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* CENTER LOGO — LOWERED BY 20PX */}
+          {/* CENTER LOGO — LOWERED BY 45PX */}
           <a href={nav("/home")} className="flex justify-center items-center">
             <img
               src="/logo.png"
               alt="El Aguila Logo"
               style={{
-                width: "320px", // SAME SIZE
+                width: "320px",
                 height: "auto",
-                marginTop: "20px", // ⭐ EXACTLY 20PX LOWER
+                marginTop: "45px",   // ⭐ NEW LOWER POSITION
                 filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
               }}
             />
