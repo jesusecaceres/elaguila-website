@@ -65,12 +65,9 @@ function HomePageContent() {
           background:
             "linear-gradient(to right, rgba(0,0,0,0.45), rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
           boxShadow: "0 0 25px rgba(255,215,0,0.35)",
-          height: "96px",        // <<< NARROWER HEADER
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
-
-          {/* LEFT TABS */}
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-1">
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="hover:text-yellow-300 transition">{L.noticias}</a>
             <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
@@ -78,27 +75,20 @@ function HomePageContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* CENTER LOGO */}
-          <a href={nav("/home")} className="flex justify-center items-center">
+          <a href={nav("/home")}>
             <img
               src="/logo.png"
               alt="El Aguila Logo"
-              style={{
-                width: "320px",   // <<< SMALLER SO IT FITS PERFECT
-                height: "auto",
-                filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
-              }}
+              className="h-20 relative top-3 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]"
             />
           </a>
 
-          {/* RIGHT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
             <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
             <a href={nav("/tienda")} className="hover:text-yellow-300 transition">{L.tienda}</a>
             <a href={nav("/about")} className="hover:text-yellow-300 transition">{L.about}</a>
           </div>
-
         </div>
       </motion.nav>
 
@@ -112,9 +102,7 @@ function HomePageContent() {
       />
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-48 pb-32 text-center">
-        {/* Notice pt-48 (was pt-40) so content clears the smaller header */}
-        
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-40 pb-32 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
