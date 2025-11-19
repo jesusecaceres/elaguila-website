@@ -2,11 +2,35 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
+  const lang = searchParams.get("lang") || "es";
+
+  // TEXT CONTENT BASED ON LANGUAGE
+  const content =
+    lang === "es"
+      ? {
+          headline: "Bienvenidos a El Águila",
+          subtext: "Comunidad, Cultura y Orgullo Latino",
+          newsButton: "Explorar Noticias",
+          newsLink: "/noticias?lang=es",
+          magTitle: "Revista Digital — Edición Actual",
+          magSoon: "Muy pronto podrás hojear la primera edición digital.",
+        }
+      : {
+          headline: "Welcome to El Águila",
+          subtext: "Community, Culture and Latino Pride",
+          newsButton: "Explore News",
+          newsLink: "/noticias?lang=en",
+          magTitle: "Digital Magazine — Current Edition",
+          magSoon: "You will soon be able to browse the first digital issue.",
+        };
+
   return (
     <main className="relative min-h-screen w-full text-white">
-      {/* BACKGROUND OVERLAY — smooth, elegant, not dark or depressing */}
+      {/* BACKGROUND OVERLAY */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -15,7 +39,7 @@ export default function HomePage() {
         }}
       />
 
-      {/* MAIN CONTAINER */}
+      {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-32 text-center">
 
         {/* HEADLINE */}
@@ -25,7 +49,7 @@ export default function HomePage() {
           transition={{ duration: 1.2 }}
           className="text-5xl md:text-6xl font-extrabold tracking-tight drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]"
         >
-          Bienvenidos a <span className="text-yellow-400">El Águila</span>
+          {content.headline}
         </motion.h1>
 
         {/* SUBTEXT */}
@@ -35,13 +59,10 @@ export default function HomePage() {
           transition={{ delay: 0.4, duration: 1 }}
           className="mt-6 text-xl md:text-2xl font-light text-gray-200"
         >
-          Comunidad, Cultura y Orgullo Latino
+          {content.subtext}
         </motion.p>
 
-        {/* ENGLISH VERSION BELOW (auto shows when ?lang=en) */}
-        {/* Later we will detect lang and auto-switch text */}
-
-        {/* CALL TO ACTION */}
+        {/* NEWS BUTTON */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -49,14 +70,14 @@ export default function HomePage() {
           className="mt-16"
         >
           <a
-            href="/noticias?lang=es"
+            href={content.newsLink}
             className="inline-block px-10 py-4 bg-yellow-400 text-black font-bold rounded-xl shadow-[0_0_25px_rgba(255,215,0,0.6)] hover:scale-105 transition-transform duration-300"
           >
-            Explorar Noticias
+            {content.newsButton}
           </a>
         </motion.div>
 
-        {/* MAGAZINE PREVIEW SECTION (placeholder until design) */}
+        {/* MAGAZINE SECTION */}
         <section className="mt-28">
           <motion.h2
             initial={{ opacity: 0, y: 15 }}
@@ -64,7 +85,7 @@ export default function HomePage() {
             transition={{ duration: 1 }}
             className="text-4xl font-extrabold text-yellow-300"
           >
-            Revista Digital — Edición Actual
+            {content.magTitle}
           </motion.h2>
 
           <motion.div
@@ -74,13 +95,11 @@ export default function HomePage() {
             className="mt-10 flex justify-center"
           >
             <div className="w-64 h-96 bg-white/20 rounded-lg border border-white/30 flex items-center justify-center text-white text-xl font-bold">
-              Portada Aquí
+              {lang === "es" ? "Portada Aquí" : "Cover Here"}
             </div>
           </motion.div>
 
-          <p className="mt-4 text-gray-300 text-lg">
-            Muy pronto podrás hojear la primera edición digital.
-          </p>
+          <p className="mt-4 text-gray-300 text-lg">{content.magSoon}</p>
         </section>
       </div>
     </main>
