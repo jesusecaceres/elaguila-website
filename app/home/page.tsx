@@ -1,14 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get("lang") || "es";
 
-  // ------- LANGUAGE TEXT -------
   const t = {
     es: {
       bienvenidos: "Bienvenidos a",
@@ -16,8 +23,6 @@ export default function HomePage() {
       revistaActual: "Revista Digital — Edición Actual",
       portadaAqui: "Portada Aquí",
       pronto: "Muy pronto podrás hojear la primera edición digital.",
-
-      // NAV TABS
       noticias: "Noticias",
       revista: "Revista",
       eventos: "Eventos",
@@ -33,8 +38,6 @@ export default function HomePage() {
       revistaActual: "Digital Magazine — Current Edition",
       portadaAqui: "Cover Here",
       pronto: "Soon you will be able to browse the first digital edition.",
-
-      // NAV TABS
       noticias: "News",
       revista: "Magazine",
       eventos: "Events",
@@ -47,14 +50,12 @@ export default function HomePage() {
   };
 
   const L = t[lang as "es" | "en"];
-
-  // NAVIGATION DESTINATION BUILDER
-  const nav = (path: string) => `${path}?lang=${lang}`;
+  const nav = (p: string) => `${p}?lang=${lang}`;
 
   return (
     <main className="relative min-h-screen w-full text-white">
 
-      {/* GOLD GLASS NAVBAR */}
+      {/* NAVBAR */}
       <motion.nav
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -67,8 +68,6 @@ export default function HomePage() {
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-
-          {/* LEFT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="hover:text-yellow-300 transition">{L.noticias}</a>
             <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
@@ -76,7 +75,6 @@ export default function HomePage() {
             <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
-          {/* CENTER LOGO */}
           <a href={nav("/home")}>
             <img
               src="/logo-layer-new.png"
@@ -85,7 +83,6 @@ export default function HomePage() {
             />
           </a>
 
-          {/* RIGHT TABS */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
             <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
@@ -95,7 +92,7 @@ export default function HomePage() {
         </div>
       </motion.nav>
 
-      {/* BACKGROUND GRADIENT */}
+      {/* BACKGROUND OVERLAY */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -106,8 +103,6 @@ export default function HomePage() {
 
       {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 pt-40 pb-32 text-center">
-
-        {/* HEADLINE */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -117,7 +112,6 @@ export default function HomePage() {
           {L.bienvenidos} <span className="text-yellow-400">El Águila</span>
         </motion.h1>
 
-        {/* SUBTEXT */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -127,7 +121,6 @@ export default function HomePage() {
           {L.comunidad}
         </motion.p>
 
-        {/* MAGAZINE SECTION */}
         <section className="mt-28">
           <motion.h2
             initial={{ opacity: 0, y: 15 }}
