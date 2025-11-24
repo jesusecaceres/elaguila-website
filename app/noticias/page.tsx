@@ -1,12 +1,20 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
-// ---------------------------------------------------------------------
-// SAFE FALLBACK NOTICIAS HUB (NO RSS YET - THIS FIXES THE CRASH)
-// ---------------------------------------------------------------------
+// Fetch from our own serverless API route to bypass CORS
+async function getNews(lang: string) {
+  try {
+    const res = await fetch(`/api/rss?lang=${lang}`);
+    if (!res.ok) throw new Error("RSS API failed");
+    return await res.json();
+  } catch (err) {
+    console.error("NEWS FETCH ERROR:", err);
+    return [];
+  }
+}
 
 export default function NoticiasPage() {
   return (
@@ -20,9 +28,7 @@ function NoticiasContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get("lang") || "es";
 
-  // -------------------------------------------------------------------
-  // BILINGUAL TEXT SYSTEM
-  // -------------------------------------------------------------------
+  // TEXT SYSTEM
   const t = {
     es: {
       noticias: "Noticias",
@@ -33,8 +39,6 @@ function NoticiasContent() {
       clasificados: "Clasificados",
       tienda: "Tienda",
       about: "Sobre Nosotros",
-
-      categorias: "Categorías",
       ultimas: "Últimas",
       tendencias: "Tendencias",
       deportes: "Deportes",
@@ -44,8 +48,6 @@ function NoticiasContent() {
       cultura: "Cultura Latina",
       local: "Noticias Locales",
       breaking: "Última Hora",
-      leyendo: "Leyendo artículo...",
-      mas: "Ver más",
     },
     en: {
       noticias: "News",
@@ -56,8 +58,6 @@ function NoticiasContent() {
       clasificados: "Classifieds",
       tienda: "Shop",
       about: "About Us",
-
-      categorias: "Categories",
       ultimas: "Latest",
       tendencias: "Trending",
       deportes: "Sports",
@@ -67,19 +67,31 @@ function NoticiasContent() {
       cultura: "Latino Culture",
       local: "Local News",
       breaking: "Breaking",
-      leyendo: "Loading article...",
-      mas: "See more",
     },
   };
 
   const L = t[lang as "es" | "en"];
   const nav = (p: string) => `${p}?lang=${lang}`;
 
-  // -------------------------------------------------------------------
-  // FALLBACK STATIC CONTENT (SAFE UNTIL RSS PHASE)
-  // -------------------------------------------------------------------
-  const featured = {
-    title: "El Águila lanza plataforma digital 2026",
+  // STATE FOR LIVE NEWS
+  const [news, setNews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState<any>(null);
+
+  // LIVE FETCH
+  useEffect(() => {
+    getNews(lang).then((items) => {
+      setNews(items);
+      setLoading(false);
+    });
+  }, [lang]);
+
+  // FEATURED ARTICLE
+  const featured = news[0] || {
+    title:
+      lang === "es"
+        ? "El Águila lanza plataforma digital 2026"
+        : "El Águila launches digital platform 2026",
     img: "/featured.png",
     desc:
       lang === "es"
@@ -87,32 +99,13 @@ function NoticiasContent() {
         : "The new digital hub arrives to transform Latino media.",
   };
 
-  const sampleArticles = [...Array(10)].map((_, i) => ({
-    id: i,
-    title:
-      lang === "es"
-        ? `Noticia importante número ${i + 1}`
-        : `Important headline number ${i + 1}`,
-    img: "/featured.png",
-    desc:
-      lang === "es"
-        ? "Descripción breve de la noticia."
-        : "Short description of the news article.",
-  }));
+  const trending = news.slice(1, 6);
+  const feed = news.slice(6);
 
-  const trending = sampleArticles.slice(0, 6);
-  const sports = sampleArticles.slice(0, 5);
-  const alerts = sampleArticles.slice(0, 4);
-
-  const [modal, setModal] = useState<any>(null);
-
-  // -------------------------------------------------------------------
-  // PAGE STRUCTURE
-  // -------------------------------------------------------------------
   return (
     <main className="relative min-h-screen w-full text-white">
 
-      {/* TOP NAV */}
+      {/* NAVBAR */}
       <motion.nav
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -128,9 +121,9 @@ function NoticiasContent() {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="text-yellow-300">{L.noticias}</a>
-            <a href={nav("/revista")} className="hover:text-yellow-300">{L.revista}</a>
-            <a href={nav("/eventos")} className="hover:text-yellow-300">{L.eventos}</a>
-            <a href={nav("/cupones")} className="hover:text-yellow-300">{L.cupones}</a>
+            <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
+            <a href={nav("/eventos")} className="hover:text-yellow-300 transition">{L.eventos}</a>
+            <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
           </div>
 
           <a href={nav("/home")} className="flex justify-center items-center">
@@ -147,10 +140,10 @@ function NoticiasContent() {
           </a>
 
           <div className="flex gap-6 text-lg font-semibold">
-            <a href={nav("/sorteos")} className="hover:text-yellow-300">{L.sorteos}</a>
-            <a href={nav("/clasificados")} className="hover:text-yellow-300">{L.clasificados}</a>
-            <a href={nav("/tienda")} className="hover:text-yellow-300">{L.tienda}</a>
-            <a href={nav("/about")} className="hover:text-yellow-300">{L.about}</a>
+            <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
+            <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
+            <a href={nav("/tienda")} className="hover:text-yellow-300 transition">{L.tienda}</a>
+            <a href={nav("/about")} className="hover:text-yellow-300 transition">{L.about}</a>
           </div>
         </div>
       </motion.nav>
@@ -167,7 +160,7 @@ function NoticiasContent() {
       {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-48 pb-32">
 
-        {/* BREAKING NEWS */}
+        {/* BREAKING NEWS BAR */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -184,24 +177,25 @@ function NoticiasContent() {
 
         {/* CATEGORIES */}
         <div className="flex flex-wrap gap-4 mb-10 text-lg font-semibold">
-          {[L.ultimas, L.tendencias, L.deportes, L.tecnologia, L.negocios,
-            L.internacional, L.cultura, L.local].map((cat, i) => (
+          {[L.ultimas, L.tendencias, L.deportes, L.tecnologia, L.negocios, L.internacional, L.cultura, L.local].map(
+            (cat, i) => (
               <span
                 key={i}
                 className="cursor-pointer px-4 py-2 rounded-full bg-white/10 hover:bg-yellow-300 hover:text-black transition border border-white/20"
               >
                 {cat}
               </span>
-            ))}
+            )
+          )}
         </div>
 
-        {/* MAIN GRID */}
+        {/* GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-          {/* LEFT - FEATURED + FEED */}
+          {/* LEFT COL */}
           <div className="lg:col-span-2 space-y-10">
 
-            {/* FEATURED */}
+            {/* FEATURED STORY */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -211,43 +205,41 @@ function NoticiasContent() {
             >
               <img src={featured.img} className="w-full h-80 object-cover" />
               <div className="p-6">
-                <h2 className="text-3xl font-extrabold text-yellow-300 drop-shadow">
-                  {featured.title}
-                </h2>
+                <h2 className="text-3xl font-extrabold text-yellow-300 drop-shadow">{featured.title}</h2>
                 <p className="mt-3 text-gray-300">{featured.desc}</p>
               </div>
             </motion.div>
 
             {/* FEED */}
             <div className="space-y-8">
-              {sampleArticles.map((a) => (
-                <motion.div
-                  key={a.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-5 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
-                  onClick={() => setModal(a)}
-                >
-                  <img
-                    src={a.img}
-                    className="w-40 h-32 object-cover rounded-md"
-                  />
-                  <div>
-                    <h3 className="text-xl font-bold text-yellow-300">
-                      {a.title}
-                    </h3>
-                    <p className="text-gray-300">{a.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
+              {loading && (
+                <p className="text-yellow-300 text-xl">Cargando noticias...</p>
+              )}
+              {!loading &&
+                feed.map((a, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex gap-5 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
+                    onClick={() => setModal(a)}
+                  >
+                    <img
+                      src={a.img || "/featured.png"}
+                      className="w-40 h-32 object-cover rounded-md"
+                    />
+                    <div>
+                      <h3 className="text-xl font-bold text-yellow-300">{a.title}</h3>
+                      <p className="text-gray-300">{a.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
             </div>
           </div>
 
           {/* RIGHT SIDEBAR */}
           <div className="space-y-10">
-            <Section title={L.tendencias} items={trending} setModal={setModal} />
-            <Section title={L.deportes} items={sports} setModal={setModal} />
-            <Section title={"Alerts"} items={alerts} setModal={setModal} />
+            <Sidebar title={L.tendencias} items={trending} setModal={setModal} />
           </div>
         </div>
       </div>
@@ -283,10 +275,8 @@ function NoticiasContent() {
   );
 }
 
-// ---------------------------------------------------------------------
-// SIDEBAR SECTION
-// ---------------------------------------------------------------------
-function Section({
+// SIDEBAR COMPONENT
+function Sidebar({
   title,
   items,
   setModal,
