@@ -4,18 +4,6 @@ import React, { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
-// Fetch from our own serverless API route to bypass CORS
-async function getNews(lang: string) {
-  try {
-    const res = await fetch(`/api/rss?lang=${lang}`);
-    if (!res.ok) throw new Error("RSS API failed");
-    return await res.json();
-  } catch (err) {
-    console.error("NEWS FETCH ERROR:", err);
-    return [];
-  }
-}
-
 export default function NoticiasPage() {
   return (
     <Suspense fallback={null}>
@@ -28,7 +16,9 @@ function NoticiasContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get("lang") || "es";
 
-  // TEXT SYSTEM
+  // -----------------------------------------------------------
+  // BILINGUAL TEXT
+  // -----------------------------------------------------------
   const t = {
     es: {
       noticias: "Noticias",
@@ -39,6 +29,7 @@ function NoticiasContent() {
       clasificados: "Clasificados",
       tienda: "Tienda",
       about: "Sobre Nosotros",
+
       ultimas: "Últimas",
       tendencias: "Tendencias",
       deportes: "Deportes",
@@ -47,7 +38,10 @@ function NoticiasContent() {
       internacional: "Internacional",
       cultura: "Cultura Latina",
       local: "Noticias Locales",
+
       breaking: "Última Hora",
+      cargando: "Cargando noticias...",
+      verMas: "Ver artículo completo →",
     },
     en: {
       noticias: "News",
@@ -58,6 +52,7 @@ function NoticiasContent() {
       clasificados: "Classifieds",
       tienda: "Shop",
       about: "About Us",
+
       ultimas: "Latest",
       tendencias: "Trending",
       deportes: "Sports",
@@ -66,42 +61,76 @@ function NoticiasContent() {
       internacional: "International",
       cultura: "Latino Culture",
       local: "Local News",
+
       breaking: "Breaking",
+      cargando: "Loading news...",
+      verMas: "Read full article →",
     },
   };
 
   const L = t[lang as "es" | "en"];
   const nav = (p: string) => `${p}?lang=${lang}`;
 
-  // STATE FOR LIVE NEWS
-  const [news, setNews] = useState<any[]>([]);
+  // -----------------------------------------------------------
+  // CATEGORY STATE
+  // -----------------------------------------------------------
+  const categories = [
+    { key: "ultimas", label: L.ultimas },
+    { key: "tendencias", label: L.tendencias },
+    { key: "deportes", label: L.deportes },
+    { key: "tecnologia", label: L.tecnologia },
+    { key: "negocios", label: L.negocios },
+    { key: "internacional", label: L.internacional },
+    { key: "cultura", label: L.cultura },
+    { key: "local", label: L.local },
+  ];
+
+  const [activeCategory, setActiveCategory] = useState("ultimas");
+  const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<any>(null);
 
-  // LIVE FETCH
+  // -----------------------------------------------------------
+  // FETCH LIVE NEWS BY CATEGORY
+  // -----------------------------------------------------------
+  async function loadNews() {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `/api/rss?category=${activeCategory}&lang=${lang}`
+      );
+      const data = await res.json();
+      setArticles(data);
+    } catch (err) {
+      console.error("NEWS LOAD ERROR:", err);
+      setArticles([]);
+    }
+    setLoading(false);
+  }
+
   useEffect(() => {
-    getNews(lang).then((items) => {
-      setNews(items);
-      setLoading(false);
-    });
-  }, [lang]);
+    loadNews();
+  }, [activeCategory, lang]);
 
   // FEATURED ARTICLE
-  const featured = news[0] || {
-    title:
-      lang === "es"
-        ? "El Águila lanza plataforma digital 2026"
-        : "El Águila launches digital platform 2026",
-    img: "/featured.png",
-    desc:
-      lang === "es"
-        ? "El nuevo hub digital llega para transformar la comunicación latina."
-        : "The new digital hub arrives to transform Latino media.",
-  };
+  const featured =
+    articles[0] || ({
+      title:
+        lang === "es"
+          ? "El Águila lanza plataforma digital 2026"
+          : "El Águila launches digital platform 2026",
+      img: "/featured.png",
+      desc:
+        lang === "es"
+          ? "El nuevo hub digital llega para transformar la comunicación latina."
+          : "The new digital hub will transform Latino media.",
+    } as any);
 
-  const trending = news.slice(1, 6);
-  const feed = news.slice(6);
+  const feed = articles.slice(1);
 
+  // -----------------------------------------------------------
+  // PAGE STARTS
+  // -----------------------------------------------------------
   return (
     <main className="relative min-h-screen w-full text-white">
 
@@ -119,11 +148,12 @@ function NoticiasContent() {
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
+
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="text-yellow-300">{L.noticias}</a>
-            <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
-            <a href={nav("/eventos")} className="hover:text-yellow-300 transition">{L.eventos}</a>
-            <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
+            <a href={nav("/revista")} className="hover:text-yellow-300">{L.revista}</a>
+            <a href={nav("/eventos")} className="hover:text-yellow-300">{L.eventos}</a>
+            <a href={nav("/cupones")} className="hover:text-yellow-300">{L.cupones}</a>
           </div>
 
           <a href={nav("/home")} className="flex justify-center items-center">
@@ -140,10 +170,10 @@ function NoticiasContent() {
           </a>
 
           <div className="flex gap-6 text-lg font-semibold">
-            <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
-            <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
-            <a href={nav("/tienda")} className="hover:text-yellow-300 transition">{L.tienda}</a>
-            <a href={nav("/about")} className="hover:text-yellow-300 transition">{L.about}</a>
+            <a href={nav("/sorteos")} className="hover:text-yellow-300">{L.sorteos}</a>
+            <a href={nav("/clasificados")} className="hover:text-yellow-300">{L.clasificados}</a>
+            <a href={nav("/tienda")} className="hover:text-yellow-300">{L.tienda}</a>
+            <a href={nav("/about")} className="hover:text-yellow-300">{L.about}</a>
           </div>
         </div>
       </motion.nav>
@@ -160,7 +190,7 @@ function NoticiasContent() {
       {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-48 pb-32">
 
-        {/* BREAKING NEWS BAR */}
+        {/* BREAKING NEWS */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -175,27 +205,30 @@ function NoticiasContent() {
           </p>
         </motion.div>
 
-        {/* CATEGORIES */}
+        {/* CATEGORY TABS */}
         <div className="flex flex-wrap gap-4 mb-10 text-lg font-semibold">
-          {[L.ultimas, L.tendencias, L.deportes, L.tecnologia, L.negocios, L.internacional, L.cultura, L.local].map(
-            (cat, i) => (
-              <span
-                key={i}
-                className="cursor-pointer px-4 py-2 rounded-full bg-white/10 hover:bg-yellow-300 hover:text-black transition border border-white/20"
-              >
-                {cat}
-              </span>
-            )
-          )}
+          {categories.map((cat) => (
+            <span
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
+              className={`cursor-pointer px-4 py-2 rounded-full border transition ${
+                activeCategory === cat.key
+                  ? "bg-yellow-300 text-black border-yellow-400"
+                  : "bg-white/10 hover:bg-yellow-300 hover:text-black border-white/20"
+              }`}
+            >
+              {cat.label}
+            </span>
+          ))}
         </div>
 
         {/* GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-          {/* LEFT COL */}
+          {/* LEFT COLUMN */}
           <div className="lg:col-span-2 space-y-10">
 
-            {/* FEATURED STORY */}
+            {/* FEATURED */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -203,43 +236,51 @@ function NoticiasContent() {
               style={{ border: "1px solid rgba(255,215,0,0.25)" }}
               onClick={() => setModal(featured)}
             >
-              <img src={featured.img} className="w-full h-80 object-cover" />
+              <img
+                src={featured.img || "/featured.png"}
+                className="w-full h-80 object-cover"
+              />
               <div className="p-6">
-                <h2 className="text-3xl font-extrabold text-yellow-300 drop-shadow">{featured.title}</h2>
-                <p className="mt-3 text-gray-300">{featured.desc}</p>
+                <h2 className="text-3xl font-extrabold text-yellow-300">
+                  {featured.title}
+                </h2>
+                <p className="mt-3 text-gray-300">
+                  {featured.desc}
+                </p>
               </div>
             </motion.div>
 
             {/* FEED */}
-            <div className="space-y-8">
-              {loading && (
-                <p className="text-yellow-300 text-xl">Cargando noticias...</p>
-              )}
-              {!loading &&
-                feed.map((a, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-5 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
-                    onClick={() => setModal(a)}
-                  >
-                    <img
-                      src={a.img || "/featured.png"}
-                      className="w-40 h-32 object-cover rounded-md"
-                    />
-                    <div>
-                      <h3 className="text-xl font-bold text-yellow-300">{a.title}</h3>
-                      <p className="text-gray-300">{a.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-            </div>
+            {loading && (
+              <p className="text-yellow-300 text-xl">{L.cargando}</p>
+            )}
+
+            {!loading &&
+              feed.map((a, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-5 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
+                  onClick={() => setModal(a)}
+                >
+                  <img
+                    src={a.img || "/featured.png"}
+                    className="w-40 h-32 object-cover rounded-md"
+                  />
+                  <div>
+                    <h3 className="text-xl font-bold text-yellow-300">
+                      {a.title}
+                    </h3>
+                    <p className="text-gray-300">{a.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
           </div>
 
-          {/* RIGHT SIDEBAR */}
+          {/* SIDEBAR */}
           <div className="space-y-10">
-            <Sidebar title={L.tendencias} items={trending} setModal={setModal} />
+            <Sidebar title={L.tendencias} items={feed.slice(0, 6)} setModal={setModal} />
           </div>
         </div>
       </div>
@@ -254,20 +295,19 @@ function NoticiasContent() {
             className="bg-black/90 p-6 rounded-xl max-w-2xl mx-auto border border-yellow-500/40"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-3xl text-yellow-300 font-bold drop-shadow mb-4">
-              {modal.title}
-            </h2>
+            <h2 className="text-3xl text-yellow-300 mb-4">{modal.title}</h2>
             <img
-              src={modal.img}
+              src={modal.img || "/featured.png"}
               className="w-full h-64 object-cover rounded-lg"
             />
-            <p className="mt-4 text-gray-200 text-lg">{modal.desc}</p>
-            <button
-              onClick={() => setModal(null)}
-              className="mt-6 px-6 py-3 bg-yellow-300 text-black font-bold rounded-lg hover:bg-yellow-400"
+            <p className="mt-4 text-gray-200">{modal.desc}</p>
+            <a
+              href={modal.link}
+              target="_blank"
+              className="block mt-4 text-yellow-400 underline font-bold"
             >
-              Close
-            </button>
+              {L.verMas}
+            </a>
           </div>
         </div>
       )}
