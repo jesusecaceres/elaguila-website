@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
 // ---------------------------------------------------------------------
-// OMEGA MAX — NOTICIAS HUB (V1 COMPLETE)
+// OMEGA MAX — NOTICIAS HUB (V1.1 — Featured Image Fixed)
 // ---------------------------------------------------------------------
 
 export default function NoticiasPage() {
@@ -76,11 +76,11 @@ function NoticiasContent() {
   const nav = (p: string) => `${p}?lang=${lang}`;
 
   // -------------------------------------------------------------------
-  // TEMP DATA (will replace with live feeds later)
+  // TEMP DATA (featured updated to local file /featured.png)
   // -------------------------------------------------------------------
   const featured = {
     title: "El Águila lanza plataforma digital 2026",
-    img: "https://images.unsplash.com/photo-1504714146340-959ca07b3c16?q=80&w=1200",
+    img: "/featured.png", // ⭐ New cinematic featured image
     desc:
       lang === "es"
         ? "El nuevo hub digital llega para transformar la comunicación latina."
