@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
 // ---------------------------------------------------------------
-//  OMEGA MAX — NOTICIAS HUB WITH SMART THUMBNAILS (FINAL VERSION)
+//  OMEGA MAX — NOTICIAS HUB WITH SMART THUMBNAILS + SUMMARIES
 // ---------------------------------------------------------------
 
 export default function NoticiasPage() {
@@ -21,7 +21,7 @@ function NoticiasContent() {
   const lang = searchParams.get("lang") || "es";
 
   // ---------------------------------------------
-  // BILINGUAL TEXT DICTIONARY
+  // BILINGUAL TEXT
   // ---------------------------------------------
   const t = {
     es: {
@@ -72,7 +72,7 @@ function NoticiasContent() {
   const nav = (x: string) => `${x}?lang=${lang}`;
 
   // -------------------------------------------------------------
-  // SMART THUMBNAIL MAP — THE HEART OF VISUAL CONSISTENCY 🔥
+  // CATEGORY THUMBNAILS
   // -------------------------------------------------------------
   const THUMBS: Record<string, string> = {
     ultimas: "/thumbs/thumb_ultimas.png",
@@ -85,30 +85,41 @@ function NoticiasContent() {
     local: "/thumbs/thumb_local.png",
   };
 
-  // When RSS does NOT provide images, use a category-based thumbnail
+  // Map title → category → thumbnail
   const getThumbForArticle = (title: string) => {
     const low = title.toLowerCase();
 
-    if (low.includes("deporte")) return THUMBS.deportes;
-    if (low.includes("sport")) return THUMBS.deportes;
-
+    if (low.includes("deporte") || low.includes("sport")) return THUMBS.deportes;
     if (low.includes("tech") || low.includes("tecnología")) return THUMBS.tecnologia;
-
     if (low.includes("negocio") || low.includes("business")) return THUMBS.negocios;
-
     if (low.includes("internacional")) return THUMBS.internacional;
-
     if (low.includes("cultura")) return THUMBS.cultura;
-
     if (low.includes("local")) return THUMBS.local;
-
     if (low.includes("tendencia") || low.includes("trend")) return THUMBS.tendencias;
 
     return THUMBS.ultimas;
   };
 
   // -------------------------------------------------------------
-  // FETCH NEWS FROM OUR OWN BACKEND
+  // AI-STYLE SUMMARY FROM DESCRIPTION
+  // -------------------------------------------------------------
+  function summarize(text: string) {
+    if (!text) return "";
+
+    // Remove long garbage
+    const cleaned = text
+      .replace(/<[^>]+>/g, "")
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Google style: first 22–28 words
+    const words = cleaned.split(" ");
+    return words.slice(0, 28).join(" ") + (words.length > 28 ? "…" : "");
+  }
+
+  // -------------------------------------------------------------
+  // FETCH NEWS
   // -------------------------------------------------------------
   const [articles, setArticles] = useState<any[]>([]);
   const [featured, setFeatured] = useState<any | null>(null);
@@ -121,10 +132,10 @@ function NoticiasContent() {
         const json = await res.json();
 
         if (json.length > 0) {
-          // Assign thumbnails if missing
           const processed = json.map((a: any) => ({
             ...a,
             img: a.img || getThumbForArticle(a.title),
+            summary: summarize(a.description || a.content || ""),
           }));
 
           setArticles(processed);
@@ -141,7 +152,7 @@ function NoticiasContent() {
   // -------------------------------------------------------------
   return (
     <main className="relative min-h-screen w-full text-white">
-
+      
       {/* NAVBAR */}
       <motion.nav
         initial={{ y: -40, opacity: 0 }}
@@ -232,16 +243,19 @@ function NoticiasContent() {
             <img src={featured.img} className="w-full h-96 object-cover" />
             <div className="p-6">
               <h2 className="text-3xl font-extrabold text-yellow-300">{featured.title}</h2>
+              {featured.summary && (
+                <p className="mt-3 text-gray-300 text-lg">{featured.summary}</p>
+              )}
             </div>
           </motion.div>
         )}
 
-        {/* GRID */}
+        {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
           {/* FEED */}
           <div className="lg:col-span-2 space-y-8">
-            {articles.slice(1).map((a: any, i: number) => (
+            {articles.slice(1).map((a, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 15 }}
@@ -255,6 +269,11 @@ function NoticiasContent() {
                 />
                 <div>
                   <h3 className="text-xl font-bold text-yellow-300">{a.title}</h3>
+                  {a.summary && (
+                    <p className="mt-2 text-gray-300 text-sm leading-relaxed">
+                      {a.summary}
+                    </p>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -281,7 +300,13 @@ function NoticiasContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-3xl text-yellow-300 font-bold mb-4">{modal.title}</h2>
+
             <img src={modal.img} className="w-full h-64 object-cover rounded-lg" />
+
+            {modal.summary && (
+              <p className="mt-4 text-gray-300 text-lg leading-relaxed">{modal.summary}</p>
+            )}
+
             <button
               onClick={() => setModal(null)}
               className="mt-6 px-6 py-3 bg-yellow-300 text-black font-bold rounded-lg hover:bg-yellow-400"
@@ -297,7 +322,7 @@ function NoticiasContent() {
 }
 
 // -------------------------------------------------------------
-// SIDEBAR COMPONENT
+// SIDEBAR
 // -------------------------------------------------------------
 function SidebarSection({
   title,
