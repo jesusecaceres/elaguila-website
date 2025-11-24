@@ -3,11 +3,11 @@
 import React, { Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
+import { fetchLiveNews, NewsArticle } from "@/app/lib/news";
 
-// ---------------------------------------------------------------------
-// OMEGA MAX — NOTICIAS HUB V3 (LIVE RSS + JSON FALLBACK + MAGAZINE UI)
-// ---------------------------------------------------------------------
-
+// ------------------------------------------------------------
+// NOTICIAS — OMEGA MAX LIVE VERSION
+// ------------------------------------------------------------
 export default function NoticiasPage() {
   return (
     <Suspense fallback={null}>
@@ -18,56 +18,10 @@ export default function NoticiasPage() {
 
 function NoticiasContent() {
   const searchParams = useSearchParams();
-  const lang = (searchParams.get("lang") || "es") as "es" | "en";
+  const lang = searchParams.get("lang") || "es";
 
-  const [jsonData, setJsonData] = useState<any>(null);   // fallback JSON
-  const [rssData, setRssData] = useState<any[]>([]);     // live RSS
-  const [category, setCategory] = useState<string>("all");
-  const [modal, setModal] = useState<any>(null);
-
-  // -------------------------------------------------------------------
-  // LOAD JSON FALLBACK
-  // -------------------------------------------------------------------
-  useEffect(() => {
-    fetch("/data/news.json")
-      .then((r) => r.json())
-      .then((j) => setJsonData(j));
-  }, []);
-
-  // -------------------------------------------------------------------
-  // LOAD LIVE RSS NEWS
-  // -------------------------------------------------------------------
-  useEffect(() => {
-    fetch(`/api/rss?lang=${lang}`)
-      .then((r) => r.json())
-      .then((j) => setRssData(j.articles));
-  }, [lang]);
-
-  if (!jsonData) return null;
-
-  const featured = jsonData.featured;
-
-  // MERGE JSON + RSS
-  const allArticles = [
-    ...jsonData.articles,
-    ...rssData.map((a, i) => ({
-      id: 1000 + i,
-      title: { es: a.title, en: a.title },
-      desc: { es: a.desc, en: a.desc },
-      img: a.img,
-      link: a.link,
-      category: "tendencias"
-    }))
-  ];
-
-  // FILTER ARTICLES
-  const filtered =
-    category === "all"
-      ? allArticles
-      : allArticles.filter((a) => a.category === category);
-
-  // TRANSLATIONS
-  const L = {
+  // Bilingual text
+  const t = {
     es: {
       noticias: "Noticias",
       revista: "Revista",
@@ -77,7 +31,6 @@ function NoticiasContent() {
       clasificados: "Clasificados",
       tienda: "Tienda",
       about: "Sobre Nosotros",
-
       categorias: "Categorías",
       ultimas: "Últimas",
       tendencias: "Tendencias",
@@ -87,7 +40,8 @@ function NoticiasContent() {
       internacional: "Internacional",
       cultura: "Cultura Latina",
       local: "Noticias Locales",
-      breaking: "Última Hora"
+      breaking: "Última Hora",
+      cargando: "Cargando noticias...",
     },
     en: {
       noticias: "News",
@@ -98,7 +52,6 @@ function NoticiasContent() {
       clasificados: "Classifieds",
       tienda: "Shop",
       about: "About Us",
-
       categorias: "Categories",
       ultimas: "Latest",
       tendencias: "Trending",
@@ -108,45 +61,63 @@ function NoticiasContent() {
       internacional: "International",
       cultura: "Latino Culture",
       local: "Local News",
-      breaking: "Breaking"
-    }
-  }[lang];
+      breaking: "Breaking",
+      cargando: "Loading news...",
+    },
+  };
 
+  const L = t[lang as "es" | "en"];
   const nav = (p: string) => `${p}?lang=${lang}`;
 
+  // ------------------------------------------------------------
+  // FETCH LIVE NEWS
+  // ------------------------------------------------------------
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const news = await fetchLiveNews(30);
+      setArticles(news);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="pt-48 text-center text-yellow-300 text-3xl font-bold">
+        {L.cargando}
+      </div>
+    );
+  }
+
+  // Featured story = first article
+  const featured = articles[0];
+  const trending = articles.slice(1, 6);
+  const sports = articles.slice(6, 11);
+  const alerts = articles.slice(11, 15);
+
+  const [modal, setModal] = useState<NewsArticle | null>(null);
+
+  // ------------------------------------------------------------
+  // PAGE RENDER
+  // ------------------------------------------------------------
   return (
     <main className="relative min-h-screen w-full text-white">
-
-      {/* CINEMATIC BACKGROUND */}
-      <div
-        className="fixed inset-0 -z-10"
-        style={{
-          backgroundImage: "url('/cinema-flags-final-v2.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(6px) brightness(0.35)"
-        }}
-      />
-
-      {/* SOFT GOLD OVERLAY */}
-      <div
-        className="fixed inset-0 -z-[5]"
-        style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.65))"
-        }}
-      />
 
       {/* NAVBAR */}
       <motion.nav
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1 }}
-        className="fixed top-0 left-0 w-full z-50 backdrop-blur-lg"
+        className="fixed top-0 left-0 w-full z-50 backdrop-blur-md"
         style={{
           background:
-            "linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.45), rgba(0,0,0,0.55))",
+            "linear-gradient(to right, rgba(0,0,0,0.45), rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
           boxShadow: "0 0 25px rgba(255,215,0,0.35)",
-          height: "96px"
+          height: "96px",
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
@@ -157,13 +128,14 @@ function NoticiasContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300">{L.cupones}</a>
           </div>
 
+          {/* CENTER LOGO */}
           <a href={nav("/home")} className="flex justify-center items-center">
             <img
               src="/logo.png"
-              className="w-[320px]"
               style={{
+                width: "320px",
                 marginTop: "135px",
-                filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))"
+                filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
               }}
             />
           </a>
@@ -177,117 +149,85 @@ function NoticiasContent() {
         </div>
       </motion.nav>
 
+      {/* BACKGROUND OVERLAY */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4), rgba(0,0,0,0.6))",
+        }}
+      />
+
       {/* MAIN CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-48 pb-32">
 
         {/* BREAKING TICKER */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full py-3 mb-10 rounded-lg backdrop-blur-md"
+        <div
+          className="w-full py-3 mb-10 rounded-lg"
           style={{
             background: "linear-gradient(to right, #FFD70033, #B8860B55)",
-            border: "1px solid rgba(255,215,0,0.4)"
+            border: "1px solid rgba(255,215,0,0.4)",
           }}
         >
-          <p className="text-center font-bold tracking-wide text-yellow-300">
-            🔥 {L.breaking}: {featured.title[lang]}
+          <p className="text-center font-bold text-yellow-300">
+            🔥 {L.breaking}: {featured?.title}
           </p>
-        </motion.div>
+        </div>
 
         {/* CATEGORIES */}
-        <h2 className="text-3xl font-extrabold text-yellow-300 mb-6">{L.categorias}</h2>
-        <div className="flex flex-wrap gap-3 mb-10">
-          {[
-            { key: "all", label: L.ultimas },
-            { key: "tendencias", label: L.tendencias },
-            { key: "deportes", label: L.deportes },
-            { key: "tecnologia", label: L.tecnologia },
-            { key: "negocios", label: L.negocios },
-            { key: "internacional", label: L.internacional },
-            { key: "cultura", label: L.cultura },
-            { key: "local", label: L.local }
-          ].map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => setCategory(cat.key)}
-              className={`px-5 py-2 rounded-full border text-sm font-bold transition ${
-                category === cat.key
-                  ? "bg-yellow-300 text-black border-yellow-300"
-                  : "bg-white/10 text-white border-white/20 hover:bg-yellow-300 hover:text-black"
-              }`}
-            >
-              {cat.label}
-            </button>
+        <div className="flex flex-wrap gap-4 mb-10 text-lg font-semibold">
+          {[L.ultimas, L.tendencias, L.deportes, L.tecnologia, L.negocios, L.internacional, L.cultura, L.local].map((cat, i) => (
+            <span key={i} className="px-4 py-2 rounded-full bg-white/10 border border-white/20">
+              {cat}
+            </span>
           ))}
         </div>
 
-        {/* MAIN GRID */}
+        {/* GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
           {/* LEFT COLUMN */}
           <div className="lg:col-span-2 space-y-10">
 
-            {/* FEATURED STORY */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl overflow-hidden shadow-2xl backdrop-blur-md"
-              style={{ border: "1px solid rgba(255,215,0,0.25)" }}
-              onClick={() => setModal(featured)}
-            >
-              <img src={featured.img} className="w-full h-80 object-cover" />
-              <div className="p-6 bg-black/60 backdrop-blur-md">
-                <h2 className="text-3xl font-extrabold text-yellow-300 drop-shadow">
-                  {featured.title[lang]}
-                </h2>
-                <p className="mt-3 text-gray-300">{featured.desc[lang]}</p>
-              </div>
-            </motion.div>
-
-            {/* FEED */}
-            {filtered.map((a) => (
-              <motion.div
-                key={a.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-5 p-4 rounded-xl backdrop-blur-md bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
-                onClick={() => setModal(a)}
+            {/* FEATURED */}
+            {featured && (
+              <div
+                className="rounded-xl overflow-hidden border border-yellow-500/30 cursor-pointer"
+                onClick={() => setModal(featured)}
               >
-                <img
-                  src={a.img}
-                  className="w-40 h-32 object-cover rounded-lg"
-                />
-                <div>
-                  <h3 className="text-xl font-bold text-yellow-300">
-                    {a.title[lang]}
-                  </h3>
-                  <p className="text-gray-300">{a.desc[lang]}</p>
+                <img src={featured.img} className="w-full h-80 object-cover" />
+                <div className="p-6">
+                  <h2 className="text-3xl font-extrabold text-yellow-300">
+                    {featured.title}
+                  </h2>
+                  <p className="text-gray-300 mt-3">{featured.desc}</p>
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            )}
+
+            {/* LIVE FEED */}
+            <div className="space-y-8">
+              {articles.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex gap-5 p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer"
+                  onClick={() => setModal(a)}
+                >
+                  <img src={a.img} className="w-40 h-32 object-cover rounded-md" />
+                  <div>
+                    <h3 className="text-xl font-bold text-yellow-300">{a.title}</h3>
+                    <p className="text-gray-300">{a.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* RIGHT SIDEBAR */}
           <div className="space-y-10">
-            <SidebarSection
-              title={L.tendencias}
-              items={allArticles.slice(0, 5)}
-              lang={lang}
-              setModal={setModal}
-            />
-            <SidebarSection
-              title={L.deportes}
-              items={allArticles.filter((a) => a.category === "deportes")}
-              lang={lang}
-              setModal={setModal}
-            />
-            <SidebarSection
-              title={L.tecnologia}
-              items={allArticles.filter((a) => a.category === "tecnologia")}
-              lang={lang}
-              setModal={setModal}
-            />
+            <Sidebar title={L.tendencias} items={trending} setModal={setModal} />
+            <Sidebar title={L.deportes} items={sports} setModal={setModal} />
+            <Sidebar title="Alerts" items={alerts} setModal={setModal} />
           </div>
         </div>
       </div>
@@ -295,30 +235,23 @@ function NoticiasContent() {
       {/* MODAL */}
       {modal && (
         <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[999]"
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999]"
           onClick={() => setModal(null)}
         >
           <div
-            className="bg-black/90 p-6 rounded-xl max-w-2xl mx-auto border border-yellow-500/40 backdrop-blur-lg"
+            className="bg-black/90 p-6 rounded-xl max-w-2xl border border-yellow-500/40"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-3xl text-yellow-300 font-bold drop-shadow mb-4">
-              {modal.title[lang]}
-            </h2>
-            <img
-              src={modal.img}
-              className="w-full h-64 object-cover rounded-lg"
-            />
-            <p className="mt-4 text-gray-200 text-lg">{modal.desc[lang]}</p>
-
-            <div className="text-right mt-6">
-              <button
-                onClick={() => setModal(null)}
-                className="px-6 py-3 bg-yellow-300 text-black font-bold rounded-lg hover:bg-yellow-400"
-              >
-                Close
-              </button>
-            </div>
+            <h2 className="text-3xl text-yellow-300 mb-4">{modal.title}</h2>
+            <img src={modal.img} className="w-full h-64 object-cover rounded-lg" />
+            <p className="mt-4 text-gray-200">{modal.desc}</p>
+            <a
+              href={modal.url}
+              target="_blank"
+              className="block mt-4 text-yellow-400 underline font-bold"
+            >
+              Ver artículo completo →
+            </a>
           </div>
         </div>
       )}
@@ -326,21 +259,27 @@ function NoticiasContent() {
   );
 }
 
-// ---------------------------------------------------------------------
 // SIDEBAR COMPONENT
-// ---------------------------------------------------------------------
-function SidebarSection({ title, items, lang, setModal }: any) {
+function Sidebar({
+  title,
+  items,
+  setModal,
+}: {
+  title: string;
+  items: NewsArticle[];
+  setModal: (a: NewsArticle) => void;
+}) {
   return (
     <div>
       <h3 className="text-2xl font-bold text-yellow-300 mb-4">{title}</h3>
       <div className="space-y-4">
-        {items.slice(0, 4).map((a) => (
+        {items.map((a) => (
           <div
             key={a.id}
-            className="p-4 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 cursor-pointer"
+            className="p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer"
             onClick={() => setModal(a)}
           >
-            <p className="text-yellow-200 font-semibold">{a.title[lang]}</p>
+            <p className="text-yellow-200 font-semibold">{a.title}</p>
           </div>
         ))}
       </div>
