@@ -1,77 +1,70 @@
 import { NextResponse } from "next/server";
 import Parser from "rss-parser";
 
-const parser: any = new Parser({
+const parser = new Parser({
   headers: {
-    "User-Agent": "ElAguilaNewsBot",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
   },
 });
 
+// ------------------------------------------------------------------
+//  RSS SOURCES (Google, Univision, Telemundo, CNN Español)
+// ------------------------------------------------------------------
+const sources = [
+  // Google News (Spanish + English)
+  "https://news.google.com/rss?hl=es-US&gl=US&ceid=US:es",
+  "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+
+  // Univision
+  "https://feeds.univision.com/rss/news.xml",
+
+  // Telemundo
+  "https://www.telemundo.com/rss.xml",
+
+  // CNN Español
+  "https://cnnespanol.cnn.com/feed/",
+];
+
+// ------------------------------------------------------------------
+//  FETCH + MERGE + CLEAN RSS FEEDS
+// ------------------------------------------------------------------
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const lang = searchParams.get("lang") || "es";
-
-  // Latino news sources (REAL feeds)
-  const feedsES = [
-    // Univision
-    "https://www.univision.com/feed/news",
-    // CNN Español
-    "http://rss.cnn.com/rss/cnn_latest.rss",
-    // BBC Mundo
-    "http://feeds.bbci.co.uk/mundo/rss.xml",
-    // El País América
-    "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
-    // Associated Press Spanish
-    "https://apnews.com/apf-latina/rss",
-    // Telemundo (unofficial but stable)
-    "https://feeds.feedburner.com/tmnews/latest",
-  ];
-
-  const feedsEN = [
-    // CNN US
-    "http://rss.cnn.com/rss/cnn_topstories.rss",
-    // AP US
-    "https://feeds.apnews.com/apf-topnews",
-    // BBC World
-    "http://feeds.bbci.co.uk/news/world/rss.xml",
-  ];
-
-  const sources = lang === "es" ? feedsES : feedsEN;
-
-  let allArticles: any[] = [];
-
   try {
+    let allArticles: any[] = [];
+
     const feedPromises = sources.map((url) =>
       parser
         .parseURL(url)
-        .then((data: any) => {
-          const items = data.items.map((item: any) => ({
-            title: item.title,
-            desc: item.contentSnippet || item.description || "",
-            link: item.link,
-            date: item.isoDate || item.pubDate || "",
-            img:
-              item.enclosure?.url ||
-              extractImage(item.content) ||
-              "/featured.png",
-          }));
-
-          return items;
-        })
-        .catch((err: any) => {
-          console.error("Feed failed:", url, err);
+        .then((feed) =>
+          feed.items.map((item) => ({
+            title: item.title || "",
+            link: item.link || "",
+            content: item.contentSnippet || item.content || "",
+            date: item.pubDate || null,
+            isoDate: item.isoDate || null,
+            img: extractImage(item.content || "") || null,
+            source: feed.title || "Unknown",
+          }))
+        )
+        .catch((err) => {
+          console.error("Feed error for URL:", url);
           return [];
         })
     );
 
     const results = await Promise.all(feedPromises);
 
-    results.forEach((arr) => {
-      allArticles = allArticles.concat(arr);
+    results.forEach((group) => {
+      allArticles = allArticles.concat(group);
     });
 
-    // Sort newest → oldest
-    allArticles.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Sort newest first (safe sort)
+    allArticles.sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      return db - da;
+    });
 
     // Return first 50 for performance
     return NextResponse.json(allArticles.slice(0, 50));
@@ -81,7 +74,9 @@ export async function GET(req: Request) {
   }
 }
 
-// Helper to extract <img> URLs from HTML content
+// ------------------------------------------------------------------
+// Extract image URL from HTML
+// ------------------------------------------------------------------
 function extractImage(html: string) {
   if (!html) return null;
   const match = html.match(/<img[^>]+src="([^">]+)"/i);
