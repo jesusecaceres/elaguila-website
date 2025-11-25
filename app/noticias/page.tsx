@@ -4,10 +4,6 @@ import React, { Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
-// ---------------------------------------------------------------
-//  OMEGA MAX — NOTICIAS HUB WITH SMART THUMBNAILS + SUMMARIES
-// ---------------------------------------------------------------
-
 export default function NoticiasPage() {
   return (
     <Suspense fallback={null}>
@@ -20,9 +16,9 @@ function NoticiasContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get("lang") || "es";
 
-  // ---------------------------------------------
-  // BILINGUAL TEXT
-  // ---------------------------------------------
+  /* -------------------------------
+     BILINGUAL TEXT
+  --------------------------------*/
   const t = {
     es: {
       noticias: "Noticias",
@@ -34,7 +30,6 @@ function NoticiasContent() {
       tienda: "Tienda",
       about: "Sobre Nosotros",
 
-      categorias: "Categorías",
       ultimas: "Últimas",
       tendencias: "Tendencias",
       deportes: "Deportes",
@@ -43,7 +38,10 @@ function NoticiasContent() {
       internacional: "Internacional",
       cultura: "Cultura Latina",
       local: "Noticias Locales",
+
       breaking: "Última Hora",
+      cargando: "Cargando noticias...",
+      verMas: "Ver artículo completo →",
     },
     en: {
       noticias: "News",
@@ -55,7 +53,6 @@ function NoticiasContent() {
       tienda: "Shop",
       about: "About Us",
 
-      categorias: "Categories",
       ultimas: "Latest",
       tendencias: "Trending",
       deportes: "Sports",
@@ -64,16 +61,38 @@ function NoticiasContent() {
       internacional: "International",
       cultura: "Latino Culture",
       local: "Local News",
-      breaking: "Breaking News",
+
+      breaking: "Breaking",
+      cargando: "Loading news...",
+      verMas: "Read full article →",
     },
   };
 
   const L = t[lang as "es" | "en"];
-  const nav = (x: string) => `${x}?lang=${lang}`;
+  const nav = (p: string) => `${p}?lang=${lang}`;
 
-  // -------------------------------------------------------------
-  // CATEGORY THUMBNAILS
-  // -------------------------------------------------------------
+  /* -------------------------------
+     CATEGORY BUTTONS
+  --------------------------------*/
+  const categories = [
+    { key: "ultimas", label: L.ultimas },
+    { key: "tendencias", label: L.tendencias },
+    { key: "deportes", label: L.deportes },
+    { key: "tecnologia", label: L.tecnologia },
+    { key: "negocios", label: L.negocios },
+    { key: "internacional", label: L.internacional },
+    { key: "cultura", label: L.cultura },
+    { key: "local", label: L.local },
+  ];
+
+  const [activeCategory, setActiveCategory] = useState("ultimas");
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState<any>(null);
+
+  /* -------------------------------
+     CATEGORY → THUMBNAIL MAP
+  --------------------------------*/
   const THUMBS: Record<string, string> = {
     ultimas: "/thumbs/thumb_ultimas.png",
     tendencias: "/thumbs/thumb_tendencias.png",
@@ -85,74 +104,75 @@ function NoticiasContent() {
     local: "/thumbs/thumb_local.png",
   };
 
-  // Map title → category → thumbnail
-  const getThumbForArticle = (title: string) => {
-    const low = title.toLowerCase();
+  const getThumbForArticle = (title: string, category: string) => {
+    const t = title.toLowerCase();
 
-    if (low.includes("deporte") || low.includes("sport")) return THUMBS.deportes;
-    if (low.includes("tech") || low.includes("tecnología")) return THUMBS.tecnologia;
-    if (low.includes("negocio") || low.includes("business")) return THUMBS.negocios;
-    if (low.includes("internacional")) return THUMBS.internacional;
-    if (low.includes("cultura")) return THUMBS.cultura;
-    if (low.includes("local")) return THUMBS.local;
-    if (low.includes("tendencia") || low.includes("trend")) return THUMBS.tendencias;
+    if (t.includes("deporte") || t.includes("sport")) return THUMBS.deportes;
+    if (t.includes("tech") || t.includes("tecnología")) return THUMBS.tecnologia;
+    if (t.includes("negocio") || t.includes("business")) return THUMBS.negocios;
+    if (t.includes("internacional")) return THUMBS.internacional;
+    if (t.includes("cultura")) return THUMBS.cultura;
+    if (t.includes("local")) return THUMBS.local;
+    if (t.includes("tendencia") || t.includes("trend")) return THUMBS.tendencias;
 
-    return THUMBS.ultimas;
+    // fallback to category
+    return THUMBS[category] || THUMBS.ultimas;
   };
 
-  // -------------------------------------------------------------
-  // AI-STYLE SUMMARY FROM DESCRIPTION
-  // -------------------------------------------------------------
-  function summarize(text: string) {
-    if (!text) return "";
+  /* -------------------------------
+     LOAD NEWS FROM BACKEND
+  --------------------------------*/
+  async function loadNews() {
+    try {
+      setLoading(true);
 
-    // Remove long garbage
-    const cleaned = text
-      .replace(/<[^>]+>/g, "")
-      .replace(/&quot;/g, '"')
-      .replace(/\s+/g, " ")
-      .trim();
+      const res = await fetch(
+        `/api/rss?category=${activeCategory}&lang=${lang}`
+      );
+      const data = await res.json();
 
-    // Google style: first 22–28 words
-    const words = cleaned.split(" ");
-    return words.slice(0, 28).join(" ") + (words.length > 28 ? "…" : "");
+      const fixed = data.map((a: any) => ({
+        ...a,
+        img: a.img || getThumbForArticle(a.title, activeCategory),
+      }));
+
+      setArticles(fixed);
+    } catch (err) {
+      console.error("NEWS LOAD ERROR:", err);
+      setArticles([]);
+    }
+
+    setLoading(false);
   }
 
-  // -------------------------------------------------------------
-  // FETCH NEWS
-  // -------------------------------------------------------------
-  const [articles, setArticles] = useState<any[]>([]);
-  const [featured, setFeatured] = useState<any | null>(null);
-  const [modal, setModal] = useState<any | null>(null);
-
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/rss");
-        const json = await res.json();
+    loadNews();
+  }, [activeCategory, lang]);
 
-        if (json.length > 0) {
-          const processed = json.map((a: any) => ({
-            ...a,
-            img: a.img || getThumbForArticle(a.title),
-            summary: summarize(a.description || a.content || ""),
-          }));
+  /* -------------------------------
+     FEATURED ARTICLE
+  --------------------------------*/
+  const featured =
+    articles[0] || ({
+      title:
+        lang === "es"
+          ? "El Águila lanza nueva plataforma digital"
+          : "El Águila launches new digital platform",
+      img: "/featured.png",
+      desc:
+        lang === "es"
+          ? "Noticias en vivo, cultura y comunidad en un solo lugar."
+          : "Live news, culture and community in one place.",
+    } as any);
 
-          setArticles(processed);
-          setFeatured(processed[0]);
-        }
-      } catch (err) {
-        console.error("RSS load failed:", err);
-      }
-    })();
-  }, [lang]);
+  const feed = articles.slice(1);
 
-  // -------------------------------------------------------------
-  // PAGE UI
-  // -------------------------------------------------------------
+  /* -------------------------------
+     PAGE UI
+  --------------------------------*/
   return (
     <main className="relative min-h-screen w-full text-white">
-      
+
       {/* NAVBAR */}
       <motion.nav
         initial={{ y: -40, opacity: 0 }}
@@ -167,8 +187,7 @@ function NoticiasContent() {
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
-
-          {/* LEFT TABS */}
+          {/* LEFT */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/noticias")} className="text-yellow-300">{L.noticias}</a>
             <a href={nav("/revista")} className="hover:text-yellow-300">{L.revista}</a>
@@ -176,7 +195,7 @@ function NoticiasContent() {
             <a href={nav("/cupones")} className="hover:text-yellow-300">{L.cupones}</a>
           </div>
 
-          {/* CENTER LOGO */}
+          {/* LOGO */}
           <a href={nav("/home")} className="flex justify-center items-center">
             <img
               src="/logo.png"
@@ -190,14 +209,13 @@ function NoticiasContent() {
             />
           </a>
 
-          {/* RIGHT TABS */}
+          {/* RIGHT */}
           <div className="flex gap-6 text-lg font-semibold">
             <a href={nav("/sorteos")} className="hover:text-yellow-300">{L.sorteos}</a>
             <a href={nav("/clasificados")} className="hover:text-yellow-300">{L.clasificados}</a>
             <a href={nav("/tienda")} className="hover:text-yellow-300">{L.tienda}</a>
             <a href={nav("/about")} className="hover:text-yellow-300">{L.about}</a>
           </div>
-
         </div>
       </motion.nav>
 
@@ -210,82 +228,99 @@ function NoticiasContent() {
         }}
       />
 
-      {/* CONTENT */}
+      {/* MAIN */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-48 pb-32">
 
-        {/* BREAKING NEWS */}
-        {featured && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full py-3 mb-10 rounded-lg"
-            style={{
-              background: "linear-gradient(to right, #FFD70033, #B8860B55)",
-              border: "1px solid rgba(255,215,0,0.4)",
-            }}
-          >
-            <p className="text-center font-bold tracking-wide text-yellow-300">
-              🔥 {L.breaking}: {featured.title}
-            </p>
-          </motion.div>
-        )}
+        {/* BREAKING */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full py-3 mb-10 rounded-lg"
+          style={{
+            background: "linear-gradient(to right, #FFD70033, #B8860B55)",
+            border: "1px solid rgba(255,215,0,0.4)",
+          }}
+        >
+          <p className="text-center font-bold tracking-wide text-yellow-300">
+            🔥 {L.breaking}: {featured.title}
+          </p>
+        </motion.div>
 
-        {/* FEATURED STORY */}
-        {featured && (
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="rounded-xl overflow-hidden shadow-lg cursor-pointer mb-16"
-            style={{ border: "1px solid rgba(255,215,0,0.25)" }}
-            onClick={() => setModal(featured)}
-          >
-            <img src={featured.img} className="w-full h-96 object-cover" />
-            <div className="p-6">
-              <h2 className="text-3xl font-extrabold text-yellow-300">{featured.title}</h2>
-              {featured.summary && (
-                <p className="mt-3 text-gray-300 text-lg">{featured.summary}</p>
-              )}
-            </div>
-          </motion.div>
-        )}
+        {/* CATEGORY TABS */}
+        <div className="flex flex-wrap gap-4 mb-10 text-lg font-semibold">
+          {categories.map((cat) => (
+            <span
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
+              className={`cursor-pointer px-4 py-2 rounded-full border transition ${
+                activeCategory === cat.key
+                  ? "bg-yellow-300 text-black border-yellow-400"
+                  : "bg-white/10 hover:bg-yellow-300 hover:text-black border-white/20"
+              }`}
+            >
+              {cat.label}
+            </span>
+          ))}
+        </div>
 
-        {/* MAIN GRID */}
+        {/* GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-          {/* FEED */}
-          <div className="lg:col-span-2 space-y-8">
-            {articles.slice(1).map((a, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-5 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
-                onClick={() => setModal(a)}
-              >
-                <img
-                  src={a.img}
-                  className="w-40 h-32 object-cover rounded-md"
-                />
-                <div>
-                  <h3 className="text-xl font-bold text-yellow-300">{a.title}</h3>
-                  {a.summary && (
-                    <p className="mt-2 text-gray-300 text-sm leading-relaxed">
-                      {a.summary}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-2 space-y-10">
+
+            {/* FEATURED */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl overflow-hidden shadow-lg cursor-pointer"
+              style={{ border: "1px solid rgba(255,215,0,0.25)" }}
+              onClick={() => setModal(featured)}
+            >
+              <img
+                src={featured.img}
+                className="w-full h-80 object-cover"
+              />
+              <div className="p-6">
+                <h2 className="text-3xl font-extrabold text-yellow-300">
+                  {featured.title}
+                </h2>
+                <p className="mt-3 text-gray-300">{featured.desc}</p>
+              </div>
+            </motion.div>
+
+            {/* FEED */}
+            {loading && <p className="text-yellow-300 text-xl">{L.cargando}</p>}
+
+            {!loading &&
+              feed.map((a, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-5 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
+                  onClick={() => setModal(a)}
+                >
+                  <img
+                    src={a.img}
+                    className="w-40 h-32 object-cover rounded-md"
+                  />
+                  <div>
+                    <h3 className="text-xl font-bold text-yellow-300">
+                      {a.title}
+                    </h3>
+                    <p className="text-gray-300">{a.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
           </div>
 
           {/* SIDEBAR */}
           <div className="space-y-10">
-            <SidebarSection title={L.tendencias} items={articles.slice(0, 6)} setModal={setModal} />
-            <SidebarSection title={L.deportes} items={articles.slice(0, 6)} setModal={setModal} />
-            <SidebarSection title={L.tecnologia} items={articles.slice(0, 6)} setModal={setModal} />
+            <Sidebar title={L.tendencias} items={feed.slice(0, 6)} setModal={setModal} />
+            <Sidebar title={L.deportes} items={feed.slice(0, 6)} setModal={setModal} />
+            <Sidebar title={L.tecnologia} items={feed.slice(0, 6)} setModal={setModal} />
           </div>
-
         </div>
       </div>
 
@@ -299,32 +334,30 @@ function NoticiasContent() {
             className="bg-black/90 p-6 rounded-xl max-w-2xl mx-auto border border-yellow-500/40"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-3xl text-yellow-300 font-bold mb-4">{modal.title}</h2>
-
-            <img src={modal.img} className="w-full h-64 object-cover rounded-lg" />
-
-            {modal.summary && (
-              <p className="mt-4 text-gray-300 text-lg leading-relaxed">{modal.summary}</p>
-            )}
-
-            <button
-              onClick={() => setModal(null)}
-              className="mt-6 px-6 py-3 bg-yellow-300 text-black font-bold rounded-lg hover:bg-yellow-400"
+            <h2 className="text-3xl text-yellow-300 mb-4">{modal.title}</h2>
+            <img
+              src={modal.img}
+              className="w-full h-64 object-cover rounded-lg"
+            />
+            <p className="mt-4 text-gray-200">{modal.desc}</p>
+            <a
+              href={modal.link}
+              target="_blank"
+              className="block mt-4 text-yellow-400 underline font-bold"
             >
-              Close
-            </button>
+              {L.verMas}
+            </a>
           </div>
         </div>
       )}
-
     </main>
   );
 }
 
-// -------------------------------------------------------------
-// SIDEBAR
-// -------------------------------------------------------------
-function SidebarSection({
+/* -------------------------------
+   SIDEBAR COMPONENT
+--------------------------------*/
+function Sidebar({
   title,
   items,
   setModal,
