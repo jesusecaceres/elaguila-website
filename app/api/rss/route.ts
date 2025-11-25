@@ -7,9 +7,9 @@ const parser = new Parser({
 });
 
 /* -------------------------------------------------------------
-   CATEGORY SOURCES — Trusted Latino Feeds
-   ------------------------------------------------------------- */
-const SOURCES: any = {
+   SPANISH SOURCES (DEFAULT)
+------------------------------------------------------------- */
+const SOURCES_ES: any = {
   deportes: [
     "https://www.univision.com/feeds/sports.xml",
     "https://www.telemundodeportes.com/rss.xml",
@@ -51,12 +51,54 @@ const SOURCES: any = {
 };
 
 /* -------------------------------------------------------------
-   GET API — /api/rss?category=deportes&lang=es
-   ------------------------------------------------------------- */
+   ENGLISH SOURCES (U.S. LATINO ENGLISH NEWS) — OPTION A
+------------------------------------------------------------- */
+const SOURCES_EN: any = {
+  deportes: [
+    "https://www.espn.com/espn/rss/news",
+    "https://news.google.com/rss/search?q=latino+sports&hl=en&gl=US&ceid=US:en",
+  ],
+  tecnologia: [
+    "https://www.theverge.com/rss/index.xml",
+    "https://www.engadget.com/rss.xml",
+    "https://news.google.com/rss/search?q=technology+latino&hl=en&gl=US&ceid=US:en",
+  ],
+  negocios: [
+    "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+    "https://www.reuters.com/finance/rss",
+    "https://news.google.com/rss/search?q=latino+business&hl=en&gl=US&ceid=US:en",
+  ],
+  internacional: [
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://rss.cnn.com/rss/cnn_world.rss",
+    "https://news.google.com/rss/search?q=latin+america+news&hl=en&gl=US&ceid=US:en",
+  ],
+  cultura: [
+    "https://news.google.com/rss/search?q=latino+culture&hl=en&gl=US&ceid=US:en",
+    "https://www.nbcnews.com/latino/latino-news/rss.xml",
+  ],
+  local: [
+    "https://news.google.com/rss/search?q=San+Jose+CA+news&hl=en&gl=US&ceid=US:en",
+    "https://www.nbcbayarea.com/feed/",
+  ],
+  ultimas: [
+    "https://news.google.com/rss/search?q=latino+news&hl=en&gl=US&ceid=US:en",
+  ],
+  tendencias: [
+    "https://news.google.com/rss/search?q=trending+latino&hl=en&gl=US&ceid=US:en",
+  ],
+};
+
+/* -------------------------------------------------------------
+   MAIN API HANDLER
+------------------------------------------------------------- */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category") || "ultimas";
   const lang = searchParams.get("lang") || "es";
+
+  // Pick source set by language
+  const SOURCES = lang === "en" ? SOURCES_EN : SOURCES_ES;
 
   const feeds = SOURCES[category] || SOURCES["ultimas"];
 
@@ -69,10 +111,7 @@ export async function GET(req: Request) {
           link: item.link,
           img: extractImage(item.content || item["content:encoded"]),
           date: item.isoDate || item.pubDate || new Date().toISOString(),
-          desc:
-            lang === "es"
-              ? item.contentSnippet
-              : item.contentSnippet,
+          desc: item.contentSnippet || "",
         }));
       } catch (err) {
         console.error("Feed error:", url, err);
@@ -83,6 +122,7 @@ export async function GET(req: Request) {
     const results = await Promise.all(promises);
     const all = results.flat();
 
+    // Sort newest first
     all.sort(
       (a: any, b: any) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -96,8 +136,8 @@ export async function GET(req: Request) {
 }
 
 /* -------------------------------------------------------------
-   Helper: Extract image URL from HTML
-   ------------------------------------------------------------- */
+   IMAGE EXTRACTOR
+------------------------------------------------------------- */
 function extractImage(html?: string) {
   if (!html) return null;
   const match = html.match(/<img[^>]+src="([^">]+)"/i);
