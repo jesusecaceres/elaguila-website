@@ -1,147 +1,31 @@
-"use client";
+const PAGES = [1, 2, 3];
 
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-
-export default function MagazineSwipeJanuary2026() {
-  const TOTAL_PAGES = 5;
-  const [page, setPage] = useState(1);
-
-  const goNext = () => {
-    if (page < TOTAL_PAGES) setPage(page + 1);
-  };
-
-  const goPrev = () => {
-    if (page > 1) setPage(page - 1);
-  };
-
-  const pages = [
-    {
-      id: 1,
-      type: "image",
-      src: "/magazine-pages/january-2026/page1-placeholder.jpg",
-    },
-    {
-      id: 2,
-      type: "video",
-      src: "/videos/sample-video.mp4",
-    },
-    {
-      id: 3,
-      type: "coupon",
-      src: "/placeholders/featured-coupon.jpg",
-    },
-    {
-      id: 4,
-      type: "sweepstakes",
-      src: "/placeholders/featured-sweepstakes.jpg",
-    },
-    {
-      id: 5,
-      type: "image",
-      src: "/magazine-pages/january-2026/page5-placeholder.jpg",
-    },
-  ];
-
-  const currentPage = pages.find((p) => p.id === page);
-
+export default function January2026Reader() {
   return (
-    <main className="w-full h-screen bg-black text-white select-none relative overflow-hidden">
+    <main className="min-h-screen w-full bg-black text-white pt-28 pb-16 px-4 md:px-10">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-yellow-300 mb-6 drop-shadow">
+          January 2026 — Digital Reader
+        </h1>
+        <p className="text-gray-300 mb-4">
+          Replace the placeholder images in{" "}
+          <code className="text-xs">public/magazine-pages/2026/january/</code>{" "}
+          with exported JPG pages from your real magazine (page-01.jpg, page-02.jpg, etc.).
+        </p>
 
-      {/* HEADER BUTTONS */}
-      <div className="absolute top-4 left-4 z-50 flex gap-4">
-        <Link
-          href="/magazine/2026/january"
-          className="px-6 py-2 text-lg font-semibold bg-white/10 rounded-xl hover:bg-white/20 transition"
-        >
-          ← Back
-        </Link>
-      </div>
-
-      {/* PAGE COUNTER */}
-      <div className="absolute top-4 right-6 z-50 text-xl font-bold opacity-80">
-        {page} / {TOTAL_PAGES}
-      </div>
-
-      <div className="w-full h-full flex items-center justify-center px-4 relative">
-
-        {/* LEFT TAP ZONE */}
-        <div
-          onClick={goPrev}
-          className="absolute left-0 top-0 h-full w-1/3 cursor-pointer"
-        />
-
-        {/* RIGHT TAP ZONE */}
-        <div
-          onClick={goNext}
-          className="absolute right-0 top-0 h-full w-1/3 cursor-pointer"
-        />
-
-        {/* PAGE CONTENT */}
-        <div className="w-full max-w-xl h-[85%] bg-black rounded-2xl overflow-hidden shadow-2xl relative border border-white/20">
-
-          {/* IMAGE PAGE */}
-          {currentPage?.type === "image" && (
-            <div className="relative w-full h-full">
-              <Image
-                src={currentPage.src}
-                alt="Magazine Page"
-                fill
-                className="object-cover"
+        <div className="space-y-8">
+          {PAGES.map((page) => (
+            <div
+              key={page}
+              className="bg-neutral-900/80 border border-neutral-700/80 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <img
+                src={`/magazine-pages/2026/january/page-${String(page).padStart(2, "0")}.jpg`}
+                alt={`January 2026 - Page ${page}`}
+                className="w-full h-auto object-contain"
               />
             </div>
-          )}
-
-          {/* VIDEO PAGE */}
-          {currentPage?.type === "video" && (
-            <video
-              src={currentPage.src}
-              controls
-              className="w-full h-full object-cover"
-            />
-          )}
-
-          {/* COUPON PAGE */}
-          {currentPage?.type === "coupon" && (
-            <div className="w-full h-full flex flex-col items-center justify-center p-6">
-              <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden mb-6 shadow-xl">
-                <Image
-                  src={currentPage.src}
-                  alt="Coupon"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <Link
-                href="#"
-                className="text-yellow-300 text-2xl font-bold hover:underline"
-              >
-                Redeem coupon →
-              </Link>
-            </div>
-          )}
-
-          {/* SWEEPSTAKES PAGE */}
-          {currentPage?.type === "sweepstakes" && (
-            <div className="w-full h-full flex flex-col items-center justify-center p-6">
-              <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden mb-6 shadow-xl">
-                <Image
-                  src={currentPage.src}
-                  alt="Sweepstakes"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <Link
-                href="/sorteos/january-2026"
-                className="text-yellow-300 text-2xl font-bold hover:underline"
-              >
-                Enter now →
-              </Link>
-            </div>
-          )}
-
+          ))}
         </div>
       </div>
     </main>

@@ -3,6 +3,7 @@
 import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
+import Navbar from "../components/Navbar";
 
 export default function HomePage() {
   return (
@@ -55,53 +56,8 @@ function HomePageContent() {
   return (
     <main className="relative min-h-screen w-full text-white">
 
-      {/* NAVBAR */}
-      <motion.nav
-        initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 1 }}
-        className="fixed top-0 left-0 w-full z-50 backdrop-blur-md"
-        style={{
-          background:
-            "linear-gradient(to right, rgba(0,0,0,0.45), rgba(0,0,0,0.35), rgba(0,0,0,0.45))",
-          boxShadow: "0 0 25px rgba(255,215,0,0.35)",
-          height: "96px",
-        }}
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-full">
-
-          {/* LEFT TABS */}
-          <div className="flex gap-6 text-lg font-semibold">
-            <a href={nav("/noticias")} className="hover:text-yellow-300 transition">{L.noticias}</a>
-            <a href={nav("/revista")} className="hover:text-yellow-300 transition">{L.revista}</a>
-            <a href={nav("/eventos")} className="hover:text-yellow-300 transition">{L.eventos}</a>
-            <a href={nav("/cupones")} className="hover:text-yellow-300 transition">{L.cupones}</a>
-          </div>
-
-          {/* CENTER LOGO — LOWERED TO 135PX */}
-          <a href={nav("/home")} className="flex justify-center items-center">
-            <img
-              src="/logo.png"
-              alt="El Aguila Logo"
-              style={{
-                width: "320px",
-                height: "auto",
-                marginTop: "135px",   // ⭐ NEW LOWER POSITION
-                filter: "drop-shadow(0 0 45px rgba(255,215,0,0.85))",
-              }}
-            />
-          </a>
-
-          {/* RIGHT TABS */}
-          <div className="flex gap-6 text-lg font-semibold">
-            <a href={nav("/sorteos")} className="hover:text-yellow-300 transition">{L.sorteos}</a>
-            <a href={nav("/clasificados")} className="hover:text-yellow-300 transition">{L.clasificados}</a>
-            <a href={nav("/tienda")} className="hover:text-yellow-300 transition">{L.tienda}</a>
-            <a href={nav("/about")} className="hover:text-yellow-300 transition">{L.about}</a>
-          </div>
-
-        </div>
-      </motion.nav>
+      {/* ⭐ NEW UNIVERSAL NAVBAR */}
+      <Navbar />
 
       {/* BACKGROUND OVERLAY */}
       <div
@@ -156,6 +112,7 @@ function HomePageContent() {
 
           <p className="mt-4 text-gray-300 text-lg">{L.pronto}</p>
         </section>
+
       </div>
     </main>
   );
