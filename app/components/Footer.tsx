@@ -1,5 +1,5 @@
 export default function Footer({ lang = "es" }: { lang?: string }) {
-  const L = {
+  const L = ({
     es: {
       follow: "Síguenos",
       contact: "Contacto",
@@ -20,11 +20,12 @@ export default function Footer({ lang = "es" }: { lang?: string }) {
       phone: "Phone",
       rights: "© 2026 El Águila — Latino Pride Without Borders.",
     },
-  }[lang];
-
+  } as const)[lang]!;
+  
   return (
     <footer className="w-full bg-black/80 text-white py-12 mt-20 border-t border-yellow-500/30">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
+
         <div>
           <h3 className="text-xl font-bold text-yellow-400 mb-3">{L.follow}</h3>
           <ul className="space-y-2">
@@ -49,6 +50,7 @@ export default function Footer({ lang = "es" }: { lang?: string }) {
           </a>
         </div>
       </div>
+
       <p className="text-center text-gray-400 mt-10 text-sm">{L.rights}</p>
     </footer>
   );
