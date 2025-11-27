@@ -1,93 +1,105 @@
 "use client";
-import Link from "next/link";
+
 import { useSearchParams } from "next/navigation";
-import { FaInstagram, FaFacebook, FaYoutube, FaTiktok } from "react-icons/fa";
 
 export default function Footer() {
   const searchParams = useSearchParams();
-  const lang = searchParams.get("lang") === "en" ? "en" : "es";
+  const langParam = searchParams.get("lang");
+  const lang = langParam === "en" ? "en" : "es";
 
   const t = {
     es: {
-      home: "Inicio",
-      magazine: "Revista",
-      coupons: "Cupones",
-      sweepstakes: "Sorteos",
-      winners: "Ganadores",
-      rules: "Reglas",
+      follow: "Síguenos",
       contact: "Contacto",
-      made: "Hecho en San José, California",
-      rights: "Todos los derechos reservados."
+      advertise: "Anuncia con Nosotros",
+      adText:
+        "El Águila es tu mejor plataforma para llegar a la comunidad Latina del Área de la Bahía.",
+      moreInfo: "Más información →",
+      email: "Email",
+      phone: "Tel",
+      copyright: "© 2026 El Águila — Orgullo Latino Sin Fronteras.",
+      contactLink: "/contacto?lang=es",
     },
     en: {
-      home: "Home",
-      magazine: "Magazine",
-      coupons: "Coupons",
-      sweepstakes: "Sweepstakes",
-      winners: "Winners",
-      rules: "Rules",
+      follow: "Follow Us",
       contact: "Contact",
-      made: "Made in San José, California",
-      rights: "All rights reserved."
-    }
-  }[lang];
+      advertise: "Advertise With Us",
+      adText:
+        "El Águila is the top platform to reach the Latino community in the Bay Area.",
+      moreInfo: "Learn more →",
+      email: "Email",
+      phone: "Phone",
+      copyright: "© 2026 El Águila — Latino Pride Without Borders.",
+      contactLink: "/contact?lang=en",
+    },
+  };
 
-  const switchLang = lang === "en" ? "es" : "en";
-  const switchLabel = lang === "en" ? "ESP" : "ENG";
+  const L = t[lang];
 
   return (
-    <footer className="w-full mt-20 bg-black/70 backdrop-blur-xl border-t border-white/10 text-white pt-10 pb-6">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
+    <footer className="w-full bg-black/80 text-white py-12 mt-20 border-t border-yellow-500/30">
+      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
 
-        {/* LEFT */}
+        {/* Social Media */}
         <div>
-          <h2 className="text-2xl font-extrabold">El Águila en Vuelo</h2>
-          <p className="text-yellow-400 font-semibold">Orgullo Latino Sin Fronteras</p>
-          <p className="mt-2 opacity-70">{t.made}</p>
+          <h3 className="text-xl font-bold text-yellow-400 mb-3">{L.follow}</h3>
+          <ul className="space-y-2">
+            <li>
+              <a
+                href="https://facebook.com/elaguilamagazine"
+                target="_blank"
+                className="hover:text-yellow-300"
+              >
+                Facebook
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://instagram.com/elaguila_magazine"
+                target="_blank"
+                className="hover:text-yellow-300"
+              >
+                Instagram
+              </a>
+            </li>
+            <li>
+              <a href="#" className="hover:text-yellow-300">
+                TikTok
+              </a>
+            </li>
+            <li>
+              <a href="#" className="hover:text-yellow-300">
+                YouTube
+              </a>
+            </li>
+          </ul>
         </div>
 
-        {/* CENTER LINKS */}
-        <div className="flex flex-col space-y-2 text-lg">
-          <Link href={`/home?lang=${lang}`} className="hover:text-yellow-400">{t.home}</Link>
-          <Link href={`/revista?lang=${lang}`} className="hover:text-yellow-400">{t.magazine}</Link>
-          <Link href={`/cupones?lang=${lang}`} className="hover:text-yellow-400">{t.coupons}</Link>
-          <Link href={`/sorteos?lang=${lang}`} className="hover:text-yellow-400">{t.sweepstakes}</Link>
-          <Link href={`/sorteos/ganadores?lang=${lang}`} className="hover:text-yellow-400">{t.winners}</Link>
-          <Link href={`/legal/sweepstakes-rules?lang=${lang}`} className="hover:text-yellow-400">{t.rules}</Link>
-          <a href="mailto:support@elaguilamedia.com" className="hover:text-yellow-400">{t.contact}</a>
+        {/* Contact */}
+        <div>
+          <h3 className="text-xl font-bold text-yellow-400 mb-3">{L.contact}</h3>
+          <p>
+            {L.email}: support@elaguilamedia.com
+          </p>
+          <p>
+            {L.phone}: 4081234567
+          </p>
         </div>
 
-        {/* RIGHT SOCIAL ICONS */}
-        <div className="flex flex-col space-y-3">
-          <div className="flex space-x-5 text-3xl">
-            <a href="https://instagram.com/elaguila_magazine" target="_blank" className="hover:text-yellow-400">
-              <FaInstagram />
-            </a>
-            <a href="https://facebook.com/elaguilamagazine" target="_blank" className="hover:text-yellow-400">
-              <FaFacebook />
-            </a>
-            <span className="opacity-30 cursor-not-allowed">
-              <FaYoutube />
-            </span>
-            <span className="opacity-30 cursor-not-allowed">
-              <FaTiktok />
-            </span>
-          </div>
-
-          {/* Language Toggle */}
-          <Link
-            href={`?lang=${switchLang}`}
-            className="mt-4 underline opacity-80 hover:text-yellow-400"
+        {/* Advertising */}
+        <div>
+          <h3 className="text-xl font-bold text-yellow-400 mb-3">{L.advertise}</h3>
+          <p className="text-gray-300">{L.adText}</p>
+          <a
+            href={L.contactLink}
+            className="text-yellow-300 underline mt-2 inline-block"
           >
-            {switchLabel}
-          </Link>
+            {L.moreInfo}
+          </a>
         </div>
       </div>
 
-      {/* Bottom Line */}
-      <div className="w-full text-center mt-10 pt-4 border-t border-white/10 opacity-70 text-sm">
-        © 2025 El Águila en Vuelo — {t.rights}
-      </div>
+      <p className="text-center text-gray-400 mt-10 text-sm">{L.copyright}</p>
     </footer>
   );
 }
