@@ -11,32 +11,31 @@ export default function Navbar() {
 
   const [lang, setLang] = useState(urlLang || "es");
 
-  // -------------------------------------------
-  // 🔥 AUTO-DETECT LANGUAGE FOR MAGAZINE/REVISTA
-  // -------------------------------------------
+  // AUTO-DETECT LANGUAGE
   useEffect(() => {
     if (!pathname) return;
 
     if (pathname.startsWith("/magazine")) {
-      setLang("en"); // FORCE ENGLISH
+      setLang("en");
       return;
     }
 
     if (pathname.startsWith("/revista")) {
-      setLang("es"); // FORCE SPANISH
+      setLang("es");
       return;
     }
 
-    // Everywhere else, use ?lang=
     if (urlLang === "en" || urlLang === "es") {
       setLang(urlLang);
     }
-
   }, [pathname, urlLang]);
 
-  // ------------------------------
-  // 🔤 TRANSLATIONS (UNCHANGED)
-  // ------------------------------
+  // FIXED URL BUILDER (no duplicates)
+  const buildLink = (href: string) => {
+    const cleanHref = href.split("?")[0]; // remove old params
+    return `${cleanHref}?lang=${lang}`;
+  };
+
   const t = {
     es: {
       home: "Inicio",
@@ -68,17 +67,6 @@ export default function Navbar() {
 
   const L = t[lang as "es" | "en"];
 
-  // -----------------------------------------
-  // REBUILD CURRENT URL WITH UPDATED ?lang=
-  // -----------------------------------------
-  const buildLink = (href: string) => {
-    if (href.includes("?")) return `${href}&lang=${lang}`;
-    return `${href}?lang=${lang}`;
-  };
-
-  // -----------------------------------------
-  // UI (UNCHANGED)
-  // -----------------------------------------
   return (
     <nav
       className="
@@ -88,14 +76,12 @@ export default function Navbar() {
         py-4 px-6 flex justify-between items-center
       "
     >
-      {/* LOGO */}
       <Link href={buildLink("/")}>
         <span className="text-2xl font-bold text-yellow-400 drop-shadow">
           El Águila
         </span>
       </Link>
 
-      {/* NAV LINKS */}
       <div className="hidden md:flex gap-6 text-white text-sm font-medium">
         <Link href={buildLink("/")}>{L.home}</Link>
         <Link href={buildLink("/noticias")}>{L.news}</Link>
@@ -114,14 +100,20 @@ export default function Navbar() {
 
       {/* LANGUAGE TOGGLE */}
       <div className="flex gap-3">
-        <Link href={buildLink(pathname + "?lang=es")}>
-          <span className={lang === "es" ? "text-yellow-400" : "text-white/70"}>
+        <Link href={buildLink(pathname)}>
+          <span
+            className={lang === "es" ? "text-yellow-400" : "text-white/70"}
+            onClick={() => setLang("es")}
+          >
             ES
           </span>
         </Link>
         <span className="text-white/40">|</span>
-        <Link href={buildLink(pathname + "?lang=en")}>
-          <span className={lang === "en" ? "text-yellow-400" : "text-white/70"}>
+        <Link href={buildLink(pathname)}>
+          <span
+            className={lang === "en" ? "text-yellow-400" : "text-white/70"}
+            onClick={() => setLang("en")}
+          >
             EN
           </span>
         </Link>
