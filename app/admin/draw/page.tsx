@@ -1,6 +1,8 @@
 "use client";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 import { useEffect, useState } from "react";
 import Navbar from "@/app/components/Navbar";
@@ -9,11 +11,13 @@ export default function AdminDrawPage() {
   const [entries, setEntries] = useState<any[]>([]);
   const [winner, setWinner] = useState<any | null>(null);
 
-  // Load entries from localStorage (temporary)
+  // Load entries from localStorage (client only)
   useEffect(() => {
-    const stored = localStorage.getItem("sweepstakesEntries");
-    if (stored) {
-      setEntries(JSON.parse(stored));
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("sweepstakesEntries");
+      if (stored) {
+        setEntries(JSON.parse(stored));
+      }
     }
   }, []);
 
@@ -24,7 +28,7 @@ export default function AdminDrawPage() {
     setWinner(entries[randomIndex]);
   };
 
-  // Convert entries into “lottery balls”
+  // Convert entries into lottery balls (safe in client)
   const ballSet = entries.map((entry: any, i: number) => ({
     id: i,
     label: `${entry.email?.substring(0, 3)}***`,
