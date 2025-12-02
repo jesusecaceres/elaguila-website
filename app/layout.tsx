@@ -1,8 +1,10 @@
+"use client";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// Components (correct path for your structure)
+// Components
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -21,14 +23,12 @@ export const metadata: Metadata = {
   description: "Orgullo Latino Sin Fronteras.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <Navbar />
         {children}
         <Footer />
