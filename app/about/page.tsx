@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export default function AboutPage() {
   return (
     <main className="min-h-screen w-full bg-black text-white flex items-center justify-center p-10">
