@@ -2,15 +2,18 @@
 
 import Navbar from "@/app/components/Navbar";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function ContactPage() {
+function ContactContent() {
   const params = useSearchParams();
-  const lang = params.get("lang") || "en"; // future-proof bilingual toggle
+  const lang = params.get("lang") || "en";
 
   return (
     <main className="min-h-screen w-full bg-black text-white">
       {/* NAVBAR */}
-      <Navbar />
+      <Suspense fallback={null}>
+        <Navbar />
+      </Suspense>
 
       <div className="pt-32 pb-20 px-6 max-w-4xl mx-auto">
         {/* HEADER */}
@@ -63,7 +66,8 @@ export default function ContactPage() {
               <label className="block mb-1 text-gray-300">Full Name</label>
               <input
                 type="text"
-                className="w-full p-3 rounded-lg bg-black border border-neutral-700 text-white focus:outline-none focus:border-yellow-400"
+                className="w-full p-3 rounded-lg bg-black border border-neutral-700 text-white
+                focus:outline-none focus:border-yellow-400"
                 placeholder="Your name"
               />
             </div>
@@ -73,7 +77,8 @@ export default function ContactPage() {
               <label className="block mb-1 text-gray-300">Email</label>
               <input
                 type="email"
-                className="w-full p-3 rounded-lg bg-black border border-neutral-700 text-white focus:outline-none focus:border-yellow-400"
+                className="w-full p-3 rounded-lg bg-black border border-neutral-700 text-white
+                focus:outline-none focus:border-yellow-400"
                 placeholder="you@example.com"
               />
             </div>
@@ -83,7 +88,8 @@ export default function ContactPage() {
               <label className="block mb-1 text-gray-300">Message</label>
               <textarea
                 rows={5}
-                className="w-full p-3 rounded-lg bg-black border border-neutral-700 text-white focus:outline-none focus:border-yellow-400"
+                className="w-full p-3 rounded-lg bg-black border border-neutral-700 text-white
+                focus:outline-none focus:border-yellow-400"
                 placeholder="Write your message here"
               ></textarea>
             </div>
@@ -103,5 +109,13 @@ export default function ContactPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={null}>
+      <ContactContent />
+    </Suspense>
   );
 }
