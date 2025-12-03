@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function Navbar() {
+function NavbarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlLang = searchParams.get("lang");
 
   const [lang, setLang] = useState(urlLang || "es");
 
-  // AUTO-DETECT LANGUAGE
   useEffect(() => {
     if (!pathname) return;
 
@@ -30,9 +29,8 @@ export default function Navbar() {
     }
   }, [pathname, urlLang]);
 
-  // FIXED URL BUILDER (no duplicates)
   const buildLink = (href: string) => {
-    const cleanHref = href.split("?")[0]; // remove old params
+    const cleanHref = href.split("?")[0];
     return `${cleanHref}?lang=${lang}`;
   };
 
@@ -62,20 +60,16 @@ export default function Navbar() {
       contact: "Contact",
       about: "About Us",
       advertise: "Advertise with us",
-    },
+    }
   };
 
   const L = t[lang as "es" | "en"];
 
   return (
-    <nav
-      className="
-        fixed top-0 left-0 w-full z-50
-        backdrop-blur-md bg-black/40
-        border-b border-white/10
-        py-4 px-6 flex justify-between items-center
-      "
-    >
+    <nav className="
+      fixed top-0 left-0 w-full z-50 backdrop-blur-md bg-black/40
+      border-b border-white/10 py-4 px-6 flex justify-between items-center
+    ">
       <Link href={buildLink("/")}>
         <span className="text-2xl font-bold text-yellow-400 drop-shadow">
           El Águila
@@ -98,7 +92,6 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* LANGUAGE TOGGLE */}
       <div className="flex gap-3">
         <Link href={buildLink(pathname)}>
           <span
@@ -119,5 +112,13 @@ export default function Navbar() {
         </Link>
       </div>
     </nav>
+  );
+}
+
+export default function Navbar() {
+  return (
+    <Suspense fallback={null}>
+      <NavbarContent />
+    </Suspense>
   );
 }
