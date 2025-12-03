@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Navbar from "@/app/components/Navbar";
 
 export default function AdminDrawPage() {
   const [entries, setEntries] = useState<any[]>([]);
   const [winner, setWinner] = useState<any | null>(null);
 
-  // Load entries from localStorage (client only)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("sweepstakesEntries");
@@ -24,7 +23,6 @@ export default function AdminDrawPage() {
     setWinner(entries[randomIndex]);
   };
 
-  // Convert entries into lottery balls (safe in client)
   const ballSet = entries.map((entry: any, i: number) => ({
     id: i,
     label: `${entry.email?.substring(0, 3)}***`,
@@ -33,14 +31,15 @@ export default function AdminDrawPage() {
 
   return (
     <main className="min-h-screen bg-black text-white pb-20">
-      <Navbar />
+      <Suspense fallback={null}>
+        <Navbar />
+      </Suspense>
 
       <div className="pt-28 max-w-2xl mx-auto px-6">
         <h1 className="text-4xl font-bold text-center text-yellow-400">
           Sorteo — Admin
         </h1>
 
-        {/* DRAW BUTTON */}
         <button
           className="mt-10 w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition"
           onClick={drawWinner}
@@ -48,7 +47,6 @@ export default function AdminDrawPage() {
           Elegir Ganador
         </button>
 
-        {/* WINNER BOX */}
         {winner && (
           <div className="mt-8 p-6 bg-yellow-500 text-black rounded-xl shadow-xl text-center">
             <h2 className="text-3xl font-bold">🎉 Ganador 🎉</h2>
@@ -57,7 +55,6 @@ export default function AdminDrawPage() {
           </div>
         )}
 
-        {/* LOTTERY BALLS */}
         <h2 className="text-2xl mt-14 text-yellow-400 font-bold">
           Participantes ({ballSet.length})
         </h2>
