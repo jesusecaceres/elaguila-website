@@ -1,24 +1,32 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState, Suspense } from "react";
 import Navbar from "@/app/components/Navbar";
 
 export default function AdminDrawPage() {
+  return (
+    <Suspense fallback={<div className="text-white p-10">Loading...</div>}>
+      <AdminDrawContent />
+    </Suspense>
+  );
+}
+
+function AdminDrawContent() {
   const [entries, setEntries] = useState<any[]>([]);
   const [winner, setWinner] = useState<any | null>(null);
 
+  // Load entries from localStorage (client only)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("sweepstakesEntries");
-      if (stored) {
-        setEntries(JSON.parse(stored));
-      }
+    const stored = localStorage.getItem("sweepstakesEntries");
+    if (stored) {
+      setEntries(JSON.parse(stored));
     }
   }, []);
 
   const drawWinner = () => {
     if (entries.length === 0) return;
-
     const randomIndex = Math.floor(Math.random() * entries.length);
     setWinner(entries[randomIndex]);
   };
@@ -31,9 +39,7 @@ export default function AdminDrawPage() {
 
   return (
     <main className="min-h-screen bg-black text-white pb-20">
-      <Suspense fallback={null}>
-        <Navbar />
-      </Suspense>
+      <Navbar />
 
       <div className="pt-28 max-w-2xl mx-auto px-6">
         <h1 className="text-4xl font-bold text-center text-yellow-400">
