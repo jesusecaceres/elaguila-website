@@ -87,7 +87,7 @@ function HomePageContent() {
             className="mt-6 flex justify-center"
           >
             <a href={magazineLink}>
-              <div className="w-64 h-[25rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
+              <div className="w-72 h-[25rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
                 <img
                   src="/home_thumbnail.png"
                   alt="Current Magazine Cover"
