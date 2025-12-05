@@ -13,11 +13,11 @@ function NavbarContent() {
   const [lang, setLang] = useState<"es" | "en">(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Hide on cinematic intro
+  // Hide navbar on cinematic intro
   if (pathname === "/") return null;
 
   useEffect(() => {
-    if (urlLang === "en" || urlLang === "es") setLang(urlLang);
+    if (urlLang === "es" || urlLang === "en") setLang(urlLang);
   }, [urlLang]);
 
   const t = {
@@ -51,14 +51,16 @@ function NavbarContent() {
 
   const L = t[lang];
 
+  // Fix Inicio/Home → always goes to /home?lang={}
   const buildLink = (href: string) => {
+    if (href === "/") return `/home?lang=${lang}`;
     const cleanHref = href.split("?")[0];
     return `${cleanHref}?lang=${lang}`;
   };
 
   const switchLang = (target: "es" | "en") => {
-    const cleanPath = pathname.split("?")[0];
-    router.push(`${cleanPath}?lang=${target}`);
+    const clean = pathname.split("?")[0];
+    router.push(`${clean}?lang=${target}`);
   };
 
   const navLinks = [
@@ -80,8 +82,7 @@ function NavbarContent() {
       className="
         fixed top-0 left-0 w-full z-50
         backdrop-blur-md bg-black/40
-        border-b-0              /* underline removed */
-        py-2 px-6 
+        border-b-0 py-2 px-6
         flex justify-center items-center
       "
     >
@@ -91,7 +92,11 @@ function NavbarContent() {
           <Link
             key={i}
             href={buildLink(item.href)}
-            className={item.gold ? "text-yellow-300 font-semibold" : ""}
+            className={
+              item.gold
+                ? "text-yellow-300 font-bold"
+                : "hover:text-yellow-200 transition"
+            }
           >
             {item.label}
           </Link>
@@ -102,20 +107,20 @@ function NavbarContent() {
       <div className="hidden md:flex gap-3 absolute right-6 text-sm">
         <button
           onClick={() => switchLang("es")}
-          className={lang === "es" ? "text-yellow-400" : "text-white/70"}
+          className={lang === "es" ? "text-yellow-400 font-semibold" : "text-white/70"}
         >
           ES
         </button>
         <span className="text-white/40">|</span>
         <button
           onClick={() => switchLang("en")}
-          className={lang === "en" ? "text-yellow-400" : "text-white/70"}
+          className={lang === "en" ? "text-yellow-400 font-semibold" : "text-white/70"}
         >
           EN
         </button>
       </div>
 
-      {/* MOBILE MENU BUTTON */}
+      {/* MOBILE HAMBURGER */}
       <button
         className="md:hidden text-white text-2xl absolute right-6"
         onClick={() => setMobileOpen(true)}
@@ -127,8 +132,11 @@ function NavbarContent() {
       {mobileOpen && (
         <div
           className="
-            fixed top-0 right-0 h-full w-64 bg-black/90
-            backdrop-blur-xl z-[999] p-6 flex flex-col gap-6
+            fixed top-0 right-0 
+            min-h-[70vh] w-64
+            bg-black/90 backdrop-blur-xl
+            rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)]
+            z-[999] p-6 pt-10 flex flex-col gap-6
           "
         >
           <button
@@ -143,15 +151,17 @@ function NavbarContent() {
               key={i}
               href={buildLink(item.href)}
               onClick={() => setMobileOpen(false)}
-              className={`text-lg ${
-                item.gold ? "text-yellow-300" : "text-white"
-              }`}
+              className={`
+                text-lg font-semibold 
+                ${item.gold ? "text-yellow-300" : "text-white"}
+              `}
             >
               {item.label}
             </Link>
           ))}
 
-          <div className="flex gap-4 pt-4 text-white text-lg">
+          {/* LANGUAGE TOGGLE MOBILE */}
+          <div className="flex gap-6 pt-6 text-white text-lg font-semibold">
             <button
               onClick={() => {
                 switchLang("es");
@@ -161,6 +171,7 @@ function NavbarContent() {
             >
               ES
             </button>
+
             <button
               onClick={() => {
                 switchLang("en");
