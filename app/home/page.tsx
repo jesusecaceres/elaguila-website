@@ -1,7 +1,6 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 
 export default function HomePage() {
@@ -27,42 +26,4 @@ function HomePageContent() {
       bienvenidos: "Welcome to",
       comunidad: "Community, Culture & Latino Pride",
       revistaActual: "Digital Magazine — Current Edition",
-      pronto: "Soon you will be able to browse the first digital edition."
-    }
-  };
-
-  const L = t[lang as "es" | "en"];
-  const magazineLink = `/magazine?lang=${lang}`;
-
-  return (
-    <main className="relative min-h-screen w-full text-white">
-      {/* BACKGROUND OVERLAY */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0.4), rgba(0,0,0,0.65))"
-        }}
-      />
-
-      {/* MAIN CONTENT */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
-        
-        {/* MAIN TITLE */}
-        <motion.h1
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1 }}
-          className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-[0_0_12px_rgba(255,215,0,0.5)]"
-        >
-          {L.bienvenidos} <span className="text-yellow-400">El Águila</span>
-        </motion.h1>
-
-        {/* SUBTITLE */}
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 1 }}
-          className="mt-4 text-lg md:text-xl font-light text-gray-200"
-        >
-          {L.comunidad}
+      pronto: "Soon y
