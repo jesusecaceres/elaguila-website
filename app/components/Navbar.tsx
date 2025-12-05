@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 
@@ -14,13 +13,11 @@ function NavbarContent() {
   const [lang, setLang] = useState<"es" | "en">(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Hide navbar on cinematic intro (homepage /)
+  // Hide on cinematic intro
   if (pathname === "/") return null;
 
   useEffect(() => {
-    if (urlLang === "en" || urlLang === "es") {
-      setLang(urlLang);
-    }
+    if (urlLang === "en" || urlLang === "es") setLang(urlLang);
   }, [urlLang]);
 
   const t = {
@@ -36,8 +33,6 @@ function NavbarContent() {
       contact: "Contacto",
       about: "Nosotros",
       advertise: "Anúnciate",
-      toggleES: "ES",
-      toggleEN: "EN",
     },
     en: {
       home: "Home",
@@ -51,8 +46,6 @@ function NavbarContent() {
       contact: "Contact",
       about: "About Us",
       advertise: "Advertise",
-      toggleES: "ES",
-      toggleEN: "EN",
     },
   };
 
@@ -85,24 +78,15 @@ function NavbarContent() {
   return (
     <nav
       className="
-        fixed top-0 left-0 w-full z-50 backdrop-blur-md
-        bg-black/40 border-b border-white/10 py-4 px-6
-        flex justify-between items-center
+        fixed top-0 left-0 w-full z-50
+        backdrop-blur-md bg-black/40
+        border-b-0              /* underline removed */
+        py-2 px-6 
+        flex justify-center items-center
       "
     >
-      {/* LEFT – LOGO */}
-      <Link href={buildLink("/")} className="flex items-center">
-        <Image
-          src="/logo.png"
-          alt="El Águila Logo"
-          width={130}
-          height={50}
-          className="object-contain drop-shadow"
-        />
-      </Link>
-
       {/* DESKTOP MENU */}
-      <div className="hidden md:flex gap-6 text-white text-sm font-medium">
+      <div className="hidden md:flex gap-8 text-white text-sm font-medium">
         {navLinks.map((item, i) => (
           <Link
             key={i}
@@ -115,7 +99,7 @@ function NavbarContent() {
       </div>
 
       {/* LANGUAGE TOGGLE */}
-      <div className="hidden md:flex gap-3">
+      <div className="hidden md:flex gap-3 absolute right-6 text-sm">
         <button
           onClick={() => switchLang("es")}
           className={lang === "es" ? "text-yellow-400" : "text-white/70"}
@@ -131,9 +115,9 @@ function NavbarContent() {
         </button>
       </div>
 
-      {/* MOBILE HAMBURGER */}
+      {/* MOBILE MENU BUTTON */}
       <button
-        className="md:hidden text-white text-2xl"
+        className="md:hidden text-white text-2xl absolute right-6"
         onClick={() => setMobileOpen(true)}
       >
         ☰
@@ -143,11 +127,10 @@ function NavbarContent() {
       {mobileOpen && (
         <div
           className="
-            fixed top-0 right-0 h-full w-64 bg-black/80
+            fixed top-0 right-0 h-full w-64 bg-black/90
             backdrop-blur-xl z-[999] p-6 flex flex-col gap-6
           "
         >
-          {/* Close button */}
           <button
             onClick={() => setMobileOpen(false)}
             className="text-white text-3xl self-end"
@@ -155,21 +138,19 @@ function NavbarContent() {
             ×
           </button>
 
-          {/* Mobile Nav Links */}
           {navLinks.map((item, i) => (
             <Link
               key={i}
               href={buildLink(item.href)}
               onClick={() => setMobileOpen(false)}
-              className={`
-                text-lg ${item.gold ? "text-yellow-300" : "text-white"}
-              `}
+              className={`text-lg ${
+                item.gold ? "text-yellow-300" : "text-white"
+              }`}
             >
               {item.label}
             </Link>
           ))}
 
-          {/* Mobile Lang Toggle */}
           <div className="flex gap-4 pt-4 text-white text-lg">
             <button
               onClick={() => {
