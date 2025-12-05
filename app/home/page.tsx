@@ -45,8 +45,7 @@ function HomePageContent() {
         }}
       />
 
-      {/* ↑ Moved everything UP by reducing pt and pb */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-12 pb-16 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-4 pb-16 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -65,8 +64,7 @@ function HomePageContent() {
           {L.comunidad}
         </motion.p>
 
-        {/* ↑ Reduced section spacing */}
-        <section className="mt-10">
+        <section className="mt-4">
           <motion.h2
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -83,8 +81,7 @@ function HomePageContent() {
             className="mt-6 flex justify-center"
           >
             <a href={magazineLink}>
-              {/* ↓ WIDER + TALLER thumbnail */}
-              <div className="w-80 h-[30rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
+              <div className="w-96 h-[30rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
                 <img
                   src="/home_thumbnail.png"
                   alt="Current Magazine Cover"
@@ -100,4 +97,5 @@ function HomePageContent() {
         </section>
       </div>
     </main>
-  )
+  );
+}
