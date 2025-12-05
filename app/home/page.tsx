@@ -35,9 +35,9 @@ function HomePageContent() {
 
   const L = t[lang as "es" | "en"];
 
-  // 🔥 Language-based routing
-  const magazineLink =
-    lang === "es" ? "/revista?lang=es" : "/magazine?lang=en";
+  // 🔥 CORRECTED ROUTING
+  // Both languages route to /magazine with the proper lang
+  const magazineLink = `/magazine?lang=${lang}`;
 
   return (
     <main className="relative min-h-screen w-full text-white">
@@ -91,7 +91,7 @@ function HomePageContent() {
             <a href={magazineLink}>
               <div className="w-64 h-96 rounded-lg border-2 border-yellow-400/60 shadow-[0_0_25px_rgba(255,215,0,0.6)] overflow-hidden cursor-pointer hover:scale-105 transition">
 
-                {/* FIXED IMAGE LINE — CLEAN, NO ERRORS */}
+                {/* Correct Image */}
                 <img
                   src="/home_thumbnail.png"
                   alt="Current Magazine Cover"
