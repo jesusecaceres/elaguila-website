@@ -36,7 +36,7 @@ function HomePageContent() {
 
   return (
     <main className="relative min-h-screen w-full text-white">
-      {/* Background Gradient */}
+      {/* Background */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -45,7 +45,7 @@ function HomePageContent() {
         }}
       />
 
-      {/* Main Content */}
+      {/* Content */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-20 text-center">
 
         {/* Bienvenidos */}
@@ -58,7 +58,7 @@ function HomePageContent() {
           {L.bienvenidos} <span className="text-yellow-400">El Águila</span>
         </motion.h1>
 
-        {/* Subheading */}
+        {/* Subtext */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -79,7 +79,7 @@ function HomePageContent() {
             {L.revistaActual}
           </motion.h2>
 
-          {/* Thumbnail */}
+          {/* Thumbnail (only width updated) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.93 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -87,7 +87,7 @@ function HomePageContent() {
             className="mt-6 flex justify-center"
           >
             <a href={magazineLink}>
-              <div className="w-64 h-[25rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
+              <div className="w-80 h-[30rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
                 <img
                   src="/home_thumbnail.png"
                   alt="Current Magazine Cover"
@@ -97,7 +97,7 @@ function HomePageContent() {
             </a>
           </motion.div>
 
-          {/* Subtitle */}
+          {/* Caption */}
           <p className="mt-4 text-gray-300 text-sm md:text-base">
             {L.pronto}
           </p>
