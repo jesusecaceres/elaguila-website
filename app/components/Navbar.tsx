@@ -1,38 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 
 function NavbarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const urlLang = searchParams.get("lang");
+  const router = useRouter();
 
-  const [lang, setLang] = useState(urlLang || "es");
+  const urlLang = searchParams.get("lang");
+  const [lang, setLang] = useState<"es" | "en">(urlLang === "en" ? "en" : "es");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Hide navbar on cinematic intro (homepage /)
+  if (pathname === "/") return null;
 
   useEffect(() => {
-    if (!pathname) return;
-
-    if (pathname.startsWith("/magazine")) {
-      setLang("en");
-      return;
-    }
-
-    if (pathname.startsWith("/revista")) {
-      setLang("es");
-      return;
-    }
-
     if (urlLang === "en" || urlLang === "es") {
       setLang(urlLang);
     }
-  }, [pathname, urlLang]);
-
-  const buildLink = (href: string) => {
-    const cleanHref = href.split("?")[0];
-    return `${cleanHref}?lang=${lang}`;
-  };
+  }, [urlLang]);
 
   const t = {
     es: {
@@ -46,7 +35,9 @@ function NavbarContent() {
       classifieds: "Clasificados",
       contact: "Contacto",
       about: "Nosotros",
-      advertise: "Anuncia con nosotros",
+      advertise: "Anúnciate",
+      toggleES: "ES",
+      toggleEN: "EN",
     },
     en: {
       home: "Home",
@@ -59,58 +50,148 @@ function NavbarContent() {
       classifieds: "Classifieds",
       contact: "Contact",
       about: "About Us",
-      advertise: "Advertise with us",
-    }
+      advertise: "Advertise",
+      toggleES: "ES",
+      toggleEN: "EN",
+    },
   };
 
-  const L = t[lang as "es" | "en"];
+  const L = t[lang];
+
+  const buildLink = (href: string) => {
+    const cleanHref = href.split("?")[0];
+    return `${cleanHref}?lang=${lang}`;
+  };
+
+  const switchLang = (target: "es" | "en") => {
+    const cleanPath = pathname.split("?")[0];
+    router.push(`${cleanPath}?lang=${target}`);
+  };
+
+  const navLinks = [
+    { href: "/", label: L.home },
+    { href: "/noticias", label: L.news },
+    { href: "/eventos", label: L.events },
+    { href: "/coupons", label: L.coupons },
+    { href: "/sorteos", label: L.sweepstakes },
+    { href: "/magazine", label: L.magazine },
+    { href: "/tienda", label: L.shop },
+    { href: "/clasificados", label: L.classifieds },
+    { href: "/contacto", label: L.contact },
+    { href: "/about", label: L.about },
+    { href: "/advertise", label: L.advertise, gold: true },
+  ];
 
   return (
-    <nav className="
-      fixed top-0 left-0 w-full z-50 backdrop-blur-md bg-black/40
-      border-b border-white/10 py-4 px-6 flex justify-between items-center
-    ">
-      <Link href={buildLink("/")}>
-        <span className="text-2xl font-bold text-yellow-400 drop-shadow">
-          El Águila
-        </span>
+    <nav
+      className="
+        fixed top-0 left-0 w-full z-50 backdrop-blur-md
+        bg-black/40 border-b border-white/10 py-4 px-6
+        flex justify-between items-center
+      "
+    >
+      {/* LEFT – LOGO */}
+      <Link href={buildLink("/")} className="flex items-center">
+        <Image
+          src="/logo.png"
+          alt="El Águila Logo"
+          width={130}
+          height={50}
+          className="object-contain drop-shadow"
+        />
       </Link>
 
+      {/* DESKTOP MENU */}
       <div className="hidden md:flex gap-6 text-white text-sm font-medium">
-        <Link href={buildLink("/")}>{L.home}</Link>
-        <Link href={buildLink("/noticias")}>{L.news}</Link>
-        <Link href={buildLink("/eventos")}>{L.events}</Link>
-        <Link href={buildLink("/coupons")}>{L.coupons}</Link>
-        <Link href={buildLink("/sorteos")}>{L.sweepstakes}</Link>
-        <Link href={buildLink("/magazine")}>{L.magazine}</Link>
-        <Link href={buildLink("/tienda")}>{L.shop}</Link>
-        <Link href={buildLink("/clasificados")}>{L.classifieds}</Link>
-        <Link href={buildLink("/contacto")}>{L.contact}</Link>
-        <Link href={buildLink("/about")}>{L.about}</Link>
-        <Link href={buildLink("/advertise")} className="text-yellow-300">
-          {L.advertise}
-        </Link>
+        {navLinks.map((item, i) => (
+          <Link
+            key={i}
+            href={buildLink(item.href)}
+            className={item.gold ? "text-yellow-300 font-semibold" : ""}
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
 
-      <div className="flex gap-3">
-        <Link href={buildLink(pathname)}>
-          <span
-            className={lang === "es" ? "text-yellow-400" : "text-white/70"}
-            onClick={() => setLang("es")}
-          >
-            ES
-          </span>
-        </Link>
+      {/* LANGUAGE TOGGLE */}
+      <div className="hidden md:flex gap-3">
+        <button
+          onClick={() => switchLang("es")}
+          className={lang === "es" ? "text-yellow-400" : "text-white/70"}
+        >
+          ES
+        </button>
         <span className="text-white/40">|</span>
-        <Link href={buildLink(pathname)}>
-          <span
-            className={lang === "en" ? "text-yellow-400" : "text-white/70"}
-            onClick={() => setLang("en")}
-          >
-            EN
-          </span>
-        </Link>
+        <button
+          onClick={() => switchLang("en")}
+          className={lang === "en" ? "text-yellow-400" : "text-white/70"}
+        >
+          EN
+        </button>
       </div>
+
+      {/* MOBILE HAMBURGER */}
+      <button
+        className="md:hidden text-white text-2xl"
+        onClick={() => setMobileOpen(true)}
+      >
+        ☰
+      </button>
+
+      {/* MOBILE DRAWER */}
+      {mobileOpen && (
+        <div
+          className="
+            fixed top-0 right-0 h-full w-64 bg-black/80
+            backdrop-blur-xl z-[999] p-6 flex flex-col gap-6
+          "
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="text-white text-3xl self-end"
+          >
+            ×
+          </button>
+
+          {/* Mobile Nav Links */}
+          {navLinks.map((item, i) => (
+            <Link
+              key={i}
+              href={buildLink(item.href)}
+              onClick={() => setMobileOpen(false)}
+              className={`
+                text-lg ${item.gold ? "text-yellow-300" : "text-white"}
+              `}
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          {/* Mobile Lang Toggle */}
+          <div className="flex gap-4 pt-4 text-white text-lg">
+            <button
+              onClick={() => {
+                switchLang("es");
+                setMobileOpen(false);
+              }}
+              className={lang === "es" ? "text-yellow-400" : ""}
+            >
+              ES
+            </button>
+            <button
+              onClick={() => {
+                switchLang("en");
+                setMobileOpen(false);
+              }}
+              className={lang === "en" ? "text-yellow-400" : ""}
+            >
+              EN
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
