@@ -6,22 +6,22 @@ import { usePathname } from "next/navigation";
 export default function LogoFloating() {
   const pathname = usePathname();
 
-  // Hide logo on cinematic intro
+  // Hide on cinematic intro + hide on mobile
   if (pathname === "/") return null;
 
   return (
     <div
       className="
-        fixed top-4 left-4 z-[60]
+        fixed top-2 left-2 z-[60]
         pointer-events-none
-        flex items-center justify-center
+        hidden md:block
       "
     >
       <Image
         src="/logo.png"
         alt="El Águila Logo"
-        width={300}   // Bigger logo
-        height={300}
+        width={180}
+        height={180}
         className="drop-shadow-2xl opacity-100"
         priority
       />
