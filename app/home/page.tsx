@@ -36,6 +36,7 @@ function HomePageContent() {
 
   return (
     <main className="relative min-h-screen w-full text-white">
+      {/* BACKGROUND OVERLAY */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -44,7 +45,10 @@ function HomePageContent() {
         }}
       />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-24 pb-24 text-center">
+      {/* MAIN CONTENT */}
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
+        
+        {/* MAIN TITLE */}
         <motion.h1
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -54,6 +58,7 @@ function HomePageContent() {
           {L.bienvenidos} <span className="text-yellow-400">El Águila</span>
         </motion.h1>
 
+        {/* SUBTITLE */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -61,40 +66,3 @@ function HomePageContent() {
           className="mt-4 text-lg md:text-xl font-light text-gray-200"
         >
           {L.comunidad}
-        </motion.p>
-
-        <section className="mt-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="text-3xl md:text-4xl font-extrabold text-yellow-300"
-          >
-            {L.revistaActual}
-          </motion.h2>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.93 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.25, duration: 1 }}
-            className="mt-8 flex justify-center"
-          >
-            <a href={magazineLink}>
-              <div className="w-72 h-[28rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
-                <img
-                  src="/home_thumbnail.png"
-                  alt="Current Magazine Cover"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </a>
-          </motion.div>
-
-          <p className="mt-3 text-gray-300 text-base md:text-lg">
-            {L.pronto}
-          </p>
-        </section>
-      </div>
-    </main>
-  );
-}
