@@ -35,10 +35,10 @@ function HomePageContent() {
 
   const L = t[lang as "es" | "en"];
 
-  const magazineLink =
-    lang === "es"
-      ? "/revista/2026/enero?lang=es"
-      : "/magazine/2026/january?lang=en";
+  // 🔥 Language-based routing
+  const magazineLink = lang === "es" 
+    ? "/revista?lang=es" 
+    : "/magazine?lang=en";
 
   return (
     <main className="relative min-h-screen w-full text-white">
@@ -92,7 +92,7 @@ function HomePageContent() {
             <a href={magazineLink}>
               <div className="w-64 h-96 rounded-lg border-2 border-yellow-400/60 shadow-[0_0_25px_rgba(255,215,0,0.6)] overflow-hidden cursor-pointer hover:scale-105 transition">
                 <img
-                  src="/current-cover-placeholder.png"
+                  src="/home-thumbnail.png"
                   alt="Current Magazine Cover"
                   className="w-full h-full object-cover"
                 />
