@@ -3,13 +3,11 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-export default function BrandLogo() {
+export default function LogoFloating() {
   const pathname = usePathname();
 
   // Hide during cinematic intro
-  if (pathname === "/") {
-    return null;
-  }
+  if (pathname === "/") return null;
 
   return (
     <div
@@ -21,7 +19,7 @@ export default function BrandLogo() {
     >
       <Image
         src="/logo.png"
-        alt="El Águila Logo"
+        alt="El Ãguila Logo"
         width={220}
         height={220}
         className="drop-shadow-xl opacity-95"
