@@ -7,7 +7,9 @@ export default function BrandLogo() {
   const pathname = usePathname();
 
   // Hide during cinematic intro
-  if (pathname === "/") return null;
+  if (pathname === "/") {
+    return null;
+  }
 
   return (
     <div
@@ -19,8 +21,8 @@ export default function BrandLogo() {
     >
       <Image
         src="/logo.png"
-        alt="El Águila"
-        width={220}   // adjust size bigger or smaller if needed
+        alt="El Águila Logo"
+        width={220}
         height={220}
         className="drop-shadow-xl opacity-95"
         priority
