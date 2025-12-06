@@ -8,6 +8,20 @@ import PageHero from "../components/PageHero";
 import manualEvents from "../data/manual-events";
 import getRSSEvents from "../data/rss-events";
 
+// ----------------------------
+// TYPE DEFINITIONS
+// ----------------------------
+interface EventItem {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  county: string;
+  category: string;
+  link: string;
+  image?: string;
+}
+
 export default function EventosPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -49,15 +63,24 @@ export default function EventosPage() {
     "General",
   ];
 
-  const [rssEvents, setRssEvents] = useState([]);
+  // ----------------------------
+  // FIXED TYPE STATE
+  // ----------------------------
+  const [rssEvents, setRssEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Auto-refresh every 3 hours
+  // ----------------------------
+  // AUTO REFRESH RSS EVERY 3 HOURS
+  // ----------------------------
   useEffect(() => {
     async function loadRSS() {
       setLoading(true);
+
       const data = await getRSSEvents();
-      setRssEvents(data);
+
+      // Force types into correct structure
+      setRssEvents(data as EventItem[]);
+
       setLoading(false);
     }
 
@@ -67,10 +90,14 @@ export default function EventosPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Merge manual + RSS → manual events always appear FIRST
-  const allEvents = [...manualEvents, ...rssEvents];
+  // ----------------------------
+  // MERGE MANUAL + RSS
+  // ----------------------------
+  const allEvents: EventItem[] = [...manualEvents, ...rssEvents];
 
-  // Filter state
+  // ----------------------------
+  // FILTERING
+  // ----------------------------
   const [county, setCounty] = useState("All");
   const [category, setCategory] = useState("All");
 
@@ -82,15 +109,10 @@ export default function EventosPage() {
 
   return (
     <div className="min-h-screen text-white">
-
-      {/* ---------------------- */}
       {/* HERO */}
-      {/* ---------------------- */}
       <PageHero title={t.title} />
 
-      {/* ---------------------- */}
-      {/* FEATURED EVENTS */}
-      {/* ---------------------- */}
+      {/* FEATURED MANUAL EVENTS */}
       <section className="max-w-6xl mx-auto px-6 mt-10">
         <h2 className="text-3xl font-bold text-yellow-400 mb-5">
           {t.featured}
@@ -140,40 +162,46 @@ export default function EventosPage() {
         </div>
       </section>
 
-      {/* ---------------------- */}
       {/* FILTERS */}
-      {/* ---------------------- */}
       <section className="max-w-6xl mx-auto px-6 mt-14">
         <div className="flex flex-col md:flex-row gap-6">
 
-          {/* County */}
+          {/* COUNTY */}
           <div className="flex flex-col w-full">
             <label className="text-yellow-400 font-bold mb-1">
               {t.countyFilter}
             </label>
+
             <select
               className="bg-black/40 border border-yellow-700 px-3 py-2 rounded-lg"
               value={county}
               onChange={(e) => setCounty(e.target.value)}
             >
-              <option value="All">{lang === "en" ? "All Counties" : "Todos los Condados"}</option>
+              <option value="All">
+                {lang === "en" ? "All Counties" : "Todos los Condados"}
+              </option>
+
               {counties.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
 
-          {/* Category */}
+          {/* CATEGORY */}
           <div className="flex flex-col w-full">
             <label className="text-yellow-400 font-bold mb-1">
               {t.categoryFilter}
             </label>
+
             <select
               className="bg-black/40 border border-yellow-700 px-3 py-2 rounded-lg"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="All">{lang === "en" ? "All Categories" : "Todas las Categorías"}</option>
+              <option value="All">
+                {lang === "en" ? "All Categories" : "Todas las Categorías"}
+              </option>
+
               {categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -183,9 +211,7 @@ export default function EventosPage() {
         </div>
       </section>
 
-      {/* ---------------------- */}
-      {/* ALL EVENTS GRID */}
-      {/* ---------------------- */}
+      {/* ALL EVENTS */}
       <section className="max-w-6xl mx-auto px-6 mt-14 mb-20">
         <h2 className="text-3xl font-bold text-yellow-400 mb-5">
           {t.allEvents}
@@ -236,6 +262,7 @@ export default function EventosPage() {
           </div>
         )}
       </section>
+
     </div>
   );
 }
