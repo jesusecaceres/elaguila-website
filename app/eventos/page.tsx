@@ -1,9 +1,12 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
+
 import PageHero from "../components/PageHero";
-import { events } from "../data/events";
+import manualEvents from "../data/manual-events";
+import getRSSEvents from "../data/rss-events";
 
 export default function EventosPage() {
   const searchParams = useSearchParams();
@@ -11,140 +14,228 @@ export default function EventosPage() {
 
   const lang = searchParams.get("lang") === "en" ? "en" : "es";
 
+  // ----------------------------
+  // UI TRANSLATIONS
+  // ----------------------------
   const t = {
-    es: {
-      title: "Eventos — El Águila en Vuelo",
-      featured: "Eventos Destacados",
-      allEvents: "Todos los Eventos",
-      countyFilter: "Filtrar por Condado",
-      categoryFilter: "Filtrar por Categoría",
-      noEvents: "No hay eventos disponibles.",
-    },
-    en: {
-      title: "Events — El Águila en Vuelo",
-      featured: "Featured Events",
-      allEvents: "All Events",
-      countyFilter: "Filter by County",
-      categoryFilter: "Filter by Category",
-      noEvents: "No events available.",
-    },
+    title: lang === "en" ? "Events in Your Community" : "Eventos en tu Comunidad",
+    featured: lang === "en" ? "Featured Events" : "Eventos Destacados",
+    allEvents: lang === "en" ? "All Events" : "Todos los Eventos",
+    countyFilter: lang === "en" ? "County" : "Condado",
+    categoryFilter: lang === "en" ? "Category" : "Categoría",
+    noEvents: lang === "en" ? "No events available" : "No hay eventos disponibles",
   };
 
-  const L = t[lang];
+  // ----------------------------
+  // FILTER OPTIONS
+  // ----------------------------
+  const counties = [
+    "Santa Clara",
+    "Alameda",
+    "San Francisco",
+    "California",
+    "Contra Costa",
+  ];
 
-  // List of counties for filtering
-  const counties = ["Santa Clara", "San Mateo", "Alameda", "Contra Costa", "San Joaquin", "Stanislaus"];
+  const categories = [
+    "Family",
+    "Music",
+    "Food",
+    "Community",
+    "Holiday",
+    "Sports",
+    "Nightlife",
+    "Kids",
+    "General",
+  ];
 
-  // List of event categories
-  const categories = ["Music", "Youth", "Family", "Food", "Nightlife", "Sports", "Community", "Holiday"];
+  const [rssEvents, setRssEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const selectedCounty = searchParams.get("county") || "all";
-  const selectedCategory = searchParams.get("category") || "all";
+  // Auto-refresh every 3 hours
+  useEffect(() => {
+    async function loadRSS() {
+      setLoading(true);
+      const data = await getRSSEvents();
+      setRssEvents(data);
+      setLoading(false);
+    }
 
-  // Apply filters
-  const filtered = events.filter((event) => {
-    const countyMatch = selectedCounty === "all" || event.county === selectedCounty;
-    const categoryMatch = selectedCategory === "all" || event.category === selectedCategory;
-    return countyMatch && categoryMatch;
+    loadRSS();
+    const interval = setInterval(loadRSS, 3 * 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Merge manual + RSS → manual events always appear FIRST
+  const allEvents = [...manualEvents, ...rssEvents];
+
+  // Filter state
+  const [county, setCounty] = useState("All");
+  const [category, setCategory] = useState("All");
+
+  const filteredEvents = allEvents.filter((ev) => {
+    const matchCounty = county === "All" || ev.county === county;
+    const matchCategory = category === "All" || ev.category === category;
+    return matchCounty && matchCategory;
   });
 
-  // Featured events (max 3)
-  const featuredEvents = events.filter((ev) => ev.featured).slice(0, 3);
-
-  const updateFilter = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set(key, value);
-    router.push(`/eventos?${params.toString()}`);
-  };
-
   return (
-    <div className="text-white bg-black min-h-screen pb-32">
+    <div className="min-h-screen text-white">
 
+      {/* ---------------------- */}
       {/* HERO */}
-      <PageHero title={L.title} />
+      {/* ---------------------- */}
+      <PageHero title={t.title} />
 
-      {/* Featured Section */}
-      <section className="max-w-5xl mx-auto px-6 mt-20">
-        <h2 className="text-4xl font-bold text-yellow-400 mb-10">{L.featured}</h2>
+      {/* ---------------------- */}
+      {/* FEATURED EVENTS */}
+      {/* ---------------------- */}
+      <section className="max-w-6xl mx-auto px-6 mt-10">
+        <h2 className="text-3xl font-bold text-yellow-400 mb-5">
+          {t.featured}
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {featuredEvents.map((ev) => (
-            <div key={ev.id} className="bg-neutral-900 rounded-xl shadow-lg p-4 border border-yellow-700/20">
-              <Image
-                src={ev.image}
-                width={500}
-                height={300}
-                alt={ev.title}
-                className="rounded-lg object-cover w-full h-48"
-              />
-              <h3 className="text-xl font-bold mt-4 text-yellow-300">{ev.title}</h3>
-              <p className="mt-2 text-sm text-gray-300">{ev.description}</p>
-              <p className="mt-2 text-sm text-yellow-400 font-semibold">{ev.date}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Filters */}
-      <section className="max-w-5xl mx-auto px-6 mt-20">
-        <h2 className="text-3xl font-bold text-yellow-400 mb-6">{L.allEvents}</h2>
-
-        <div className="flex flex-col md:flex-row gap-6 mb-10">
-
-          {/* County Filter */}
-          <div>
-            <label className="text-yellow-400 font-semibold block mb-2">{L.countyFilter}</label>
-            <select
-              value={selectedCounty}
-              onChange={(e) => updateFilter("county", e.target.value)}
-              className="bg-neutral-800 text-white p-3 rounded-lg border border-neutral-700"
-            >
-              <option value="all">{lang === "es" ? "Todos" : "All"}</option>
-              {counties.map((county) => (
-                <option key={county} value={county}>{county}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category Filter */}
-          <div>
-            <label className="text-yellow-400 font-semibold block mb-2">{L.categoryFilter}</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => updateFilter("category", e.target.value)}
-              className="bg-neutral-800 text-white p-3 rounded-lg border border-neutral-700"
-            >
-              <option value="all">{lang === "es" ? "Todas" : "All"}</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Events Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {filtered.length === 0 && (
-            <p className="text-gray-400 text-lg">{L.noEvents}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {manualEvents.length === 0 && (
+            <p className="text-gray-400">{t.noEvents}</p>
           )}
 
-          {filtered.map((ev) => (
-            <div key={ev.id} className="bg-neutral-900 rounded-xl shadow-lg p-4 border border-neutral-800">
+          {manualEvents.map((ev) => (
+            <div
+              key={ev.id}
+              className="bg-black/40 border border-yellow-700 rounded-xl overflow-hidden shadow-lg"
+            >
               <Image
-                src={ev.image}
-                width={500}
-                height={300}
+                src={ev.image || "/event-fallback.png"}
                 alt={ev.title}
-                className="rounded-lg object-cover w-full h-48"
+                width={600}
+                height={400}
+                className="w-full h-56 object-cover"
               />
-              <h3 className="text-xl font-bold mt-4 text-yellow-300">{ev.title}</h3>
-              <p className="mt-2 text-sm text-gray-300">{ev.description}</p>
-              <p className="mt-2 text-sm text-yellow-400 font-semibold">{ev.date}</p>
+
+              <div className="p-5">
+                <h3 className="text-xl font-bold text-yellow-400 mb-2">
+                  {ev.title}
+                </h3>
+
+                <p className="text-white text-sm mb-3">
+                  {ev.description}
+                </p>
+
+                <p className="text-gray-400 text-xs mb-3">
+                  {ev.date}
+                </p>
+
+                <a
+                  href={ev.link}
+                  target="_blank"
+                  className="inline-block bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
+                >
+                  {lang === "en" ? "View Event" : "Ver Evento"}
+                </a>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
+      {/* ---------------------- */}
+      {/* FILTERS */}
+      {/* ---------------------- */}
+      <section className="max-w-6xl mx-auto px-6 mt-14">
+        <div className="flex flex-col md:flex-row gap-6">
+
+          {/* County */}
+          <div className="flex flex-col w-full">
+            <label className="text-yellow-400 font-bold mb-1">
+              {t.countyFilter}
+            </label>
+            <select
+              className="bg-black/40 border border-yellow-700 px-3 py-2 rounded-lg"
+              value={county}
+              onChange={(e) => setCounty(e.target.value)}
+            >
+              <option value="All">{lang === "en" ? "All Counties" : "Todos los Condados"}</option>
+              {counties.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category */}
+          <div className="flex flex-col w-full">
+            <label className="text-yellow-400 font-bold mb-1">
+              {t.categoryFilter}
+            </label>
+            <select
+              className="bg-black/40 border border-yellow-700 px-3 py-2 rounded-lg"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="All">{lang === "en" ? "All Categories" : "Todas las Categorías"}</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ---------------------- */}
+      {/* ALL EVENTS GRID */}
+      {/* ---------------------- */}
+      <section className="max-w-6xl mx-auto px-6 mt-14 mb-20">
+        <h2 className="text-3xl font-bold text-yellow-400 mb-5">
+          {t.allEvents}
+        </h2>
+
+        {loading ? (
+          <p className="text-gray-400">Loading events...</p>
+        ) : filteredEvents.length === 0 ? (
+          <p className="text-gray-400">{t.noEvents}</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            {filteredEvents.map((ev) => (
+              <div
+                key={ev.id}
+                className="bg-black/40 border border-yellow-700 rounded-xl overflow-hidden shadow-lg"
+              >
+                <Image
+                  src={ev.image || "/event-fallback.png"}
+                  alt={ev.title}
+                  width={600}
+                  height={400}
+                  className="w-full h-56 object-cover"
+                />
+
+                <div className="p-5">
+                  <h3 className="text-xl font-bold text-yellow-400 mb-2">
+                    {ev.title}
+                  </h3>
+
+                  <p className="text-white text-sm mb-3">
+                    {ev.description}
+                  </p>
+
+                  <p className="text-gray-400 text-xs mb-3">
+                    {ev.date}
+                  </p>
+
+                  <a
+                    href={ev.link}
+                    target="_blank"
+                    className="inline-block bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
+                  >
+                    {lang === "en" ? "View Event" : "Ver Evento"}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
