@@ -1,37 +1,59 @@
-// app/data/events.ts
+export interface EventItem {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  county: string;
+  category: string;
+  image: string;
+  featured?: boolean;
+}
 
-export const events = [
+export const events: EventItem[] = [
   {
-    id: "evt-001",
+    id: "event-1",
     title: "Festival de Música Latina",
-    description: "Disfruta de música en vivo con artistas locales.",
-    date: "2025-01-20",
-    city: "San Jose",
+    description: "Un evento lleno de música, comida y celebraciones familiares.",
+    date: "2026-01-18",
     county: "Santa Clara",
-    category: "music",
-    flyer: "/events/sample1.jpg",
+    category: "Music",
+    image: "/events/music-festival.jpg",
     featured: true,
   },
   {
-    id: "evt-002",
-    title: "Art & Wine Festival",
-    description: "A family-friendly event with food, arts, and wine.",
-    date: "2025-02-10",
-    city: "Fremont",
+    id: "event-2",
+    title: "Family Park Day",
+    description: "Actividades para niños, juegos, food trucks y diversión para toda la familia.",
+    date: "2026-01-21",
     county: "Alameda",
-    category: "family",
-    flyer: "/events/sample2.jpg",
-    featured: false,
+    category: "Family",
+    image: "/events/family-park.jpg",
   },
   {
-    id: "evt-003",
-    title: "Career Fair",
-    description: "Meet local employers and find new job opportunities.",
-    date: "2025-03-05",
-    city: "Redwood City",
+    id: "event-3",
+    title: "Youth Leadership Workshop",
+    description: "Un taller para jóvenes con enfoque en liderazgo, metas y superación.",
+    date: "2026-01-25",
     county: "San Mateo",
-    category: "jobs",
-    flyer: "/events/sample3.jpg",
-    featured: false,
-  }
+    category: "Youth",
+    image: "/events/youth-leadership.jpg",
+  },
+  {
+    id: "event-4",
+    title: "Food Truck Friday",
+    description: "Ven a probar la mejor comida de la bahía. Entrada gratis.",
+    date: "2026-01-12",
+    county: "Contra Costa",
+    category: "Food",
+    image: "/events/food-truck.jpg",
+  },
+  {
+    id: "event-5",
+    title: "Noche de Baile",
+    description: "Una noche de música latina, DJs y diversión.",
+    date: "2026-02-02",
+    county: "Santa Clara",
+    category: "Nightlife",
+    image: "/events/night-dance.jpg",
+  },
 ];
