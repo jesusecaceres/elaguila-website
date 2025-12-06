@@ -1,268 +1,250 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import PageHero from "../components/PageHero";
-import manualEvents from "../data/manual-events";
-import getRSSEvents from "../data/rss-events";
+import { communityEvents } from "../data/events";
+import { manualEvents } from "../data/manual-events";
 
-// ----------------------------
-// TYPE DEFINITIONS
-// ----------------------------
-interface EventItem {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  county: string;
-  category: string;
-  link: string;
-  image?: string;
+// -----------------------------
+// LANGUAGE HANDLER
+// -----------------------------
+const translations = {
+  es: {
+    title: "Eventos",
+    featured: "Alas de Oro — Eventos Destacados",
+    community: "Eventos Comunitarios",
+    explore: "Explorar Eventos en California",
+    submit: "Enviar tu evento",
+    counties: "Condados",
+    categories: "Categorías",
+  },
+  en: {
+    title: "Events",
+    featured: "Golden Wings — Featured Events",
+    community: "Community Events",
+    explore: "Explore California Events",
+    submit: "Submit Your Event",
+    counties: "Counties",
+    categories: "Categories",
+  },
+};
+
+const countyOptions = [
+  "Santa Clara",
+  "San Mateo",
+  "San Francisco",
+  "Alameda",
+  "Contra Costa",
+  "San Joaquin",
+  "Stanislaus",
+  "Merced",
+  "Monterey",
+  "San Benito",
+  "Santa Cruz",
+];
+
+const categoryOptions = [
+  "Singles",
+  "Youth/Kids",
+  "Family",
+  "Couples",
+  "Nightlife",
+  "Food",
+  "Music",
+  "Community",
+  "Holiday",
+  "Sports",
+];
+
+// -----------------------------
+// CINEMATIC CAROUSEL
+// -----------------------------
+function CinematicCarousel({ items, lang }: any) {
+  return (
+    <div className="w-full overflow-x-auto flex gap-8 py-10 scrollbar-hide">
+      {items.map((ev: any) => (
+        <div
+          key={ev.id}
+          className="min-w-[300px] max-w-[300px] bg-white/10 backdrop-blur-lg rounded-xl shadow-xl border border-white/20 overflow-hidden"
+        >
+          <Image
+            src={ev.image}
+            alt={ev.title}
+            width={300}
+            height={200}
+            className="w-full h-[200px] object-cover"
+          />
+
+          <div className="p-4 text-white">
+            <h3 className="font-bold text-lg mb-2">
+              {ev.title?.[lang] || ev.title}
+            </h3>
+
+            <p className="text-sm opacity-80">
+              {ev.description?.[lang] || ev.description}
+            </p>
+
+            {ev.sourceUrl && (
+              <a
+                href={ev.sourceUrl}
+                target="_blank"
+                className="text-yellow-300 text-sm underline block mt-2"
+              >
+                {lang === "es" ? "Ver evento" : "View event"}
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-export default function EventosPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+// -----------------------------
+// MAIN PAGE
+// -----------------------------
+export default function EventsPage() {
+  const params = useSearchParams();
+  const lang = params.get("lang") === "en" ? "en" : "es";
+  const t = translations[lang];
 
-  const lang = searchParams.get("lang") === "en" ? "en" : "es";
-
-  // ----------------------------
-  // UI TRANSLATIONS
-  // ----------------------------
-  const t = {
-    title: lang === "en" ? "Events in Your Community" : "Eventos en tu Comunidad",
-    featured: lang === "en" ? "Featured Events" : "Eventos Destacados",
-    allEvents: lang === "en" ? "All Events" : "Todos los Eventos",
-    countyFilter: lang === "en" ? "County" : "Condado",
-    categoryFilter: lang === "en" ? "Category" : "Categoría",
-    noEvents: lang === "en" ? "No events available" : "No hay eventos disponibles",
-  };
-
-  // ----------------------------
-  // FILTER OPTIONS
-  // ----------------------------
-  const counties = [
-    "Santa Clara",
-    "Alameda",
-    "San Francisco",
-    "California",
-    "Contra Costa",
-  ];
-
-  const categories = [
-    "Family",
-    "Music",
-    "Food",
-    "Community",
-    "Holiday",
-    "Sports",
-    "Nightlife",
-    "Kids",
-    "General",
-  ];
-
-  // ----------------------------
-  // FIXED TYPE STATE
-  // ----------------------------
-  const [rssEvents, setRssEvents] = useState<EventItem[]>([]);
+  const [selectedCounty, setSelectedCounty] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ----------------------------
-  // AUTO REFRESH RSS EVERY 3 HOURS
-  // ----------------------------
+  // Fetch live RSS/API events
   useEffect(() => {
-    async function loadRSS() {
-      setLoading(true);
-
-      const data = await getRSSEvents();
-
-      // Force types into correct structure
-      setRssEvents(data as EventItem[]);
-
-      setLoading(false);
+    async function fetchEvents() {
+      try {
+        const res = await fetch("/api/events/rss", { cache: "no-store" });
+        const data = await res.json();
+        setLiveEvents(data);
+      } catch (err) {
+        console.error("Error loading live events:", err);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    loadRSS();
-    const interval = setInterval(loadRSS, 3 * 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
+    fetchEvents();
   }, []);
 
-  // ----------------------------
-  // MERGE MANUAL + RSS
-  // ----------------------------
-  const allEvents: EventItem[] = [...manualEvents, ...rssEvents];
-
-  // ----------------------------
-  // FILTERING
-  // ----------------------------
-  const [county, setCounty] = useState("All");
-  const [category, setCategory] = useState("All");
-
-  const filteredEvents = allEvents.filter((ev) => {
-    const matchCounty = county === "All" || ev.county === county;
-    const matchCategory = category === "All" || ev.category === category;
-    return matchCounty && matchCategory;
-  });
+  function filterEvents(events: any[]) {
+    return events.filter((ev) => {
+      const countyMatch = selectedCounty
+        ? ev.county === selectedCounty
+        : true;
+      const catMatch = selectedCategory
+        ? ev.category === selectedCategory
+        : true;
+      return countyMatch && catMatch;
+    });
+  }
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="text-white relative">
+
       {/* HERO */}
-      <PageHero title={t.title} />
+      <div className="w-full flex flex-col items-center justify-center pt-32 pb-16 text-center">
+        <Image
+          src="/logo.png"
+          alt="El Águila Logo"
+          width={200}
+          height={200}
+          className="drop-shadow-[0_0_25px_rgba(255,215,0,0.8)]"
+        />
 
-      {/* FEATURED MANUAL EVENTS */}
-      <section className="max-w-6xl mx-auto px-6 mt-10">
-        <h2 className="text-3xl font-bold text-yellow-400 mb-5">
-          {t.featured}
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {manualEvents.length === 0 && (
-            <p className="text-gray-400">{t.noEvents}</p>
-          )}
-
-          {manualEvents.map((ev) => (
-            <div
-              key={ev.id}
-              className="bg-black/40 border border-yellow-700 rounded-xl overflow-hidden shadow-lg"
-            >
-              <Image
-                src={ev.image || "/event-fallback.png"}
-                alt={ev.title}
-                width={600}
-                height={400}
-                className="w-full h-56 object-cover"
-              />
-
-              <div className="p-5">
-                <h3 className="text-xl font-bold text-yellow-400 mb-2">
-                  {ev.title}
-                </h3>
-
-                <p className="text-white text-sm mb-3">
-                  {ev.description}
-                </p>
-
-                <p className="text-gray-400 text-xs mb-3">
-                  {ev.date}
-                </p>
-
-                <a
-                  href={ev.link}
-                  target="_blank"
-                  className="inline-block bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
-                >
-                  {lang === "en" ? "View Event" : "Ver Evento"}
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        <h1 className="mt-6 text-6xl font-bold bg-gradient-to-b from-yellow-300 to-yellow-600 text-transparent bg-clip-text drop-shadow-lg">
+          {t.title}
+        </h1>
+      </div>
 
       {/* FILTERS */}
-      <section className="max-w-6xl mx-auto px-6 mt-14">
-        <div className="flex flex-col md:flex-row gap-6">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row gap-6 justify-center">
 
-          {/* COUNTY */}
-          <div className="flex flex-col w-full">
-            <label className="text-yellow-400 font-bold mb-1">
-              {t.countyFilter}
-            </label>
-
+          {/* County Filter */}
+          <div className="flex flex-col">
+            <label className="font-semibold mb-1">{t.counties}</label>
             <select
-              className="bg-black/40 border border-yellow-700 px-3 py-2 rounded-lg"
-              value={county}
-              onChange={(e) => setCounty(e.target.value)}
+              value={selectedCounty}
+              onChange={(e) => setSelectedCounty(e.target.value)}
+              className="text-black p-2 rounded-lg"
             >
-              <option value="All">
-                {lang === "en" ? "All Counties" : "Todos los Condados"}
-              </option>
-
-              {counties.map((c) => (
-                <option key={c} value={c}>{c}</option>
+              <option value="">All</option>
+              {countyOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* CATEGORY */}
-          <div className="flex flex-col w-full">
-            <label className="text-yellow-400 font-bold mb-1">
-              {t.categoryFilter}
-            </label>
-
+          {/* Category Filter */}
+          <div className="flex flex-col">
+            <label className="font-semibold mb-1">{t.categories}</label>
             <select
-              className="bg-black/40 border border-yellow-700 px-3 py-2 rounded-lg"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="text-black p-2 rounded-lg"
             >
-              <option value="All">
-                {lang === "en" ? "All Categories" : "Todas las Categorías"}
-              </option>
-
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
+              <option value="">All</option>
+              {categoryOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
-
         </div>
+
+        {/* Submit Button */}
+        <div className="text-center mt-10">
+          <a
+            href="mailto:info@elaguilamagazine.com"
+            className="inline-block bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-600 text-black font-bold py-4 px-10 rounded-full shadow-xl hover:scale-105 transition-all"
+          >
+            {t.submit}
+          </a>
+        </div>
+      </div>
+
+      {/* FEATURED / ALAS DE ORO */}
+      <section className="mt-20 px-6">
+        <h2 className="text-4xl font-bold mb-4">{t.featured}</h2>
+        <CinematicCarousel
+          items={filterEvents(manualEvents)}
+          lang={lang}
+        />
       </section>
 
-      {/* ALL EVENTS */}
-      <section className="max-w-6xl mx-auto px-6 mt-14 mb-20">
-        <h2 className="text-3xl font-bold text-yellow-400 mb-5">
-          {t.allEvents}
-        </h2>
+      {/* COMMUNITY EVENTS */}
+      <section className="mt-20 px-6">
+        <h2 className="text-4xl font-bold mb-4">{t.community}</h2>
+        <CinematicCarousel
+          items={filterEvents(communityEvents)}
+          lang={lang}
+        />
+      </section>
+
+      {/* LIVE EVENTS */}
+      <section className="mt-20 px-6 mb-32">
+        <h2 className="text-4xl font-bold mb-4">{t.explore}</h2>
 
         {loading ? (
-          <p className="text-gray-400">Loading events...</p>
-        ) : filteredEvents.length === 0 ? (
-          <p className="text-gray-400">{t.noEvents}</p>
+          <p className="text-white text-lg opacity-80">
+            {lang === "es" ? "Cargando eventos..." : "Loading events..."}
+          </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {filteredEvents.map((ev) => (
-              <div
-                key={ev.id}
-                className="bg-black/40 border border-yellow-700 rounded-xl overflow-hidden shadow-lg"
-              >
-                <Image
-                  src={ev.image || "/event-fallback.png"}
-                  alt={ev.title}
-                  width={600}
-                  height={400}
-                  className="w-full h-56 object-cover"
-                />
-
-                <div className="p-5">
-                  <h3 className="text-xl font-bold text-yellow-400 mb-2">
-                    {ev.title}
-                  </h3>
-
-                  <p className="text-white text-sm mb-3">
-                    {ev.description}
-                  </p>
-
-                  <p className="text-gray-400 text-xs mb-3">
-                    {ev.date}
-                  </p>
-
-                  <a
-                    href={ev.link}
-                    target="_blank"
-                    className="inline-block bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
-                  >
-                    {lang === "en" ? "View Event" : "Ver Evento"}
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
+          <CinematicCarousel
+            items={filterEvents(liveEvents)}
+            lang={lang}
+          />
         )}
       </section>
-
     </div>
   );
 }
