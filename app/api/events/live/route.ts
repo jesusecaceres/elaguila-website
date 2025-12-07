@@ -25,6 +25,7 @@ const APPROVED_COUNTIES = [
   "Marin",
   "Napa",
   "Sonoma",
+
   "Stanislaus",
   "San Joaquin",
   "Merced",
@@ -34,6 +35,7 @@ const APPROVED_COUNTIES = [
 
 // Mapping city → county for categorization
 const CITY_TO_COUNTY: Record<string, string> = {
+  // Santa Clara County
   "San Jose": "Santa Clara",
   "Santa Clara": "Santa Clara",
   "Sunnyvale": "Santa Clara",
@@ -46,29 +48,36 @@ const CITY_TO_COUNTY: Record<string, string> = {
   "Gilroy": "Santa Clara",
   "Morgan Hill": "Santa Clara",
 
+  // San Benito
   "Hollister": "San Benito",
 
+  // Santa Cruz County
   "Santa Cruz": "Santa Cruz",
   "Watsonville": "Santa Cruz",
   "Capitola": "Santa Cruz",
 
+  // Monterey County
   "Salinas": "Monterey",
   "Monterey": "Monterey",
   "Seaside": "Monterey",
   "Marina": "Monterey",
 
+  // Alameda
   "Fremont": "Alameda",
   "Hayward": "Alameda",
   "Oakland": "Alameda",
   "Berkeley": "Alameda",
   "Union City": "Alameda",
 
+  // San Mateo
   "Redwood City": "San Mateo",
   "San Mateo": "San Mateo",
   "Palo Alto": "San Mateo",
 
+  // SF
   "San Francisco": "San Francisco",
 
+  // Central Valley
   "Modesto": "Stanislaus",
   "Ceres": "Stanislaus",
   "Turlock": "Stanislaus",
@@ -140,12 +149,12 @@ export async function GET() {
     }
 
     const data = await res.json();
-    const events = data._embedded?.events || [];
+    const events: any[] = data._embedded?.events || [];
 
-    // Normalize & filter by approved counties
+    // Normalize + filter by allowed counties
     const normalized = events
-      .map(normalizeEvent)
-      .filter((ev) => APPROVED_COUNTIES.includes(ev.county));
+      .map((ev: any) => normalizeEvent(ev))
+      .filter((ev: any) => APPROVED_COUNTIES.includes(ev.county));
 
     // Remove past events
     const today = new Date().toISOString().split("T")[0];
@@ -153,7 +162,7 @@ export async function GET() {
 
     return NextResponse.json(upcoming, {
       headers: {
-        "Cache-Control": "s-maxage=10800", // cache for 3 hours
+        "Cache-Control": "s-maxage=10800", // 3 hours caching
       },
     });
   } catch (error) {
