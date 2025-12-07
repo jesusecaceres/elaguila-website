@@ -1,172 +1,286 @@
 import { NextResponse } from "next/server";
 
-const TICKETMASTER_API_KEY = process.env.TICKETMASTER_API_KEY;
+export const dynamic = "force-dynamic";
 
-// CENTER OF SEARCH → SAN JOSE, CA
-const SJ_LAT = 37.3382;
-const SJ_LNG = -121.8863;
+const FALLBACK_IMAGE = "/event-fallback.png";
 
-// RADIUS → 150 miles
-const RADIUS = 150;
+type EventType =
+  | "singles"
+  | "youth"
+  | "family"
+  | "couples"
+  | "nightlife"
+  | "food"
+  | "music"
+  | "community"
+  | "holiday"
+  | "sports";
 
-// Fallback flyer if Ticketmaster provides none
-const FALLBACK_IMAGE = "/fallback-event.jpg";
-
-// Counties we want to KEEP (El Águila regions)
-const APPROVED_COUNTIES = [
-  "Santa Clara",
-  "San Benito",
-  "Santa Cruz",
-  "Monterey",
-  "Alameda",
-  "San Mateo",
-  "San Francisco",
-  "Contra Costa",
-  "Marin",
-  "Napa",
-  "Sonoma",
-
-  "Stanislaus",
-  "San Joaquin",
-  "Merced",
-  "Fresno",
-  "Madera",
-];
-
-// Mapping city → county for categorization
-const CITY_TO_COUNTY: Record<string, string> = {
-  // Santa Clara County
-  "San Jose": "Santa Clara",
-  "Santa Clara": "Santa Clara",
-  "Sunnyvale": "Santa Clara",
-  "Milpitas": "Santa Clara",
-  "Mountain View": "Santa Clara",
-  "Los Gatos": "Santa Clara",
-  "Campbell": "Santa Clara",
-  "Cupertino": "Santa Clara",
-  "Saratoga": "Santa Clara",
-  "Gilroy": "Santa Clara",
-  "Morgan Hill": "Santa Clara",
-
-  // San Benito
-  "Hollister": "San Benito",
-
-  // Santa Cruz County
-  "Santa Cruz": "Santa Cruz",
-  "Watsonville": "Santa Cruz",
-  "Capitola": "Santa Cruz",
-
-  // Monterey County
-  "Salinas": "Monterey",
-  "Monterey": "Monterey",
-  "Seaside": "Monterey",
-  "Marina": "Monterey",
-
-  // Alameda
-  "Fremont": "Alameda",
-  "Hayward": "Alameda",
-  "Oakland": "Alameda",
-  "Berkeley": "Alameda",
-  "Union City": "Alameda",
-
-  // San Mateo
-  "Redwood City": "San Mateo",
-  "San Mateo": "San Mateo",
-  "Palo Alto": "San Mateo",
-
-  // SF
-  "San Francisco": "San Francisco",
-
-  // Central Valley
-  "Modesto": "Stanislaus",
-  "Ceres": "Stanislaus",
-  "Turlock": "Stanislaus",
-
-  "Stockton": "San Joaquin",
-  "Manteca": "San Joaquin",
-  "Lodi": "San Joaquin",
-  "Tracy": "San Joaquin",
-
-  "Merced": "Merced",
-
-  "Fresno": "Fresno",
-  "Clovis": "Fresno",
+type LiveEvent = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  sourceUrl: string;
+  county: string;
+  category: string; // raw label (Music, Sports, etc.)
+  type: EventType; // used by dropdowns
 };
 
-// Category mapping based on Ticketmaster classifications
-function determineCategory(classification: any): string {
-  if (!classification) return "Community";
+// ----------------------------
+// HELPERS
+// ----------------------------
 
-  const seg = classification.segment?.name?.toLowerCase() || "";
-  const genre = classification.genre?.name?.toLowerCase() || "";
-
-  if (seg.includes("sports")) return "Sports";
-  if (seg.includes("music")) return "Music";
-  if (seg.includes("arts")) return "Family";
-  if (seg.includes("film")) return "Nightlife";
-  if (genre.includes("family")) return "Family";
-  if (genre.includes("festival")) return "Community";
-
-  return "Community";
+function ensureHttps(url?: string | null): string {
+  if (!url) return "";
+  if (url.startsWith("//")) return `https:${url}`;
+  if (!url.startsWith("http")) return `https://${url}`;
+  return url;
 }
 
-// Normalize Ticketmaster event → El Águila format
-function normalizeEvent(ev: any) {
-  const venue = ev._embedded?.venues?.[0];
-  const city = venue?.city?.name || "";
-  const county = CITY_TO_COUNTY[city] || "";
+// ----------------------------
+// RSS FETCHER
+// ----------------------------
+async function fetchRssEvents(): Promise<LiveEvent[]> {
+  try {
+    const baseUrl = process.env.BASE_URL;
+    if (!baseUrl) {
+      console.error("❌ BASE_URL is missing in environment variables.");
+      return [];
+    }
+
+    const res = await fetch(`${baseUrl}/api/events/rss`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("❌ RSS endpoint returned", res.status);
+      return [];
+    }
+
+    const raw = await res.json();
+
+    // We expect /api/events/rss to already normalize basic fields.
+    // Here we just make sure `type` exists for dropdowns.
+    return (raw || []).map((ev: any, index: number): LiveEvent => {
+      const county = ev.county || "Santa Clara";
+      const category = ev.category || "Community";
+      const baseType = (ev.type as EventType | undefined) ?? mapTypeFromCategory(category);
+
+      return {
+        id: ev.id?.toString() ?? `rss-${index}`,
+        title: ev.title || "Evento comunitario",
+        description: ev.description || "",
+        image: ev.image || FALLBACK_IMAGE,
+        sourceUrl: ensureHttps(ev.sourceUrl || ev.link),
+        county,
+        category,
+        type: baseType,
+      };
+    });
+  } catch (err) {
+    console.error("❌ RSS fetch error:", err);
+    return [];
+  }
+}
+
+// ----------------------------
+// MAP CATEGORY → TYPE
+// ----------------------------
+function mapTypeFromCategory(category: string): EventType {
+  const cat = (category || "").toLowerCase();
+
+  if (cat.includes("music") || cat.includes("concierto") || cat.includes("concert"))
+    return "music";
+  if (cat.includes("sport") || cat.includes("deporte"))
+    return "sports";
+  if (cat.includes("food") || cat.includes("comida") || cat.includes("wine") || cat.includes("beer"))
+    return "food";
+  if (cat.includes("family") || cat.includes("familia"))
+    return "family";
+  if (cat.includes("kids") || cat.includes("niño") || cat.includes("youth") || cat.includes("teen"))
+    return "youth";
+  if (cat.includes("holiday") || cat.includes("navidad") || cat.includes("christmas"))
+    return "holiday";
+  if (cat.includes("night") || cat.includes("club") || cat.includes("nightlife"))
+    return "nightlife";
+  if (cat.includes("single"))
+    return "singles";
+  if (cat.includes("couple"))
+    return "couples";
+
+  return "community";
+}
+
+// ----------------------------
+// NORMALIZE TICKETMASTER
+// ----------------------------
+function normalizeTicketmaster(ev: any): LiveEvent {
+  const genre = ev.classifications?.[0]?.genre?.name || "";
+  const segment = ev.classifications?.[0]?.segment?.name || "";
+  const name = ev.name || "";
+
+  const rawCategory = genre || segment || "Community";
+
+  const type = mapTypeFromTicketmaster(rawCategory, name);
 
   return {
     id: ev.id,
-    title: ev.name,
-    description: ev.info || "",
-    date: ev.dates?.start?.localDate || "",
-    time: ev.dates?.start?.localTime || "",
-    image:
-      ev.images?.find((i: any) => i.width > 600)?.url || FALLBACK_IMAGE,
-    sourceUrl: ev.url || "",
-    city,
-    county,
-    category: determineCategory(ev.classifications?.[0]),
+    title: ev.name || "Evento",
+    description: ev.info || ev.pleaseNote || "",
+    image: ev.images?.[0]?.url || FALLBACK_IMAGE,
+    sourceUrl: ensureHttps(ev.url),
+    county: extractCountyFromTM(ev),
+    category: rawCategory,
+    type,
   };
 }
 
+function mapTypeFromTicketmaster(category: string, title: string): EventType {
+  const cat = (category || "").toLowerCase();
+  const name = (title || "").toLowerCase();
+
+  // Sports
+  if (cat.includes("sport") || name.includes("vs "))
+    return "sports";
+
+  // Music / concerts
+  if (cat.includes("music") || cat.includes("concert") || name.includes("festival"))
+    return "music";
+
+  // Family / kids
+  if (
+    cat.includes("family") ||
+    name.includes("kids") ||
+    name.includes("children") ||
+    name.includes("family")
+  )
+    return "family";
+
+  // Food / drink events
+  if (
+    name.includes("taco") ||
+    name.includes("beer") ||
+    name.includes("wine") ||
+    name.includes("food")
+  )
+    return "food";
+
+  // Holiday
+  if (
+    name.includes("navidad") ||
+    name.includes("christmas") ||
+    name.includes("xmas") ||
+    name.includes("holiday")
+  )
+    return "holiday";
+
+  // Nightlife
+  if (name.includes("club") || name.includes("night") || name.includes("party"))
+    return "nightlife";
+
+  // Couples
+  if (name.includes("date night") || name.includes("couples"))
+    return "couples";
+
+  // Singles
+  if (name.includes("singles") || name.includes("speed dating"))
+    return "singles";
+
+  // Default
+  return "community";
+}
+
+// ----------------------------
+// COUNTY TAGGING
+// ----------------------------
+function extractCountyFromTM(ev: any): string {
+  const venue = ev._embedded?.venues?.[0];
+  if (!venue) return "Santa Clara";
+
+  const city = venue.city?.name?.toLowerCase() || "";
+
+  // Santa Clara County
+  if (city.includes("san jose")) return "Santa Clara";
+  if (city.includes("santa clara")) return "Santa Clara";
+  if (city.includes("sunnyvale")) return "Santa Clara";
+  if (city.includes("mountain view")) return "Santa Clara";
+  if (city.includes("milpitas")) return "Santa Clara";
+  if (city.includes("palo alto")) return "Santa Clara";
+  if (city.includes("gilroy")) return "Santa Clara";
+  if (city.includes("morgan hill")) return "Santa Clara";
+
+  // Alameda
+  if (city.includes("oakland") || city.includes("fremont") || city.includes("hayward"))
+    return "Alameda";
+
+  // San Mateo
+  if (city.includes("san mateo") || city.includes("redwood"))
+    return "San Mateo";
+
+  // San Francisco
+  if (city.includes("san francisco"))
+    return "San Francisco";
+
+  // Santa Cruz
+  if (city.includes("santa cruz") || city.includes("watsonville"))
+    return "Santa Cruz";
+
+  // Monterey County
+  if (city.includes("salinas") || city.includes("monterey"))
+    return "Monterey";
+
+  // Central Valley
+  if (city.includes("modesto")) return "Stanislaus";
+  if (city.includes("turlock")) return "Stanislaus";
+  if (city.includes("stockton")) return "San Joaquin";
+  if (city.includes("lodi")) return "San Joaquin";
+  if (city.includes("tracy")) return "San Joaquin";
+  if (city.includes("manteca")) return "San Joaquin";
+  if (city.includes("merced")) return "Merced";
+  if (city.includes("atwater") || city.includes("los banos")) return "Merced";
+  if (city.includes("madera")) return "Madera";
+  if (city.includes("fresno")) return "Fresno";
+
+  return "Santa Clara";
+}
+
+// ----------------------------
+// MAIN HANDLER
+// ----------------------------
 export async function GET() {
   try {
-    if (!TICKETMASTER_API_KEY) {
-      console.error("Ticketmaster API key missing");
-      return NextResponse.json([], { status: 500 });
+    const apiKey = process.env.TICKETMASTER_API_KEY;
+
+    // 1) Ticketmaster
+    let tmEvents: LiveEvent[] = [];
+    if (apiKey) {
+      const tmUrl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&countryCode=US&stateCode=CA&size=50`;
+      const tmRes = await fetch(tmUrl, { cache: "no-store" });
+      const tmData = await tmRes.json();
+      const rawEvents = tmData._embedded?.events || [];
+      tmEvents = rawEvents.map(normalizeTicketmaster);
     }
 
-    // Build Ticketmaster search URL
-    const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${TICKETMASTER_API_KEY}&latlong=${SJ_LAT},${SJ_LNG}&radius=${RADIUS}&unit=miles&locale=*`;
+    // 2) RSS community events
+    const rssEvents = await fetchRssEvents();
 
-    const res = await fetch(url, { cache: "no-store" });
+    // 3) Combine + dedupe by sourceUrl
+    const combined = [...tmEvents, ...rssEvents];
+    const map = new Map<string, LiveEvent>();
 
-    if (!res.ok) {
-      console.error("Ticketmaster API error:", res.status);
-      return NextResponse.json([], { status: 500 });
+    for (const ev of combined) {
+      const key = ev.sourceUrl || ev.id;
+      if (!map.has(key)) {
+        map.set(key, ev);
+      }
     }
 
-    const data = await res.json();
-    const events: any[] = data._embedded?.events || [];
+    const finalEvents = Array.from(map.values());
 
-    // Normalize + filter by allowed counties
-    const normalized = events
-      .map((ev: any) => normalizeEvent(ev))
-      .filter((ev: any) => APPROVED_COUNTIES.includes(ev.county));
-
-    // Remove past events
-    const today = new Date().toISOString().split("T")[0];
-    const upcoming = normalized.filter((ev) => ev.date >= today);
-
-    return NextResponse.json(upcoming, {
-      headers: {
-        "Cache-Control": "s-maxage=10800", // 3 hours caching
-      },
-    });
+    return NextResponse.json(finalEvents);
   } catch (error) {
-    console.error("LIVE EVENTS API ERROR:", error);
-    return NextResponse.json([], { status: 500 });
+    console.error("❌ Live events fetch error:", error);
+    return NextResponse.json([]);
   }
 }

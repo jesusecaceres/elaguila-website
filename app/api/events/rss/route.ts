@@ -1,261 +1,201 @@
 import { NextResponse } from "next/server";
-import Parser from "rss-parser";
 
-// -----------------------------
-// CONFIG
-// -----------------------------
+export const dynamic = "force-dynamic";
 
-const EVENTBRITE_TOKEN = process.env.EVENTBRITE_API_KEY;
-const MEETUP_KEY = process.env.MEETUP_API_KEY || null;
+const FALLBACK_IMAGE = "/event-fallback.png";
 
-const FALLBACK_IMAGE = "/fallback-event.jpg";
-
-// Cities we target for Eventbrite + Meetup
-const TARGET_CITIES = [
-  "San Jose",
-  "Santa Clara",
-  "Sunnyvale",
-  "Mountain View",
-  "Palo Alto",
-  "Fremont",
-  "Hayward",
-  "Oakland",
-  "Berkeley",
-  "San Francisco",
-  "San Mateo",
-  "Milpitas",
-  "Campbell",
-  "Los Gatos",
-  "Redwood City",
-  "Union City",
-  "Modesto",
-  "Turlock",
-  "Ceres",
-  "Manteca",
-  "Stockton",
-  "Lodi",
-  "Merced",
-  "Hollister",
-  "Gilroy",
-  "Morgan Hill",
-  "Salinas",
-  "Watsonville",
-  "Santa Cruz",
-];
-
-// City → County map
-const CITY_TO_COUNTY: Record<string, string> = {
-  "San Jose": "Santa Clara",
-  "Santa Clara": "Santa Clara",
-  "Sunnyvale": "Santa Clara",
-  "Mountain View": "Santa Clara",
-  "Palo Alto": "Santa Clara",
-  "Fremont": "Alameda",
-  "Hayward": "Alameda",
-  "Oakland": "Alameda",
-  "Berkeley": "Alameda",
-  "San Francisco": "San Francisco",
-  "San Mateo": "San Mateo",
-  "Redwood City": "San Mateo",
-  "Milpitas": "Santa Clara",
-  "Los Gatos": "Santa Clara",
-  "Campbell": "Santa Clara",
-  "Union City": "Alameda",
-  "Modesto": "Stanislaus",
-  "Ceres": "Stanislaus",
-  "Turlock": "Stanislaus",
-  "Manteca": "San Joaquin",
-  "Stockton": "San Joaquin",
-  "Lodi": "San Joaquin",
-  "Merced": "Merced",
-  "Hollister": "San Benito",
-  "Gilroy": "Santa Clara",
-  "Morgan Hill": "Santa Clara",
-  "Salinas": "Monterey",
-  "Watsonville": "Santa Cruz",
-  "Santa Cruz": "Santa Cruz",
+type RssEvent = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  sourceUrl: string;
+  county: string;
+  category: string;
 };
 
-// -----------------------------
-// HELPERS
-// -----------------------------
+// ---------------------------------------------------------
+// RSS SOURCES — PLACEHOLDERS FOR BAY AREA + CENTRAL VALLEY
+// Replace these with actual city event RSS feeds once you have them.
+// ---------------------------------------------------------
+const RSS_FEEDS: { url: string; source: string }[] = [
+  // BAY AREA
+  { url: "https://www.mercurynews.com/feed/", source: "Mercury News" },
+  { url: "https://events.sanjoseca.gov/feed", source: "San Jose" },
+  { url: "https://events.santaclaraca.gov/feed", source: "Santa Clara" },
+  { url: "https://events.gilroy.com/feed", source: "Gilroy" },
+  { url: "https://events.morganhill.ca.gov/feed", source: "Morgan Hill" },
+  { url: "https://events.hollister.ca.gov/feed", source: "Hollister" },
+  { url: "https://events.santacruzcounty.us/feed", source: "Santa Cruz" },
+  { url: "https://events.montereycounty.us/feed", source: "Monterey" },
 
-function normalizeEvent(evt: any) {
-  return {
-    id: evt.id || crypto.randomUUID(),
-    title: evt.title || "Untitled Event",
-    description: evt.description || "",
-    date: evt.date || "",
-    time: evt.time || "",
-    city: evt.city || "",
-    county: CITY_TO_COUNTY[evt.city] || "",
-    category: evt.category || "Community",
-    image: evt.image || FALLBACK_IMAGE,
-    sourceUrl: evt.sourceUrl || "",
-  };
+  // CENTRAL VALLEY — placeholders (most use ICS instead of RSS, but coded here)
+  { url: "https://visitstockton.org/events/feed", source: "Stockton" },
+  { url: "https://www.lodinews.com/feed/", source: "Lodi" },
+  { url: "https://www.modbee.com/news/local/community/?ac=1&mr=1&mi=1&rss=true", source: "Modesto" },
+  { url: "https://visittracy.com/events/feed", source: "Tracy" },
+  { url: "https://visitmanteca.org/events/feed", source: "Manteca" },
+  { url: "https://visitfresnocounty.org/events/feed", source: "Fresno" },
+  { url: "https://www.cityofmadera.ca.gov/feed", source: "Madera" },
+  { url: "https://www.co.merced.ca.us/rss", source: "Merced" },
+];
+
+// ---------------------------------------------------------
+// Helper: Extract text from XML tag
+// ---------------------------------------------------------
+function getTagContent(item: string, tag: string): string {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const match = item.match(regex);
+  if (!match || !match[1]) return "";
+  return match[1].replace(/<!\[CDATA\[|\]\]>/g, "").trim();
 }
 
-// Remove duplicates by title + date
-function dedupe(events: any[]) {
-  const seen = new Set();
-  return events.filter((evt) => {
-    const key = `${evt.title}-${evt.date}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+// ---------------------------------------------------------
+// Parse RSS into structured events
+// ---------------------------------------------------------
+function parseRss(xml: string, source: string): RssEvent[] {
+  const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+
+  return items.map((item) => {
+    const title = getTagContent(item, "title") || "Evento";
+    const description =
+      getTagContent(item, "description") || getTagContent(item, "summary");
+    const link = getTagContent(item, "link");
+
+    // Image detection
+    let image = FALLBACK_IMAGE;
+    const mediaMatch = item.match(/<media:content[^>]*url="([^"]+)"[^>]*>/i);
+    const enclosureMatch = item.match(/<enclosure[^>]*url="([^"]+)"[^>]*>/i);
+    if (mediaMatch?.[1]) image = mediaMatch[1];
+    if (enclosureMatch?.[1]) image = enclosureMatch[1];
+
+    const county = guessCounty(title + " " + description);
+    const category = guessCategory(title + " " + description);
+
+    return {
+      id: `rss-${source}-${Buffer.from(link || title).toString("base64")}`,
+      title,
+      description,
+      image,
+      sourceUrl: link || "",
+      county,
+      category,
+    };
   });
 }
 
-// -----------------------------
-// EVENTBRITE FETCHER
-// -----------------------------
+// ---------------------------------------------------------
+// Assign county by keywords
+// ---------------------------------------------------------
+function guessCounty(text: string): string {
+  const t = text.toLowerCase();
 
-async function fetchEventbrite() {
-  if (!EVENTBRITE_TOKEN) return [];
+  // Santa Clara County
+  if (t.includes("san jose")) return "Santa Clara";
+  if (t.includes("santa clara")) return "Santa Clara";
+  if (t.includes("sunnyvale")) return "Santa Clara";
+  if (t.includes("mountain view")) return "Santa Clara";
+  if (t.includes("milpitas")) return "Santa Clara";
+  if (t.includes("palo alto")) return "Santa Clara";
+  if (t.includes("gilroy")) return "Santa Clara";
+  if (t.includes("morgan hill")) return "Santa Clara";
 
-  const allEvents: any[] = [];
+  // Alameda
+  if (t.includes("oakland") || t.includes("fremont") || t.includes("hayward"))
+    return "Alameda";
 
-  for (const city of TARGET_CITIES) {
-    const url = `https://www.eventbriteapi.com/v3/events/search/?location.address=${encodeURIComponent(
-      city
-    )}&token=${EVENTBRITE_TOKEN}`;
+  // San Mateo
+  if (t.includes("san mateo") || t.includes("redwood city") || t.includes("burlingame"))
+    return "San Mateo";
 
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) continue;
+  // San Francisco
+  if (t.includes("san francisco")) return "San Francisco";
 
-    const data = await res.json();
-    if (!data.events) continue;
+  // Santa Cruz
+  if (t.includes("santa cruz") || t.includes("watsonville"))
+    return "Santa Cruz";
 
-    for (const e of data.events) {
-      const start = e.start?.local || "";
-      const date = start ? start.split("T")[0] : "";
+  // Monterey County
+  if (t.includes("salinas") || t.includes("monterey") || t.includes("marina"))
+    return "Monterey";
 
-      if (new Date(date) < new Date()) continue; // past events filtered
+  // San Benito
+  if (t.includes("hollister")) return "San Benito";
 
-      allEvents.push(
-        normalizeEvent({
-          id: e.id,
-          title: e.name.text,
-          description: e.description?.text || "",
-          date,
-          time: start ? start.split("T")[1].slice(0, 5) : "",
-          city,
-          category: e.category_id || "Community",
-          image: e.logo?.url || FALLBACK_IMAGE,
-          sourceUrl: e.url,
-        })
-      );
-    }
-  }
+  // CENTRAL VALLEY
+  if (t.includes("modesto")) return "Stanislaus";
+  if (t.includes("turlock")) return "Stanislaus";
+  if (t.includes("stockton")) return "San Joaquin";
+  if (t.includes("lodi")) return "San Joaquin";
+  if (t.includes("tracy")) return "San Joaquin";
+  if (t.includes("manteca")) return "San Joaquin";
+  if (t.includes("merced")) return "Merced";
+  if (t.includes("atwater") || t.includes("los banos"))
+    return "Merced";
+  if (t.includes("madera")) return "Madera";
+  if (t.includes("fresno")) return "Fresno";
 
-  return allEvents;
+  return "Santa Clara";
 }
 
-// -----------------------------
-// MEETUP FETCHER (Optional)
-// -----------------------------
+// ---------------------------------------------------------
+// Categorize event
+// ---------------------------------------------------------
+function guessCategory(text: string): string {
+  const t = text.toLowerCase();
 
-async function fetchMeetup() {
-  if (!MEETUP_KEY) return [];
+  if (t.includes("kids") || t.includes("niños") || t.includes("youth"))
+    return "Youth/Kids";
 
-  const allEvents: any[] = [];
+  if (t.includes("family") || t.includes("festival") || t.includes("fair"))
+    return "Family";
 
-  for (const city of TARGET_CITIES) {
-    const url = `https://api.meetup.com/find/upcoming_events?key=${MEETUP_KEY}&text=${encodeURIComponent(
-      city
-    )}`;
+  if (t.includes("music") || t.includes("concert") || t.includes("live"))
+    return "Music";
 
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) continue;
+  if (t.includes("food") || t.includes("comida") || t.includes("taco"))
+    return "Food";
 
-    const data = await res.json();
-    if (!data.events) continue;
+  if (t.includes("sports") || t.includes("soccer") || t.includes("basketball"))
+    return "Sports";
 
-    for (const e of data.events) {
-      const date = e.local_date;
-      if (new Date(date) < new Date()) continue;
+  if (t.includes("nightlife") || t.includes("club") || t.includes("dj"))
+    return "Nightlife";
 
-      allEvents.push(
-        normalizeEvent({
-          id: e.id,
-          title: e.name,
-          description: e.description || "",
-          date: e.local_date,
-          time: e.local_time,
-          city,
-          category: "Community",
-          image: e.featured_photo?.photo_link || FALLBACK_IMAGE,
-          sourceUrl: e.link,
-        })
-      );
-    }
-  }
+  if (t.includes("holiday") || t.includes("christmas") || t.includes("navidad"))
+    return "Holiday";
 
-  return allEvents;
+  return "Community";
 }
 
-// -----------------------------
-// RSS FETCHER (LA Times + Mercury News)
-// -----------------------------
-
-async function fetchRSS() {
-  const parser = new Parser();
-  const feeds = [
-    "https://www.latimes.com/california.rss",
-    "https://www.mercurynews.com/events/feed/",
-  ];
-
-  const events: any[] = [];
-
-  for (const feed of feeds) {
-    try {
-      const rss = await parser.parseURL(feed);
-      rss.items.forEach((item) => {
-        events.push(
-          normalizeEvent({
-            title: item.title,
-            description: item.contentSnippet || "",
-            date: item.pubDate ? item.pubDate.split(" ")[0] : "",
-            time: "",
-            city: "",
-            category: "Community",
-            image: FALLBACK_IMAGE,
-            sourceUrl: item.link,
-          })
-        );
-      });
-    } catch (e) {}
-  }
-
-  return events;
-}
-
-// -----------------------------
-// MAIN ROUTE
-// -----------------------------
-
+// ---------------------------------------------------------
+// MAIN HANDLER
+// ---------------------------------------------------------
 export async function GET() {
   try {
-    const [eb, meetup, rss] = await Promise.all([
-      fetchEventbrite(),
-      fetchMeetup(),
-      fetchRSS(),
-    ]);
+    const results = await Promise.all(
+      RSS_FEEDS.map(async (feed) => {
+        try {
+          const res = await fetch(feed.url, { cache: "no-store" });
+          if (!res.ok) return [];
+          const xml = await res.text();
+          return parseRss(xml, feed.source);
+        } catch {
+          return [];
+        }
+      })
+    );
 
-    let combined = [...eb, ...meetup, ...rss];
+    // Flatten + dedupe
+    const allEvents = results.flat().filter((ev) => ev.sourceUrl);
 
-    // future events only
-    combined = combined.filter((e) => e.date && new Date(e.date) >= new Date());
+    const map = new Map<string, RssEvent>();
+    for (const ev of allEvents) {
+      if (!map.has(ev.sourceUrl)) map.set(ev.sourceUrl, ev);
+    }
 
-    combined = dedupe(combined);
-
-    return NextResponse.json(combined, {
-      headers: {
-        "Cache-Control": "s-maxage=10800", // 3 hours
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json([], { status: 500 });
+    return NextResponse.json(Array.from(map.values()));
+  } catch {
+    return NextResponse.json([]);
   }
 }
