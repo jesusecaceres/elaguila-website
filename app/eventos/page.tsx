@@ -69,6 +69,24 @@ const countyOptions = [
 ];
 
 // -----------------------------
+// TYPES (Fixes your build error)
+// -----------------------------
+interface EventItem {
+  id: string;
+  title: string | { [key: string]: string };
+  description?: string | { [key: string]: string };
+  image: string;
+  county?: string;
+  category?: string;
+  sourceUrl?: string;
+}
+
+interface CarouselProps {
+  items: EventItem[];
+  lang: string;
+}
+
+// -----------------------------
 // CAROUSEL HELPERS
 // -----------------------------
 function getLocalizedText(
@@ -80,7 +98,7 @@ function getLocalizedText(
   return value[lang] || value["es"] || value["en"] || "";
 }
 
-function CinematicCarousel({ items, lang }) {
+function CinematicCarousel({ items, lang }: CarouselProps) {
   if (!items || items.length === 0)
     return (
       <p className="text-center text-white/70 mt-4">
@@ -148,11 +166,11 @@ export default function EventosPage() {
   const lang = params.get("lang") === "en" ? "en" : "es";
   const t = translations[lang];
 
-  const [liveEvents, setLiveEvents] = useState([]);
+  const [liveEvents, setLiveEvents] = useState<EventItem[]>([]);
   const [loadingLive, setLoadingLive] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedCounty, setSelectedCounty] = useState("Santa Clara"); // Show San Jose by default
+  const [selectedCounty, setSelectedCounty] = useState("Santa Clara"); // Default to San José
 
   useEffect(() => {
     async function loadLiveEvents() {
