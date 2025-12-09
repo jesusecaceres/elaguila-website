@@ -1,33 +1,14 @@
-// ------------------------------------------------------------
-// dedupe.ts
-// Removes duplicate events from Eventbrite + Ticketmaster
-// ------------------------------------------------------------
+import { FinalEvent } from "./types";
 
-import { UnifiedEvent } from "./types";
+export function mergeAndDedupe(events: FinalEvent[]): FinalEvent[] {
+  const map = new Map<string, FinalEvent>();
 
-/**
- * Generates a unique key for deduplication.
- * Priority: URL → Title + Date → ID
- */
-function dedupeKey(event: UnifiedEvent): string {
-  if (event.sourceUrl) return event.sourceUrl.toLowerCase().trim();
-  if (event.title && event.startDate)
-    return (event.title + event.startDate).toLowerCase().trim();
-  return event.id.toLowerCase().trim();
-}
-
-/**
- * Remove duplicates from an array of UnifiedEvent.
- */
-export function dedupeEvents(events: UnifiedEvent[]): UnifiedEvent[] {
-  const map = new Map<string, UnifiedEvent>();
-
-  for (const ev of events) {
-    const key = dedupeKey(ev);
+  events.forEach((ev) => {
+    const key = ev.url || ev.id;
     if (!map.has(key)) {
       map.set(key, ev);
     }
-  }
+  });
 
   return Array.from(map.values());
 }
