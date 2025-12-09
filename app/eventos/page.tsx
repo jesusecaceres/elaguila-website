@@ -1,309 +1,259 @@
 "use client";
 
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 
-import { manualEvents } from "../data/manual-events";
-import { communityEvents } from "../data/events";
+import { counties, allCities, CitySlug } from "../api/events/helpers/cityMap";
+import { UnifiedEvent, EventCategory } from "../api/events/helpers/types";
 
-// -----------------------------
-// LANGUAGE STRINGS
-// -----------------------------
-const translations = {
+// ------------------------------------------------------------
+// UI TRANSLATIONS
+// ------------------------------------------------------------
+
+const ui = {
   es: {
-    title: "Eventos — El Águila en Vuelo",
-    alasDeOro: "Alas de Oro",
-    community: "Eventos Comunitarios",
-    explore: "Eventos Cerca de Ti",
-    submit: "Enviar tu evento",
-    counties: "Condados",
-    categories: "Categorías",
+    title: "Eventos",
+    city: "Ciudad",
+    category: "Categoría",
+    noEvents: "No hay eventos disponibles para esta ciudad.",
     loading: "Cargando eventos...",
   },
   en: {
-    title: "Events — El Águila en Vuelo",
-    alasDeOro: "Golden Wings",
-    community: "Community Events",
-    explore: "Events Near You",
-    submit: "Submit Your Event",
-    counties: "Counties",
-    categories: "Categories",
+    title: "Events",
+    city: "City",
+    category: "Category",
+    noEvents: "No events available for this city.",
     loading: "Loading events...",
   },
 };
 
-// -----------------------------
-// OPTIONS
-// -----------------------------
-const categoryOptions = [
-  "Singles",
-  "Youth/Kids",
-  "Family",
-  "Couples",
-  "Nightlife",
-  "Food",
-  "Music",
-  "Community",
-  "Holiday",
-  "Sports",
+// ------------------------------------------------------------
+// CATEGORY OPTIONS
+// ------------------------------------------------------------
+
+const categoryOptions: { value: EventCategory | ""; label: string; labelEs: string }[] = [
+  { value: "", label: "All Categories", labelEs: "Todas las categorías" },
+  { value: "music", label: "Music", labelEs: "Música" },
+  { value: "food", label: "Food", labelEs: "Comida" },
+  { value: "family", label: "Family", labelEs: "Familia" },
+  { value: "youth", label: "Youth/Kids", labelEs: "Juventud/Niños" },
+  { value: "nightlife", label: "Nightlife", labelEs: "Vida Nocturna" },
+  { value: "holiday", label: "Holiday", labelEs: "Festividades" },
+  { value: "sports", label: "Sports", labelEs: "Deportes" },
+  { value: "community", label: "Community", labelEs: "Comunidad" },
+  { value: "singles", label: "Singles", labelEs: "Solteros" },
+  { value: "couples", label: "Couples", labelEs: "Parejas" },
 ];
 
-const countyOptions = [
-  "Santa Clara",
-  "Alameda",
-  "San Mateo",
-  "San Francisco",
-  "Contra Costa",
-  "Marin",
-  "Napa",
-  "Sonoma",
-  "Stanislaus",
-  "San Joaquin",
-  "Merced",
-  "Fresno",
-  "Madera",
-  "Santa Cruz",
-  "Monterey",
-  "San Benito",
-];
+// ------------------------------------------------------------
+// MAIN COMPONENT
+// ------------------------------------------------------------
 
-// -----------------------------
-// TYPES (Fixes your build error)
-// -----------------------------
-interface EventItem {
-  id: string;
-  title: string | { [key: string]: string };
-  description?: string | { [key: string]: string };
-  image: string;
-  county?: string;
-  category?: string;
-  sourceUrl?: string;
-}
+export default function EventsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-interface CarouselProps {
-  items: EventItem[];
-  lang: string;
-}
+  const lang = searchParams.get("lang") === "en" ? "en" : "es";
 
-// -----------------------------
-// CAROUSEL HELPERS
-// -----------------------------
-function getLocalizedText(
-  value: string | { [key: string]: string } | undefined,
-  lang: string
-): string {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  return value[lang] || value["es"] || value["en"] || "";
-}
+  // Default city = San José
+  const initialCity = (searchParams.get("city") as CitySlug) || "sanjose";
+  const initialCategory = (searchParams.get("category") as EventCategory | "") || "";
 
-function CinematicCarousel({ items, lang }: CarouselProps) {
-  if (!items || items.length === 0)
-    return (
-      <p className="text-center text-white/70 mt-4">
-        {lang === "es" ? "No hay eventos disponibles." : "No events available."}
-      </p>
-    );
+  const [city, setCity] = useState<CitySlug>(initialCity);
+  const [category, setCategory] = useState<EventCategory | "">(initialCategory);
+  const [events, setEvents] = useState<UnifiedEvent[] | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
 
-  return (
-    <div className="w-full overflow-x-auto scrollbar-hide">
-      <div className="flex gap-8 py-10 px-1">
-        {items.map((ev) => {
-          const title = getLocalizedText(ev.title, lang);
-          const desc = getLocalizedText(ev.description, lang);
-
-          return (
-            <div
-              key={ev.id}
-              className="min-w-[280px] max-w-[280px] md:min-w-[320px] md:max-w-[320px]
-              bg-black/50 border border-white/20 rounded-2xl shadow-2xl overflow-hidden
-              backdrop-blur-md hover:-translate-y-1 hover:scale-[1.02]
-              transition-all duration-300"
-            >
-              <div className="relative w-full h-[180px] md:h-[200px]">
-                <Image
-                  src={ev.image}
-                  alt={title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-
-              <div className="p-4 flex flex-col gap-2">
-                <h3 className="font-semibold text-lg md:text-xl text-white line-clamp-2">
-                  {title}
-                </h3>
-
-                {desc && (
-                  <p className="text-sm text-white/75 line-clamp-3">{desc}</p>
-                )}
-
-                {ev.sourceUrl && (
-                  <a
-                    href={ev.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 text-sm font-semibold text-yellow-300 underline underline-offset-2 hover:text-yellow-200"
-                  >
-                    {lang === "es" ? "Ver evento" : "View event"}
-                  </a>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// -----------------------------
-// MAIN PAGE
-// -----------------------------
-export default function EventosPage() {
-  const params = useSearchParams();
-  const lang = params.get("lang") === "en" ? "en" : "es";
-  const t = translations[lang];
-
-  const [liveEvents, setLiveEvents] = useState<EventItem[]>([]);
-  const [loadingLive, setLoadingLive] = useState(true);
-
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedCounty, setSelectedCounty] = useState("Santa Clara"); // Default to San José
+  // ------------------------------------------------------------
+  // Fetch events when city or category changes
+  // ------------------------------------------------------------
 
   useEffect(() => {
-    async function loadLiveEvents() {
-      try {
-        const res = await fetch("/api/events/live", { cache: "no-store" });
-        const data = await res.json();
-        setLiveEvents(data || []);
-      } catch {
-        setLiveEvents([]);
-      } finally {
-        setLoadingLive(false);
-      }
-    }
-    loadLiveEvents();
-  }, []);
+    async function load() {
+      setLoading(true);
+      setEvents(null);
 
-  // -----------------------------
-  // FILTER LOGIC
-  // -----------------------------
-  const filteredLive = liveEvents.filter((ev) => {
-    const matchCategory = selectedCategory ? ev.category === selectedCategory : true;
-    const matchCounty = selectedCounty ? ev.county === selectedCounty : true;
-    return matchCategory && matchCounty;
-  });
+      const params = new URLSearchParams();
+      params.set("city", city);
+      if (category) params.set("category", category);
+
+      const res = await fetch(`/api/events/full?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      const json = await res.json();
+
+      if (json.events?.length > 0) {
+        setEvents(json.events);
+        setMessage("");
+      } else {
+        setEvents([]);
+        setMessage(ui[lang].noEvents);
+      }
+
+      setLoading(false);
+    }
+
+    load();
+  }, [city, category, lang]);
+
+  // ------------------------------------------------------------
+  // UPDATE URL WHEN FILTERS CHANGE
+  // ------------------------------------------------------------
+
+  function updateUrl(newCity: CitySlug, newCategory: EventCategory | "") {
+    const params = new URLSearchParams();
+    params.set("city", newCity);
+    if (newCategory) params.set("category", newCategory);
+    params.set("lang", lang);
+
+    router.replace(`/eventos?${params.toString()}`);
+  }
+
+  // ------------------------------------------------------------
+  // FILTER HANDLERS
+  // ------------------------------------------------------------
+
+  function handleCityChange(e: any) {
+    const slug = e.target.value as CitySlug;
+    setCity(slug);
+    updateUrl(slug, category);
+  }
+
+  function handleCategoryChange(e: any) {
+    const val = e.target.value as EventCategory | "";
+    setCategory(val);
+    updateUrl(city, val);
+  }
+
+  // ------------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------------
 
   return (
-    <div className="text-white">
+    <div className="min-h-screen w-full text-white bg-black">
 
-      {/* HERO */}
-      <section className="w-full bg-gradient-to-b from-black via-[#2b210c] to-[#3a2c0f] py-24 text-center">
-        <div className="max-w-4xl mx-auto px-4">
-          <Image
-            src="/logo.png"
-            alt="El Águila Logo"
-            width={260}
-            height={260}
-            className="mx-auto drop-shadow-[0_0_35px_rgba(255,215,0,0.9)]"
-          />
+      {/* -------------------------------------------------------- */}
+      {/* HERO SECTION */}
+      {/* -------------------------------------------------------- */}
+      <div className="relative w-full flex flex-col items-center justify-center py-32 text-center">
+        <Image
+          src="/logo.png"
+          alt="El Águila Logo"
+          width={180}
+          height={180}
+          className="drop-shadow-[0_0_25px_rgba(255,215,0,0.8)] mb-6"
+        />
 
-          <h1 className="mt-8 text-5xl md:text-6xl font-bold text-yellow-400">
-            {t.title}
-          </h1>
-        </div>
-      </section>
+        <h1 className="text-6xl md:text-7xl font-bold text-[#FFD700] tracking-wide">
+          {ui[lang].title}
+        </h1>
+      </div>
 
-      {/* ALAS DE ORO */}
-      <section className="max-w-6xl mx-auto px-4 mt-16">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-yellow-300">{t.alasDeOro}</h2>
-          <div className="mt-6 flex justify-center">
-            <div className="relative w-full max-w-3xl h-28">
-              <Image src="/branding/alas-de-oro.png" alt="" fill className="object-contain" />
-            </div>
-          </div>
-        </div>
+      {/* -------------------------------------------------------- */}
+      {/* FILTER BAR */}
+      {/* -------------------------------------------------------- */}
+      <div className="w-full max-w-5xl mx-auto mt-6 px-4 flex flex-col md:flex-row gap-4">
 
-        <CinematicCarousel items={manualEvents} lang={lang} />
-      </section>
+        {/* CITY SELECT */}
+        <div className="flex-1">
+          <label className="block mb-2 text-sm text-white/80">
+            {ui[lang].city}
+          </label>
 
-      {/* COMMUNITY EVENTS */}
-      <section className="max-w-6xl mx-auto px-4 mt-20">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-yellow-300">{t.community}</h2>
-
-          <div className="mt-6 flex justify-center">
-            <div className="relative w-full max-w-3xl h-28">
-              <Image src="/branding/alas-de-oro.png" alt="" fill className="object-contain" />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-center">
-          <a
-            href="mailto:info@elaguilamagazine.com"
-            className="inline-block bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-600 text-black font-bold py-3 px-10 rounded-full shadow-xl hover:scale-105 transition-all"
+          <select
+            value={city}
+            onChange={handleCityChange}
+            className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none"
           >
-            {t.submit}
-          </a>
+            {/* GROUPED BY COUNTY */}
+            {Object.entries(counties).map(([countyName, cityList]) => (
+              <optgroup key={countyName} label={countyName}>
+                {cityList.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </div>
 
-        <CinematicCarousel items={communityEvents} lang={lang} />
-      </section>
+        {/* CATEGORY SELECT */}
+        <div className="flex-1">
+          <label className="block mb-2 text-sm text-white/80">
+            {ui[lang].category}
+          </label>
 
-      {/* LIVE EVENTS */}
-      <section className="max-w-6xl mx-auto px-4 mt-20 mb-32">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-yellow-300">{t.explore}</h2>
+          <select
+            value={category}
+            onChange={handleCategoryChange}
+            className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none"
+          >
+            {categoryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {lang === "es" ? opt.labelEs : opt.label}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
 
-        {/* FILTERS */}
-        <div className="mt-12 flex flex-col md:flex-row justify-center gap-12">
+      {/* -------------------------------------------------------- */}
+      {/* LOADING */}
+      {/* -------------------------------------------------------- */}
+      {loading && (
+        <p className="text-center text-white/60 mt-24 text-xl">
+          {ui[lang].loading}
+        </p>
+      )}
 
-          {/* CATEGORY */}
-          <div>
-            <label className="text-lg font-semibold mb-2 block">{t.categories}</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-white text-black p-3 rounded-xl w-60 shadow-lg"
+      {/* -------------------------------------------------------- */}
+      {/* NO EVENTS */}
+      {/* -------------------------------------------------------- */}
+      {!loading && events?.length === 0 && (
+        <p className="text-center text-white/60 mt-24 text-xl">{message}</p>
+      )}
+
+      {/* -------------------------------------------------------- */}
+      {/* EVENTS GRID */}
+      {/* -------------------------------------------------------- */}
+      {!loading && events && events.length > 0 && (
+        <div className="w-full max-w-6xl mx-auto mt-12 px-4 pb-32 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {events.map((ev) => (
+            <a
+              key={ev.id}
+              href={ev.sourceUrl}
+              target="_blank"
+              className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl overflow-hidden hover:scale-[1.03] transition-all duration-300"
             >
-              <option value="">{lang === "es" ? "Todas" : "All"}</option>
-              {categoryOptions.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+              <Image
+                src={ev.image}
+                width={600}
+                height={350}
+                alt={ev.title}
+                className="w-full h-56 object-cover"
+              />
 
-          {/* COUNTY */}
-          <div>
-            <label className="text-lg font-semibold mb-2 block">{t.counties}</label>
-            <select
-              value={selectedCounty}
-              onChange={(e) => setSelectedCounty(e.target.value)}
-              className="bg-white text-black p-3 rounded-xl w-60 shadow-lg"
-            >
-              <option value="">{lang === "es" ? "Todos" : "All"}</option>
-              {countyOptions.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+              <div className="p-5">
+                <h3 className="text-xl font-semibold text-[#FFD700] leading-tight mb-2">
+                  {ev.title}
+                </h3>
 
+                <p className="text-white/70 text-sm line-clamp-3 mb-3">
+                  {ev.description || ""}
+                </p>
+
+                <p className="text-white/50 text-xs">
+                  {ev.cityName} • {ev.category.toUpperCase()}
+                </p>
+              </div>
+            </a>
+          ))}
         </div>
-
-        {/* RESULTS */}
-        <div className="mt-16">
-          {loadingLive ? (
-            <p className="text-center text-white/80">{t.loading}</p>
-          ) : (
-            <CinematicCarousel items={filteredLive} lang={lang} />
-          )}
-        </div>
-      </section>
+      )}
     </div>
   );
 }
