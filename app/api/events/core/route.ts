@@ -7,58 +7,63 @@ import { CITY_MAP } from "../helpers/cityMap";
 
 export const dynamic = "force-dynamic";
 
-// -----------------------------------------
-// DEFAULT CITY (SAN JOSÉ)
-// -----------------------------------------
-const DEFAULT_CITY = "san-jose";
+const DEFAULT_CITY = "sanjose";
 
-// -----------------------------------------
-// GET HANDLER
-// -----------------------------------------
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // User-selected city
-    const cityParam = searchParams.get("city");
-    const city = cityParam ? cityParam.toLowerCase() : DEFAULT_CITY;
+    // Read ?city=sanjose
+    const cityParam = searchParams.get("city")?.toLowerCase() || DEFAULT_CITY;
 
-    // Sanity fallback
-    const mappedCity = CITY_MAP[city] || CITY_MAP[DEFAULT_CITY];
+    // City object {query, county}
+    const cityObj = CITY_MAP[cityParam] || CITY_MAP[DEFAULT_CITY];
 
-    // -----------------------------------------
-    // FETCH SOURCES
-    // -----------------------------------------
+    // The value we pass to Eventbrite / Ticketmaster
+    const queryCity = cityObj.query;
 
-    // 1) Eventbrite
-    const eventbrite = await fetchEventbriteEvents(mappedCity);
+    // -----------------------------------------------------
+    // 1) FETCH EVENTBRITE EVENTS
+    // -----------------------------------------------------
+    const eventbrite = await fetchEventbriteEvents(queryCity);
 
-    // 2) Ticketmaster (optional)
-    const ticketmaster = await fetchTicketmasterEvents(mappedCity);
+    // -----------------------------------------------------
+    // 2) FETCH TICKETMASTER EVENTS
+    // -----------------------------------------------------
+    const ticketmaster = await fetchTicketmasterEvents(queryCity);
 
-    // -----------------------------------------
-    // COMBINE + NORMALIZE
-    // -----------------------------------------
-    const combined = [...eventbrite, ...ticketmaster].map((ev) =>
-      normalizeEvent(ev, mappedCity)
+    // -----------------------------------------------------
+    // 3) NORMALIZE ALL EVENTS
+    // -----------------------------------------------------
+    const normalized = [...eventbrite, ...ticketmaster].map((ev) =>
+      normalizeEvent(ev)
     );
 
-    // -----------------------------------------
-    // REMOVE DUPLICATES & SORT BY DATE
-    // -----------------------------------------
-    const finalEvents = mergeAndDedupe(combined).sort((a, b) => {
-      const da = new Date(a.startDate).getTime();
-      const db = new Date(b.startDate).getTime();
+    // -----------------------------------------------------
+    // 4) REMOVE DUPLICATES
+    // -----------------------------------------------------
+    const finalEvents = mergeAndDedupe(normalized);
+
+    // -----------------------------------------------------
+    // 5) SORT BY DATE — EARLIEST FIRST
+    // -----------------------------------------------------
+    finalEvents.sort((a, b) => {
+      const da = a.startDate ? new Date(a.startDate).getTime() : Infinity;
+      const db = b.startDate ? new Date(b.startDate).getTime() : Infinity;
       return da - db;
     });
 
     return NextResponse.json({
-      city: mappedCity,
+      city: cityParam,
       count: finalEvents.length,
       events: finalEvents,
     });
-  } catch (error) {
-    console.error("❌ CORE EVENT API ERROR:", error);
-    return NextResponse.json({ city: DEFAULT_CITY, events: [] });
+  } catch (err) {
+    console.error("❌ CORE EVENTS ERROR:", err);
+    return NextResponse.json({
+      city: DEFAULT_CITY,
+      count: 0,
+      events: [],
+    });
   }
 }

@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
-
-import { counties, allCities, CitySlug } from "../api/events/helpers/cityMap";
-import { UnifiedEvent, EventCategory } from "../api/events/helpers/types";
+import { CITY_MAP, CitySlug } from "../api/events/helpers/cityMap";
+import { FinalEvent, EventCategory } from "../api/events/helpers/types";
 
 // ------------------------------------------------------------
 // UI TRANSLATIONS
 // ------------------------------------------------------------
-
 const ui = {
   es: {
     title: "Eventos",
@@ -31,7 +29,6 @@ const ui = {
 // ------------------------------------------------------------
 // CATEGORY OPTIONS
 // ------------------------------------------------------------
-
 const categoryOptions: { value: EventCategory | ""; label: string; labelEs: string }[] = [
   { value: "", label: "All Categories", labelEs: "Todas las categorías" },
   { value: "music", label: "Music", labelEs: "Música" },
@@ -47,29 +44,27 @@ const categoryOptions: { value: EventCategory | ""; label: string; labelEs: stri
 ];
 
 // ------------------------------------------------------------
-// MAIN COMPONENT
+// MAIN PAGE COMPONENT
 // ------------------------------------------------------------
-
 export default function EventsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const lang = searchParams.get("lang") === "en" ? "en" : "es";
 
-  // Default city = San José
+  // Initial values from URL
   const initialCity = (searchParams.get("city") as CitySlug) || "sanjose";
   const initialCategory = (searchParams.get("category") as EventCategory | "") || "";
 
   const [city, setCity] = useState<CitySlug>(initialCity);
   const [category, setCategory] = useState<EventCategory | "">(initialCategory);
-  const [events, setEvents] = useState<UnifiedEvent[] | null>(null);
+  const [events, setEvents] = useState<FinalEvent[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
 
   // ------------------------------------------------------------
-  // Fetch events when city or category changes
+  // FETCH EVENTS WHEN FILTER CHANGES
   // ------------------------------------------------------------
-
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -79,14 +74,14 @@ export default function EventsPage() {
       params.set("city", city);
       if (category) params.set("category", category);
 
-      const res = await fetch(`/api/events/full?${params.toString()}`, {
+      const res = await fetch(`/api/events/core?${params.toString()}`, {
         cache: "no-store",
       });
 
-      const json = await res.json();
+      const data = await res.json();
 
-      if (json.events?.length > 0) {
-        setEvents(json.events);
+      if (data.events?.length > 0) {
+        setEvents(data.events);
         setMessage("");
       } else {
         setEvents([]);
@@ -102,7 +97,6 @@ export default function EventsPage() {
   // ------------------------------------------------------------
   // UPDATE URL WHEN FILTERS CHANGE
   // ------------------------------------------------------------
-
   function updateUrl(newCity: CitySlug, newCategory: EventCategory | "") {
     const params = new URLSearchParams();
     params.set("city", newCity);
@@ -111,10 +105,6 @@ export default function EventsPage() {
 
     router.replace(`/eventos?${params.toString()}`);
   }
-
-  // ------------------------------------------------------------
-  // FILTER HANDLERS
-  // ------------------------------------------------------------
 
   function handleCityChange(e: any) {
     const slug = e.target.value as CitySlug;
@@ -129,15 +119,12 @@ export default function EventsPage() {
   }
 
   // ------------------------------------------------------------
-  // RENDER
+  // RENDER PAGE
   // ------------------------------------------------------------
-
   return (
     <div className="min-h-screen w-full text-white bg-black">
 
-      {/* -------------------------------------------------------- */}
       {/* HERO SECTION */}
-      {/* -------------------------------------------------------- */}
       <div className="relative w-full flex flex-col items-center justify-center py-32 text-center">
         <Image
           src="/logo.png"
@@ -152,9 +139,7 @@ export default function EventsPage() {
         </h1>
       </div>
 
-      {/* -------------------------------------------------------- */}
       {/* FILTER BAR */}
-      {/* -------------------------------------------------------- */}
       <div className="w-full max-w-5xl mx-auto mt-6 px-4 flex flex-col md:flex-row gap-4">
 
         {/* CITY SELECT */}
@@ -166,17 +151,12 @@ export default function EventsPage() {
           <select
             value={city}
             onChange={handleCityChange}
-            className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none"
+            className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white"
           >
-            {/* GROUPED BY COUNTY */}
-            {Object.entries(counties).map(([countyName, cityList]) => (
-              <optgroup key={countyName} label={countyName}>
-                {cityList.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
+            {Object.entries(CITY_MAP).map(([slug, data]) => (
+              <option key={slug} value={slug}>
+                {data.query}
+              </option>
             ))}
           </select>
         </div>
@@ -190,7 +170,7 @@ export default function EventsPage() {
           <select
             value={category}
             onChange={handleCategoryChange}
-            className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none"
+            className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white"
           >
             {categoryOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -201,38 +181,30 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* -------------------------------------------------------- */}
       {/* LOADING */}
-      {/* -------------------------------------------------------- */}
       {loading && (
         <p className="text-center text-white/60 mt-24 text-xl">
           {ui[lang].loading}
         </p>
       )}
 
-      {/* -------------------------------------------------------- */}
       {/* NO EVENTS */}
-      {/* -------------------------------------------------------- */}
       {!loading && events?.length === 0 && (
         <p className="text-center text-white/60 mt-24 text-xl">{message}</p>
       )}
 
-      {/* -------------------------------------------------------- */}
       {/* EVENTS GRID */}
-      {/* -------------------------------------------------------- */}
       {!loading && events && events.length > 0 && (
         <div className="w-full max-w-6xl mx-auto mt-12 px-4 pb-32 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {events.map((ev) => (
             <a
               key={ev.id}
-              href={ev.sourceUrl}
+              href={ev.url}
               target="_blank"
               className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl overflow-hidden hover:scale-[1.03] transition-all duration-300"
             >
-              <Image
+              <img
                 src={ev.image}
-                width={600}
-                height={350}
                 alt={ev.title}
                 className="w-full h-56 object-cover"
               />
@@ -242,12 +214,10 @@ export default function EventsPage() {
                   {ev.title}
                 </h3>
 
-                <p className="text-white/70 text-sm line-clamp-3 mb-3">
-                  {ev.description || ""}
-                </p>
+                <p className="text-white/70 text-sm line-clamp-3 mb-3">{ev.description}</p>
 
                 <p className="text-white/50 text-xs">
-                  {ev.cityName} • {ev.category.toUpperCase()}
+                  {CITY_MAP[city].query} • {ev.source.toUpperCase()}
                 </p>
               </div>
             </a>
