@@ -1,70 +1,55 @@
+// ------------------------------------------------------------
+// cityMap.ts — Official Local Cities Map for El Águila Events
+// ------------------------------------------------------------
+
 export const CITY_MAP: Record<
   string,
   {
-    query: string;
-    county: string;
+    query: string;    // The name used for Eventbrite / Ticketmaster API search
+    county: string;   // County grouping
   }
 > = {
-  "San José": { query: "San Jose", county: "Santa Clara" },
-  "San Jose": { query: "San Jose", county: "Santa Clara" },
-  "Santa Clara": { query: "Santa Clara", county: "Santa Clara" },
-  "Sunnyvale": { query: "Sunnyvale", county: "Santa Clara" },
-  "Mountain View": { query: "Mountain View", county: "Santa Clara" },
-  "Milpitas": { query: "Milpitas", county: "Santa Clara" },
-  "Palo Alto": { query: "Palo Alto", county: "Santa Clara" },
-  "Gilroy": { query: "Gilroy", county: "Santa Clara" },
-  "Morgan Hill": { query: "Morgan Hill", county: "Santa Clara" },
+  // ----------------------------
+  // Santa Clara County (Main)
+  // ----------------------------
+  "sanjose": { query: "San Jose", county: "Santa Clara" },
+  "sunnyvale": { query: "Sunnyvale", county: "Santa Clara" },
+  "santaclara": { query: "Santa Clara", county: "Santa Clara" },
+  "mountainview": { query: "Mountain View", county: "Santa Clara" },
+  "milpitas": { query: "Milpitas", county: "Santa Clara" },
+  "paloalto": { query: "Palo Alto", county: "Santa Clara" },
+  "gilroy": { query: "Gilroy", county: "Santa Clara" },
+  "morganhill": { query: "Morgan Hill", county: "Santa Clara" },
 
-  // ---- Nearby Areas ----
-  "Santa Cruz": { query: "Santa Cruz", county: "Santa Cruz" },
-  "Watsonville": { query: "Watsonville", county: "Santa Cruz" },
-  "Monterey": { query: "Monterey", county: "Monterey" },
-  "Salinas": { query: "Salinas", county: "Monterey" },
+  // ----------------------------
+  // Santa Cruz County
+  // ----------------------------
+  "santacruz": { query: "Santa Cruz", county: "Santa Cruz" },
+  "watsonville": { query: "Watsonville", county: "Santa Cruz" },
 
-  // ---- Central Valley ----
-  "Modesto": { query: "Modesto", county: "Stanislaus" },
-  "Turlock": { query: "Turlock", county: "Stanislaus" },
-  "Stockton": { query: "Stockton", county: "San Joaquin" },
-  "Tracy": { query: "Tracy", county: "San Joaquin" },
-  "Lodi": { query: "Lodi", county: "San Joaquin" },
-  "Manteca": { query: "Manteca", county: "San Joaquin" },
-  "Fresno": { query: "Fresno", county: "Fresno" },
-  "Merced": { query: "Merced", county: "Merced" },
+  // ----------------------------
+  // Monterey County
+  // ----------------------------
+  "monterey": { query: "Monterey", county: "Monterey" },
+  "salinas": { query: "Salinas", county: "Monterey" },
+
+  // ----------------------------
+  // Central Valley
+  // ----------------------------
+  "modesto": { query: "Modesto", county: "Stanislaus" },
+  "turlock": { query: "Turlock", county: "Stanislaus" },
+
+  "stockton": { query: "Stockton", county: "San Joaquin" },
+  "tracy": { query: "Tracy", county: "San Joaquin" },
+  "lodi": { query: "Lodi", county: "San Joaquin" },
+  "manteca": { query: "Manteca", county: "San Joaquin" },
+
+  "fresno": { query: "Fresno", county: "Fresno" },
+
+  "merced": { query: "Merced", county: "Merced" },
 };
 
-export type CityKey = keyof typeof CITY_MAP;
-export const CITY_MAP: Record<
-  string,
-  {
-    query: string;
-    county: string;
-  }
-> = {
-  "San José": { query: "San Jose", county: "Santa Clara" },
-  "San Jose": { query: "San Jose", county: "Santa Clara" },
-  "Santa Clara": { query: "Santa Clara", county: "Santa Clara" },
-  "Sunnyvale": { query: "Sunnyvale", county: "Santa Clara" },
-  "Mountain View": { query: "Mountain View", county: "Santa Clara" },
-  "Milpitas": { query: "Milpitas", county: "Santa Clara" },
-  "Palo Alto": { query: "Palo Alto", county: "Santa Clara" },
-  "Gilroy": { query: "Gilroy", county: "Santa Clara" },
-  "Morgan Hill": { query: "Morgan Hill", county: "Santa Clara" },
-
-  // ---- Nearby Areas ----
-  "Santa Cruz": { query: "Santa Cruz", county: "Santa Cruz" },
-  "Watsonville": { query: "Watsonville", county: "Santa Cruz" },
-  "Monterey": { query: "Monterey", county: "Monterey" },
-  "Salinas": { query: "Salinas", county: "Monterey" },
-
-  // ---- Central Valley ----
-  "Modesto": { query: "Modesto", county: "Stanislaus" },
-  "Turlock": { query: "Turlock", county: "Stanislaus" },
-  "Stockton": { query: "Stockton", county: "San Joaquin" },
-  "Tracy": { query: "Tracy", county: "San Joaquin" },
-  "Lodi": { query: "Lodi", county: "San Joaquin" },
-  "Manteca": { query: "Manteca", county: "San Joaquin" },
-  "Fresno": { query: "Fresno", county: "Fresno" },
-  "Merced": { query: "Merced", county: "Merced" },
-};
-
-export type CityKey = keyof typeof CITY_MAP;
+// --------------------------------------
+// Type
+// --------------------------------------
+export type CitySlug = keyof typeof CITY_MAP;
