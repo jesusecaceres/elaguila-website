@@ -66,15 +66,15 @@ const countyOptions = [
 ];
 
 // -----------------------------
-// CINEMATIC CAROUSEL
+// CAROUSEL HELPERS
 // -----------------------------
-function getLocalizedText(value: any, lang: "es" | "en") {
+function getLocalizedText(value, lang) {
   if (!value) return "";
   if (typeof value === "string") return value;
   return value[lang] || value["es"] || value["en"] || "";
 }
 
-function CinematicCarousel({ items, lang }: { items: any[]; lang: "es" | "en" }) {
+function CinematicCarousel({ items, lang }) {
   if (!items || items.length === 0)
     return (
       <p className="text-center text-white/70 mt-4">
@@ -92,9 +92,9 @@ function CinematicCarousel({ items, lang }: { items: any[]; lang: "es" | "en" })
           return (
             <div
               key={ev.id}
-              className="min-w-[280px] max-w-[280px] md:min-w-[320px] md:max-w-[320px] 
-              bg-black/50 border border-white/15 rounded-2xl shadow-2xl overflow-hidden 
-              backdrop-blur-md transform hover:-translate-y-1 hover:scale-[1.02] 
+              className="min-w-[280px] max-w-[280px] md:min-w-[320px] md:max-w-[320px]
+              bg-black/50 border border-white/20 rounded-2xl shadow-2xl overflow-hidden
+              backdrop-blur-md hover:-translate-y-1 hover:scale-[1.02]
               transition-all duration-300"
             >
               <div className="relative w-full h-[180px] md:h-[200px]">
@@ -135,18 +135,18 @@ function CinematicCarousel({ items, lang }: { items: any[]; lang: "es" | "en" })
 }
 
 // -----------------------------
-// PAGE COMPONENT
+// MAIN PAGE
 // -----------------------------
 export default function EventosPage() {
   const params = useSearchParams();
-  const lang: "es" | "en" = params.get("lang") === "en" ? "en" : "es";
+  const lang = params.get("lang") === "en" ? "en" : "es";
   const t = translations[lang];
 
-  const [liveEvents, setLiveEvents] = useState<any[]>([]);
+  const [liveEvents, setLiveEvents] = useState([]);
   const [loadingLive, setLoadingLive] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedCounty, setSelectedCounty] = useState("");
+  const [selectedCounty, setSelectedCounty] = useState("Santa Clara"); // ✅ DEFAULT SAN JOSE AREA
 
   useEffect(() => {
     async function loadLiveEvents() {
@@ -154,7 +154,7 @@ export default function EventosPage() {
         const res = await fetch("/api/events/live", { cache: "no-store" });
         const data = await res.json();
         setLiveEvents(data || []);
-      } catch (err) {
+      } catch {
         setLiveEvents([]);
       } finally {
         setLoadingLive(false);
@@ -163,6 +163,9 @@ export default function EventosPage() {
     loadLiveEvents();
   }, []);
 
+  // -----------------------------
+  // FILTER: FIRST SHOW SAN JOSE AREA ONLY
+  // -----------------------------
   const filteredLive = liveEvents.filter((ev) => {
     const matchCategory = selectedCategory ? ev.category === selectedCategory : true;
     const matchCounty = selectedCounty ? ev.county === selectedCounty : true;
@@ -170,9 +173,9 @@ export default function EventosPage() {
   });
 
   return (
-    <div className="text-white relative w-full">
+    <div className="text-white">
 
-      {/* HERO — EXACTLY LIKE ABOUT PAGE */}
+      {/* HERO */}
       <section className="w-full bg-gradient-to-b from-black via-[#2b210c] to-[#3a2c0f] py-24 text-center">
         <div className="max-w-4xl mx-auto px-4">
           <Image
@@ -189,19 +192,13 @@ export default function EventosPage() {
         </div>
       </section>
 
-      {/* SECTION A: ALAS DE ORO */}
+      {/* ALAS DE ORO */}
       <section className="max-w-6xl mx-auto px-4 mt-16">
         <div className="text-center">
           <h2 className="text-4xl font-bold text-yellow-300">{t.alasDeOro}</h2>
-
           <div className="mt-6 flex justify-center">
             <div className="relative w-full max-w-3xl h-28">
-              <Image
-                src="/branding/alas-de-oro.png"
-                alt="Alas de Oro Divider"
-                fill
-                className="object-contain"
-              />
+              <Image src="/branding/alas-de-oro.png" alt="" fill className="object-contain" />
             </div>
           </div>
         </div>
@@ -209,19 +206,14 @@ export default function EventosPage() {
         <CinematicCarousel items={manualEvents} lang={lang} />
       </section>
 
-      {/* SECTION B: COMMUNITY EVENTS */}
+      {/* COMMUNITY EVENTS */}
       <section className="max-w-6xl mx-auto px-4 mt-20">
         <div className="text-center">
           <h2 className="text-4xl font-bold text-yellow-300">{t.community}</h2>
 
           <div className="mt-6 flex justify-center">
             <div className="relative w-full max-w-3xl h-28">
-              <Image
-                src="/branding/alas-de-oro.png"
-                alt="Eventos Comunitarios Divider"
-                fill
-                className="object-contain"
-              />
+              <Image src="/branding/alas-de-oro.png" alt="" fill className="object-contain" />
             </div>
           </div>
         </div>
@@ -238,21 +230,22 @@ export default function EventosPage() {
         <CinematicCarousel items={communityEvents} lang={lang} />
       </section>
 
-      {/* SECTION C: EXPLORE / LIVE EVENTS */}
+      {/* LIVE EVENTS SECTION */}
       <section className="max-w-6xl mx-auto px-4 mt-20 mb-32">
         <div className="text-center">
           <h2 className="text-4xl font-bold text-yellow-300">{t.explore}</h2>
         </div>
 
         {/* FILTERS */}
-        <div className="mt-10 flex flex-col md:flex-row justify-center items-center gap-10">
+        <div className="mt-12 flex flex-col md:flex-row justify-center gap-12">
 
-          <div className="flex flex-col text-white">
-            <label className="text-lg font-semibold mb-2">{t.categories}</label>
+          {/* CATEGORY */}
+          <div>
+            <label className="text-lg font-semibold mb-2 block">{t.categories}</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="text-black p-3 rounded-xl min-w-[220px]"
+              className="bg-white text-black p-3 rounded-xl w-60 shadow-lg"
             >
               <option value="">{lang === "es" ? "Todas" : "All"}</option>
               {categoryOptions.map((c) => (
@@ -261,12 +254,13 @@ export default function EventosPage() {
             </select>
           </div>
 
-          <div className="flex flex-col text-white">
-            <label className="text-lg font-semibold mb-2">{t.counties}</label>
+          {/* COUNTY */}
+          <div>
+            <label className="text-lg font-semibold mb-2 block">{t.counties}</label>
             <select
               value={selectedCounty}
               onChange={(e) => setSelectedCounty(e.target.value)}
-              className="text-black p-3 rounded-xl min-w-[220px]"
+              className="bg-white text-black p-3 rounded-xl w-60 shadow-lg"
             >
               <option value="">{lang === "es" ? "Todos" : "All"}</option>
               {countyOptions.map((c) => (
@@ -277,7 +271,8 @@ export default function EventosPage() {
 
         </div>
 
-        <div className="mt-12">
+        {/* RESULTS */}
+        <div className="mt-16">
           {loadingLive ? (
             <p className="text-center text-white/80">{t.loading}</p>
           ) : (
