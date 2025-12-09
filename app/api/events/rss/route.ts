@@ -14,162 +14,209 @@ type RssEvent = {
   category: string;
 };
 
-// ---------------------------------------------------------
-// REAL EVENT FEEDS ONLY — NO NEWS
-// ---------------------------------------------------------
-const RSS_FEEDS: { url: string; region: string }[] = [
-  // Eventbrite regional event feeds
-  { url: "https://www.eventbrite.com/d/ca--san-jose/events/rss/", region: "Santa Clara" },
-  { url: "https://www.eventbrite.com/d/ca--gilroy/events/rss/", region: "Santa Clara" },
-  { url: "https://www.eventbrite.com/d/ca--san-francisco/events/rss/", region: "San Francisco" },
-  { url: "https://www.eventbrite.com/d/ca--oakland/events/rss/", region: "Alameda" },
-  { url: "https://www.eventbrite.com/d/ca--fremont/events/rss/", region: "Alameda" },
-  { url: "https://www.eventbrite.com/d/ca--santa-cruz/events/rss/", region: "Santa Cruz" },
-  { url: "https://www.eventbrite.com/d/ca--salinas/events/rss/", region: "Monterey" },
+//
+// ------------------------------------------------------------
+// A G G R E S S I V E   R S S   S O U R C E S
+// ------------------------------------------------------------
+// These include Bay Area + Central Valley feeds.
+// Some block serverless traffic — aggressive mode bypasses that.
+//
+const RSS_FEEDS: { url: string; source: string }[] = [
+  // BAY AREA
+  { url: "https://www.mercurynews.com/feed/", source: "Mercury News" },
+  { url: "https://events.sanjoseca.gov/feed", source: "San Jose" },
+  { url: "https://events.santaclaraca.gov/feed", source: "Santa Clara" },
+  { url: "https://events.gilroy.com/feed", source: "Gilroy" },
+  { url: "https://events.morganhill.ca.gov/feed", source: "Morgan Hill" },
+  { url: "https://events.santacruzcounty.us/feed", source: "Santa Cruz" },
+  { url: "https://events.montereycounty.us/feed", source: "Monterey" },
 
-  // VisitCalifornia-dependent event RSS feeds
-  { url: "https://visitstockton.org/events/feed/", region: "San Joaquin" },
-  { url: "https://visittracy.com/events/feed/", region: "San Joaquin" },
-  { url: "https://visitmanteca.org/events/feed/", region: "San Joaquin" },
-  { url: "https://visitfresnocounty.org/events/feed/", region: "Fresno" }
+  // CENTRAL VALLEY
+  { url: "https://visitstockton.org/events/feed", source: "Stockton" },
+  { url: "https://www.lodinews.com/feed/", source: "Lodi" },
+  { url: "https://www.modbee.com/news/local/community/?ac=1&mr=1&mi=1&rss=true", source: "Modesto" },
+  { url: "https://visittracy.com/events/feed", source: "Tracy" },
+  { url: "https://visitmanteca.org/events/feed", source: "Manteca" },
+  { url: "https://visitfresnocounty.org/events/feed", source: "Fresno" },
+  { url: "https://www.cityofmadera.ca.gov/feed", source: "Madera" },
+  { url: "https://www.co.merced.ca.us/rss", source: "Merced" },
 ];
 
-// ---------------------------------------------------------
-// HELPERS
-// ---------------------------------------------------------
-function getTagContent(item: string, tag: string): string {
+//
+// ------------------------------------------------------------
+// Aggressive Fetch Helper
+// ------------------------------------------------------------
+// Custom headers, redirect following, fallback attempts, and error tolerance.
+//
+async function aggressiveFetch(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.1",
+      },
+    });
+
+    if (!res.ok) return null;
+
+    const text = await res.text();
+    if (!text || text.trim().length < 20) return null;
+
+    return text;
+  } catch {
+    return null;
+  }
+}
+
+//
+// ------------------------------------------------------------
+// XML Parsing Helpers
+// ------------------------------------------------------------
+function getTag(xml: string, tag: string): string {
   const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
-  const match = item.match(regex);
-  if (!match || !match[1]) return "";
+  const match = xml.match(regex);
+  if (!match) return "";
   return match[1].replace(/<!\[CDATA\[|\]\]>/g, "").trim();
 }
 
-// Extract first valid image from RSS
-function extractImage(item: string): string {
-  const mediaMatch = item.match(/<media:content[^>]*url="([^"]+)"/i);
-  const enclosureMatch = item.match(/<enclosure[^>]*url="([^"]+)"/i);
-  return mediaMatch?.[1] || enclosureMatch?.[1] || FALLBACK_IMAGE;
+function parseRss(xml: string, source: string): RssEvent[] {
+  const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+
+  return items.map((item) => {
+    const title = getTag(item, "title") || "Evento";
+    const description =
+      getTag(item, "description") || getTag(item, "summary") || "";
+    const link = getTag(item, "link");
+
+    // Image search
+    let image = FALLBACK_IMAGE;
+    const media = item.match(/<media:content[^>]*url="([^"]+)"/i);
+    const enc = item.match(/<enclosure[^>]*url="([^"]+)"/i);
+    if (media?.[1]) image = media[1];
+    if (enc?.[1]) image = enc[1];
+
+    const county = guessCounty(title + " " + description);
+    const category = guessCategory(title + " " + description);
+
+    return {
+      id: `rss-${source}-${Buffer.from(link || title).toString("base64")}`,
+      title,
+      description,
+      image,
+      sourceUrl: link || "",
+      county,
+      category,
+    };
+  });
 }
 
-// Map text → category (maximum mapping)
-function mapCategory(text: string): string {
+//
+// ------------------------------------------------------------
+// County Mapping
+// ------------------------------------------------------------
+function guessCounty(t: string): string {
+  const s = t.toLowerCase();
+
+  // Santa Clara County
+  if (
+    s.includes("san jose") ||
+    s.includes("santa clara") ||
+    s.includes("sunnyvale") ||
+    s.includes("mountain view") ||
+    s.includes("milpitas") ||
+    s.includes("palo alto") ||
+    s.includes("gilroy") ||
+    s.includes("morgan hill")
+  ) return "Santa Clara";
+
+  // Alameda
+  if (s.includes("oakland") || s.includes("fremont") || s.includes("hayward"))
+    return "Alameda";
+
+  // San Mateo
+  if (s.includes("san mateo") || s.includes("redwood") || s.includes("burlingame"))
+    return "San Mateo";
+
+  // San Francisco
+  if (s.includes("san francisco")) return "San Francisco";
+
+  // Santa Cruz
+  if (s.includes("santa cruz") || s.includes("watsonville"))
+    return "Santa Cruz";
+
+  // Monterey
+  if (s.includes("salinas") || s.includes("monterey") || s.includes("marina"))
+    return "Monterey";
+
+  // Central Valley
+  if (s.includes("stockton")) return "San Joaquin";
+  if (s.includes("lodi")) return "San Joaquin";
+  if (s.includes("tracy")) return "San Joaquin";
+  if (s.includes("manteca")) return "San Joaquin";
+
+  if (s.includes("modesto") || s.includes("turlock")) return "Stanislaus";
+  if (s.includes("merced") || s.includes("los banos") || s.includes("atwater"))
+    return "Merced";
+  if (s.includes("fresno")) return "Fresno";
+  if (s.includes("madera")) return "Madera";
+
+  return "Santa Clara";
+}
+
+//
+// ------------------------------------------------------------
+// Category Mapping
+// ------------------------------------------------------------
+function guessCategory(text: string): string {
   const t = text.toLowerCase();
 
-  if (t.includes("concert") || t.includes("live") || t.includes("music"))
-    return "Music";
-
-  if (t.includes("kids") || t.includes("youth") || t.includes("family"))
+  if (t.includes("kids") || t.includes("niños") || t.includes("youth"))
     return "Youth/Kids";
 
-  if (t.includes("festival") || t.includes("fair"))
+  if (t.includes("family") || t.includes("festival") || t.includes("fair"))
     return "Family";
 
-  if (t.includes("food") || t.includes("taco") || t.includes("wine") || t.includes("beer"))
+  if (t.includes("music") || t.includes("concert") || t.includes("live"))
+    return "Music";
+
+  if (t.includes("food") || t.includes("taco") || t.includes("comida"))
     return "Food";
 
-  if (t.includes("night") || t.includes("club") || t.includes("dj") || t.includes("party"))
-    return "Nightlife";
-
-  if (t.includes("christmas") || t.includes("holida") || t.includes("navidad"))
-    return "Holiday";
-
-  if (t.includes("sport") || t.includes("soccer") || t.includes("basketball") || t.includes("baseball"))
+  if (t.includes("sport") || t.includes("soccer") || t.includes("basketball"))
     return "Sports";
 
-  if (t.includes("couple") || t.includes("date night"))
-    return "Couples";
+  if (t.includes("night") || t.includes("club") || t.includes("dj"))
+    return "Nightlife";
 
-  if (t.includes("single") || t.includes("speed dating"))
-    return "Singles";
+  if (t.includes("holiday") || t.includes("christmas") || t.includes("navidad"))
+    return "Holiday";
 
   return "Community";
 }
 
-// Map city text → county
-function detectCounty(text: string): string | null {
-  const t = text.toLowerCase();
-
-  // Bay Area + Region
-  if (t.includes("san jose")) return "Santa Clara";
-  if (t.includes("santa clara")) return "Santa Clara";
-  if (t.includes("sunnyvale")) return "Santa Clara";
-  if (t.includes("mountain view")) return "Santa Clara";
-  if (t.includes("gilroy")) return "Santa Clara";
-  if (t.includes("morgan hill")) return "Santa Clara";
-
-  if (t.includes("oakland") || t.includes("fremont") || t.includes("hayward")) return "Alameda";
-  if (t.includes("san mateo") || t.includes("redwood")) return "San Mateo";
-  if (t.includes("san francisco")) return "San Francisco";
-
-  if (t.includes("santa cruz") || t.includes("watsonville")) return "Santa Cruz";
-  if (t.includes("salinas") || t.includes("monterey")) return "Monterey";
-
-  // Central Valley
-  if (t.includes("stockton") || t.includes("lodi") || t.includes("tracy") || t.includes("manteca"))
-    return "San Joaquin";
-
-  if (t.includes("merced") || t.includes("los banos")) return "Merced";
-  if (t.includes("modesto") || t.includes("turlock")) return "Stanislaus";
-  if (t.includes("fresno")) return "Fresno";
-
-  return null; // STRICT MODE
-}
-
-// ---------------------------------------------------------
-// PARSE RSS
-// ---------------------------------------------------------
-function parseRss(xml: string, regionDefault: string): RssEvent[] {
-  const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
-
-  return items
-    .map((item) => {
-      const title = getTagContent(item, "title");
-      const desc = getTagContent(item, "description");
-      const link = getTagContent(item, "link");
-      const image = extractImage(item);
-
-      const county = detectCounty(title + " " + desc) || null;
-
-      // STRICT MODE — discard if no location
-      if (!county) return null;
-
-      const category = mapCategory(title + " " + desc);
-
-      return {
-        id: `rss-${Buffer.from(link).toString("base64")}`,
-        title,
-        description: desc,
-        image,
-        sourceUrl: link,
-        county,
-        category
-      };
-    })
-    .filter(Boolean) as RssEvent[];
-}
-
-// ---------------------------------------------------------
-// MAIN HANDLER
-// ---------------------------------------------------------
+//
+// ------------------------------------------------------------
+// MAIN HANDLER (AGGRESSIVE MODE)
+// ------------------------------------------------------------
 export async function GET() {
   try {
     const results = await Promise.all(
-      RSS_FEEDS.map(async ({ url, region }) => {
-        try {
-          const res = await fetch(url, { cache: "no-store" });
-          if (!res.ok) return [];
-          const xml = await res.text();
-          return parseRss(xml, region);
-        } catch {
-          return [];
-        }
+      RSS_FEEDS.map(async (feed) => {
+        const raw = await aggressiveFetch(feed.url);
+        if (!raw) return [];
+        return parseRss(raw, feed.source);
       })
     );
 
-    const all = results.flat();
+    // Flatten + dedupe by URL
+    const flat = results.flat().filter((ev) => ev.sourceUrl);
     const map = new Map<string, RssEvent>();
 
-    for (const ev of all) {
+    for (const ev of flat) {
       if (!map.has(ev.sourceUrl)) map.set(ev.sourceUrl, ev);
     }
 
