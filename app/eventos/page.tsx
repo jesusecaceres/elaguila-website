@@ -33,6 +33,9 @@ const translations = {
   },
 };
 
+// -----------------------------
+// OPTIONS
+// -----------------------------
 const categoryOptions = [
   "Singles",
   "Youth/Kids",
@@ -68,7 +71,10 @@ const countyOptions = [
 // -----------------------------
 // CAROUSEL HELPERS
 // -----------------------------
-function getLocalizedText(value, lang) {
+function getLocalizedText(
+  value: string | { [key: string]: string } | undefined,
+  lang: string
+): string {
   if (!value) return "";
   if (typeof value === "string") return value;
   return value[lang] || value["es"] || value["en"] || "";
@@ -146,7 +152,7 @@ export default function EventosPage() {
   const [loadingLive, setLoadingLive] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedCounty, setSelectedCounty] = useState("Santa Clara"); // ✅ DEFAULT SAN JOSE AREA
+  const [selectedCounty, setSelectedCounty] = useState("Santa Clara"); // Show San Jose by default
 
   useEffect(() => {
     async function loadLiveEvents() {
@@ -164,7 +170,7 @@ export default function EventosPage() {
   }, []);
 
   // -----------------------------
-  // FILTER: FIRST SHOW SAN JOSE AREA ONLY
+  // FILTER LOGIC
   // -----------------------------
   const filteredLive = liveEvents.filter((ev) => {
     const matchCategory = selectedCategory ? ev.category === selectedCategory : true;
@@ -230,7 +236,7 @@ export default function EventosPage() {
         <CinematicCarousel items={communityEvents} lang={lang} />
       </section>
 
-      {/* LIVE EVENTS SECTION */}
+      {/* LIVE EVENTS */}
       <section className="max-w-6xl mx-auto px-4 mt-20 mb-32">
         <div className="text-center">
           <h2 className="text-4xl font-bold text-yellow-300">{t.explore}</h2>
