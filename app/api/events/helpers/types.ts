@@ -7,9 +7,16 @@ export type FinalEvent = {
   title: string;
   description: string;
   image: string;
-  url: string;       // final cleaned URL
-  city: string;      // "San Jose", "Gilroy", etc.
-  county: string;    // "Santa Clara", "San Joaquin", etc.
-  category: string;  // "music", "sports", "family", etc.
-  date: string;      // ISO date string
+  url: string;
+
+  city: string;
+  county: string;
+  category: string;
+
+  // MAIN canonical date field
+  date: string; // ISO
+
+  // OPTIONAL compatibility fields (old code still checks these)
+  startDate?: string;
+  endDate?: string;
 };
