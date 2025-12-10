@@ -1,62 +1,57 @@
-export const manualEvents = [
+// /app/data/manual-events.ts
+
+/**
+ * Featured Events — ALAS DE ORO / GOLDEN WINGS
+ * These are premium sponsor events manually added by the admin.
+ * 
+ * RULES:
+ * - Every event MUST include an image (sponsor flyer or custom graphic).
+ * - Section title auto-translates: "Alas de Oro" (ES) / "Golden Wings" (EN).
+ * - Icon auto-switches based on lang:
+ *      /branding/alas-de-oro.png   (ES)
+ *      /branding/golden-wings.png  (EN)
+ * - These events ALWAYS appear in Section 1 of the Eventos page.
+ */
+
+export interface ManualEvent {
+  id: string;
+  title: {
+    es: string;
+    en: string;
+  };
+  description: {
+    es: string;
+    en: string;
+  };
+  image: string; // ALWAYS required — no fallback
+  url: string;
+  startDate: string;  // ISO format
+  endDate?: string;
+  venue: string;
+  city: string;       // city slug (e.g., "sanjose")
+  county: string;
+}
+
+// -------------------
+// SAMPLE DATA (you will replace)
+// -------------------
+
+export const manualFeaturedEvents: ManualEvent[] = [
   {
-    id: "alas-1",
+    id: "featured-1",
     title: {
-      es: "Tu evento puede estar aquí",
-      en: "Your event can be here",
+      es: "Tu evento destacado aquí",
+      en: "Your featured event here",
     },
     description: {
-      es: "Promociona tu evento con El Águila — Alas de Oro.",
-      en: "Promote your event with El Águila — Golden Wings.",
+      es: "Evento patrocinado por un socio de Alas de Oro.",
+      en: "Sponsored event by an Alas de Oro partner.",
     },
-    image: "/fallback-event.jpg",
-    sourceUrl: "",
-    category: "Community",
-    county: "Santa Clara",
-  },
-  {
-    id: "alas-2",
-    title: {
-      es: "Tu evento puede estar aquí",
-      en: "Your event can be here",
-    },
-    description: {
-      es: "Coloca tu flyer en un espacio destacado con Alas de Oro.",
-      en: "Place your flyer in a premium featured space with Golden Wings.",
-    },
-    image: "/fallback-event.jpg",
-    sourceUrl: "",
-    category: "Community",
-    county: "Santa Clara",
-  },
-  {
-    id: "alas-3",
-    title: {
-      es: "Tu evento puede estar aquí",
-      en: "Your event can be here",
-    },
-    description: {
-      es: "Aumenta la visibilidad de tu negocio y evento.",
-      en: "Increase visibility for your business and event.",
-    },
-    image: "/fallback-event.jpg",
-    sourceUrl: "",
-    category: "Community",
-    county: "Santa Clara",
-  },
-  {
-    id: "alas-4",
-    title: {
-      es: "Tu evento puede estar aquí",
-      en: "Your event can be here",
-    },
-    description: {
-      es: "Forma parte de nuestros eventos destacados.",
-      en: "Be part of our featured events.",
-    },
-    image: "/fallback-event.jpg",
-    sourceUrl: "",
-    category: "Community",
-    county: "Santa Clara",
+    image: "/branding/alas-de-oro.png", // temporary placeholder you will replace
+    url: "https://elaguilaenvuelo.com", // replace with event link
+    startDate: new Date().toISOString(),
+    venue: "San Jose, CA",
+    city: "sanjose",
+    county: "Santa Clara County",
   },
 ];

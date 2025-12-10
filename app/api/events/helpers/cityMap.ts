@@ -1,55 +1,128 @@
-// ------------------------------------------------------------
-// cityMap.ts — Official Local Cities Map for El Águila Events
-// ------------------------------------------------------------
+// /app/api/events/helpers/cityMap.ts
 
-export const CITY_MAP: Record<
-  string,
+export interface CityInfo {
+  name: string;
+  slug: string;
+  county: string;
+}
+
+export interface CountyGroup {
+  county: string;
+  cities: CityInfo[];
+}
+
+// Utility: convert "San Jose" → "sanjose"
+const slugify = (str: string) =>
+  str.toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9]/g, "");
+
+// ---- COUNTY-GROUPED CITY LIST (PHASE 1 OFFICIAL) ---- //
+
+export const counties: CountyGroup[] = [
   {
-    query: string;    // The name used for Eventbrite / Ticketmaster API search
-    county: string;   // County grouping
-  }
-> = {
-  // ----------------------------
-  // Santa Clara County (Main)
-  // ----------------------------
-  "sanjose": { query: "San Jose", county: "Santa Clara" },
-  "sunnyvale": { query: "Sunnyvale", county: "Santa Clara" },
-  "santaclara": { query: "Santa Clara", county: "Santa Clara" },
-  "mountainview": { query: "Mountain View", county: "Santa Clara" },
-  "milpitas": { query: "Milpitas", county: "Santa Clara" },
-  "paloalto": { query: "Palo Alto", county: "Santa Clara" },
-  "gilroy": { query: "Gilroy", county: "Santa Clara" },
-  "morganhill": { query: "Morgan Hill", county: "Santa Clara" },
+    county: "Santa Clara County",
+    cities: [
+      "San Jose",
+      "Santa Clara",
+      "Sunnyvale",
+      "Milpitas",
+      "Campbell",
+      "Morgan Hill",
+      "Gilroy",
+    ].map((name) => ({ name, slug: slugify(name), county: "Santa Clara County" })),
+  },
 
-  // ----------------------------
-  // Santa Cruz County
-  // ----------------------------
-  "santacruz": { query: "Santa Cruz", county: "Santa Cruz" },
-  "watsonville": { query: "Watsonville", county: "Santa Cruz" },
+  {
+    county: "San Mateo County",
+    cities: [
+      "Redwood City",
+      "San Mateo",
+      "Daly City",
+      "South San Francisco",
+      "San Bruno",
+      "Menlo Park",
+    ].map((name) => ({ name, slug: slugify(name), county: "San Mateo County" })),
+  },
 
-  // ----------------------------
-  // Monterey County
-  // ----------------------------
-  "monterey": { query: "Monterey", county: "Monterey" },
-  "salinas": { query: "Salinas", county: "Monterey" },
+  {
+    county: "Alameda County",
+    cities: ["Fremont", "Hayward", "Oakland", "San Leandro"].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "Alameda County",
+    })),
+  },
 
-  // ----------------------------
-  // Central Valley
-  // ----------------------------
-  "modesto": { query: "Modesto", county: "Stanislaus" },
-  "turlock": { query: "Turlock", county: "Stanislaus" },
+  {
+    county: "Contra Costa County",
+    cities: [
+      "Concord",
+      "Richmond",
+      "Pittsburg",
+      "Antioch",
+      "Brentwood",
+      "San Ramon",
+    ].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "Contra Costa County",
+    })),
+  },
 
-  "stockton": { query: "Stockton", county: "San Joaquin" },
-  "tracy": { query: "Tracy", county: "San Joaquin" },
-  "lodi": { query: "Lodi", county: "San Joaquin" },
-  "manteca": { query: "Manteca", county: "San Joaquin" },
+  {
+    county: "San Joaquin County",
+    cities: ["Stockton", "Tracy", "Manteca"].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "San Joaquin County",
+    })),
+  },
 
-  "fresno": { query: "Fresno", county: "Fresno" },
+  {
+    county: "Stanislaus County",
+    cities: ["Modesto", "Riverbank"].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "Stanislaus County",
+    })),
+  },
 
-  "merced": { query: "Merced", county: "Merced" },
-};
+  {
+    county: "Merced County",
+    cities: ["Los Banos", "Merced"].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "Merced County",
+    })),
+  },
 
-// --------------------------------------
-// Type
-// --------------------------------------
-export type CitySlug = keyof typeof CITY_MAP;
+  {
+    county: "Monterey County",
+    cities: ["Salinas", "Monterey"].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "Monterey County",
+    })),
+  },
+
+  {
+    county: "Santa Cruz County",
+    cities: ["Santa Cruz", "Watsonville", "Capitola"].map((name) => ({
+      name,
+      slug: slugify(name),
+      county: "Santa Cruz County",
+    })),
+  },
+];
+
+// ---- FLAT LOOKUPS FOR API PERFORMANCE ---- //
+
+// All cities in ONE flat list
+export const allCities: CityInfo[] = counties.flatMap((g) => g.cities);
+
+// Quick lookup: slug → city info
+export const cityBySlug: Record<string, CityInfo> = Object.fromEntries(
+  allCities.map((city) => [city.slug, city])
+);
+
+// Default city (San Jose)
+export const DEFAULT_CITY = "sanjose";
