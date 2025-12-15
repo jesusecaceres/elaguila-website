@@ -5,7 +5,6 @@ import { fetchTicketmasterEvents } from "../helpers/ticketmaster";
 import { fetchEventbriteEvents } from "../helpers/eventbrite";
 import { fetchRSSEvents } from "../helpers/rssEvents";
 import { dedupeEvents } from "../helpers/dedupe";
-import { NormalizedEvent } from "../helpers/types";
 
 export const dynamic = "force-dynamic";
 
@@ -26,29 +25,18 @@ export async function GET(req: Request) {
       );
     }
 
-    let events: NormalizedEvent[] = [];
+    let events: any[] = [];
 
-    // ------------------------------
-    // Ticketmaster (primary)
-    // ------------------------------
-    const ticketmasterEvents = await fetchTicketmasterEvents(city);
-    events.push(...ticketmasterEvents);
+    // Ticketmaster
+    events.push(...(await fetchTicketmasterEvents(city)));
 
-    // ------------------------------
-    // Eventbrite (community)
-    // ------------------------------
-    const eventbriteEvents = await fetchEventbriteEvents(city);
-    events.push(...eventbriteEvents);
+    // Eventbrite
+    events.push(...(await fetchEventbriteEvents(city)));
 
-    // ------------------------------
-    // RSS feeds (regional, San Jose–based)
-    // ------------------------------
-    const rssEvents = await fetchRSSEvents();
-    events.push(...rssEvents);
+    // RSS (San Jose–based)
+    events.push(...(await fetchRSSEvents()));
 
-    // ------------------------------
-    // De-duplicate + sort
-    // ------------------------------
+    // De-dupe + sort
     const finalEvents = dedupeEvents(events).sort(
       (a, b) =>
         new Date(a.startDate).getTime() -
