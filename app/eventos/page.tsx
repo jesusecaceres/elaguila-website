@@ -13,21 +13,6 @@ import { communityEvents } from "@/app/data/community-events";
 import { counties, DEFAULT_CITY } from "@/app/api/events/helpers/cityMap";
 
 // ------------------------------------------------------------
-// SEO Metadata (Phase 3 Enhancement)
-// ------------------------------------------------------------
-export const metadata = {
-  title: "Eventos | El Águila",
-  description:
-    "Descubre eventos destacados, comunitarios y regionales en El Águila — Orgullo Latino Sin Fronteras.",
-  openGraph: {
-    title: "Eventos | El Águila",
-    description:
-      "Explora eventos destacados, comunitarios y regionales en tu región.",
-    images: ["/logo.png"],
-  },
-};
-
-// ------------------------------------------------------------
 // MAIN COMPONENT
 // ------------------------------------------------------------
 export default function EventosPage() {
@@ -60,7 +45,7 @@ export default function EventosPage() {
   // Phase 1 — API Events
   // ------------------------------------------------------------
   const [selectedCity, setSelectedCity] = useState(DEFAULT_CITY);
-  const [apiEvents, setApiEvents] = useState([]);
+  const [apiEvents, setApiEvents] = useState<any[]>([]);
   const [visibleCount, setVisibleCount] = useState(9);
   const [loading, setLoading] = useState(false);
   const [selectedCounty, setSelectedCounty] = useState("");
@@ -72,10 +57,12 @@ export default function EventosPage() {
   const fetchApiEvents = async (slug: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/events/core?city=${slug}`, { cache: "no-store" });
+      const res = await fetch(`/api/events/core?city=${slug}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       setApiEvents(data?.events || []);
-    } catch (err) {
+    } catch {
       setApiEvents([]);
     }
     setLoading(false);
@@ -92,14 +79,14 @@ export default function EventosPage() {
   // ------------------------------------------------------------
   // Phase 2 — RSS Events
   // ------------------------------------------------------------
-  const [rssEvents, setRssEvents] = useState([]);
+  const [rssEvents, setRssEvents] = useState<any[]>([]);
 
   const fetchRss = async () => {
     try {
       const res = await fetch(`/api/events/rss`, { cache: "no-store" });
       const data = await res.json();
       setRssEvents(data?.events || []);
-    } catch (err) {
+    } catch {
       setRssEvents([]);
     }
   };
@@ -109,7 +96,7 @@ export default function EventosPage() {
   }, []);
 
   // ------------------------------------------------------------
-  // HERO SECTION
+  // HERO
   // ------------------------------------------------------------
   const hero = (
     <div className="flex flex-col items-center pt-40 pb-20 text-center">
@@ -128,16 +115,19 @@ export default function EventosPage() {
         <button
           onClick={() => toggleLang("es")}
           className={`px-4 py-2 rounded ${
-            lang === "es" ? "bg-[#FFD700] text-black font-bold" : "bg-black bg-opacity-40"
+            lang === "es"
+              ? "bg-[#FFD700] text-black font-bold"
+              : "bg-black bg-opacity-40"
           }`}
         >
           ES
         </button>
-
         <button
           onClick={() => toggleLang("en")}
           className={`px-4 py-2 rounded ${
-            lang === "en" ? "bg-[#FFD700] text-black font-bold" : "bg-black bg-opacity-40"
+            lang === "en"
+              ? "bg-[#FFD700] text-black font-bold"
+              : "bg-black bg-opacity-40"
           }`}
         >
           EN
@@ -147,22 +137,31 @@ export default function EventosPage() {
   );
 
   // ------------------------------------------------------------
-  // SECTION DIVIDER (Centered Thin Gold Line)
+  // Divider
   // ------------------------------------------------------------
   const Divider = () => (
-    <div className="w-1/2 mx-auto h-[1px] bg-[#FFD700]/40 my-14"></div>
+    <div className="w-1/2 mx-auto h-[1px] bg-[#FFD700]/40 my-14" />
   );
 
   // ------------------------------------------------------------
-  // CINEMATIC CAROUSEL (Optimized Phase 3)
+  // Carousel
   // ------------------------------------------------------------
-  const Carousel = ({ title, icon, events }: { title: string; icon?: string; events: any[] }) => {
+  const Carousel = ({
+    title,
+    icon,
+    events,
+  }: {
+    title: string;
+    icon?: string;
+    events: any[];
+  }) => {
     if (!events || events.length === 0) return null;
-
     const [index, setIndex] = useState(0);
 
-    const prev = () => setIndex((i) => (i === 0 ? events.length - 1 : i - 1));
-    const next = () => setIndex((i) => (i === events.length - 1 ? 0 : i + 1));
+    const prev = () =>
+      setIndex((i) => (i === 0 ? events.length - 1 : i - 1));
+    const next = () =>
+      setIndex((i) => (i === events.length - 1 ? 0 : i + 1));
 
     return (
       <div className="w-full max-w-6xl mx-auto px-6 mb-20">
@@ -176,7 +175,7 @@ export default function EventosPage() {
               className="mb-4 drop-shadow-[0_0_18px_rgba(255,215,0,0.7)]"
             />
           )}
-          <h2 className="text-4xl font-bold text-[#FFD700] tracking-wide text-center">
+          <h2 className="text-4xl font-bold text-[#FFD700] text-center">
             {title}
           </h2>
         </div>
@@ -184,7 +183,7 @@ export default function EventosPage() {
         <div className="relative flex items-center">
           <button
             onClick={prev}
-            className="absolute left-0 z-20 bg-black bg-opacity-40 hover:bg-opacity-70 p-4 rounded-full"
+            className="absolute left-0 z-20 bg-black/40 p-4 rounded-full"
           >
             ❮
           </button>
@@ -196,8 +195,7 @@ export default function EventosPage() {
             >
               {events.map((event, idx) => (
                 <div key={event.id || idx} className="min-w-full flex justify-center">
-                  <div className="bg-black bg-opacity-50 rounded-2xl p-6 w-80 shadow-xl border border-[#FFD700]/30 hover:border-[#FFD700] transition-all">
-
+                  <div className="bg-black/50 rounded-2xl p-6 w-80 border border-[#FFD700]/30">
                     <div className="w-full h-64 relative rounded-xl overflow-hidden mb-4">
                       <Image
                         src={event.image}
@@ -206,26 +204,21 @@ export default function EventosPage() {
                         className="object-cover"
                       />
                     </div>
-
                     <h3 className="text-xl font-bold mb-2">{event.title}</h3>
-
                     <p className="text-sm opacity-80 mb-2">
                       {new Date(event.startDate).toLocaleString(
                         lang === "en" ? "en-US" : "es-ES",
                         { dateStyle: "full", timeStyle: "short" }
                       )}
                     </p>
-
                     <p className="text-sm opacity-70 mb-4">{event.venue}</p>
-
                     <a
                       href={event.url}
                       target="_blank"
-                      className="inline-block mt-2 px-4 py-2 rounded bg-[#FFD700] text-black font-bold hover:bg-[#e6c200] transition"
+                      className="inline-block px-4 py-2 rounded bg-[#FFD700] text-black font-bold"
                     >
                       {labels.viewEvent}
                     </a>
-
                   </div>
                 </div>
               ))}
@@ -234,42 +227,51 @@ export default function EventosPage() {
 
           <button
             onClick={next}
-            className="absolute right-0 z-20 bg-black bg-opacity-40 hover:bg-opacity-70 p-4 rounded-full"
+            className="absolute right-0 z-20 bg-black/40 p-4 rounded-full"
           >
             ❯
           </button>
         </div>
-      </div>    
+      </div>
     );
   };
 
   // ------------------------------------------------------------
-  // RENDER PAGE
+  // RENDER
   // ------------------------------------------------------------
   return (
     <div className="relative w-full min-h-screen text-white animate-fadein">
       {hero}
 
-      {/* FEATURED */}
-      <div className="parallax-sec"><Carousel
-        title={labels.featured}
-        icon={lang === "en" ? "/branding/golden-wings.png" : "/branding/alas-de-oro.png"}
-        events={manualFeaturedEvents}
-      /></div>
+      <div className="parallax-sec">
+        <Carousel
+          title={labels.featured}
+          icon={
+            lang === "en"
+              ? "/branding/golden-wings.png"
+              : "/branding/alas-de-oro.png"
+          }
+          events={manualFeaturedEvents}
+        />
+      </div>
 
       <Divider />
 
-      {/* COMMUNITY */}
-      <div className="parallax-sec"><Carousel title={labels.community} events={communityEvents} /></div>
+      <div className="parallax-sec">
+        <Carousel title={labels.community} events={communityEvents} />
+      </div>
 
       <Divider />
 
-      {/* REGIONAL */}
-      <div className="parallax-sec"><Carousel title={labels.regional} events={rssEvents} /></div>
+      <div className="parallax-sec">
+        <Carousel title={labels.regional} events={rssEvents} />
+      </div>
 
-      {/* FILTERS */}
+      {/* Filters */}
       <div className="max-w-5xl mx-auto px-6 pb-12 mt-16">
-        <label className="block mb-2 text-lg font-semibold">{labels.countyLabel}</label>
+        <label className="block mb-2 text-lg font-semibold">
+          {labels.countyLabel}
+        </label>
         <select
           className="w-full text-black p-3 rounded mb-6"
           value={selectedCounty}
@@ -278,7 +280,9 @@ export default function EventosPage() {
             setSelectedCity("");
           }}
         >
-          <option value="">{lang === "en" ? "Choose a county" : "Elige un condado"}</option>
+          <option value="">
+            {lang === "en" ? "Choose a county" : "Elige un condado"}
+          </option>
           {counties.map((c) => (
             <option key={c.county} value={c.county}>
               {c.county}
@@ -288,13 +292,17 @@ export default function EventosPage() {
 
         {selectedCounty && (
           <>
-            <label className="block mb-2 text-lg font-semibold">{labels.cityLabel}</label>
+            <label className="block mb-2 text-lg font-semibold">
+              {labels.cityLabel}
+            </label>
             <select
               className="w-full text-black p-3 rounded"
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
             >
-              <option value="">{lang === "en" ? "Choose a city" : "Elige una ciudad"}</option>
+              <option value="">
+                {lang === "en" ? "Choose a city" : "Elige una ciudad"}
+              </option>
               {filteredCities.map((city) => (
                 <option key={city.slug} value={city.slug}>
                   {city.name}
@@ -305,7 +313,7 @@ export default function EventosPage() {
         )}
       </div>
 
-      {/* API GRID */}
+      {/* Grid */}
       {loading ? (
         <div className="text-center py-20 text-xl font-semibold">
           {lang === "en" ? "Loading events..." : "Cargando eventos..."}
@@ -320,7 +328,7 @@ export default function EventosPage() {
                 {apiEvents.slice(0, visibleCount).map((event: any) => (
                   <div
                     key={event.id}
-                    className="bg-black bg-opacity-40 rounded-2xl p-5 border border-[#FFD700]/40 hover:border-[#FFD700] transition-all"
+                    className="bg-black/40 rounded-2xl p-5 border border-[#FFD700]/40"
                   >
                     <div className="w-full h-48 relative mb-4 rounded overflow-hidden">
                       <Image
@@ -330,22 +338,18 @@ export default function EventosPage() {
                         className="object-cover"
                       />
                     </div>
-
                     <h3 className="text-xl font-bold mb-2">{event.title}</h3>
-
                     <p className="text-sm opacity-80 mb-2">
                       {new Date(event.startDate).toLocaleString(
                         lang === "en" ? "en-US" : "es-ES",
                         { dateStyle: "full", timeStyle: "short" }
                       )}
                     </p>
-
                     <p className="text-sm opacity-70 mb-4">{event.venue}</p>
-
                     <a
                       href={event.url}
                       target="_blank"
-                      className="inline-block mt-2 px-4 py-2 rounded bg-[#FFD700] text-black font-bold hover:bg-[#e6c200] transition"
+                      className="inline-block px-4 py-2 rounded bg-[#FFD700] text-black font-bold"
                     >
                       {labels.viewEvent}
                     </a>
@@ -357,7 +361,7 @@ export default function EventosPage() {
                 <div className="text-center mt-10">
                   <button
                     onClick={() => setVisibleCount((v) => v + 9)}
-                    className="px-8 py-4 bg-[#FFD700] text-black font-bold rounded-xl hover:bg-[#e6c200] transition text-lg"
+                    className="px-8 py-4 bg-[#FFD700] text-black font-bold rounded-xl"
                   >
                     {labels.loadMore}
                   </button>
@@ -370,5 +374,3 @@ export default function EventosPage() {
     </div>
   );
 }
-
-/* Step 1 animations/parallax scaffolding added safely */
