@@ -1,59 +1,66 @@
-// /app/api/events/core/route.ts
-
 import { NextResponse } from "next/server";
-import { allCities, cityBySlug, DEFAULT_CITY } from "../helpers/cityMap";
-import { fetchEventbriteEvents } from "../helpers/eventbrite";
 import { fetchTicketmasterEvents } from "../helpers/ticketmaster";
+import { fetchEventbriteEvents } from "../helpers/eventbrite";
+import { normalizeEvent } from "../helpers/normalizeEvent";
 import { dedupeEvents } from "../helpers/dedupe";
+import { cityMap } from "../helpers/cityMap";
 
-export const dynamic = "force-dynamic"; // ensure fresh fetch on Vercel
+export const dynamic = "force-dynamic";
 
-/**
- * Core Events API
- * GET /api/events/core?city=sanjose
- */
 export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+
+  const city = searchParams.get("city") || "sanjose";
+  const includeEventbrite =
+    searchParams.get("includeEventbrite") === "true";
+
+  const cityConfig = cityMap[city];
+
+  if (!cityConfig) {
+    return NextResponse.json({ events: [] });
+  }
+
+  let events: any[] = [];
+
   try {
-    const { searchParams } = new URL(req.url);
+    // ------------------------------------------------------------
+    // Ticketmaster (always runs)
+    // ------------------------------------------------------------
+    const ticketmasterEvents = await fetchTicketmasterEvents({
+      lat: cityConfig.lat,
+      lng: cityConfig.lng,
+      radius: cityConfig.radius,
+    });
 
-    // Pull city or fallback to San Jose
-    const citySlug = (searchParams.get("city") || DEFAULT_CITY).toLowerCase();
+    events.push(
+      ...ticketmasterEvents.map((e) => normalizeEvent(e, "ticketmaster"))
+    );
 
-    const cityInfo = cityBySlug[citySlug];
+    // ------------------------------------------------------------
+    // Eventbrite (ON-DEMAND ONLY, COMMUNITY ANCHORED)
+    // ------------------------------------------------------------
+    if (includeEventbrite) {
+      const eventbriteEvents = await fetchEventbriteEvents({
+        location: cityConfig.metro, // broader than city
+        category: "community", // 🔑 THIS IS THE FIX
+        limit: 10,
+      });
 
-    if (!cityInfo) {
-      return NextResponse.json(
-        { error: `City '${citySlug}' not found.` },
-        { status: 400 }
+      events.push(
+        ...eventbriteEvents.map((e) =>
+          normalizeEvent(e, "eventbrite")
+        )
       );
     }
 
-    // ---------- FETCH PROVIDERS ----------
-    const [eventbrite, ticketmaster] = await Promise.all([
-      fetchEventbriteEvents(cityInfo),
-      fetchTicketmasterEvents(cityInfo),
-    ]);
+    // ------------------------------------------------------------
+    // Deduplicate + Return
+    // ------------------------------------------------------------
+    const cleanEvents = dedupeEvents(events);
 
-    let combined = [...eventbrite, ...ticketmaster];
-
-    // ---------- DEDUPE ----------
-    const cleaned = dedupeEvents(combined);
-
-    return NextResponse.json(
-      {
-        city: cityInfo.name,
-        county: cityInfo.county,
-        slug: cityInfo.slug,
-        total: cleaned.length,
-        events: cleaned,
-      },
-      { status: 200 }
-    );
-  } catch (err) {
-    console.error("CORE API ERROR:", err);
-    return NextResponse.json(
-      { error: "Failed to load events." },
-      { status: 500 }
-    );
+    return NextResponse.json({ events: cleanEvents });
+  } catch (error) {
+    console.error("Events API error:", error);
+    return NextResponse.json({ events: [] });
   }
 }
