@@ -3,18 +3,21 @@ import { fetchTicketmasterEvents } from "../helpers/ticketmaster";
 import { fetchEventbriteEvents } from "../helpers/eventbrite";
 import { normalizeEvent } from "../helpers/normalizeEvent";
 import { dedupeEvents } from "../helpers/dedupe";
-import { cityMap } from "../helpers/cityMap";
+import { counties, DEFAULT_CITY } from "../helpers/cityMap";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
-  const city = searchParams.get("city") || "sanjose";
+  const city = searchParams.get("city") || DEFAULT_CITY;
   const includeEventbrite =
     searchParams.get("includeEventbrite") === "true";
 
-  const cityConfig = cityMap[city];
+  // 🔑 derive city config from counties (correct source)
+  const cityConfig = counties
+    .flatMap((c) => c.cities)
+    .find((c) => c.slug === city);
 
   if (!cityConfig) {
     return NextResponse.json({ events: [] });
@@ -24,7 +27,7 @@ export async function GET(req: Request) {
 
   try {
     // ------------------------------------------------------------
-    // Ticketmaster (always runs)
+    // Ticketmaster (always)
     // ------------------------------------------------------------
     const ticketmasterEvents = await fetchTicketmasterEvents({
       lat: cityConfig.lat,
@@ -33,16 +36,18 @@ export async function GET(req: Request) {
     });
 
     events.push(
-      ...ticketmasterEvents.map((e) => normalizeEvent(e, "ticketmaster"))
+      ...ticketmasterEvents.map((e) =>
+        normalizeEvent(e, "ticketmaster")
+      )
     );
 
     // ------------------------------------------------------------
-    // Eventbrite (ON-DEMAND ONLY, COMMUNITY ANCHORED)
+    // Eventbrite (ON-DEMAND, COMMUNITY)
     // ------------------------------------------------------------
     if (includeEventbrite) {
       const eventbriteEvents = await fetchEventbriteEvents({
-        location: cityConfig.metro, // broader than city
-        category: "community", // 🔑 THIS IS THE FIX
+        location: cityConfig.name, // metro-safe
+        category: "community",
         limit: 10,
       });
 
@@ -53,14 +58,11 @@ export async function GET(req: Request) {
       );
     }
 
-    // ------------------------------------------------------------
-    // Deduplicate + Return
-    // ------------------------------------------------------------
-    const cleanEvents = dedupeEvents(events);
-
-    return NextResponse.json({ events: cleanEvents });
-  } catch (error) {
-    console.error("Events API error:", error);
+    return NextResponse.json({
+      events: dedupeEvents(events),
+    });
+  } catch (err) {
+    console.error("Events API error:", err);
     return NextResponse.json({ events: [] });
   }
 }
