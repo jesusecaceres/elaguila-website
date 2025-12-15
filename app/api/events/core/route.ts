@@ -1,58 +1,74 @@
+// /app/api/events/core/route.ts
+
 import { NextResponse } from "next/server";
+
+import { cityMap } from "../helpers/cityMap";
 import { fetchTicketmasterEvents } from "../helpers/ticketmaster";
 import { fetchEventbriteEvents } from "../helpers/eventbrite";
-import { normalizeEvent } from "../helpers/normalizeEvent";
+import { fetchRssEvents } from "../helpers/rssEvents";
 import { dedupeEvents } from "../helpers/dedupe";
-import { counties, DEFAULT_CITY } from "../helpers/cityMap";
+import { NormalizedEvent } from "../helpers/types";
 
+// Force dynamic fetch (no caching)
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/events/core?city=san-jose
+ */
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-
-  const citySlug = searchParams.get("city") || DEFAULT_CITY;
-  const includeEventbrite =
-    searchParams.get("includeEventbrite") === "true";
-
-  const cityConfig = counties
-    .flatMap((c) => c.cities)
-    .find((c) => c.slug === citySlug);
-
-  if (!cityConfig) {
-    return NextResponse.json({ events: [] });
-  }
-
   try {
-    const events: any[] = [];
+    const { searchParams } = new URL(req.url);
+    const citySlug = searchParams.get("city") || "san-jose";
 
-    // ------------------------------------------------------------
-    // Ticketmaster (already normalized)
-    // ------------------------------------------------------------
-    const ticketmasterEvents = await fetchTicketmasterEvents(cityConfig);
-    events.push(...ticketmasterEvents);
+    const city = cityMap[citySlug];
 
-    // ------------------------------------------------------------
-    // Eventbrite (on-demand, community)
-    // ------------------------------------------------------------
-    if (includeEventbrite) {
-      const eventbriteEvents = await fetchEventbriteEvents({
-        location: cityConfig.name,
-        category: "community",
-        limit: 10,
-      });
-
-      events.push(
-        ...eventbriteEvents
-          .map((e: any) => normalizeEvent(e, cityConfig, "eventbrite"))
-          .filter(Boolean)
+    if (!city) {
+      return NextResponse.json(
+        { error: "Invalid city" },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      events: dedupeEvents(events),
+    let events: NormalizedEvent[] = [];
+
+    // ------------------------------------------------------------
+    // Ticketmaster (always on)
+    // ------------------------------------------------------------
+    const ticketmasterEvents = await fetchTicketmasterEvents(city);
+    events.push(...ticketmasterEvents);
+
+    // ------------------------------------------------------------
+    // Eventbrite (on-demand, community style)
+    // ------------------------------------------------------------
+    const eventbriteEvents = await fetchEventbriteEvents(city);
+    events.push(...eventbriteEvents);
+
+    // ------------------------------------------------------------
+    // RSS Community Events
+    // ------------------------------------------------------------
+    const rssEvents = await fetchRssEvents(city);
+    events.push(...rssEvents);
+
+    // ------------------------------------------------------------
+    // Deduplicate + sort
+    // ------------------------------------------------------------
+    const finalEvents = dedupeEvents(events).sort((a, b) => {
+      return (
+        new Date(a.startDate).getTime() -
+        new Date(b.startDate).getTime()
+      );
     });
-  } catch (error) {
-    console.error("Events API error:", error);
-    return NextResponse.json({ events: [] });
+
+    return NextResponse.json({
+      city: city.name,
+      count: finalEvents.length,
+      events: finalEvents,
+    });
+  } catch (err) {
+    console.error("❌ Events API error:", err);
+    return NextResponse.json(
+      { error: "Failed to load events" },
+      { status: 500 }
+    );
   }
 }
