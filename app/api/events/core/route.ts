@@ -1,26 +1,23 @@
-// /app/api/events/core/route.ts
-
 import { NextResponse } from "next/server";
 
-import { cityMap } from "../helpers/cityMap";
+import { cityBySlug, DEFAULT_CITY } from "../helpers/cityMap";
 import { fetchTicketmasterEvents } from "../helpers/ticketmaster";
 import { fetchEventbriteEvents } from "../helpers/eventbrite";
-import { fetchRssEvents } from "../helpers/rssEvents";
+import { fetchRSSEvents } from "../helpers/rssEvents";
 import { dedupeEvents } from "../helpers/dedupe";
 import { NormalizedEvent } from "../helpers/types";
 
-// Force dynamic fetch (no caching)
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/events/core?city=san-jose
+ * GET /api/events/core?city=sanjose
  */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const citySlug = searchParams.get("city") || "san-jose";
+    const citySlug = searchParams.get("city") || DEFAULT_CITY;
 
-    const city = cityMap[citySlug];
+    const city = cityBySlug[citySlug];
 
     if (!city) {
       return NextResponse.json(
@@ -31,33 +28,32 @@ export async function GET(req: Request) {
 
     let events: NormalizedEvent[] = [];
 
-    // ------------------------------------------------------------
-    // Ticketmaster (always on)
-    // ------------------------------------------------------------
+    // ------------------------------
+    // Ticketmaster (primary)
+    // ------------------------------
     const ticketmasterEvents = await fetchTicketmasterEvents(city);
     events.push(...ticketmasterEvents);
 
-    // ------------------------------------------------------------
-    // Eventbrite (on-demand, community style)
-    // ------------------------------------------------------------
+    // ------------------------------
+    // Eventbrite (community)
+    // ------------------------------
     const eventbriteEvents = await fetchEventbriteEvents(city);
     events.push(...eventbriteEvents);
 
-    // ------------------------------------------------------------
-    // RSS Community Events
-    // ------------------------------------------------------------
-    const rssEvents = await fetchRssEvents(city);
+    // ------------------------------
+    // RSS feeds (regional, San Jose–based)
+    // ------------------------------
+    const rssEvents = await fetchRSSEvents();
     events.push(...rssEvents);
 
-    // ------------------------------------------------------------
-    // Deduplicate + sort
-    // ------------------------------------------------------------
-    const finalEvents = dedupeEvents(events).sort((a, b) => {
-      return (
+    // ------------------------------
+    // De-duplicate + sort
+    // ------------------------------
+    const finalEvents = dedupeEvents(events).sort(
+      (a, b) =>
         new Date(a.startDate).getTime() -
         new Date(b.startDate).getTime()
-      );
-    });
+    );
 
     return NextResponse.json({
       city: city.name,
