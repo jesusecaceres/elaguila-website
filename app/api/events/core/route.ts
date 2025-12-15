@@ -7,13 +7,6 @@ import { counties, DEFAULT_CITY } from "../helpers/cityMap";
 
 export const dynamic = "force-dynamic";
 
-// 🔒 Safe defaults (San Jose metro)
-const FALLBACK_COORDS = {
-  lat: 37.3382,
-  lng: -121.8863,
-  radius: 50,
-};
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
@@ -29,33 +22,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ events: [] });
   }
 
-  // ✅ Defensive extraction (TypeScript-safe)
-  const lat =
-    typeof (cityConfig as any).lat === "number"
-      ? (cityConfig as any).lat
-      : FALLBACK_COORDS.lat;
-
-  const lng =
-    typeof (cityConfig as any).lng === "number"
-      ? (cityConfig as any).lng
-      : FALLBACK_COORDS.lng;
-
-  const radius =
-    typeof (cityConfig as any).radius === "number"
-      ? (cityConfig as any).radius
-      : FALLBACK_COORDS.radius;
-
   let events: any[] = [];
 
   try {
     // ------------------------------------------------------------
-    // Ticketmaster (always)
+    // Ticketmaster (PASS CityInfo AS-IS)
     // ------------------------------------------------------------
-    const ticketmasterEvents = await fetchTicketmasterEvents({
-      lat,
-      lng,
-      radius,
-    });
+    const ticketmasterEvents = await fetchTicketmasterEvents(cityConfig);
 
     events.push(
       ...ticketmasterEvents.map((e) =>
