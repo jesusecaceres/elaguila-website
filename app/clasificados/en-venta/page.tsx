@@ -3,18 +3,14 @@
 
 import { useSearchParams } from 'next/navigation';
 import CategoryHero from '../components/CategoryHero';
-import EmptyCategory from '../components/EmptyCategory';
-
-type Props = {
-  
-  
-};
+import ListingsGrid from '../components/ListingsGrid';
 
 export default function Page() {
-  const titleEs = 'En Venta';
-  const titleEn = 'For Sale';
   const params = useSearchParams();
   const lang = params.get('lang') === 'en' ? 'en' : 'es';
+
+  const titleEs = 'En Venta';
+  const titleEn = 'For Sale';
 
   const title = lang === 'en' ? titleEn : titleEs;
 
@@ -22,7 +18,7 @@ export default function Page() {
     <main className="bg-black text-white min-h-screen">
       <CategoryHero title={title} />
       <section className="max-w-6xl mx-auto px-6 py-24">
-        <EmptyCategory />
+        <ListingsGrid category="en-venta" />
       </section>
     </main>
   );
