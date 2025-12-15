@@ -1,4 +1,3 @@
-// /app/eventos/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -54,12 +53,20 @@ export default function EventosPage() {
     ? counties.find((c) => c.county === selectedCounty)?.cities || []
     : [];
 
-  const fetchApiEvents = async (slug: string) => {
+  // 🔑 UPDATED: explicit flag controls Eventbrite
+  const fetchApiEvents = async (slug: string, explicit = false) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/events/core?city=${slug}`, {
+      const params = new URLSearchParams({ city: slug });
+
+      if (explicit) {
+        params.set("includeEventbrite", "true");
+      }
+
+      const res = await fetch(`/api/events/core?${params.toString()}`, {
         cache: "no-store",
       });
+
       const data = await res.json();
       setApiEvents(data?.events || []);
     } catch {
@@ -68,8 +75,9 @@ export default function EventosPage() {
     setLoading(false);
   };
 
+  // Default load (Ticketmaster only)
   useEffect(() => {
-    fetchApiEvents(selectedCity);
+    fetchApiEvents(selectedCity, false);
   }, [selectedCity]);
 
   useEffect(() => {
@@ -144,7 +152,7 @@ export default function EventosPage() {
   );
 
   // ------------------------------------------------------------
-  // Carousel
+  // Carousel (unchanged)
   // ------------------------------------------------------------
   const Carousel = ({
     title,
@@ -298,7 +306,11 @@ export default function EventosPage() {
             <select
               className="w-full text-black p-3 rounded"
               value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
+              onChange={(e) => {
+                const city = e.target.value;
+                setSelectedCity(city);
+                fetchApiEvents(city, true); // 👈 explicit Eventbrite trigger
+              }}
             >
               <option value="">
                 {lang === "en" ? "Choose a city" : "Elige una ciudad"}
