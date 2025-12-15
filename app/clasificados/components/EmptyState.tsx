@@ -7,7 +7,7 @@ export default function EmptyState() {
         No hay anuncios todavía
       </h2>
       <p className="text-white/70 max-w-xl mx-auto">
-        Muy pronto podrás encontrar servicios, empleos, rentas, autos y más.
+        Pronto encontrarás rentas, empleos, autos, ventas y servicios locales.
         Este espacio está listo para recibir a los primeros anunciantes.
       </p>
     </div>

@@ -2,28 +2,46 @@
 
 import Link from 'next/link';
 
-const categories = [
-  { slug: 'servicios', label: 'Servicios' },
-  { slug: 'empleos', label: 'Empleos' },
+const topCategories = [
   { slug: 'rentas', label: 'Rentas' },
-  { slug: 'en-venta', label: 'En Venta' },
+  { slug: 'empleos', label: 'Empleos' },
   { slug: 'autos', label: 'Autos' },
+  { slug: 'en-venta', label: 'En Venta' },
+];
+
+const bottomCategories = [
+  { slug: 'servicios', label: 'Servicios' },
   { slug: 'clases', label: 'Clases' },
   { slug: 'comunidad', label: 'Comunidad' },
 ];
 
 export default function CategoryTabs() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {categories.map(cat => (
-        <Link
-          key={cat.slug}
-          href={`/clasificados/${cat.slug}`}
-          className="rounded-xl border border-gold/30 bg-black/40 hover:bg-black/60 transition p-6 text-center text-white font-semibold"
-        >
-          {cat.label}
-        </Link>
-      ))}
+    <div className="space-y-10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {topCategories.map(cat => (
+          <CategoryButton key={cat.slug} {...cat} />
+        ))}
+      </div>
+
+      <div className="flex justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl w-full">
+          {bottomCategories.map(cat => (
+            <CategoryButton key={cat.slug} {...cat} />
+          ))}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function CategoryButton({ slug, label }) {
+  return (
+    <Link
+      href={`/clasificados/${slug}`}
+      className="rounded-xl border border-yellow-400/30 bg-black hover:bg-[#1a1100] transition p-6 text-center font-semibold text-white"
+    >
+      {label}
+    </Link>
   );
 }

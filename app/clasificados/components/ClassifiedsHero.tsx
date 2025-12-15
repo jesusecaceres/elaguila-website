@@ -4,28 +4,18 @@ import Image from 'next/image';
 
 export default function ClassifiedsHero() {
   return (
-    <section className="relative w-full h-[60vh] flex items-center justify-center">
-      <div className="absolute inset-0 -z-10">
-        <Image
-          src="/cinema-flags-final-v2.png"
-          alt="El Águila Background"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/60" />
-      </div>
-
-      <div className="text-center">
+    <section className="relative flex items-center justify-center h-[55vh]">
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-[#2a1a00]" />
+      <div className="relative z-10 text-center">
         <Image
           src="/logo.png"
           alt="El Águila"
-          width={180}
-          height={180}
+          width={160}
+          height={160}
           className="mx-auto mb-6"
           priority
         />
-        <h1 className="text-5xl md:text-6xl font-bold text-gold">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-yellow-400">
           Clasificados
         </h1>
       </div>
