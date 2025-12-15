@@ -7,21 +7,43 @@ import { counties, DEFAULT_CITY } from "../helpers/cityMap";
 
 export const dynamic = "force-dynamic";
 
+// 🔒 Safe defaults (San Jose metro)
+const FALLBACK_COORDS = {
+  lat: 37.3382,
+  lng: -121.8863,
+  radius: 50,
+};
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
-  const city = searchParams.get("city") || DEFAULT_CITY;
+  const citySlug = searchParams.get("city") || DEFAULT_CITY;
   const includeEventbrite =
     searchParams.get("includeEventbrite") === "true";
 
-  // 🔑 derive city config from counties (correct source)
   const cityConfig = counties
     .flatMap((c) => c.cities)
-    .find((c) => c.slug === city);
+    .find((c) => c.slug === citySlug);
 
   if (!cityConfig) {
     return NextResponse.json({ events: [] });
   }
+
+  // ✅ Defensive extraction (TypeScript-safe)
+  const lat =
+    typeof (cityConfig as any).lat === "number"
+      ? (cityConfig as any).lat
+      : FALLBACK_COORDS.lat;
+
+  const lng =
+    typeof (cityConfig as any).lng === "number"
+      ? (cityConfig as any).lng
+      : FALLBACK_COORDS.lng;
+
+  const radius =
+    typeof (cityConfig as any).radius === "number"
+      ? (cityConfig as any).radius
+      : FALLBACK_COORDS.radius;
 
   let events: any[] = [];
 
@@ -30,9 +52,9 @@ export async function GET(req: Request) {
     // Ticketmaster (always)
     // ------------------------------------------------------------
     const ticketmasterEvents = await fetchTicketmasterEvents({
-      lat: cityConfig.lat,
-      lng: cityConfig.lng,
-      radius: cityConfig.radius,
+      lat,
+      lng,
+      radius,
     });
 
     events.push(
@@ -46,7 +68,7 @@ export async function GET(req: Request) {
     // ------------------------------------------------------------
     if (includeEventbrite) {
       const eventbriteEvents = await fetchEventbriteEvents({
-        location: cityConfig.name, // metro-safe
+        location: cityConfig.name,
         category: "community",
         limit: 10,
       });
@@ -61,8 +83,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       events: dedupeEvents(events),
     });
-  } catch (err) {
-    console.error("Events API error:", err);
+  } catch (error) {
+    console.error("Events API error:", error);
     return NextResponse.json({ events: [] });
   }
 }
