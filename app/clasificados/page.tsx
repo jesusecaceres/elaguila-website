@@ -49,7 +49,7 @@ export default async function ClasificadosPage({
 
       {/* CATEGORY TABS (always visible) */}
       <section className="mt-10">
-        <CategoryTabs activeCategory={safeCategory} lang={lang} />
+        <CategoryTabs />
       </section>
 
       {/* FILTER BAR (foundation only – ZIP 5) */}
