@@ -19,12 +19,21 @@ export default async function ClasificadosPage({
 
   const lang: "es" | "en" = params.lang === "en" ? "en" : "es";
 
-  const category = (params.category as CategoryKey) || "servicios";
+  const requestedCategory = params.category;
   const safeCategory: CategoryKey =
-    category in categoryConfig ? category : "servicios";
+    requestedCategory &&
+    requestedCategory in categoryConfig
+      ? (requestedCategory as CategoryKey)
+      : "servicios";
 
   const title = categoryConfig[safeCategory].label[lang];
 
+  /**
+   * IMPORTANT:
+   * - classifieds.category is a STRING (by design)
+   * - We safely compare strings here
+   * - No forced casts, no data changes
+   */
   const listings = classifieds.filter(
     (item) => item.category === safeCategory
   );
@@ -43,7 +52,7 @@ export default async function ClasificadosPage({
         <CategoryTabs activeCategory={safeCategory} lang={lang} />
       </section>
 
-      {/* FILTER BAR (foundation only) */}
+      {/* FILTER BAR (foundation only – ZIP 5) */}
       <section className="max-w-7xl mx-auto px-6">
         <FilterBar category={safeCategory} lang={lang} />
       </section>
