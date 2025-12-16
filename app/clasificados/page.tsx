@@ -10,14 +10,16 @@ type SearchParams = {
   lang?: string;
 };
 
-export default function ClasificadosPage({
+export default async function ClasificadosPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const lang: "es" | "en" = searchParams.lang === "en" ? "en" : "es";
+  const params = await searchParams;
 
-  const category = (searchParams.category as CategoryKey) || "servicios";
+  const lang: "es" | "en" = params.lang === "en" ? "en" : "es";
+
+  const category = (params.category as CategoryKey) || "servicios";
   const safeCategory: CategoryKey =
     category in categoryConfig ? category : "servicios";
 
