@@ -75,7 +75,7 @@ export default function Home() {
               transition: "opacity 0.5s ease-in-out",
             }}
           ></span>
-          <span className="relative z-10">Vuela con nosotros</span>
+          <span className="relative z-10">Bienvenidos — Entre</span>
         </motion.button>
 
         {/* English Button */}
@@ -106,7 +106,7 @@ export default function Home() {
               transition: "opacity 0.5s ease-in-out",
             }}
           ></span>
-          <span className="relative z-10">Fly with us</span>
+          <span className="relative z-10">Welcome — Enter</span>
         </motion.button>
       </motion.div>
     </main>
