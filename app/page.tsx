@@ -42,7 +42,7 @@ export default function Home() {
 
       {/* BUTTONS */}
       <motion.div
-        className="absolute left-1/2 bottom-[15%] flex gap-12 -translate-x-1/2 z-20"
+        className="absolute left-1/2 bottom-[10%] flex gap-12 -translate-x-1/2 z-20"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.6, duration: 1.2, ease: "easeOut" }}
@@ -50,18 +50,21 @@ export default function Home() {
         {/* Spanish Button */}
         <motion.button
           whileHover={{
-            scale: 1.08,
-            boxShadow: "0 0 80px rgba(255,215,0,1)",
+            scale: 1.06,
+            boxShadow: "0 0 70px rgba(255,215,0,1)",
           }}
-          transition={{ type: "spring", stiffness: 150, damping: 10 }}
+          transition={{ type: "spring", stiffness: 150, damping: 12 }}
           onClick={() => handleClick("es")}
-          className="relative text-black font-serif font-bold px-20 py-8 text-[2.8vmin] rounded-xl overflow-hidden"
+          className="relative text-black font-serif font-bold
+                     px-16 py-6
+                     text-[2.2vmin]
+                     rounded-xl overflow-hidden"
           style={{
             background:
               "linear-gradient(180deg, #FFD700 0%, #FFC107 40%, #B8860B 100%)",
             border: "2px solid #C99700",
             filter:
-              "drop-shadow(0 0 40px rgba(255,215,0,0.6)) drop-shadow(0 0 20px rgba(255,215,0,0.4))",
+              "drop-shadow(0 0 32px rgba(255,215,0,0.6)) drop-shadow(0 0 16px rgba(255,215,0,0.4))",
             clipPath:
               "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)",
             boxShadow:
@@ -81,18 +84,21 @@ export default function Home() {
         {/* English Button */}
         <motion.button
           whileHover={{
-            scale: 1.08,
-            boxShadow: "0 0 80px rgba(255,215,0,1)",
+            scale: 1.06,
+            boxShadow: "0 0 70px rgba(255,215,0,1)",
           }}
-          transition={{ type: "spring", stiffness: 150, damping: 10 }}
+          transition={{ type: "spring", stiffness: 150, damping: 12 }}
           onClick={() => handleClick("en")}
-          className="relative text-black font-serif font-bold px-20 py-8 text-[2.8vmin] rounded-xl overflow-hidden"
+          className="relative text-black font-serif font-bold
+                     px-16 py-6
+                     text-[2.2vmin]
+                     rounded-xl overflow-hidden"
           style={{
             background:
               "linear-gradient(180deg, #FFD700 0%, #FFC107 40%, #B8860B 100%)",
             border: "2px solid #C99700",
             filter:
-              "drop-shadow(0 0 40px rgba(255,215,0,0.6)) drop-shadow(0 0 20px rgba(255,215,0,0.4))",
+              "drop-shadow(0 0 32px rgba(255,215,0,0.6)) drop-shadow(0 0 16px rgba(255,215,0,0.4))",
             clipPath:
               "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)",
             boxShadow:
