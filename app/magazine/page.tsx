@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import newLogo from "../../public/logo.png";
 
@@ -97,20 +96,55 @@ function monthLabel(month: string, lang: Lang) {
   return lang === "es" ? es[m] || month : en[m] || month;
 }
 
-function FlipbookEmbed({ src, title }: { src: string; title: string }) {
-  // Responsive embed: width 100%, height controlled by aspect ratio.
-  // Uses no extra scripts; stays fast + mobile-friendly.
+function FullscreenFlipbookModal({
+  open,
+  onClose,
+  src,
+  title,
+}: {
+  open: boolean;
+  onClose: () => void;
+  src: string;
+  title: string;
+}) {
+  // Close on ESC
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <div className="w-full">
-      <div className="relative w-full h-0 pb-[max(60%,324px)]">
+    <div className="fixed inset-0 z-[100] bg-black/90">
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/10 bg-black/40 backdrop-blur">
+        <div className="text-sm md:text-base text-gray-200 font-semibold truncate">
+          {title}
+        </div>
+
+        <button
+          onClick={onClose}
+          className="px-4 py-2 rounded-full border border-yellow-400/60 text-yellow-300 font-semibold text-xs md:text-sm hover:bg-yellow-400/10 transition"
+          aria-label="Close"
+        >
+          Close
+        </button>
+      </div>
+
+      {/* Iframe */}
+      <div className="absolute left-0 right-0 bottom-0 top-16">
         <iframe
           src={src}
           title={title}
-          className="absolute left-0 top-0 w-full h-full border-0"
+          className="w-full h-full border-0"
           scrolling="no"
           allow="fullscreen"
           allowFullScreen
-          loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
         />
       </div>
@@ -122,7 +156,7 @@ export default function MagazineHubPage() {
   const params = useSearchParams();
   const lang = (params.get("lang") || "es") as Lang;
 
-  // Your FlipHTML5 book link (keep this constant month-to-month)
+  // FlipHTML5 book link (constant)
   const FLIPBOOK_URL = "https://online.fliphtml5.com/LEONIXMedia/magazine/";
 
   const ui = useMemo(
@@ -132,38 +166,28 @@ export default function MagazineHubPage() {
         subtitle:
           "Revista de Comunidad, Cultura y Negocios. Una experiencia editorial — creada para elevar historias, familias y negocios locales con un estilo premium y limpio.",
         featuredLabel: "Edición destacada",
-        explore: "Leer la revista",
-        openFlip: "Abrir flipbook",
-        jumpToEditions: "Ver ediciones 2026",
-        noteTop:
-          "Tip: Cada edición vive en /public/magazine/AÑO/MES/ con cover.png y magazine.pdf",
         loading: "Cargando ediciones…",
-        flipSectionTitle: "Edición Digital (Flipbook)",
-        flipSectionNote:
-          "Experiencia móvil premium. Toca enlaces dentro de la revista para abrir sitios, llamadas y CTAs.",
+        openMagazine: "Leer la revista",
+        openMagazineShort: "Abrir",
         pdfBackup: "PDF (respaldo)",
         downloadPdf: "Descargar PDF",
         years: "Ediciones por año",
-        viewInHub: "Ver en el hub",
+        modalTitle: "LEONIX — Flipbook",
+        close: "Cerrar",
       },
       en: {
         title: "LEONIX Media — Magazine",
         subtitle:
           "A magazine for Community, Culture, and Business. An editorial-first experience — built to elevate stories, families, and local businesses with a premium, clean standard.",
         featuredLabel: "Featured edition",
-        explore: "Read the magazine",
-        openFlip: "Open flipbook",
-        jumpToEditions: "View 2026 editions",
-        noteTop:
-          "Tip: Each edition lives in /public/magazine/YEAR/MONTH/ with cover.png and magazine.pdf",
         loading: "Loading editions…",
-        flipSectionTitle: "Digital Edition (Flipbook)",
-        flipSectionNote:
-          "Premium mobile experience. Tap links inside the magazine to open websites, calls, and CTAs.",
+        openMagazine: "Read magazine",
+        openMagazineShort: "Open",
         pdfBackup: "PDF (backup)",
         downloadPdf: "Download PDF",
         years: "Editions by year",
-        viewInHub: "View in hub",
+        modalTitle: "LEONIX — Flipbook",
+        close: "Close",
       },
     }),
     []
@@ -173,6 +197,10 @@ export default function MagazineHubPage() {
 
   const [data, setData] = useState<EditionsManifest>(FALLBACK);
   const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const [flipOpen, setFlipOpen] = useState(false);
+
+  const openFlipbook = useCallback(() => setFlipOpen(true), []);
+  const closeFlipbook = useCallback(() => setFlipOpen(false), []);
 
   useEffect(() => {
     let alive = true;
@@ -214,11 +242,17 @@ export default function MagazineHubPage() {
   }, [data]);
 
   const editionsAnchorId = "ediciones";
-  const flipAnchorId = "flipbook";
 
   return (
     <div className="bg-black text-white min-h-screen pb-32">
       <Navbar />
+
+      <FullscreenFlipbookModal
+        open={flipOpen}
+        onClose={closeFlipbook}
+        src={FLIPBOOK_URL}
+        title={t.modalTitle}
+      />
 
       {/* HERO — About page style */}
       <div className="w-full text-center pt-28 pb-16 bg-gradient-to-b from-black via-[#2b210c] to-[#3a2c0f]">
@@ -236,33 +270,22 @@ export default function MagazineHubPage() {
           {t.subtitle}
         </p>
 
-        {/* Primary action now goes to flipbook section */}
+        {/* Primary actions */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
-          <a
-            href={`#${flipAnchorId}`}
+          <button
+            onClick={openFlipbook}
             className="px-7 py-3 rounded-full bg-yellow-400 text-black font-semibold text-sm md:text-base shadow-lg hover:bg-yellow-300 transition"
           >
-            {t.explore}
-          </a>
-
-          <a
-            href={FLIPBOOK_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="px-7 py-3 rounded-full border border-yellow-400/70 text-yellow-300 font-semibold text-sm md:text-base hover:bg-yellow-400/10 transition"
-          >
-            {t.openFlip}
-          </a>
+            {t.openMagazine}
+          </button>
 
           <a
             href={`#${editionsAnchorId}`}
             className="px-7 py-3 rounded-full border border-white/15 text-gray-200 font-semibold text-sm md:text-base hover:border-white/30 transition"
           >
-            {t.jumpToEditions}
+            {t.years}
           </a>
         </div>
-
-        <p className="mt-6 text-xs md:text-sm text-gray-400 px-6">{t.noteTop}</p>
       </div>
 
       {/* BODY */}
@@ -273,71 +296,56 @@ export default function MagazineHubPage() {
 
         {status === "ready" && (
           <div className="flex flex-col gap-16">
-            {/* FEATURED / FLIPBOOK */}
-            <div
-              id={flipAnchorId}
-              className="bg-black/40 border border-yellow-600/25 rounded-2xl p-6 md:p-8 shadow-[0_0_35px_rgba(255,215,0,0.12)]"
-            >
-              <p className="text-sm tracking-wide text-yellow-300/90 mb-4 text-center">
+            {/* FEATURED (CLEAN) */}
+            <div className="bg-black/40 border border-yellow-600/25 rounded-2xl p-6 md:p-8 shadow-[0_0_35px_rgba(255,215,0,0.12)]">
+              <p className="text-sm tracking-wide text-yellow-300/90 mb-6 text-center">
                 {t.featuredLabel}
               </p>
 
-              <div className="flex flex-col lg:flex-row items-start gap-8">
-                {/* Left: cover + meta */}
-                <div className="w-full lg:w-[320px] flex-shrink-0">
-                  <div className="w-56 md:w-64 mx-auto lg:mx-0 aspect-[2/3] rounded-xl overflow-hidden border border-yellow-400/50 bg-black shadow-[0_0_35px_rgba(255,215,0,0.35)]">
+              <div className="flex flex-col lg:flex-row items-start gap-10">
+                {/* Cover */}
+                <div className="w-full lg:w-[340px] flex-shrink-0">
+                  <div className="w-60 md:w-72 mx-auto lg:mx-0 aspect-[2/3] rounded-xl overflow-hidden border border-yellow-400/50 bg-black shadow-[0_0_35px_rgba(255,215,0,0.35)]">
                     <img
                       src={featuredCoverSrc}
                       alt={featured.title[lang]}
                       className="w-full h-full object-cover"
                     />
                   </div>
-
-                  <div className="mt-5 text-center lg:text-left">
-                    <h2 className="text-2xl md:text-3xl font-bold text-yellow-400">
-                      {featured.title[lang]}
-                    </h2>
-                    <p className="text-gray-300 mt-2">
-                      {monthLabel(featured.month, lang)} {featured.year}
-                    </p>
-
-                    <p className="text-gray-400 text-sm mt-4 leading-relaxed">
-                      {t.flipSectionNote}
-                    </p>
-
-                    {/* Optional backup PDF download only (not primary) */}
-                    <div className="mt-5 flex flex-wrap gap-2 justify-center lg:justify-start">
-                      <span className="px-4 py-2 rounded-full border border-white/10 text-gray-300 text-xs md:text-sm">
-                        {t.pdfBackup}
-                      </span>
-
-                      <a
-                        href={featuredPdfSrc}
-                        download
-                        className="px-4 py-2 rounded-full border border-yellow-400/70 text-yellow-300 font-semibold text-xs md:text-sm hover:bg-yellow-400/10 transition"
-                      >
-                        {t.downloadPdf}
-                      </a>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Right: embedded flipbook */}
+                {/* Info + actions */}
                 <div className="w-full">
-                  <div className="mb-4 text-center lg:text-left">
-                    <h3 className="text-xl md:text-2xl font-bold text-yellow-300">
-                      {t.flipSectionTitle}
-                    </h3>
-                  </div>
+                  <h2 className="text-3xl md:text-4xl font-bold text-yellow-400 text-center lg:text-left">
+                    {featured.title[lang]}
+                  </h2>
 
-                  <div className="rounded-2xl overflow-hidden border border-yellow-500/15 bg-black/40">
-                    <FlipbookEmbed src={FLIPBOOK_URL} title="LEONIX Magazine Flipbook" />
-                  </div>
-
-                  <p className="mt-3 text-xs text-gray-500">
-                    Tip: For monthly updates, just re-upload/replace the PDF inside this same FlipHTML5 book — your website
-                    embed stays unchanged.
+                  <p className="text-gray-300 mt-3 text-center lg:text-left">
+                    {monthLabel(featured.month, lang)} {featured.year}
                   </p>
+
+                  <div className="mt-8 flex flex-wrap gap-3 justify-center lg:justify-start">
+                    {/* Open flipbook fullscreen */}
+                    <button
+                      onClick={openFlipbook}
+                      className="px-6 py-3 rounded-full bg-yellow-400 text-black font-semibold text-sm md:text-base shadow-lg hover:bg-yellow-300 transition"
+                    >
+                      {t.openMagazine}
+                    </button>
+
+                    {/* Backup PDF */}
+                    <span className="px-5 py-3 rounded-full border border-white/10 text-gray-300 text-xs md:text-sm">
+                      {t.pdfBackup}
+                    </span>
+
+                    <a
+                      href={featuredPdfSrc}
+                      download
+                      className="px-6 py-3 rounded-full border border-yellow-400/70 text-yellow-300 font-semibold text-sm md:text-base hover:bg-yellow-400/10 transition"
+                    >
+                      {t.downloadPdf}
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -389,9 +397,8 @@ export default function MagazineHubPage() {
                                     {monthLabel(m.month, lang)} {year}
                                   </p>
 
-                                  {/* Archive stays simple; PDF download is fine here.
-                                      (We can add future flipbook-per-month later if you want.) */}
                                   <div className="mt-4 flex flex-wrap gap-2">
+                                    {/* Backup PDF download */}
                                     <a
                                       href={pdfSrc}
                                       download
@@ -400,12 +407,13 @@ export default function MagazineHubPage() {
                                       {t.downloadPdf}
                                     </a>
 
-                                    <Link
-                                      href={`/magazine?lang=${lang}`}
+                                    {/* Open flipbook fullscreen (same flipbook for now) */}
+                                    <button
+                                      onClick={openFlipbook}
                                       className="px-4 py-2 rounded-full border border-white/15 text-gray-200 font-semibold text-xs md:text-sm hover:border-white/30 transition"
                                     >
-                                      {t.viewInHub}
-                                    </Link>
+                                      {t.openMagazine}
+                                    </button>
                                   </div>
                                 </div>
                               </div>
