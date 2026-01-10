@@ -14,87 +14,111 @@ export default function HomePage() {
 
 function HomePageContent() {
   const searchParams = useSearchParams();
-  const lang = searchParams.get("lang") || "es";
+  const lang = (searchParams.get("lang") || "es") as "es" | "en";
 
   const t = {
     es: {
-      bienvenidos: "Bienvenidos a",
-      comunidad: "Comunidad, Cultura y Orgullo Latino",
-      revistaActual: "Revista Digital — Edición Actual",
+      title: "LEONIX",
+      identity: "Comunidad, Cultura y Fe",
+      precedent: "Revista y plataforma de medios para negocios locales.",
+      ctaPrimary: "Explorar la revista",
+      ctaSecondary: "Edición digital",
+      coverAlt: "Portada de la revista LEONIX",
     },
     en: {
-      bienvenidos: "Welcome to",
-      comunidad: "Community, Culture & Latino Pride",
-      revistaActual: "Digital Magazine — Current Edition",
+      title: "LEONIX",
+      identity: "Community, Culture & Faith",
+      precedent: "A magazine and media platform for local businesses.",
+      ctaPrimary: "Explore the magazine",
+      ctaSecondary: "Digital edition",
+      coverAlt: "LEONIX magazine cover",
     },
   };
 
-  const L = t[lang as "es" | "en"];
-  const magazineLink = `/magazine?lang=${lang}`;
+  const L = t[lang];
+  const magazineLink = `/revista?lang=${lang}`;
 
   return (
-    <main className="relative min-h-screen w-full text-white">
-      {/* Background Gradient */}
+    <main className="relative min-h-screen w-full text-white overflow-hidden">
+      {/* Background: slightly warmer + less “flat black”, still premium */}
       <div
         className="absolute inset-0 z-0"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0.4), rgba(0,0,0,0.65))",
+            "linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.30), rgba(0,0,0,0.65))",
+        }}
+      />
+      {/* Subtle radial glow behind header area for invitation */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 16%, rgba(255,215,0,0.10), rgba(0,0,0,0) 58%)",
         }}
       />
 
-      {/* Main Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-20 text-center">
-
-        {/* Bienvenidos */}
+      <div className="relative z-10 mx-auto max-w-5xl px-6 pt-16 pb-14 text-center">
+        {/* HERO */}
         <motion.h1
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1 }}
-          className="text-3xl md:text-4xl font-extrabold tracking-tight drop-shadow-[0_0_12px_rgba(255,215,0,0.5)]"
+          transition={{ duration: 1.05 }}
+          className="text-4xl md:text-6xl font-extrabold tracking-tight drop-shadow-[0_0_14px_rgba(255,215,0,0.40)]"
         >
-          {L.bienvenidos} <span className="text-yellow-400">El Águila</span>
+          {L.title}
         </motion.h1>
 
-        {/* Subheading */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 1 }}
-          className="mt-3 text-base md:text-lg font-light text-gray-200"
+          transition={{ delay: 0.18, duration: 0.9 }}
+          className="mt-3 text-base md:text-lg font-light text-gray-100"
         >
-          {L.comunidad}
+          {L.identity}
         </motion.p>
 
-        {/* Section Title */}
-        <section className="mt-12">
-          <motion.h2
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="text-2xl md:text-3xl font-extrabold text-yellow-300"
-          >
-            {L.revistaActual}
-          </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28, duration: 0.9 }}
+          className="mt-2 text-sm md:text-base text-gray-300"
+        >
+          {L.precedent}
+        </motion.p>
 
-          {/* Thumbnail */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.93 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.25, duration: 1 }}
-            className="mt-6 flex justify-center"
-          >
-            <a href={magazineLink}>
-              <div className="w-64 h-[25rem] rounded-xl border-2 border-yellow-400/70 shadow-[0_0_35px_rgba(255,215,0,0.7)] overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_45px_rgba(255,215,0,0.85)] transition-all duration-300">
+        {/* MAGAZINE COVER + CTA (no section title; CTA makes it clear) */}
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: 0.22, duration: 0.9 }}
+          className="mt-7 md:mt-8 flex flex-col items-center"
+        >
+          {/* Cover (clickable) */}
+          <a href={magazineLink} className="block">
+            <div className="rounded-2xl border-2 border-yellow-400/70 overflow-hidden shadow-[0_0_60px_rgba(255,215,0,0.26)] hover:shadow-[0_0_80px_rgba(255,215,0,0.34)] transition-all duration-300">
+              {/* Wider/larger for readability */}
+              <div className="w-80 sm:w-[26rem] md:w-[30rem]">
                 <img
                   src="/home_thumbnail.png"
-                  alt="Current Magazine Cover"
-                  className="w-full h-full object-cover"
+                  alt={L.coverAlt}
+                  className="w-full h-auto object-cover"
                 />
               </div>
+            </div>
+          </a>
+
+          {/* CTA (visible immediately under cover) */}
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <a
+              href={magazineLink}
+              className="inline-flex items-center justify-center rounded-full border border-yellow-400/80 bg-black/35 px-7 py-3 text-sm md:text-base font-semibold text-yellow-200 hover:bg-black/55 hover:text-yellow-100 shadow-[0_0_28px_rgba(255,215,0,0.18)] hover:shadow-[0_0_40px_rgba(255,215,0,0.26)] transition-all duration-300"
+            >
+              {L.ctaPrimary}
             </a>
-          </motion.div>
-        </section>
+
+            <p className="text-xs md:text-sm text-gray-300">{L.ctaSecondary}</p>
+          </div>
+        </motion.div>
       </div>
     </main>
   );
