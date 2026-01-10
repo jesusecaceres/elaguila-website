@@ -20,7 +20,7 @@ function HomePageContent() {
     es: {
       title: "LEONIX",
       identity: "Comunidad, Cultura y Fe",
-      precedent: "Revista y plataforma de medios para negocios locales.",
+      precedent: "Revista de Comunidad, Cultura y Negocios",
       ctaPrimary: "Explorar la revista",
       ctaSecondary: "Edición digital",
       coverAlt: "Portada de la revista LEONIX",
@@ -28,7 +28,7 @@ function HomePageContent() {
     en: {
       title: "LEONIX",
       identity: "Community, Culture & Faith",
-      precedent: "A magazine and media platform for local businesses.",
+      precedent: "Magazine of Community, Culture & Business",
       ctaPrimary: "Explore the magazine",
       ctaSecondary: "Digital edition",
       coverAlt: "LEONIX magazine cover",
@@ -36,11 +36,11 @@ function HomePageContent() {
   };
 
   const L = t[lang];
-  const magazineLink = `/revista?lang=${lang}`;
+  const magazineLink = `/magazine?lang=${lang}`;
 
   return (
     <main className="relative min-h-screen w-full text-white overflow-hidden">
-      {/* Background: slightly warmer + less “flat black”, still premium */}
+      {/* Background */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -48,7 +48,6 @@ function HomePageContent() {
             "linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.30), rgba(0,0,0,0.65))",
         }}
       />
-      {/* Subtle radial glow behind header area for invitation */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
@@ -86,17 +85,15 @@ function HomePageContent() {
           {L.precedent}
         </motion.p>
 
-        {/* MAGAZINE COVER + CTA (no section title; CTA makes it clear) */}
+        {/* MAGAZINE COVER + CTA */}
         <motion.div
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.22, duration: 0.9 }}
           className="mt-7 md:mt-8 flex flex-col items-center"
         >
-          {/* Cover (clickable) */}
           <a href={magazineLink} className="block">
             <div className="rounded-2xl border-2 border-yellow-400/70 overflow-hidden shadow-[0_0_60px_rgba(255,215,0,0.26)] hover:shadow-[0_0_80px_rgba(255,215,0,0.34)] transition-all duration-300">
-              {/* Wider/larger for readability */}
               <div className="w-80 sm:w-[26rem] md:w-[30rem]">
                 <img
                   src="/home_thumbnail.png"
@@ -107,7 +104,6 @@ function HomePageContent() {
             </div>
           </a>
 
-          {/* CTA (visible immediately under cover) */}
           <div className="mt-4 flex flex-col items-center gap-2">
             <a
               href={magazineLink}
@@ -116,7 +112,9 @@ function HomePageContent() {
               {L.ctaPrimary}
             </a>
 
-            <p className="text-xs md:text-sm text-gray-300">{L.ctaSecondary}</p>
+            <p className="text-xs md:text-sm text-gray-300">
+              {L.ctaSecondary}
+            </p>
           </div>
         </motion.div>
       </div>
