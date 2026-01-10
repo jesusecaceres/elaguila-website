@@ -5,8 +5,10 @@
     "title": {
       "es": "Edición Febrero 2026",
       "en": "February 2026 Edition"
-    }
+    },
+    "updated": "20260110-1"
   },
+
   "years": {
     "2026": {
       "months": [
@@ -15,14 +17,16 @@
           "title": {
             "es": "Febrero 2026",
             "en": "February 2026"
-          }
+          },
+          "updated": "20260110-1"
         },
         {
           "month": "january",
           "title": {
             "es": "Enero 2026",
             "en": "January 2026"
-          }
+          },
+          "updated": "20260105-1"
         }
       ]
     }
