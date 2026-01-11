@@ -150,6 +150,7 @@ export default function MagazineHubPage() {
   const params = useSearchParams();
   const lang = (params.get("lang") || "es") as Lang;
 
+  // One flipbook link for the live reader (you replace the PDF inside FlipHTML5 monthly)
   const FLIPBOOK_URL = "https://online.fliphtml5.com/LEONIXMedia/magazine/";
 
   const ui = useMemo(
@@ -212,6 +213,14 @@ export default function MagazineHubPage() {
   const featuredCoverSrc = `/magazine/${featured.year}/${featured.month}/cover.png`;
   const featuredPdfSrc = `/magazine/${featured.year}/${featured.month}/magazine.pdf`;
 
+  // Years sorted newest → oldest (string years like "2026")
+  const yearsSorted = useMemo(() => {
+    return Object.keys(data.years || {}).sort((a, b) => Number(b) - Number(a));
+  }, [data.years]);
+
+  const isFeatured = (year: string, month: string) =>
+    year === featured.year && month === featured.month;
+
   return (
     <div className="bg-black min-h-screen text-white pb-32">
       <Navbar />
@@ -230,16 +239,24 @@ export default function MagazineHubPage() {
           <p className="mt-4 text-gray-300">{t.subtitle}</p>
         </div>
 
-        {status === "ready" && (
+        {status !== "ready" ? (
+          <div className="text-gray-300">{t.loading}</div>
+        ) : (
           <div className="flex flex-col gap-16">
+            {/* Featured */}
             <div className="border border-yellow-600/25 rounded-2xl p-8 bg-black/40">
+              <div className="text-sm uppercase tracking-widest text-yellow-300/80 mb-4">
+                {t.featuredLabel}
+              </div>
+
               <div className="flex flex-col lg:flex-row gap-10">
                 <img
                   src={featuredCoverSrc}
                   className="w-64 rounded-xl border border-yellow-400/40"
+                  alt={`${featured.title[lang]} cover`}
                 />
 
-                <div>
+                <div className="flex-1">
                   <h2 className="text-4xl font-bold text-yellow-400">
                     {featured.title[lang]}
                   </h2>
@@ -247,6 +264,7 @@ export default function MagazineHubPage() {
                     {monthLabel(featured.month, lang)} {featured.year}
                   </p>
 
+                  {/* Buttons (NO "PDF (respaldo)" anywhere) */}
                   <div className="mt-6 flex gap-4 flex-wrap">
                     <button
                       onClick={openFlipbook}
@@ -264,6 +282,75 @@ export default function MagazineHubPage() {
                     </a>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Previous Editions */}
+            <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/30">
+              <h3 className="text-3xl font-bold text-yellow-400 mb-8">
+                {t.years}
+              </h3>
+
+              <div className="flex flex-col gap-12">
+                {yearsSorted.map((year) => {
+                  const months = data.years?.[year]?.months || [];
+                  return (
+                    <div key={year}>
+                      <div className="text-xl font-semibold text-gray-100 mb-6">
+                        {year}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                        {months
+                          .filter((m) => !isFeatured(year, m.month))
+                          .map((m) => {
+                            const coverSrc = `/magazine/${year}/${m.month}/cover.png`;
+                            const pdfSrc = `/magazine/${year}/${m.month}/magazine.pdf`;
+
+                            return (
+                              <div
+                                key={`${year}-${m.month}`}
+                                className="border border-yellow-600/20 rounded-2xl p-6 bg-black/40"
+                              >
+                                <img
+                                  src={coverSrc}
+                                  className="w-full max-w-[280px] mx-auto rounded-xl border border-yellow-400/30"
+                                  alt={`${m.title[lang]} cover`}
+                                />
+
+                                <div className="mt-6">
+                                  <div className="text-2xl font-bold text-yellow-400">
+                                    {monthLabel(m.month, lang)} {year}
+                                  </div>
+                                  <div className="text-gray-300 mt-1">
+                                    {m.title[lang]}
+                                  </div>
+
+                                  {/* Buttons: Read (fullscreen flipbook) + Download PDF */}
+                                  <div className="mt-6 flex gap-4 flex-wrap">
+                                    <button
+                                      onClick={openFlipbook}
+                                      className="px-6 py-3 rounded-full bg-yellow-400 text-black font-semibold"
+                                    >
+                                      {t.openMagazine}
+                                    </button>
+
+                                    <a
+                                      href={pdfSrc}
+                                      download
+                                      className="px-6 py-3 rounded-full border border-yellow-400 text-yellow-300 font-semibold"
+                                    >
+                                      {t.downloadPdf}
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
