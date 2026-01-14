@@ -1,17 +1,17 @@
-// app/clasificados/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Navbar from "../components/Navbar";
+import logo from "../../public/logo.png";
 
 type Lang = "es" | "en";
+type ViewMode = "grid" | "list";
 
-type ListingTier = "FREE" | "PRO" | "BIZ_LITE" | "BIZ_PREMIUM";
-type SellerType = "PERSONAL" | "BUSINESS";
-type ListingCondition = "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "FOR_PARTS";
-
-type ClassifiedCategory =
+type CategoryKey =
+  | "all"
   | "en-venta"
   | "rentas"
   | "autos"
@@ -20,46 +20,25 @@ type ClassifiedCategory =
   | "clases"
   | "comunidad";
 
+type SellerType = "any" | "personal" | "business";
+type PostedRange = "any" | "24h" | "7d" | "30d";
+type Condition = "any" | "new" | "like-new" | "good" | "fair";
 type SortMode = "balanced" | "newest" | "price_asc" | "price_desc";
 
 type Listing = {
   id: string;
-  title: string;
-  description?: string;
-  price?: number | null;
+  category: Exclude<CategoryKey, "all">;
+  seller: "business" | "personal";
+  title: { es: string; en: string };
+  priceLabel: { es: string; en: string };
   city: string;
-  createdAt: string; // ISO
-  category: ClassifiedCategory;
-  tier: ListingTier;
-  sellerType: SellerType;
-  hasImage?: boolean;
-  condition?: ListingCondition;
-  boostedUntil?: string | null; // ISO
+  postedAgo: { es: string; en: string };
+  summary: { es: string; en: string };
+  hasImage: boolean;
+  condition: Exclude<Condition, "any">;
 };
 
-type Filters = {
-  q: string;
-
-  city: string;
-  zip: string;
-  radiusMi: number;
-
-  category: ClassifiedCategory | "all";
-  sort: SortMode;
-
-  // more filters
-  priceMin?: number | null;
-  priceMax?: number | null;
-  posted: "any" | "24h" | "7d" | "30d";
-  hasImage: "any" | "yes";
-  seller: "any" | SellerType;
-  condition: "any" | ListingCondition;
-};
-
-const DEFAULT_CITY = "San José";
-const DEFAULT_RADIUS = 25;
-
-const CATEGORY_ORDER: ClassifiedCategory[] = [
+const CATEGORIES_ORDER: Array<Exclude<CategoryKey, "all">> = [
   "en-venta",
   "rentas",
   "autos",
@@ -69,1772 +48,1511 @@ const CATEGORY_ORDER: ClassifiedCategory[] = [
   "comunidad",
 ];
 
-const CATEGORY_LABELS: Record<Lang, Record<ClassifiedCategory, string>> = {
-  es: {
-    "en-venta": "En Venta",
-    rentas: "Rentas",
-    autos: "Autos",
-    servicios: "Servicios",
-    empleos: "Empleos",
-    clases: "Clases",
-    comunidad: "Comunidad",
-  },
-  en: {
-    "en-venta": "For Sale",
-    rentas: "Rentals",
-    autos: "Cars",
-    servicios: "Services",
-    empleos: "Jobs",
-    clases: "Classes",
-    comunidad: "Community",
-  },
-};
-
-function cx(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
+function catLabel(cat: CategoryKey, lang: Lang) {
+  const map: Record<CategoryKey, { es: string; en: string }> = {
+    all: { es: "Todas", en: "All" },
+    "en-venta": { es: "En Venta", en: "For Sale" },
+    rentas: { es: "Rentas", en: "Rentals" },
+    autos: { es: "Autos", en: "Autos" },
+    servicios: { es: "Servicios", en: "Services" },
+    empleos: { es: "Empleos", en: "Jobs" },
+    clases: { es: "Clases", en: "Classes" },
+    comunidad: { es: "Comunidad", en: "Community" },
+  };
+  return map[cat][lang];
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
+function sortLabel(mode: SortMode, lang: Lang) {
+  const map: Record<SortMode, { es: string; en: string }> = {
+    balanced: { es: "Equilibrado", en: "Balanced" },
+    newest: { es: "Más reciente", en: "Newest" },
+    price_asc: { es: "Precio ↑", en: "Price ↑" },
+    price_desc: { es: "Precio ↓", en: "Price ↓" },
+  };
+  return map[mode][lang];
 }
 
-function formatRelative(iso: string, lang: Lang) {
-  const d = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - d);
-  const mins = Math.floor(diff / 60000);
-  const hrs = Math.floor(mins / 60);
-  const days = Math.floor(hrs / 24);
-
-  if (mins < 60) return lang === "es" ? `hace ${mins} min` : `${mins}m ago`;
-  if (hrs < 24) return lang === "es" ? `hace ${hrs} h` : `${hrs}h ago`;
-  return lang === "es" ? `hace ${days} d` : `${days}d ago`;
+function postedLabel(v: PostedRange, lang: Lang) {
+  const map: Record<PostedRange, { es: string; en: string }> = {
+    any: { es: "Cualquier fecha", en: "Any time" },
+    "24h": { es: "Últimas 24 horas", en: "Last 24 hours" },
+    "7d": { es: "Últimos 7 días", en: "Last 7 days" },
+    "30d": { es: "Últimos 30 días", en: "Last 30 days" },
+  };
+  return map[v][lang];
 }
 
-function priceLabel(price: number | null | undefined, lang: Lang) {
-  if (price === null || price === undefined) return lang === "es" ? "Gratis" : "Free";
-  if (price === 0) return lang === "es" ? "Gratis" : "Free";
-  return `$${price.toLocaleString()}`;
+function sellerLabel(v: SellerType, lang: Lang) {
+  const map: Record<SellerType, { es: string; en: string }> = {
+    any: { es: "Cualquiera", en: "Any" },
+    personal: { es: "Personal", en: "Personal" },
+    business: { es: "Negocio", en: "Business" },
+  };
+  return map[v][lang];
 }
 
-function isWithinPosted(createdAtIso: string, posted: Filters["posted"]) {
-  if (posted === "any") return true;
-  const created = new Date(createdAtIso).getTime();
-  const now = Date.now();
-  const diff = now - created;
-
-  const day = 24 * 60 * 60 * 1000;
-  if (posted === "24h") return diff <= day;
-  if (posted === "7d") return diff <= 7 * day;
-  if (posted === "30d") return diff <= 30 * day;
-  return true;
+function conditionLabel(v: Condition, lang: Lang) {
+  const map: Record<Condition, { es: string; en: string }> = {
+    any: { es: "Cualquiera", en: "Any" },
+    new: { es: "Nuevo", en: "New" },
+    "like-new": { es: "Como nuevo", en: "Like new" },
+    good: { es: "Bueno", en: "Good" },
+    fair: { es: "Regular", en: "Fair" },
+  };
+  return map[v][lang];
 }
 
-function tierRank(tier: ListingTier) {
-  switch (tier) {
-    case "BIZ_PREMIUM":
-      return 4;
-    case "BIZ_LITE":
-      return 3;
-    case "PRO":
-      return 2;
-    case "FREE":
-    default:
-      return 1;
-  }
+function money(n: number) {
+  return Number.isFinite(n) ? n.toString() : "";
 }
 
-function isBoostedNow(l: Listing) {
-  if (!l.boostedUntil) return false;
-  return new Date(l.boostedUntil).getTime() > Date.now();
-}
+const PRICE_PRESETS = [
+  { min: 0, max: 30 },
+  { min: 31, max: 50 },
+  { min: 51, max: 100 },
+  { min: 101, max: 250 },
+  { min: 251, max: 500 },
+  { min: 501, max: 1000 },
+];
 
-function isBusinessListing(l: Listing) {
-  return l.tier === "BIZ_LITE" || l.tier === "BIZ_PREMIUM" || l.sellerType === "BUSINESS";
-}
-
-function GridIcon({ active, label }: { active: boolean; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-        <rect x="2" y="2" width="5" height="5" rx="1.2" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-        <rect x="9" y="2" width="5" height="5" rx="1.2" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-        <rect x="2" y="9" width="5" height="5" rx="1.2" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-        <rect x="9" y="9" width="5" height="5" rx="1.2" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-      </svg>
-      <span>{label}</span>
-    </span>
-  );
-}
-
-function ListIcon({ active, label }: { active: boolean; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-        <rect x="2" y="3" width="12" height="2" rx="1" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-        <rect x="2" y="7" width="12" height="2" rx="1" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-        <rect x="2" y="11" width="12" height="2" rx="1" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
-      </svg>
-      <span>{label}</span>
-    </span>
-  );
-}
-
-export default function ClassifiedsPage() {
-  const searchParams = useSearchParams();
-  const lang: Lang = (searchParams.get("lang") === "en" ? "en" : "es") as Lang;
+export default function ClasificadosPage() {
+  const params = useSearchParams();
+  const lang = ((params.get("lang") || "es") as Lang) ?? "es";
 
   const t = useMemo(() => {
-    const dict = {
-      es: {
-        title: "Clasificados",
-        subtitle:
-          "Acceso justo para todos. Comunidad primero. Ventaja premium para quienes invierten — sin esconder anuncios gratuitos.",
+    const es = {
+      pageTitle: "Clasificados",
+      subtitle:
+        "Acceso justo para todos. Comunidad primero. Ventaja premium para quienes invierten — sin esconder anuncios gratuitos.",
+      post: "Publicar anuncio",
+      view: "Ver anuncios",
+      memberships: "Membresías",
+      filters: "Filtros",
+      signIn: "Iniciar sesión",
+      create: "Crear cuenta",
+      signOut: "Cerrar sesión",
+      filterTitle: "Filtrar anuncios",
+      search: "Buscar",
+      searchPh: "Buscar anuncios…",
+      location: "Ubicación",
+      edit: "Editar",
+      city: "Ciudad",
+      zip: "ZIP",
+      nearby: "Ciudades cercanas",
+      radius: "Radio",
+      save: "Guardar",
+      reset: "Restablecer",
+      resetAll: "Restablecer filtros",
+      moreFilters: "Más filtros",
+      priceRange: "Rango de precio",
+      min: "Min",
+      max: "Max",
+      posted: "Publicado",
+      image: "Imagen",
+      any: "Cualquiera",
+      hasImage: "Con imagen",
+      seller: "Vendedor",
+      condition: "Condición",
+      exploreByCat: "Explorar por categoría",
+      clearCat: "Quitar categoría",
+      results: "Resultados",
+      showing: "Mostrando",
+      of: "de",
+      sort: "Orden",
+      viewMode: "Vista",
+      grid: "Grid",
+      list: "List",
+      noResults: "No encontramos anuncios",
+      noResultsDesc:
+        "Intenta ajustar filtros. Si estás buscando cerca, aumenta el radio o revisa todas las categorías.",
+      clearFilters: "Quitar filtros",
+      expandRadius: "Aumentar radio",
+      seeAll: "Ver todo",
+      page: "Página",
+      prev: "Anterior",
+      next: "Siguiente",
+      businessHeader: "Negocios",
+      businessSub:
+        "Negocios verificados y activos en esta categoría. (Se muestran junto a anuncios personales.)",
+      personalHeader: "Anuncios personales",
+      businessOnly: "Ver negocios en esta categoría",
+      businessOnlyOff: "Ver todo",
+      membershipsTitle: "Membresías",
+      membershipsNote:
+        "Resumen rápido. Beneficios completos se muestran en la página de Membresías.",
+      free: "Gratis",
+      pro: "LEONIX Pro",
+      bizLite: "Business Lite",
+      bizPrem: "Business Premium",
+      freeBullets: ["1 imagen", "Duración: 7 días", "Siempre visible y buscable"],
+      proBullets: [
+        "$16.99/mes",
+        "Duración: 30 días",
+        "Analíticas básicas (vistas/guardados)",
+        "2 boosts por anuncio (48 horas c/u)",
+      ],
+      bizLiteBullets: [
+        "$89/mes",
+        "Insignia de negocio y confianza",
+        "Más anuncios activos",
+        "Más visibilidad que perfiles personales",
+      ],
+      bizPremBullets: [
+        "$149/mes",
+        "Perfil mejorado y prioridad de conversión",
+        "Herramientas de contacto/leads por anuncio",
+        "Enlaces a sitio y redes (según membresía)",
+      ],
+      printVsClassifieds:
+        "Print Ads = Trust, Engagement, Coupons, Sweepstakes • Classifieds = Search, Intent, Speed, Conversion",
+    };
 
-        // top/auth
-        signIn: "Iniciar sesión",
-        createAccount: "Crear cuenta",
+    const en = {
+      pageTitle: "Classifieds",
+      subtitle:
+        "Fair access for everyone. Community first. Premium advantage for investors — without hiding free listings.",
+      post: "Post listing",
+      view: "View listings",
+      memberships: "Memberships",
+      filters: "Filters",
+      signIn: "Sign in",
+      create: "Create account",
+      signOut: "Sign out",
+      filterTitle: "Filter listings",
+      search: "Search",
+      searchPh: "Search listings…",
+      location: "Location",
+      edit: "Edit",
+      city: "City",
+      zip: "ZIP",
+      nearby: "Nearby cities",
+      radius: "Radius",
+      save: "Save",
+      reset: "Reset",
+      resetAll: "Reset filters",
+      moreFilters: "More filters",
+      priceRange: "Price range",
+      min: "Min",
+      max: "Max",
+      posted: "Posted",
+      image: "Image",
+      any: "Any",
+      hasImage: "Has image",
+      seller: "Seller",
+      condition: "Condition",
+      exploreByCat: "Explore by category",
+      clearCat: "Clear category",
+      results: "Results",
+      showing: "Showing",
+      of: "of",
+      sort: "Sort",
+      viewMode: "View",
+      grid: "Grid",
+      list: "List",
+      noResults: "No listings found",
+      noResultsDesc:
+        "Try adjusting filters. If you’re searching nearby, increase radius or check all categories.",
+      clearFilters: "Clear filters",
+      expandRadius: "Increase radius",
+      seeAll: "See all",
+      page: "Page",
+      prev: "Previous",
+      next: "Next",
+      businessHeader: "Businesses",
+      businessSub:
+        "Active businesses in this category. (Shown alongside personal listings.)",
+      personalHeader: "Personal listings",
+      businessOnly: "Show businesses in this category",
+      businessOnlyOff: "Show all",
+      membershipsTitle: "Memberships",
+      membershipsNote:
+        "Quick summary. Full benefits are shown on the Memberships page.",
+      free: "Free",
+      pro: "LEONIX Pro",
+      bizLite: "Business Lite",
+      bizPrem: "Business Premium",
+      freeBullets: ["1 image", "Duration: 7 days", "Always visible & searchable"],
+      proBullets: [
+        "$16.99/mo",
+        "Duration: 30 days",
+        "Basic analytics (views/saves)",
+        "2 boosts per listing (48h each)",
+      ],
+      bizLiteBullets: [
+        "$89/mo",
+        "Business trust signal",
+        "More active listings",
+        "Higher visibility than personal profiles",
+      ],
+      bizPremBullets: [
+        "$149/mo",
+        "Enhanced profile + conversion priority",
+        "Contact/lead tools per listing",
+        "Website + social links (by plan)",
+      ],
+      printVsClassifieds:
+        "Print Ads = Trust, Engagement, Coupons, Sweepstakes • Classifieds = Search, Intent, Speed, Conversion",
+    };
 
-        // pills
-        ctaPost: "Publicar anuncio",
-        ctaView: "Ver anuncios",
-        ctaMemberships: "Membresías",
-
-        // filters
-        filterTitle: "Filtrar anuncios",
-        searchLabel: "Buscar anuncios",
-        searchPlaceholder: "¿Qué estás buscando?",
-        locationLabel: "Ubicación",
-        edit: "Editar",
-        categoryLabel: "Categoría",
-        all: "Todas",
-        sortLabel: "Orden",
-        sortBalanced: "Equilibrado",
-        sortNewest: "Más recientes",
-        sortPriceAsc: "Precio: menor → mayor",
-        sortPriceDesc: "Precio: mayor → menor",
-
-        moreFilters: "Más filtros",
-        hideFilters: "Ocultar filtros",
-        priceRange: "Rango de precio",
-        min: "Mín",
-        max: "Máx",
-        posted: "Publicado",
-        postedAny: "Cualquier fecha",
-        posted24: "Últimas 24 horas",
-        posted7: "Últimos 7 días",
-        posted30: "Últimos 30 días",
-        image: "Imagen",
-        any: "Cualquiera",
-        yes: "Sí",
-        seller: "Vendedor",
-        personal: "Personal",
-        business: "Negocio",
-        condition: "Condición",
-        condAny: "Cualquiera",
-        condNew: "Nuevo",
-        condLikeNew: "Como nuevo",
-        condGood: "Bueno",
-        condFair: "Regular",
-        condParts: "Para partes",
-
-        exploreByCategory: "Explorar por categoría",
-        clearCategory: "Quitar categoría",
-
-        chipsReset: "Restablecer filtros",
-        chipsCity: "Ciudad",
-        chipsZip: "ZIP",
-        chipsRadius: "Radio",
-
-        results: "Resultados",
-        showing: "Mostrando",
-        of: "de",
-
-        // business split
-        bizSectionTitle: "Negocios",
-        bizSectionSubtitle: "Visibilidad y confianza para negocios que invierten.",
-        seeBusinessMemberships: "Ver membresías de negocio",
-        personalSectionTitle: "Anuncios personales",
-        personalSectionSubtitle: "Publicaciones de la comunidad (siempre visibles).",
-        viewBusinessesOnly: "Ver negocios",
-        viewAll: "Ver todo",
-
-        grid: "Cuadrícula",
-        list: "Lista",
-
-        emptyTitle: "No encontramos anuncios",
-        emptyBody:
-          "Intenta ajustar filtros. Si estás buscando cerca, aumenta el radio o revisa todas las categorías.",
-        removeFilters: "Quitar filtros",
-        increaseRadius: "Aumentar radio",
-        viewEverything: "Ver todo",
-
-        page: "Página",
-        prevPage: "Página anterior",
-        nextPage: "Siguiente página",
-
-        // location modal
-        locationModalTitle: "Ubicación",
-        close: "Cerrar",
-        locationPermissionTitle: "Permiso de ubicación (opcional)",
-        locationPermissionBody:
-          "Puedes usar tu ubicación para sugerir ciudad. No guardamos tu ubicación precisa — solo la ciudad, el ZIP y el radio que elijas.",
-        useMyLocation: "Usar mi ubicación",
-
-        city: "Ciudad",
-        cityPlaceholder: "Escribe tu ciudad…",
-        zip: "ZIP",
-        zipPlaceholder: "Escribe tu ZIP…",
-
-        nearbyCities: "Ciudades cercanas",
-        radius: "Radio",
-        radiusHint:
-          "La ciudad es el selector principal. El radio ampliará el alcance y ajustará ciudades sugeridas.",
-        restore: "Restablecer",
-        save: "Guardar",
-
-        // memberships summary (condensed)
-        membershipsTitle: "Membresías",
-        membershipsSubtitle: "Resumen rápido. Detalles completos en la página de Membresías.",
-        viewMembershipDetails: "Ver detalles",
-
-        // membership cards
-        free: "Gratis",
-        freePrice: "$0",
-        free1: "1 imagen incluida",
-        free2: "Duración: 7 días",
-        free3: "Siempre visible y buscable",
-
-        pro: "LEONIX Pro",
-        proPrice: "$16.99/mes",
-        pro1: "Más duración y mejor presentación",
-        pro2: "Analíticas básicas: vistas + guardados",
-        pro3: "2 ventanas de visibilidad (48h c/u)",
-
-        bizLite: "Business Lite",
-        bizLitePrice: "$89/mes",
-        bizLite1: "Insignia de negocio + más confianza",
-        bizLite2: "Más anuncios activos (sin pagar por repost)",
-        bizLite3: "Ranking arriba de perfiles personales",
-
-        bizPremium: "Business Premium",
-        bizPremiumPrice: "$149/mes",
-        bizPremium1: "Prioridad de ranking + perfil mejorado",
-        bizPremium2: "Herramientas de contacto/leads por anuncio",
-        bizPremium3: "Diseñado para cerrar ventas, no solo aparecer",
-
-        compareBusiness: "Comparar membresías de negocio",
-        printVsClassifieds:
-          "Anuncios Impresos = Confianza, Engagement, Cupones, Sorteos · Clasificados = Búsqueda, Intención, Velocidad, Conversión",
-      },
-      en: {
-        title: "Classifieds",
-        subtitle:
-          "Fair access for everyone. Community first. Premium advantage for investors — without hiding free listings.",
-
-        signIn: "Sign in",
-        createAccount: "Create account",
-
-        ctaPost: "Post listing",
-        ctaView: "View listings",
-        ctaMemberships: "Memberships",
-
-        filterTitle: "Filter listings",
-        searchLabel: "Search listings",
-        searchPlaceholder: "What are you looking for?",
-        locationLabel: "Location",
-        edit: "Edit",
-        categoryLabel: "Category",
-        all: "All",
-        sortLabel: "Sort",
-        sortBalanced: "Balanced",
-        sortNewest: "Newest",
-        sortPriceAsc: "Price: low → high",
-        sortPriceDesc: "Price: high → low",
-
-        moreFilters: "More filters",
-        hideFilters: "Hide filters",
-        priceRange: "Price range",
-        min: "Min",
-        max: "Max",
-        posted: "Posted",
-        postedAny: "Any time",
-        posted24: "Last 24 hours",
-        posted7: "Last 7 days",
-        posted30: "Last 30 days",
-        image: "Image",
-        any: "Any",
-        yes: "Yes",
-        seller: "Seller",
-        personal: "Personal",
-        business: "Business",
-        condition: "Condition",
-        condAny: "Any",
-        condNew: "New",
-        condLikeNew: "Like new",
-        condGood: "Good",
-        condFair: "Fair",
-        condParts: "For parts",
-
-        exploreByCategory: "Explore by category",
-        clearCategory: "Clear category",
-
-        chipsReset: "Reset filters",
-        chipsCity: "City",
-        chipsZip: "ZIP",
-        chipsRadius: "Radius",
-
-        results: "Results",
-        showing: "Showing",
-        of: "of",
-
-        bizSectionTitle: "Businesses",
-        bizSectionSubtitle: "Visibility and trust for businesses that invest.",
-        seeBusinessMemberships: "See business memberships",
-        personalSectionTitle: "Personal listings",
-        personalSectionSubtitle: "Community posts (always visible).",
-        viewBusinessesOnly: "Businesses",
-        viewAll: "All",
-
-        grid: "Grid",
-        list: "List",
-
-        emptyTitle: "No listings found",
-        emptyBody:
-          "Try adjusting filters. If you're searching nearby, increase radius or check all categories.",
-        removeFilters: "Clear filters",
-        increaseRadius: "Increase radius",
-        viewEverything: "View all",
-
-        page: "Page",
-        prevPage: "Previous page",
-        nextPage: "Next page",
-
-        locationModalTitle: "Location",
-        close: "Close",
-        locationPermissionTitle: "Location permission (optional)",
-        locationPermissionBody:
-          "You can use your location to suggest a city. We don’t store your precise location — only the city, ZIP and radius you choose.",
-        useMyLocation: "Use my location",
-
-        city: "City",
-        cityPlaceholder: "Type your city…",
-        zip: "ZIP",
-        zipPlaceholder: "Type your ZIP…",
-
-        nearbyCities: "Nearby cities",
-        radius: "Radius",
-        radiusHint: "City is primary. Radius expands reach and updates suggested cities.",
-        restore: "Restore",
-        save: "Save",
-
-        membershipsTitle: "Memberships",
-        membershipsSubtitle: "Quick summary. Full benefits live on the Memberships page.",
-        viewMembershipDetails: "View details",
-
-        free: "Free",
-        freePrice: "$0",
-        free1: "1 photo included",
-        free2: "Duration: 7 days",
-        free3: "Always visible & searchable",
-
-        pro: "LEONIX Pro",
-        proPrice: "$16.99/mo",
-        pro1: "Longer duration & better presentation",
-        pro2: "Basic analytics: views + saves",
-        pro3: "2 visibility windows (48h each)",
-
-        bizLite: "Business Lite",
-        bizLitePrice: "$89/mo",
-        bizLite1: "Business badge + stronger trust",
-        bizLite2: "More active listings (no repost fees)",
-        bizLite3: "Ranks above personal profiles",
-
-        bizPremium: "Business Premium",
-        bizPremiumPrice: "$149/mo",
-        bizPremium1: "Priority ranking + enhanced profile",
-        bizPremium2: "Lead/contact tools per listing",
-        bizPremium3: "Built to close deals, not just appear",
-
-        compareBusiness: "Compare business memberships",
-        printVsClassifieds:
-          "Print Ads = Trust, Engagement, Coupons, Sweepstakes · Classifieds = Search, Intent, Speed, Conversion",
-      },
-    } as const;
-
-    return dict[lang];
+    return lang === "es" ? es : en;
   }, [lang]);
 
-  // Anchors
-  const listingsRef = useRef<HTMLDivElement | null>(null);
-  const membershipsRef = useRef<HTMLDivElement | null>(null);
-  const filterRef = useRef<HTMLDivElement | null>(null);
-  const resultsSentinelRef = useRef<HTMLDivElement | null>(null);
+  // Demo listings: 1 business + 1 personal for EACH category
+  const listings: Listing[] = useMemo(() => {
+    const mk = (p: Omit<Listing, "title" | "priceLabel" | "postedAgo" | "summary"> & {
+      titleEs: string; titleEn: string;
+      priceEs: string; priceEn: string;
+      agoEs: string; agoEn: string;
+      sumEs: string; sumEn: string;
+    }): Listing => ({
+      id: p.id,
+      category: p.category,
+      seller: p.seller,
+      city: p.city,
+      hasImage: p.hasImage,
+      condition: p.condition,
+      title: { es: p.titleEs, en: p.titleEn },
+      priceLabel: { es: p.priceEs, en: p.priceEn },
+      postedAgo: { es: p.agoEs, en: p.agoEn },
+      summary: { es: p.sumEs, en: p.sumEn },
+    });
 
-  // Sticky behavior
-  const [filterSticky, setFilterSticky] = useState(false);
-  const [showStickyCtas, setShowStickyCtas] = useState(false);
+    const data: Listing[] = [];
 
-  // Auth (placeholder UI-only for now; real auth later)
-  const [isAuthed] = useState(false);
+    // EN VENTA
+    data.push(
+      mk({
+        id: "biz-enventa-1",
+        category: "en-venta",
+        seller: "business",
+        city: "San José",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Taller: Paquetes de mantenimiento",
+        titleEn: "Shop: Maintenance packages",
+        priceEs: "Desde $49",
+        priceEn: "From $49",
+        agoEs: "hace 2 horas",
+        agoEn: "2 hours ago",
+        sumEs: "Servicio rápido. Citas disponibles hoy. Se habla español.",
+        sumEn: "Fast service. Appointments available today.",
+      }),
+      mk({
+        id: "per-enventa-1",
+        category: "en-venta",
+        seller: "personal",
+        city: "Santa Clara",
+        hasImage: true,
+        condition: "like-new",
+        titleEs: "Mesa de comedor 6 sillas",
+        titleEn: "Dining table + 6 chairs",
+        priceEs: "$120",
+        priceEn: "$120",
+        agoEs: "hace 1 día",
+        agoEn: "1 day ago",
+        sumEs: "Buen estado. Recoger en Santa Clara.",
+        sumEn: "Good condition. Pickup in Santa Clara.",
+      })
+    );
 
-  const [filters, setFilters] = useState<Filters>({
-    q: "",
-    city: DEFAULT_CITY,
-    zip: "",
-    radiusMi: DEFAULT_RADIUS,
-    category: "all",
-    sort: "balanced",
+    // RENTAS
+    data.push(
+      mk({
+        id: "biz-rentas-1",
+        category: "rentas",
+        seller: "business",
+        city: "San José",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Rentas: Apartamentos disponibles",
+        titleEn: "Rentals: Apartments available",
+        priceEs: "2H/1B desde $2,450",
+        priceEn: "2B/1B from $2,450",
+        agoEs: "hace 5 horas",
+        agoEn: "5 hours ago",
+        sumEs: "Cerca de transporte. Depósito flexible (según perfil).",
+        sumEn: "Near transit. Flexible deposit (by profile).",
+      }),
+      mk({
+        id: "per-rentas-1",
+        category: "rentas",
+        seller: "personal",
+        city: "Milpitas",
+        hasImage: false,
+        condition: "good",
+        titleEs: "Cuarto en renta (utilities incl.)",
+        titleEn: "Room for rent (utilities incl.)",
+        priceEs: "$850",
+        priceEn: "$850",
+        agoEs: "hace 3 días",
+        agoEn: "3 days ago",
+        sumEs: "Cuarto privado. Solo personas serias.",
+        sumEn: "Private room. Serious inquiries only.",
+      })
+    );
 
-    priceMin: null,
-    priceMax: null,
-    posted: "any",
-    hasImage: "any",
-    seller: "any",
-    condition: "any",
-  });
+    // AUTOS
+    data.push(
+      mk({
+        id: "biz-autos-1",
+        category: "autos",
+        seller: "business",
+        city: "San José",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Dealer: Sedán 2017 (financiamiento)",
+        titleEn: "Dealer: 2017 sedan (financing)",
+        priceEs: "$10,990",
+        priceEn: "$10,990",
+        agoEs: "hace 6 horas",
+        agoEn: "6 hours ago",
+        sumEs: "Millaje bajo. Prueba de manejo hoy.",
+        sumEn: "Low miles. Test drive today.",
+      }),
+      mk({
+        id: "per-autos-1",
+        category: "autos",
+        seller: "personal",
+        city: "Campbell",
+        hasImage: true,
+        condition: "fair",
+        titleEs: "Honda 2009 — título limpio",
+        titleEn: "Honda 2009 — clean title",
+        priceEs: "$3,800",
+        priceEn: "$3,800",
+        agoEs: "hace 2 días",
+        agoEn: "2 days ago",
+        sumEs: "Corre bien. Detalles cosméticos.",
+        sumEn: "Runs well. Cosmetic wear.",
+      })
+    );
+
+    // SERVICIOS
+    data.push(
+      mk({
+        id: "biz-serv-1",
+        category: "servicios",
+        seller: "business",
+        city: "Sunnyvale",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Plomería 24/7 — presupuesto",
+        titleEn: "Plumbing 24/7 — quote",
+        priceEs: "Cotización gratis",
+        priceEn: "Free quote",
+        agoEs: "hace 4 horas",
+        agoEn: "4 hours ago",
+        sumEs: "Reparaciones, instalaciones y emergencias.",
+        sumEn: "Repairs, installs, emergencies.",
+      }),
+      mk({
+        id: "per-serv-1",
+        category: "servicios",
+        seller: "personal",
+        city: "San José",
+        hasImage: false,
+        condition: "good",
+        titleEs: "Clases de guitarra (a domicilio)",
+        titleEn: "Guitar lessons (in-home)",
+        priceEs: "Desde $25",
+        priceEn: "From $25",
+        agoEs: "hace 7 días",
+        agoEn: "7 days ago",
+        sumEs: "Principiantes bienvenidos. Horarios flexibles.",
+        sumEn: "Beginners welcome. Flexible schedule.",
+      })
+    );
+
+    // EMPLEOS
+    data.push(
+      mk({
+        id: "biz-job-1",
+        category: "empleos",
+        seller: "business",
+        city: "San José",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Se busca barbero (tiempo parcial)",
+        titleEn: "Hiring barber (part-time)",
+        priceEs: "$$",
+        priceEn: "$$",
+        agoEs: "hace 1 día",
+        agoEn: "1 day ago",
+        sumEs: "Experiencia requerida. Buen ambiente.",
+        sumEn: "Experience required. Great team.",
+      }),
+      mk({
+        id: "per-job-1",
+        category: "empleos",
+        seller: "personal",
+        city: "Santa Clara",
+        hasImage: false,
+        condition: "good",
+        titleEs: "Busco trabajo: limpieza / ayuda",
+        titleEn: "Looking for work: cleaning / help",
+        priceEs: "A convenir",
+        priceEn: "Negotiable",
+        agoEs: "hace 4 días",
+        agoEn: "4 days ago",
+        sumEs: "Disponible fines de semana. Responsable.",
+        sumEn: "Weekends available. Reliable.",
+      })
+    );
+
+    // CLASES
+    data.push(
+      mk({
+        id: "biz-class-1",
+        category: "clases",
+        seller: "business",
+        city: "San José",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Inglés conversacional (grupos)",
+        titleEn: "Conversational English (groups)",
+        priceEs: "Desde $15/clase",
+        priceEn: "From $15/class",
+        agoEs: "hace 2 días",
+        agoEn: "2 days ago",
+        sumEs: "Niveles básicos e intermedios.",
+        sumEn: "Beginner + intermediate levels.",
+      }),
+      mk({
+        id: "per-class-1",
+        category: "clases",
+        seller: "personal",
+        city: "Milpitas",
+        hasImage: false,
+        condition: "good",
+        titleEs: "Tutoría de matemáticas (HS)",
+        titleEn: "Math tutoring (HS)",
+        priceEs: "$20/h",
+        priceEn: "$20/hr",
+        agoEs: "hace 6 días",
+        agoEn: "6 days ago",
+        sumEs: "Álgebra / geometría. Online o en persona.",
+        sumEn: "Algebra / geometry. Online or in-person.",
+      })
+    );
+
+    // COMUNIDAD
+    data.push(
+      mk({
+        id: "biz-com-1",
+        category: "comunidad",
+        seller: "business",
+        city: "San José",
+        hasImage: true,
+        condition: "good",
+        titleEs: "Centro comunitario — clases gratis",
+        titleEn: "Community center — free classes",
+        priceEs: "Gratis",
+        priceEn: "Free",
+        agoEs: "hace 8 horas",
+        agoEn: "8 hours ago",
+        sumEs: "Recursos y apoyo. Consulta horarios.",
+        sumEn: "Resources and support. Check schedule.",
+      }),
+      mk({
+        id: "per-com-1",
+        category: "comunidad",
+        seller: "personal",
+        city: "Campbell",
+        hasImage: false,
+        condition: "good",
+        titleEs: "Donación de ropa (tallas mixtas)",
+        titleEn: "Clothing donation (mixed sizes)",
+        priceEs: "Gratis",
+        priceEn: "Free",
+        agoEs: "hace 1 día",
+        agoEn: "1 day ago",
+        sumEs: "Solo recoger. Todo limpio.",
+        sumEn: "Pickup only. Clean items.",
+      })
+    );
+
+    return data;
+  }, []);
+
+  // Filters
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<CategoryKey>("all");
+  const [sort, setSort] = useState<SortMode>("balanced");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
+  const [city, setCity] = useState("San José");
+  const [zip, setZip] = useState("");
+  const [radius, setRadius] = useState<number>(25);
 
   const [moreOpen, setMoreOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
+  const [priceMin, setPriceMin] = useState<string>("");
+  const [priceMax, setPriceMax] = useState<string>("");
 
-  const [cityDraft, setCityDraft] = useState(filters.city);
-  const [zipDraft, setZipDraft] = useState(filters.zip);
-  const [radiusDraft, setRadiusDraft] = useState(filters.radiusMi);
+  const [posted, setPosted] = useState<PostedRange>("any");
+  const [seller, setSeller] = useState<SellerType>("any");
+  const [cond, setCond] = useState<Condition>("any");
+  const [hasImage, setHasImage] = useState<"any" | "yes">("any");
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showBusinessesOnly, setShowBusinessesOnly] = useState(false);
+  const [locOpen, setLocOpen] = useState(false);
+  const [draftCity, setDraftCity] = useState(city);
+  const [draftZip, setDraftZip] = useState(zip);
+  const [draftRadius, setDraftRadius] = useState(radius);
 
-  // Demo preview (only shown when there is no real data yet)
-  const demoPreview = useMemo(() => {
-    const now = Date.now();
-    const agoHours = (h: number) => new Date(now - h * 60 * 60 * 1000).toISOString();
-    return {
-      business: {
-        id: "demo-biz-1",
-        title: lang === "es" ? "Servicios de Jardinería — Cotización Gratis" : "Landscaping Services — Free Quote",
-        description: lang === "es" ? "Mantenimiento, podas, limpieza." : "Maintenance, trims, cleanups.",
-        price: null,
-        city: "San José",
-        createdAt: agoHours(3),
-        category: "servicios" as const,
-        tier: "BIZ_LITE" as const,
-        sellerType: "BUSINESS" as const,
-        hasImage: true,
-      } satisfies Listing,
-      personal: {
-        id: "demo-personal-1",
-        title: lang === "es" ? "Silla de bebé (como nueva)" : "Baby chair (like new)",
-        description: lang === "es" ? "Entrega en San José." : "Pickup in San Jose.",
-        price: 35,
-        city: "San José",
-        createdAt: agoHours(6),
-        category: "en-venta" as const,
-        tier: "FREE" as const,
-        sellerType: "PERSONAL" as const,
-        hasImage: true,
-      } satisfies Listing,
-    };
-  }, [lang]);
+  const [businessOnly, setBusinessOnly] = useState(false);
 
-  // Demo data placeholder (kept empty until data layer exists)
-  const listings: Listing[] = useMemo(() => {
-    return [];
-  }, []);
+  const filtersRef = useRef<HTMLDivElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+  const membershipsRef = useRef<HTMLDivElement | null>(null);
 
-  // Responsive default: Mobile = list, Desktop = grid
-  useEffect(() => {
-    const onResize = () => {
-      const isMobile = window.innerWidth < 768;
-      setViewMode(isMobile ? "list" : "grid");
-    };
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+  // When category changes via pills, keep dropdown in sync + scroll to results
+  const selectCategory = (c: CategoryKey, scrollToResults = true) => {
+    setCategory(c);
+    if (scrollToResults) {
+      requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
 
-  // Sticky filter observer
-  useEffect(() => {
-    const el = filterRef.current;
-    if (!el) return;
+  const resetFilters = () => {
+    setQuery("");
+    setCategory("all");
+    setSort("balanced");
+    setCity("San José");
+    setZip("");
+    setRadius(25);
+    setMoreOpen(false);
+    setPriceMin("");
+    setPriceMax("");
+    setPosted("any");
+    setSeller("any");
+    setCond("any");
+    setHasImage("any");
+    setBusinessOnly(false);
+  };
 
-    const sentinel = document.createElement("div");
-    sentinel.style.position = "absolute";
-    sentinel.style.top = "-1px";
-    sentinel.style.left = "0";
-    sentinel.style.width = "1px";
-    sentinel.style.height = "1px";
-    el.prepend(sentinel);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setFilterSticky(!entry.isIntersecting);
-      },
-      { threshold: 0 }
-    );
-
-    observer.observe(sentinel);
-    return () => {
-      observer.disconnect();
-      try {
-        el.removeChild(sentinel);
-      } catch {}
-    };
-  }, []);
-
-  // Sticky CTA bar should appear once user reaches Results section
-  useEffect(() => {
-    const el = resultsSentinelRef.current;
-    if (!el) return;
-
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        // When sentinel is NOT visible (scrolled past it), show sticky CTAs
-        setShowStickyCtas(!entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: "-120px 0px 0px 0px" }
-    );
-
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+  const activePrice = useMemo(() => {
+    const mn = Number(priceMin);
+    const mx = Number(priceMax);
+    const hasMin = priceMin.trim().length > 0 && Number.isFinite(mn);
+    const hasMax = priceMax.trim().length > 0 && Number.isFinite(mx);
+    if (!hasMin && !hasMax) return null;
+    return { min: hasMin ? mn : null, max: hasMax ? mx : null };
+  }, [priceMin, priceMax]);
 
   const filtered = useMemo(() => {
-    const q = filters.q.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
 
-    let arr = listings.slice();
+    let items = listings.slice();
 
-    // category
-    if (filters.category !== "all") {
-      arr = arr.filter((l) => l.category === filters.category);
-    }
+    if (category !== "all") items = items.filter((x) => x.category === category);
 
-    // business-only toggle
-    if (showBusinessesOnly) {
-      arr = arr.filter((l) => isBusinessListing(l));
-    }
+    if (businessOnly) items = items.filter((x) => x.seller === "business");
 
-    // search
     if (q) {
-      arr = arr.filter((l) => (l.title + " " + (l.description ?? "")).toLowerCase().includes(q));
-    }
-
-    // posted timeframe
-    arr = arr.filter((l) => isWithinPosted(l.createdAt, filters.posted));
-
-    // image
-    if (filters.hasImage === "yes") {
-      arr = arr.filter((l) => Boolean(l.hasImage));
-    }
-
-    // seller
-    if (filters.seller !== "any") {
-      arr = arr.filter((l) => l.sellerType === filters.seller);
-    }
-
-    // condition
-    if (filters.condition !== "any") {
-      arr = arr.filter((l) => l.condition === filters.condition);
-    }
-
-    // price range
-    const min = filters.priceMin ?? null;
-    const max = filters.priceMax ?? null;
-    if (min !== null) arr = arr.filter((l) => (l.price ?? 0) >= min);
-    if (max !== null) arr = arr.filter((l) => (l.price ?? 0) <= max);
-
-    // sort
-    if (filters.sort === "newest") {
-      arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else if (filters.sort === "price_asc") {
-      arr.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    } else if (filters.sort === "price_desc") {
-      arr.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-    } else {
-      // balanced: boosted first, then tier rank, then recency
-      arr.sort((a, b) => {
-        const ab = isBoostedNow(a) ? 1 : 0;
-        const bb = isBoostedNow(b) ? 1 : 0;
-        if (ab !== bb) return bb - ab;
-
-        const tr = tierRank(b.tier) - tierRank(a.tier);
-        if (tr !== 0) return tr;
-
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      items = items.filter((x) => {
+        const text = `${x.title.es} ${x.title.en} ${x.summary.es} ${x.summary.en}`.toLowerCase();
+        return text.includes(q);
       });
     }
 
-    // Guarantee business split order in display: businesses first, then personals
-    const biz = arr.filter(isBusinessListing);
-    const personal = arr.filter((l) => !isBusinessListing(l));
-    return [...biz, ...personal];
-  }, [listings, filters, showBusinessesOnly]);
+    if (seller !== "any") items = items.filter((x) => x.seller === seller);
 
-  // pagination (responsive)
-  const [pageSize, setPageSize] = useState(18);
-  useEffect(() => {
-    const onResize = () => setPageSize(window.innerWidth < 768 ? 10 : 18);
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+    if (cond !== "any") items = items.filter((x) => x.condition === cond);
 
+    if (hasImage === "yes") items = items.filter((x) => x.hasImage);
+
+    // Price filtering is demo-only (uses digits found in priceLabel)
+    if (activePrice) {
+      items = items.filter((x) => {
+        const priceText = (lang === "es" ? x.priceLabel.es : x.priceLabel.en).replace(/[^0-9]/g, "");
+        const n = priceText ? Number(priceText) : NaN;
+        if (!Number.isFinite(n)) return true; // keep "Gratis", "A convenir", "$$"
+        if (activePrice.min != null && n < activePrice.min) return false;
+        if (activePrice.max != null && n > activePrice.max) return false;
+        return true;
+      });
+    }
+
+    // Posted filter is demo-only, we don’t have real timestamps yet
+    // Keeping it as UI/UX placeholder.
+
+    // Sorting
+    const sorters: Record<SortMode, (a: Listing, b: Listing) => number> = {
+      balanced: (a, b) => {
+        // slight preference businesses first, but still mixed later in UI
+        if (a.seller !== b.seller) return a.seller === "business" ? -1 : 1;
+        return a.id.localeCompare(b.id);
+      },
+      newest: (a, b) => b.id.localeCompare(a.id),
+      price_asc: (a, b) => a.id.localeCompare(b.id),
+      price_desc: (a, b) => b.id.localeCompare(a.id),
+    };
+    items.sort(sorters[sort]);
+
+    return items;
+  }, [listings, category, businessOnly, query, seller, cond, hasImage, activePrice, sort, lang]);
+
+  const businesses = useMemo(() => filtered.filter((x) => x.seller === "business"), [filtered]);
+  const personals = useMemo(() => filtered.filter((x) => x.seller === "personal"), [filtered]);
+
+  const pageSize = viewMode === "grid" ? 18 : 10;
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [filters, showBusinessesOnly, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, category, city, zip, radius, moreOpen, priceMin, priceMax, posted, seller, cond, hasImage, businessOnly, sort, viewMode]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const pageSafe = clamp(page, 1, totalPages);
+  const clampedPage = Math.min(page, totalPages);
 
-  const slice = useMemo(() => {
-    const start = (pageSafe - 1) * pageSize;
-    const end = Math.min(total, start + pageSize);
-    return { start, end, items: filtered.slice(start, end) };
-  }, [filtered, pageSafe, pageSize, total]);
+  const paged = useMemo(() => {
+    const start = (clampedPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filtered.slice(start, end);
+  }, [filtered, clampedPage, pageSize]);
 
-  const goToListings = () => listingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const goToMemberships = () => membershipsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const goToFilters = () => filterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-  const handleCategoryPick = (cat: ClassifiedCategory) => {
-    setFilters((f) => ({ ...f, category: cat }));
-    setTimeout(() => goToListings(), 0);
-  };
-
-  const clearCategory = () => setFilters((f) => ({ ...f, category: "all" }));
-
-  const resetFilters = () => {
-    setFilters({
-      q: "",
-      city: DEFAULT_CITY,
-      zip: "",
-      radiusMi: DEFAULT_RADIUS,
-      category: "all",
-      sort: "balanced",
-      priceMin: null,
-      priceMax: null,
-      posted: "any",
-      hasImage: "any",
-      seller: "any",
-      condition: "any",
-    });
-    setShowBusinessesOnly(false);
-    setMoreOpen(false);
-    setPage(1);
-  };
-
-  const chips = useMemo(() => {
-    const out: Array<{ key: string; label: string; onRemove?: () => void }> = [];
-
-    // Always show city + radius (default shows too, like your current UX)
-    out.push({
-      key: "city",
-      label: `${t.chipsCity}: ${filters.city}`,
-      onRemove: filters.city !== DEFAULT_CITY ? () => setFilters((f) => ({ ...f, city: DEFAULT_CITY })) : undefined,
-    });
-
-    if (filters.zip.trim()) {
-      out.push({
-        key: "zip",
-        label: `${t.chipsZip}: ${filters.zip.trim()}`,
-        onRemove: () => setFilters((f) => ({ ...f, zip: "" })),
-      });
-    }
-
-    out.push({
-      key: "radius",
-      label: `${t.chipsRadius}: ${filters.radiusMi} mi`,
-      onRemove: filters.radiusMi !== DEFAULT_RADIUS ? () => setFilters((f) => ({ ...f, radiusMi: DEFAULT_RADIUS })) : undefined,
-    });
-
-    if (filters.category !== "all") {
-      out.push({
-        key: "category",
-        label: `${t.categoryLabel}: ${CATEGORY_LABELS[lang][filters.category]}`,
-        onRemove: () => clearCategory(),
-      });
-    }
-
-    if (filters.q.trim()) {
-      out.push({
-        key: "q",
-        label: `${t.searchLabel}: “${filters.q.trim()}”`,
-        onRemove: () => setFilters((f) => ({ ...f, q: "" })),
-      });
-    }
-
-    if (filters.priceMin !== null && filters.priceMin !== undefined) {
-      out.push({
-        key: "min",
-        label: `${t.min}: $${filters.priceMin}`,
-        onRemove: () => setFilters((f) => ({ ...f, priceMin: null })),
-      });
-    }
-    if (filters.priceMax !== null && filters.priceMax !== undefined) {
-      out.push({
-        key: "max",
-        label: `${t.max}: $${filters.priceMax}`,
-        onRemove: () => setFilters((f) => ({ ...f, priceMax: null })),
-      });
-    }
-
-    if (filters.posted !== "any") {
-      const map = {
-        "24h": t.posted24,
-        "7d": t.posted7,
-        "30d": t.posted30,
-        any: t.postedAny,
-      } as const;
-      out.push({
-        key: "posted",
-        label: `${t.posted}: ${map[filters.posted]}`,
-        onRemove: () => setFilters((f) => ({ ...f, posted: "any" })),
-      });
-    }
-
-    if (filters.hasImage !== "any") {
-      out.push({
-        key: "img",
-        label: `${t.image}: ${t.yes}`,
-        onRemove: () => setFilters((f) => ({ ...f, hasImage: "any" })),
-      });
-    }
-
-    if (filters.seller !== "any") {
-      out.push({
-        key: "seller",
-        label: `${t.seller}: ${filters.seller === "BUSINESS" ? t.business : t.personal}`,
-        onRemove: () => setFilters((f) => ({ ...f, seller: "any" })),
-      });
-    }
-
-    if (filters.condition !== "any") {
-      const map: Record<ListingCondition, string> = {
-        NEW: t.condNew,
-        LIKE_NEW: t.condLikeNew,
-        GOOD: t.condGood,
-        FAIR: t.condFair,
-        FOR_PARTS: t.condParts,
-      };
-      out.push({
-        key: "cond",
-        label: `${t.condition}: ${map[filters.condition]}`,
-        onRemove: () => setFilters((f) => ({ ...f, condition: "any" })),
-      });
-    }
-
-    if (showBusinessesOnly) {
-      out.push({
-        key: "bizOnly",
-        label: t.viewBusinessesOnly,
-        onRemove: () => setShowBusinessesOnly(false),
-      });
-    }
-
-    return out;
-  }, [filters, lang, showBusinessesOnly, t]);
-
-  // City suggestions (simple, controlled list for now — prevents misspell issues)
-  const CITY_OPTIONS = useMemo(
-    () => ["San José", "Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View", "Palo Alto"],
-    []
-  );
-
-  const citySuggestions = useMemo(() => {
-    const q = cityDraft.trim().toLowerCase();
-    if (!q) return CITY_OPTIONS.slice(0, 6);
-    return CITY_OPTIONS.filter((c) => c.toLowerCase().includes(q)).slice(0, 6);
-  }, [CITY_OPTIONS, cityDraft]);
+  // Split view: always show business section + personal section, but keep pagination for overall list
+  // For demo UX: if there are results, show sections without paginating separately.
+  const showSections = true;
 
   const nearbyCities = useMemo(() => {
-    // Placeholder logic by radius (you requested: chips change based on radius)
-    if (radiusDraft <= 10) return ["Santa Clara", "Milpitas"];
-    if (radiusDraft <= 25) return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale"];
-    if (radiusDraft <= 40) return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View"];
-    return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View", "Palo Alto"];
-  }, [radiusDraft]);
+    // Placeholder: later this should be computed based on radius + chosen city/zip
+    const base = ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale"];
+    return base.filter((c) => c.toLowerCase() !== city.toLowerCase());
+  }, [city, radius]);
 
-  const openLocation = () => {
-    setCityDraft(filters.city);
-    setZipDraft(filters.zip);
-    setRadiusDraft(filters.radiusMi);
-    setLocationOpen(true);
-  };
+  const goFilters = () => filtersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const goResults = () => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const goMemberships = () => membershipsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  const saveLocation = () => {
-    setFilters((f) => ({
-      ...f,
-      city: cityDraft.trim() || DEFAULT_CITY,
-      zip: zipDraft.trim(),
-      radiusMi: radiusDraft,
-    }));
-    setLocationOpen(false);
-  };
-
-  const restoreLocation = () => {
-    setCityDraft(DEFAULT_CITY);
-    setZipDraft("");
-    setRadiusDraft(DEFAULT_RADIUS);
-  };
-
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        // Future: reverse geocode. For now we suggest default city.
-        setCityDraft(DEFAULT_CITY);
-      },
-      () => {},
-      { enableHighAccuracy: false, timeout: 6000 }
-    );
-  };
-
-  // Rendering helpers
-  const renderListingCard = (l: Listing) => {
-    const isBiz = isBusinessListing(l);
-
-    // NOTE: detail pages not created yet — link is placeholder
-    const href = `/clasificados/${l.id}`;
-
-    return (
-      <Link
-        key={l.id}
-        href={href}
-        className={cx(
-          "group rounded-2xl border p-4 bg-black/35 transition",
-          isBiz
-            ? "border-yellow-600/25 hover:border-yellow-500/40 shadow-[0_0_35px_rgba(234,179,8,0.08)]"
-            : "border-white/10 hover:border-white/15"
-        )}
-      >
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/10 flex-shrink-0 overflow-hidden">
-            {l.hasImage ? (
-              <img
-                src="/classifieds-placeholder-bilingual.png"
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full" />
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="font-semibold text-white group-hover:text-yellow-200 transition truncate">
-                {l.title}
-              </div>
-              <div className={cx("text-sm font-semibold", isBiz ? "text-yellow-200" : "text-white/80")}>
-                {priceLabel(l.price ?? null, lang)}
-              </div>
-            </div>
-
-            <div className="mt-1 text-sm text-gray-300 flex items-center gap-2">
-              <span className="truncate">{l.city}</span>
-              <span className="text-white/25">•</span>
-              <span>
-                {lang === "es" ? "Publicado" : "Posted"} {formatRelative(l.createdAt, lang)}
-              </span>
-            </div>
-
-            {/* Status indicator only as subtle style signal (no “paid” labels) */}
-            {isBiz && (
-              <div className="mt-3">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs border border-yellow-600/25 bg-black/35 text-yellow-200">
-                  {lang === "es" ? "Negocio verificado" : "Verified business"}
-                </span>
-              </div>
-            )}
-
-            {!isBiz && l.tier === "PRO" && (
-              <div className="mt-3">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs border border-yellow-600/35 bg-yellow-400/10 text-yellow-200">
-                  {lang === "es" ? "Pro" : "Pro"}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </Link>
-    );
-  };
-
-  // Split visible items on the current page
-  const pageBiz = useMemo(() => slice.items.filter(isBusinessListing), [slice.items]);
-  const pagePersonal = useMemo(() => slice.items.filter((l) => !isBusinessListing(l)), [slice.items]);
+  const authHref = (path: string) => `${path}?lang=${lang}`;
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* HERO (Magazine-standard) */}
-      <section className="relative">
-        <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_10%,rgba(234,179,8,0.22),transparent_60%),linear-gradient(to_bottom,rgba(0,0,0,1),rgba(0,0,0,0.78),rgba(0,0,0,1))]" />
+      <Navbar />
 
-        <div className="relative max-w-6xl mx-auto px-6 pt-28 pb-12 text-center">
-          {/* Auth entry (top-right inside hero area, LEONIX style) */}
-          <div className="absolute right-6 top-8 flex items-center gap-2">
-            {isAuthed ? (
-              <>
-                <Link
-                  href={`/clasificados/login?lang=${lang}`}
-                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-                >
-                  {lang === "es" ? "Mi cuenta" : "My account"}
-                </Link>
-                <button
-                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/70 hover:text-white hover:bg-black/45 transition"
-                  onClick={() => {
-                    // placeholder
-                    alert(lang === "es" ? "Cerrar sesión (pendiente)" : "Log out (pending)");
-                  }}
-                >
-                  {lang === "es" ? "Cerrar sesión" : "Log out"}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href={`/clasificados/login?mode=signin&lang=${lang}`}
-                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-                >
-                  {t.signIn}
-                </Link>
-                <Link
-                  href={`/clasificados/login?mode=signup&lang=${lang}`}
-                  className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition shadow-[0_0_24px_rgba(234,179,8,0.10)]"
-                >
-                  {t.createAccount}
-                </Link>
-              </>
-            )}
+      {/* HERO (Magazine style) */}
+      <section className="relative pt-24">
+        <div className="absolute inset-0 -z-10">
+          <div className="h-[520px] w-full bg-gradient-to-b from-black via-yellow-700/20 to-black" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.18),rgba(0,0,0,0.55)_55%,rgba(0,0,0,1)_80%)]" />
+        </div>
+
+        <div className="mx-auto max-w-6xl px-6 text-center">
+          <div className="flex items-center justify-between gap-3">
+            <div className="opacity-0" aria-hidden="true">
+              spacer
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href={authHref("/clasificados/login")}
+                className="rounded-full border border-white/15 bg-black/40 px-5 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+              >
+                {t.signIn}
+              </Link>
+              <Link
+                href={authHref("/clasificados/login")}
+                className="rounded-full border border-yellow-400/25 bg-yellow-400/15 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-400/20 transition"
+              >
+                {t.create}
+              </Link>
+            </div>
           </div>
 
-          <div className="flex items-center justify-center">
-            {/* Bigger logo to match magazine feel */}
-            <img
-              src="/logo.png"
+          <div className="mt-10 flex justify-center">
+            <Image
+              src={logo}
               alt="LEONIX"
-              className="h-20 w-20 md:h-24 md:w-24 rounded-3xl bg-black/30 border border-yellow-600/25 shadow-[0_0_40px_rgba(234,179,8,0.16)]"
+              width={120}
+              height={120}
+              className="rounded-2xl shadow-[0_0_30px_rgba(250,204,21,0.15)]"
+              priority
             />
           </div>
 
-          <h1 className="mt-7 text-5xl md:text-6xl font-extrabold tracking-tight text-yellow-200">
-            {t.title}
+          <h1 className="mt-8 text-5xl md:text-7xl font-extrabold tracking-tight text-yellow-200 drop-shadow">
+            {t.pageTitle}
           </h1>
-          <p className="mt-4 text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
+
+          <p className="mx-auto mt-6 max-w-3xl text-lg md:text-xl text-gray-200/90">
             {t.subtitle}
           </p>
 
-          {/* Hero pills (3 only) */}
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {/* Primary pills (ONLY ONE ROW here) */}
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link
-              href={`/clasificados/login?lang=${lang}`}
-              className="px-6 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition shadow-[0_0_30px_rgba(234,179,8,0.12)]"
+              href={authHref("/clasificados/publicar")}
+              className="rounded-full border border-yellow-400/30 bg-yellow-400/15 px-8 py-3 text-sm md:text-base font-semibold text-yellow-200 hover:bg-yellow-400/20 transition"
             >
-              {t.ctaPost}
+              {t.post}
             </Link>
-
             <button
-              onClick={goToListings}
-              className="px-6 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+              onClick={goResults}
+              className="rounded-full border border-white/15 bg-black/40 px-8 py-3 text-sm md:text-base font-semibold text-gray-100 hover:bg-white/5 transition"
             >
-              {t.ctaView}
+              {t.view}
             </button>
-
             <button
-              onClick={goToMemberships}
-              className="px-6 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+              onClick={goMemberships}
+              className="rounded-full border border-white/15 bg-black/40 px-8 py-3 text-sm md:text-base font-semibold text-gray-100 hover:bg-white/5 transition"
             >
-              {t.ctaMemberships}
+              {t.memberships}
             </button>
           </div>
+
+          <div className="mt-10 border-t border-white/10" />
         </div>
-
-        {/* Sticky CTA bar: ONLY after Results */}
-        {showStickyCtas && (
-          <div className="sticky top-[64px] z-40 border-t border-white/5 border-b border-white/5 bg-black/55 backdrop-blur">
-            <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-center gap-2">
-              <Link
-                href={`/clasificados/login?lang=${lang}`}
-                className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-              >
-                {t.ctaPost}
-              </Link>
-
-              <button
-                onClick={goToListings}
-                className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-              >
-                {t.ctaView}
-              </button>
-
-              <button
-                onClick={goToMemberships}
-                className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-              >
-                {t.ctaMemberships}
-              </button>
-
-              <button
-                onClick={goToFilters}
-                className="hidden md:inline-flex ml-2 px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/80 hover:bg-black/45 transition"
-              >
-                {lang === "es" ? "Filtros" : "Filters"}
-              </button>
-            </div>
-          </div>
-        )}
       </section>
 
-      {/* FILTER BAR (anchor + premium + sticky) */}
-      <section ref={filterRef} className="relative">
-        <div className={cx("transition-all", filterSticky ? "sticky top-[116px] z-30" : "")}>
-          <div className="max-w-6xl mx-auto px-6 pt-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">{t.filterTitle}</h2>
+      {/* FILTERS */}
+      <section ref={filtersRef} id="filters" className="mx-auto max-w-6xl px-6 pt-14">
+        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-yellow-200">
+          {t.filterTitle}
+        </h2>
 
-            <div className="mt-6 rounded-2xl border border-yellow-600/20 bg-black/35 backdrop-blur p-5 md:p-6 shadow-[0_0_44px_rgba(234,179,8,0.08)]">
-              {/* row 1 (tighter, visible sort) */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div className="md:col-span-5">
-                  <label className="text-sm text-gray-300">{t.searchLabel}</label>
-                  <input
-                    value={filters.q}
-                    onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                    placeholder={t.searchPlaceholder}
-                    className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                  />
-                </div>
+        <div className="mt-8 rounded-3xl border border-yellow-600/20 bg-black/35 p-6 backdrop-blur">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+            {/* Search */}
+            <div className="md:col-span-5">
+              <div className="text-sm font-semibold text-gray-300">{t.search}</div>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t.searchPh}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+              />
+            </div>
 
-                <div className="md:col-span-4">
-                  <label className="text-sm text-gray-300">{t.locationLabel}</label>
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="flex-1 px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white">
-                      {filters.city} • {filters.radiusMi} mi
-                      {filters.zip.trim() ? ` • ${filters.zip.trim()}` : ""}
-                    </div>
-                    <button
-                      onClick={openLocation}
-                      className="px-4 py-3 rounded-2xl bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-                    >
-                      {t.edit}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="text-sm text-gray-300">{t.categoryLabel}</label>
-                  <select
-                    value={filters.category}
-                    onChange={(e) =>
-                      setFilters((f) => ({
-                        ...f,
-                        category: e.target.value as Filters["category"],
-                      }))
-                    }
-                    className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                  >
-                    <option value="all">{t.all}</option>
-                    {CATEGORY_ORDER.map((c) => (
-                      <option key={c} value={c}>
-                        {CATEGORY_LABELS[lang][c]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-1 md:col-start-12">
-                  <label className="text-sm text-gray-300">{t.sortLabel}</label>
-                  <select
-                    value={filters.sort}
-                    onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortMode }))}
-                    className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                  >
-                    <option value="balanced">{t.sortBalanced}</option>
-                    <option value="newest">{t.sortNewest}</option>
-                    <option value="price_asc">{t.sortPriceAsc}</option>
-                    <option value="price_desc">{t.sortPriceDesc}</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* More filters toggle */}
-              <div className="mt-5 flex items-center gap-3">
+            {/* Location summary */}
+            <div className="md:col-span-4">
+              <div className="text-sm font-semibold text-gray-300">{t.location}</div>
+              <div className="mt-2 flex gap-3">
                 <button
-                  onClick={() => setMoreOpen((v) => !v)}
-                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition inline-flex items-center gap-2"
+                  onClick={() => {
+                    setDraftCity(city);
+                    setDraftZip(zip);
+                    setDraftRadius(radius);
+                    setLocOpen(true);
+                  }}
+                  className="flex-1 rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-left text-gray-100 hover:bg-white/5 transition"
                 >
-                  {moreOpen ? t.hideFilters : t.moreFilters}
-                  <span className="text-white/60">{moreOpen ? "▲" : "▼"}</span>
+                  {city} • {radius} mi{zip ? ` • ${zip}` : ""}
                 </button>
-              </div>
-
-              {/* More filters panel */}
-              {moreOpen && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
-                  <div className="md:col-span-4">
-                    <label className="text-sm text-gray-300">{t.priceRange}</label>
-                    <div className="mt-2 grid grid-cols-2 gap-3">
-                      <input
-                        inputMode="numeric"
-                        placeholder={t.min}
-                        value={filters.priceMin ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value.trim();
-                          setFilters((f) => ({ ...f, priceMin: v === "" ? null : Number(v) }));
-                        }}
-                        className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                      />
-                      <input
-                        inputMode="numeric"
-                        placeholder={t.max}
-                        value={filters.priceMax ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value.trim();
-                          setFilters((f) => ({ ...f, priceMax: v === "" ? null : Number(v) }));
-                        }}
-                        className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                      />
-                    </div>
-
-                    {/* Quick price chips helper */}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[
-                        [0, 30],
-                        [31, 50],
-                        [51, 100],
-                        [101, 300],
-                      ].map(([a, b]) => (
-                        <button
-                          key={`${a}-${b}`}
-                          onClick={() => setFilters((f) => ({ ...f, priceMin: a, priceMax: b }))}
-                          className="px-3 py-1.5 rounded-full bg-black/35 border border-white/10 text-white/80 hover:bg-black/45 transition text-sm"
-                        >
-                          ${a}–${b}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-3">
-                    <label className="text-sm text-gray-300">{t.posted}</label>
-                    <select
-                      value={filters.posted}
-                      onChange={(e) => setFilters((f) => ({ ...f, posted: e.target.value as Filters["posted"] }))}
-                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                    >
-                      <option value="any">{t.postedAny}</option>
-                      <option value="24h">{t.posted24}</option>
-                      <option value="7d">{t.posted7}</option>
-                      <option value="30d">{t.posted30}</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="text-sm text-gray-300">{t.image}</label>
-                    <select
-                      value={filters.hasImage}
-                      onChange={(e) => setFilters((f) => ({ ...f, hasImage: e.target.value as Filters["hasImage"] }))}
-                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                    >
-                      <option value="any">{t.any}</option>
-                      <option value="yes">{t.yes}</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-3">
-                    <label className="text-sm text-gray-300">{t.seller}</label>
-                    <select
-                      value={filters.seller}
-                      onChange={(e) => setFilters((f) => ({ ...f, seller: e.target.value as Filters["seller"] }))}
-                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                    >
-                      <option value="any">{t.any}</option>
-                      <option value="PERSONAL">{t.personal}</option>
-                      <option value="BUSINESS">{t.business}</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-3">
-                    <label className="text-sm text-gray-300">{t.condition}</label>
-                    <select
-                      value={filters.condition}
-                      onChange={(e) => setFilters((f) => ({ ...f, condition: e.target.value as Filters["condition"] }))}
-                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                    >
-                      <option value="any">{t.condAny}</option>
-                      <option value="NEW">{t.condNew}</option>
-                      <option value="LIKE_NEW">{t.condLikeNew}</option>
-                      <option value="GOOD">{t.condGood}</option>
-                      <option value="FAIR">{t.condFair}</option>
-                      <option value="FOR_PARTS">{t.condParts}</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Category pills */}
-              <div className="mt-7">
-                <div className="text-sm text-gray-300">{t.exploreByCategory}</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {CATEGORY_ORDER.map((c) => {
-                    const active = filters.category === c;
-                    return (
-                      <button
-                        key={c}
-                        onClick={() => handleCategoryPick(c)}
-                        className={cx(
-                          "px-4 py-2 rounded-full border transition",
-                          active
-                            ? "bg-yellow-400/15 border-yellow-600/35 text-yellow-200"
-                            : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
-                        )}
-                      >
-                        {CATEGORY_LABELS[lang][c]}
-                      </button>
-                    );
-                  })}
-
-                  {filters.category !== "all" && (
-                    <button
-                      onClick={() => {
-                        clearCategory();
-                        setTimeout(() => goToListings(), 0);
-                      }}
-                      className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/85 hover:bg-black/45 transition"
-                    >
-                      {t.clearCategory}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Active chips */}
-              <div className="mt-6 flex flex-wrap items-center gap-2">
-                {chips.map((c) => (
-                  <span
-                    key={c.key}
-                    className="px-4 py-2 rounded-full border text-sm bg-black/35 border-white/10 text-white/85"
-                  >
-                    {c.label}
-                    {c.onRemove && (
-                      <button className="ml-2 text-white/60 hover:text-white" onClick={c.onRemove}>
-                        ×
-                      </button>
-                    )}
-                  </span>
-                ))}
                 <button
-                  onClick={resetFilters}
-                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/85 hover:bg-black/45 transition"
+                  onClick={() => {
+                    setDraftCity(city);
+                    setDraftZip(zip);
+                    setDraftRadius(radius);
+                    setLocOpen(true);
+                  }}
+                  className="rounded-2xl border border-white/10 bg-black/50 px-5 py-3 font-semibold text-gray-200 hover:bg-white/5 transition"
                 >
-                  {t.chipsReset}
+                  {t.edit}
                 </button>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Location modal (scrollable, cities visible) */}
-        {locationOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto">
-            <div className="min-h-screen flex items-start justify-center px-6 py-10">
-              <div className="w-full max-w-2xl rounded-2xl border border-yellow-600/20 bg-black/60 shadow-[0_0_60px_rgba(0,0,0,0.6)] overflow-hidden">
-                <div className="px-6 py-5 flex items-center justify-between border-b border-white/5">
-                  <div className="text-2xl font-bold text-yellow-200">{t.locationModalTitle}</div>
-                  <button
-                    onClick={() => setLocationOpen(false)}
-                    className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/85 hover:bg-black/45 transition"
+            {/* Category */}
+            <div className="md:col-span-2">
+              <div className="text-sm font-semibold text-gray-300">{t.location ? t.city : ""}</div>
+              <div className="text-sm font-semibold text-gray-300">{t.location ? "" : ""}</div>
+              <div className="text-sm font-semibold text-gray-300">{t.location ? "" : ""}</div>
+              <div className="text-sm font-semibold text-gray-300">{/* spacer */}</div>
+              <div className="text-sm font-semibold text-gray-300">{/* spacer */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* keep layout */}</div>
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="text-sm font-semibold text-gray-300">{t.filters ? t.filters : ""}</div>
+              <div className="text-sm font-semibold text-gray-300">{t.filters ? "" : ""}</div>
+              <div className="text-sm font-semibold text-gray-300">{t.filters ? "" : ""}</div>
+
+              <div className="text-sm font-semibold text-gray-300">{/* label */}Categoría</div>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as CategoryKey)}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 outline-none focus:border-yellow-400/30"
+              >
+                <option value="all">{catLabel("all", lang)}</option>
+                {CATEGORIES_ORDER.map((c) => (
+                  <option key={c} value={c}>
+                    {catLabel(c, lang)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort */}
+            <div className="md:col-span-1">
+              <div className="text-sm font-semibold text-gray-300">{t.sort}</div>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortMode)}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 outline-none focus:border-yellow-400/30"
+              >
+                <option value="balanced">{sortLabel("balanced", lang)}</option>
+                <option value="newest">{sortLabel("newest", lang)}</option>
+                <option value="price_asc">{sortLabel("price_asc", lang)}</option>
+                <option value="price_desc">{sortLabel("price_desc", lang)}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* More filters */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className="rounded-full border border-white/15 bg-black/40 px-5 py-2 font-semibold text-gray-100 hover:bg-white/5 transition"
+            >
+              {t.moreFilters} <span className="ml-2 opacity-70">{moreOpen ? "▲" : "▼"}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setBusinessOnly((v) => !v);
+                requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              }}
+              className={`rounded-full border px-5 py-2 font-semibold transition ${
+                businessOnly
+                  ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+                  : "border-white/15 bg-black/40 text-gray-100 hover:bg-white/5"
+              }`}
+            >
+              {businessOnly ? t.businessOnlyOff : t.businessOnly}
+            </button>
+          </div>
+
+          {moreOpen && (
+            <div className="mt-6 rounded-3xl border border-white/10 bg-black/35 p-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+                {/* Price */}
+                <div className="md:col-span-4">
+                  <div className="text-sm font-semibold text-gray-300">{t.priceRange}</div>
+
+                  <div className="mt-2 flex gap-3">
+                    <input
+                      value={priceMin}
+                      onChange={(e) => setPriceMin(e.target.value)}
+                      inputMode="numeric"
+                      placeholder={t.min}
+                      className="w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+                    />
+                    <input
+                      value={priceMax}
+                      onChange={(e) => setPriceMax(e.target.value)}
+                      inputMode="numeric"
+                      placeholder={t.max}
+                      className="w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+                    />
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {PRICE_PRESETS.map((p) => (
+                      <button
+                        key={`${p.min}-${p.max}`}
+                        onClick={() => {
+                          setPriceMin(String(p.min));
+                          setPriceMax(String(p.max));
+                        }}
+                        className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+                      >
+                        {`$${money(p.min)}–$${money(p.max)}`}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setPriceMin("");
+                        setPriceMax("");
+                      }}
+                      className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+                    >
+                      {t.reset}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Posted */}
+                <div className="md:col-span-3">
+                  <div className="text-sm font-semibold text-gray-300">{t.posted}</div>
+                  <select
+                    value={posted}
+                    onChange={(e) => setPosted(e.target.value as PostedRange)}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 outline-none focus:border-yellow-400/30"
                   >
-                    {t.close}
+                    <option value="any">{postedLabel("any", lang)}</option>
+                    <option value="24h">{postedLabel("24h", lang)}</option>
+                    <option value="7d">{postedLabel("7d", lang)}</option>
+                    <option value="30d">{postedLabel("30d", lang)}</option>
+                  </select>
+                </div>
+
+                {/* Image */}
+                <div className="md:col-span-2">
+                  <div className="text-sm font-semibold text-gray-300">{t.image}</div>
+                  <button
+                    onClick={() => setHasImage((v) => (v === "any" ? "yes" : "any"))}
+                    className={`mt-2 w-full rounded-2xl border px-4 py-3 font-semibold transition ${
+                      hasImage === "yes"
+                        ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+                        : "border-white/10 bg-black/50 text-gray-100 hover:bg-white/5"
+                    }`}
+                  >
+                    {hasImage === "yes" ? t.hasImage : t.any}
                   </button>
                 </div>
 
-                <div className="p-6 space-y-6">
-                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5">
-                    <div className="text-lg font-semibold text-yellow-200">{t.locationPermissionTitle}</div>
-                    <p className="mt-2 text-gray-300">{t.locationPermissionBody}</p>
-                    <button
-                      onClick={useMyLocation}
-                      className="mt-4 px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-                    >
-                      {t.useMyLocation}
-                    </button>
-                  </div>
-
-                  {/* City */}
-                  <div>
-                    <div className="text-sm text-gray-300">{t.city}</div>
-                    <input
-                      value={cityDraft}
-                      onChange={(e) => setCityDraft(e.target.value)}
-                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                      placeholder={t.cityPlaceholder}
-                      autoComplete="off"
-                    />
-
-                    {/* Suggestions (controlled, prevents typos) */}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {citySuggestions.map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => setCityDraft(c)}
-                          className={cx(
-                            "px-4 py-2 rounded-full border transition",
-                            cityDraft === c
-                              ? "bg-yellow-400/15 border-yellow-600/35 text-yellow-200"
-                              : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
-                          )}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ZIP */}
-                  <div>
-                    <div className="text-sm text-gray-300">{t.zip}</div>
-                    <input
-                      inputMode="numeric"
-                      value={zipDraft}
-                      onChange={(e) => setZipDraft(e.target.value)}
-                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                      placeholder={t.zipPlaceholder}
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  {/* Radius directly under city + zip */}
-                  <div>
-                    <div className="text-sm text-gray-300">{t.radius}</div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[10, 25, 40, 50].map((r) => {
-                        const active = radiusDraft === r;
-                        return (
-                          <button
-                            key={r}
-                            onClick={() => setRadiusDraft(r)}
-                            className={cx(
-                              "px-4 py-2 rounded-full border transition",
-                              active
-                                ? "bg-yellow-400/15 border-yellow-600/35 text-yellow-200"
-                                : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
-                            )}
-                          >
-                            {r} mi
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-3 text-gray-400 text-sm">{t.radiusHint}</p>
-                  </div>
-
-                  {/* Nearby cities (updates by radius) */}
-                  <div>
-                    <div className="text-sm text-gray-300">{t.nearbyCities}</div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {nearbyCities.map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => setCityDraft(c)}
-                          className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/85 hover:bg-black/45 transition"
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      onClick={restoreLocation}
-                      className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/85 hover:bg-black/45 transition"
-                    >
-                      {t.restore}
-                    </button>
-                    <button
-                      onClick={saveLocation}
-                      className="px-6 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-                    >
-                      {t.save}
-                    </button>
-                  </div>
+                {/* Seller */}
+                <div className="md:col-span-2">
+                  <div className="text-sm font-semibold text-gray-300">{t.seller}</div>
+                  <select
+                    value={seller}
+                    onChange={(e) => setSeller(e.target.value as SellerType)}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 outline-none focus:border-yellow-400/30"
+                  >
+                    <option value="any">{sellerLabel("any", lang)}</option>
+                    <option value="personal">{sellerLabel("personal", lang)}</option>
+                    <option value="business">{sellerLabel("business", lang)}</option>
+                  </select>
                 </div>
+
+                {/* Condition */}
+                <div className="md:col-span-1">
+                  <div className="text-sm font-semibold text-gray-300">{t.condition}</div>
+                  <select
+                    value={cond}
+                    onChange={(e) => setCond(e.target.value as Condition)}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 outline-none focus:border-yellow-400/30"
+                  >
+                    <option value="any">{conditionLabel("any", lang)}</option>
+                    <option value="new">{conditionLabel("new", lang)}</option>
+                    <option value="like-new">{conditionLabel("like-new", lang)}</option>
+                    <option value="good">{conditionLabel("good", lang)}</option>
+                    <option value="fair">{conditionLabel("fair", lang)}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Category pills */}
+          <div className="mt-8">
+            <div className="text-sm font-semibold text-gray-300">{t.exploreByCat}</div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {CATEGORIES_ORDER.map((c) => {
+                const active = category === c;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => selectCategory(c)}
+                    className={`rounded-full border px-5 py-2 font-semibold transition ${
+                      active
+                        ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+                        : "border-white/15 bg-black/40 text-gray-100 hover:bg-white/5"
+                    }`}
+                  >
+                    {catLabel(c, lang)}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => selectCategory("all")}
+                className="rounded-full border border-white/15 bg-black/40 px-5 py-2 font-semibold text-gray-100 hover:bg-white/5 transition"
+              >
+                {t.clearCat}
+              </button>
+            </div>
+          </div>
+
+          {/* Active chips */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <span className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-gray-100">
+              {t.city}: {city} ✕
+            </span>
+            <span className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-gray-100">
+              {t.radius}: {radius} mi ✕
+            </span>
+            {category !== "all" && (
+              <span className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-gray-100">
+                {catLabel(category, lang)} ✕
+              </span>
+            )}
+            <button
+              onClick={resetFilters}
+              className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+            >
+              {t.resetAll}
+            </button>
+          </div>
+        </div>
+
+        {/* Location modal */}
+        {locOpen && (
+          <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm">
+            <div className="mx-auto mt-20 w-[92%] max-w-2xl rounded-3xl border border-yellow-600/20 bg-black/70 p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-extrabold text-yellow-200">{t.location}</div>
+                <button
+                  onClick={() => setLocOpen(false)}
+                  className="rounded-full border border-white/15 bg-black/40 px-5 py-2 font-semibold text-gray-100 hover:bg-white/5 transition"
+                >
+                  {lang === "es" ? "Cerrar" : "Close"}
+                </button>
+              </div>
+
+              <div className="mt-6 rounded-3xl border border-white/10 bg-black/35 p-5">
+                <div className="text-xl font-bold text-yellow-100">
+                  {lang === "es" ? "Permiso de ubicación (opcional)" : "Location permission (optional)"}
+                </div>
+                <p className="mt-2 text-gray-300">
+                  {lang === "es"
+                    ? "Puedes usar tu ubicación para sugerir ciudad. No guardamos tu ubicación precisa — solo la ciudad y el radio que elijas."
+                    : "Use location to suggest a city. We don’t store precise location — only the city and radius you choose."}
+                </p>
+                <button
+                  onClick={() => {
+                    // Placeholder UX: later connect browser geolocation
+                    setDraftCity("San José");
+                  }}
+                  className="mt-4 rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold text-gray-100 hover:bg-white/5 transition"
+                >
+                  {lang === "es" ? "Usar mi ubicación" : "Use my location"}
+                </button>
+              </div>
+
+              <div className="mt-6">
+                <div className="text-sm font-semibold text-gray-300">{t.city}</div>
+                <input
+                  value={draftCity}
+                  onChange={(e) => setDraftCity(e.target.value)}
+                  placeholder={lang === "es" ? "Escribe tu ciudad…" : "Type your city…"}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+                />
+
+                <div className="mt-4 text-sm font-semibold text-gray-300">{t.zip}</div>
+                <input
+                  value={draftZip}
+                  onChange={(e) => setDraftZip(e.target.value)}
+                  inputMode="numeric"
+                  placeholder={lang === "es" ? "Opcional" : "Optional"}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/50 px-4 py-3 text-gray-100 placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+                />
+
+                {/* Radius under city (as requested) */}
+                <div className="mt-6 text-sm font-semibold text-gray-300">{t.radius}</div>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {[10, 25, 40, 50].map((r) => {
+                    const active = draftRadius === r;
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => setDraftRadius(r)}
+                        className={`rounded-full border px-5 py-2 font-semibold transition ${
+                          active
+                            ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+                            : "border-white/15 bg-black/40 text-gray-100 hover:bg-white/5"
+                        }`}
+                      >
+                        {r} mi
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <p className="mt-3 text-gray-400">
+                  {lang === "es"
+                    ? "La ciudad es el selector principal. El radio ampliará el alcance (lógica de distancia se conecta después)."
+                    : "City is the primary selector. Radius expands reach (distance logic comes later)."}
+                </p>
+
+                <div className="mt-6 text-sm font-semibold text-gray-300">{t.nearby}</div>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {["Santa Clara", "Milpitas", "Campbell", "Sunnyvale"].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setDraftCity(c)}
+                      className="rounded-full border border-white/15 bg-black/40 px-5 py-2 font-semibold text-gray-100 hover:bg-white/5 transition"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setDraftCity("San José");
+                    setDraftZip("");
+                    setDraftRadius(25);
+                  }}
+                  className="rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold text-gray-100 hover:bg-white/5 transition"
+                >
+                  {t.reset}
+                </button>
+                <button
+                  onClick={() => {
+                    setCity(draftCity || "San José");
+                    setZip(draftZip);
+                    setRadius(draftRadius);
+                    setLocOpen(false);
+                  }}
+                  className="rounded-full border border-yellow-400/30 bg-yellow-400/15 px-7 py-3 font-semibold text-yellow-200 hover:bg-yellow-400/20 transition"
+                >
+                  {t.save}
+                </button>
               </div>
             </div>
           </div>
         )}
       </section>
 
-      {/* RESULTS */}
-      <section ref={listingsRef} className="max-w-6xl mx-auto px-6 pt-14 pb-16">
-        {/* Sentinel for sticky CTA start */}
-        <div ref={resultsSentinelRef} className="h-px w-px" />
-
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">{t.results}</h2>
-            <div className="mt-2 text-gray-300">
-              {t.showing} {total === 0 ? "0" : slice.start + 1}–{slice.end} {t.of} {total}
+      {/* RESULTS + STICKY ACTION BAR (ONLY HERE) */}
+      <section ref={resultsRef} id="results" className="mx-auto max-w-6xl px-6 pt-16 pb-24">
+        {/* Sticky bar begins here (no double row) */}
+        <div className="sticky top-20 z-40 -mx-6 px-6 py-4 bg-black/60 backdrop-blur border-y border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={authHref("/clasificados/publicar")}
+                className="rounded-full border border-yellow-400/30 bg-yellow-400/15 px-6 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-400/20 transition"
+              >
+                {t.post}
+              </Link>
+              <button
+                onClick={goResults}
+                className="rounded-full border border-white/15 bg-black/40 px-6 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+              >
+                {t.view}
+              </button>
+              <button
+                onClick={goMemberships}
+                className="rounded-full border border-white/15 bg-black/40 px-6 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+              >
+                {t.memberships}
+              </button>
+              <button
+                onClick={goFilters}
+                className="rounded-full border border-white/15 bg-black/40 px-6 py-2 text-sm font-semibold text-gray-100 hover:bg-white/5 transition"
+              >
+                {t.filters}
+              </button>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowBusinessesOnly((v) => !v)}
-              className={cx(
-                "px-4 py-2 rounded-full border transition",
-                showBusinessesOnly
-                  ? "bg-yellow-400/15 border-yellow-600/35 text-yellow-200"
-                  : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
-              )}
-            >
-              {showBusinessesOnly ? t.viewAll : t.viewBusinessesOnly}
-            </button>
+            <div className="flex items-center gap-3">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortMode)}
+                className="rounded-2xl border border-white/10 bg-black/50 px-4 py-2 text-gray-100 outline-none focus:border-yellow-400/30"
+              >
+                <option value="balanced">{sortLabel("balanced", lang)}</option>
+                <option value="newest">{sortLabel("newest", lang)}</option>
+                <option value="price_asc">{sortLabel("price_asc", lang)}</option>
+                <option value="price_desc">{sortLabel("price_desc", lang)}</option>
+              </select>
 
-            <select
-              value={filters.sort}
-              onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortMode }))}
-              className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition focus:outline-none"
-            >
-              <option value="balanced">{t.sortBalanced}</option>
-              <option value="newest">{t.sortNewest}</option>
-              <option value="price_asc">{t.sortPriceAsc}</option>
-              <option value="price_desc">{t.sortPriceDesc}</option>
-            </select>
-
-            <div className="flex items-center rounded-full overflow-hidden border border-white/10 bg-black/35">
+              {/* Icons + labels */}
               <button
                 onClick={() => setViewMode("grid")}
-                className={cx(
-                  "px-4 py-2 text-white/90 transition",
-                  viewMode === "grid" ? "bg-yellow-400/10" : "hover:bg-black/45"
-                )}
+                className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                  viewMode === "grid"
+                    ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+                    : "border-white/10 bg-black/50 text-gray-100 hover:bg-white/5"
+                }`}
+                aria-label={t.grid}
               >
-                <GridIcon active={viewMode === "grid"} label={t.grid} />
+                <span className="text-base">▦</span>
+                <span>{t.grid}</span>
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={cx(
-                  "px-4 py-2 text-white/90 transition",
-                  viewMode === "list" ? "bg-yellow-400/10" : "hover:bg-black/45"
-                )}
+                className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                  viewMode === "list"
+                    ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+                    : "border-white/10 bg-black/50 text-gray-100 hover:bg-white/5"
+                }`}
+                aria-label={t.list}
               >
-                <ListIcon active={viewMode === "list"} label={t.list} />
+                <span className="text-base">≡</span>
+                <span>{t.list}</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* When no real listings yet: show preview split (business + personal) */}
+        <div className="mt-10 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-yellow-200">
+              {t.results}
+            </h2>
+            <div className="mt-2 text-gray-300">
+              {t.showing} {total === 0 ? "0" : "1"}–{Math.min(total, total)} {t.of} {total}
+            </div>
+          </div>
+        </div>
+
+        {/* Sections (Business top, then Personal) */}
         {total === 0 ? (
-          <>
-            <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-6">
-              <div className="text-xl font-bold text-yellow-200">
-                {lang === "es" ? "Vista previa (diseño)" : "Preview (design)"}
-              </div>
-              <div className="mt-1 text-gray-300">
-                {lang === "es"
-                  ? "Así se verá la separación: negocios arriba, anuncios personales abajo."
-                  : "This is how the split will look: businesses on top, personal listings below."}
-              </div>
-
-              {/* Businesses preview */}
-              <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <div className="text-lg font-bold text-white">{t.bizSectionTitle}</div>
-                  <div className="text-gray-300 text-sm">{t.bizSectionSubtitle}</div>
-                </div>
-                <Link
-                  href={`/clasificados/membresias-negocio?lang=${lang}`}
-                  className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-                >
-                  {t.seeBusinessMemberships}
-                </Link>
-              </div>
-
-              <div
-                className={cx(
-                  "mt-4",
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                    : "space-y-3"
-                )}
+          <div className="mt-10 rounded-3xl border border-yellow-600/20 bg-black/35 p-8">
+            <div className="text-2xl font-extrabold text-yellow-200">{t.noResults}</div>
+            <p className="mt-3 text-gray-300">{t.noResultsDesc}</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={resetFilters}
+                className="rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold text-gray-100 hover:bg-white/5 transition"
               >
-                {renderListingCard(demoPreview.business)}
-              </div>
-
-              {/* Divider */}
-              <div className="mt-8 border-t border-white/10" />
-
-              {/* Personal preview */}
-              <div className="mt-6">
-                <div className="text-lg font-bold text-white">{t.personalSectionTitle}</div>
-                <div className="text-gray-300 text-sm">{t.personalSectionSubtitle}</div>
-              </div>
-
-              <div
-                className={cx(
-                  "mt-4",
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                    : "space-y-3"
-                )}
+                {t.clearFilters}
+              </button>
+              <button
+                onClick={() => setRadius((r) => (r === 50 ? 50 : r + 15))}
+                className="rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold text-gray-100 hover:bg-white/5 transition"
               >
-                {renderListingCard(demoPreview.personal)}
-              </div>
+                {t.expandRadius}
+              </button>
+              <button
+                onClick={() => selectCategory("all", false)}
+                className="rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold text-gray-100 hover:bg-white/5 transition"
+              >
+                {t.seeAll}
+              </button>
             </div>
-
-            <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-8">
-              <div className="text-2xl font-bold text-yellow-200">{t.emptyTitle}</div>
-              <p className="mt-3 text-gray-300">{t.emptyBody}</p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  onClick={resetFilters}
-                  className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-                >
-                  {t.removeFilters}
-                </button>
-                <button
-                  onClick={() => {
-                    setFilters((f) => ({ ...f, radiusMi: 50 }));
-                    setTimeout(() => goToFilters(), 0);
-                  }}
-                  className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-                >
-                  {t.increaseRadius}
-                </button>
-                <button
-                  onClick={() => {
-                    setFilters((f) => ({ ...f, category: "all" }));
-                    setTimeout(() => goToFilters(), 0);
-                  }}
-                  className="px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-                >
-                  {t.viewEverything}
-                </button>
-              </div>
-            </div>
-          </>
+          </div>
         ) : (
-          <>
-            {/* Businesses section (always on top) */}
-            <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/25 p-5 md:p-6">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="mt-10">
+            {/* Business block */}
+            <div className="rounded-3xl border border-yellow-600/25 bg-black/35 p-6">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-lg md:text-xl font-bold text-white">{t.bizSectionTitle}</div>
-                  <div className="text-gray-300 text-sm">{t.bizSectionSubtitle}</div>
+                  <div className="text-xl md:text-2xl font-extrabold text-yellow-200">
+                    {t.businessHeader}
+                  </div>
+                  <div className="mt-1 text-gray-300">{t.businessSub}</div>
                 </div>
-                <Link
-                  href={`/clasificados/membresias-negocio?lang=${lang}`}
-                  className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-                >
-                  {t.seeBusinessMemberships}
-                </Link>
               </div>
 
-              <div
-                className={cx(
-                  "mt-5",
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                    : "space-y-3"
-                )}
-              >
-                {pageBiz.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-gray-300">
+              <div className="mt-6 grid gap-4">
+                {businesses.length === 0 ? (
+                  <div className="text-gray-300">
                     {lang === "es"
-                      ? "No hay negocios en esta vista aún. Prueba otra categoría o amplía el radio."
-                      : "No businesses in this view yet. Try another category or increase radius."}
+                      ? "No hay negocios con estos filtros."
+                      : "No business listings with these filters."}
                   </div>
                 ) : (
-                  pageBiz.map(renderListingCard)
+                  <div
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 md:grid-cols-3 gap-4"
+                        : "flex flex-col gap-4"
+                    }
+                  >
+                    {businesses.map((x) => (
+                      <ListingCard key={x.id} x={x} lang={lang} emphasis />
+                    ))}
+                  </div>
                 )}
               </div>
+            </div>
 
-              <div className="mt-7 border-t border-white/10" />
+            {/* Divider */}
+            <div className="my-10 h-px bg-gradient-to-r from-transparent via-yellow-600/30 to-transparent" />
 
-              {/* Personal section */}
+            {/* Personal block */}
+            <div className="rounded-3xl border border-white/10 bg-black/30 p-6">
+              <div className="text-xl md:text-2xl font-extrabold text-yellow-100">
+                {t.personalHeader}
+              </div>
+
               <div className="mt-6">
-                <div className="text-lg md:text-xl font-bold text-white">{t.personalSectionTitle}</div>
-                <div className="text-gray-300 text-sm">{t.personalSectionSubtitle}</div>
-              </div>
-
-              <div
-                className={cx(
-                  "mt-5",
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                    : "space-y-3"
-                )}
-              >
-                {pagePersonal.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-gray-300">
-                    {lang === "es"
-                      ? "No hay anuncios personales en esta vista."
-                      : "No personal listings in this view."}
-                  </div>
-                ) : (
-                  pagePersonal.map(renderListingCard)
-                )}
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 md:grid-cols-3 gap-4"
+                      : "flex flex-col gap-4"
+                  }
+                >
+                  {personals.map((x) => (
+                    <ListingCard key={x.id} x={x} lang={lang} />
+                  ))}
+                </div>
               </div>
             </div>
-
-            {/* Pagination */}
-            <div className="mt-10 flex items-center justify-between">
-              <div className="text-gray-300">
-                {t.page} {pageSafe} {lang === "es" ? "de" : "of"} {totalPages}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  disabled={pageSafe <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className={cx(
-                    "px-5 py-3 rounded-full border transition",
-                    pageSafe <= 1
-                      ? "bg-black/25 border-white/10 text-white/35 cursor-not-allowed"
-                      : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
-                  )}
-                >
-                  {t.prevPage}
-                </button>
-                <button
-                  disabled={pageSafe >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className={cx(
-                    "px-5 py-3 rounded-full border transition",
-                    pageSafe >= totalPages
-                      ? "bg-black/25 border-white/10 text-white/35 cursor-not-allowed"
-                      : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
-                  )}
-                >
-                  {t.nextPage}
-                </button>
-              </div>
-            </div>
-          </>
+          </div>
         )}
-      </section>
 
-      {/* MEMBERSHIPS SUMMARY */}
-      <section ref={membershipsRef} className="max-w-6xl mx-auto px-6 pb-20">
-        <div className="flex items-end justify-between gap-4 flex-wrap">
+        {/* Pagination (simple) */}
+        <div className="mt-12 flex items-center justify-between text-gray-300">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">{t.membershipsTitle}</h2>
-            <p className="mt-2 text-gray-300">{t.membershipsSubtitle}</p>
+            {t.page} {clampedPage} {lang === "es" ? "de" : "of"} {totalPages}
           </div>
-          <Link
-            href={`/clasificados/membresias?lang=${lang}`}
-            className="px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-          >
-            {t.viewMembershipDetails}
-          </Link>
-        </div>
-
-        {/* Print vs Classifieds sentence (LOCKED) */}
-        <div className="mt-5 rounded-2xl border border-white/10 bg-black/35 p-5 text-gray-300">
-          {t.printVsClassifieds}
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Free */}
-          <div className="rounded-2xl border border-white/10 bg-black/35 p-6">
-            <div className="flex items-baseline justify-between">
-              <div className="text-2xl font-bold text-white">{t.free}</div>
-              <div className="text-yellow-200 font-semibold">{t.freePrice}</div>
-            </div>
-            <ul className="mt-4 space-y-2 text-gray-300">
-              <li>• {t.free1}</li>
-              <li>• {t.free2}</li>
-              <li>• {t.free3}</li>
-            </ul>
-          </div>
-
-          {/* Pro */}
-          <div className="rounded-2xl border border-yellow-600/25 bg-black/35 p-6 shadow-[0_0_35px_rgba(234,179,8,0.08)]">
-            <div className="flex items-baseline justify-between">
-              <div className="text-2xl font-bold text-white">{t.pro}</div>
-              <div className="text-yellow-200 font-semibold">{t.proPrice}</div>
-            </div>
-            <ul className="mt-4 space-y-2 text-gray-300">
-              <li>• {t.pro1}</li>
-              <li>• {t.pro2}</li>
-              <li>• {t.pro3}</li>
-            </ul>
-            <div className="mt-5">
-              <Link
-                href={`/clasificados/membresias?lang=${lang}`}
-                className="inline-flex px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-              >
-                {lang === "es" ? "Ver LEONIX Pro" : "View LEONIX Pro"}
-              </Link>
-            </div>
-          </div>
-
-          {/* Biz Lite */}
-          <div className="rounded-2xl border border-yellow-600/20 bg-black/35 p-6">
-            <div className="flex items-baseline justify-between">
-              <div className="text-2xl font-bold text-white">{t.bizLite}</div>
-              <div className="text-yellow-200 font-semibold">{t.bizLitePrice}</div>
-            </div>
-            <ul className="mt-4 space-y-2 text-gray-300">
-              <li>• {t.bizLite1}</li>
-              <li>• {t.bizLite2}</li>
-              <li>• {t.bizLite3}</li>
-            </ul>
-            <div className="mt-5">
-              <Link
-                href={`/clasificados/membresias-negocio?lang=${lang}`}
-                className="inline-flex px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-              >
-                {t.compareBusiness}
-              </Link>
-            </div>
-          </div>
-
-          {/* Biz Premium */}
-          <div className="rounded-2xl border border-yellow-600/25 bg-black/35 p-6 shadow-[0_0_35px_rgba(234,179,8,0.08)]">
-            <div className="flex items-baseline justify-between">
-              <div className="text-2xl font-bold text-white">{t.bizPremium}</div>
-              <div className="text-yellow-200 font-semibold">{t.bizPremiumPrice}</div>
-            </div>
-            <ul className="mt-4 space-y-2 text-gray-300">
-              <li>• {t.bizPremium1}</li>
-              <li>• {t.bizPremium2}</li>
-              <li>• {t.bizPremium3}</li>
-            </ul>
-            <div className="mt-5">
-              <Link
-                href={`/clasificados/membresias-negocio?lang=${lang}`}
-                className="inline-flex px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-              >
-                {t.compareBusiness}
-              </Link>
-            </div>
+          <div className="flex gap-3">
+            <button
+              disabled={clampedPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 transition"
+            >
+              {t.prev}
+            </button>
+            <button
+              disabled={clampedPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="rounded-full border border-white/15 bg-black/40 px-6 py-3 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 transition"
+            >
+              {t.next}
+            </button>
           </div>
         </div>
 
-        {/* Business directory CTA (future) */}
-        <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="text-xl font-bold text-yellow-200">
-              {lang === "es" ? "Explora negocios" : "Explore businesses"}
-            </div>
-            <div className="mt-1 text-gray-300">
-              {lang === "es"
-                ? "Directorio de negocios dentro de Clasificados (próximamente)."
-                : "Business directory inside Classifieds (coming soon)."}
-            </div>
+        {/* MEMBERSHIPS preview */}
+        <div ref={membershipsRef} id="memberships" className="mt-20">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-yellow-200">
+            {t.membershipsTitle}
+          </h2>
+          <p className="mt-3 text-gray-300">{t.membershipsNote}</p>
+
+          <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+            <MembershipCard title={t.free} bullets={t.freeBullets} />
+            <MembershipCard title={t.pro} bullets={t.proBullets} ctaHref={authHref("/clasificados/membrecias")} ctaText={t.memberships} />
+            <MembershipCard title={t.bizLite} bullets={t.bizLiteBullets} ctaHref={authHref("/clasificados/membrecias-negocio")} ctaText={t.memberships} />
+            <MembershipCard title={t.bizPrem} bullets={t.bizPremBullets} ctaHref={authHref("/clasificados/membrecias-negocio")} ctaText={t.memberships} />
           </div>
-          <Link
-            href={`/clasificados/negocios?lang=${lang}`}
-            className="px-6 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-          >
-            {lang === "es" ? "Ver negocios" : "View businesses"}
-          </Link>
+
+          <div className="mt-8 text-sm text-gray-400">{t.printVsClassifieds}</div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ListingCard({
+  x,
+  lang,
+  emphasis,
+}: {
+  x: Listing;
+  lang: Lang;
+  emphasis?: boolean;
+}) {
+  const title = lang === "es" ? x.title.es : x.title.en;
+  const price = lang === "es" ? x.priceLabel.es : x.priceLabel.en;
+  const ago = lang === "es" ? x.postedAgo.es : x.postedAgo.en;
+  const sum = lang === "es" ? x.summary.es : x.summary.en;
+
+  return (
+    <button
+      onClick={() => {
+        // Placeholder: later route to /clasificados/anuncio/[id]
+        alert(`${title}`);
+      }}
+      className={`text-left rounded-3xl border bg-black/35 p-5 transition hover:bg-white/5 ${
+        emphasis ? "border-yellow-400/25" : "border-white/10"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="font-extrabold text-yellow-100">{title}</div>
+        <div
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${
+            x.seller === "business"
+              ? "border-yellow-400/30 bg-yellow-400/15 text-yellow-200"
+              : "border-white/15 bg-black/40 text-gray-200"
+          }`}
+        >
+          {x.seller === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-sm text-gray-300">
+        <div className="font-semibold">{price}</div>
+        <div>
+          {x.city} • {ago}
+        </div>
+      </div>
+
+      <div className="mt-3 text-gray-300">{sum}</div>
+
+      <div className="mt-4 flex items-center gap-3 text-xs text-gray-400">
+        <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1">
+          {lang === "es" ? "Condición:" : "Condition:"}{" "}
+          {conditionLabel(x.condition, lang)}
+        </span>
+        <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1">
+          {x.hasImage ? (lang === "es" ? "Con imagen" : "Has image") : (lang === "es" ? "Sin imagen" : "No image")}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function MembershipCard({
+  title,
+  bullets,
+  ctaHref,
+  ctaText,
+}: {
+  title: string;
+  bullets: string[];
+  ctaHref?: string;
+  ctaText?: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-black/30 p-6">
+      <div className="text-2xl font-extrabold text-yellow-100">{title}</div>
+      <ul className="mt-4 space-y-2 text-gray-300">
+        {bullets.map((b) => (
+          <li key={b}>• {b}</li>
+        ))}
+      </ul>
+
+      {ctaHref && ctaText && (
+        <div className="mt-6">
+          <Link
+            href={ctaHref}
+            className="inline-flex rounded-full border border-yellow-400/30 bg-yellow-400/15 px-6 py-3 font-semibold text-yellow-200 hover:bg-yellow-400/20 transition"
+          >
+            {ctaText}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
