@@ -485,6 +485,81 @@ export default function ClasificadosPage() {
   const [sort, setSort] = useState<"balanced" | "newest" | "priceAsc" | "priceDesc">("balanced");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
+  // Location + advanced filters (restored from pagesample2 UX)
+  const DEFAULT_CITY = "San José";
+  const DEFAULT_RADIUS = 25;
+
+  const CITY_OPTIONS = useMemo(
+    () => ["San José", "Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View", "Palo Alto"],
+    []
+  );
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+
+  const [city, setCity] = useState(DEFAULT_CITY);
+  const [zip, setZip] = useState("");
+  const [radiusMi, setRadiusMi] = useState<number>(DEFAULT_RADIUS);
+
+  const [cityDraft, setCityDraft] = useState(city);
+  const [zipDraft, setZipDraft] = useState(zip);
+  const [radiusDraft, setRadiusDraft] = useState(radiusMi);
+
+  const [hasImage, setHasImage] = useState<"any" | "yes" | "no">("any");
+  const [seller, setSeller] = useState<"any" | "business" | "personal">("any");
+  const [condition, setCondition] = useState<"any" | "new" | "good" | "fair">("any");
+
+  const [boostInfoOpen, setBoostInfoOpen] = useState<null | "free" | "pro">(null);
+
+
+  const nearbyCities = useMemo(() => {
+    if (radiusMi <= 10) return ["Santa Clara", "Milpitas"];
+    if (radiusMi <= 25) return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale"];
+    if (radiusMi <= 40) return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View"];
+    return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View", "Palo Alto"];
+  }, [radiusMi]);
+
+  const citySuggestions = useMemo(() => {
+    const q = cityDraft.trim().toLowerCase();
+    if (!q) return CITY_OPTIONS.slice(0, 6);
+    return CITY_OPTIONS.filter((c) => c.toLowerCase().includes(q)).slice(0, 6);
+  }, [CITY_OPTIONS, cityDraft]);
+
+  const locationSummary = useMemo(() => {
+    const base = zip ? (lang === "es" ? `ZIP ${zip}` : `ZIP ${zip}`) : city;
+    return `${base} • ${radiusMi} ${lang === "es" ? "mi" : "mi"}`;
+  }, [city, zip, radiusMi, lang]);
+
+  const openLocation = () => {
+    setCityDraft(city);
+    setZipDraft(zip);
+    setRadiusDraft(radiusMi);
+    setLocationOpen(true);
+  };
+
+  const applyLocation = () => {
+    setCity(cityDraft.trim() || DEFAULT_CITY);
+    setZip(zipDraft.trim());
+    setRadiusMi(radiusDraft);
+    setLocationOpen(false);
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        // For now (until geocoding is wired), we default to San José.
+        setCityDraft("San José");
+        setZipDraft("");
+      },
+      () => {
+        // If denied, keep current draft.
+      },
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  };
+
+
   // ----- Anchors -----
   const filtersRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
@@ -534,6 +609,23 @@ export default function ClasificadosPage() {
         const city = l.city.toLowerCase();
         return title.includes(q) || blurb.includes(q) || city.includes(q);
       });
+    }
+
+    // Location filter (City + Radius). ZIP support is UI-only for now (no geocoding yet).
+    if (!zip) {
+      const allowedCities = Array.from(new Set([city, ...nearbyCities]));
+      list = list.filter((l) => allowedCities.includes(l.city));
+    }
+
+    // Advanced filters
+    if (hasImage !== "any") {
+      list = list.filter((l) => (hasImage === "yes" ? l.hasImage : !l.hasImage));
+    }
+    if (seller !== "any") {
+      list = list.filter((l) => l.sellerType === seller);
+    }
+    if (condition !== "any") {
+      list = list.filter((l) => l.condition === condition);
     }
 
     const priceToNumber = (s: string) => {
@@ -594,6 +686,15 @@ export default function ClasificadosPage() {
     setSearch("");
     setSelectedCategory("all");
     setSort("balanced");
+
+    // Location + advanced filters
+    setCity(DEFAULT_CITY);
+    setZip("");
+    setRadiusMi(DEFAULT_RADIUS);
+    setHasImage("any");
+    setSeller("any");
+    setCondition("any");
+    setMoreOpen(false);
   };
 
   // ----- UI helpers -----
@@ -695,8 +796,8 @@ export default function ClasificadosPage() {
       {/* HERO — match magazine style */}
       <section className="max-w-6xl mx-auto px-6 pt-28">
         <div className="relative text-center mb-16">
-          {/* Auth buttons (top-right like marketplace) */}
-          <div className="absolute right-0 top-0 flex gap-3">
+          {/* Auth buttons (mobile-safe) */}
+          <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
             <a
               href={t.routeLogin}
               className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
@@ -739,12 +840,6 @@ export default function ClasificadosPage() {
               {t.ctaMemberships}
             </button>
           </div>
-
-          <div className="mt-8 text-xs text-gray-400">
-            {lang === "es"
-              ? "Moderación AI (spam/duplicados/precios falsos) • Publicación asistida en oficina • Privacidad respetada"
-              : "AI moderation (spam/duplicates/fake pricing) • Assisted posting available • Privacy respected"}
-          </div>
         </div>
       </section>
 
@@ -769,13 +864,10 @@ export default function ClasificadosPage() {
             <div className="lg:col-span-3">
               <div className="text-sm text-gray-300 mb-2">{t.locationLabel}</div>
               <button
-                onClick={() => {
-                  // placeholder for location modal; will be wired later
-                  alert(lang === "es" ? "Ubicación (próximamente)" : "Location (coming soon)");
-                }}
+                onClick={openLocation}
                 className="w-full text-left px-5 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 hover:bg-black/45 transition"
               >
-                {lang === "es" ? "San José • 25 mi" : "San José • 25 mi"}
+                {locationSummary}
               </button>
               <div className="mt-2">
                 <button
@@ -814,7 +906,7 @@ export default function ClasificadosPage() {
 
           <div className="mt-6 flex flex-wrap gap-3 items-center">
             <button
-              onClick={() => alert(lang === "es" ? "Más filtros (próximamente)" : "More filters (coming soon)")}
+              onClick={() => setMoreOpen((v) => !v)}
               className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
             >
               {t.moreFilters}
@@ -848,6 +940,52 @@ export default function ClasificadosPage() {
               )}
             </div>
           </div>
+
+          {moreOpen && (
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Con imagen" : "Has image"}</div>
+                  <select
+                    value={hasImage}
+                    onChange={(e) => setHasImage(e.target.value as any)}
+                    className="w-full px-4 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
+                    <option value="any">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                    <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
+                    <option value="no">{lang === "es" ? "No" : "No"}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Vendedor" : "Seller"}</div>
+                  <select
+                    value={seller}
+                    onChange={(e) => setSeller(e.target.value as any)}
+                    className="w-full px-4 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
+                    <option value="any">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                    <option value="business">{lang === "es" ? "Negocio" : "Business"}</option>
+                    <option value="personal">{lang === "es" ? "Personal" : "Personal"}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Condición" : "Condition"}</div>
+                  <select
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value as any)}
+                    className="w-full px-4 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
+                    <option value="any">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                    <option value="new">{lang === "es" ? "Nuevo" : "New"}</option>
+                    <option value="good">{lang === "es" ? "Bueno" : "Good"}</option>
+                    <option value="fair">{lang === "es" ? "Regular" : "Fair"}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Explore by category pills */}
@@ -887,6 +1025,196 @@ export default function ClasificadosPage() {
         </div>
       </section>
 
+
+      {/* LOCATION MODAL */}
+      {locationOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <button
+            aria-label={lang === "es" ? "Cerrar" : "Close"}
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setLocationOpen(false)}
+          />
+          <div className="relative w-full sm:max-w-xl bg-black border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xl font-bold text-yellow-200">
+                  {lang === "es" ? "Ubicación" : "Location"}
+                </div>
+                <div className="text-sm text-gray-300 mt-1">
+                  {lang === "es"
+                    ? "Elige ciudad o ZIP y ajusta el radio."
+                    : "Choose a city or ZIP and adjust the radius."}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setLocationOpen(false)}
+                className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
+              >
+                {lang === "es" ? "Cerrar" : "Close"}
+              </button>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4">
+              <div>
+                <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Ciudad" : "City"}</div>
+                <input
+                  value={cityDraft}
+                  onChange={(e) => setCityDraft(e.target.value)}
+                  placeholder={lang === "es" ? "Ej: San José" : "e.g., San Jose"}
+                  className="w-full px-4 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {citySuggestions.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCityDraft(c)}
+                      className="px-3 py-1.5 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition text-sm"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "ZIP (opcional)" : "ZIP (optional)"}</div>
+                <input
+                  value={zipDraft}
+                  onChange={(e) => setZipDraft(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+                  inputMode="numeric"
+                  placeholder="95112"
+                  className="w-full px-4 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                />
+                <div className="text-xs text-gray-400 mt-2">
+                  {lang === "es"
+                    ? "Nota: por ahora el ZIP es para guardarlo en tu preferencia (geocoding después)."
+                    : "Note: ZIP is saved as a preference for now (geocoding later)."}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Radio" : "Radius"}</div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={5}
+                    max={60}
+                    step={5}
+                    value={radiusDraft}
+                    onChange={(e) => setRadiusDraft(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="min-w-[84px] text-right text-gray-200 font-semibold">
+                    {radiusDraft} {lang === "es" ? "mi" : "mi"}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {nearbyCities.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCityDraft(c)}
+                      className="px-3 py-1.5 rounded-full border border-yellow-600/20 bg-black/30 text-gray-100 hover:bg-black/45 transition text-sm"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <button
+                  onClick={useMyLocation}
+                  className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
+                >
+                  {lang === "es" ? "Usar mi ubicación" : "Use my location"}
+                </button>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setLocationOpen(false)}
+                    className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
+                  >
+                    {lang === "es" ? "Cancelar" : "Cancel"}
+                  </button>
+                  <button
+                    onClick={applyLocation}
+                    className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
+                  >
+                    {lang === "es" ? "Aplicar" : "Apply"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* BOOST INFO MODAL */}
+      {boostInfoOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <button
+            aria-label={lang === "es" ? "Cerrar" : "Close"}
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setBoostInfoOpen(null)}
+          />
+          <div className="relative w-full sm:max-w-xl bg-black border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xl font-bold text-yellow-200">
+                  {lang === "es" ? "¿Cómo funciona el impulso?" : "How does boosting work?"}
+                </div>
+                <div className="text-sm text-gray-300 mt-1">
+                  {boostInfoOpen === "pro"
+                    ? lang === "es"
+                      ? "Tus ventanas de visibilidad se activan por 48 horas."
+                      : "Your visibility windows activate for 48 hours."
+                    : lang === "es"
+                    ? "El impulso opcional dura 48 horas."
+                    : "The optional boost lasts 48 hours."}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setBoostInfoOpen(null)}
+                className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
+              >
+                {lang === "es" ? "Cerrar" : "Close"}
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-3 text-gray-300 leading-relaxed">
+              <p>
+                {lang === "es"
+                  ? "• Al activarlo, tu anuncio sube al frente de los resultados por 48 horas."
+                  : "• When you activate it, your listing moves to the front for 48 hours."}
+              </p>
+              <p>
+                {lang === "es"
+                  ? "• Si otras personas publican durante ese tiempo, tu anuncio puede ir bajando — pero mantiene visibilidad destacada mientras dura."
+                  : "• If others post during that time, your listing can move down — but it stays highlighted while the window is active."}
+              </p>
+              <p>
+                {lang === "es"
+                  ? "• No oculta anuncios gratis: solo mejora la posición y la atención por un tiempo."
+                  : "• It never hides free listings: it only improves position and attention for a limited time."}
+              </p>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setBoostInfoOpen(null)}
+                className="px-6 py-3 rounded-full bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
+              >
+                {lang === "es" ? "Entendido" : "Got it"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* RESULTS */}
       <section className="max-w-6xl mx-auto px-6 mt-16">
         <div ref={resultsRef} id="results" className="scroll-mt-28" />
@@ -900,13 +1228,6 @@ export default function ClasificadosPage() {
           </div>
 
           <div className="flex gap-3 items-center">
-            <div className="hidden md:flex items-center gap-3">
-              <div className="text-sm text-gray-300">{t.orderLabel}:</div>
-              <div className="px-4 py-3 rounded-full bg-black/35 border border-white/10 text-gray-100">
-                {sortLabel(sort)}
-              </div>
-            </div>
-
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("grid")}
@@ -934,10 +1255,11 @@ export default function ClasificadosPage() {
           </div>
         </div>
 
-        {/* Sticky pills (ONLY once we reach results) */}
+        {/* Sticky actions (mobile-optimized) */}
+        {/* Desktop: top sticky */}
         <div
           className={cx(
-            "sticky top-[76px] z-40 mt-8",
+            "hidden md:block sticky top-[76px] z-40 mt-8",
             showSticky ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
@@ -949,12 +1271,14 @@ export default function ClasificadosPage() {
               >
                 {t.ctaPost}
               </a>
+
               <button
                 onClick={() => scrollTo(resultsRef)}
                 className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
               >
                 {t.ctaView}
               </button>
+
               <button
                 onClick={() => scrollTo(membershipsRef)}
                 className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
@@ -962,7 +1286,6 @@ export default function ClasificadosPage() {
                 {t.ctaMemberships}
               </button>
 
-              {/* NEW pill: jump back to filters */}
               <button
                 onClick={() => scrollTo(filtersRef)}
                 className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
@@ -974,9 +1297,7 @@ export default function ClasificadosPage() {
             <div className="flex gap-2 items-center">
               <select
                 value={sort}
-                onChange={(e) =>
-                  setSort(e.target.value as "balanced" | "newest" | "priceAsc" | "priceDesc")
-                }
+                onChange={(e) => setSort(e.target.value as any)}
                 className="px-4 py-2.5 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 <option value="balanced">{t.sortBalanced}</option>
@@ -985,6 +1306,37 @@ export default function ClasificadosPage() {
                 <option value="priceDesc">{t.sortPriceDesc}</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Mobile: bottom sticky (keeps screen free for listings) */}
+        <div
+          className={cx(
+            "md:hidden fixed left-0 right-0 bottom-0 z-50 px-4 pb-4",
+            showSticky ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
+          <div className="border border-white/10 bg-black/70 backdrop-blur rounded-2xl px-3 py-2 flex items-center justify-between gap-2">
+            <button
+              onClick={() => scrollTo(filtersRef)}
+              className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold"
+            >
+              {t.stickyFilters}
+            </button>
+
+            <a
+              href={t.routePost}
+              className="px-5 py-2 rounded-full bg-yellow-400 text-black font-extrabold"
+            >
+              {t.ctaPost}
+            </a>
+
+            <button
+              onClick={() => scrollTo(membershipsRef)}
+              className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold"
+            >
+              {lang === "es" ? "Pro" : "Pro"}
+            </button>
           </div>
         </div>
 
@@ -1035,7 +1387,7 @@ export default function ClasificadosPage() {
                 <div
                   className={cx(
                     "mt-6 grid gap-6",
-                    viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
+                    viewMode === "grid" ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
                   )}
                 >
                   {businessListings.length ? (
@@ -1051,13 +1403,7 @@ export default function ClasificadosPage() {
               </div>
 
               {/* DIVIDER */}
-              <div className="flex items-center gap-4">
-                <div className="h-px bg-white/10 flex-1" />
-                <div className="text-xs uppercase tracking-widest text-gray-400">
-                  {t.dividerLabel}
-                </div>
-                <div className="h-px bg-white/10 flex-1" />
-              </div>
+              <div className="my-10 h-px bg-white/10 w-full" />
 
               {/* PERSONAL / COMMUNITY */}
               <div>
@@ -1065,7 +1411,7 @@ export default function ClasificadosPage() {
                 <div
                   className={cx(
                     "mt-6 grid gap-6",
-                    viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
+                    viewMode === "grid" ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
                   )}
                 >
                   {personalListings.map((item) => (
@@ -1112,6 +1458,16 @@ export default function ClasificadosPage() {
               {t.freeBullets.map((x) => (
                 <li key={x}>• {x}</li>
               ))}
+              <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>• {lang === "es" ? "Impulso opcional: $9.99 (48 horas)" : "Optional boost: $9.99 (48 hours)"}</span>
+                <button
+                  type="button"
+                  onClick={() => setBoostInfoOpen("free")}
+                  className="text-yellow-200 hover:text-yellow-100 underline underline-offset-4 text-sm"
+                >
+                  {lang === "es" ? "¿Cómo funciona?" : "How it works"}
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -1125,6 +1481,16 @@ export default function ClasificadosPage() {
               {t.proBullets.map((x) => (
                 <li key={x}>• {x}</li>
               ))}
+              <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>• {lang === "es" ? "Ventanas de visibilidad (48h) incluidas" : "Included visibility windows (48h)"}</span>
+                <button
+                  type="button"
+                  onClick={() => setBoostInfoOpen("pro")}
+                  className="text-yellow-200 hover:text-yellow-100 underline underline-offset-4 text-sm"
+                >
+                  {lang === "es" ? "¿Cómo funciona?" : "How it works"}
+                </button>
+              </li>
             </ul>
             <div className="mt-7 flex flex-wrap gap-3">
               <a
@@ -1179,7 +1545,13 @@ export default function ClasificadosPage() {
           </div>
         </div>
 
-        <div className="mt-10 text-sm text-gray-400">{t.printVsClassifieds}</div>
+        <div className="mt-10 text-sm text-gray-400 text-center">
+          {t.printVsClassifieds.split(" • ").map((part) => (
+            <div key={part} className="leading-relaxed">
+              {part}
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );
