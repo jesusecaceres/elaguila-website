@@ -39,8 +39,11 @@ type Listing = {
 
 type Filters = {
   q: string;
+
   city: string;
+  zip: string;
   radiusMi: number;
+
   category: ClassifiedCategory | "all";
   sort: SortMode;
 
@@ -128,7 +131,6 @@ function isWithinPosted(createdAtIso: string, posted: Filters["posted"]) {
 }
 
 function tierRank(tier: ListingTier) {
-  // Higher = more priority in balanced
   switch (tier) {
     case "BIZ_PREMIUM":
       return 4;
@@ -147,7 +149,11 @@ function isBoostedNow(l: Listing) {
   return new Date(l.boostedUntil).getTime() > Date.now();
 }
 
-function GridIcon({ active }: { active: boolean }) {
+function isBusinessListing(l: Listing) {
+  return l.tier === "BIZ_LITE" || l.tier === "BIZ_PREMIUM" || l.sellerType === "BUSINESS";
+}
+
+function GridIcon({ active, label }: { active: boolean; label: string }) {
   return (
     <span className="inline-flex items-center gap-2">
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -156,12 +162,12 @@ function GridIcon({ active }: { active: boolean }) {
         <rect x="2" y="9" width="5" height="5" rx="1.2" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
         <rect x="9" y="9" width="5" height="5" rx="1.2" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
       </svg>
-      <span>Grid</span>
+      <span>{label}</span>
     </span>
   );
 }
 
-function ListIcon({ active }: { active: boolean }) {
+function ListIcon({ active, label }: { active: boolean; label: string }) {
   return (
     <span className="inline-flex items-center gap-2">
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -169,15 +175,13 @@ function ListIcon({ active }: { active: boolean }) {
         <rect x="2" y="7" width="12" height="2" rx="1" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
         <rect x="2" y="11" width="12" height="2" rx="1" className={active ? "fill-yellow-300" : "fill-zinc-500"} />
       </svg>
-      <span>List</span>
+      <span>{label}</span>
     </span>
   );
 }
 
 export default function ClassifiedsPage() {
   const searchParams = useSearchParams();
-
-  // lang from URL (?lang=es|en). Default ES.
   const lang: Lang = (searchParams.get("lang") === "en" ? "en" : "es") as Lang;
 
   const t = useMemo(() => {
@@ -186,14 +190,20 @@ export default function ClassifiedsPage() {
         title: "Clasificados",
         subtitle:
           "Acceso justo para todos. Comunidad primero. Ventaja premium para quienes invierten — sin esconder anuncios gratuitos.",
+
+        // top/auth
+        signIn: "Iniciar sesión",
+        createAccount: "Crear cuenta",
+
+        // pills
         ctaPost: "Publicar anuncio",
         ctaView: "Ver anuncios",
-        ctaMemberships: "Membrecias",
-        login: "Iniciar sesión",
+        ctaMemberships: "Membresías",
 
+        // filters
         filterTitle: "Filtrar anuncios",
-        searchLabel: "Buscar",
-        searchPlaceholder: "Buscar anuncios…",
+        searchLabel: "Buscar anuncios",
+        searchPlaceholder: "¿Qué estás buscando?",
         locationLabel: "Ubicación",
         edit: "Editar",
         categoryLabel: "Categoría",
@@ -207,8 +217,8 @@ export default function ClassifiedsPage() {
         moreFilters: "Más filtros",
         hideFilters: "Ocultar filtros",
         priceRange: "Rango de precio",
-        min: "Min",
-        max: "Max",
+        min: "Mín",
+        max: "Máx",
         posted: "Publicado",
         postedAny: "Cualquier fecha",
         posted24: "Últimas 24 horas",
@@ -233,13 +243,24 @@ export default function ClassifiedsPage() {
 
         chipsReset: "Restablecer filtros",
         chipsCity: "Ciudad",
+        chipsZip: "ZIP",
         chipsRadius: "Radio",
 
         results: "Resultados",
         showing: "Mostrando",
         of: "de",
-        viewBusinesses: "Ver negocios",
+
+        // business split
+        bizSectionTitle: "Negocios",
+        bizSectionSubtitle: "Visibilidad y confianza para negocios que invierten.",
+        seeBusinessMemberships: "Ver membresías de negocio",
+        personalSectionTitle: "Anuncios personales",
+        personalSectionSubtitle: "Publicaciones de la comunidad (siempre visibles).",
+        viewBusinessesOnly: "Ver negocios",
         viewAll: "Ver todo",
+
+        grid: "Cuadrícula",
+        list: "Lista",
 
         emptyTitle: "No encontramos anuncios",
         emptyBody:
@@ -252,59 +273,75 @@ export default function ClassifiedsPage() {
         prevPage: "Página anterior",
         nextPage: "Siguiente página",
 
+        // location modal
         locationModalTitle: "Ubicación",
         close: "Cerrar",
         locationPermissionTitle: "Permiso de ubicación (opcional)",
         locationPermissionBody:
-          "Puedes usar tu ubicación para sugerir ciudad. No guardamos tu ubicación precisa — solo la ciudad y el radio que elijas.",
+          "Puedes usar tu ubicación para sugerir ciudad. No guardamos tu ubicación precisa — solo la ciudad, el ZIP y el radio que elijas.",
         useMyLocation: "Usar mi ubicación",
+
         city: "Ciudad",
+        cityPlaceholder: "Escribe tu ciudad…",
+        zip: "ZIP",
+        zipPlaceholder: "Escribe tu ZIP…",
+
         nearbyCities: "Ciudades cercanas",
         radius: "Radio",
-        radiusHint: "La ciudad es el selector principal. El radio ampliará el alcance (lógica de distancia se conecta después).",
+        radiusHint:
+          "La ciudad es el selector principal. El radio ampliará el alcance y ajustará ciudades sugeridas.",
         restore: "Restablecer",
         save: "Guardar",
 
-        membershipsTitle: "Membrecias",
-        membershipsSubtitle:
-          "Resumen rápido. Beneficios completos se muestran en la página de Membrecias.",
+        // memberships summary (condensed)
+        membershipsTitle: "Membresías",
+        membershipsSubtitle: "Resumen rápido. Detalles completos en la página de Membresías.",
+        viewMembershipDetails: "Ver detalles",
+
+        // membership cards
         free: "Gratis",
-        free1: "Publicación básica",
-        free2: "Siempre visible y buscable",
-        free3: "Ranking estándar (sin esconder anuncios)",
+        freePrice: "$0",
+        free1: "1 imagen incluida",
+        free2: "Duración: 7 días",
+        free3: "Siempre visible y buscable",
 
         pro: "LEONIX Pro",
-        proBadge: "Joya",
-        pro1: "Más duración y mejor presentación",
-        pro2: "Analíticas básicas (vistas/guardados)",
-        pro3: "Ventana de visibilidad por anuncio (sin llamarlo boost)",
         proPrice: "$16.99/mes",
-        proCta: "Ver LEONIX Pro",
+        pro1: "Más duración y mejor presentación",
+        pro2: "Analíticas básicas: vistas + guardados",
+        pro3: "2 ventanas de visibilidad (48h c/u)",
 
         bizLite: "Business Lite",
-        bizLite1: "Insignia de negocio y presencia estable",
-        bizLite2: "Más anuncios activos y mejor visibilidad",
-        bizLite3: "Aparece en exploración de negocios",
-        bizLiteCta: "Comparar membresías de negocio",
+        bizLitePrice: "$89/mes",
+        bizLite1: "Insignia de negocio + más confianza",
+        bizLite2: "Más anuncios activos (sin pagar por repost)",
+        bizLite3: "Ranking arriba de perfiles personales",
 
         bizPremium: "Business Premium",
-        bizPremium1: "Prioridad de ranking y mejor perfil",
+        bizPremiumPrice: "$149/mes",
+        bizPremium1: "Prioridad de ranking + perfil mejorado",
         bizPremium2: "Herramientas de contacto/leads por anuncio",
-        bizPremium3: "Máxima visibilidad dentro de la categoría",
-        bizPremiumCta: "Comparar membresías de negocio",
+        bizPremium3: "Diseñado para cerrar ventas, no solo aparecer",
+
+        compareBusiness: "Comparar membresías de negocio",
+        printVsClassifieds:
+          "Anuncios Impresos = Confianza, Engagement, Cupones, Sorteos · Clasificados = Búsqueda, Intención, Velocidad, Conversión",
       },
       en: {
         title: "Classifieds",
         subtitle:
           "Fair access for everyone. Community first. Premium advantage for investors — without hiding free listings.",
-        ctaPost: "Post an ad",
+
+        signIn: "Sign in",
+        createAccount: "Create account",
+
+        ctaPost: "Post listing",
         ctaView: "View listings",
         ctaMemberships: "Memberships",
-        login: "Sign in",
 
         filterTitle: "Filter listings",
-        searchLabel: "Search",
-        searchPlaceholder: "Search listings…",
+        searchLabel: "Search listings",
+        searchPlaceholder: "What are you looking for?",
         locationLabel: "Location",
         edit: "Edit",
         categoryLabel: "Category",
@@ -344,17 +381,27 @@ export default function ClassifiedsPage() {
 
         chipsReset: "Reset filters",
         chipsCity: "City",
+        chipsZip: "ZIP",
         chipsRadius: "Radius",
 
         results: "Results",
         showing: "Showing",
         of: "of",
-        viewBusinesses: "Businesses",
+
+        bizSectionTitle: "Businesses",
+        bizSectionSubtitle: "Visibility and trust for businesses that invest.",
+        seeBusinessMemberships: "See business memberships",
+        personalSectionTitle: "Personal listings",
+        personalSectionSubtitle: "Community posts (always visible).",
+        viewBusinessesOnly: "Businesses",
         viewAll: "All",
+
+        grid: "Grid",
+        list: "List",
 
         emptyTitle: "No listings found",
         emptyBody:
-          "Try adjusting filters. If you're searching nearby, increase the radius or check all categories.",
+          "Try adjusting filters. If you're searching nearby, increase radius or check all categories.",
         removeFilters: "Clear filters",
         increaseRadius: "Increase radius",
         viewEverything: "View all",
@@ -367,41 +414,51 @@ export default function ClassifiedsPage() {
         close: "Close",
         locationPermissionTitle: "Location permission (optional)",
         locationPermissionBody:
-          "You can use your location to suggest a city. We don’t store your precise location — only the city and radius you choose.",
+          "You can use your location to suggest a city. We don’t store your precise location — only the city, ZIP and radius you choose.",
         useMyLocation: "Use my location",
+
         city: "City",
+        cityPlaceholder: "Type your city…",
+        zip: "ZIP",
+        zipPlaceholder: "Type your ZIP…",
+
         nearbyCities: "Nearby cities",
         radius: "Radius",
-        radiusHint: "City is the primary selector. Radius expands reach (distance logic connects later).",
+        radiusHint: "City is primary. Radius expands reach and updates suggested cities.",
         restore: "Restore",
         save: "Save",
 
         membershipsTitle: "Memberships",
-        membershipsSubtitle: "Quick summary. Full benefits are on the Memberships page.",
+        membershipsSubtitle: "Quick summary. Full benefits live on the Memberships page.",
+        viewMembershipDetails: "View details",
+
         free: "Free",
-        free1: "Basic posting",
-        free2: "Always visible & searchable",
-        free3: "Standard ranking (no hidden listings)",
+        freePrice: "$0",
+        free1: "1 photo included",
+        free2: "Duration: 7 days",
+        free3: "Always visible & searchable",
 
         pro: "LEONIX Pro",
-        proBadge: "Jewel",
-        pro1: "Longer duration & better presentation",
-        pro2: "Basic analytics (views/saves)",
-        pro3: "Visibility window per listing (not called a boost)",
         proPrice: "$16.99/mo",
-        proCta: "View LEONIX Pro",
+        pro1: "Longer duration & better presentation",
+        pro2: "Basic analytics: views + saves",
+        pro3: "2 visibility windows (48h each)",
 
         bizLite: "Business Lite",
-        bizLite1: "Business presence and stable visibility",
-        bizLite2: "More active listings and better placement",
-        bizLite3: "Appears in business exploration",
-        bizLiteCta: "Compare business memberships",
+        bizLitePrice: "$89/mo",
+        bizLite1: "Business badge + stronger trust",
+        bizLite2: "More active listings (no repost fees)",
+        bizLite3: "Ranks above personal profiles",
 
         bizPremium: "Business Premium",
-        bizPremium1: "Priority ranking and enhanced profile",
+        bizPremiumPrice: "$149/mo",
+        bizPremium1: "Priority ranking + enhanced profile",
         bizPremium2: "Lead/contact tools per listing",
-        bizPremium3: "Maximum visibility inside the category",
-        bizPremiumCta: "Compare business memberships",
+        bizPremium3: "Built to close deals, not just appear",
+
+        compareBusiness: "Compare business memberships",
+        printVsClassifieds:
+          "Print Ads = Trust, Engagement, Coupons, Sweepstakes · Classifieds = Search, Intent, Speed, Conversion",
       },
     } as const;
 
@@ -412,13 +469,19 @@ export default function ClassifiedsPage() {
   const listingsRef = useRef<HTMLDivElement | null>(null);
   const membershipsRef = useRef<HTMLDivElement | null>(null);
   const filterRef = useRef<HTMLDivElement | null>(null);
+  const resultsSentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Sticky filter behavior
+  // Sticky behavior
   const [filterSticky, setFilterSticky] = useState(false);
+  const [showStickyCtas, setShowStickyCtas] = useState(false);
+
+  // Auth (placeholder UI-only for now; real auth later)
+  const [isAuthed] = useState(false);
 
   const [filters, setFilters] = useState<Filters>({
     q: "",
     city: DEFAULT_CITY,
+    zip: "",
     radiusMi: DEFAULT_RADIUS,
     category: "all",
     sort: "balanced",
@@ -433,13 +496,47 @@ export default function ClassifiedsPage() {
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
+
   const [cityDraft, setCityDraft] = useState(filters.city);
+  const [zipDraft, setZipDraft] = useState(filters.zip);
   const [radiusDraft, setRadiusDraft] = useState(filters.radiusMi);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showBusinessesOnly, setShowBusinessesOnly] = useState(false);
 
-  // Demo data placeholder (kept empty for now)
+  // Demo preview (only shown when there is no real data yet)
+  const demoPreview = useMemo(() => {
+    const now = Date.now();
+    const agoHours = (h: number) => new Date(now - h * 60 * 60 * 1000).toISOString();
+    return {
+      business: {
+        id: "demo-biz-1",
+        title: lang === "es" ? "Servicios de Jardinería — Cotización Gratis" : "Landscaping Services — Free Quote",
+        description: lang === "es" ? "Mantenimiento, podas, limpieza." : "Maintenance, trims, cleanups.",
+        price: null,
+        city: "San José",
+        createdAt: agoHours(3),
+        category: "servicios" as const,
+        tier: "BIZ_LITE" as const,
+        sellerType: "BUSINESS" as const,
+        hasImage: true,
+      } satisfies Listing,
+      personal: {
+        id: "demo-personal-1",
+        title: lang === "es" ? "Silla de bebé (como nueva)" : "Baby chair (like new)",
+        description: lang === "es" ? "Entrega en San José." : "Pickup in San Jose.",
+        price: 35,
+        city: "San José",
+        createdAt: agoHours(6),
+        category: "en-venta" as const,
+        tier: "FREE" as const,
+        sellerType: "PERSONAL" as const,
+        hasImage: true,
+      } satisfies Listing,
+    };
+  }, [lang]);
+
+  // Demo data placeholder (kept empty until data layer exists)
   const listings: Listing[] = useMemo(() => {
     return [];
   }, []);
@@ -470,7 +567,6 @@ export default function ClassifiedsPage() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // when sentinel is not visible, user scrolled past filter top => sticky on
         setFilterSticky(!entry.isIntersecting);
       },
       { threshold: 0 }
@@ -485,6 +581,23 @@ export default function ClassifiedsPage() {
     };
   }, []);
 
+  // Sticky CTA bar should appear once user reaches Results section
+  useEffect(() => {
+    const el = resultsSentinelRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        // When sentinel is NOT visible (scrolled past it), show sticky CTAs
+        setShowStickyCtas(!entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: "-120px 0px 0px 0px" }
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
 
@@ -497,7 +610,7 @@ export default function ClassifiedsPage() {
 
     // business-only toggle
     if (showBusinessesOnly) {
-      arr = arr.filter((l) => l.tier === "BIZ_LITE" || l.tier === "BIZ_PREMIUM" || l.sellerType === "BUSINESS");
+      arr = arr.filter((l) => isBusinessListing(l));
     }
 
     // search
@@ -550,19 +663,23 @@ export default function ClassifiedsPage() {
       });
     }
 
-    return arr;
+    // Guarantee business split order in display: businesses first, then personals
+    const biz = arr.filter(isBusinessListing);
+    const personal = arr.filter((l) => !isBusinessListing(l));
+    return [...biz, ...personal];
   }, [listings, filters, showBusinessesOnly]);
 
-  // pagination
-  const pageSize = useMemo(() => {
-    const isMobile = typeof window !== "undefined" ? window.innerWidth < 768 : false;
-    return isMobile ? 10 : 18;
-  }, []);
-  const [page, setPage] = useState(1);
-
+  // pagination (responsive)
+  const [pageSize, setPageSize] = useState(18);
   useEffect(() => {
-    setPage(1);
-  }, [filters, showBusinessesOnly]);
+    const onResize = () => setPageSize(window.innerWidth < 768 ? 10 : 18);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [filters, showBusinessesOnly, pageSize]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -580,7 +697,6 @@ export default function ClassifiedsPage() {
 
   const handleCategoryPick = (cat: ClassifiedCategory) => {
     setFilters((f) => ({ ...f, category: cat }));
-    // ensure chips show + move user to results while keeping sticky filter available
     setTimeout(() => goToListings(), 0);
   };
 
@@ -590,6 +706,7 @@ export default function ClassifiedsPage() {
     setFilters({
       q: "",
       city: DEFAULT_CITY,
+      zip: "",
       radiusMi: DEFAULT_RADIUS,
       category: "all",
       sort: "balanced",
@@ -606,35 +723,28 @@ export default function ClassifiedsPage() {
   };
 
   const chips = useMemo(() => {
-    const out: Array<{ key: string; label: string; onRemove: () => void }> = [];
+    const out: Array<{ key: string; label: string; onRemove?: () => void }> = [];
 
-    if (filters.city !== DEFAULT_CITY) {
+    // Always show city + radius (default shows too, like your current UX)
+    out.push({
+      key: "city",
+      label: `${t.chipsCity}: ${filters.city}`,
+      onRemove: filters.city !== DEFAULT_CITY ? () => setFilters((f) => ({ ...f, city: DEFAULT_CITY })) : undefined,
+    });
+
+    if (filters.zip.trim()) {
       out.push({
-        key: "city",
-        label: `${t.chipsCity}: ${filters.city}`,
-        onRemove: () => setFilters((f) => ({ ...f, city: DEFAULT_CITY })),
-      });
-    } else {
-      out.push({
-        key: "city_default",
-        label: `${t.chipsCity}: ${filters.city}`,
-        onRemove: () => {},
+        key: "zip",
+        label: `${t.chipsZip}: ${filters.zip.trim()}`,
+        onRemove: () => setFilters((f) => ({ ...f, zip: "" })),
       });
     }
 
-    if (filters.radiusMi !== DEFAULT_RADIUS) {
-      out.push({
-        key: "radius",
-        label: `${t.chipsRadius}: ${filters.radiusMi} mi`,
-        onRemove: () => setFilters((f) => ({ ...f, radiusMi: DEFAULT_RADIUS })),
-      });
-    } else {
-      out.push({
-        key: "radius_default",
-        label: `${t.chipsRadius}: ${filters.radiusMi} mi`,
-        onRemove: () => {},
-      });
-    }
+    out.push({
+      key: "radius",
+      label: `${t.chipsRadius}: ${filters.radiusMi} mi`,
+      onRemove: filters.radiusMi !== DEFAULT_RADIUS ? () => setFilters((f) => ({ ...f, radiusMi: DEFAULT_RADIUS })) : undefined,
+    });
 
     if (filters.category !== "all") {
       out.push({
@@ -643,6 +753,7 @@ export default function ClassifiedsPage() {
         onRemove: () => clearCategory(),
       });
     }
+
     if (filters.q.trim()) {
       out.push({
         key: "q",
@@ -650,6 +761,7 @@ export default function ClassifiedsPage() {
         onRemove: () => setFilters((f) => ({ ...f, q: "" })),
       });
     }
+
     if (filters.priceMin !== null && filters.priceMin !== undefined) {
       out.push({
         key: "min",
@@ -664,6 +776,7 @@ export default function ClassifiedsPage() {
         onRemove: () => setFilters((f) => ({ ...f, priceMax: null })),
       });
     }
+
     if (filters.posted !== "any") {
       const map = {
         "24h": t.posted24,
@@ -677,6 +790,7 @@ export default function ClassifiedsPage() {
         onRemove: () => setFilters((f) => ({ ...f, posted: "any" })),
       });
     }
+
     if (filters.hasImage !== "any") {
       out.push({
         key: "img",
@@ -684,6 +798,7 @@ export default function ClassifiedsPage() {
         onRemove: () => setFilters((f) => ({ ...f, hasImage: "any" })),
       });
     }
+
     if (filters.seller !== "any") {
       out.push({
         key: "seller",
@@ -691,6 +806,7 @@ export default function ClassifiedsPage() {
         onRemove: () => setFilters((f) => ({ ...f, seller: "any" })),
       });
     }
+
     if (filters.condition !== "any") {
       const map: Record<ListingCondition, string> = {
         NEW: t.condNew,
@@ -709,7 +825,7 @@ export default function ClassifiedsPage() {
     if (showBusinessesOnly) {
       out.push({
         key: "bizOnly",
-        label: t.viewBusinesses,
+        label: t.viewBusinessesOnly,
         onRemove: () => setShowBusinessesOnly(false),
       });
     }
@@ -717,24 +833,46 @@ export default function ClassifiedsPage() {
     return out;
   }, [filters, lang, showBusinessesOnly, t]);
 
+  // City suggestions (simple, controlled list for now — prevents misspell issues)
+  const CITY_OPTIONS = useMemo(
+    () => ["San José", "Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View", "Palo Alto"],
+    []
+  );
+
+  const citySuggestions = useMemo(() => {
+    const q = cityDraft.trim().toLowerCase();
+    if (!q) return CITY_OPTIONS.slice(0, 6);
+    return CITY_OPTIONS.filter((c) => c.toLowerCase().includes(q)).slice(0, 6);
+  }, [CITY_OPTIONS, cityDraft]);
+
   const nearbyCities = useMemo(() => {
-    // Placeholder chips (we’ll make dynamic by radius later)
-    return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale"];
-  }, []);
+    // Placeholder logic by radius (you requested: chips change based on radius)
+    if (radiusDraft <= 10) return ["Santa Clara", "Milpitas"];
+    if (radiusDraft <= 25) return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale"];
+    if (radiusDraft <= 40) return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View"];
+    return ["Santa Clara", "Milpitas", "Campbell", "Sunnyvale", "Cupertino", "Mountain View", "Palo Alto"];
+  }, [radiusDraft]);
 
   const openLocation = () => {
     setCityDraft(filters.city);
+    setZipDraft(filters.zip);
     setRadiusDraft(filters.radiusMi);
     setLocationOpen(true);
   };
 
   const saveLocation = () => {
-    setFilters((f) => ({ ...f, city: cityDraft.trim() || DEFAULT_CITY, radiusMi: radiusDraft }));
+    setFilters((f) => ({
+      ...f,
+      city: cityDraft.trim() || DEFAULT_CITY,
+      zip: zipDraft.trim(),
+      radiusMi: radiusDraft,
+    }));
     setLocationOpen(false);
   };
 
   const restoreLocation = () => {
     setCityDraft(DEFAULT_CITY);
+    setZipDraft("");
     setRadiusDraft(DEFAULT_RADIUS);
   };
 
@@ -742,50 +880,166 @@ export default function ClassifiedsPage() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       () => {
-        // For now we only suggest the default city (future: reverse geocode)
+        // Future: reverse geocode. For now we suggest default city.
         setCityDraft(DEFAULT_CITY);
       },
-      () => {
-        // ignore
-      },
+      () => {},
       { enableHighAccuracy: false, timeout: 6000 }
     );
   };
 
+  // Rendering helpers
+  const renderListingCard = (l: Listing) => {
+    const isBiz = isBusinessListing(l);
+
+    // NOTE: detail pages not created yet — link is placeholder
+    const href = `/clasificados/${l.id}`;
+
+    return (
+      <Link
+        key={l.id}
+        href={href}
+        className={cx(
+          "group rounded-2xl border p-4 bg-black/35 transition",
+          isBiz
+            ? "border-yellow-600/25 hover:border-yellow-500/40 shadow-[0_0_35px_rgba(234,179,8,0.08)]"
+            : "border-white/10 hover:border-white/15"
+        )}
+      >
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/10 flex-shrink-0 overflow-hidden">
+            {l.hasImage ? (
+              <img
+                src="/classifieds-placeholder-bilingual.png"
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full" />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="font-semibold text-white group-hover:text-yellow-200 transition truncate">
+                {l.title}
+              </div>
+              <div className={cx("text-sm font-semibold", isBiz ? "text-yellow-200" : "text-white/80")}>
+                {priceLabel(l.price ?? null, lang)}
+              </div>
+            </div>
+
+            <div className="mt-1 text-sm text-gray-300 flex items-center gap-2">
+              <span className="truncate">{l.city}</span>
+              <span className="text-white/25">•</span>
+              <span>
+                {lang === "es" ? "Publicado" : "Posted"} {formatRelative(l.createdAt, lang)}
+              </span>
+            </div>
+
+            {/* Status indicator only as subtle style signal (no “paid” labels) */}
+            {isBiz && (
+              <div className="mt-3">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs border border-yellow-600/25 bg-black/35 text-yellow-200">
+                  {lang === "es" ? "Negocio verificado" : "Verified business"}
+                </span>
+              </div>
+            )}
+
+            {!isBiz && l.tier === "PRO" && (
+              <div className="mt-3">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs border border-yellow-600/35 bg-yellow-400/10 text-yellow-200">
+                  {lang === "es" ? "Pro" : "Pro"}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Link>
+    );
+  };
+
+  // Split visible items on the current page
+  const pageBiz = useMemo(() => slice.items.filter(isBusinessListing), [slice.items]);
+  const pagePersonal = useMemo(() => slice.items.filter((l) => !isBusinessListing(l)), [slice.items]);
+
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* HERO — Magazine-standard centered layout */}
+      {/* HERO (Magazine-standard) */}
       <section className="relative">
-        <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_10%,rgba(234,179,8,0.22),transparent_60%),linear-gradient(to_bottom,rgba(0,0,0,1),rgba(0,0,0,0.75),rgba(0,0,0,1))]" />
-        <div className="relative max-w-6xl mx-auto px-6 pt-28 pb-14 text-center">
+        <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_10%,rgba(234,179,8,0.22),transparent_60%),linear-gradient(to_bottom,rgba(0,0,0,1),rgba(0,0,0,0.78),rgba(0,0,0,1))]" />
+
+        <div className="relative max-w-6xl mx-auto px-6 pt-28 pb-12 text-center">
+          {/* Auth entry (top-right inside hero area, LEONIX style) */}
+          <div className="absolute right-6 top-8 flex items-center gap-2">
+            {isAuthed ? (
+              <>
+                <Link
+                  href={`/clasificados/login?lang=${lang}`}
+                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+                >
+                  {lang === "es" ? "Mi cuenta" : "My account"}
+                </Link>
+                <button
+                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/70 hover:text-white hover:bg-black/45 transition"
+                  onClick={() => {
+                    // placeholder
+                    alert(lang === "es" ? "Cerrar sesión (pendiente)" : "Log out (pending)");
+                  }}
+                >
+                  {lang === "es" ? "Cerrar sesión" : "Log out"}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={`/clasificados/login?mode=signin&lang=${lang}`}
+                  className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+                >
+                  {t.signIn}
+                </Link>
+                <Link
+                  href={`/clasificados/login?mode=signup&lang=${lang}`}
+                  className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition shadow-[0_0_24px_rgba(234,179,8,0.10)]"
+                >
+                  {t.createAccount}
+                </Link>
+              </>
+            )}
+          </div>
+
           <div className="flex items-center justify-center">
+            {/* Bigger logo to match magazine feel */}
             <img
               src="/logo.png"
               alt="LEONIX"
-              className="h-14 w-14 rounded-2xl bg-black/30 border border-yellow-600/25 shadow-[0_0_30px_rgba(234,179,8,0.15)]"
+              className="h-20 w-20 md:h-24 md:w-24 rounded-3xl bg-black/30 border border-yellow-600/25 shadow-[0_0_40px_rgba(234,179,8,0.16)]"
             />
           </div>
 
-          <h1 className="mt-6 text-5xl md:text-6xl font-extrabold tracking-tight text-yellow-200">
+          <h1 className="mt-7 text-5xl md:text-6xl font-extrabold tracking-tight text-yellow-200">
             {t.title}
           </h1>
           <p className="mt-4 text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
             {t.subtitle}
           </p>
 
+          {/* Hero pills (3 only) */}
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
-              href="/clasificados/publicar"
+              href={`/clasificados/login?lang=${lang}`}
               className="px-6 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition shadow-[0_0_30px_rgba(234,179,8,0.12)]"
             >
               {t.ctaPost}
             </Link>
+
             <button
               onClick={goToListings}
               className="px-6 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
             >
               {t.ctaView}
             </button>
+
             <button
               onClick={goToMemberships}
               className="px-6 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
@@ -795,52 +1049,50 @@ export default function ClassifiedsPage() {
           </div>
         </div>
 
-        {/* Sticky CTA bar */}
-        <div className="sticky top-[64px] z-40 border-t border-white/5 border-b border-white/5 bg-black/55 backdrop-blur">
-          <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-center gap-2">
-            <Link
-              href="/clasificados/publicar"
-              className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-            >
-              {t.ctaPost}
-            </Link>
-            <button
-              onClick={goToListings}
-              className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-            >
-              {t.ctaView}
-            </button>
-            <button
-              onClick={goToMemberships}
-              className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
-            >
-              {t.ctaMemberships}
-            </button>
+        {/* Sticky CTA bar: ONLY after Results */}
+        {showStickyCtas && (
+          <div className="sticky top-[64px] z-40 border-t border-white/5 border-b border-white/5 bg-black/55 backdrop-blur">
+            <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-center gap-2">
+              <Link
+                href={`/clasificados/login?lang=${lang}`}
+                className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
+              >
+                {t.ctaPost}
+              </Link>
 
-            {/* Quick access back to filters (extra safety) */}
-            <button
-              onClick={goToFilters}
-              className="hidden md:inline-flex ml-2 px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/80 hover:bg-black/45 transition"
-            >
-              {lang === "es" ? "Filtros" : "Filters"}
-            </button>
+              <button
+                onClick={goToListings}
+                className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+              >
+                {t.ctaView}
+              </button>
+
+              <button
+                onClick={goToMemberships}
+                className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+              >
+                {t.ctaMemberships}
+              </button>
+
+              <button
+                onClick={goToFilters}
+                className="hidden md:inline-flex ml-2 px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/80 hover:bg-black/45 transition"
+              >
+                {lang === "es" ? "Filtros" : "Filters"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
-      {/* FILTER BAR (anchor + premium + becomes sticky) */}
+      {/* FILTER BAR (anchor + premium + sticky) */}
       <section ref={filterRef} className="relative">
-        <div
-          className={cx(
-            "transition-all",
-            filterSticky ? "sticky top-[116px] z-30" : ""
-          )}
-        >
-          <div className="max-w-6xl mx-auto px-6 pt-10">
+        <div className={cx("transition-all", filterSticky ? "sticky top-[116px] z-30" : "")}>
+          <div className="max-w-6xl mx-auto px-6 pt-12">
             <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">{t.filterTitle}</h2>
 
-            <div className="mt-5 rounded-2xl border border-yellow-600/20 bg-black/35 backdrop-blur p-5 shadow-[0_0_40px_rgba(234,179,8,0.08)]">
-              {/* row 1 */}
+            <div className="mt-6 rounded-2xl border border-yellow-600/20 bg-black/35 backdrop-blur p-5 md:p-6 shadow-[0_0_44px_rgba(234,179,8,0.08)]">
+              {/* row 1 (tighter, visible sort) */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div className="md:col-span-5">
                   <label className="text-sm text-gray-300">{t.searchLabel}</label>
@@ -857,6 +1109,7 @@ export default function ClassifiedsPage() {
                   <div className="mt-2 flex items-center gap-3">
                     <div className="flex-1 px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white">
                       {filters.city} • {filters.radiusMi} mi
+                      {filters.zip.trim() ? ` • ${filters.zip.trim()}` : ""}
                     </div>
                     <button
                       onClick={openLocation}
@@ -888,7 +1141,7 @@ export default function ClassifiedsPage() {
                   </select>
                 </div>
 
-                <div className="md:col-span-1">
+                <div className="md:col-span-1 md:col-start-12">
                   <label className="text-sm text-gray-300">{t.sortLabel}</label>
                   <select
                     value={filters.sort}
@@ -904,7 +1157,7 @@ export default function ClassifiedsPage() {
               </div>
 
               {/* More filters toggle */}
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-5 flex items-center gap-3">
                 <button
                   onClick={() => setMoreOpen((v) => !v)}
                   className="px-4 py-2 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition inline-flex items-center gap-2"
@@ -917,7 +1170,7 @@ export default function ClassifiedsPage() {
               {/* More filters panel */}
               {moreOpen && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
-                  <div className="md:col-span-3">
+                  <div className="md:col-span-4">
                     <label className="text-sm text-gray-300">{t.priceRange}</label>
                     <div className="mt-2 grid grid-cols-2 gap-3">
                       <input
@@ -942,7 +1195,7 @@ export default function ClassifiedsPage() {
                       />
                     </div>
 
-                    {/* Quick price chips (optional helper, not replacing min/max) */}
+                    {/* Quick price chips helper */}
                     <div className="mt-3 flex flex-wrap gap-2">
                       {[
                         [0, 30],
@@ -987,7 +1240,7 @@ export default function ClassifiedsPage() {
                     </select>
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-3">
                     <label className="text-sm text-gray-300">{t.seller}</label>
                     <select
                       value={filters.seller}
@@ -1000,7 +1253,7 @@ export default function ClassifiedsPage() {
                     </select>
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-3">
                     <label className="text-sm text-gray-300">{t.condition}</label>
                     <select
                       value={filters.condition}
@@ -1019,7 +1272,7 @@ export default function ClassifiedsPage() {
               )}
 
               {/* Category pills */}
-              <div className="mt-6">
+              <div className="mt-7">
                 <div className="text-sm text-gray-300">{t.exploreByCategory}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {CATEGORY_ORDER.map((c) => {
@@ -1055,17 +1308,14 @@ export default function ClassifiedsPage() {
               </div>
 
               {/* Active chips */}
-              <div className="mt-5 flex flex-wrap items-center gap-2">
+              <div className="mt-6 flex flex-wrap items-center gap-2">
                 {chips.map((c) => (
                   <span
                     key={c.key}
-                    className={cx(
-                      "px-4 py-2 rounded-full border text-sm",
-                      "bg-black/35 border-white/10 text-white/85"
-                    )}
+                    className="px-4 py-2 rounded-full border text-sm bg-black/35 border-white/10 text-white/85"
                   >
                     {c.label}
-                    {c.onRemove.toString() !== (() => {}).toString() && (
+                    {c.onRemove && (
                       <button className="ml-2 text-white/60 hover:text-white" onClick={c.onRemove}>
                         ×
                       </button>
@@ -1083,11 +1333,11 @@ export default function ClassifiedsPage() {
           </div>
         </div>
 
-        {/* Location modal */}
+        {/* Location modal (scrollable, cities visible) */}
         {locationOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm">
-            <div className="max-w-2xl mx-auto px-6 pt-24">
-              <div className="rounded-2xl border border-yellow-600/20 bg-black/60 shadow-[0_0_60px_rgba(0,0,0,0.6)] overflow-hidden">
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto">
+            <div className="min-h-screen flex items-start justify-center px-6 py-10">
+              <div className="w-full max-w-2xl rounded-2xl border border-yellow-600/20 bg-black/60 shadow-[0_0_60px_rgba(0,0,0,0.6)] overflow-hidden">
                 <div className="px-6 py-5 flex items-center justify-between border-b border-white/5">
                   <div className="text-2xl font-bold text-yellow-200">{t.locationModalTitle}</div>
                   <button
@@ -1110,18 +1360,50 @@ export default function ClassifiedsPage() {
                     </button>
                   </div>
 
-                  {/* City first */}
+                  {/* City */}
                   <div>
                     <div className="text-sm text-gray-300">{t.city}</div>
                     <input
                       value={cityDraft}
                       onChange={(e) => setCityDraft(e.target.value)}
                       className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
-                      placeholder={lang === "es" ? "Escribe tu ciudad o ZIP…" : "Type your city or ZIP…"}
+                      placeholder={t.cityPlaceholder}
+                      autoComplete="off"
+                    />
+
+                    {/* Suggestions (controlled, prevents typos) */}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {citySuggestions.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setCityDraft(c)}
+                          className={cx(
+                            "px-4 py-2 rounded-full border transition",
+                            cityDraft === c
+                              ? "bg-yellow-400/15 border-yellow-600/35 text-yellow-200"
+                              : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
+                          )}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ZIP */}
+                  <div>
+                    <div className="text-sm text-gray-300">{t.zip}</div>
+                    <input
+                      inputMode="numeric"
+                      value={zipDraft}
+                      onChange={(e) => setZipDraft(e.target.value)}
+                      className="mt-2 w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-600/30"
+                      placeholder={t.zipPlaceholder}
+                      autoComplete="off"
                     />
                   </div>
 
-                  {/* Radius directly under city */}
+                  {/* Radius directly under city + zip */}
                   <div>
                     <div className="text-sm text-gray-300">{t.radius}</div>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -1146,7 +1428,7 @@ export default function ClassifiedsPage() {
                     <p className="mt-3 text-gray-400 text-sm">{t.radiusHint}</p>
                   </div>
 
-                  {/* Nearby cities below radius */}
+                  {/* Nearby cities (updates by radius) */}
                   <div>
                     <div className="text-sm text-gray-300">{t.nearbyCities}</div>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -1185,6 +1467,9 @@ export default function ClassifiedsPage() {
 
       {/* RESULTS */}
       <section ref={listingsRef} className="max-w-6xl mx-auto px-6 pt-14 pb-16">
+        {/* Sentinel for sticky CTA start */}
+        <div ref={resultsSentinelRef} className="h-px w-px" />
+
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">{t.results}</h2>
@@ -1194,7 +1479,6 @@ export default function ClassifiedsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Business visibility toggle */}
             <button
               onClick={() => setShowBusinessesOnly((v) => !v)}
               className={cx(
@@ -1204,7 +1488,7 @@ export default function ClassifiedsPage() {
                   : "bg-black/35 border-white/10 text-white/85 hover:bg-black/45"
               )}
             >
-              {showBusinessesOnly ? t.viewAll : t.viewBusinesses}
+              {showBusinessesOnly ? t.viewAll : t.viewBusinessesOnly}
             </button>
 
             <select
@@ -1218,7 +1502,6 @@ export default function ClassifiedsPage() {
               <option value="price_desc">{t.sortPriceDesc}</option>
             </select>
 
-            {/* Grid/List toggle */}
             <div className="flex items-center rounded-full overflow-hidden border border-white/10 bg-black/35">
               <button
                 onClick={() => setViewMode("grid")}
@@ -1227,7 +1510,7 @@ export default function ClassifiedsPage() {
                   viewMode === "grid" ? "bg-yellow-400/10" : "hover:bg-black/45"
                 )}
               >
-                <GridIcon active={viewMode === "grid"} />
+                <GridIcon active={viewMode === "grid"} label={t.grid} />
               </button>
               <button
                 onClick={() => setViewMode("list")}
@@ -1236,115 +1519,165 @@ export default function ClassifiedsPage() {
                   viewMode === "list" ? "bg-yellow-400/10" : "hover:bg-black/45"
                 )}
               >
-                <ListIcon active={viewMode === "list"} />
+                <ListIcon active={viewMode === "list"} label={t.list} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Empty state */}
+        {/* When no real listings yet: show preview split (business + personal) */}
         {total === 0 ? (
-          <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-8">
-            <div className="text-2xl font-bold text-yellow-200">{t.emptyTitle}</div>
-            <p className="mt-3 text-gray-300">{t.emptyBody}</p>
+          <>
+            <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-6">
+              <div className="text-xl font-bold text-yellow-200">
+                {lang === "es" ? "Vista previa (diseño)" : "Preview (design)"}
+              </div>
+              <div className="mt-1 text-gray-300">
+                {lang === "es"
+                  ? "Así se verá la separación: negocios arriba, anuncios personales abajo."
+                  : "This is how the split will look: businesses on top, personal listings below."}
+              </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                onClick={resetFilters}
-                className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+              {/* Businesses preview */}
+              <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="text-lg font-bold text-white">{t.bizSectionTitle}</div>
+                  <div className="text-gray-300 text-sm">{t.bizSectionSubtitle}</div>
+                </div>
+                <Link
+                  href={`/clasificados/membresias-negocio?lang=${lang}`}
+                  className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
+                >
+                  {t.seeBusinessMemberships}
+                </Link>
+              </div>
+
+              <div
+                className={cx(
+                  "mt-4",
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    : "space-y-3"
+                )}
               >
-                {t.removeFilters}
-              </button>
-              <button
-                onClick={() => {
-                  setFilters((f) => ({ ...f, radiusMi: 50 }));
-                  setTimeout(() => goToFilters(), 0);
-                }}
-                className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+                {renderListingCard(demoPreview.business)}
+              </div>
+
+              {/* Divider */}
+              <div className="mt-8 border-t border-white/10" />
+
+              {/* Personal preview */}
+              <div className="mt-6">
+                <div className="text-lg font-bold text-white">{t.personalSectionTitle}</div>
+                <div className="text-gray-300 text-sm">{t.personalSectionSubtitle}</div>
+              </div>
+
+              <div
+                className={cx(
+                  "mt-4",
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    : "space-y-3"
+                )}
               >
-                {t.increaseRadius}
-              </button>
-              <button
-                onClick={() => {
-                  setFilters((f) => ({ ...f, category: "all" }));
-                  setTimeout(() => goToFilters(), 0);
-                }}
-                className="px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
-              >
-                {t.viewEverything}
-              </button>
+                {renderListingCard(demoPreview.personal)}
+              </div>
             </div>
-          </div>
+
+            <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-8">
+              <div className="text-2xl font-bold text-yellow-200">{t.emptyTitle}</div>
+              <p className="mt-3 text-gray-300">{t.emptyBody}</p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  onClick={resetFilters}
+                  className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+                >
+                  {t.removeFilters}
+                </button>
+                <button
+                  onClick={() => {
+                    setFilters((f) => ({ ...f, radiusMi: 50 }));
+                    setTimeout(() => goToFilters(), 0);
+                  }}
+                  className="px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
+                >
+                  {t.increaseRadius}
+                </button>
+                <button
+                  onClick={() => {
+                    setFilters((f) => ({ ...f, category: "all" }));
+                    setTimeout(() => goToFilters(), 0);
+                  }}
+                  className="px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
+                >
+                  {t.viewEverything}
+                </button>
+              </div>
+            </div>
+          </>
         ) : (
           <>
-            {/* Listings feed */}
-            <div
-              className={cx(
-                "mt-8",
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                  : "space-y-3"
-              )}
-            >
-              {slice.items.map((l) => {
-                const isBiz = l.tier === "BIZ_LITE" || l.tier === "BIZ_PREMIUM" || l.sellerType === "BUSINESS";
-                return (
-                  <Link
-                    key={l.id}
-                    href={`/clasificados/${l.id}`}
-                    className={cx(
-                      "group rounded-2xl border p-4 bg-black/35 transition",
-                      isBiz
-                        ? "border-yellow-600/25 hover:border-yellow-500/35 shadow-[0_0_35px_rgba(234,179,8,0.08)]"
-                        : "border-white/10 hover:border-white/15"
-                    )}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* thumbnail (small) */}
-                      <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/10 flex-shrink-0 overflow-hidden">
-                        {l.hasImage ? (
-                          <img src="/classifieds-placeholder-bilingual.png" alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full" />
-                        )}
-                      </div>
+            {/* Businesses section (always on top) */}
+            <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/25 p-5 md:p-6">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="text-lg md:text-xl font-bold text-white">{t.bizSectionTitle}</div>
+                  <div className="text-gray-300 text-sm">{t.bizSectionSubtitle}</div>
+                </div>
+                <Link
+                  href={`/clasificados/membresias-negocio?lang=${lang}`}
+                  className="px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
+                >
+                  {t.seeBusinessMemberships}
+                </Link>
+              </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="font-semibold text-white group-hover:text-yellow-200 transition truncate">
-                            {l.title}
-                          </div>
-                          <div className={cx("text-sm font-semibold", isBiz ? "text-yellow-200" : "text-white/80")}>
-                            {priceLabel(l.price ?? null, lang)}
-                          </div>
-                        </div>
+              <div
+                className={cx(
+                  "mt-5",
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    : "space-y-3"
+                )}
+              >
+                {pageBiz.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-gray-300">
+                    {lang === "es"
+                      ? "No hay negocios en esta vista aún. Prueba otra categoría o amplía el radio."
+                      : "No businesses in this view yet. Try another category or increase radius."}
+                  </div>
+                ) : (
+                  pageBiz.map(renderListingCard)
+                )}
+              </div>
 
-                        <div className="mt-1 text-sm text-gray-300 flex items-center gap-2">
-                          <span className="truncate">{l.city}</span>
-                          <span className="text-white/25">•</span>
-                          <span>{lang === "es" ? "Publicado" : "Posted"} {formatRelative(l.createdAt, lang)}</span>
-                        </div>
+              <div className="mt-7 border-t border-white/10" />
 
-                        {/* Optional subtle status badge (no “paid” language) */}
-                        {(l.tier === "PRO" || l.tier === "BIZ_LITE" || l.tier === "BIZ_PREMIUM") && (
-                          <div className="mt-3">
-                            <span
-                              className={cx(
-                                "inline-flex items-center px-3 py-1 rounded-full text-xs border",
-                                l.tier === "PRO"
-                                  ? "border-yellow-600/35 bg-yellow-400/10 text-yellow-200"
-                                  : "border-yellow-600/25 bg-black/35 text-yellow-200"
-                              )}
-                            >
-                              {l.tier === "PRO" ? t.proBadge : lang === "es" ? "Negocio" : "Business"}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+              {/* Personal section */}
+              <div className="mt-6">
+                <div className="text-lg md:text-xl font-bold text-white">{t.personalSectionTitle}</div>
+                <div className="text-gray-300 text-sm">{t.personalSectionSubtitle}</div>
+              </div>
+
+              <div
+                className={cx(
+                  "mt-5",
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    : "space-y-3"
+                )}
+              >
+                {pagePersonal.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-gray-300">
+                    {lang === "es"
+                      ? "No hay anuncios personales en esta vista."
+                      : "No personal listings in this view."}
+                  </div>
+                ) : (
+                  pagePersonal.map(renderListingCard)
+                )}
+              </div>
             </div>
 
             {/* Pagination */}
@@ -1392,16 +1725,25 @@ export default function ClassifiedsPage() {
             <p className="mt-2 text-gray-300">{t.membershipsSubtitle}</p>
           </div>
           <Link
-            href="/clasificados/membrecias"
+            href={`/clasificados/membresias?lang=${lang}`}
             className="px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
           >
-            {lang === "es" ? "Ver detalles" : "View details"}
+            {t.viewMembershipDetails}
           </Link>
         </div>
 
+        {/* Print vs Classifieds sentence (LOCKED) */}
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/35 p-5 text-gray-300">
+          {t.printVsClassifieds}
+        </div>
+
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Free */}
           <div className="rounded-2xl border border-white/10 bg-black/35 p-6">
-            <div className="text-2xl font-bold text-white">{t.free}</div>
+            <div className="flex items-baseline justify-between">
+              <div className="text-2xl font-bold text-white">{t.free}</div>
+              <div className="text-yellow-200 font-semibold">{t.freePrice}</div>
+            </div>
             <ul className="mt-4 space-y-2 text-gray-300">
               <li>• {t.free1}</li>
               <li>• {t.free2}</li>
@@ -1409,14 +1751,12 @@ export default function ClassifiedsPage() {
             </ul>
           </div>
 
+          {/* Pro */}
           <div className="rounded-2xl border border-yellow-600/25 bg-black/35 p-6 shadow-[0_0_35px_rgba(234,179,8,0.08)]">
-            <div className="flex items-center justify-between">
+            <div className="flex items-baseline justify-between">
               <div className="text-2xl font-bold text-white">{t.pro}</div>
-              <span className="px-3 py-1 rounded-full text-xs border border-yellow-600/35 bg-yellow-400/10 text-yellow-200">
-                {t.proBadge}
-              </span>
+              <div className="text-yellow-200 font-semibold">{t.proPrice}</div>
             </div>
-            <div className="mt-2 text-yellow-200 font-semibold">{t.proPrice}</div>
             <ul className="mt-4 space-y-2 text-gray-300">
               <li>• {t.pro1}</li>
               <li>• {t.pro2}</li>
@@ -1424,16 +1764,20 @@ export default function ClassifiedsPage() {
             </ul>
             <div className="mt-5">
               <Link
-                href="/clasificados/membrecias"
+                href={`/clasificados/membresias?lang=${lang}`}
                 className="inline-flex px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
               >
-                {t.proCta}
+                {lang === "es" ? "Ver LEONIX Pro" : "View LEONIX Pro"}
               </Link>
             </div>
           </div>
 
+          {/* Biz Lite */}
           <div className="rounded-2xl border border-yellow-600/20 bg-black/35 p-6">
-            <div className="text-2xl font-bold text-white">{t.bizLite}</div>
+            <div className="flex items-baseline justify-between">
+              <div className="text-2xl font-bold text-white">{t.bizLite}</div>
+              <div className="text-yellow-200 font-semibold">{t.bizLitePrice}</div>
+            </div>
             <ul className="mt-4 space-y-2 text-gray-300">
               <li>• {t.bizLite1}</li>
               <li>• {t.bizLite2}</li>
@@ -1441,16 +1785,20 @@ export default function ClassifiedsPage() {
             </ul>
             <div className="mt-5">
               <Link
-                href="/clasificados/membrecias-negocio"
+                href={`/clasificados/membresias-negocio?lang=${lang}`}
                 className="inline-flex px-5 py-3 rounded-full bg-black/35 border border-white/10 text-white/90 hover:bg-black/45 transition"
               >
-                {t.bizLiteCta}
+                {t.compareBusiness}
               </Link>
             </div>
           </div>
 
+          {/* Biz Premium */}
           <div className="rounded-2xl border border-yellow-600/25 bg-black/35 p-6 shadow-[0_0_35px_rgba(234,179,8,0.08)]">
-            <div className="text-2xl font-bold text-white">{t.bizPremium}</div>
+            <div className="flex items-baseline justify-between">
+              <div className="text-2xl font-bold text-white">{t.bizPremium}</div>
+              <div className="text-yellow-200 font-semibold">{t.bizPremiumPrice}</div>
+            </div>
             <ul className="mt-4 space-y-2 text-gray-300">
               <li>• {t.bizPremium1}</li>
               <li>• {t.bizPremium2}</li>
@@ -1458,16 +1806,16 @@ export default function ClassifiedsPage() {
             </ul>
             <div className="mt-5">
               <Link
-                href="/clasificados/membrecias-negocio"
+                href={`/clasificados/membresias-negocio?lang=${lang}`}
                 className="inline-flex px-5 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
               >
-                {t.bizPremiumCta}
+                {t.compareBusiness}
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Business directory CTA (keeps businesses visible + discoverable) */}
+        {/* Business directory CTA (future) */}
         <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/35 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="text-xl font-bold text-yellow-200">
@@ -1475,12 +1823,12 @@ export default function ClassifiedsPage() {
             </div>
             <div className="mt-1 text-gray-300">
               {lang === "es"
-                ? "Directorio de negocios dentro de Clasificados."
-                : "Business directory inside Classifieds."}
+                ? "Directorio de negocios dentro de Clasificados (próximamente)."
+                : "Business directory inside Classifieds (coming soon)."}
             </div>
           </div>
           <Link
-            href="/clasificados/negocios"
+            href={`/clasificados/negocios?lang=${lang}`}
             className="px-6 py-3 rounded-full bg-yellow-400/15 border border-yellow-600/35 text-yellow-200 hover:bg-yellow-400/20 transition"
           >
             {lang === "es" ? "Ver negocios" : "View businesses"}
