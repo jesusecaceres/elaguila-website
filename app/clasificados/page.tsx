@@ -28,7 +28,6 @@ type CategoryKey =
   | "comunidad";
 
 type SellerType = "personal" | "business";
-
 type ListingStatus = "active" | "sold";
 
 type Listing = {
@@ -91,14 +90,11 @@ export default function ClasificadosPage() {
         stickyFilters: "Ir a filtros",
 
         resultsTitle: "Resultados",
-        showing: (a: number, b: number, total: number) =>
-          `Mostrando ${a}-${b} de ${total}`,
+        showing: (a: number, b: number, total: number) => `Mostrando ${a}-${b} de ${total}`,
 
         statusLabel: "Estado",
-        statusActive: "Activos",
         statusSold: "Vendidos",
         statusShowSold: "Mostrar vendidos",
-
         soldBadge: "VENDIDO",
 
         noResultsTitle: "No encontramos anuncios",
@@ -118,8 +114,8 @@ export default function ClasificadosPage() {
         sortPriceAsc: "Precio ↑",
         sortPriceDesc: "Precio ↓",
 
-        grid: "Grid",
-        list: "List",
+        grid: "Cuadrícula",
+        list: "Lista",
 
         pageXofY: (x: number, y: number) => `Página ${x} de ${y}`,
         prev: "Anterior",
@@ -191,14 +187,11 @@ export default function ClasificadosPage() {
         stickyFilters: "Back to filters",
 
         resultsTitle: "Results",
-        showing: (a: number, b: number, total: number) =>
-          `Showing ${a}-${b} of ${total}`,
+        showing: (a: number, b: number, total: number) => `Showing ${a}-${b} of ${total}`,
 
         statusLabel: "Status",
-        statusActive: "Active",
         statusSold: "Sold",
         statusShowSold: "Show sold",
-
         soldBadge: "SOLD",
 
         noResultsTitle: "No listings found",
@@ -226,8 +219,7 @@ export default function ClasificadosPage() {
         next: "Next",
 
         membershipsTitle: "Memberships",
-        membershipsSubtitle:
-          "Quick summary. Full benefits are shown on the Memberships page.",
+        membershipsSubtitle: "Quick summary. Full benefits are shown on the Memberships page.",
 
         freeTitle: "Free",
         freeBullets: ["1 image", "7-day duration", "Always visible & searchable"],
@@ -315,6 +307,7 @@ export default function ClasificadosPage() {
   const haversineMi = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
     const R = 3958.8;
     const toRad = (d: number) => (d * Math.PI) / 180;
+
     const dLat = toRad(b.lat - a.lat);
     const dLon = toRad(b.lng - a.lng);
     const lat1 = toRad(a.lat);
@@ -323,10 +316,8 @@ export default function ClasificadosPage() {
     const sinDLat = Math.sin(dLat / 2);
     const sinDLon = Math.sin(dLon / 2);
 
-    // ✅ FIXED LINE (no comma)
-    const h =
-      sinDLat * sinDLat +
-      Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+    // ✅ FIX: correct cos multiplication (no comma)
+    const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
 
     return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
   };
@@ -493,6 +484,7 @@ export default function ClasificadosPage() {
       });
     }
 
+    // City+radius filtering (ZIP is “preference only” if not in map; keep current behavior)
     if (!zip) {
       const allowedCities = Array.from(new Set([city, ...nearbyCities]));
       list = list.filter((l) => allowedCities.includes(l.city));
@@ -570,6 +562,7 @@ export default function ClasificadosPage() {
 
   const applyCategory = (cat: CategoryKey) => {
     setSelectedCategory(cat);
+    setPage(1);
     setTimeout(() => scrollTo(resultsRef), 0);
   };
 
@@ -588,6 +581,8 @@ export default function ClasificadosPage() {
     setSeller("any");
     setCondition("any");
     setMoreOpen(false);
+
+    setPage(1);
   };
 
   const CategorySelect = () => (
@@ -638,7 +633,13 @@ export default function ClasificadosPage() {
                     : "border-white/10 text-gray-200 bg-white/5"
                 )}
               >
-                {isBusiness ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}
+                {isBusiness
+                  ? lang === "es"
+                    ? "Negocio"
+                    : "Business"
+                  : lang === "es"
+                  ? "Personal"
+                  : "Personal"}
               </span>
 
               {isSold && (
@@ -676,7 +677,13 @@ export default function ClasificadosPage() {
             </span>
 
             <span className="px-3 py-1 rounded-full text-xs border border-white/10 text-gray-300 bg-black/30">
-              {item.hasImage ? (lang === "es" ? "Con imagen" : "Has image") : (lang === "es" ? "Sin imagen" : "No image")}
+              {item.hasImage
+                ? lang === "es"
+                  ? "Con imagen"
+                  : "Has image"
+                : lang === "es"
+                ? "Sin imagen"
+                : "No image"}
             </span>
           </div>
         </div>
@@ -684,10 +691,68 @@ export default function ClasificadosPage() {
     );
   };
 
+  // Pagination (keeps free listings visible; no infinite scroll)
+  const [page, setPage] = useState(1);
+  const perPage = useMemo(() => (viewMode === "list" ? 10 : 18), [viewMode]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory, sort, city, zip, radiusMi, showSold, hasImage, seller, condition]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const safePage = Math.min(page, totalPages);
+
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * perPage;
+    return filtered.slice(start, start + perPage);
+  }, [filtered, perPage, safePage]);
+
+  const showingRange = useMemo(() => {
+    if (total === 0) return { a: 0, b: 0 };
+    const a = (safePage - 1) * perPage + 1;
+    const b = Math.min(total, (safePage - 1) * perPage + paged.length);
+    return { a, b };
+  }, [paged.length, perPage, safePage, total]);
+
+  const goPrev = () => setPage((p) => Math.max(1, p - 1));
+  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
+
   return (
     <div className="bg-black min-h-screen text-white pb-32">
       <Navbar />
 
+      {/* Sticky action pills (only after you scroll into results) */}
+      {showSticky && (
+        <div className="fixed top-16 left-0 right-0 z-40">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="flex flex-wrap items-center justify-center gap-3 border border-white/10 bg-black/60 backdrop-blur rounded-2xl p-3">
+              <button
+                onClick={() => scrollTo(filtersRef)}
+                className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              >
+                {t.stickyFilters}
+              </button>
+
+              <a
+                href={t.routePost}
+                className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-extrabold hover:opacity-95 transition"
+              >
+                {t.ctaPost}
+              </a>
+
+              <button
+                onClick={() => scrollTo(membershipsRef)}
+                className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              >
+                {t.ctaMemberships}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HERO */}
       <section className="max-w-6xl mx-auto px-6 pt-28">
         <div className="relative text-center mb-16">
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
@@ -813,9 +878,20 @@ export default function ClasificadosPage() {
             </button>
 
             <div className="ml-auto flex flex-wrap gap-2">
+              <button
+                onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+                className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
+                aria-label={viewMode === "grid" ? t.list : t.grid}
+              >
+                {viewMode === "grid" ? t.list : t.grid}
+              </button>
+
               {selectedCategory !== "all" && (
                 <button
-                  onClick={() => setSelectedCategory("all")}
+                  onClick={() => {
+                    setSelectedCategory("all");
+                    setPage(1);
+                  }}
                   className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
                 >
                   {lang === "es" ? "Categoría:" : "Category:"}{" "}
@@ -860,9 +936,7 @@ export default function ClasificadosPage() {
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-300 mb-2">
-                    {lang === "es" ? "Vendedor" : "Seller"}
-                  </div>
+                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Vendedor" : "Seller"}</div>
                   <select
                     value={seller}
                     onChange={(e) => setSeller(e.target.value as any)}
@@ -875,9 +949,7 @@ export default function ClasificadosPage() {
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-300 mb-2">
-                    {lang === "es" ? "Condición" : "Condition"}
-                  </div>
+                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Condición" : "Condition"}</div>
                   <select
                     value={condition}
                     onChange={(e) => setCondition(e.target.value as any)}
@@ -942,13 +1014,9 @@ export default function ClasificadosPage() {
           <div className="relative w-full sm:max-w-xl bg-black border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-xl font-bold text-yellow-200">
-                  {lang === "es" ? "Ubicación" : "Location"}
-                </div>
+                <div className="text-xl font-bold text-yellow-200">{lang === "es" ? "Ubicación" : "Location"}</div>
                 <div className="text-sm text-gray-300 mt-1">
-                  {lang === "es"
-                    ? "Elige ciudad o ZIP y ajusta el radio."
-                    : "Choose a city or ZIP and adjust the radius."}
+                  {lang === "es" ? "Elige ciudad o ZIP y ajusta el radio." : "Choose a city or ZIP and adjust the radius."}
                 </div>
               </div>
 
@@ -987,9 +1055,7 @@ export default function ClasificadosPage() {
               </div>
 
               <div>
-                <div className="text-sm text-gray-300 mb-2">
-                  {lang === "es" ? "ZIP (opcional)" : "ZIP (optional)"}
-                </div>
+                <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "ZIP (opcional)" : "ZIP (optional)"}</div>
                 <input
                   value={zipDraft}
                   onChange={(e) => {
@@ -1020,9 +1086,7 @@ export default function ClasificadosPage() {
                     onChange={(e) => setRadiusDraft(Number(e.target.value))}
                     className="w-full"
                   />
-                  <div className="min-w-[84px] text-right text-gray-200 font-semibold">
-                    {radiusDraft} mi
-                  </div>
+                  <div className="min-w-[84px] text-right text-gray-200 font-semibold">{radiusDraft} mi</div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1066,19 +1130,222 @@ export default function ClasificadosPage() {
         </div>
       )}
 
-      {/* RESULTS + MEMBERSHIPS unchanged from your current file after this point */}
-      {/* (Keeping this short would risk missing lines; leaving as-is in your file is fine.) */}
-      {/* NOTE: If your editor warns about missing content below, paste the original bottom section from your current FILE 1. */}
-      <div className="max-w-6xl mx-auto px-6 mt-10 text-gray-400">
-        <p>
-          ✅ FILE 1 hotfix applied (distance math). The rest of your UI remains unchanged.
-        </p>
-        <p className="mt-2">
-          Now proceed to FILE 3 below.
-        </p>
-      </div>
+      {/* RESULTS */}
+      <section className="max-w-6xl mx-auto px-6 mt-14">
+        <div ref={resultsRef} id="results" className="scroll-mt-28" />
 
-      {/* BOOST INFO MODAL still in your original file */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <h2 className="text-5xl font-bold text-yellow-400">{t.resultsTitle}</h2>
+
+          <div className="text-sm text-gray-300">
+            {t.showing(showingRange.a, showingRange.b, total)}
+          </div>
+        </div>
+
+        {total === 0 ? (
+          <div className="mt-8 border border-white/10 rounded-2xl bg-black/30 p-8">
+            <div className="text-2xl font-bold text-gray-100">{t.noResultsTitle}</div>
+            <div className="mt-3 text-gray-300 max-w-2xl">{t.noResultsBody}</div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={resetAll}
+                className="px-6 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              >
+                {t.clearFiltersBtn}
+              </button>
+
+              <button
+                onClick={() => setRadiusMi((r) => Math.min(60, r + 10))}
+                className="px-6 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              >
+                {t.widenRadiusBtn}
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedCategory("all");
+                  setSearch("");
+                  setHasImage("any");
+                  setSeller("any");
+                  setCondition("any");
+                  setPage(1);
+                }}
+                className="px-6 py-3 rounded-full bg-yellow-400 text-black font-extrabold hover:opacity-95 transition"
+              >
+                {t.viewAllBtn}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Split headers (optional; keeps business visibility obvious) */}
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="border border-yellow-600/20 rounded-2xl bg-black/30 p-6">
+                <div className="text-lg font-bold text-yellow-200">{t.businessHeader}</div>
+                <div className="mt-2 text-sm text-gray-300">{t.businessHint}</div>
+                <div className="mt-4 text-sm text-gray-400">
+                  {lang === "es" ? "Negocios:" : "Businesses:"} {businessListings.length}
+                </div>
+              </div>
+
+              <div className="border border-white/10 rounded-2xl bg-black/30 p-6">
+                <div className="text-lg font-bold text-gray-100">{t.personalHeader}</div>
+                <div className="mt-4 text-sm text-gray-400">
+                  {lang === "es" ? "Personales:" : "Personal:"} {personalListings.length}
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={cx(
+                "mt-8",
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "flex flex-col gap-4"
+              )}
+            >
+              {paged.map((item) => (
+                <ListingCard key={item.id} item={item} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+              <div className="text-sm text-gray-300">{t.pageXofY(safePage, totalPages)}</div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={goPrev}
+                  disabled={safePage <= 1}
+                  className={cx(
+                    "px-6 py-3 rounded-full border font-semibold transition",
+                    safePage <= 1
+                      ? "border-white/10 bg-black/20 text-gray-500 cursor-not-allowed"
+                      : "border-white/10 bg-black/30 text-gray-100 hover:bg-black/45"
+                  )}
+                >
+                  {t.prev}
+                </button>
+
+                <button
+                  onClick={goNext}
+                  disabled={safePage >= totalPages}
+                  className={cx(
+                    "px-6 py-3 rounded-full border font-semibold transition",
+                    safePage >= totalPages
+                      ? "border-white/10 bg-black/20 text-gray-500 cursor-not-allowed"
+                      : "border-white/10 bg-black/30 text-gray-100 hover:bg-black/45"
+                  )}
+                >
+                  {t.next}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* MEMBERSHIPS */}
+      <section className="max-w-6xl mx-auto px-6 mt-20">
+        <div ref={membershipsRef} id="memberships" className="scroll-mt-28" />
+
+        <h2 className="text-5xl font-bold text-yellow-400">{t.membershipsTitle}</h2>
+        <p className="mt-4 text-gray-300 max-w-3xl">{t.membershipsSubtitle}</p>
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Free */}
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+            <div className="text-xl font-bold text-gray-100">{t.freeTitle}</div>
+            <div className="mt-4 space-y-2 text-gray-300 text-sm">
+              {t.freeBullets.map((b, i) => (
+                <div key={i}>• {b}</div>
+              ))}
+            </div>
+            <div className="mt-6">
+              <button
+                onClick={() => setBoostInfoOpen("free")}
+                className="w-full px-5 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              >
+                {lang === "es" ? "Ver detalles" : "View details"}
+              </button>
+            </div>
+          </div>
+
+          {/* Pro */}
+          <div className="rounded-2xl border border-yellow-400/30 bg-black/30 p-6">
+            <div className="text-xl font-bold text-yellow-200">{t.proTitle}</div>
+            <div className="mt-2 text-gray-200 font-semibold">{t.proPrice}</div>
+            <div className="mt-4 space-y-2 text-gray-300 text-sm">
+              {t.proBullets.map((b, i) => (
+                <div key={i}>• {b}</div>
+              ))}
+            </div>
+            <div className="mt-6">
+              <button
+                onClick={() => setBoostInfoOpen("pro")}
+                className="w-full px-5 py-3 rounded-full bg-yellow-400 text-black font-extrabold hover:opacity-95 transition"
+              >
+                {lang === "es" ? "¿Cómo funciona el boost?" : "How does boost work?"}
+              </button>
+            </div>
+          </div>
+
+          {/* Biz Lite */}
+          <a
+            href={t.routeBizMemberships}
+            className="rounded-2xl border border-white/10 bg-black/30 p-6 hover:bg-black/40 transition block"
+          >
+            <div className="text-xl font-bold text-gray-100">{t.bizLiteTitle}</div>
+            <div className="mt-2 text-gray-200 font-semibold">{t.bizLitePrice}</div>
+            <div className="mt-4 space-y-2 text-gray-300 text-sm">
+              {t.bizLiteBullets.map((b, i) => (
+                <div key={i}>• {b}</div>
+              ))}
+            </div>
+            <div className="mt-6 text-sm text-yellow-200 font-semibold">
+              {lang === "es" ? "Ver membresías de negocio →" : "View business memberships →"}
+            </div>
+          </a>
+
+          {/* Biz Premium */}
+          <a
+            href={t.routeBizMemberships}
+            className="rounded-2xl border border-yellow-600/20 bg-black/30 p-6 hover:bg-black/40 transition block"
+          >
+            <div className="text-xl font-bold text-gray-100">{t.bizPremTitle}</div>
+            <div className="mt-2 text-gray-200 font-semibold">{t.bizPremPrice}</div>
+            <div className="mt-4 space-y-2 text-gray-300 text-sm">
+              {t.bizPremBullets.map((b, i) => (
+                <div key={i}>• {b}</div>
+              ))}
+            </div>
+            <div className="mt-6 text-sm text-yellow-200 font-semibold">
+              {lang === "es" ? "Ver membresías de negocio →" : "View business memberships →"}
+            </div>
+          </a>
+        </div>
+
+        <div className="mt-8 border border-white/10 rounded-2xl bg-black/30 p-6">
+          <div className="text-gray-200 font-semibold">{t.printVsClassifieds}</div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href={t.routeMemberships}
+              className="px-6 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+            >
+              {lang === "es" ? "Ver Membresías" : "View Memberships"}
+            </a>
+            <a
+              href={t.routeBusinessDirectory}
+              className="px-6 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+            >
+              {lang === "es" ? "Directorio de Negocios" : "Business Directory"}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* BOOST INFO MODAL */}
       {boostInfoOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <button
@@ -1090,7 +1357,16 @@ export default function ClasificadosPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-xl font-bold text-yellow-200">
-                  {lang === "es" ? "¿Cómo funciona el impulso?" : "How does boosting work?"}
+                  {lang === "es" ? "¿Cómo funciona el boost?" : "How does boosting work?"}
+                </div>
+                <div className="mt-2 text-sm text-gray-300">
+                  {boostInfoOpen === "pro"
+                    ? lang === "es"
+                      ? "Un boost sube tu anuncio temporalmente para más visibilidad. Es opcional y no oculta anuncios gratis."
+                      : "A boost temporarily lifts your listing for extra visibility. It’s optional and never hides free listings."
+                    : lang === "es"
+                    ? "Gratis siempre es visible y buscable. Membresías solo mejoran presentación, duración y visibilidad — sin castigar a nadie."
+                    : "Free is always visible and searchable. Memberships only improve duration, presentation, and visibility — without punishing anyone."}
                 </div>
               </div>
 
