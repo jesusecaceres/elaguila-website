@@ -58,6 +58,11 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+type Suggestion =
+  | { kind: "term"; label: string; value: string }
+  | { kind: "category"; label: string; cat: Exclude<CategoryKey, "all"> }
+  | { kind: "recent"; label: string; value: string };
+
 export default function ClasificadosPage() {
   const params = useSearchParams()!;
   const lang = ((params.get("lang") || "es") as Lang) === "en" ? "en" : "es";
@@ -87,7 +92,8 @@ export default function ClasificadosPage() {
         exploreByCategory: "Explorar por categoría",
         clearCategory: "Quitar categoría",
 
-        stickyFilters: "Ir a filtros",
+        stickyFilters: "Filtros",
+        stickyPost: "Publicar",
 
         resultsTitle: "Resultados",
         showing: (a: number, b: number, total: number) => `Mostrando ${a}-${b} de ${total}`,
@@ -184,7 +190,8 @@ export default function ClasificadosPage() {
         exploreByCategory: "Explore by category",
         clearCategory: "Clear category",
 
-        stickyFilters: "Back to filters",
+        stickyFilters: "Filters",
+        stickyPost: "Post",
 
         resultsTitle: "Results",
         showing: (a: number, b: number, total: number) => `Showing ${a}-${b} of ${total}`,
@@ -267,6 +274,216 @@ export default function ClasificadosPage() {
     []
   );
 
+  // -------------------------
+  // Text helpers (accent + case normalized)
+  // -------------------------
+  const normalize = (s: string) =>
+    (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+  const tokenize = (s: string) =>
+    normalize(s)
+      .split(/[^a-z0-9]+/g)
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+  // Small Levenshtein for fuzzy suggestions / matching
+  const levenshtein = (a: string, b: string) => {
+    const s = normalize(a);
+    const t2 = normalize(b);
+    const n = s.length;
+    const m = t2.length;
+    if (!n) return m;
+    if (!m) return n;
+    const dp = new Array(m + 1).fill(0);
+    for (let j = 0; j <= m; j++) dp[j] = j;
+    for (let i = 1; i <= n; i++) {
+      let prev = dp[0];
+      dp[0] = i;
+      for (let j = 1; j <= m; j++) {
+        const cur = dp[j];
+        const cost = s[i - 1] === t2[j - 1] ? 0 : 1;
+        dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + cost);
+        prev = cur;
+      }
+    }
+    return dp[m];
+  };
+
+  const isFuzzyHit = (query: string, candidate: string) => {
+    const q = normalize(query);
+    const c = normalize(candidate);
+    if (!q || !c) return false;
+    if (c.includes(q)) return true;
+    // Allow small edit distance for short-ish queries
+    const max = q.length <= 4 ? 1 : q.length <= 7 ? 2 : 3;
+    return levenshtein(q, c) <= max;
+  };
+
+  // -------------------------
+  // Canonical search terms + slang maps (canonical output only)
+  // -------------------------
+  const categoryMeta = useMemo(() => {
+    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> = {
+      "en-venta": { es: "En Venta", en: "For Sale" },
+      rentas: { es: "Rentas", en: "Rentals" },
+      autos: { es: "Autos", en: "Autos" },
+      servicios: { es: "Servicios", en: "Services" },
+      empleos: { es: "Empleos", en: "Jobs" },
+      clases: { es: "Clases", en: "Classes" },
+      comunidad: { es: "Comunidad", en: "Community" },
+    };
+    return map;
+  }, []);
+
+  const CANONICAL_TERMS = useMemo(() => {
+    // Keep these “official” and clean.
+    const es = [
+      "Autos",
+      "Automóvil",
+      "Vehículo",
+      "Rentas",
+      "Departamento",
+      "Casa",
+      "Cuarto",
+      "Servicios",
+      "Empleos",
+      "Trabajo",
+      "Clases",
+      "Comunidad",
+      "En Venta",
+    ];
+    const en = [
+      "Autos",
+      "Vehicle",
+      "Car",
+      "Rentals",
+      "Apartment",
+      "House",
+      "Room",
+      "Services",
+      "Jobs",
+      "Work",
+      "Classes",
+      "Community",
+      "For Sale",
+    ];
+    return lang === "es" ? es : en;
+  }, [lang]);
+
+  const SLANG_TO_CANONICAL = useMemo(() => {
+    // Keys are normalized; values are canonical suggestions we display.
+    // NOTE: We do NOT display slang. We display canonical only.
+    const es: Record<string, string[]> = {
+      carro: ["Autos", "Automóvil", "Vehículo"],
+      troca: ["Autos", "Vehículo"],
+      camioneta: ["Autos", "Vehículo"],
+      coche: ["Autos", "Automóvil"],
+      depa: ["Rentas", "Departamento"],
+      apartamento: ["Rentas", "Departamento"],
+      renta: ["Rentas"],
+      rentar: ["Rentas"],
+      cuarto: ["Rentas", "Cuarto"],
+      trabajo: ["Empleos", "Trabajo"],
+      jale: ["Empleos", "Trabajo"],
+      chamba: ["Empleos", "Trabajo"],
+      empleo: ["Empleos", "Trabajo"],
+      clases: ["Clases"],
+      comunidad: ["Comunidad"],
+      venta: ["En Venta"],
+      vendiendo: ["En Venta"],
+      servicio: ["Servicios"],
+      servicios: ["Servicios"],
+    };
+
+    const en: Record<string, string[]> = {
+      car: ["Autos", "Car", "Vehicle"],
+      vehicle: ["Vehicle", "Autos"],
+      truck: ["Vehicle", "Autos"],
+      apt: ["Rentals", "Apartment"],
+      apartment: ["Rentals", "Apartment"],
+      rent: ["Rentals"],
+      job: ["Jobs", "Work"],
+      work: ["Jobs", "Work"],
+      classes: ["Classes"],
+      community: ["Community"],
+      sale: ["For Sale"],
+      services: ["Services"],
+      service: ["Services"],
+    };
+
+    return lang === "es" ? es : en;
+  }, [lang]);
+
+  const QUERY_TO_CATEGORY = useMemo(() => {
+    // Used for a “Category:” quick suggestion.
+    const es: Array<{ keys: string[]; cat: Exclude<CategoryKey, "all">; label: string }> = [
+      { keys: ["auto", "autos", "automovil", "vehiculo", "carro", "troca", "camioneta", "coche"], cat: "autos", label: "Categoría: Autos" },
+      { keys: ["renta", "rentas", "depa", "departamento", "casa", "cuarto", "apartamento"], cat: "rentas", label: "Categoría: Rentas" },
+      { keys: ["trabajo", "empleos", "empleo", "chamba", "jale"], cat: "empleos", label: "Categoría: Empleos" },
+      { keys: ["servicio", "servicios"], cat: "servicios", label: "Categoría: Servicios" },
+      { keys: ["clase", "clases"], cat: "clases", label: "Categoría: Clases" },
+      { keys: ["comunidad"], cat: "comunidad", label: "Categoría: Comunidad" },
+      { keys: ["venta", "vendiendo", "enventa"], cat: "en-venta", label: "Categoría: En Venta" },
+    ];
+    const en: Array<{ keys: string[]; cat: Exclude<CategoryKey, "all">; label: string }> = [
+      { keys: ["auto", "autos", "car", "vehicle", "truck"], cat: "autos", label: "Category: Autos" },
+      { keys: ["rent", "rentals", "apartment", "apt", "house", "room"], cat: "rentas", label: "Category: Rentals" },
+      { keys: ["job", "jobs", "work"], cat: "empleos", label: "Category: Jobs" },
+      { keys: ["service", "services"], cat: "servicios", label: "Category: Services" },
+      { keys: ["class", "classes"], cat: "clases", label: "Category: Classes" },
+      { keys: ["community"], cat: "comunidad", label: "Category: Community" },
+      { keys: ["sale", "for sale"], cat: "en-venta", label: "Category: For Sale" },
+    ];
+    return lang === "es" ? es : en;
+  }, [lang]);
+
+  // -------------------------
+  // Recent searches (localStorage, per language)
+  // -------------------------
+  const RECENTS_KEY = `leonix_recent_searches_${lang}`;
+
+  const readRecents = () => {
+    try {
+      const raw = localStorage.getItem(RECENTS_KEY);
+      const arr = raw ? (JSON.parse(raw) as string[]) : [];
+      if (!Array.isArray(arr)) return [];
+      return arr
+        .map((x) => (typeof x === "string" ? x : ""))
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .slice(0, 5);
+    } catch {
+      return [];
+    }
+  };
+
+  const writeRecent = (term: string) => {
+    const v = term.trim();
+    if (!v) return;
+    try {
+      const cur = readRecents();
+      const next = [v, ...cur.filter((x) => normalize(x) !== normalize(v))].slice(0, 5);
+      localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Load recents after mount
+    setRecentSearches(readRecents());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
+  // -------------------------
+  // Main filter state
+  // -------------------------
   const [search, setSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
   const [sort, setSort] = useState<"balanced" | "newest" | "priceAsc" | "priceDesc">(
@@ -283,6 +500,9 @@ export default function ClasificadosPage() {
 
   const [boostInfoOpen, setBoostInfoOpen] = useState<null | "free" | "pro">(null);
 
+  // -------------------------
+  // Location state (applied + draft)
+  // -------------------------
   const [locationOpen, setLocationOpen] = useState(false);
 
   const [city, setCity] = useState<string>(DEFAULT_CITY);
@@ -293,16 +513,12 @@ export default function ClasificadosPage() {
   const [zipDraft, setZipDraft] = useState<string>("");
   const [radiusDraft, setRadiusDraft] = useState<number>(DEFAULT_RADIUS_MI);
 
+  // Applied anchor
   const [geoAnchor, setGeoAnchor] = useState<{ lat: number; lng: number } | null>(null);
+  // Draft-only geo (must commit on Apply)
+  const [geoDraft, setGeoDraft] = useState<{ lat: number; lng: number } | null>(null);
 
   const CITY_OPTIONS = useMemo(() => CA_CITIES.map((c) => c.city), []);
-
-  const normalize = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
 
   const haversineMi = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
     const R = 3958.8;
@@ -316,7 +532,7 @@ export default function ClasificadosPage() {
     const sinDLat = Math.sin(dLat / 2);
     const sinDLon = Math.sin(dLon / 2);
 
-    // ✅ FIX: correct cos multiplication (no comma)
+    // correct cos multiplication
     const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
 
     return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
@@ -335,6 +551,7 @@ export default function ClasificadosPage() {
     return hit ? { lat: hit.lat, lng: hit.lng, zip: clean, city: hit.city } : null;
   };
 
+  // Applied anchor (used for filtering)
   const locationAnchor = useMemo(() => {
     if (geoAnchor) return { source: "geo" as const, lat: geoAnchor.lat, lng: geoAnchor.lng };
 
@@ -348,7 +565,22 @@ export default function ClasificadosPage() {
     return { source: "default" as const, lat: d?.lat ?? 37.3382, lng: d?.lng ?? -121.8863 };
   }, [geoAnchor, zip, city]);
 
+  // Draft anchor (used ONLY inside modal for nearby chips + radius live updates)
+  const draftAnchor = useMemo(() => {
+    if (geoDraft) return { lat: geoDraft.lat, lng: geoDraft.lng };
+
+    const z = resolveZipLatLng(zipDraft);
+    if (z) return { lat: z.lat, lng: z.lng };
+
+    const c = resolveCityLatLng(cityDraft);
+    if (c) return { lat: c.lat, lng: c.lng };
+
+    const d = resolveCityLatLng(DEFAULT_CITY);
+    return { lat: d?.lat ?? 37.3382, lng: d?.lng ?? -121.8863 };
+  }, [geoDraft, zipDraft, cityDraft]);
+
   const nearbyCities = useMemo(() => {
+    // Nearby cities for applied filtering
     const anchor = { lat: locationAnchor.lat, lng: locationAnchor.lng };
     const within = CA_CITIES
       .map((c) => ({ city: c.city, d: haversineMi(anchor, { lat: c.lat, lng: c.lng }) }))
@@ -361,6 +593,22 @@ export default function ClasificadosPage() {
     const merged = [...new Set([...(cur ? [cur] : []), ...within])];
     return merged.slice(0, 12);
   }, [locationAnchor.lat, locationAnchor.lng, radiusMi, city]);
+
+  const nearbyCitiesDraft = useMemo(() => {
+    // Nearby cities for modal display (must respond to radiusDraft + draftAnchor)
+    const anchor = { lat: draftAnchor.lat, lng: draftAnchor.lng };
+    const within = CA_CITIES
+      .map((c) => ({ city: c.city, d: haversineMi(anchor, { lat: c.lat, lng: c.lng }) }))
+      .filter((x) => x.d <= radiusDraft)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 12)
+      .map((x) => x.city);
+
+    // If user typed a city, keep it in the chips
+    const cur = resolveCityLatLng(cityDraft)?.city;
+    const merged = [...new Set([...(cur ? [cur] : []), ...within])];
+    return merged.slice(0, 12);
+  }, [draftAnchor.lat, draftAnchor.lng, radiusDraft, cityDraft]);
 
   const citySuggestions = useMemo(() => {
     const q = normalize(cityDraft);
@@ -380,33 +628,80 @@ export default function ClasificadosPage() {
   }, [CITY_OPTIONS, cityDraft]);
 
   const locationSummary = useMemo(() => {
-    const base = zip ? `ZIP ${zip}` : city;
+    const z = zip ? resolveZipLatLng(zip) : null;
+    const base = zip
+      ? z
+        ? `${lang === "es" ? "ZIP" : "ZIP"} ${z.zip} (${z.city})`
+        : `${lang === "es" ? "ZIP" : "ZIP"} ${zip}`
+      : city;
     return `${base} • ${radiusMi} mi`;
-  }, [city, zip, radiusMi]);
+  }, [city, zip, radiusMi, lang]);
 
   const openLocation = () => {
     setCityDraft(city);
     setZipDraft(zip);
     setRadiusDraft(radiusMi);
+    setGeoDraft(geoAnchor); // bring applied geo into draft if present
     setLocationOpen(true);
+  };
+
+  const cancelLocation = () => {
+    // Discard drafts and close (must not change applied)
+    setCityDraft(city);
+    setZipDraft(zip);
+    setRadiusDraft(radiusMi);
+    setGeoDraft(null); // requirement: clear draft geo after cancel
+    setLocationOpen(false);
   };
 
   const applyLocation = () => {
     const nextZip = zipDraft.trim().replace(/[^0-9]/g, "").slice(0, 5);
     const nextCityRaw = cityDraft.trim();
 
-    if (nextZip) {
-      setZip(nextZip);
-      setCity(DEFAULT_CITY);
-      setGeoAnchor(null);
-    } else {
-      const resolved = resolveCityLatLng(nextCityRaw);
-      setCity(resolved?.city ?? DEFAULT_CITY);
+    // Commit radius
+    setRadiusMi(radiusDraft);
+
+    // Commit geoDraft (if present) ONLY on apply
+    if (geoDraft) {
+      setGeoAnchor({ lat: geoDraft.lat, lng: geoDraft.lng });
+      // When using geo, ZIP/city remain as labels only; clear ZIP to avoid confusion.
       setZip("");
-      setGeoAnchor(null);
+      // If we have a cityDraft, keep it as the “label city” fallback
+      const resolvedCity = resolveCityLatLng(nextCityRaw);
+      setCity(resolvedCity?.city ?? city ?? DEFAULT_CITY);
+      setGeoDraft(null);
+      setLocationOpen(false);
+      return;
     }
 
-    setRadiusMi(radiusDraft);
+    // If ZIP provided, attempt to resolve. If unknown ZIP, keep it as preference label
+    // BUT do NOT bypass city/radius filtering.
+    if (nextZip) {
+      const z = resolveZipLatLng(nextZip);
+      setZip(nextZip);
+
+      // If ZIP resolves, use its city as label
+      if (z?.city) {
+        setCity(z.city);
+      } else {
+        // Unknown zip: keep existing city label (or draft city if present); never force “DEFAULT_CITY” blindly
+        const resolved = resolveCityLatLng(nextCityRaw);
+        setCity(resolved?.city ?? city ?? DEFAULT_CITY);
+      }
+
+      // Clear applied geo
+      setGeoAnchor(null);
+      setGeoDraft(null);
+      setLocationOpen(false);
+      return;
+    }
+
+    // City path
+    const resolved = resolveCityLatLng(nextCityRaw);
+    setCity(resolved?.city ?? city ?? DEFAULT_CITY);
+    setZip("");
+    setGeoAnchor(null);
+    setGeoDraft(null);
     setLocationOpen(false);
   };
 
@@ -416,9 +711,14 @@ export default function ClasificadosPage() {
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        setGeoAnchor({ lat, lng });
 
+        // Draft only — do not commit to applied state yet
+        setGeoDraft({ lat, lng });
+
+        // Mutual exclusivity: clear zipDraft
         setZipDraft("");
+
+        // Choose nearest known city for label convenience
         const nearest = CA_CITIES
           .map((c) => ({ city: c.city, d: haversineMi({ lat, lng }, { lat: c.lat, lng: c.lng }) }))
           .sort((a, b) => a.d - b.d)[0];
@@ -430,6 +730,9 @@ export default function ClasificadosPage() {
     );
   };
 
+  // -------------------------
+  // Refs + sticky
+  // -------------------------
   const filtersRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const membershipsRef = useRef<HTMLDivElement | null>(null);
@@ -448,118 +751,106 @@ export default function ClasificadosPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const categoryMeta = useMemo(() => {
-    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> = {
-      "en-venta": { es: "En Venta", en: "For Sale" },
-      rentas: { es: "Rentas", en: "Rentals" },
-      autos: { es: "Autos", en: "Autos" },
-      servicios: { es: "Servicios", en: "Services" },
-      empleos: { es: "Empleos", en: "Jobs" },
-      clases: { es: "Clases", en: "Classes" },
-      comunidad: { es: "Comunidad", en: "Community" },
-    };
-    return map;
-  }, []);
-
-  const getStatus = (l: Listing): ListingStatus => (l.status ? l.status : "active");
-
-  const filtered = useMemo(() => {
-    let list = sampleListings;
-
-    if (selectedCategory !== "all") {
-      list = list.filter((l) => l.category === selectedCategory);
-    }
-
-    if (!showSold) {
-      list = list.filter((l) => getStatus(l) !== "sold");
-    }
-
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter((l) => {
-        const title = l.title[lang].toLowerCase();
-        const blurb = l.blurb[lang].toLowerCase();
-        const cty = l.city.toLowerCase();
-        return title.includes(q) || blurb.includes(q) || cty.includes(q);
-      });
-    }
-
-    // City+radius filtering (ZIP is “preference only” if not in map; keep current behavior)
-    if (!zip) {
-      const allowedCities = Array.from(new Set([city, ...nearbyCities]));
-      list = list.filter((l) => allowedCities.includes(l.city));
-    }
-
-    if (hasImage !== "any") {
-      list = list.filter((l) => (hasImage === "yes" ? l.hasImage : !l.hasImage));
-    }
-    if (seller !== "any") {
-      list = list.filter((l) => l.sellerType === seller);
-    }
-    if (condition !== "any") {
-      list = list.filter((l) => l.condition === condition);
-    }
-
-    const priceToNumber = (s: string) => {
-      const m = s.replace(/,/g, "").match(/(\d+(\.\d+)?)/);
-      return m ? Number(m[1]) : Number.NaN;
-    };
-
-    if (sort === "newest") return list;
-
-    if (sort === "priceAsc") {
-      return [...list].sort((a, b) => {
-        const pa = priceToNumber(a.priceLabel[lang]);
-        const pb = priceToNumber(b.priceLabel[lang]);
-        if (Number.isNaN(pa) && Number.isNaN(pb)) return 0;
-        if (Number.isNaN(pa)) return 1;
-        if (Number.isNaN(pb)) return -1;
-        return pa - pb;
-      });
-    }
-
-    if (sort === "priceDesc") {
-      return [...list].sort((a, b) => {
-        const pa = priceToNumber(a.priceLabel[lang]);
-        const pb = priceToNumber(b.priceLabel[lang]);
-        if (Number.isNaN(pa) && Number.isNaN(pb)) return 0;
-        if (Number.isNaN(pa)) return 1;
-        if (Number.isNaN(pb)) return -1;
-        return pb - pa;
-      });
-    }
-
-    return list;
-  }, [
-    sampleListings,
-    selectedCategory,
-    search,
-    sort,
-    lang,
-    zip,
-    city,
-    nearbyCities,
-    hasImage,
-    seller,
-    condition,
-    showSold,
-  ]);
-
-  const businessListings = useMemo(
-    () => filtered.filter((x) => x.sellerType === "business"),
-    [filtered]
-  );
-  const personalListings = useMemo(
-    () => filtered.filter((x) => x.sellerType === "personal"),
-    [filtered]
-  );
-
   const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
     const el = ref.current;
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // -------------------------
+  // Search Suggestions engine
+  // -------------------------
+  const buildSuggestions = (raw: string): Suggestion[] => {
+    const q = normalize(raw);
+
+    // If empty: show recent searches first (language separated)
+    if (!q) {
+      const recents = recentSearches.slice(0, 5).map((r) => ({
+        kind: "recent" as const,
+        label: r,
+        value: r,
+      }));
+      return recents;
+    }
+
+    const out: Suggestion[] = [];
+
+    // 1) Slang → canonical (canonical-only output)
+    const slangHits = SLANG_TO_CANONICAL[q];
+    if (slangHits?.length) {
+      for (const v of slangHits) {
+        out.push({ kind: "term", label: v, value: v });
+      }
+    }
+
+    // 2) Canonical terms fuzzy match
+    const canonicalHits = CANONICAL_TERMS.filter((term) => isFuzzyHit(q, term)).slice(0, 6);
+    for (const v of canonicalHits) out.push({ kind: "term", label: v, value: v });
+
+    // 3) Category quick jump (if query strongly maps)
+    const tokens = tokenize(q);
+    const joined = tokens.join(" ");
+    const catMatch = QUERY_TO_CATEGORY.find((x) =>
+      x.keys.some((k) => {
+        const kk = normalize(k);
+        return joined.includes(kk) || tokens.includes(kk);
+      })
+    );
+    if (catMatch) {
+      out.push({ kind: "category", label: catMatch.label, cat: catMatch.cat });
+    }
+
+    // 4) Recent searches that fuzzy match (nice-to-have)
+    const recentHits = recentSearches
+      .filter((r) => isFuzzyHit(q, r))
+      .slice(0, 2)
+      .map((r) => ({ kind: "recent" as const, label: r, value: r }));
+    out.push(...recentHits);
+
+    // De-dupe by label/value
+    const seen = new Set<string>();
+    const deduped: Suggestion[] = [];
+    for (const s of out) {
+      const key =
+        s.kind === "category" ? `category:${s.cat}` : `${s.kind}:${normalize(s.value)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(s);
+    }
+
+    return deduped.slice(0, 6);
+  };
+
+  const [suggestOpen, setSuggestOpen] = useState(false);
+
+  const suggestions = useMemo(() => buildSuggestions(search), [search, recentSearches]);
+
+  const selectSuggestion = (s: Suggestion) => {
+    if (s.kind === "category") {
+      setSelectedCategory(s.cat);
+      setPage(1);
+      setSuggestOpen(false);
+      // keep search as-is; scroll to results
+      setTimeout(() => scrollTo(resultsRef), 0);
+      return;
+    }
+
+    setSearch(s.value);
+    writeRecent(s.value);
+    setRecentSearches(readRecents());
+    setSuggestOpen(false);
+  };
+
+  const commitSearch = () => {
+    const v = search.trim();
+    if (!v) return;
+    writeRecent(v);
+    setRecentSearches(readRecents());
+  };
+
+  // -------------------------
+  // Category + Reset
+  // -------------------------
   const applyCategory = (cat: CategoryKey) => {
     setSelectedCategory(cat);
     setPage(1);
@@ -601,6 +892,252 @@ export default function ClasificadosPage() {
     </select>
   );
 
+  // Shared search input UI (used in Filters + Sticky)
+  const SearchBox = ({ compact }: { compact?: boolean }) => {
+    return (
+      <div className="relative">
+        <input
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setSuggestOpen(true);
+          }}
+          onFocus={() => setSuggestOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              commitSearch();
+              setSuggestOpen(false);
+              setTimeout(() => scrollTo(resultsRef), 0);
+            }
+            if (e.key === "Escape") {
+              setSuggestOpen(false);
+            }
+          }}
+          onBlur={() => {
+            // allow click selection
+            window.setTimeout(() => setSuggestOpen(false), 120);
+          }}
+          placeholder={t.searchPh}
+          lang={lang}
+          spellCheck={true}
+          className={cx(
+            "w-full rounded-full bg-black/40 border border-white/10 text-gray-100 placeholder:text-gray-500",
+            "focus:outline-none focus:ring-2 focus:ring-yellow-400/40",
+            compact ? "px-4 py-2.5 text-sm" : "px-5 py-3"
+          )}
+        />
+
+        {suggestOpen && suggestions.length > 0 && (
+          <div className="absolute left-0 right-0 mt-2 z-50">
+            <div className="rounded-2xl border border-white/10 bg-black/90 backdrop-blur shadow-[0_0_40px_rgba(0,0,0,0.6)] overflow-hidden">
+              {suggestions.map((s, idx) => (
+                <button
+                  key={`${s.kind}-${idx}-${"value" in s ? s.value : s.cat}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectSuggestion(s)}
+                  className="w-full text-left px-4 py-3 hover:bg-white/5 transition flex items-center justify-between gap-3"
+                >
+                  <span className="text-gray-100 font-semibold">{s.label}</span>
+                  <span className="text-xs text-gray-400">
+                    {s.kind === "category"
+                      ? lang === "es"
+                        ? "Categoría"
+                        : "Category"
+                      : s.kind === "recent"
+                      ? lang === "es"
+                        ? "Reciente"
+                        : "Recent"
+                      : lang === "es"
+                      ? "Sugerencia"
+                      : "Suggestion"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // -------------------------
+  // Listing status
+  // -------------------------
+  const getStatus = (l: Listing): ListingStatus => (l.status ? l.status : "active");
+
+  // -------------------------
+  // Search expansion (slang/synonyms) for filtering results
+  // -------------------------
+  const expandQueryTerms = (raw: string): string[] => {
+    const q = normalize(raw);
+    if (!q) return [];
+    const tokens = tokenize(q);
+    const expanded = new Set<string>();
+
+    // include original tokens + whole
+    expanded.add(q);
+    for (const tok of tokens) expanded.add(tok);
+
+    // slang map on whole query
+    const slangHits = SLANG_TO_CANONICAL[q];
+    if (slangHits) for (const v of slangHits) expanded.add(normalize(v));
+
+    // slang map per token
+    for (const tok of tokens) {
+      const hits = SLANG_TO_CANONICAL[tok];
+      if (hits) for (const v of hits) expanded.add(normalize(v));
+    }
+
+    // Also include category keywords if matched
+    const catMatch = QUERY_TO_CATEGORY.find((x) =>
+      x.keys.some((k) => tokens.includes(normalize(k)) || q.includes(normalize(k)))
+    );
+    if (catMatch) expanded.add(normalize(categoryMeta[catMatch.cat][lang]));
+
+    return Array.from(expanded).filter(Boolean).slice(0, 12);
+  };
+
+  // -------------------------
+  // Filtering
+  // -------------------------
+  const filtered = useMemo(() => {
+    let list = sampleListings;
+
+    if (selectedCategory !== "all") {
+      list = list.filter((l) => l.category === selectedCategory);
+    }
+
+    if (!showSold) {
+      list = list.filter((l) => getStatus(l) !== "sold");
+    }
+
+    const q = search.trim();
+    if (q) {
+      const expanded = expandQueryTerms(q);
+      list = list.filter((l) => {
+        const title = normalize(l.title[lang]);
+        const blurb = normalize(l.blurb[lang]);
+        const cty = normalize(l.city);
+
+        // direct includes on expanded terms
+        const hay = `${title} ${blurb} ${cty}`;
+        if (expanded.some((term) => hay.includes(term))) return true;
+
+        // light fuzzy: compare query against individual words in title/blurb if nothing else
+        const qn = normalize(q);
+        if (qn.length >= 4) {
+          const words = tokenize(`${l.title[lang]} ${l.blurb[lang]}`).slice(0, 30);
+          const max = qn.length <= 5 ? 1 : 2;
+          if (words.some((w) => levenshtein(qn, w) <= max)) return true;
+        }
+
+        return false;
+      });
+    }
+
+    // Location filtering MUST NOT be bypassed by ZIP preference.
+    // We filter by allowedCities derived from anchor + radius, regardless of zip presence.
+    const allowedCities = Array.from(new Set([city, ...nearbyCities]));
+    list = list.filter((l) => allowedCities.includes(l.city));
+
+    if (hasImage !== "any") {
+      list = list.filter((l) => (hasImage === "yes" ? l.hasImage : !l.hasImage));
+    }
+    if (seller !== "any") {
+      list = list.filter((l) => l.sellerType === seller);
+    }
+    if (condition !== "any") {
+      list = list.filter((l) => l.condition === condition);
+    }
+
+    const priceToNumber = (s: string) => {
+      const m = (s || "").replace(/,/g, "").match(/(\d+(\.\d+)?)/);
+      return m ? Number(m[1]) : Number.NaN;
+    };
+
+    if (sort === "newest") return list;
+
+    if (sort === "priceAsc") {
+      return [...list].sort((a, b) => {
+        const pa = priceToNumber(a.priceLabel[lang]);
+        const pb = priceToNumber(b.priceLabel[lang]);
+        if (Number.isNaN(pa) && Number.isNaN(pb)) return 0;
+        if (Number.isNaN(pa)) return 1;
+        if (Number.isNaN(pb)) return -1;
+        return pa - pb;
+      });
+    }
+
+    if (sort === "priceDesc") {
+      return [...list].sort((a, b) => {
+        const pa = priceToNumber(a.priceLabel[lang]);
+        const pb = priceToNumber(b.priceLabel[lang]);
+        if (Number.isNaN(pa) && Number.isNaN(pb)) return 0;
+        if (Number.isNaN(pa)) return 1;
+        if (Number.isNaN(pb)) return -1;
+        return pb - pa;
+      });
+    }
+
+    return list;
+  }, [
+    sampleListings,
+    selectedCategory,
+    search,
+    sort,
+    lang,
+    zip,
+    city,
+    nearbyCities,
+    hasImage,
+    seller,
+    condition,
+    showSold,
+    SLANG_TO_CANONICAL,
+    CANONICAL_TERMS,
+    QUERY_TO_CATEGORY,
+    categoryMeta,
+  ]);
+
+  const businessListings = useMemo(
+    () => filtered.filter((x) => x.sellerType === "business"),
+    [filtered]
+  );
+  const personalListings = useMemo(
+    () => filtered.filter((x) => x.sellerType === "personal"),
+    [filtered]
+  );
+
+  // Pagination (keeps free listings visible; no infinite scroll)
+  const [page, setPage] = useState(1);
+  const perPage = useMemo(() => (viewMode === "list" ? 10 : 18), [viewMode]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory, sort, city, zip, radiusMi, showSold, hasImage, seller, condition]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const safePage = Math.min(page, totalPages);
+
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * perPage;
+    return filtered.slice(start, start + perPage);
+  }, [filtered, perPage, safePage]);
+
+  const showingRange = useMemo(() => {
+    if (total === 0) return { a: 0, b: 0 };
+    const a = (safePage - 1) * perPage + 1;
+    const b = Math.min(total, (safePage - 1) * perPage + paged.length);
+    return { a, b };
+  }, [paged.length, perPage, safePage, total]);
+
+  const goPrev = () => setPage((p) => Math.max(1, p - 1));
+  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
+
+  // -------------------------
+  // Listing Card
+  // -------------------------
   const ListingCard = ({ item }: { item: Listing }) => {
     const isBusiness = item.sellerType === "business";
     const isSold = getStatus(item) === "sold";
@@ -691,62 +1228,74 @@ export default function ClasificadosPage() {
     );
   };
 
-  // Pagination (keeps free listings visible; no infinite scroll)
-  const [page, setPage] = useState(1);
-  const perPage = useMemo(() => (viewMode === "list" ? 10 : 18), [viewMode]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, selectedCategory, sort, city, zip, radiusMi, showSold, hasImage, seller, condition]);
-
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-  const safePage = Math.min(page, totalPages);
-
-  const paged = useMemo(() => {
-    const start = (safePage - 1) * perPage;
-    return filtered.slice(start, start + perPage);
-  }, [filtered, perPage, safePage]);
-
-  const showingRange = useMemo(() => {
-    if (total === 0) return { a: 0, b: 0 };
-    const a = (safePage - 1) * perPage + 1;
-    const b = Math.min(total, (safePage - 1) * perPage + paged.length);
-    return { a, b };
-  }, [paged.length, perPage, safePage, total]);
-
-  const goPrev = () => setPage((p) => Math.max(1, p - 1));
-  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
-
+  // -------------------------
+  // UI
+  // -------------------------
   return (
     <div className="bg-black min-h-screen text-white pb-32">
       <Navbar />
 
-      {/* Sticky action pills (only after you scroll into results) */}
+      {/* Sticky condensed filter bar (only after you scroll into results) */}
       {showSticky && (
         <div className="fixed top-16 left-0 right-0 z-40">
           <div className="max-w-6xl mx-auto px-6">
-            <div className="flex flex-wrap items-center justify-center gap-3 border border-white/10 bg-black/60 backdrop-blur rounded-2xl p-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 border border-white/10 bg-black/70 backdrop-blur rounded-2xl p-3">
+              {/* Search (compact) */}
+              <div className="w-full sm:w-[280px]">
+                <SearchBox compact />
+              </div>
+
+              {/* Location summary */}
+              <button
+                onClick={openLocation}
+                className="px-4 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition text-sm"
+              >
+                {locationSummary}
+              </button>
+
+              {/* Category chip (removable) */}
+              {selectedCategory !== "all" ? (
+                <button
+                  onClick={() => {
+                    setSelectedCategory("all");
+                    setPage(1);
+                  }}
+                  className="px-4 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition text-sm"
+                >
+                  {categoryMeta[selectedCategory as Exclude<CategoryKey, "all">][lang]} ✕
+                </button>
+              ) : null}
+
+              {/* Sort */}
+              <select
+                value={sort}
+                onChange={(e) =>
+                  setSort(e.target.value as "balanced" | "newest" | "priceAsc" | "priceDesc")
+                }
+                className="px-4 py-2.5 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 text-sm"
+                aria-label={t.orderLabel}
+              >
+                <option value="balanced">{t.sortBalanced}</option>
+                <option value="newest">{t.sortNewest}</option>
+                <option value="priceAsc">{t.sortPriceAsc}</option>
+                <option value="priceDesc">{t.sortPriceDesc}</option>
+              </select>
+
+              {/* Filters button */}
               <button
                 onClick={() => scrollTo(filtersRef)}
-                className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+                className="px-4 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition text-sm"
               >
                 {t.stickyFilters}
               </button>
 
+              {/* Post listing */}
               <a
                 href={t.routePost}
-                className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-extrabold hover:opacity-95 transition"
+                className="px-4 py-2.5 rounded-full bg-yellow-400 text-black font-extrabold hover:opacity-95 transition text-sm"
               >
-                {t.ctaPost}
+                {t.stickyPost}
               </a>
-
-              <button
-                onClick={() => scrollTo(membershipsRef)}
-                className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
-              >
-                {t.ctaMemberships}
-              </button>
             </div>
           </div>
         </div>
@@ -775,6 +1324,7 @@ export default function ClasificadosPage() {
           <h1 className="text-6xl md:text-7xl font-bold text-yellow-400">{t.pageTitle}</h1>
           <p className="mt-5 text-gray-300 max-w-3xl mx-auto text-lg md:text-xl">{t.subtitle}</p>
 
+          {/* Keep hero CTAs as-is (we only removed View/Memberships from the STICKY bar per spec) */}
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
               href={t.routePost}
@@ -810,12 +1360,7 @@ export default function ClasificadosPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
             <div className="lg:col-span-5">
               <div className="text-sm text-gray-300 mb-2">{t.searchLabel}</div>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t.searchPh}
-                className="w-full px-5 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-              />
+              <SearchBox />
             </div>
 
             <div className="lg:col-span-3">
@@ -936,7 +1481,9 @@ export default function ClasificadosPage() {
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Vendedor" : "Seller"}</div>
+                  <div className="text-sm text-gray-300 mb-2">
+                    {lang === "es" ? "Vendedor" : "Seller"}
+                  </div>
                   <select
                     value={seller}
                     onChange={(e) => setSeller(e.target.value as any)}
@@ -949,7 +1496,9 @@ export default function ClasificadosPage() {
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "Condición" : "Condition"}</div>
+                  <div className="text-sm text-gray-300 mb-2">
+                    {lang === "es" ? "Condición" : "Condition"}
+                  </div>
                   <select
                     value={condition}
                     onChange={(e) => setCondition(e.target.value as any)}
@@ -1009,19 +1558,23 @@ export default function ClasificadosPage() {
           <button
             aria-label={lang === "es" ? "Cerrar" : "Close"}
             className="absolute inset-0 bg-black/70"
-            onClick={() => setLocationOpen(false)}
+            onClick={cancelLocation}
           />
           <div className="relative w-full sm:max-w-xl bg-black border border-white/10 rounded-t-2xl sm:rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-xl font-bold text-yellow-200">{lang === "es" ? "Ubicación" : "Location"}</div>
+                <div className="text-xl font-bold text-yellow-200">
+                  {lang === "es" ? "Ubicación" : "Location"}
+                </div>
                 <div className="text-sm text-gray-300 mt-1">
-                  {lang === "es" ? "Elige ciudad o ZIP y ajusta el radio." : "Choose a city or ZIP and adjust the radius."}
+                  {lang === "es"
+                    ? "Elige ciudad o ZIP y ajusta el radio."
+                    : "Choose a city or ZIP and adjust the radius."}
                 </div>
               </div>
 
               <button
-                onClick={() => setLocationOpen(false)}
+                onClick={cancelLocation}
                 className="px-4 py-2 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
               >
                 {lang === "es" ? "Cerrar" : "Close"}
@@ -1036,9 +1589,11 @@ export default function ClasificadosPage() {
                   onChange={(e) => {
                     setCityDraft(e.target.value);
                     setZipDraft("");
-                    setGeoAnchor(null);
+                    setGeoDraft(null);
                   }}
                   placeholder={lang === "es" ? "Ej: San José" : "e.g., San Jose"}
+                  lang={lang}
+                  spellCheck={true}
                   className="w-full px-4 py-3 rounded-full bg-black/40 border border-white/10 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1055,13 +1610,15 @@ export default function ClasificadosPage() {
               </div>
 
               <div>
-                <div className="text-sm text-gray-300 mb-2">{lang === "es" ? "ZIP (opcional)" : "ZIP (optional)"}</div>
+                <div className="text-sm text-gray-300 mb-2">
+                  {lang === "es" ? "ZIP (opcional)" : "ZIP (optional)"}
+                </div>
                 <input
                   value={zipDraft}
                   onChange={(e) => {
                     setZipDraft(e.target.value.replace(/[^0-9]/g, "").slice(0, 5));
                     setCityDraft("");
-                    setGeoAnchor(null);
+                    setGeoDraft(null);
                   }}
                   inputMode="numeric"
                   placeholder="95112"
@@ -1069,8 +1626,8 @@ export default function ClasificadosPage() {
                 />
                 <div className="text-xs text-gray-400 mt-2">
                   {lang === "es"
-                    ? "Nota: el ZIP ya tiene datos de lat/lng en nuestro mapa. Si no existe, se guardará como preferencia."
-                    : "Note: ZIP uses our lat/lng map when available; otherwise it’s saved as a preference."}
+                    ? "Si el ZIP no existe en el mapa, no se rompe la búsqueda: seguimos usando ciudad/radio."
+                    : "If the ZIP isn’t in our map, search still works: we continue using city/radius."}
                 </div>
               </div>
 
@@ -1086,14 +1643,20 @@ export default function ClasificadosPage() {
                     onChange={(e) => setRadiusDraft(Number(e.target.value))}
                     className="w-full"
                   />
-                  <div className="min-w-[84px] text-right text-gray-200 font-semibold">{radiusDraft} mi</div>
+                  <div className="min-w-[84px] text-right text-gray-200 font-semibold">
+                    {radiusDraft} mi
+                  </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {nearbyCities.map((c) => (
+                  {nearbyCitiesDraft.map((c) => (
                     <button
                       key={c}
-                      onClick={() => setCityDraft(c)}
+                      onClick={() => {
+                        setCityDraft(c);
+                        setZipDraft("");
+                        setGeoDraft(null);
+                      }}
                       className="px-3 py-1.5 rounded-full border border-yellow-600/20 bg-black/30 text-gray-100 hover:bg-black/45 transition text-sm"
                     >
                       {c}
@@ -1112,7 +1675,7 @@ export default function ClasificadosPage() {
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setLocationOpen(false)}
+                    onClick={cancelLocation}
                     className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 hover:bg-black/45 transition"
                   >
                     {lang === "es" ? "Cancelar" : "Cancel"}
@@ -1179,7 +1742,7 @@ export default function ClasificadosPage() {
           </div>
         ) : (
           <>
-            {/* Split headers (optional; keeps business visibility obvious) */}
+            {/* Split headers (keeps business visibility obvious) */}
             <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="border border-yellow-600/20 rounded-2xl bg-black/30 p-6">
                 <div className="text-lg font-bold text-yellow-200">{t.businessHeader}</div>
@@ -1246,7 +1809,7 @@ export default function ClasificadosPage() {
         )}
       </section>
 
-      {/* MEMBERSHIPS */}
+      {/* MEMBERSHIPS (unchanged below this point — not part of today’s “filter box only” fixes) */}
       <section className="max-w-6xl mx-auto px-6 mt-20">
         <div ref={membershipsRef} id="memberships" className="scroll-mt-28" />
 
