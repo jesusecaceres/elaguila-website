@@ -60,7 +60,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
 }
 
 export default function ClasificadosPage() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = ((params.get("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {

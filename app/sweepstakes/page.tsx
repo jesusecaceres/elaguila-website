@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 export default function SweepstakesPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") || "en";
 
   // TEXTS

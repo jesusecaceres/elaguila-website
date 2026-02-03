@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function GrandPrizeMarch2026() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") === "en" ? "en" : "es";
 
   const t = {

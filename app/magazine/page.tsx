@@ -147,7 +147,7 @@ function FullscreenFlipbookModal({
 }
 
 export default function MagazineHubPage() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = (params.get("lang") || "es") as Lang;
 
   // One flipbook link for the live reader (you replace the PDF inside FlipHTML5 monthly)

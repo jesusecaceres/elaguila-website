@@ -6,8 +6,10 @@ import { useEffect, useState, Suspense } from "react";
 
 function NavbarInner() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlLang = searchParams.get("lang");
+  const searchParams = useSearchParams()!;
+
+  // Next 15 types can treat searchParams as possibly null, so guard it.
+  const urlLang = searchParams?.get("lang") ?? null;
 
   const [lang, setLang] = useState(urlLang || "es");
 
@@ -65,6 +67,8 @@ function NavbarInner() {
 
   const L = t[lang as "es" | "en"];
 
+  const safePath = pathname || "/";
+
   return (
     <nav
       className="
@@ -97,7 +101,7 @@ function NavbarInner() {
       </div>
 
       <div className="flex gap-3">
-        <Link href={buildLink(pathname)}>
+        <Link href={buildLink(safePath)}>
           <span
             className={lang === "es" ? "text-yellow-400" : "text-white/70"}
             onClick={() => setLang("es")}
@@ -106,7 +110,7 @@ function NavbarInner() {
           </span>
         </Link>
         <span className="text-white/40">|</span>
-        <Link href={buildLink(pathname)}>
+        <Link href={buildLink(safePath)}>
           <span
             className={lang === "en" ? "text-yellow-400" : "text-white/70"}
             onClick={() => setLang("en")}

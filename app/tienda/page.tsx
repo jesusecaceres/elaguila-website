@@ -17,7 +17,7 @@ interface Product {
 }
 
 export default function TiendaPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") || "es";
 
   // 🟡 SPANISH + ENGLISH COPY

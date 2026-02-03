@@ -5,11 +5,11 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 
 function NavbarContent() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const urlLang = searchParams.get("lang");
+  const urlLang = searchParams?.get("lang");
   const [lang, setLang] = useState<"es" | "en">(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -93,9 +93,7 @@ function NavbarContent() {
             key={i}
             href={buildLink(item.href)}
             className={
-              item.gold
-                ? "text-yellow-300 font-bold"
-                : "hover:text-yellow-200 transition"
+              item.gold ? "text-yellow-300 font-bold" : "hover:text-yellow-200 transition"
             }
           >
             {item.label}
@@ -132,7 +130,7 @@ function NavbarContent() {
       {mobileOpen && (
         <div
           className="
-            fixed top-0 right-0 
+            fixed top-0 right-0
             min-h-[70vh] w-64
             bg-black/90 backdrop-blur-xl
             rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)]
@@ -152,7 +150,7 @@ function NavbarContent() {
               href={buildLink(item.href)}
               onClick={() => setMobileOpen(false)}
               className={`
-                text-lg font-semibold 
+                text-lg font-semibold
                 ${item.gold ? "text-yellow-300" : "text-white"}
               `}
             >

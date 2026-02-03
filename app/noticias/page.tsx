@@ -13,7 +13,7 @@ export default function NoticiasPage() {
 }
 
 function NoticiasContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") || "es";
 
   /* -------------------------------

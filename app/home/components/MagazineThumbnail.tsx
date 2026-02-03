@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function MagazineThumbnail() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = params.get("lang") || "es";
   const router = useRouter();
 

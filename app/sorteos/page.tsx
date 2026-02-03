@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 export default function SorteosPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") || "es";
 
   const t = {

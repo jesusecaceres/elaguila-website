@@ -32,7 +32,7 @@ const translations: Record<Lang, {
 };
 
 export default function EnterPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const langParam = searchParams.get("lang") as Lang | null;
 
   const lang: Lang = langParam === "en" ? "en" : "es";

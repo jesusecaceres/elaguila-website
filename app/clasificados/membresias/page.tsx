@@ -9,28 +9,69 @@ import newLogo from "../../../public/logo.png";
 type Lang = "es" | "en";
 
 export default function Page() {
-  const params = useSearchParams();
+  // ✅ Null-safe: some setups type useSearchParams() as possibly null
+  const sp = useSearchParams();
+  const params = sp ?? new URLSearchParams();
+
   const lang = ((params.get("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {
     const ui = {
       es: {
         title: "Membresías: LEONIX Pro",
-        subtitle: "Todo lo necesario para vender con calma: más duración, mejor presentación y visibilidad temporal — sin convertirte en negocio.",
+        subtitle:
+          "Todo lo necesario para vender con calma: más duración, mejor presentación y visibilidad temporal — sin convertirte en negocio.",
         cta1: "Ver anuncios",
         href1: "/clasificados",
-        cta2: "Membres\u00edas de negocio",
+        cta2: "Membresías de negocio",
         href2: "/clasificados/membresias-negocio",
-        blocks: [["p", "Precio: $16.99/mes"], ["p", "Para: vendedores personales (sin inventario, sin lenguaje de tienda)."], ["ul", ["Duración extendida (~30 días)", "Mejor ranking que Gratis (pero siempre debajo de negocios)", "Más fotos + mejor presentación", "Analíticas básicas: vistas y guardados", "1 “asistencia de visibilidad” por anuncio (5 días) — controlada por el usuario", "Reglas claras anti-spam (sin repost infinito; sin enlaces externos; sin lenguaje de tienda)"]], ["p", "Nota: Cupones y sorteos son beneficios exclusivos de Print Ads (no de membresías de clasificados)."]],
+        blocks: [
+          ["p", "Precio: $16.99/mes"],
+          ["p", "Para: vendedores personales (sin inventario, sin lenguaje de tienda)."],
+          [
+            "ul",
+            [
+              "Duración extendida (~30 días)",
+              "Mejor ranking que Gratis (pero siempre debajo de negocios)",
+              "Más fotos + mejor presentación",
+              "Analíticas básicas: vistas y guardados",
+              "1 “asistencia de visibilidad” por anuncio (5 días) — controlada por el usuario",
+              "Reglas claras anti-spam (sin repost infinito; sin enlaces externos; sin lenguaje de tienda)",
+            ],
+          ],
+          [
+            "p",
+            "Nota: Cupones y sorteos son beneficios exclusivos de Print Ads (no de membresías de clasificados).",
+          ],
+        ],
       },
       en: {
         title: "Memberships: LEONIX Pro",
-        subtitle: "Everything you need to sell smoothly: longer duration, better presentation, and time-limited visibility — without becoming a business.",
+        subtitle:
+          "Everything you need to sell smoothly: longer duration, better presentation, and time-limited visibility — without becoming a business.",
         cta1: "View listings",
         href1: "/clasificados",
         cta2: "Business memberships",
         href2: "/clasificados/membresias-negocio",
-        blocks: [["p", "Price: $16.99/month"], ["p", "For: personal sellers (no inventory, no storefront language)."], ["ul", ["Extended duration (~30 days)", "Higher ranking than Free (but always below businesses)", "More photos + cleaner presentation", "Basic analytics: views and saves", "1 “visibility assist” per listing (5 days) — user-controlled", "Clear anti-spam rules (no endless reposting; no external links; no storefront language)"]], ["p", "Note: Coupons and sweepstakes are Print Ads-only benefits (not included in classifieds memberships)."]],
+        blocks: [
+          ["p", "Price: $16.99/month"],
+          ["p", "For: personal sellers (no inventory, no storefront language)."],
+          [
+            "ul",
+            [
+              "Extended duration (~30 days)",
+              "Higher ranking than Free (but always below businesses)",
+              "More photos + cleaner presentation",
+              "Basic analytics: views and saves",
+              "1 “visibility assist” per listing (5 days) — user-controlled",
+              "Clear anti-spam rules (no endless reposting; no external links; no storefront language)",
+            ],
+          ],
+          [
+            "p",
+            "Note: Coupons and sweepstakes are Print Ads-only benefits (not included in classifieds memberships).",
+          ],
+        ],
       },
     } as const;
 
@@ -79,7 +120,7 @@ export default function Page() {
               if (b[0] === "ul") {
                 return (
                   <ul key={idx} className="space-y-2">
-                    {(b[1] as string[]).map((li, j) => (
+                    {(b[1] as readonly string[]).map((li, j) => (
                       <li key={j} className="text-gray-300">
                         • {li}
                       </li>

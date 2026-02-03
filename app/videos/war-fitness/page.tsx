@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function WarFitnessVideoPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = (searchParams.get("lang") as "es" | "en") || "es";
   const router = useRouter();
 

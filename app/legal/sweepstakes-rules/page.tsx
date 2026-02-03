@@ -2,7 +2,7 @@
 import { useSearchParams } from "next/navigation";
 
 export default function LegalRules() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") === "en" ? "en" : "es";
 
   const t = {

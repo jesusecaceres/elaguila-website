@@ -13,7 +13,7 @@ export default function HomePage() {
 }
 
 function HomePageContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = (searchParams.get("lang") || "es") as "es" | "en";
 
   const t = {

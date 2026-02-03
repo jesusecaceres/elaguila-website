@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 
 export default function PlaceholderCard() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = params.get('lang') === 'en' ? 'en' : 'es';
 
   const label = lang === 'en' ? 'Advertise Here' : 'Anúnciate Aquí';

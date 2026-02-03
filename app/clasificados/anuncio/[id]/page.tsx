@@ -42,7 +42,11 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 export default function AnuncioDetallePage() {
   const params = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
+
+  // ✅ Null-safe guard: some setups type useSearchParams() as possibly null
+  const sp = useSearchParams();
+  const searchParams = sp ?? new URLSearchParams();
+
   const lang = ((searchParams.get("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {
@@ -270,9 +274,7 @@ export default function AnuncioDetallePage() {
               </div>
 
               <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-6">
-                <div className="text-sm text-gray-300">
-                  {listing.blurb[lang]}
-                </div>
+                <div className="text-sm text-gray-300">{listing.blurb[lang]}</div>
               </div>
 
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -285,7 +287,9 @@ export default function AnuncioDetallePage() {
 
                 <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
                   <div className="text-xs text-gray-400">{t.metaCondition}</div>
-                  <div className="mt-1 text-gray-100 font-semibold">{conditionText(listing.condition)}</div>
+                  <div className="mt-1 text-gray-100 font-semibold">
+                    {conditionText(listing.condition)}
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-black/30 p-5">

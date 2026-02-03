@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 export default function ClasificadosLoginRedirect() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
 
   useEffect(() => {
     const redirectTo =

@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import EntryForm from "../../components/EntryForm";
 
 export default function Week1Sweepstake() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = params.get("lang") || "es";
   const isES = lang === "es";
 

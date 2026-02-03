@@ -32,7 +32,7 @@ function slugSafeFilename(name: string) {
 }
 
 export default function PublicarPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = ((searchParams.get("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {

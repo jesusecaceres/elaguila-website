@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 function ContactContent() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = params.get("lang") || "en";
 
   return (

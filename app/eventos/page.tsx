@@ -15,7 +15,7 @@ import { counties, DEFAULT_CITY } from "@/app/api/events/helpers/cityMap";
 // MAIN COMPONENT
 // ------------------------------------------------------------
 export default function EventosPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const router = useRouter();
   const lang = searchParams.get("lang") === "en" ? "en" : "es";
 

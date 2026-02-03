@@ -9,28 +9,83 @@ import newLogo from "../../../public/logo.png";
 type Lang = "es" | "en";
 
 export default function Page() {
-  const params = useSearchParams();
+  // ✅ Null-safe guard (matches the pattern that’s failing builds)
+  const sp = useSearchParams();
+  const params = sp ?? new URLSearchParams();
+
   const lang = ((params.get("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {
     const ui = {
       es: {
         title: "Membresías de negocio",
-        subtitle: "Para negocios que publican seguido: más anuncios, más confianza, y herramientas para convertir — sin cupones ni sorteos (eso es Print Ads).",
+        subtitle:
+          "Para negocios que publican seguido: más anuncios, más confianza, y herramientas para convertir — sin cupones ni sorteos (eso es Print Ads).",
         cta1: "Ver directorio de negocios",
         href1: "/clasificados/negocios",
         cta2: "Volver a Clasificados",
         href2: "/clasificados",
-        blocks: [["p", "Business Lite: $89/mes (Bronze: $59/mes)"], ["ul", ["Insignia de negocio", "Múltiples anuncios activos", "Mayor visibilidad que perfiles personales", "Analíticas básicas"]], ["p", "Business Premium: $149/mes (Bronze: $99/mes)"], ["ul", ["Todo lo de Lite", "Prioridad en ranking", "Perfil mejorado", "Herramientas de leads por anuncio (llamar, mensaje, pedir info, agendar cita, subir foto opcional)"]], ["p", "Regla ética: nunca ocultamos anuncios gratis. Solo cambiamos ranking/visibilidad por tiempo y agregamos herramientas premium."]],
+        blocks: [
+          ["p", "Business Lite: $89/mes (Bronze: $59/mes)"],
+          [
+            "ul",
+            [
+              "Insignia de negocio",
+              "Múltiples anuncios activos",
+              "Mayor visibilidad que perfiles personales",
+              "Analíticas básicas",
+            ],
+          ],
+          ["p", "Business Premium: $149/mes (Bronze: $99/mes)"],
+          [
+            "ul",
+            [
+              "Todo lo de Lite",
+              "Prioridad en ranking",
+              "Perfil mejorado",
+              "Herramientas de leads por anuncio (llamar, mensaje, pedir info, agendar cita, subir foto opcional)",
+            ],
+          ],
+          [
+            "p",
+            "Regla ética: nunca ocultamos anuncios gratis. Solo cambiamos ranking/visibilidad por tiempo y agregamos herramientas premium.",
+          ],
+        ],
       },
       en: {
         title: "Business memberships",
-        subtitle: "For businesses that post often: more listings, more trust, and conversion tools — no coupons or sweepstakes (that’s Print Ads).",
+        subtitle:
+          "For businesses that post often: more listings, more trust, and conversion tools — no coupons or sweepstakes (that’s Print Ads).",
         cta1: "View business directory",
         href1: "/clasificados/negocios",
         cta2: "Back to Classifieds",
         href2: "/clasificados",
-        blocks: [["p", "Business Lite: $89/month (Bronze: $59/month)"], ["ul", ["Business badge", "Multiple active listings", "Higher visibility than personal profiles", "Basic analytics"]], ["p", "Business Premium: $149/month (Bronze: $99/month)"], ["ul", ["Everything in Lite", "Priority ranking", "Enhanced profile", "Lead tools per listing (call, message, request info, book appointment, optional photo upload)"]], ["p", "Ethical rule: we never hide free listings. We only affect ranking/time-limited visibility and add premium tools."]],
+        blocks: [
+          ["p", "Business Lite: $89/month (Bronze: $59/month)"],
+          [
+            "ul",
+            [
+              "Business badge",
+              "Multiple active listings",
+              "Higher visibility than personal profiles",
+              "Basic analytics",
+            ],
+          ],
+          ["p", "Business Premium: $149/month (Bronze: $99/month)"],
+          [
+            "ul",
+            [
+              "Everything in Lite",
+              "Priority ranking",
+              "Enhanced profile",
+              "Lead tools per listing (call, message, request info, book appointment, optional photo upload)",
+            ],
+          ],
+          [
+            "p",
+            "Ethical rule: we never hide free listings. We only affect ranking/time-limited visibility and add premium tools.",
+          ],
+        ],
       },
     } as const;
 
@@ -79,7 +134,7 @@ export default function Page() {
               if (b[0] === "ul") {
                 return (
                   <ul key={idx} className="space-y-2">
-                    {(b[1] as string[]).map((li, j) => (
+                    {(b[1] as readonly string[]).map((li, j) => (
                       <li key={j} className="text-gray-300">
                         • {li}
                       </li>

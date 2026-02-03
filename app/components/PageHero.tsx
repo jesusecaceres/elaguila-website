@@ -9,7 +9,7 @@ interface PageHeroProps {
 }
 
 export default function PageHero({ title, titleEs }: PageHeroProps) {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const lang = searchParams.get("lang") || "es";
 
   // Select correct title

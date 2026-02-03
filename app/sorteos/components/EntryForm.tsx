@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function EntryForm({ sweepstakeId }: { sweepstakeId: string }) {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = params.get("lang") || "es";
   const isES = lang === "es";
 

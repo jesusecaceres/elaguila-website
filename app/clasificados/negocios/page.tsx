@@ -9,28 +9,53 @@ import newLogo from "../../../public/logo.png";
 type Lang = "es" | "en";
 
 export default function Page() {
-  const params = useSearchParams();
+  // ✅ Null-safe: some setups type useSearchParams() as possibly null
+  const sp = useSearchParams();
+  const params = sp ?? new URLSearchParams();
+
   const lang = ((params.get("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {
     const ui = {
       es: {
         title: "Directorio de negocios",
-        subtitle: "Página placeholder (future-ready). Aquí vivirá el directorio de negocios verificados, perfiles y categorías.",
+        subtitle:
+          "Página placeholder (future-ready). Aquí vivirá el directorio de negocios verificados, perfiles y categorías.",
         cta1: "Ver anuncios",
         href1: "/clasificados",
-        cta2: "Membres\u00edas de negocio",
+        cta2: "Membresías de negocio",
         href2: "/clasificados/membresias-negocio",
-        blocks: [["ul", ["Próximo: perfiles de negocio (logo, horarios, enlaces, reseñas)", "Próximo: filtros por ciudad / categoría", "Próximo: verificación y señales de confianza"]], ["p", "Por ahora: usa Clasificados para ver anuncios de negocios dentro de cada categoría."]],
+        blocks: [
+          [
+            "ul",
+            [
+              "Próximo: perfiles de negocio (logo, horarios, enlaces, reseñas)",
+              "Próximo: filtros por ciudad / categoría",
+              "Próximo: verificación y señales de confianza",
+            ],
+          ],
+          ["p", "Por ahora: usa Clasificados para ver anuncios de negocios dentro de cada categoría."],
+        ],
       },
       en: {
         title: "Business directory",
-        subtitle: "Placeholder page (future-ready). This will host verified businesses, profiles, and categories.",
+        subtitle:
+          "Placeholder page (future-ready). This will host verified businesses, profiles, and categories.",
         cta1: "View listings",
         href1: "/clasificados",
         cta2: "Business memberships",
         href2: "/clasificados/membresias-negocio",
-        blocks: [["ul", ["Next: business profiles (logo, hours, links, reviews)", "Next: city / category filters", "Next: verification and trust signals"]], ["p", "For now: use Classifieds to see business listings inside each category."]],
+        blocks: [
+          [
+            "ul",
+            [
+              "Next: business profiles (logo, hours, links, reviews)",
+              "Next: city / category filters",
+              "Next: verification and trust signals",
+            ],
+          ],
+          ["p", "For now: use Classifieds to see business listings inside each category."],
+        ],
       },
     } as const;
 
@@ -79,7 +104,7 @@ export default function Page() {
               if (b[0] === "ul") {
                 return (
                   <ul key={idx} className="space-y-2">
-                    {(b[1] as string[]).map((li, j) => (
+                    {(b[1] as readonly string[]).map((li, j) => (
                       <li key={j} className="text-gray-300">
                         • {li}
                       </li>

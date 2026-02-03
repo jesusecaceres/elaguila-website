@@ -4,7 +4,7 @@ import Navbar from "@/app/components/Navbar";
 import { useSearchParams } from "next/navigation";
 
 export default function ContactoPage() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = params.get("lang") || "es"; // Spanish default
 
   return (

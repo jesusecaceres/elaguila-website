@@ -63,7 +63,7 @@ function safeYear(v: any): number | null {
 }
 
 export default function Editions2026Page() {
-  const params = useSearchParams();
+  const params = useSearchParams()!;
   const lang = (params.get("lang") || "es") as Lang;
 
   const copy = useMemo(() => {
