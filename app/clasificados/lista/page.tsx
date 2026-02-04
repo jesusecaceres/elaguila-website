@@ -147,7 +147,9 @@ export default function ClasificadosListaPage() {
     toNumberOrUndefined(rParam) ?? DEFAULT_RADIUS_MI
   );
   const [sort, setSort] = useState<SortKey>(
-    sortParam === "price-asc" || sortParam === "price-desc" || sortParam === "newest"
+    sortParam === "price-asc" ||
+      sortParam === "price-desc" ||
+      sortParam === "newest"
       ? (sortParam as SortKey)
       : "newest"
   );
@@ -170,7 +172,9 @@ export default function ClasificadosListaPage() {
     setZip(zipParam);
     setRadiusMi(toNumberOrUndefined(rParam) ?? DEFAULT_RADIUS_MI);
     setSort(
-      sortParam === "price-asc" || sortParam === "price-desc" || sortParam === "newest"
+      sortParam === "price-asc" ||
+        sortParam === "price-desc" ||
+        sortParam === "newest"
         ? (sortParam as SortKey)
         : "newest"
     );
@@ -221,7 +225,6 @@ export default function ClasificadosListaPage() {
       .filter((s) => normalize(s).includes(val))
       .slice(0, 8);
 
-    // Also keep original casing for slang-like suggestions
     setSuggestions(hits);
     setSuggestionsOpen(hits.length > 0);
   }, [q, searchDictionary]);
@@ -263,7 +266,8 @@ export default function ClasificadosListaPage() {
       const alias = CITY_ALIASES[cityNorm];
       const key = alias ? normalize(alias) : cityNorm;
 
-      const c = CA_CITIES.find((x) => normalize(x.name) === key);
+      // ✅ CityRecord uses `city`, not `name`
+      const c = CA_CITIES.find((x) => normalize(x.city) === key);
       return c ? { lat: c.lat, lng: c.lng } : undefined;
     })();
 
@@ -273,7 +277,9 @@ export default function ClasificadosListaPage() {
       const lcNorm = normalize(listingCity);
       const alias = CITY_ALIASES[lcNorm];
       const key = alias ? normalize(alias) : lcNorm;
-      const c = CA_CITIES.find((x) => normalize(x.name) === key);
+
+      // ✅ CityRecord uses `city`, not `name`
+      const c = CA_CITIES.find((x) => normalize(x.city) === key);
       if (!c) return true; // if unknown city, don't block it
 
       // Haversine-ish
@@ -290,7 +296,6 @@ export default function ClasificadosListaPage() {
       return d <= radiusMi;
     };
 
-    // ✅ MINIMAL TS FIX: match the “accepted” cast language from clasificados/page.tsx
     return (SAMPLE_LISTINGS as unknown as Listing[])
       .filter((x) => (category === "all" ? true : x.category === category))
       .filter((x) => (sellerType ? x.sellerType === sellerType : true))
@@ -305,7 +310,6 @@ export default function ClasificadosListaPage() {
           } ${x.make ?? ""} ${x.model ?? ""}`
         );
 
-        // slang → normalize synonyms
         const qSyn = nq
           .replace(/\btroca\b/g, "truck")
           .replace(/\bcamioneta\b/g, "truck")
@@ -346,8 +350,14 @@ export default function ClasificadosListaPage() {
 
   const badgeFor = (t: SellerType) => {
     if (t === "business")
-      return { text: lang === "es" ? "Corona" : "Crown", cls: "bg-yellow-500/15 text-yellow-200 border-yellow-400/30" };
-    return { text: lang === "es" ? "Joya" : "Gem", cls: "bg-white/10 text-white border-white/20" };
+      return {
+        text: lang === "es" ? "Corona" : "Crown",
+        cls: "bg-yellow-500/15 text-yellow-200 border-yellow-400/30",
+      };
+    return {
+      text: lang === "es" ? "Joya" : "Gem",
+      cls: "bg-white/10 text-white border-white/20",
+    };
   };
 
   return (
