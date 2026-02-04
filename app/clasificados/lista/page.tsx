@@ -71,7 +71,11 @@ function tokenize(s: string) {
 
 export default function ClasificadosListaPage() {
   const params = useSearchParams();
-  const lang = ((params.get("lang") || "es") as Lang) === "en" ? "en" : "es";
+
+  // ✅ SAFETY: in some TS environments, params can be typed as possibly null
+  const getParam = (key: string) => params?.get(key) ?? "";
+
+  const lang = ((getParam("lang") || "es") as Lang) === "en" ? "en" : "es";
 
   const t = useMemo(() => {
     const ui = {
@@ -185,12 +189,12 @@ export default function ClasificadosListaPage() {
     []
   );
 
-  // URL params (from landing)
-  const qParam = (params.get("q") || "").trim();
-  const catParam = (params.get("cat") || "").trim() as CategoryKey;
-  const cityParam = (params.get("city") || "").trim();
-  const zipParam = (params.get("zip") || "").trim();
-  const rParam = Number(params.get("r") || "");
+  // URL params (from landing) — ✅ safe getParam()
+  const qParam = (getParam("q") || "").trim();
+  const catParam = (getParam("cat") || "").trim() as CategoryKey;
+  const cityParam = (getParam("city") || "").trim();
+  const zipParam = (getParam("zip") || "").trim();
+  const rParam = Number(getParam("r") || "");
 
   // State (filters)
   const [search, setSearch] = useState<string>(qParam);
@@ -295,14 +299,26 @@ export default function ClasificadosListaPage() {
     return items.sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
   }, [filtered, sort]);
 
-  const businessCount = useMemo(() => sorted.filter((x) => x.sellerType === "business").length, [sorted]);
-  const personalCount = useMemo(() => sorted.filter((x) => x.sellerType === "personal").length, [sorted]);
+  const businessCount = useMemo(
+    () => sorted.filter((x) => x.sellerType === "business").length,
+    [sorted]
+  );
+  const personalCount = useMemo(
+    () => sorted.filter((x) => x.sellerType === "personal").length,
+    [sorted]
+  );
 
   // Pagination (simple)
   const [page, setPage] = useState(1);
-  const perPage = useMemo(() => (typeof window !== "undefined" && window.innerWidth < 768 ? 10 : 18), []);
+  const perPage = useMemo(
+    () => (typeof window !== "undefined" && window.innerWidth < 768 ? 10 : 18),
+    []
+  );
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
-  const paged = useMemo(() => sorted.slice((page - 1) * perPage, page * perPage), [sorted, page, perPage]);
+  const paged = useMemo(
+    () => sorted.slice((page - 1) * perPage, page * perPage),
+    [sorted, page, perPage]
+  );
 
   useEffect(() => {
     setPage(1);
@@ -413,7 +429,9 @@ export default function ClasificadosListaPage() {
           {showMore && (
             <div className="mt-5 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
               <div className="md:col-span-6">
-                <div className="text-sm text-gray-300 mb-2 text-left">{t.radiusLabel}: {radiusMi} mi</div>
+                <div className="text-sm text-gray-300 mb-2 text-left">
+                  {t.radiusLabel}: {radiusMi} mi
+                </div>
                 <input
                   type="range"
                   min={5}
@@ -445,7 +463,9 @@ export default function ClasificadosListaPage() {
                     setCategory(catParam && catParam !== "all" ? catParam : "all");
                     setCity(cityParam || DEFAULT_CITY);
                     setZip(zipParam || "");
-                    setRadiusMi(Number.isFinite(rParam) && rParam > 0 ? rParam : DEFAULT_RADIUS_MI);
+                    setRadiusMi(
+                      Number.isFinite(rParam) && rParam > 0 ? rParam : DEFAULT_RADIUS_MI
+                    );
                     setSort("newest");
                   }}
                   className="w-full px-4 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
@@ -465,13 +485,18 @@ export default function ClasificadosListaPage() {
               <div className="text-sm text-gray-300 mt-1">
                 {t.showing}{" "}
                 <span className="text-gray-100 font-semibold">
-                  {sorted.length === 0 ? 0 : (page - 1) * perPage + 1}–{Math.min(page * perPage, sorted.length)}
+                  {sorted.length === 0 ? 0 : (page - 1) * perPage + 1}–
+                  {Math.min(page * perPage, sorted.length)}
                 </span>{" "}
                 {t.of} <span className="text-gray-100 font-semibold">{sorted.length}</span>
                 {" • "}
-                <span className="text-gray-100 font-semibold">{t.business}: {businessCount}</span>
+                <span className="text-gray-100 font-semibold">
+                  {t.business}: {businessCount}
+                </span>
                 {" • "}
-                <span className="text-gray-100 font-semibold">{t.community}: {personalCount}</span>
+                <span className="text-gray-100 font-semibold">
+                  {t.community}: {personalCount}
+                </span>
               </div>
             </div>
           </div>
@@ -514,7 +539,9 @@ export default function ClasificadosListaPage() {
 
                   <div className="mt-3 text-sm text-gray-300 line-clamp-3">{blurb}</div>
 
-                  <div className="mt-4 text-sm text-gray-400">{lang === "es" ? "Ver detalles →" : "View details →"}</div>
+                  <div className="mt-4 text-sm text-gray-400">
+                    {lang === "es" ? "Ver detalles →" : "View details →"}
+                  </div>
                 </a>
               );
             })}
