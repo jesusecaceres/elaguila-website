@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
 import newLogo from "../../public/logo.png";
@@ -71,15 +71,20 @@ export default function ClasificadosPage() {
 
         viewMore: "Ver más",
 
-        // Category blurbs (1 line, premium, not salesy)
         cat: {
           rentas: { label: "Rentas", hint: "Casas, cuartos y propiedades." },
           "en-venta": { label: "En Venta", hint: "Compra y vende local." },
           empleos: { label: "Empleos", hint: "Oportunidades cerca de ti." },
-          servicios: { label: "Servicios", hint: "Profesionales y negocios confiables." },
+          servicios: {
+            label: "Servicios",
+            hint: "Profesionales y negocios confiables.",
+          },
           autos: { label: "Autos", hint: "Autos y oferta de dealers." },
           clases: { label: "Clases", hint: "Aprende y comparte en comunidad." },
-          comunidad: { label: "Comunidad", hint: "Actividades y anuncios comunitarios." },
+          comunidad: {
+            label: "Comunidad",
+            hint: "Actividades y anuncios comunitarios.",
+          },
         },
 
         membershipsTitle: "Membresías",
@@ -91,7 +96,7 @@ export default function ClasificadosPage() {
           "Publicación básica para la comunidad",
           "Duración corta (ideal para anuncios rápidos)",
           "Siempre visible y buscable",
-        ],
+        ] as const,
 
         proTitle: "LEONIX Pro (Personal)",
         proBullets: [
@@ -100,7 +105,7 @@ export default function ClasificadosPage() {
           "1 “asistencia de visibilidad” por anuncio (ventana corta)",
           "Analíticas básicas (vistas/guardados)",
           "Reglas anti-spam (sin lenguaje de negocio, sin inventario)",
-        ],
+        ] as const,
 
         bizLiteTitle: "Business Lite",
         bizLiteBullets: [
@@ -108,7 +113,7 @@ export default function ClasificadosPage() {
           "Múltiples anuncios activos",
           "Mayor visibilidad que perfiles personales",
           "Presencia consistente en tu categoría",
-        ],
+        ] as const,
 
         bizPremTitle: "Business Premium",
         bizPremBullets: [
@@ -116,12 +121,11 @@ export default function ClasificadosPage() {
           "Perfil mejorado de negocio/dealer",
           "Herramientas de contacto por anuncio (llamar, mensaje, solicitud)",
           "Herramientas por categoría (citas/solicitudes según el tipo)",
-        ],
+        ] as const,
 
         trustLine:
           "Un espacio confiable, familiar y comunitario. Los anuncios gratuitos siempre permanecen visibles en la búsqueda.",
 
-        // Routes (base paths; we append lang + params)
         routePost: "/clasificados/publicar",
         routeList: "/clasificados/lista",
         routeMemberships: "/clasificados/membresias",
@@ -164,7 +168,7 @@ export default function ClasificadosPage() {
           "Basic community posting",
           "Short duration (great for quick posts)",
           "Always visible & searchable",
-        ],
+        ] as const,
 
         proTitle: "LEONIX Pro (Personal)",
         proBullets: [
@@ -173,7 +177,7 @@ export default function ClasificadosPage() {
           "1 short “visibility assist” per listing",
           "Basic analytics (views/saves)",
           "Anti-spam rules (no business language, no inventory behavior)",
-        ],
+        ] as const,
 
         bizLiteTitle: "Business Lite",
         bizLiteBullets: [
@@ -181,7 +185,7 @@ export default function ClasificadosPage() {
           "Multiple active listings",
           "Higher visibility than personal profiles",
           "Consistent presence in your category",
-        ],
+        ] as const,
 
         bizPremTitle: "Business Premium",
         bizPremBullets: [
@@ -189,7 +193,7 @@ export default function ClasificadosPage() {
           "Enhanced business/dealer profile",
           "Contact tools per listing (call, message, request)",
           "Category-specific tools (appointments/requests by type)",
-        ],
+        ] as const,
 
         trustLine:
           "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
@@ -211,10 +215,10 @@ export default function ClasificadosPage() {
 
   const withListParams = (cat?: CategoryKey) => {
     const base = t.routeList;
-    const params = new URLSearchParams();
-    params.set("lang", lang);
-    if (cat) params.set("cat", cat);
-    return `${base}?${params.toString()}`;
+    const sp = new URLSearchParams();
+    sp.set("lang", lang);
+    if (cat) sp.set("cat", cat);
+    return `${base}?${sp.toString()}`;
   };
 
   const sampleListings: Listing[] = useMemo(
@@ -222,13 +226,17 @@ export default function ClasificadosPage() {
     []
   );
 
-  const isMobile =
-    typeof window !== "undefined" &&
-    window.matchMedia &&
-    window.matchMedia("(max-width: 640px)").matches;
+  // Avoid hydration mismatch: detect mobile after mount
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const set = () => setIsMobile(mq.matches);
+    set();
+    mq.addEventListener?.("change", set);
+    return () => mq.removeEventListener?.("change", set);
+  }, []);
 
   const limits = useMemo(() => {
-    // Desktop: more inventory; Mobile: small offset preview (A)
     const big3Desktop = 10;
     const otherDesktop = 6;
     const big3Mobile = 4;
@@ -256,17 +264,11 @@ export default function ClasificadosPage() {
       comunidad: [],
     };
 
-    // Simple, stable preview logic:
-    // - Prefer business listings first (visibility expectation)
-    // - Fill remaining with personal listings
     for (const cat of Object.keys(out) as CategoryKey[]) {
       const all = sampleListings.filter((l) => l.category === cat);
-
       const business = all.filter((x) => x.sellerType === "business");
       const personal = all.filter((x) => x.sellerType === "personal");
-
       const limit = (limits as any)[cat] as number;
-
       out[cat] = [...business, ...personal].slice(0, limit);
     }
 
@@ -307,7 +309,13 @@ export default function ClasificadosPage() {
                   : "border-white/10 text-gray-200 bg-white/5"
               )}
             >
-              {isBusiness ? (lang === "es" ? "Negocio" : "Business") : lang === "es" ? "Personal" : "Personal"}
+              {isBusiness
+                ? lang === "es"
+                  ? "Negocio"
+                  : "Business"
+                : lang === "es"
+                ? "Personal"
+                : "Personal"}
             </span>
           </div>
 
@@ -345,13 +353,14 @@ export default function ClasificadosPage() {
     );
   };
 
+  // ✅ FIX: accept readonly arrays (tuples) and mutable arrays
   const PlanCard = ({
     title,
     bullets,
     accent,
   }: {
     title: string;
-    bullets: string[];
+    bullets: readonly string[];
     accent?: "gold";
   }) => {
     return (
@@ -361,7 +370,12 @@ export default function ClasificadosPage() {
           accent === "gold" ? "border-yellow-400/25" : "border-white/10"
         )}
       >
-        <div className={cx("text-xl font-bold", accent === "gold" ? "text-yellow-200" : "text-gray-100")}>
+        <div
+          className={cx(
+            "text-xl font-bold",
+            accent === "gold" ? "text-yellow-200" : "text-gray-100"
+          )}
+        >
           {title}
         </div>
         <ul className="mt-4 space-y-2 text-sm text-gray-300">
@@ -468,15 +482,18 @@ export default function ClasificadosPage() {
           {CATEGORY_ORDER.map((cat) => {
             const meta = (t.cat as any)[cat] as { label: string; hint: string };
             const items = featuredByCategory[cat] || [];
-
-            // If sample data is empty for a category, don’t show a dead section.
             if (!items.length) return null;
 
             return (
-              <div key={cat} className="border border-white/10 bg-black/20 rounded-2xl p-6">
+              <div
+                key={cat}
+                className="border border-white/10 bg-black/20 rounded-2xl p-6"
+              >
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
-                    <div className="text-xl font-bold text-gray-100">{meta.label}</div>
+                    <div className="text-xl font-bold text-gray-100">
+                      {meta.label}
+                    </div>
                     <div className="mt-1 text-sm text-gray-400">{meta.hint}</div>
                   </div>
 
@@ -488,14 +505,16 @@ export default function ClasificadosPage() {
                   </a>
                 </div>
 
-                {/* Desktop: grid. Mobile: slightly “offset” feel via uneven spacing and smaller count */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {items.map((item, idx) => (
                     <div
                       key={item.id}
                       className={cx(
-                        // subtle offset feel (especially noticeable when columns wrap)
-                        idx % 3 === 1 ? "lg:translate-y-2" : idx % 3 === 2 ? "lg:translate-y-1" : ""
+                        idx % 3 === 1
+                          ? "lg:translate-y-2"
+                          : idx % 3 === 2
+                          ? "lg:translate-y-1"
+                          : ""
                       )}
                     >
                       <ListingCardCompact item={item} />
