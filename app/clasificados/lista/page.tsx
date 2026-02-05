@@ -192,6 +192,8 @@ export default function ClasificadosListaPage() {
   const [suggestions, setSuggestions] = useState<
     Array<Exclude<CategoryKey, "all">>
   >([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
@@ -214,16 +216,15 @@ export default function ClasificadosListaPage() {
 
   const categoryLabel = (c: CategoryKey) => {
     if (c === "all") return LABELS.any[lang];
-    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> =
-      {
-        "en-venta": { es: "En Venta", en: "For Sale" },
-        rentas: { es: "Rentas", en: "Rentals" },
-        autos: { es: "Autos", en: "Cars" },
-        servicios: { es: "Servicios", en: "Services" },
-        empleos: { es: "Empleos", en: "Jobs" },
-        clases: { es: "Clases", en: "Classes" },
-        comunidad: { es: "Comunidad", en: "Community" },
-      };
+    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> = {
+      "en-venta": { es: "En Venta", en: "For Sale" },
+      rentas: { es: "Rentas", en: "Rentals" },
+      autos: { es: "Autos", en: "Cars" },
+      servicios: { es: "Servicios", en: "Services" },
+      empleos: { es: "Empleos", en: "Jobs" },
+      clases: { es: "Clases", en: "Classes" },
+      comunidad: { es: "Comunidad", en: "Community" },
+    };
     return map[c][lang];
   };
 
@@ -233,6 +234,7 @@ export default function ClasificadosListaPage() {
       [
         "autos",
         [
+          // ES
           "auto",
           "autos",
           "carro",
@@ -250,15 +252,20 @@ export default function ClasificadosListaPage() {
           "camión",
           "van",
           "suv",
+          // EN
           "car",
           "cars",
           "truck",
           "trucks",
+          "pickup",
+          "suv",
+          "van",
         ],
       ],
       [
         "rentas",
         [
+          // ES
           "renta",
           "rentas",
           "alquiler",
@@ -271,6 +278,7 @@ export default function ClasificadosListaPage() {
           "habitacion",
           "habitación",
           "roomie",
+          // EN
           "rent",
           "rental",
           "rentals",
@@ -285,6 +293,7 @@ export default function ClasificadosListaPage() {
       [
         "empleos",
         [
+          // ES
           "empleo",
           "empleos",
           "trabajo",
@@ -294,6 +303,7 @@ export default function ClasificadosListaPage() {
           "vacantes",
           "contratando",
           "se busca",
+          // EN
           "job",
           "jobs",
           "work",
@@ -305,6 +315,7 @@ export default function ClasificadosListaPage() {
       [
         "servicios",
         [
+          // ES
           "servicio",
           "servicios",
           "mecanico",
@@ -318,6 +329,7 @@ export default function ClasificadosListaPage() {
           "remodelacion",
           "remodelación",
           "mudanza",
+          // EN
           "service",
           "services",
           "mechanic",
@@ -333,6 +345,7 @@ export default function ClasificadosListaPage() {
       [
         "en-venta",
         [
+          // ES
           "vendo",
           "venta",
           "en venta",
@@ -343,6 +356,88 @@ export default function ClasificadosListaPage() {
           "segunda mano",
           "usado",
           "usados",
+
+          // Retail / goods intent (ES)
+          "ropa",
+          "camisa",
+          "camisas",
+          "playera",
+          "playeras",
+          "blusa",
+          "blusas",
+          "pantalon",
+          "pantalón",
+          "pantalones",
+          "jeans",
+          "chamarra",
+          "chaqueta",
+          "zapato",
+          "zapatos",
+          "tenis",
+          "sneakers",
+          "bolsa",
+          "bolsas",
+          "accesorios",
+          "joyas",
+          "muebles",
+          "sofa",
+          "sofá",
+          "cama",
+          "colchon",
+          "colchón",
+          "mesa",
+          "silla",
+          "tele",
+          "television",
+          "televisión",
+          "electronica",
+          "electrónica",
+          "celular",
+          "telefono",
+          "teléfono",
+          "iphone",
+          "laptop",
+          "computadora",
+          "consola",
+          "videojuegos",
+
+          // Retail / goods intent (EN)
+          "clothes",
+          "clothing",
+          "apparel",
+          "shirt",
+          "shirts",
+          "tshirt",
+          "t-shirt",
+          "hoodie",
+          "jacket",
+          "shoes",
+          "sneaker",
+          "sneakers",
+          "bag",
+          "bags",
+          "accessories",
+          "jewelry",
+          "furniture",
+          "couch",
+          "sofa",
+          "bed",
+          "mattress",
+          "table",
+          "chair",
+          "tv",
+          "television",
+          "electronics",
+          "phone",
+          "cellphone",
+          "iphone",
+          "laptop",
+          "computer",
+          "gaming",
+          "console",
+          "video games",
+
+          // EN (general sale intent)
           "sale",
           "for sale",
           "selling",
@@ -353,6 +448,7 @@ export default function ClasificadosListaPage() {
       [
         "clases",
         [
+          // ES
           "clase",
           "clases",
           "curso",
@@ -361,10 +457,12 @@ export default function ClasificadosListaPage() {
           "tutoria",
           "tutoría",
           "lecciones",
+          // EN
           "class",
           "classes",
           "course",
           "courses",
+          "tutor",
           "tutoring",
           "lessons",
         ],
@@ -372,6 +470,7 @@ export default function ClasificadosListaPage() {
       [
         "comunidad",
         [
+          // ES
           "comunidad",
           "evento",
           "eventos",
@@ -380,6 +479,7 @@ export default function ClasificadosListaPage() {
           "donacion",
           "donación",
           "voluntario",
+          // EN
           "community",
           "event",
           "events",
@@ -391,13 +491,18 @@ export default function ClasificadosListaPage() {
       ],
     ];
 
+    // Build an index: normalized synonym → category
     const index = new Map<string, Exclude<CategoryKey, "all">>();
+
     for (const [cat, words] of base) {
       for (const w of words) {
         const key = normalize(w);
         if (!key) continue;
+        // Keep first writer to avoid churn; order matters elsewhere
         if (!index.has(key)) index.set(key, cat);
       }
+
+      // Also ensure canonical category label itself works
       index.set(normalize(categoryLabel(cat)), cat);
       index.set(normalize(cat), cat);
     }
@@ -408,16 +513,20 @@ export default function ClasificadosListaPage() {
 
   /** Compute search suggestions (categories only) */
   useEffect(() => {
-    const val = normalize(q);
+    const raw = q;
+    const val = normalize(raw);
 
+    // Rule 1: no suggestions until 3 chars
     if (!val || val.length < 3) {
       setSuggestions([]);
+      setActiveSuggestion(0);
       setSuggestionsOpen(false);
       return;
     }
 
     const { index, keys } = synonymIndex;
 
+    // Mode A: prefix matches (clean, fast)
     const prefixMatches = new Set<Exclude<CategoryKey, "all">>();
     for (const k of keys) {
       if (k.startsWith(val)) {
@@ -429,28 +538,33 @@ export default function ClasificadosListaPage() {
     let next: Array<Exclude<CategoryKey, "all">> = [];
 
     if (prefixMatches.size > 0) {
+      // Stable display order: use CATEGORY_ORDER
       for (const c of CATEGORY_ORDER) {
         if (prefixMatches.has(c)) next.push(c);
       }
       next = next.slice(0, 3);
     } else if (val.length >= 5) {
+      // Mode B: fuzzy assist (only after the user "commits" to a word)
+      // Conservative threshold: distance <= 2 and similarity ratio >= 0.6
       let bestKey = "";
       let bestCat: Exclude<CategoryKey, "all"> | null = null;
       let bestDist = Number.POSITIVE_INFINITY;
 
       for (const k of keys) {
         if (k.length < 4) continue;
+
         const d = levenshtein(val, k);
         if (d < bestDist) {
           bestDist = d;
           bestKey = k;
-          bestCat = synonymIndex.index.get(k) ?? null;
+          bestCat = index.get(k) ?? null;
         }
       }
 
       if (bestCat) {
         const maxLen = Math.max(val.length, bestKey.length);
         const similarity = maxLen === 0 ? 0 : 1 - bestDist / maxLen;
+
         if (bestDist <= 2 && similarity >= 0.6) {
           next = [bestCat];
         }
@@ -458,21 +572,24 @@ export default function ClasificadosListaPage() {
     }
 
     setSuggestions(next);
+    setActiveSuggestion(0);
     setSuggestionsOpen(next.length > 0);
   }, [q, synonymIndex]);
 
-  /** Close suggestions on outside click */
+  /** Close suggestions on true outside pointerdown (capture phase) */
   useEffect(() => {
     function onDocPointerDown(e: PointerEvent) {
       const t = e.target as Node | null;
       if (!t) return;
+
+      // If click is inside the search input group, do nothing
       if (searchBoxRef.current && searchBoxRef.current.contains(t)) return;
+
       setSuggestionsOpen(false);
     }
 
     document.addEventListener("pointerdown", onDocPointerDown, true);
-    return () =>
-      document.removeEventListener("pointerdown", onDocPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
 
   // Pagination
@@ -498,6 +615,8 @@ export default function ClasificadosListaPage() {
       if (zipNorm) return ZIP_GEO[zipNorm];
       const alias = CITY_ALIASES[cityNorm];
       const key = alias ? normalize(alias) : cityNorm;
+
+      // ✅ CityRecord uses `city`, not `name`
       const c = CA_CITIES.find((x) => normalize(x.city) === key);
       return c ? { lat: c.lat, lng: c.lng } : undefined;
     })();
@@ -509,9 +628,11 @@ export default function ClasificadosListaPage() {
       const alias = CITY_ALIASES[lcNorm];
       const key = alias ? normalize(alias) : lcNorm;
 
+      // ✅ CityRecord uses `city`, not `name`
       const c = CA_CITIES.find((x) => normalize(x.city) === key);
-      if (!c) return true;
+      if (!c) return true; // if unknown city, don't block it
 
+      // Haversine-ish
       const R = 3958.8; // miles
       const toRad = (d: number) => (d * Math.PI) / 180;
       const dLat = toRad(c.lat - wantLatLng.lat);
@@ -539,6 +660,7 @@ export default function ClasificadosListaPage() {
           } ${x.make ?? ""} ${x.model ?? ""}`
         );
 
+        // Keep the simple synonym normalization for actual search matching
         const qSyn = nq
           .replace(/\btroca\b/g, "truck")
           .replace(/\bcamioneta\b/g, "truck")
@@ -551,7 +673,7 @@ export default function ClasificadosListaPage() {
         return hay.includes(qSyn);
       })
       .sort((a, b) => {
-        if (sort === "newest") return 0;
+        if (sort === "newest") return 0; // sample data already “recent-ish”
         const ap = a.price ?? 0;
         const bp = b.price ?? 0;
         if (sort === "price-asc") return ap - bp;
@@ -623,7 +745,41 @@ export default function ClasificadosListaPage() {
                   ref={inputRef}
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setSuggestionsOpen(false);
+                      return;
+                    }
+
+                    if (!suggestionsOpen || suggestions.length === 0) return;
+
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setActiveSuggestion((i) =>
+                        Math.min(suggestions.length - 1, i + 1)
+                      );
+                      return;
+                    }
+
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setActiveSuggestion((i) => Math.max(0, i - 1));
+                      return;
+                    }
+
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const picked =
+                        suggestions[activeSuggestion] ?? suggestions[0];
+                      if (picked) {
+                        setCategory(picked);
+                        setSuggestionsOpen(false);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }
+                    }
+                  }}
                   onFocus={() => {
+                    // Only open if valid suggestions exist (rules applied in effect)
                     if (suggestions.length > 0) setSuggestionsOpen(true);
                   }}
                   placeholder={
@@ -633,19 +789,28 @@ export default function ClasificadosListaPage() {
                   }
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40"
                 />
+
                 {suggestionsOpen && suggestions.length > 0 && (
                   <div className="absolute left-0 right-0 mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-xl">
-                    {suggestions.map((cat) => (
+                    {suggestions.map((cat, idx) => (
                       <button
                         key={cat}
                         type="button"
-                        onPointerDown={(e) => e.preventDefault()}
+                        onPointerDown={(e) => {
+                          // Prevent focus loss / blur timing issues
+                          e.preventDefault();
+                        }}
+                        onMouseEnter={() => setActiveSuggestion(idx)}
                         onClick={() => {
                           setCategory(cat);
                           setSuggestionsOpen(false);
-                          inputRef.current?.focus();
+                          requestAnimationFrame(() => inputRef.current?.focus());
                         }}
-                        className="block w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/5"
+                        className={cx(
+                          "block w-full px-3 py-2 text-left text-sm text-gray-200",
+                          "hover:bg-white/5 focus:bg-white/5",
+                          idx === activeSuggestion && "bg-white/5"
+                        )}
                       >
                         {categoryLabel(cat)}
                       </button>
@@ -720,7 +885,7 @@ export default function ClasificadosListaPage() {
                   </label>
                   <select
                     value={sort}
-                    onChange={(e) => setSort(e.target.value as SortKey)}
+                    onChange={(e) => setSort(e.target.value as any)}
                     className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400/40"
                   >
                     <option value="newest">{LABELS.newest[lang]}</option>
