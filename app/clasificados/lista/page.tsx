@@ -329,6 +329,19 @@ export default function ClasificadosListaPage() {
           "remodelacion",
           "remodelación",
           "mudanza",
+
+          // Pets (service intent)
+          "veterinario",
+          "veterinaria",
+          "peluqueria",
+          "peluquería",
+          "peluqueria canina",
+          "peluquería canina",
+          "estetica canina",
+          "estética canina",
+          "entrenamiento",
+          "adiestramiento",
+
           // EN
           "service",
           "services",
@@ -340,12 +353,25 @@ export default function ClasificadosListaPage() {
           "moving",
           "remodel",
           "remodeling",
+          "repair",
+
+          // Pets (service intent)
+          "vet",
+          "veterinary",
+          "grooming",
+          "dog grooming",
+          "cat grooming",
+          "training",
+          "dog training",
+          "pet training",
+          "boarding",
+          "pet boarding",
         ],
       ],
       [
         "en-venta",
         [
-          // ES
+          // ES (general sale intent)
           "vendo",
           "venta",
           "en venta",
@@ -401,6 +427,30 @@ export default function ClasificadosListaPage() {
           "consola",
           "videojuegos",
 
+          // Pets (general sale / rehome items) → En Venta by default
+          "mascota",
+          "mascotas",
+          "perro",
+          "perros",
+          "gato",
+          "gatos",
+          "cachorro",
+          "cachorros",
+          "gatito",
+          "gatitos",
+          "peces",
+          "pez",
+          "pajaro",
+          "pájaro",
+          "pajaros",
+          "pájaros",
+          "jaula",
+          "correa",
+          "arnes",
+          "arnés",
+          "comida para perro",
+          "comida para gato",
+
           // Retail / goods intent (EN)
           "clothes",
           "clothing",
@@ -437,6 +487,27 @@ export default function ClasificadosListaPage() {
           "console",
           "video games",
 
+          // Pets (general) → En Venta by default
+          "pet",
+          "pets",
+          "dog",
+          "dogs",
+          "cat",
+          "cats",
+          "puppy",
+          "puppies",
+          "kitten",
+          "kittens",
+          "fish",
+          "bird",
+          "birds",
+          "leash",
+          "harness",
+          "cage",
+          "pet food",
+          "dog food",
+          "cat food",
+
           // EN (general sale intent)
           "sale",
           "for sale",
@@ -465,6 +536,7 @@ export default function ClasificadosListaPage() {
           "tutor",
           "tutoring",
           "lessons",
+          "training class",
         ],
       ],
       [
@@ -479,6 +551,22 @@ export default function ClasificadosListaPage() {
           "donacion",
           "donación",
           "voluntario",
+
+          // Pets (lost/found/adoption/community intent) → Comunidad
+          "adopcion",
+          "adopción",
+          "adoptar",
+          "se perdio",
+          "se perdió",
+          "perdido",
+          "perdida",
+          "encontrado",
+          "encontrada",
+          "se encontro",
+          "se encontró",
+          "busco a mi perro",
+          "busco a mi gato",
+
           // EN
           "community",
           "event",
@@ -487,18 +575,29 @@ export default function ClasificadosListaPage() {
           "help",
           "donation",
           "volunteer",
+
+          // Pets (lost/found/adoption/community intent) → Comunidad
+          "adoption",
+          "adopt",
+          "lost",
+          "found",
+          "missing",
+          "lost dog",
+          "lost cat",
+          "found dog",
+          "found cat",
         ],
       ],
     ];
 
     // Build an index: normalized synonym → category
+    // NOTE: first-writer wins (important for pets: adoption/lost/found should map to Comunidad)
     const index = new Map<string, Exclude<CategoryKey, "all">>();
 
     for (const [cat, words] of base) {
       for (const w of words) {
         const key = normalize(w);
         if (!key) continue;
-        // Keep first writer to avoid churn; order matters elsewhere
         if (!index.has(key)) index.set(key, cat);
       }
 
@@ -514,7 +613,11 @@ export default function ClasificadosListaPage() {
   /** Compute search suggestions (categories only) */
   useEffect(() => {
     const raw = q;
-    const val = normalize(raw);
+    const valFull = normalize(raw);
+
+    // Use last token for intent routing (FB/Craigslist behavior)
+    const tokens = valFull.split(/\s+/).filter(Boolean);
+    const val = tokens.length > 0 ? tokens[tokens.length - 1] : valFull;
 
     // Rule 1: no suggestions until 3 chars
     if (!val || val.length < 3) {
@@ -526,7 +629,7 @@ export default function ClasificadosListaPage() {
 
     const { index, keys } = synonymIndex;
 
-    // Mode A: prefix matches (clean, fast)
+    // Mode A: prefix matches (clean, fast) on last token
     const prefixMatches = new Set<Exclude<CategoryKey, "all">>();
     for (const k of keys) {
       if (k.startsWith(val)) {
@@ -545,7 +648,6 @@ export default function ClasificadosListaPage() {
       next = next.slice(0, 3);
     } else if (val.length >= 5) {
       // Mode B: fuzzy assist (only after the user "commits" to a word)
-      // Conservative threshold: distance <= 2 and similarity ratio >= 0.6
       let bestKey = "";
       let bestCat: Exclude<CategoryKey, "all"> | null = null;
       let bestDist = Number.POSITIVE_INFINITY;
@@ -582,14 +684,14 @@ export default function ClasificadosListaPage() {
       const t = e.target as Node | null;
       if (!t) return;
 
-      // If click is inside the search input group, do nothing
       if (searchBoxRef.current && searchBoxRef.current.contains(t)) return;
 
       setSuggestionsOpen(false);
     }
 
     document.addEventListener("pointerdown", onDocPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
 
   // Pagination
@@ -616,7 +718,6 @@ export default function ClasificadosListaPage() {
       const alias = CITY_ALIASES[cityNorm];
       const key = alias ? normalize(alias) : cityNorm;
 
-      // ✅ CityRecord uses `city`, not `name`
       const c = CA_CITIES.find((x) => normalize(x.city) === key);
       return c ? { lat: c.lat, lng: c.lng } : undefined;
     })();
@@ -628,11 +729,9 @@ export default function ClasificadosListaPage() {
       const alias = CITY_ALIASES[lcNorm];
       const key = alias ? normalize(alias) : lcNorm;
 
-      // ✅ CityRecord uses `city`, not `name`
       const c = CA_CITIES.find((x) => normalize(x.city) === key);
-      if (!c) return true; // if unknown city, don't block it
+      if (!c) return true;
 
-      // Haversine-ish
       const R = 3958.8; // miles
       const toRad = (d: number) => (d * Math.PI) / 180;
       const dLat = toRad(c.lat - wantLatLng.lat);
@@ -660,7 +759,6 @@ export default function ClasificadosListaPage() {
           } ${x.make ?? ""} ${x.model ?? ""}`
         );
 
-        // Keep the simple synonym normalization for actual search matching
         const qSyn = nq
           .replace(/\btroca\b/g, "truck")
           .replace(/\bcamioneta\b/g, "truck")
@@ -673,7 +771,7 @@ export default function ClasificadosListaPage() {
         return hay.includes(qSyn);
       })
       .sort((a, b) => {
-        if (sort === "newest") return 0; // sample data already “recent-ish”
+        if (sort === "newest") return 0;
         const ap = a.price ?? 0;
         const bp = b.price ?? 0;
         if (sort === "price-asc") return ap - bp;
@@ -779,13 +877,12 @@ export default function ClasificadosListaPage() {
                     }
                   }}
                   onFocus={() => {
-                    // Only open if valid suggestions exist (rules applied in effect)
                     if (suggestions.length > 0) setSuggestionsOpen(true);
                   }}
                   placeholder={
                     lang === "es"
-                      ? "Buscar: trabajo, troca, cuarto..."
-                      : "Search: jobs, truck, room..."
+                      ? "Buscar: trabajo, troca, cuarto, ropa, mascotas..."
+                      : "Search: jobs, truck, room, clothes, pets..."
                   }
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40"
                 />
@@ -797,7 +894,6 @@ export default function ClasificadosListaPage() {
                         key={cat}
                         type="button"
                         onPointerDown={(e) => {
-                          // Prevent focus loss / blur timing issues
                           e.preventDefault();
                         }}
                         onMouseEnter={() => setActiveSuggestion(idx)}
