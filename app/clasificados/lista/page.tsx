@@ -122,6 +122,35 @@ function toNumberOrUndefined(v: string) {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Small, controlled Levenshtein for fuzzy assist (typos) */
+function levenshtein(a: string, b: string) {
+  const s = a;
+  const t = b;
+  const m = s.length;
+  const n = t.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  const dp: number[] = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const temp = dp[j];
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      dp[j] = Math.min(
+        dp[j] + 1, // deletion
+        dp[j - 1] + 1, // insertion
+        prev + cost // substitution
+      );
+      prev = temp;
+    }
+  }
+  return dp[n];
+}
+
 export default function ClasificadosListaPage() {
   const params = useSearchParams();
   const getParam = (k: string) => params?.get(k) ?? "";
@@ -158,11 +187,13 @@ export default function ClasificadosListaPage() {
   const [onlyWithImage, setOnlyWithImage] = useState(false);
   const [showMore, setShowMore] = useState(false);
 
-  // Suggestions UX state
+  // Suggestions UX state (SEARCH ONLY)
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<
+    Array<Exclude<CategoryKey, "all">>
+  >([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const sugRef = useRef<HTMLDivElement | null>(null);
+  const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
   // Keep state in sync if params change (rare, but safe)
   useEffect(() => {
@@ -181,65 +212,267 @@ export default function ClasificadosListaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qParam, catParam, cityParam, zipParam, rParam, sortParam]);
 
-  // Suggestion dictionary
-  const searchDictionary = useMemo(() => {
-    const base = new Set<string>();
+  const categoryLabel = (c: CategoryKey) => {
+    if (c === "all") return LABELS.any[lang];
+    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> =
+      {
+        "en-venta": { es: "En Venta", en: "For Sale" },
+        rentas: { es: "Rentas", en: "Rentals" },
+        autos: { es: "Autos", en: "Cars" },
+        servicios: { es: "Servicios", en: "Services" },
+        empleos: { es: "Empleos", en: "Jobs" },
+        clases: { es: "Clases", en: "Classes" },
+        comunidad: { es: "Comunidad", en: "Community" },
+      };
+    return map[c][lang];
+  };
 
-    // Categories / common terms
-    base.add(lang === "es" ? "autos" : "cars");
-    base.add(lang === "es" ? "rentas" : "rentals");
-    base.add(lang === "es" ? "empleos" : "jobs");
-    base.add(lang === "es" ? "servicios" : "services");
+  /** Controlled synonym map → category (categories-only suggestions) */
+  const synonymIndex = useMemo(() => {
+    const base: Array<[Exclude<CategoryKey, "all">, string[]]> = [
+      [
+        "autos",
+        [
+          "auto",
+          "autos",
+          "carro",
+          "carros",
+          "coche",
+          "coches",
+          "troca",
+          "trocas",
+          "camioneta",
+          "camionetas",
+          "pickup",
+          "pick up",
+          "pick-up",
+          "camion",
+          "camión",
+          "van",
+          "suv",
+          "car",
+          "cars",
+          "truck",
+          "trucks",
+        ],
+      ],
+      [
+        "rentas",
+        [
+          "renta",
+          "rentas",
+          "alquiler",
+          "alquilo",
+          "apartamento",
+          "depa",
+          "departamento",
+          "casa",
+          "cuarto",
+          "habitacion",
+          "habitación",
+          "roomie",
+          "rent",
+          "rental",
+          "rentals",
+          "apartment",
+          "apt",
+          "house",
+          "home",
+          "room",
+          "studio",
+        ],
+      ],
+      [
+        "empleos",
+        [
+          "empleo",
+          "empleos",
+          "trabajo",
+          "trabajos",
+          "jale",
+          "vacante",
+          "vacantes",
+          "contratando",
+          "se busca",
+          "job",
+          "jobs",
+          "work",
+          "hiring",
+          "position",
+          "positions",
+        ],
+      ],
+      [
+        "servicios",
+        [
+          "servicio",
+          "servicios",
+          "mecanico",
+          "mecánico",
+          "plomero",
+          "electricista",
+          "limpieza",
+          "jardineria",
+          "jardinería",
+          "pintor",
+          "remodelacion",
+          "remodelación",
+          "mudanza",
+          "service",
+          "services",
+          "mechanic",
+          "plumber",
+          "electrician",
+          "cleaning",
+          "landscaping",
+          "moving",
+          "remodel",
+          "remodeling",
+        ],
+      ],
+      [
+        "en-venta",
+        [
+          "vendo",
+          "venta",
+          "en venta",
+          "se vende",
+          "oferta",
+          "precio",
+          "barato",
+          "segunda mano",
+          "usado",
+          "usados",
+          "sale",
+          "for sale",
+          "selling",
+          "used",
+          "second hand",
+        ],
+      ],
+      [
+        "clases",
+        [
+          "clase",
+          "clases",
+          "curso",
+          "cursos",
+          "tutor",
+          "tutoria",
+          "tutoría",
+          "lecciones",
+          "class",
+          "classes",
+          "course",
+          "courses",
+          "tutoring",
+          "lessons",
+        ],
+      ],
+      [
+        "comunidad",
+        [
+          "comunidad",
+          "evento",
+          "eventos",
+          "iglesia",
+          "ayuda",
+          "donacion",
+          "donación",
+          "voluntario",
+          "community",
+          "event",
+          "events",
+          "church",
+          "help",
+          "donation",
+          "volunteer",
+        ],
+      ],
+    ];
 
-    // Slang / variants (requested)
-    base.add("troca");
-    base.add("camioneta");
-    base.add("pickup");
-    base.add("pick-up");
-    base.add("truck");
-
-    // Extract words from listings (simple)
-    for (const l of SAMPLE_LISTINGS as any) {
-      const t = `${l?.title?.es ?? ""} ${l?.title?.en ?? ""} ${l?.blurb?.es ?? ""} ${
-        l?.blurb?.en ?? ""
-      }`;
-      for (const w of t.split(/\s+/g)) {
-        const n = normalize(w);
-        if (n.length >= 3) base.add(n);
+    const index = new Map<string, Exclude<CategoryKey, "all">>();
+    for (const [cat, words] of base) {
+      for (const w of words) {
+        const key = normalize(w);
+        if (!key) continue;
+        if (!index.has(key)) index.set(key, cat);
       }
+      index.set(normalize(categoryLabel(cat)), cat);
+      index.set(normalize(cat), cat);
     }
 
-    return Array.from(base);
+    const keys = Array.from(index.keys());
+    return { index, keys };
   }, [lang]);
 
-  // Update suggestions as user types
+  /** Compute search suggestions (categories only) */
   useEffect(() => {
     const val = normalize(q);
-    if (!val || val.length < 1) {
+
+    if (!val || val.length < 3) {
       setSuggestions([]);
       setSuggestionsOpen(false);
       return;
     }
 
-    const hits = searchDictionary
-      .filter((s) => normalize(s).includes(val))
-      .slice(0, 8);
+    const { index, keys } = synonymIndex;
 
-    setSuggestions(hits);
-    setSuggestionsOpen(hits.length > 0);
-  }, [q, searchDictionary]);
+    const prefixMatches = new Set<Exclude<CategoryKey, "all">>();
+    for (const k of keys) {
+      if (k.startsWith(val)) {
+        const cat = index.get(k);
+        if (cat) prefixMatches.add(cat);
+      }
+    }
 
-  // Close suggestions on outside click
+    let next: Array<Exclude<CategoryKey, "all">> = [];
+
+    if (prefixMatches.size > 0) {
+      for (const c of CATEGORY_ORDER) {
+        if (prefixMatches.has(c)) next.push(c);
+      }
+      next = next.slice(0, 3);
+    } else if (val.length >= 5) {
+      let bestKey = "";
+      let bestCat: Exclude<CategoryKey, "all"> | null = null;
+      let bestDist = Number.POSITIVE_INFINITY;
+
+      for (const k of keys) {
+        if (k.length < 4) continue;
+        const d = levenshtein(val, k);
+        if (d < bestDist) {
+          bestDist = d;
+          bestKey = k;
+          bestCat = synonymIndex.index.get(k) ?? null;
+        }
+      }
+
+      if (bestCat) {
+        const maxLen = Math.max(val.length, bestKey.length);
+        const similarity = maxLen === 0 ? 0 : 1 - bestDist / maxLen;
+        if (bestDist <= 2 && similarity >= 0.6) {
+          next = [bestCat];
+        }
+      }
+    }
+
+    setSuggestions(next);
+    setSuggestionsOpen(next.length > 0);
+  }, [q, synonymIndex]);
+
+  /** Close suggestions on outside click */
   useEffect(() => {
-    function onDocDown(e: MouseEvent) {
+    function onDocPointerDown(e: PointerEvent) {
       const t = e.target as Node | null;
       if (!t) return;
-      if (inputRef.current && inputRef.current.contains(t)) return;
-      if (sugRef.current && sugRef.current.contains(t)) return;
+      if (searchBoxRef.current && searchBoxRef.current.contains(t)) return;
       setSuggestionsOpen(false);
     }
-    document.addEventListener("mousedown", onDocDown);
-    return () => document.removeEventListener("mousedown", onDocDown);
+
+    document.addEventListener("pointerdown", onDocPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
 
   // Pagination
@@ -265,8 +498,6 @@ export default function ClasificadosListaPage() {
       if (zipNorm) return ZIP_GEO[zipNorm];
       const alias = CITY_ALIASES[cityNorm];
       const key = alias ? normalize(alias) : cityNorm;
-
-      // ✅ CityRecord uses `city`, not `name`
       const c = CA_CITIES.find((x) => normalize(x.city) === key);
       return c ? { lat: c.lat, lng: c.lng } : undefined;
     })();
@@ -278,11 +509,9 @@ export default function ClasificadosListaPage() {
       const alias = CITY_ALIASES[lcNorm];
       const key = alias ? normalize(alias) : lcNorm;
 
-      // ✅ CityRecord uses `city`, not `name`
       const c = CA_CITIES.find((x) => normalize(x.city) === key);
-      if (!c) return true; // if unknown city, don't block it
+      if (!c) return true;
 
-      // Haversine-ish
       const R = 3958.8; // miles
       const toRad = (d: number) => (d * Math.PI) / 180;
       const dLat = toRad(c.lat - wantLatLng.lat);
@@ -313,12 +542,16 @@ export default function ClasificadosListaPage() {
         const qSyn = nq
           .replace(/\btroca\b/g, "truck")
           .replace(/\bcamioneta\b/g, "truck")
-          .replace(/\bpick-?up\b/g, "truck");
+          .replace(/\bpick-?up\b/g, "truck")
+          .replace(/\btrabajo\b/g, "empleos")
+          .replace(/\bjobs?\b/g, "empleos")
+          .replace(/\bhouse\b/g, "rentas")
+          .replace(/\bhome\b/g, "rentas");
 
         return hay.includes(qSyn);
       })
       .sort((a, b) => {
-        if (sort === "newest") return 0; // sample data already “recent-ish”
+        if (sort === "newest") return 0;
         const ap = a.price ?? 0;
         const bp = b.price ?? 0;
         if (sort === "price-asc") return ap - bp;
@@ -333,20 +566,6 @@ export default function ClasificadosListaPage() {
     const start = (pageClamped - 1) * perPage;
     return filtered.slice(start, start + perPage);
   }, [filtered, pageClamped, perPage]);
-
-  const categoryLabel = (c: CategoryKey) => {
-    if (c === "all") return LABELS.any[lang];
-    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> = {
-      "en-venta": { es: "En Venta", en: "For Sale" },
-      rentas: { es: "Rentas", en: "Rentals" },
-      autos: { es: "Autos", en: "Cars" },
-      servicios: { es: "Servicios", en: "Services" },
-      empleos: { es: "Empleos", en: "Jobs" },
-      clases: { es: "Clases", en: "Classes" },
-      comunidad: { es: "Comunidad", en: "Community" },
-    };
-    return map[c][lang];
-  };
 
   const badgeFor = (t: SellerType) => {
     if (t === "business")
@@ -396,7 +615,7 @@ export default function ClasificadosListaPage() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3 shadow-lg md:p-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:gap-3">
               {/* Search */}
-              <div className="relative md:col-span-5">
+              <div ref={searchBoxRef} className="relative md:col-span-5">
                 <label className="mb-1 block text-xs text-gray-300">
                   {LABELS.search[lang]}
                 </label>
@@ -409,32 +628,26 @@ export default function ClasificadosListaPage() {
                   }}
                   placeholder={
                     lang === "es"
-                      ? "Buscar: celica 2003, troca, cuarto..."
-                      : "Search: 2003 celica, truck, room..."
+                      ? "Buscar: trabajo, troca, cuarto..."
+                      : "Search: jobs, truck, room..."
                   }
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40"
                 />
                 {suggestionsOpen && suggestions.length > 0 && (
-                  <div
-                    ref={sugRef}
-                    className="absolute left-0 right-0 mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-xl"
-                  >
-                    {suggestions.map((s) => (
+                  <div className="absolute left-0 right-0 mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-xl">
+                    {suggestions.map((cat) => (
                       <button
-                        key={s}
+                        key={cat}
                         type="button"
-                        onMouseDown={(e) => {
-                          // prevent input blur
-                          e.preventDefault();
-                        }}
+                        onPointerDown={(e) => e.preventDefault()}
                         onClick={() => {
-                          setQ(s);
+                          setCategory(cat);
                           setSuggestionsOpen(false);
                           inputRef.current?.focus();
                         }}
                         className="block w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/5"
                       >
-                        {s}
+                        {categoryLabel(cat)}
                       </button>
                     ))}
                   </div>
@@ -507,7 +720,7 @@ export default function ClasificadosListaPage() {
                   </label>
                   <select
                     value={sort}
-                    onChange={(e) => setSort(e.target.value as any)}
+                    onChange={(e) => setSort(e.target.value as SortKey)}
                     className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400/40"
                   >
                     <option value="newest">{LABELS.newest[lang]}</option>
