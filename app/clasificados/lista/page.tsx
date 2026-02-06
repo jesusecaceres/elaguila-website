@@ -50,6 +50,8 @@ type Listing = {
   price?: number;
 };
 
+type LatLng = { lat: number; lng: number };
+
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -94,6 +96,7 @@ const LABELS = {
   personal: { es: "Personal", en: "Personal" },
   business: { es: "Negocio", en: "Business" },
   free: { es: "Gratis", en: "Free" },
+  useMyLocation: { es: "Usar mi ubicación", en: "Use my location" },
 };
 
 function isCategoryKey(v: string): v is CategoryKey {
@@ -140,15 +143,25 @@ function levenshtein(a: string, b: string) {
     for (let j = 1; j <= n; j++) {
       const temp = dp[j];
       const cost = s[i - 1] === t[j - 1] ? 0 : 1;
-      dp[j] = Math.min(
-        dp[j] + 1, // deletion
-        dp[j - 1] + 1, // insertion
-        prev + cost // substitution
-      );
+      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + cost);
       prev = temp;
     }
   }
   return dp[n];
+}
+
+/** Distance in miles */
+function haversineMi(a: LatLng, b: LatLng) {
+  const R = 3958.8; // miles
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const aa =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) *
+      Math.cos(toRad(b.lat)) *
+      Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(aa));
 }
 
 export default function ClasificadosListaPage() {
@@ -192,10 +205,20 @@ export default function ClasificadosListaPage() {
   const [suggestions, setSuggestions] = useState<
     Array<Exclude<CategoryKey, "all">>
   >([]);
-  const [activeSuggestion, setActiveSuggestion] = useState(0);
-
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // Location UX state
+  const [locMsg, setLocMsg] = useState<string>("");
+  const [usingMyLocation, setUsingMyLocation] = useState(false);
+
+  // City dropdown (autocomplete)
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityOptions, setCityOptions] = useState<Array<{ city: string; d: number }>>(
+    []
+  );
+  const cityBoxRef = useRef<HTMLDivElement | null>(null);
+  const cityInputRef = useRef<HTMLInputElement | null>(null);
 
   // Keep state in sync if params change (rare, but safe)
   useEffect(() => {
@@ -329,19 +352,6 @@ export default function ClasificadosListaPage() {
           "remodelacion",
           "remodelación",
           "mudanza",
-
-          // Pets (service intent)
-          "veterinario",
-          "veterinaria",
-          "peluqueria",
-          "peluquería",
-          "peluqueria canina",
-          "peluquería canina",
-          "estetica canina",
-          "estética canina",
-          "entrenamiento",
-          "adiestramiento",
-
           // EN
           "service",
           "services",
@@ -353,25 +363,12 @@ export default function ClasificadosListaPage() {
           "moving",
           "remodel",
           "remodeling",
-          "repair",
-
-          // Pets (service intent)
-          "vet",
-          "veterinary",
-          "grooming",
-          "dog grooming",
-          "cat grooming",
-          "training",
-          "dog training",
-          "pet training",
-          "boarding",
-          "pet boarding",
         ],
       ],
       [
         "en-venta",
         [
-          // ES (general sale intent)
+          // ES
           "vendo",
           "venta",
           "en venta",
@@ -382,133 +379,7 @@ export default function ClasificadosListaPage() {
           "segunda mano",
           "usado",
           "usados",
-
-          // Retail / goods intent (ES)
-          "ropa",
-          "camisa",
-          "camisas",
-          "playera",
-          "playeras",
-          "blusa",
-          "blusas",
-          "pantalon",
-          "pantalón",
-          "pantalones",
-          "jeans",
-          "chamarra",
-          "chaqueta",
-          "zapato",
-          "zapatos",
-          "tenis",
-          "sneakers",
-          "bolsa",
-          "bolsas",
-          "accesorios",
-          "joyas",
-          "muebles",
-          "sofa",
-          "sofá",
-          "cama",
-          "colchon",
-          "colchón",
-          "mesa",
-          "silla",
-          "tele",
-          "television",
-          "televisión",
-          "electronica",
-          "electrónica",
-          "celular",
-          "telefono",
-          "teléfono",
-          "iphone",
-          "laptop",
-          "computadora",
-          "consola",
-          "videojuegos",
-
-          // Pets (general sale / rehome items) → En Venta by default
-          "mascota",
-          "mascotas",
-          "perro",
-          "perros",
-          "gato",
-          "gatos",
-          "cachorro",
-          "cachorros",
-          "gatito",
-          "gatitos",
-          "peces",
-          "pez",
-          "pajaro",
-          "pájaro",
-          "pajaros",
-          "pájaros",
-          "jaula",
-          "correa",
-          "arnes",
-          "arnés",
-          "comida para perro",
-          "comida para gato",
-
-          // Retail / goods intent (EN)
-          "clothes",
-          "clothing",
-          "apparel",
-          "shirt",
-          "shirts",
-          "tshirt",
-          "t-shirt",
-          "hoodie",
-          "jacket",
-          "shoes",
-          "sneaker",
-          "sneakers",
-          "bag",
-          "bags",
-          "accessories",
-          "jewelry",
-          "furniture",
-          "couch",
-          "sofa",
-          "bed",
-          "mattress",
-          "table",
-          "chair",
-          "tv",
-          "television",
-          "electronics",
-          "phone",
-          "cellphone",
-          "iphone",
-          "laptop",
-          "computer",
-          "gaming",
-          "console",
-          "video games",
-
-          // Pets (general) → En Venta by default
-          "pet",
-          "pets",
-          "dog",
-          "dogs",
-          "cat",
-          "cats",
-          "puppy",
-          "puppies",
-          "kitten",
-          "kittens",
-          "fish",
-          "bird",
-          "birds",
-          "leash",
-          "harness",
-          "cage",
-          "pet food",
-          "dog food",
-          "cat food",
-
-          // EN (general sale intent)
+          // EN
           "sale",
           "for sale",
           "selling",
@@ -536,7 +407,6 @@ export default function ClasificadosListaPage() {
           "tutor",
           "tutoring",
           "lessons",
-          "training class",
         ],
       ],
       [
@@ -551,22 +421,6 @@ export default function ClasificadosListaPage() {
           "donacion",
           "donación",
           "voluntario",
-
-          // Pets (lost/found/adoption/community intent) → Comunidad
-          "adopcion",
-          "adopción",
-          "adoptar",
-          "se perdio",
-          "se perdió",
-          "perdido",
-          "perdida",
-          "encontrado",
-          "encontrada",
-          "se encontro",
-          "se encontró",
-          "busco a mi perro",
-          "busco a mi gato",
-
           // EN
           "community",
           "event",
@@ -575,23 +429,11 @@ export default function ClasificadosListaPage() {
           "help",
           "donation",
           "volunteer",
-
-          // Pets (lost/found/adoption/community intent) → Comunidad
-          "adoption",
-          "adopt",
-          "lost",
-          "found",
-          "missing",
-          "lost dog",
-          "lost cat",
-          "found dog",
-          "found cat",
         ],
       ],
     ];
 
     // Build an index: normalized synonym → category
-    // NOTE: first-writer wins (important for pets: adoption/lost/found should map to Comunidad)
     const index = new Map<string, Exclude<CategoryKey, "all">>();
 
     for (const [cat, words] of base) {
@@ -600,8 +442,6 @@ export default function ClasificadosListaPage() {
         if (!key) continue;
         if (!index.has(key)) index.set(key, cat);
       }
-
-      // Also ensure canonical category label itself works
       index.set(normalize(categoryLabel(cat)), cat);
       index.set(normalize(cat), cat);
     }
@@ -612,24 +452,18 @@ export default function ClasificadosListaPage() {
 
   /** Compute search suggestions (categories only) */
   useEffect(() => {
-    const raw = q;
-    const valFull = normalize(raw);
-
-    // Use last token for intent routing (FB/Craigslist behavior)
-    const tokens = valFull.split(/\s+/).filter(Boolean);
-    const val = tokens.length > 0 ? tokens[tokens.length - 1] : valFull;
+    const val = normalize(q);
 
     // Rule 1: no suggestions until 3 chars
     if (!val || val.length < 3) {
       setSuggestions([]);
-      setActiveSuggestion(0);
       setSuggestionsOpen(false);
       return;
     }
 
     const { index, keys } = synonymIndex;
 
-    // Mode A: prefix matches (clean, fast) on last token
+    // Mode A: prefix matches
     const prefixMatches = new Set<Exclude<CategoryKey, "all">>();
     for (const k of keys) {
       if (k.startsWith(val)) {
@@ -641,32 +475,29 @@ export default function ClasificadosListaPage() {
     let next: Array<Exclude<CategoryKey, "all">> = [];
 
     if (prefixMatches.size > 0) {
-      // Stable display order: use CATEGORY_ORDER
       for (const c of CATEGORY_ORDER) {
         if (prefixMatches.has(c)) next.push(c);
       }
       next = next.slice(0, 3);
     } else if (val.length >= 5) {
-      // Mode B: fuzzy assist (only after the user "commits" to a word)
+      // Mode B: fuzzy assist
       let bestKey = "";
       let bestCat: Exclude<CategoryKey, "all"> | null = null;
       let bestDist = Number.POSITIVE_INFINITY;
 
       for (const k of keys) {
         if (k.length < 4) continue;
-
         const d = levenshtein(val, k);
         if (d < bestDist) {
           bestDist = d;
           bestKey = k;
-          bestCat = index.get(k) ?? null;
+          bestCat = synonymIndex.index.get(k) ?? null;
         }
       }
 
       if (bestCat) {
         const maxLen = Math.max(val.length, bestKey.length);
         const similarity = maxLen === 0 ? 0 : 1 - bestDist / maxLen;
-
         if (bestDist <= 2 && similarity >= 0.6) {
           next = [bestCat];
         }
@@ -674,25 +505,287 @@ export default function ClasificadosListaPage() {
     }
 
     setSuggestions(next);
-    setActiveSuggestion(0);
     setSuggestionsOpen(next.length > 0);
   }, [q, synonymIndex]);
 
-  /** Close suggestions on true outside pointerdown (capture phase) */
+  /** Close search suggestions on true outside pointerdown (capture phase) */
   useEffect(() => {
     function onDocPointerDown(e: PointerEvent) {
       const t = e.target as Node | null;
       if (!t) return;
-
       if (searchBoxRef.current && searchBoxRef.current.contains(t)) return;
-
       setSuggestionsOpen(false);
     }
-
     document.addEventListener("pointerdown", onDocPointerDown, true);
-    return () =>
-      document.removeEventListener("pointerdown", onDocPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
+
+  // --- LOCATION DERIVED STATE (NO norcal.ts changes) ---
+  const zipClean = useMemo(() => {
+    const digits = (zip || "").replace(/\D/g, "").slice(0, 5);
+    return digits;
+  }, [zip]);
+
+  const zipMode = zipClean.length === 5;
+
+  const caCityIndex = useMemo(() => {
+    const byNorm = new Map<string, { city: string; lat: number; lng: number }>();
+    for (const c of CA_CITIES) {
+      byNorm.set(normalize((c as any).city), { city: (c as any).city, lat: c.lat, lng: c.lng });
+    }
+    const norms = Array.from(byNorm.keys());
+    return { byNorm, norms };
+  }, []);
+
+  const resolveCityToCanonical = useMemo(() => {
+    const typed = city;
+    const n = normalize(typed);
+    if (!n) return { canonicalCity: DEFAULT_CITY, latLng: undefined as LatLng | undefined, resolvedFrom: "default" as const };
+
+    // alias -> canonical name
+    const alias = CITY_ALIASES[n];
+    const key = alias ? normalize(alias) : n;
+
+    const direct = caCityIndex.byNorm.get(key);
+    if (direct) {
+      return { canonicalCity: direct.city, latLng: { lat: direct.lat, lng: direct.lng }, resolvedFrom: "direct" as const };
+    }
+
+    // fuzzy to nearest NAME (string similarity) – conservative
+    if (key.length >= 3) {
+      let bestNorm = "";
+      let bestDist = Number.POSITIVE_INFINITY;
+
+      for (const k of caCityIndex.norms) {
+        const d = levenshtein(key, k);
+        if (d < bestDist) {
+          bestDist = d;
+          bestNorm = k;
+        }
+      }
+
+      const maxLen = Math.max(key.length, bestNorm.length);
+      const similarity = maxLen === 0 ? 0 : 1 - bestDist / maxLen;
+
+      // conservative gating: prevents weird jumps on short inputs
+      if (bestNorm && bestDist <= 2 && similarity >= 0.6) {
+        const hit = caCityIndex.byNorm.get(bestNorm);
+        if (hit) {
+          return { canonicalCity: hit.city, latLng: { lat: hit.lat, lng: hit.lng }, resolvedFrom: "fuzzy" as const };
+        }
+      }
+    }
+
+    return { canonicalCity: DEFAULT_CITY, latLng: undefined as LatLng | undefined, resolvedFrom: "unknown" as const };
+  }, [city, caCityIndex.byNorm, caCityIndex.norms]);
+
+  const zipAnchor = useMemo(() => {
+    if (!zipMode) return { known: false, latLng: undefined as LatLng | undefined };
+    const ll = (ZIP_GEO as any)[zipClean] as LatLng | undefined;
+    return { known: Boolean(ll), latLng: ll };
+  }, [zipClean, zipMode]);
+
+  const anchor = useMemo(() => {
+    // ZIP wins when valid/known
+    if (zipMode && zipAnchor.known && zipAnchor.latLng) {
+      return { latLng: zipAnchor.latLng, anchorCityLabel: "" };
+    }
+    // else use city if resolvable
+    if (resolveCityToCanonical.latLng) {
+      return { latLng: resolveCityToCanonical.latLng, anchorCityLabel: resolveCityToCanonical.canonicalCity };
+    }
+    // no anchor => none
+    return { latLng: undefined as LatLng | undefined, anchorCityLabel: "" };
+  }, [zipMode, zipAnchor.known, zipAnchor.latLng, resolveCityToCanonical.latLng, resolveCityToCanonical.canonicalCity]);
+
+  const nearbyCityChips = useMemo(() => {
+    if (!anchor.latLng) return [];
+
+    const cap = radiusMi <= 10 ? 6 : radiusMi <= 25 ? 10 : 14;
+    const rows: Array<{ city: string; d: number }> = [];
+
+    for (const c of CA_CITIES) {
+      const d = haversineMi(anchor.latLng, { lat: c.lat, lng: c.lng });
+      if (d <= radiusMi) rows.push({ city: (c as any).city, d });
+    }
+
+    rows.sort((a, b) => a.d - b.d);
+
+    // Remove duplicates by normalized city
+    const seen = new Set<string>();
+    const out: Array<{ city: string; d: number }> = [];
+    for (const r of rows) {
+      const k = normalize(r.city);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(r);
+      if (out.length >= cap) break;
+    }
+    return out;
+  }, [anchor.latLng, radiusMi]);
+
+  // Location helper text (premium + calm)
+  useEffect(() => {
+    if (zipMode) {
+      if (!zipAnchor.known) {
+        setLocMsg(
+          lang === "es"
+            ? "ZIP no reconocido — usando ciudad + radio."
+            : "ZIP not found — using city + radius."
+        );
+      } else if (usingMyLocation) {
+        setLocMsg(lang === "es" ? "Usando tu ubicación actual" : "Using your current location");
+      } else {
+        setLocMsg("");
+      }
+      return;
+    }
+
+    // City mode
+    if (usingMyLocation) {
+      setLocMsg(lang === "es" ? "Usando tu ubicación actual" : "Using your current location");
+      return;
+    }
+
+    if (resolveCityToCanonical.resolvedFrom === "fuzzy") {
+      setLocMsg(
+        lang === "es"
+          ? `Buscando cerca de: ${resolveCityToCanonical.canonicalCity}`
+          : `Searching near: ${resolveCityToCanonical.canonicalCity}`
+      );
+      return;
+    }
+
+    if (resolveCityToCanonical.resolvedFrom === "unknown" && normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)) {
+      setLocMsg(
+        lang === "es"
+          ? `Buscando en NorCal (cerca de ${DEFAULT_CITY})`
+          : `Searching NorCal (near ${DEFAULT_CITY})`
+      );
+      return;
+    }
+
+    setLocMsg("");
+  }, [zipMode, zipAnchor.known, usingMyLocation, lang, resolveCityToCanonical.resolvedFrom, resolveCityToCanonical.canonicalCity, city]);
+
+  // --- CITY AUTOCOMPLETE DROPDOWN ---
+  useEffect(() => {
+    if (zipMode) {
+      setCityOpen(false);
+      setCityOptions([]);
+      return;
+    }
+
+    const n = normalize(city);
+    if (!n || n.length < 2) {
+      setCityOpen(false);
+      setCityOptions([]);
+      return;
+    }
+
+    // prefix first, then includes (kept light)
+    const prefix: Array<{ city: string; d: number }> = [];
+    const contains: Array<{ city: string; d: number }> = [];
+
+    for (const c of CA_CITIES) {
+      const name = (c as any).city as string;
+      const nn = normalize(name);
+      if (nn.startsWith(n)) prefix.push({ city: name, d: 0 });
+      else if (nn.includes(n)) contains.push({ city: name, d: 1 });
+    }
+
+    const next = [...prefix.slice(0, 8), ...contains.slice(0, Math.max(0, 8 - prefix.length))];
+    setCityOptions(next);
+    setCityOpen(next.length > 0);
+  }, [city, zipMode]);
+
+  /** Close city dropdown on true outside pointerdown (capture phase) */
+  useEffect(() => {
+    function onDocPointerDown(e: PointerEvent) {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (cityBoxRef.current && cityBoxRef.current.contains(t)) return;
+      setCityOpen(false);
+    }
+    document.addEventListener("pointerdown", onDocPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+  }, []);
+
+  // --- GEOLOCATION BUTTON ---
+  const onUseMyLocation = () => {
+    setUsingMyLocation(true);
+    setLocMsg("");
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocMsg(lang === "es" ? "Ubicación no disponible" : "Location unavailable");
+      setUsingMyLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const ll: LatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+        // NorCal safety: if clearly outside our dataset bounds, snap to DEFAULT_CITY
+        let minLat = Number.POSITIVE_INFINITY;
+        let maxLat = Number.NEGATIVE_INFINITY;
+        let minLng = Number.POSITIVE_INFINITY;
+        let maxLng = Number.NEGATIVE_INFINITY;
+
+        for (const c of CA_CITIES) {
+          minLat = Math.min(minLat, c.lat);
+          maxLat = Math.max(maxLat, c.lat);
+          minLng = Math.min(minLng, c.lng);
+          maxLng = Math.max(maxLng, c.lng);
+        }
+
+        const margin = 0.75; // ~ generous envelope
+        const inside =
+          ll.lat >= minLat - margin &&
+          ll.lat <= maxLat + margin &&
+          ll.lng >= minLng - margin &&
+          ll.lng <= maxLng + margin;
+
+        if (!inside) {
+          setCity(DEFAULT_CITY);
+          setZip("");
+          setLocMsg(
+            lang === "es"
+              ? `Mostrando resultados en NorCal (cerca de ${DEFAULT_CITY})`
+              : `Showing NorCal results (near ${DEFAULT_CITY})`
+          );
+          setUsingMyLocation(false);
+          return;
+        }
+
+        // Pick nearest canonical city by distance
+        let bestCity = DEFAULT_CITY;
+        let bestD = Number.POSITIVE_INFINITY;
+
+        for (const c of CA_CITIES) {
+          const d = haversineMi(ll, { lat: c.lat, lng: c.lng });
+          if (d < bestD) {
+            bestD = d;
+            bestCity = (c as any).city;
+          }
+        }
+
+        setCity(bestCity);
+        setZip("");
+        setLocMsg(lang === "es" ? "Usando tu ubicación actual" : "Using your current location");
+        setUsingMyLocation(false);
+      },
+      () => {
+        setLocMsg(
+          lang === "es"
+            ? "No se pudo obtener tu ubicación"
+            : "Unable to get your location"
+        );
+        setUsingMyLocation(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+  };
 
   // Pagination
   const perPage = useMemo(
@@ -710,16 +803,14 @@ export default function ClasificadosListaPage() {
     const nq = normalize(q);
     const hasQ = nq.length > 0;
 
-    const cityNorm = normalize(city);
-    const zipNorm = zip.trim();
-
     const wantLatLng = (() => {
-      if (zipNorm) return ZIP_GEO[zipNorm];
-      const alias = CITY_ALIASES[cityNorm];
-      const key = alias ? normalize(alias) : cityNorm;
+      // ZIP wins if known
+      if (zipMode && zipAnchor.known && zipAnchor.latLng) return zipAnchor.latLng;
 
-      const c = CA_CITIES.find((x) => normalize(x.city) === key);
-      return c ? { lat: c.lat, lng: c.lng } : undefined;
+      // Else city anchor if resolvable
+      if (resolveCityToCanonical.latLng) return resolveCityToCanonical.latLng;
+
+      return undefined;
     })();
 
     const withinRadius = (listingCity: string) => {
@@ -729,19 +820,10 @@ export default function ClasificadosListaPage() {
       const alias = CITY_ALIASES[lcNorm];
       const key = alias ? normalize(alias) : lcNorm;
 
-      const c = CA_CITIES.find((x) => normalize(x.city) === key);
+      const c = CA_CITIES.find((x) => normalize((x as any).city) === key);
       if (!c) return true;
 
-      const R = 3958.8; // miles
-      const toRad = (d: number) => (d * Math.PI) / 180;
-      const dLat = toRad(c.lat - wantLatLng.lat);
-      const dLng = toRad(c.lng - wantLatLng.lng);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(wantLatLng.lat)) *
-          Math.cos(toRad(c.lat)) *
-          Math.sin(dLng / 2) ** 2;
-      const d = 2 * R * Math.asin(Math.sqrt(a));
+      const d = haversineMi(wantLatLng, { lat: c.lat, lng: c.lng });
       return d <= radiusMi;
     };
 
@@ -777,7 +859,20 @@ export default function ClasificadosListaPage() {
         if (sort === "price-asc") return ap - bp;
         return bp - ap;
       });
-  }, [q, category, city, zip, radiusMi, sellerType, onlyWithImage, sort]);
+  }, [
+    q,
+    category,
+    city,
+    zip,
+    radiusMi,
+    sellerType,
+    onlyWithImage,
+    sort,
+    zipMode,
+    zipAnchor.known,
+    zipAnchor.latLng,
+    resolveCityToCanonical.latLng,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
@@ -843,70 +938,29 @@ export default function ClasificadosListaPage() {
                   ref={inputRef}
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setSuggestionsOpen(false);
-                      return;
-                    }
-
-                    if (!suggestionsOpen || suggestions.length === 0) return;
-
-                    if (e.key === "ArrowDown") {
-                      e.preventDefault();
-                      setActiveSuggestion((i) =>
-                        Math.min(suggestions.length - 1, i + 1)
-                      );
-                      return;
-                    }
-
-                    if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      setActiveSuggestion((i) => Math.max(0, i - 1));
-                      return;
-                    }
-
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const picked =
-                        suggestions[activeSuggestion] ?? suggestions[0];
-                      if (picked) {
-                        setCategory(picked);
-                        setSuggestionsOpen(false);
-                        requestAnimationFrame(() => inputRef.current?.focus());
-                      }
-                    }
-                  }}
                   onFocus={() => {
                     if (suggestions.length > 0) setSuggestionsOpen(true);
                   }}
                   placeholder={
                     lang === "es"
-                      ? "Buscar: trabajo, troca, cuarto, ropa, mascotas..."
-                      : "Search: jobs, truck, room, clothes, pets..."
+                      ? "Buscar: trabajo, troca, cuarto..."
+                      : "Search: jobs, truck, room..."
                   }
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40"
                 />
-
                 {suggestionsOpen && suggestions.length > 0 && (
                   <div className="absolute left-0 right-0 mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-xl">
-                    {suggestions.map((cat, idx) => (
+                    {suggestions.map((cat) => (
                       <button
                         key={cat}
                         type="button"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                        }}
-                        onMouseEnter={() => setActiveSuggestion(idx)}
+                        onPointerDown={(e) => e.preventDefault()}
                         onClick={() => {
                           setCategory(cat);
                           setSuggestionsOpen(false);
-                          requestAnimationFrame(() => inputRef.current?.focus());
+                          inputRef.current?.focus();
                         }}
-                        className={cx(
-                          "block w-full px-3 py-2 text-left text-sm text-gray-200",
-                          "hover:bg-white/5 focus:bg-white/5",
-                          idx === activeSuggestion && "bg-white/5"
-                        )}
+                        className="block w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/5"
                       >
                         {categoryLabel(cat)}
                       </button>
@@ -920,19 +974,79 @@ export default function ClasificadosListaPage() {
                 <label className="mb-1 block text-xs text-gray-300">
                   {LABELS.location[lang]}
                 </label>
+
                 <div className="grid grid-cols-2 gap-2">
-                  <input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder={LABELS.city[lang]}
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40"
-                  />
+                  {/* City + dropdown */}
+                  <div ref={cityBoxRef} className="relative">
+                    <input
+                      ref={cityInputRef}
+                      value={city}
+                      onChange={(e) => {
+                        setCity(e.target.value);
+                        setUsingMyLocation(false);
+                      }}
+                      onFocus={() => {
+                        if (!zipMode && cityOptions.length > 0) setCityOpen(true);
+                      }}
+                      placeholder={LABELS.city[lang]}
+                      disabled={zipMode}
+                      className={cx(
+                        "w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40",
+                        zipMode && "cursor-not-allowed opacity-60"
+                      )}
+                    />
+
+                    {cityOpen && !zipMode && cityOptions.length > 0 && (
+                      <div className="absolute left-0 right-0 mt-2 max-h-64 overflow-auto rounded-xl border border-white/10 bg-black/95 shadow-xl">
+                        {cityOptions.map((opt) => (
+                          <button
+                            key={opt.city}
+                            type="button"
+                            onPointerDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setCity(opt.city);
+                              setZip("");
+                              setUsingMyLocation(false);
+                              setCityOpen(false);
+                              cityInputRef.current?.focus();
+                            }}
+                            className="block w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/5"
+                          >
+                            {opt.city}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ZIP */}
                   <input
                     value={zip}
-                    onChange={(e) => setZip(e.target.value)}
+                    onChange={(e) => {
+                      setZip(e.target.value);
+                      setUsingMyLocation(false);
+                      // If they start using ZIP, close city dropdown
+                      setCityOpen(false);
+                    }}
                     placeholder={LABELS.zip[lang]}
+                    inputMode="numeric"
                     className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-400/40"
                   />
+                </div>
+
+                {/* Helper + Use my location */}
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="min-h-[16px] text-[11px] text-gray-400">
+                    {locMsg}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onUseMyLocation}
+                    className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-gray-200 hover:bg-white/10"
+                  >
+                    {LABELS.useMyLocation[lang]}
+                  </button>
                 </div>
               </div>
 
@@ -992,6 +1106,41 @@ export default function ClasificadosListaPage() {
               </div>
             </div>
 
+            {/* Nearby city chips (expand with radius) */}
+            <div className="mt-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {nearbyCityChips.map((c) => (
+                  <button
+                    key={c.city}
+                    type="button"
+                    onClick={() => {
+                      setCity(c.city);
+                      setZip("");
+                      setUsingMyLocation(false);
+                      setCityOpen(false);
+                    }}
+                    className={cx(
+                      "rounded-full border px-3 py-1 text-[11px] transition",
+                      normalize(city) === normalize(c.city) && !zipMode
+                        ? "border-yellow-400/40 bg-yellow-500/10 text-yellow-200"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                    )}
+                    title={`${Math.round(c.d)} mi`}
+                  >
+                    {c.city}
+                  </button>
+                ))}
+
+                {nearbyCityChips.length === 0 && (
+                  <div className="text-[11px] text-gray-500">
+                    {lang === "es"
+                      ? "Escribe una ciudad o ZIP para ver áreas cercanas."
+                      : "Type a city or ZIP to see nearby areas."}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* More filters */}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <button
@@ -1014,6 +1163,9 @@ export default function ClasificadosListaPage() {
                   setSellerType("");
                   setOnlyWithImage(false);
                   setShowMore(false);
+                  setCityOpen(false);
+                  setUsingMyLocation(false);
+                  setLocMsg("");
                 }}
                 className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10"
               >
