@@ -214,9 +214,9 @@ export default function ClasificadosListaPage() {
 
   // City dropdown (autocomplete)
   const [cityOpen, setCityOpen] = useState(false);
-  const [cityOptions, setCityOptions] = useState<Array<{ city: string; d: number }>>(
-    []
-  );
+  const [cityOptions, setCityOptions] = useState<
+    Array<{ city: string; d: number }>
+  >([]);
   const cityBoxRef = useRef<HTMLDivElement | null>(null);
   const cityInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -239,15 +239,16 @@ export default function ClasificadosListaPage() {
 
   const categoryLabel = (c: CategoryKey) => {
     if (c === "all") return LABELS.any[lang];
-    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> = {
-      "en-venta": { es: "En Venta", en: "For Sale" },
-      rentas: { es: "Rentas", en: "Rentals" },
-      autos: { es: "Autos", en: "Cars" },
-      servicios: { es: "Servicios", en: "Services" },
-      empleos: { es: "Empleos", en: "Jobs" },
-      clases: { es: "Clases", en: "Classes" },
-      comunidad: { es: "Comunidad", en: "Community" },
-    };
+    const map: Record<Exclude<CategoryKey, "all">, { es: string; en: string }> =
+      {
+        "en-venta": { es: "En Venta", en: "For Sale" },
+        rentas: { es: "Rentas", en: "Rentals" },
+        autos: { es: "Autos", en: "Cars" },
+        servicios: { es: "Servicios", en: "Services" },
+        empleos: { es: "Empleos", en: "Jobs" },
+        clases: { es: "Clases", en: "Classes" },
+        comunidad: { es: "Comunidad", en: "Community" },
+      };
     return map[c][lang];
   };
 
@@ -517,7 +518,8 @@ export default function ClasificadosListaPage() {
       setSuggestionsOpen(false);
     }
     document.addEventListener("pointerdown", onDocPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
 
   // --- LOCATION DERIVED STATE (NO norcal.ts changes) ---
@@ -526,12 +528,17 @@ export default function ClasificadosListaPage() {
     return digits;
   }, [zip]);
 
-  const zipMode = zipClean.length === 5;
+  // Raw: user typed 5 digits
+  const zipModeRaw = zipClean.length === 5;
 
   const caCityIndex = useMemo(() => {
     const byNorm = new Map<string, { city: string; lat: number; lng: number }>();
     for (const c of CA_CITIES) {
-      byNorm.set(normalize((c as any).city), { city: (c as any).city, lat: c.lat, lng: c.lng });
+      byNorm.set(normalize((c as any).city), {
+        city: (c as any).city,
+        lat: c.lat,
+        lng: c.lng,
+      });
     }
     const norms = Array.from(byNorm.keys());
     return { byNorm, norms };
@@ -540,7 +547,12 @@ export default function ClasificadosListaPage() {
   const resolveCityToCanonical = useMemo(() => {
     const typed = city;
     const n = normalize(typed);
-    if (!n) return { canonicalCity: DEFAULT_CITY, latLng: undefined as LatLng | undefined, resolvedFrom: "default" as const };
+    if (!n)
+      return {
+        canonicalCity: DEFAULT_CITY,
+        latLng: undefined as LatLng | undefined,
+        resolvedFrom: "default" as const,
+      };
 
     // alias -> canonical name
     const alias = CITY_ALIASES[n];
@@ -548,7 +560,11 @@ export default function ClasificadosListaPage() {
 
     const direct = caCityIndex.byNorm.get(key);
     if (direct) {
-      return { canonicalCity: direct.city, latLng: { lat: direct.lat, lng: direct.lng }, resolvedFrom: "direct" as const };
+      return {
+        canonicalCity: direct.city,
+        latLng: { lat: direct.lat, lng: direct.lng },
+        resolvedFrom: "direct" as const,
+      };
     }
 
     // fuzzy to nearest NAME (string similarity) – conservative
@@ -571,32 +587,54 @@ export default function ClasificadosListaPage() {
       if (bestNorm && bestDist <= 2 && similarity >= 0.6) {
         const hit = caCityIndex.byNorm.get(bestNorm);
         if (hit) {
-          return { canonicalCity: hit.city, latLng: { lat: hit.lat, lng: hit.lng }, resolvedFrom: "fuzzy" as const };
+          return {
+            canonicalCity: hit.city,
+            latLng: { lat: hit.lat, lng: hit.lng },
+            resolvedFrom: "fuzzy" as const,
+          };
         }
       }
     }
 
-    return { canonicalCity: DEFAULT_CITY, latLng: undefined as LatLng | undefined, resolvedFrom: "unknown" as const };
+    return {
+      canonicalCity: DEFAULT_CITY,
+      latLng: undefined as LatLng | undefined,
+      resolvedFrom: "unknown" as const,
+    };
   }, [city, caCityIndex.byNorm, caCityIndex.norms]);
 
   const zipAnchor = useMemo(() => {
-    if (!zipMode) return { known: false, latLng: undefined as LatLng | undefined };
+    if (!zipModeRaw)
+      return { known: false, latLng: undefined as LatLng | undefined };
     const ll = (ZIP_GEO as any)[zipClean] as LatLng | undefined;
     return { known: Boolean(ll), latLng: ll };
-  }, [zipClean, zipMode]);
+  }, [zipClean, zipModeRaw]);
+
+  // Effective ZIP mode: ONLY when we have a known ZIP anchor.
+  // If user types a 5-digit ZIP that isn't in ZIP_GEO, we fall back to city immediately (no silent failure),
+  // and we do NOT lock/disable city input.
+  const zipMode = zipModeRaw && zipAnchor.known;
 
   const anchor = useMemo(() => {
-    // ZIP wins when valid/known
-    if (zipMode && zipAnchor.known && zipAnchor.latLng) {
+    // ZIP wins only when valid/known
+    if (zipMode && zipAnchor.latLng) {
       return { latLng: zipAnchor.latLng, anchorCityLabel: "" };
     }
     // else use city if resolvable
     if (resolveCityToCanonical.latLng) {
-      return { latLng: resolveCityToCanonical.latLng, anchorCityLabel: resolveCityToCanonical.canonicalCity };
+      return {
+        latLng: resolveCityToCanonical.latLng,
+        anchorCityLabel: resolveCityToCanonical.canonicalCity,
+      };
     }
     // no anchor => none
     return { latLng: undefined as LatLng | undefined, anchorCityLabel: "" };
-  }, [zipMode, zipAnchor.known, zipAnchor.latLng, resolveCityToCanonical.latLng, resolveCityToCanonical.canonicalCity]);
+  }, [
+    zipMode,
+    zipAnchor.latLng,
+    resolveCityToCanonical.latLng,
+    resolveCityToCanonical.canonicalCity,
+  ]);
 
   const nearbyCityChips = useMemo(() => {
     if (!anchor.latLng) return [];
@@ -626,15 +664,24 @@ export default function ClasificadosListaPage() {
 
   // Location helper text (premium + calm)
   useEffect(() => {
+    // If user typed 5 digits but ZIP isn't in our dataset, we fall back to city immediately and say so.
+    if (zipModeRaw && !zipAnchor.known) {
+      setLocMsg(
+        lang === "es"
+          ? "ZIP no reconocido — usando ciudad + radio."
+          : "ZIP not found — using city + radius."
+      );
+      return;
+    }
+
+    // True ZIP mode (known anchor)
     if (zipMode) {
-      if (!zipAnchor.known) {
+      if (usingMyLocation) {
         setLocMsg(
           lang === "es"
-            ? "ZIP no reconocido — usando ciudad + radio."
-            : "ZIP not found — using city + radius."
+            ? "Usando tu ubicación actual"
+            : "Using your current location"
         );
-      } else if (usingMyLocation) {
-        setLocMsg(lang === "es" ? "Usando tu ubicación actual" : "Using your current location");
       } else {
         setLocMsg("");
       }
@@ -643,7 +690,9 @@ export default function ClasificadosListaPage() {
 
     // City mode
     if (usingMyLocation) {
-      setLocMsg(lang === "es" ? "Usando tu ubicación actual" : "Using your current location");
+      setLocMsg(
+        lang === "es" ? "Usando tu ubicación actual" : "Using your current location"
+      );
       return;
     }
 
@@ -656,7 +705,11 @@ export default function ClasificadosListaPage() {
       return;
     }
 
-    if (resolveCityToCanonical.resolvedFrom === "unknown" && normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)) {
+    if (
+      resolveCityToCanonical.resolvedFrom === "unknown" &&
+      normalize(city) &&
+      normalize(city) !== normalize(DEFAULT_CITY)
+    ) {
       setLocMsg(
         lang === "es"
           ? `Buscando en NorCal (cerca de ${DEFAULT_CITY})`
@@ -666,7 +719,16 @@ export default function ClasificadosListaPage() {
     }
 
     setLocMsg("");
-  }, [zipMode, zipAnchor.known, usingMyLocation, lang, resolveCityToCanonical.resolvedFrom, resolveCityToCanonical.canonicalCity, city]);
+  }, [
+    zipModeRaw,
+    zipAnchor.known,
+    zipMode,
+    usingMyLocation,
+    lang,
+    resolveCityToCanonical.resolvedFrom,
+    resolveCityToCanonical.canonicalCity,
+    city,
+  ]);
 
   // --- CITY AUTOCOMPLETE DROPDOWN ---
   useEffect(() => {
@@ -694,7 +756,10 @@ export default function ClasificadosListaPage() {
       else if (nn.includes(n)) contains.push({ city: name, d: 1 });
     }
 
-    const next = [...prefix.slice(0, 8), ...contains.slice(0, Math.max(0, 8 - prefix.length))];
+    const next = [
+      ...prefix.slice(0, 8),
+      ...contains.slice(0, Math.max(0, 8 - prefix.length)),
+    ];
     setCityOptions(next);
     setCityOpen(next.length > 0);
   }, [city, zipMode]);
@@ -708,7 +773,8 @@ export default function ClasificadosListaPage() {
       setCityOpen(false);
     }
     document.addEventListener("pointerdown", onDocPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
 
   // --- GEOLOCATION BUTTON ---
@@ -724,7 +790,10 @@ export default function ClasificadosListaPage() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const ll: LatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const ll: LatLng = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
 
         // NorCal safety: if clearly outside our dataset bounds, snap to DEFAULT_CITY
         let minLat = Number.POSITIVE_INFINITY;
@@ -777,9 +846,7 @@ export default function ClasificadosListaPage() {
       },
       () => {
         setLocMsg(
-          lang === "es"
-            ? "No se pudo obtener tu ubicación"
-            : "Unable to get your location"
+          lang === "es" ? "No se pudo obtener tu ubicación" : "Unable to get your location"
         );
         setUsingMyLocation(false);
       },
@@ -804,8 +871,8 @@ export default function ClasificadosListaPage() {
     const hasQ = nq.length > 0;
 
     const wantLatLng = (() => {
-      // ZIP wins if known
-      if (zipMode && zipAnchor.known && zipAnchor.latLng) return zipAnchor.latLng;
+      // ZIP wins if known (effective zipMode)
+      if (zipMode && zipAnchor.latLng) return zipAnchor.latLng;
 
       // Else city anchor if resolvable
       if (resolveCityToCanonical.latLng) return resolveCityToCanonical.latLng;
@@ -869,7 +936,6 @@ export default function ClasificadosListaPage() {
     onlyWithImage,
     sort,
     zipMode,
-    zipAnchor.known,
     zipAnchor.latLng,
     resolveCityToCanonical.latLng,
   ]);
@@ -1259,9 +1325,7 @@ export default function ClasificadosListaPage() {
                   <div className="text-sm font-semibold text-yellow-200">
                     {x.priceLabel[lang] || LABELS.free[lang]}
                   </div>
-                  <div className="text-xs text-gray-400">
-                    {x.hasImage ? "📷" : ""}
-                  </div>
+                  <div className="text-xs text-gray-400">{x.hasImage ? "📷" : ""}</div>
                 </div>
 
                 <p className="mt-3 text-sm text-gray-300">{x.blurb[lang]}</p>
