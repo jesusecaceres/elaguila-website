@@ -46,7 +46,6 @@ type Listing = {
   sellerType?: SellerType;
   blurb: { es: string; en: string };
 
-  // optional smart fields
   year?: number;
   make?: string;
   model?: string;
@@ -110,7 +109,6 @@ function normalize(s: string) {
     .trim();
 }
 
-/** Small, controlled Levenshtein for fuzzy assist */
 function levenshtein(a: string, b: string) {
   const s = a;
   const t = b;
@@ -189,7 +187,6 @@ function isCategoryKey(v: string): v is CategoryKey {
   );
 }
 
-/** URL param helper (no route changes) */
 function setUrlParams(next: Record<string, string | null | undefined>) {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
@@ -208,7 +205,6 @@ export default function ListaPage() {
   const params = useSearchParams();
   const lang: Lang = (params?.get("lang") as Lang) === "en" ? "en" : "es";
 
-  // -------- State
   const [q, setQ] = useState("");
   const [city, setCity] = useState(DEFAULT_CITY);
   const [zip, setZip] = useState("");
@@ -232,20 +228,16 @@ export default function ListaPage() {
   const [usingMyLocation, setUsingMyLocation] = useState(false);
   const [locMsg, setLocMsg] = useState("");
 
-  // Location modal inputs
   const [cityQuery, setCityQuery] = useState("");
   const [citySuggestOpen, setCitySuggestOpen] = useState(false);
   const citySuggestRef = useRef<HTMLDivElement | null>(null);
 
-  // Nearby chips scroll
   const chipsRowRef = useRef<HTMLDivElement | null>(null);
 
-  // Smart search suggestions (category-only)
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<Exclude<CategoryKey, "all">>>([]);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
-  // -------- Effects (basic UI)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isMobile = window.innerWidth < 768;
@@ -260,7 +252,6 @@ export default function ListaPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close city suggestion dropdown on outside click
   useEffect(() => {
     function onDoc(e: MouseEvent) {
       const t = e.target as Node;
@@ -272,7 +263,6 @@ export default function ListaPage() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  // Close smart search suggestions on outside pointerdown
   useEffect(() => {
     function onDocPointerDown(e: PointerEvent) {
       const t = e.target as Node | null;
@@ -281,10 +271,10 @@ export default function ListaPage() {
       setSuggestionsOpen(false);
     }
     document.addEventListener("pointerdown", onDocPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onDocPointerDown, true);
   }, []);
 
-  // -------- Read URL params (safe, one-time)
   useEffect(() => {
     const pQ = params?.get("q") ?? null;
     const pCity = params?.get("city") ?? null;
@@ -310,7 +300,6 @@ export default function ListaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
-  // -------- ZIP derived state (STRICT)
   const zipClean = useMemo(() => zip.replace(/\D/g, "").slice(0, 5), [zip]);
   const zipModeRaw = zipClean.length === 5;
 
@@ -320,12 +309,10 @@ export default function ListaPage() {
     return { known: Boolean(ll), latLng: ll ? { lat: ll.lat, lng: ll.lng } : null };
   }, [zipModeRaw, zipClean]);
 
-  // effective zip mode only if known
   const zipMode = zipModeRaw && zipAnchor.known && !!zipAnchor.latLng;
 
   const canonicalCity = useMemo(() => canonicalizeCity(city), [city]);
 
-  // City resolution: direct, then conservative fuzzy for small typos (only for anchor usage)
   const resolvedCity = useMemo(() => {
     const direct = getCityLatLng(canonicalCity);
     if (direct) return { name: canonicalCity, latLng: direct, from: "direct" as const };
@@ -363,13 +350,11 @@ export default function ListaPage() {
     return { name: DEFAULT_CITY, latLng: getCityLatLng(DEFAULT_CITY), from: "default" as const };
   }, [canonicalCity]);
 
-  // Anchor point
   const anchor = useMemo<LatLng | null>(() => {
     if (zipMode && zipAnchor.latLng) return zipAnchor.latLng;
     return resolvedCity.latLng ?? null;
   }, [zipMode, zipAnchor.latLng, resolvedCity.latLng]);
 
-  // Nearest city label for ZIP (clarity only)
   const zipNearestCity = useMemo(() => {
     if (!zipMode || !zipAnchor.latLng) return "";
     let bestCity = "";
@@ -384,14 +369,23 @@ export default function ListaPage() {
     return bestCity;
   }, [zipMode, zipAnchor.latLng]);
 
-  // Location helper message
   useEffect(() => {
     if (zipModeRaw && !zipAnchor.known) {
-      setLocMsg(lang === "es" ? "ZIP no encontrado — no se aplicó ubicación." : "ZIP not found — location not applied.");
+      setLocMsg(
+        lang === "es"
+          ? "ZIP no encontrado — no se aplicó ubicación."
+          : "ZIP not found — location not applied."
+      );
       return;
     }
     if (zipMode) {
-      setLocMsg(zipNearestCity ? (lang === "es" ? `Cerca de: ${zipNearestCity}` : `Near: ${zipNearestCity}`) : "");
+      setLocMsg(
+        zipNearestCity
+          ? lang === "es"
+            ? `Cerca de: ${zipNearestCity}`
+            : `Near: ${zipNearestCity}`
+          : ""
+      );
       return;
     }
     if (usingMyLocation) {
@@ -399,13 +393,16 @@ export default function ListaPage() {
       return;
     }
     if (resolvedCity.from === "fuzzy") {
-      setLocMsg(lang === "es" ? `Buscando cerca de: ${resolvedCity.name}` : `Searching near: ${resolvedCity.name}`);
+      setLocMsg(
+        lang === "es"
+          ? `Buscando cerca de: ${resolvedCity.name}`
+          : `Searching near: ${resolvedCity.name}`
+      );
       return;
     }
     setLocMsg("");
   }, [zipModeRaw, zipAnchor.known, zipMode, zipNearestCity, usingMyLocation, lang, resolvedCity.from, resolvedCity.name]);
 
-  // Nearby chips (computed from anchor)
   const nearbyCityChips = useMemo(() => {
     if (!anchor) return [];
     const cap = radiusMi <= 10 ? 6 : radiusMi <= 25 ? 10 : 14;
@@ -430,7 +427,6 @@ export default function ListaPage() {
     return out;
   }, [anchor, radiusMi]);
 
-  // City modal options (fast)
   const cityOptions = useMemo(() => {
     const names = CA_CITIES.map((c) => c.city).filter(Boolean);
     const nq = normalize(cityQuery);
@@ -441,7 +437,6 @@ export default function ListaPage() {
     return [...prefix, ...contains].slice(0, 25);
   }, [cityQuery]);
 
-  // -------- Smart category suggestion index (taxonomy/synonyms)
   const synonymIndex = useMemo(() => {
     const base: Array<[Exclude<CategoryKey, "all">, string[]]> = [
       [
@@ -619,7 +614,6 @@ export default function ListaPage() {
     return { index, keys };
   }, [lang]);
 
-  // Smart suggestions (only categories)
   useEffect(() => {
     const val = normalize(q);
 
@@ -655,7 +649,6 @@ export default function ListaPage() {
       for (const c of ORDER) if (prefixMatches.has(c)) next.push(c);
       next = next.slice(0, 3);
     } else if (val.length >= 5) {
-      // conservative fuzzy assist
       let bestKey = "";
       let bestCat: Exclude<CategoryKey, "all"> | null = null;
       let bestDist = Number.POSITIVE_INFINITY;
@@ -681,7 +674,6 @@ export default function ListaPage() {
     setSuggestionsOpen(next.length > 0);
   }, [q, synonymIndex]);
 
-  // -------- Listings
   const listings = useMemo<Listing[]>(() => {
     const raw = (SAMPLE_LISTINGS as unknown as Listing[]) ?? [];
     return raw.map((x) => ({
@@ -692,11 +684,9 @@ export default function ListaPage() {
     }));
   }, []);
 
-  // Smart search normalization/expansion (taxonomy)
   const qSmart = useMemo(() => {
     const nq = normalize(q);
     if (!nq) return "";
-    // Minimal, controlled replacements (no hacks, just the known taxonomy helpers)
     return nq
       .replace(/\btroca\b/g, "truck")
       .replace(/\btrocas\b/g, "truck")
@@ -734,7 +724,10 @@ export default function ListaPage() {
 
     const sorted = [...base].sort((a, b) => {
       if (sort === "newest") {
-        return new Date(b.createdAtISO).getTime() - new Date(a.createdAtISO).getTime();
+        return (
+          new Date(b.createdAtISO).getTime() -
+          new Date(a.createdAtISO).getTime()
+        );
       }
       const ap = parsePriceLabel(a.priceLabel.en) ?? Number.POSITIVE_INFINITY;
       const bp = parsePriceLabel(b.priceLabel.en) ?? Number.POSITIVE_INFINITY;
@@ -762,20 +755,36 @@ export default function ListaPage() {
     return alias ?? city ?? DEFAULT_CITY;
   }, [zipMode, zipClean, city]);
 
-  // -------- Active chips
   const activeChips = useMemo(() => {
     const chips: Array<{ key: string; text: string; clear: () => void }> = [];
 
-    if (q.trim()) chips.push({ key: "q", text: `${UI.search[lang]}: ${q.trim()}`, clear: () => setQ("") });
+    if (q.trim())
+      chips.push({
+        key: "q",
+        text: `${UI.search[lang]}: ${q.trim()}`,
+        clear: () => setQ(""),
+      });
 
     if (zipMode) {
-      chips.push({ key: "zip", text: `ZIP: ${zipClean}`, clear: () => setZip("") });
+      chips.push({
+        key: "zip",
+        text: `ZIP: ${zipClean}`,
+        clear: () => setZip(""),
+      });
     } else if (normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)) {
-      chips.push({ key: "city", text: `${locationLabel}`, clear: () => setCity(DEFAULT_CITY) });
+      chips.push({
+        key: "city",
+        text: `${locationLabel}`,
+        clear: () => setCity(DEFAULT_CITY),
+      });
     }
 
     if (radiusMi !== DEFAULT_RADIUS_MI) {
-      chips.push({ key: "r", text: `${UI.radius[lang]}: ${radiusMi} mi`, clear: () => setRadiusMi(DEFAULT_RADIUS_MI) });
+      chips.push({
+        key: "r",
+        text: `${UI.radius[lang]}: ${radiusMi} mi`,
+        clear: () => setRadiusMi(DEFAULT_RADIUS_MI),
+      });
     }
 
     if (category !== "all") {
@@ -787,7 +796,11 @@ export default function ListaPage() {
     }
 
     if (sort !== "newest") {
-      chips.push({ key: "sort", text: `${UI.sort[lang]}: ${SORT_LABELS[sort][lang]}`, clear: () => setSort("newest") });
+      chips.push({
+        key: "sort",
+        text: `${UI.sort[lang]}: ${SORT_LABELS[sort][lang]}`,
+        clear: () => setSort("newest"),
+      });
     }
 
     if (sellerType) {
@@ -799,15 +812,17 @@ export default function ListaPage() {
     }
 
     if (onlyWithImage) {
-      chips.push({ key: "img", text: `${UI.hasImage[lang]}`, clear: () => setOnlyWithImage(false) });
+      chips.push({
+        key: "img",
+        text: `${UI.hasImage[lang]}`,
+        clear: () => setOnlyWithImage(false),
+      });
     }
 
     return chips;
   }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sort, sellerType, onlyWithImage]);
 
-  // -------- Keep URL params updated (SEO-friendly)
   useEffect(() => {
-    // Only write zip param if effective zipMode; never write unknown zip.
     setUrlParams({
       lang,
       q: q.trim() || null,
@@ -816,11 +831,14 @@ export default function ListaPage() {
       view: view !== "grid" ? view : null,
       r: radiusMi !== DEFAULT_RADIUS_MI ? String(radiusMi) : null,
       zip: zipMode ? zipClean : null,
-      city: zipMode ? null : (normalize(city) && normalize(city) !== normalize(DEFAULT_CITY) ? city : null),
+      city: zipMode
+        ? null
+        : normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)
+          ? city
+          : null,
     });
   }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city]);
 
-  // -------- Actions
   const resetAll = () => {
     setQ("");
     setCity(DEFAULT_CITY);
@@ -863,7 +881,6 @@ export default function ListaPage() {
             }
           }
 
-          // My location is a city-mode action: clear ZIP
           setZip("");
           setCity(bestCity);
           setCityQuery(bestCity);
@@ -894,7 +911,6 @@ export default function ListaPage() {
     el.scrollBy({ left: dx, behavior: "smooth" });
   };
 
-  // -------- Cards
   const ListingCardGrid = (x: Listing) => (
     <div
       key={x.id}
@@ -914,8 +930,12 @@ export default function ListaPage() {
         ) : null}
       </div>
 
-      <div className="mt-3 text-lg font-semibold text-yellow-300">{x.priceLabel[lang]}</div>
-      <div className="mt-3 line-clamp-3 text-sm text-gray-200">{x.blurb[lang]}</div>
+      <div className="mt-3 text-lg font-semibold text-yellow-300">
+        {x.priceLabel[lang]}
+      </div>
+      <div className="mt-3 line-clamp-3 text-sm text-gray-200">
+        {x.blurb[lang]}
+      </div>
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
@@ -935,9 +955,13 @@ export default function ListaPage() {
       {withImg ? (
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           {x.hasImage ? (
-            <div className="flex h-full w-full items-center justify-center text-sm text-gray-200">📷</div>
+            <div className="flex h-full w-full items-center justify-center text-sm text-gray-200">
+              📷
+            </div>
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">—</div>
+            <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
+              —
+            </div>
           )}
         </div>
       ) : null}
@@ -952,9 +976,13 @@ export default function ListaPage() {
               {x.city} • {x.postedAgo[lang]}
             </div>
           </div>
-          <div className="shrink-0 text-sm font-semibold text-yellow-300">{x.priceLabel[lang]}</div>
+          <div className="shrink-0 text-sm font-semibold text-yellow-300">
+            {x.priceLabel[lang]}
+          </div>
         </div>
-        <div className="mt-2 line-clamp-2 text-xs text-gray-200">{x.blurb[lang]}</div>
+        <div className="mt-2 line-clamp-2 text-xs text-gray-200">
+          {x.blurb[lang]}
+        </div>
       </div>
     </a>
   );
@@ -964,7 +992,6 @@ export default function ListaPage() {
       <Navbar />
 
       <main className="mx-auto w-full max-w-6xl px-6 pt-28">
-        {/* HERO */}
         <div className="text-center">
           <div className="mx-auto mb-4 flex w-full items-center justify-center">
             <Image
@@ -988,7 +1015,7 @@ export default function ListaPage() {
           </p>
         </div>
 
-        {/* FILTER BAR (sticky, always visible) */}
+        {/* FILTER BAR (Option B: shorter height ONLY) */}
         <section
           className={cx(
             "sticky top-[72px] z-30 mt-10",
@@ -996,24 +1023,31 @@ export default function ListaPage() {
             compact ? "shadow-lg" : ""
           )}
         >
-          <div className={cx("p-4 md:p-5", compact ? "md:py-4" : "")}>
+          {/* CHANGED: p-4 md:p-5 -> p-3 md:p-4 */}
+          <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
-              {/* Search (smart) */}
+              {/* Search */}
               <div ref={searchBoxRef} className="col-span-2 md:col-span-5">
-                <label className="block text-xs font-semibold text-gray-300">{UI.search[lang]}</label>
-                <div className="relative mt-2">
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.search[lang]}
+                </label>
+                <div className="relative mt-1.5">
+                  {/* CHANGED: py-3 -> py-2.5 */}
                   <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     onFocus={() => {
                       if (suggestions.length) setSuggestionsOpen(true);
                     }}
-                    placeholder={lang === "es" ? "Buscar: trabajo, troca, cuarto…" : "Search: jobs, truck, room…"}
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    placeholder={
+                      lang === "es"
+                        ? "Buscar: trabajo, troca, cuarto…"
+                        : "Search: jobs, truck, room…"
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                     aria-label={UI.search[lang]}
                   />
 
-                  {/* Smart category suggestions */}
                   {suggestionsOpen && suggestions.length ? (
                     <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-2xl">
                       <div className="px-3 py-2 text-[11px] text-gray-400">
@@ -1030,7 +1064,9 @@ export default function ListaPage() {
                           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10"
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
-                          <span className="text-xs text-gray-400">{lang === "es" ? "Categoría" : "Category"}</span>
+                          <span className="text-xs text-gray-400">
+                            {lang === "es" ? "Categoría" : "Category"}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -1040,25 +1076,35 @@ export default function ListaPage() {
 
               {/* Location */}
               <div className="col-span-1 md:col-span-3">
-                <label className="block text-xs font-semibold text-gray-300">{UI.location[lang]}</label>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.location[lang]}
+                </label>
+                {/* CHANGED: py-3 -> py-2.5 */}
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-2 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-left text-sm text-white hover:bg-white/10"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
                 >
                   <span className="truncate">{locationLabel}</span>
-                  <span className="ml-3 shrink-0 text-xs text-gray-400">{UI.edit[lang]}</span>
+                  <span className="ml-3 shrink-0 text-xs text-gray-400">
+                    {UI.edit[lang]}
+                  </span>
                 </button>
-                {locMsg ? <div className="mt-1 text-[11px] text-gray-400">{locMsg}</div> : null}
+                {locMsg ? (
+                  <div className="mt-1 text-[11px] text-gray-400">{locMsg}</div>
+                ) : null}
               </div>
 
               {/* Radius */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">{UI.radius[lang]}</label>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.radius[lang]}
+                </label>
+                {/* CHANGED: py-3 -> py-2.5 */}
                 <select
                   value={radiusMi}
                   onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   {[5, 10, 25, 40, 50].map((r) => (
                     <option key={r} value={r}>
@@ -1070,20 +1116,31 @@ export default function ListaPage() {
 
               {/* Category */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">{UI.category[lang]}</label>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.category[lang]}
+                </label>
+                {/* CHANGED: py-3 -> py-2.5 */}
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   <option value="all">{CATEGORY_LABELS.all[lang]}</option>
-                  <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
+                  <option value="en-venta">
+                    {CATEGORY_LABELS["en-venta"][lang]}
+                  </option>
                   <option value="rentas">{CATEGORY_LABELS.rentas[lang]}</option>
                   <option value="autos">{CATEGORY_LABELS.autos[lang]}</option>
-                  <option value="servicios">{CATEGORY_LABELS.servicios[lang]}</option>
-                  <option value="empleos">{CATEGORY_LABELS.empleos[lang]}</option>
+                  <option value="servicios">
+                    {CATEGORY_LABELS.servicios[lang]}
+                  </option>
+                  <option value="empleos">
+                    {CATEGORY_LABELS.empleos[lang]}
+                  </option>
                   <option value="clases">{CATEGORY_LABELS.clases[lang]}</option>
-                  <option value="comunidad">{CATEGORY_LABELS.comunidad[lang]}</option>
+                  <option value="comunidad">
+                    {CATEGORY_LABELS.comunidad[lang]}
+                  </option>
                 </select>
               </div>
 
@@ -1107,9 +1164,9 @@ export default function ListaPage() {
               </div>
             </div>
 
-            {/* Chips */}
+            {/* CHANGED: mt-3 -> mt-2 */}
             {activeChips.length ? (
-              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+              <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
                 {activeChips.map((c) => (
                   <button
                     key={c.key}
@@ -1124,9 +1181,9 @@ export default function ListaPage() {
               </div>
             ) : null}
 
-            {/* Nearby cities row (desktop, premium + optional scroll buttons) */}
+            {/* CHANGED: mt-3 -> mt-2 */}
             {nearbyCityChips.length ? (
-              <div className="mt-3 hidden items-center gap-2 md:flex">
+              <div className="mt-2 hidden items-center gap-2 md:flex">
                 <button
                   type="button"
                   onClick={() => scrollChips("left")}
@@ -1135,7 +1192,10 @@ export default function ListaPage() {
                 >
                   ‹
                 </button>
-                <div ref={chipsRowRef} className="flex flex-1 items-center gap-2 overflow-x-auto pb-1">
+                <div
+                  ref={chipsRowRef}
+                  className="flex flex-1 items-center gap-2 overflow-x-auto pb-1"
+                >
                   {nearbyCityChips.map((c) => (
                     <button
                       key={c.city}
@@ -1168,19 +1228,21 @@ export default function ListaPage() {
           </div>
         </section>
 
-        {/* STICKY RESULTS BAR (view + sort always available) */}
+        {/* RESULTS TOOLBAR (unchanged) */}
         <section className="sticky top-[calc(72px+16px)] z-20 mt-4">
           <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
-                <div className="text-lg font-semibold text-yellow-300">{UI.results[lang]}</div>
+                <div className="text-lg font-semibold text-yellow-300">
+                  {UI.results[lang]}
+                </div>
                 <div className="text-xs text-gray-300">
-                  {UI.showing[lang]} {visible.length} {UI.of[lang]} {filtered.length}
+                  {UI.showing[lang]} {visible.length} {UI.of[lang]}{" "}
+                  {filtered.length}
                 </div>
               </div>
 
               <div className="flex items-center justify-between gap-3 md:justify-end">
-                {/* View buttons (ALL WORKING) */}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1223,7 +1285,6 @@ export default function ListaPage() {
                   </button>
                 </div>
 
-                {/* Sort */}
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
@@ -1239,7 +1300,6 @@ export default function ListaPage() {
           </div>
         </section>
 
-        {/* RESULTS */}
         <section className="mt-6">
           {view === "grid" ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1252,7 +1312,6 @@ export default function ListaPage() {
           )}
         </section>
 
-        {/* PAGINATION */}
         <section className="mt-8 flex items-center justify-center gap-3 pb-16">
           <button
             type="button"
@@ -1288,7 +1347,7 @@ export default function ListaPage() {
         </section>
       </main>
 
-      {/* MORE FILTERS DRAWER */}
+      {/* MORE FILTERS DRAWER (unchanged) */}
       {moreOpen ? (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/70" onClick={() => setMoreOpen(false)} />
@@ -1351,7 +1410,7 @@ export default function ListaPage() {
         </div>
       ) : null}
 
-      {/* LOCATION MODAL */}
+      {/* LOCATION MODAL (unchanged) */}
       {locationOpen ? (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/70" onClick={() => setLocationOpen(false)} />
@@ -1368,7 +1427,6 @@ export default function ListaPage() {
             </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {/* City */}
               <div ref={citySuggestRef} className="relative">
                 <label className="block text-xs font-semibold text-gray-300">
                   {lang === "es" ? "Ciudad" : "City"}
@@ -1392,7 +1450,7 @@ export default function ListaPage() {
                         type="button"
                         onClick={() => {
                           setCity(name);
-                          setZip(""); // choosing city clears ZIP
+                          setZip("");
                           setCityQuery(name);
                           setCitySuggestOpen(false);
                           setLocMsg("");
@@ -1412,9 +1470,10 @@ export default function ListaPage() {
                 </div>
               </div>
 
-              {/* ZIP */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300">{UI.zip[lang]}</label>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.zip[lang]}
+                </label>
                 <input
                   value={zip}
                   onChange={(e) => {
@@ -1422,7 +1481,6 @@ export default function ListaPage() {
                     const cleaned = next.replace(/\D/g, "").slice(0, 5);
                     setZip(next);
 
-                    // Only when ZIP is 5 digits AND known do we auto-clear city
                     if (cleaned.length === 5) {
                       const known = Boolean((ZIP_GEO as Record<string, LatLng | undefined>)[cleaned]);
                       if (known) {
@@ -1495,7 +1553,6 @@ export default function ListaPage() {
               </div>
             </div>
 
-            {/* Nearby chips inside modal */}
             {nearbyCityChips.length ? (
               <div className="mt-5">
                 <div className="text-xs font-semibold text-gray-300">
