@@ -12,5 +12,7 @@ export default async function Page({
   const params = await searchParams;
   const lang = params.lang === "en" ? "en" : "es";
 
-  redirect(`/clasificados?category=rentas&lang=${lang}`);
+  // Keep category route as a thin wrapper, but point it to the actual
+  // Clasificados "lista" engine route you’re using in production.
+  redirect(`/clasificados/lista?cat=rentas&lang=${lang}`);
 }

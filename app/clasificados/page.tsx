@@ -213,6 +213,11 @@ export default function ClasificadosPage() {
     return `${path}${joiner}lang=${lang}`;
   };
 
+  // ✅ NEW: route category tiles to their dedicated category pages (wrappers)
+  const withCategoryRoute = (cat: CategoryKey) => {
+    return withLang(`/clasificados/${cat}`);
+  };
+
   const withListParams = (cat?: CategoryKey) => {
     const base = t.routeList;
     const sp = new URLSearchParams();
@@ -332,7 +337,8 @@ export default function ClasificadosPage() {
 
     return (
       <a
-        href={withListParams(cat)}
+        // ✅ CHANGED: from lista params to dedicated category page route
+        href={withCategoryRoute(cat)}
         className={cx(
           "group block rounded-2xl border border-white/10 bg-black/30 backdrop-blur",
           "hover:bg-black/45 transition"
@@ -498,7 +504,8 @@ export default function ClasificadosPage() {
                   </div>
 
                   <a
-                    href={withListParams(cat)}
+                    // ✅ CHANGED: from lista params to dedicated category page route
+                    href={withCategoryRoute(cat)}
                     className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
                   >
                     {t.viewMore} →
