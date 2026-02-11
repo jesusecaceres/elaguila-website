@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 
-type SearchParams = {
-  lang?: string;
-};
+type SearchParams = { lang?: string };
 
 export default async function Page({
   searchParams,
@@ -11,6 +9,5 @@ export default async function Page({
 }) {
   const params = await searchParams;
   const lang = params.lang === "en" ? "en" : "es";
-
-  redirect(`/clasificados?category=comunidad&lang=${lang}`);
+  redirect(`/clasificados/lista?cat=comunidad&lang=${lang}`);
 }

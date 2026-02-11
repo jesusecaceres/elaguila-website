@@ -49,6 +49,20 @@ type Listing = {
   year?: number;
   make?: string;
   model?: string;
+
+  // ✅ Rentas fields (optional; safe with existing sample data)
+  rentMonthly?: number;
+  beds?: number; // 0=studio, 1=1br (room can map to 1 in data later)
+  baths?: number;
+  propertyType?: string; // "apartment" | "house" | ...
+  petsPolicy?: "any" | "dogs" | "cats" | "none";
+  parking?: string; // "garage" | "assigned" | "street" | "none" | ...
+  furnished?: boolean;
+  utilitiesIncluded?: boolean;
+  sqft?: number;
+  availableNow?: boolean;
+  availableInDays?: number;
+  leaseTerm?: string; // "month-to-month" | "6" | "12" | etc.
 };
 
 const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
@@ -201,6 +215,139 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
   window.history.replaceState({}, "", final);
 }
 
+/** ✅ Rentas param helpers (internal only; no exports) */
+type RentasParams = {
+  rpmin: string;
+  rpmax: string;
+  rbeds: string;
+  rbaths: string;
+  rtype: string;
+  rpets: string;
+  rparking: string;
+  rfurnished: string;
+  rutilities: string;
+  ravailable: string;
+  rsqmin: string;
+  rsqmax: string;
+  rleaseterm: string;
+};
+
+const EMPTY_RENTAS_PARAMS: RentasParams = {
+  rpmin: "",
+  rpmax: "",
+  rbeds: "",
+  rbaths: "",
+  rtype: "",
+  rpets: "",
+  rparking: "",
+  rfurnished: "",
+  rutilities: "",
+  ravailable: "",
+  rsqmin: "",
+  rsqmax: "",
+  rleaseterm: "",
+};
+
+function parseNumLoose(s: string): number | null {
+  const cleaned = (s || "").replace(/[^\d.]/g, "");
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getRentasPriceValue(x: Listing): number | null {
+  if (typeof x.rentMonthly === "number" && Number.isFinite(x.rentMonthly)) return x.rentMonthly;
+  const lbl = x.priceLabel?.es ?? x.priceLabel?.en ?? "";
+  if (/gratis|free/i.test(lbl)) return 0;
+  return parseNumLoose(lbl);
+}
+
+function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
+  const min = rp.rpmin ? parseNumLoose(rp.rpmin) : null;
+  const max = rp.rpmax ? parseNumLoose(rp.rpmax) : null;
+  const sqMin = rp.rsqmin ? parseNumLoose(rp.rsqmin) : null;
+  const sqMax = rp.rsqmax ? parseNumLoose(rp.rsqmax) : null;
+
+  return list.filter((x) => {
+    const rent = getRentasPriceValue(x);
+    if (min !== null && rent !== null && rent < min) return false;
+    if (max !== null && rent !== null && rent > max) return false;
+
+    if (rp.rbeds) {
+      if (typeof x.beds === "number") {
+        if (rp.rbeds === "studio" && x.beds !== 0) return false;
+        else if (rp.rbeds === "room" && x.beds !== 1) return false;
+        else if (rp.rbeds === "4+" && x.beds < 4) return false;
+        else if (!["studio", "room", "4+"].includes(rp.rbeds)) {
+          const n = Number(rp.rbeds);
+          if (Number.isFinite(n) && x.beds !== n) return false;
+        }
+      }
+    }
+
+    if (rp.rbaths) {
+      if (typeof x.baths === "number") {
+        if (rp.rbaths === "4+" && x.baths < 4) return false;
+        else {
+          const n = Number(rp.rbaths);
+          if (Number.isFinite(n) && x.baths < n) return false;
+        }
+      }
+    }
+
+    if (rp.rtype) {
+      if (x.propertyType && x.propertyType !== rp.rtype) return false;
+    }
+
+    if (rp.rpets) {
+      if (x.petsPolicy) {
+        if (rp.rpets === "none" && x.petsPolicy !== "none") return false;
+        if (rp.rpets === "dogs" && x.petsPolicy !== "dogs" && x.petsPolicy !== "any") return false;
+        if (rp.rpets === "cats" && x.petsPolicy !== "cats" && x.petsPolicy !== "any") return false;
+      }
+    }
+
+    if (rp.rparking) {
+      if (x.parking && x.parking !== rp.rparking) return false;
+    }
+
+    if (rp.rfurnished) {
+      if (typeof x.furnished === "boolean") {
+        if (rp.rfurnished === "yes" && x.furnished !== true) return false;
+        if (rp.rfurnished === "no" && x.furnished !== false) return false;
+      }
+    }
+
+    if (rp.rutilities) {
+      if (typeof x.utilitiesIncluded === "boolean") {
+        if (rp.rutilities === "included" && x.utilitiesIncluded !== true) return false;
+      }
+    }
+
+    if (rp.ravailable) {
+      if (rp.ravailable === "now") {
+        if (typeof x.availableNow === "boolean" && x.availableNow !== true) return false;
+      }
+      if (rp.ravailable === "30") {
+        if (typeof x.availableInDays === "number" && x.availableInDays > 30) return false;
+      }
+    }
+
+    if (sqMin !== null || sqMax !== null) {
+      if (typeof x.sqft === "number") {
+        if (sqMin !== null && x.sqft < sqMin) return false;
+        if (sqMax !== null && x.sqft > sqMax) return false;
+      }
+    }
+
+    if (rp.rleaseterm) {
+      if (x.leaseTerm && x.leaseTerm !== rp.rleaseterm) return false;
+    }
+
+    return true;
+  });
+}
+
 export default function ListaPage() {
   const params = useSearchParams();
   const lang: Lang = (params?.get("lang") as Lang) === "en" ? "en" : "es";
@@ -237,6 +384,9 @@ export default function ListaPage() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<Exclude<CategoryKey, "all">>>([]);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // ✅ Rentas param state (only used when cat=rentas)
+  const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -296,6 +446,28 @@ export default function ListaPage() {
 
     const viewOk: ViewMode[] = ["grid", "list", "list-img"];
     if (pView && viewOk.includes(pView as ViewMode)) setView(pView as ViewMode);
+
+    // ✅ Rentas params: only track them if cat=rentas
+    const catIsRentas = pCat === "rentas";
+    if (catIsRentas) {
+      setRentasParams({
+        rpmin: params?.get("rpmin") ?? "",
+        rpmax: params?.get("rpmax") ?? "",
+        rbeds: params?.get("rbeds") ?? "",
+        rbaths: params?.get("rbaths") ?? "",
+        rtype: params?.get("rtype") ?? "",
+        rpets: params?.get("rpets") ?? "",
+        rparking: params?.get("rparking") ?? "",
+        rfurnished: params?.get("rfurnished") ?? "",
+        rutilities: params?.get("rutilities") ?? "",
+        ravailable: params?.get("ravailable") ?? "",
+        rsqmin: params?.get("rsqmin") ?? "",
+        rsqmax: params?.get("rsqmax") ?? "",
+        rleaseterm: params?.get("rleaseterm") ?? "",
+      });
+    } else {
+      setRentasParams(EMPTY_RENTAS_PARAMS);
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
@@ -722,7 +894,9 @@ export default function ListaPage() {
       return haversineMi(anchor, cityLL) <= radiusMi;
     });
 
-    const sorted = [...base].sort((a, b) => {
+    const rentasApplied = category === "rentas" ? applyRentasParams(base, rentasParams) : base;
+
+    const sorted = [...rentasApplied].sort((a, b) => {
       if (sort === "newest") {
         return (
           new Date(b.createdAtISO).getTime() -
@@ -735,14 +909,14 @@ export default function ListaPage() {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
 
   useEffect(() => {
     setPage(1);
-  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage]);
+  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
 
   const visible = useMemo(() => {
     const start = (pageClamped - 1) * perPage;
@@ -795,6 +969,23 @@ export default function ListaPage() {
       });
     }
 
+    // ✅ Rentas chips (only show when in rentas + has params)
+    if (category === "rentas") {
+      if (rentasParams.rpmin) chips.push({ key: "rpmin", text: `Min: $${rentasParams.rpmin}`, clear: () => setRentasParams((p) => ({ ...p, rpmin: "" })) });
+      if (rentasParams.rpmax) chips.push({ key: "rpmax", text: `Max: $${rentasParams.rpmax}`, clear: () => setRentasParams((p) => ({ ...p, rpmax: "" })) });
+      if (rentasParams.rbeds) chips.push({ key: "rbeds", text: `${lang === "es" ? "Recámaras" : "Beds"}: ${rentasParams.rbeds}`, clear: () => setRentasParams((p) => ({ ...p, rbeds: "" })) });
+      if (rentasParams.rbaths) chips.push({ key: "rbaths", text: `${lang === "es" ? "Baños" : "Baths"}: ${rentasParams.rbaths}`, clear: () => setRentasParams((p) => ({ ...p, rbaths: "" })) });
+      if (rentasParams.rtype) chips.push({ key: "rtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${rentasParams.rtype}`, clear: () => setRentasParams((p) => ({ ...p, rtype: "" })) });
+      if (rentasParams.rpets) chips.push({ key: "rpets", text: `${lang === "es" ? "Mascotas" : "Pets"}: ${rentasParams.rpets}`, clear: () => setRentasParams((p) => ({ ...p, rpets: "" })) });
+      if (rentasParams.rparking) chips.push({ key: "rparking", text: `${lang === "es" ? "Estacion." : "Parking"}: ${rentasParams.rparking}`, clear: () => setRentasParams((p) => ({ ...p, rparking: "" })) });
+      if (rentasParams.rfurnished) chips.push({ key: "rfurnished", text: `${lang === "es" ? "Amueblado" : "Furnished"}: ${rentasParams.rfurnished}`, clear: () => setRentasParams((p) => ({ ...p, rfurnished: "" })) });
+      if (rentasParams.rutilities) chips.push({ key: "rutilities", text: `${lang === "es" ? "Utilidades" : "Utilities"}: ${rentasParams.rutilities}`, clear: () => setRentasParams((p) => ({ ...p, rutilities: "" })) });
+      if (rentasParams.ravailable) chips.push({ key: "ravailable", text: `${lang === "es" ? "Disponible" : "Available"}: ${rentasParams.ravailable}`, clear: () => setRentasParams((p) => ({ ...p, ravailable: "" })) });
+      if (rentasParams.rsqmin) chips.push({ key: "rsqmin", text: `Sqft min: ${rentasParams.rsqmin}`, clear: () => setRentasParams((p) => ({ ...p, rsqmin: "" })) });
+      if (rentasParams.rsqmax) chips.push({ key: "rsqmax", text: `Sqft max: ${rentasParams.rsqmax}`, clear: () => setRentasParams((p) => ({ ...p, rsqmax: "" })) });
+      if (rentasParams.rleaseterm) chips.push({ key: "rleaseterm", text: `${lang === "es" ? "Contrato" : "Lease"}: ${rentasParams.rleaseterm}`, clear: () => setRentasParams((p) => ({ ...p, rleaseterm: "" })) });
+    }
+
     if (sort !== "newest") {
       chips.push({
         key: "sort",
@@ -820,7 +1011,7 @@ export default function ListaPage() {
     }
 
     return chips;
-  }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sort, sellerType, onlyWithImage]);
+  }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
 
   useEffect(() => {
     setUrlParams({
@@ -836,8 +1027,23 @@ export default function ListaPage() {
         : normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)
           ? city
           : null,
+
+      // ✅ Rentas params are preserved in URL only when cat=rentas
+      rpmin: category === "rentas" && rentasParams.rpmin ? rentasParams.rpmin : null,
+      rpmax: category === "rentas" && rentasParams.rpmax ? rentasParams.rpmax : null,
+      rbeds: category === "rentas" && rentasParams.rbeds ? rentasParams.rbeds : null,
+      rbaths: category === "rentas" && rentasParams.rbaths ? rentasParams.rbaths : null,
+      rtype: category === "rentas" && rentasParams.rtype ? rentasParams.rtype : null,
+      rpets: category === "rentas" && rentasParams.rpets ? rentasParams.rpets : null,
+      rparking: category === "rentas" && rentasParams.rparking ? rentasParams.rparking : null,
+      rfurnished: category === "rentas" && rentasParams.rfurnished ? rentasParams.rfurnished : null,
+      rutilities: category === "rentas" && rentasParams.rutilities ? rentasParams.rutilities : null,
+      ravailable: category === "rentas" && rentasParams.ravailable ? rentasParams.ravailable : null,
+      rsqmin: category === "rentas" && rentasParams.rsqmin ? rentasParams.rsqmin : null,
+      rsqmax: category === "rentas" && rentasParams.rsqmax ? rentasParams.rsqmax : null,
+      rleaseterm: category === "rentas" && rentasParams.rleaseterm ? rentasParams.rleaseterm : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams]);
 
   const resetAll = () => {
     setQ("");
@@ -853,6 +1059,7 @@ export default function ListaPage() {
     setCityQuery("");
     setSuggestions([]);
     setSuggestionsOpen(false);
+    setRentasParams(EMPTY_RENTAS_PARAMS);
   };
 
   const onUseMyLocation = async () => {
@@ -1023,7 +1230,6 @@ export default function ListaPage() {
             compact ? "shadow-lg" : ""
           )}
         >
-          {/* CHANGED: p-4 md:p-5 -> p-3 md:p-4 */}
           <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
               {/* Search */}
@@ -1032,7 +1238,6 @@ export default function ListaPage() {
                   {UI.search[lang]}
                 </label>
                 <div className="relative mt-1.5">
-                  {/* CHANGED: py-3 -> py-2.5 */}
                   <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
@@ -1079,7 +1284,6 @@ export default function ListaPage() {
                 <label className="block text-xs font-semibold text-gray-300">
                   {UI.location[lang]}
                 </label>
-                {/* CHANGED: py-3 -> py-2.5 */}
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
@@ -1100,7 +1304,6 @@ export default function ListaPage() {
                 <label className="block text-xs font-semibold text-gray-300">
                   {UI.radius[lang]}
                 </label>
-                {/* CHANGED: py-3 -> py-2.5 */}
                 <select
                   value={radiusMi}
                   onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
@@ -1119,28 +1322,19 @@ export default function ListaPage() {
                 <label className="block text-xs font-semibold text-gray-300">
                   {UI.category[lang]}
                 </label>
-                {/* CHANGED: py-3 -> py-2.5 */}
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
                   className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   <option value="all">{CATEGORY_LABELS.all[lang]}</option>
-                  <option value="en-venta">
-                    {CATEGORY_LABELS["en-venta"][lang]}
-                  </option>
+                  <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
                   <option value="rentas">{CATEGORY_LABELS.rentas[lang]}</option>
                   <option value="autos">{CATEGORY_LABELS.autos[lang]}</option>
-                  <option value="servicios">
-                    {CATEGORY_LABELS.servicios[lang]}
-                  </option>
-                  <option value="empleos">
-                    {CATEGORY_LABELS.empleos[lang]}
-                  </option>
+                  <option value="servicios">{CATEGORY_LABELS.servicios[lang]}</option>
+                  <option value="empleos">{CATEGORY_LABELS.empleos[lang]}</option>
                   <option value="clases">{CATEGORY_LABELS.clases[lang]}</option>
-                  <option value="comunidad">
-                    {CATEGORY_LABELS.comunidad[lang]}
-                  </option>
+                  <option value="comunidad">{CATEGORY_LABELS.comunidad[lang]}</option>
                 </select>
               </div>
 
@@ -1164,7 +1358,6 @@ export default function ListaPage() {
               </div>
             </div>
 
-            {/* CHANGED: mt-3 -> mt-2 */}
             {activeChips.length ? (
               <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
                 {activeChips.map((c) => (
@@ -1181,7 +1374,6 @@ export default function ListaPage() {
               </div>
             ) : null}
 
-            {/* CHANGED: mt-3 -> mt-2 */}
             {nearbyCityChips.length ? (
               <div className="mt-2 hidden items-center gap-2 md:flex">
                 <button
