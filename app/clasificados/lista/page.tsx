@@ -63,6 +63,13 @@ type Listing = {
   availableNow?: boolean;
   availableInDays?: number;
   leaseTerm?: string; // "month-to-month" | "6" | "12" | etc.
+
+  // ✅ Contact / business fields (optional; safe with existing sample data)
+  phone?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  verified?: boolean;
 };
 
 const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
@@ -214,6 +221,31 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
 
   const final = `${url.pathname}?${sp.toString()}`;
   window.history.replaceState({}, "", final);
+}
+
+// ✅ Favorites (safe localStorage helpers)
+const FAV_KEY = "leonix_favorites_v1";
+
+function readFavorites(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAV_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((x) => typeof x === "string");
+  } catch {
+    return [];
+  }
+}
+
+function writeFavorites(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FAV_KEY, JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
 }
 
 /** ✅ Rentas param helpers (internal only; no exports) */
@@ -389,10 +421,26 @@ export default function ListaPage() {
   // ✅ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
 
+  // ✅ Favorites (works even when logged out)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favHintDismissed, setFavHintDismissed] = useState(false);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isMobile = window.innerWidth < 768;
     setView(isMobile ? "list-img" : "grid");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const ids = readFavorites();
+    setFavorites(new Set(ids));
+  }, []);
+
+  useEffect(() => {
+    // load favorites once
+    const ids = readFavorites();
+    setFavorites(new Set(ids));
   }, []);
 
   useEffect(() => {
@@ -1139,6 +1187,21 @@ export default function ListaPage() {
     el.scrollBy({ left: dx, behavior: "smooth" });
   };
 
+  const isFav = (id: string) => favorites.has(id);
+
+  const toggleFav = (id: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      writeFavorites(Array.from(next));
+      return next;
+    });
+  };
+
+  const mapsHref = (address: string) =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
   const ListingCardGrid = (x: Listing) => (
     <div
       key={x.id}
@@ -1150,12 +1213,50 @@ export default function ListaPage() {
           <div className="mt-1 text-sm text-gray-300">
             {x.city} • {x.postedAgo[lang]}
           </div>
-        </div>
-        {x.hasImage ? (
-          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-200">
-            📷
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {x.sellerType ? (
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-gray-200">
+                {SELLER_LABELS[x.sellerType][lang]}
+              </span>
+            ) : null}
+            {x.verified ? (
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-gray-200">
+                {lang === "es" ? "Verificado" : "Verified"}
+              </span>
+            ) : null}
           </div>
-        ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          {x.hasImage ? (
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-200">
+              📷
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              toggleFav(x.id);
+            }}
+            className={cx(
+              "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs",
+              isFav(x.id) ? "text-yellow-300" : "text-gray-200",
+              "hover:bg-white/10"
+            )}
+            aria-label={
+              isFav(x.id)
+                ? lang === "es"
+                  ? "Quitar de favoritos"
+                  : "Remove from favorites"
+                : lang === "es"
+                  ? "Guardar en favoritos"
+                  : "Save to favorites"
+            }
+          >
+            {isFav(x.id) ? "★" : "☆"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 text-lg font-semibold text-yellow-300">
@@ -1164,6 +1265,51 @@ export default function ListaPage() {
       <div className="mt-3 line-clamp-3 text-sm text-gray-200">
         {x.blurb[lang]}
       </div>
+
+      {(x.phone || x.email || x.website || x.address) ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {x.phone ? (
+            <a
+              href={`tel:${x.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+            >
+              {lang === "es" ? "Llamar" : "Call"}
+            </a>
+          ) : null}
+          {x.email ? (
+            <a
+              href={`mailto:${x.email}`}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+            >
+              {lang === "es" ? "Email" : "Email"}
+            </a>
+          ) : null}
+          {x.website ? (
+            <a
+              href={x.website}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+            >
+              {lang === "es" ? "Sitio" : "Website"}
+            </a>
+          ) : null}
+          {x.address ? (
+            <a
+              href={mapsHref(x.address)}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+            >
+              {lang === "es" ? "Mapa" : "Map"}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
@@ -1203,14 +1349,102 @@ export default function ListaPage() {
             <div className="mt-1 text-xs text-gray-300">
               {x.city} • {x.postedAgo[lang]}
             </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {x.sellerType ? (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-200">
+                  {SELLER_LABELS[x.sellerType][lang]}
+                </span>
+              ) : null}
+              {x.verified ? (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-200">
+                  {lang === "es" ? "Verificado" : "Verified"}
+                </span>
+              ) : null}
+            </div>
           </div>
-          <div className="shrink-0 text-sm font-semibold text-yellow-300">
-            {x.priceLabel[lang]}
+          <div className="shrink-0 text-right">
+            <div className="text-sm font-semibold text-yellow-300">{x.priceLabel[lang]}</div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFav(x.id);
+              }}
+              className={cx(
+                "mt-1 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs hover:bg-white/10",
+                isFav(x.id) ? "text-yellow-300" : "text-gray-200"
+              )}
+              aria-label={
+                isFav(x.id)
+                  ? lang === "es"
+                    ? "Quitar de favoritos"
+                    : "Remove from favorites"
+                  : lang === "es"
+                    ? "Guardar en favoritos"
+                    : "Save to favorites"
+              }
+            >
+              {isFav(x.id) ? "★" : "☆"}
+            </button>
           </div>
         </div>
         <div className="mt-2 line-clamp-2 text-xs text-gray-200">
           {x.blurb[lang]}
         </div>
+
+        {(x.phone || x.email || x.website || x.address) ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {x.phone ? (
+              <a
+                href={`tel:${x.phone}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = `tel:${x.phone}`;
+                }}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
+              >
+                {lang === "es" ? "Llamar" : "Call"}
+              </a>
+            ) : null}
+            {x.email ? (
+              <a
+                href={`mailto:${x.email}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = `mailto:${x.email}`;
+                }}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
+              >
+                {lang === "es" ? "Email" : "Email"}
+              </a>
+            ) : null}
+            {x.website ? (
+              <a
+                href={x.website}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
+              >
+                {lang === "es" ? "Sitio" : "Website"}
+              </a>
+            ) : null}
+            {x.address ? (
+              <a
+                href={mapsHref(x.address)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
+              >
+                {lang === "es" ? "Mapa" : "Map"}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </a>
   );
@@ -1463,6 +1697,23 @@ export default function ListaPage() {
                   >
                     {UI.categoryPage[lang]}
                   </a>
+                ) : null}
+
+                {!favHintDismissed && favorites.size > 0 ? (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-200">
+                    <span>
+                      {lang === "es"
+                        ? `Tienes ${favorites.size} favorito${favorites.size === 1 ? "" : "s"}.`
+                        : `You have ${favorites.size} favorite${favorites.size === 1 ? "" : "s"}.`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFavHintDismissed(true)}
+                      className="text-gray-300 underline underline-offset-4 hover:text-gray-100"
+                    >
+                      {lang === "es" ? "Ocultar" : "Hide"}
+                    </button>
+                  </div>
                 ) : null}
               </div>
 
