@@ -368,7 +368,7 @@ export default function ListaPage() {
   const [page, setPage] = useState(1);
   const perPage = 9;
 
-  const [compact, setCompact] = useState(false);
+  const [compact, setCompact] = useState(true);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -1246,16 +1246,16 @@ export default function ListaPage() {
         {/* FILTER BAR (Option B: shorter height ONLY) */}
         <section
           className={cx(
-            "sticky top-[72px] z-30 mt-10",
+            "sticky top-[64px] z-30 mt-6",
             "rounded-2xl border border-white/10 bg-black/60 backdrop-blur",
             compact ? "shadow-lg" : ""
           )}
         >
-          <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
+          <div className={cx("p-2 md:p-3", compact ? "md:py-2" : "")}>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
               {/* Search */}
               <div ref={searchBoxRef} className="col-span-2 md:col-span-5">
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="hidden md:block text-xs font-semibold text-gray-300">
                   {UI.search[lang]}
                 </label>
                 <div className="relative mt-1.5">
@@ -1270,7 +1270,7 @@ export default function ListaPage() {
                         ? "Buscar: trabajo, troca, cuarto…"
                         : "Search: jobs, truck, room…"
                     }
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                     aria-label={UI.search[lang]}
                   />
 
@@ -1302,13 +1302,13 @@ export default function ListaPage() {
 
               {/* Location */}
               <div className="col-span-1 md:col-span-3">
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="hidden md:block text-xs font-semibold text-gray-300">
                   {UI.location[lang]}
                 </label>
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-left text-sm text-white hover:bg-white/10"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -1322,13 +1322,13 @@ export default function ListaPage() {
 
               {/* Radius */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="hidden md:block text-xs font-semibold text-gray-300">
                   {UI.radius[lang]}
                 </label>
                 <select
                   value={radiusMi}
                   onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   {[5, 10, 25, 40, 50].map((r) => (
                     <option key={r} value={r}>
@@ -1340,13 +1340,13 @@ export default function ListaPage() {
 
               {/* Category */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="hidden md:block text-xs font-semibold text-gray-300">
                   {UI.category[lang]}
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   <option value="all">{CATEGORY_LABELS.all[lang]}</option>
                   <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
@@ -1360,22 +1360,24 @@ export default function ListaPage() {
               </div>
 
               {/* Buttons */}
-              <div className="col-span-2 flex items-center justify-between gap-3 md:col-span-12 md:justify-end">
+              <div className="col-span-2 flex items-center justify-end gap-3 md:col-span-12 md:justify-end">
                 <button
                   type="button"
                   onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10"
                 >
                   {UI.moreFilters[lang]}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={resetAll}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
-                >
-                  {UI.reset[lang]}
-                </button>
+                {activeChips.length ? (
+                  <button
+                    type="button"
+                    onClick={resetAll}
+                    className="text-sm text-gray-300 hover:text-white"
+                  >
+                    {UI.reset[lang]}
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -1446,7 +1448,7 @@ export default function ListaPage() {
           <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
-                <div className="text-lg font-semibold text-yellow-300">
+                <div className="text-base font-semibold text-yellow-300">
                   {UI.results[lang]}
                 </div>
                 <div className="text-xs text-gray-300">
@@ -1573,9 +1575,9 @@ export default function ListaPage() {
       {moreOpen ? (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/70" onClick={() => setMoreOpen(false)} />
-          <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/10 bg-black/95 p-5 shadow-2xl md:left-1/2 md:top-1/2 md:bottom-auto md:right-auto md:w-[92vw] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl">
             <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold text-yellow-300">{UI.moreFilters[lang]}</div>
+              <div className="text-base font-semibold text-yellow-300">{UI.moreFilters[lang]}</div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
@@ -1587,7 +1589,7 @@ export default function ListaPage() {
 
             <div className="mt-4 grid gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-300">{UI.seller[lang]}</label>
+                <label className="hidden md:block text-xs font-semibold text-gray-300">{UI.seller[lang]}</label>
                 <select
                   value={sellerType ?? "all"}
                   onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as SellerType))}
@@ -1638,7 +1640,7 @@ export default function ListaPage() {
           <div className="absolute inset-0 bg-black/70" onClick={() => setLocationOpen(false)} />
           <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold text-yellow-300">{UI.location[lang]}</div>
+              <div className="text-base font-semibold text-yellow-300">{UI.location[lang]}</div>
               <button
                 type="button"
                 onClick={() => setLocationOpen(false)}
@@ -1650,7 +1652,7 @@ export default function ListaPage() {
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div ref={citySuggestRef} className="relative">
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="hidden md:block text-xs font-semibold text-gray-300">
                   {lang === "es" ? "Ciudad" : "City"}
                 </label>
                 <input
@@ -1693,7 +1695,7 @@ export default function ListaPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="hidden md:block text-xs font-semibold text-gray-300">
                   {UI.zip[lang]}
                 </label>
                 <input
