@@ -103,6 +103,7 @@ const UI = {
   hasImage: { es: "Con foto", en: "Has image" },
   results: { es: "Resultados", en: "Results" },
   showing: { es: "Mostrando", en: "Showing" },
+  categoryPage: { es: "Ver página de categoría", en: "View category page" },
   of: { es: "de", en: "of" },
   prev: { es: "Anterior", en: "Previous" },
   next: { es: "Siguiente", en: "Next" },
@@ -348,65 +349,6 @@ function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
   });
 }
 
-/** ✅ Autos param helpers (internal only; no exports) */
-type AutosParams = {
-  apmin: string;
-  apmax: string;
-  aymin: string;
-  aymax: string;
-  amake: string;
-  amodel: string;
-};
-
-const EMPTY_AUTOS_PARAMS: AutosParams = {
-  apmin: "",
-  apmax: "",
-  aymin: "",
-  aymax: "",
-  amake: "",
-  amodel: "",
-};
-
-function getAutosPriceValue(x: Listing): number | null {
-  const lbl = x.priceLabel?.es ?? x.priceLabel?.en ?? "";
-  if (/gratis|free/i.test(lbl)) return 0;
-  return parseNumLoose(lbl);
-}
-
-function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
-  const min = ap.apmin ? parseNumLoose(ap.apmin) : null;
-  const max = ap.apmax ? parseNumLoose(ap.apmax) : null;
-
-  const yMin = ap.aymin ? parseNumLoose(ap.aymin) : null;
-  const yMax = ap.aymax ? parseNumLoose(ap.aymax) : null;
-
-  const wantMake = normalize(ap.amake || "");
-  const wantModel = normalize(ap.amodel || "");
-
-  return list.filter((x) => {
-    // price
-    if (min !== null || max !== null) {
-      const p = getAutosPriceValue(x);
-      if (min !== null && p !== null && p < min) return false;
-      if (max !== null && p !== null && p > max) return false;
-    }
-
-    // year (do not hide if missing)
-    if (yMin !== null && typeof x.year === "number" && x.year < yMin) return false;
-    if (yMax !== null && typeof x.year === "number" && x.year > yMax) return false;
-
-    // make/model (do not hide if missing)
-    if (wantMake) {
-      if (x.make && normalize(x.make) !== wantMake) return false;
-    }
-    if (wantModel) {
-      if (x.model && normalize(x.model) !== wantModel) return false;
-    }
-
-    return true;
-  });
-}
-
 export default function ListaPage() {
   const params = useSearchParams();
   const lang: Lang = (params?.get("lang") as Lang) === "en" ? "en" : "es";
@@ -446,9 +388,6 @@ export default function ListaPage() {
 
   // ✅ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
-
-  // ✅ Autos param state (only used when cat=autos)
-  const [autosParams, setAutosParams] = useState<AutosParams>(EMPTY_AUTOS_PARAMS);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -529,21 +468,6 @@ export default function ListaPage() {
       });
     } else {
       setRentasParams(EMPTY_RENTAS_PARAMS);
-    }
-
-    // ✅ Autos params: only track them if cat=autos
-    const catIsAutos = pCat === "autos";
-    if (catIsAutos) {
-      setAutosParams({
-        apmin: params?.get("apmin") ?? "",
-        apmax: params?.get("apmax") ?? "",
-        aymin: params?.get("aymin") ?? "",
-        aymax: params?.get("aymax") ?? "",
-        amake: params?.get("amake") ?? "",
-        amodel: params?.get("amodel") ?? "",
-      });
-    } else {
-      setAutosParams(EMPTY_AUTOS_PARAMS);
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -972,9 +896,8 @@ export default function ListaPage() {
     });
 
     const rentasApplied = category === "rentas" ? applyRentasParams(base, rentasParams) : base;
-    const autosApplied = category === "autos" ? applyAutosParams(rentasApplied, autosParams) : rentasApplied;
 
-    const sorted = [...autosApplied].sort((a, b) => {
+    const sorted = [...rentasApplied].sort((a, b) => {
       if (sort === "newest") {
         return (
           new Date(b.createdAtISO).getTime() -
@@ -987,14 +910,14 @@ export default function ListaPage() {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
 
   useEffect(() => {
     setPage(1);
-  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams]);
+  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
 
   const visible = useMemo(() => {
     const start = (pageClamped - 1) * perPage;
@@ -1064,46 +987,6 @@ export default function ListaPage() {
       if (rentasParams.rleaseterm) chips.push({ key: "rleaseterm", text: `${lang === "es" ? "Contrato" : "Lease"}: ${rentasParams.rleaseterm}`, clear: () => setRentasParams((p) => ({ ...p, rleaseterm: "" })) });
     }
 
-    // ✅ Autos chips (only show when in autos + has params)
-    if (category === "autos") {
-      if (autosParams.apmin)
-        chips.push({
-          key: "apmin",
-          text: `Min: $${autosParams.apmin}`,
-          clear: () => setAutosParams((p) => ({ ...p, apmin: "" })),
-        });
-      if (autosParams.apmax)
-        chips.push({
-          key: "apmax",
-          text: `Max: $${autosParams.apmax}`,
-          clear: () => setAutosParams((p) => ({ ...p, apmax: "" })),
-        });
-      if (autosParams.aymin)
-        chips.push({
-          key: "aymin",
-          text: `${lang === "es" ? "Año" : "Year"}: ${autosParams.aymin}+`,
-          clear: () => setAutosParams((p) => ({ ...p, aymin: "" })),
-        });
-      if (autosParams.aymax)
-        chips.push({
-          key: "aymax",
-          text: `${lang === "es" ? "Año" : "Year"}: ≤${autosParams.aymax}`,
-          clear: () => setAutosParams((p) => ({ ...p, aymax: "" })),
-        });
-      if (autosParams.amake)
-        chips.push({
-          key: "amake",
-          text: `${lang === "es" ? "Marca" : "Make"}: ${autosParams.amake}`,
-          clear: () => setAutosParams((p) => ({ ...p, amake: "" })),
-        });
-      if (autosParams.amodel)
-        chips.push({
-          key: "amodel",
-          text: `${lang === "es" ? "Modelo" : "Model"}: ${autosParams.amodel}`,
-          clear: () => setAutosParams((p) => ({ ...p, amodel: "" })),
-        });
-    }
-
     if (sort !== "newest") {
       chips.push({
         key: "sort",
@@ -1160,16 +1043,8 @@ export default function ListaPage() {
       rsqmin: category === "rentas" && rentasParams.rsqmin ? rentasParams.rsqmin : null,
       rsqmax: category === "rentas" && rentasParams.rsqmax ? rentasParams.rsqmax : null,
       rleaseterm: category === "rentas" && rentasParams.rleaseterm ? rentasParams.rleaseterm : null,
-
-      // ✅ Autos params are preserved in URL only when cat=autos
-      apmin: category === "autos" && autosParams.apmin ? autosParams.apmin : null,
-      apmax: category === "autos" && autosParams.apmax ? autosParams.apmax : null,
-      aymin: category === "autos" && autosParams.aymin ? autosParams.aymin : null,
-      aymax: category === "autos" && autosParams.aymax ? autosParams.aymax : null,
-      amake: category === "autos" && autosParams.amake ? autosParams.amake : null,
-      amodel: category === "autos" && autosParams.amodel ? autosParams.amodel : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams]);
 
   const resetAll = () => {
     setQ("");
@@ -1186,8 +1061,27 @@ export default function ListaPage() {
     setSuggestions([]);
     setSuggestionsOpen(false);
     setRentasParams(EMPTY_RENTAS_PARAMS);
-    setAutosParams(EMPTY_AUTOS_PARAMS);
   };
+
+  const categoryPageHref = useMemo(() => {
+    if (category === "all") return null;
+
+    const p = new URLSearchParams();
+    p.set("lang", lang);
+
+    const qv = q.trim();
+    if (qv) p.set("q", qv);
+
+    if (zipMode && zipClean) p.set("zip", zipClean);
+    else if (normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)) p.set("city", city);
+
+    if (radiusMi !== DEFAULT_RADIUS_MI) p.set("r", String(radiusMi));
+    if (sort !== "newest") p.set("sort", sort);
+    if (view !== "grid") p.set("view", view);
+
+    return `/clasificados/${category}?${p.toString()}`;
+  }, [category, lang, q, zipMode, zipClean, city, radiusMi, sort, view]);
+
 
   const onUseMyLocation = async () => {
     try {
@@ -1548,7 +1442,7 @@ export default function ListaPage() {
         </section>
 
         {/* RESULTS TOOLBAR (unchanged) */}
-        <section className="sticky top-[calc(72px+16px)] z-20 mt-4">
+        <section className="md:sticky md:top-[calc(72px+16px)] z-20 mt-4">
           <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
@@ -1559,6 +1453,15 @@ export default function ListaPage() {
                   {UI.showing[lang]} {visible.length} {UI.of[lang]}{" "}
                   {filtered.length}
                 </div>
+
+                {category !== "all" && categoryPageHref ? (
+                  <a
+                    href={categoryPageHref}
+                    className="mt-1 inline-flex text-xs font-semibold text-yellow-200 underline underline-offset-4 hover:text-yellow-100"
+                  >
+                    {UI.categoryPage[lang]}
+                  </a>
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between gap-3 md:justify-end">

@@ -15,18 +15,20 @@ function Input({
   value,
   onChange,
   placeholder,
+  inputMode,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   return (
     <input
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none placeholder:text-gray-500"
-      inputMode="numeric"
+      inputMode={inputMode}
+      className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500"
     />
   );
 }
@@ -44,7 +46,7 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none"
+      className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
     >
       {children}
     </select>
@@ -106,19 +108,19 @@ function RentasMoreFilters({
   const set = (patch: Partial<RentasFilters>) => onChange({ ...value, ...patch });
 
   return (
-    <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+    <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
       <div className="text-sm font-semibold text-yellow-200">
-        {lang === "es" ? "Filtros de Rentas" : "Rental filters"}
+        {lang === "es" ? "Más filtros" : "More filters"}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <Label>{t.min} ($)</Label>
-          <Input value={value.minRent} onChange={(v) => set({ minRent: v })} placeholder="0" />
+          <Input value={value.minRent} onChange={(v) => set({ minRent: v })} placeholder="0" inputMode="numeric" />
         </div>
         <div>
           <Label>{t.max} ($)</Label>
-          <Input value={value.maxRent} onChange={(v) => set({ maxRent: v })} placeholder="5000" />
+          <Input value={value.maxRent} onChange={(v) => set({ maxRent: v })} placeholder="5000" inputMode="numeric" />
         </div>
 
         <div>
@@ -211,13 +213,13 @@ function RentasMoreFilters({
           <Label>
             {t.sqft} {t.min}
           </Label>
-          <Input value={value.sqftMin} onChange={(v) => set({ sqftMin: v })} placeholder="0" />
+          <Input value={value.sqftMin} onChange={(v) => set({ sqftMin: v })} placeholder="0" inputMode="numeric" />
         </div>
         <div>
           <Label>
             {t.sqft} {t.max}
           </Label>
-          <Input value={value.sqftMax} onChange={(v) => set({ sqftMax: v })} placeholder="2500" />
+          <Input value={value.sqftMax} onChange={(v) => set({ sqftMax: v })} placeholder="2500" inputMode="numeric" />
         </div>
 
         <div className="col-span-2">
@@ -273,6 +275,7 @@ export default function Page() {
 
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const [filters, setFilters] = useState<RentasFilters>(DEFAULT_RENTAS_FILTERS);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const goToListaHref = useMemo(() => {
     const params = new URLSearchParams();
@@ -291,25 +294,48 @@ export default function Page() {
     return `/clasificados/lista?${params.toString()}`;
   }, [filters, lang, sp]);
 
+  const hasAnyFilter = useMemo(() => {
+    // DEFAULT_RENTAS_FILTERS uses enums; quick check by comparing JSON strings is safe here.
+    return JSON.stringify(filters) !== JSON.stringify(DEFAULT_RENTAS_FILTERS);
+  }, [filters]);
+
   const t = {
     es: {
       title: "Rentas",
       subtitle:
-        "Encuentra departamentos, casas, estudios y cuartos. Usa filtros reales (precio, recámaras, mascotas, etc.).",
-      view: "Ver anuncios",
-      reset: "Limpiar filtros",
+        "Departamentos, casas, estudios y cuartos. Filtros reales para encontrar rápido.",
+      view: "Ver rentas disponibles",
+      exploreAll: "Explorar todas las categorías",
+      reset: "Restablecer",
+      quick: "Filtros rápidos",
+      more: "Más filtros",
+      priceMin: "Precio mín. ($)",
+      priceMax: "Precio máx. ($)",
+      beds: "Recámaras",
+      type: "Tipo",
+      any: "Cualquiera",
     },
     en: {
       title: "Rentals",
       subtitle:
-        "Find apartments, houses, studios and rooms. Use real filters (price, beds, pets, etc.).",
-      view: "View listings",
-      reset: "Reset filters",
+        "Apartments, houses, studios and rooms. Real filters to find faster.",
+      view: "Browse rentals",
+      exploreAll: "Explore all categories",
+      reset: "Reset",
+      quick: "Quick filters",
+      more: "More filters",
+      priceMin: "Min price ($)",
+      priceMax: "Max price ($)",
+      beds: "Bedrooms",
+      type: "Type",
+      any: "Any",
     },
   }[lang];
 
+  const set = (patch: Partial<RentasFilters>) => setFilters((p) => ({ ...p, ...patch }));
+
   return (
-    <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+    <div className="mx-auto max-w-5xl px-6 pt-24 pb-14">
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
@@ -321,18 +347,79 @@ export default function Page() {
           >
             {t.view}
           </button>
-          <button
-            onClick={() => setFilters(DEFAULT_RENTAS_FILTERS)}
+
+          <a
+            href={`/clasificados?lang=${lang}`}
             className="rounded-full border border-white/15 bg-black/40 px-5 py-2 text-sm font-semibold text-white hover:bg-black/60"
           >
-            {t.reset}
-          </button>
+            {t.exploreAll}
+          </a>
+
+          {hasAnyFilter ? (
+            <button
+              onClick={() => setFilters(DEFAULT_RENTAS_FILTERS)}
+              className="text-xs font-semibold text-gray-300 underline underline-offset-4 hover:text-white"
+            >
+              {t.reset}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-10">
-        <RentasMoreFilters lang={lang} value={filters} onChange={setFilters} />
+      {/* QUICK FILTERS */}
+      <div className="mt-8 rounded-2xl border border-white/10 bg-black/45 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+          >
+            {t.more}
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div>
+            <Label>{t.priceMin}</Label>
+            <Input value={filters.minRent} onChange={(v) => set({ minRent: v })} placeholder="0" inputMode="numeric" />
+          </div>
+          <div>
+            <Label>{t.priceMax}</Label>
+            <Input value={filters.maxRent} onChange={(v) => set({ maxRent: v })} placeholder="5000" inputMode="numeric" />
+          </div>
+
+          <div>
+            <Label>{t.beds}</Label>
+            <Select value={filters.beds} onChange={(v) => set({ beds: v })}>
+              <option value="">{t.any}</option>
+              <option value="room">{lang === "es" ? "Cuarto" : "Room"}</option>
+              <option value="studio">{lang === "es" ? "Estudio" : "Studio"}</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4+">4+</option>
+            </Select>
+          </div>
+
+          <div>
+            <Label>{t.type}</Label>
+            <Select value={filters.propertyType} onChange={(v) => set({ propertyType: v })}>
+              <option value="">{t.any}</option>
+              <option value="apartment">{lang === "es" ? "Apartamento" : "Apartment"}</option>
+              <option value="house">{lang === "es" ? "Casa" : "House"}</option>
+              <option value="condo">{lang === "es" ? "Condominio" : "Condo"}</option>
+              <option value="adu">ADU / In-law</option>
+            </Select>
+          </div>
+        </div>
       </div>
+
+      {moreOpen ? (
+        <div className="mt-4">
+          <RentasMoreFilters lang={lang} value={filters} onChange={setFilters} />
+        </div>
+      ) : null}
     </div>
   );
 }

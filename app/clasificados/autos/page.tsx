@@ -44,7 +44,7 @@ function Input({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       inputMode={inputMode}
-      className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none placeholder:text-gray-500"
+      className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500"
     />
   );
 }
@@ -75,9 +75,10 @@ export default function Page() {
     es: {
       title: "Autos",
       subtitle:
-        "Filtra por precio, año, marca y modelo. (Filtros básicos, sin tocar la lógica de ciudad/ZIP.)",
-      view: "Ver anuncios",
-      reset: "Limpiar filtros",
+        "Encuentra tu próximo auto. Usa filtros rápidos (precio, año, marca, modelo) y luego refina en resultados.",
+      view: "Ver autos disponibles",
+      exploreAll: "Explorar todas las categorías",
+      reset: "Restablecer",
       price: "Precio",
       min: "Mín",
       max: "Máx",
@@ -85,13 +86,15 @@ export default function Page() {
       make: "Marca",
       model: "Modelo",
       hint: "Ej: Toyota, Honda, Chevrolet…",
+      more: "Más filtros (pronto)",
     },
     en: {
       title: "Autos",
       subtitle:
-        "Filter by price, year, make and model. (Basic filters, without touching city/ZIP logic.)",
-      view: "View listings",
-      reset: "Reset filters",
+        "Find your next car. Use quick filters (price, year, make, model) then refine in results.",
+      view: "Browse cars",
+      exploreAll: "Explore all categories",
+      reset: "Reset",
       price: "Price",
       min: "Min",
       max: "Max",
@@ -99,6 +102,7 @@ export default function Page() {
       make: "Make",
       model: "Model",
       hint: "e.g. Toyota, Honda, Chevrolet…",
+      more: "More filters (soon)",
     },
   }[lang];
 
@@ -120,8 +124,12 @@ export default function Page() {
     return `/clasificados/lista?${params.toString()}`;
   }, [filters, lang, sp]);
 
+  const hasAnyFilter = useMemo(() => {
+    return Object.values(filters).some((v) => String(v ?? "").trim().length > 0);
+  }, [filters]);
+
   return (
-    <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+    <div className="mx-auto max-w-5xl px-6 pt-24 pb-14">
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
@@ -133,18 +141,38 @@ export default function Page() {
           >
             {t.view}
           </button>
-          <button
-            onClick={() => setFilters(DEFAULT_AUTOS_FILTERS)}
+
+          <a
+            href={`/clasificados?lang=${lang}`}
             className="rounded-full border border-white/15 bg-black/40 px-5 py-2 text-sm font-semibold text-white hover:bg-black/60"
           >
-            {t.reset}
-          </button>
+            {t.exploreAll}
+          </a>
+
+          {hasAnyFilter ? (
+            <button
+              onClick={() => setFilters(DEFAULT_AUTOS_FILTERS)}
+              className="text-xs font-semibold text-gray-300 underline underline-offset-4 hover:text-white"
+            >
+              {t.reset}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-10 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
-        <div className="text-sm font-semibold text-yellow-200">
-          {lang === "es" ? "Filtros de Autos" : "Auto filters"}
+      <div className="mt-8 rounded-2xl border border-white/10 bg-black/45 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-yellow-200">
+            {lang === "es" ? "Filtros rápidos" : "Quick filters"}
+          </div>
+          <button
+            type="button"
+            disabled
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-gray-300 opacity-60"
+            title={lang === "es" ? "Próximamente" : "Coming soon"}
+          >
+            {t.more}
+          </button>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
