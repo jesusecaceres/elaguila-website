@@ -1404,19 +1404,24 @@ const ListingRow = (x: Listing, withImg: boolean) => {
 };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white pb-28">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-6xl px-6 pt-28">
+      {/* Subtle cinematic backdrop */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(234,179,8,0.12),rgba(0,0,0,0.75),rgba(0,0,0,1))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.1),rgba(0,0,0,1))]" />
+      </div>
+
+      <main className="mx-auto w-full max-w-6xl px-6 pt-24 md:pt-28">
         <div className="text-center">
           <div className="mx-auto mb-4 flex w-full items-center justify-center">
             <Image
               src={newLogo}
-              alt="LEONIX Media"
-              width={110}
-              height={110}
+              alt="LEONIX"
+              width={300}
               priority
-              className="h-auto w-[110px]"
+              className="h-auto w-[240px] md:w-[300px]"
             />
           </div>
 

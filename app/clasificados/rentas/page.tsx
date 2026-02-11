@@ -53,6 +53,38 @@ function Select({
   );
 }
 
+function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/70" />
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-auto rounded-t-3xl border border-white/10 bg-[#0B0B0B] p-4 shadow-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-bold text-white">{title}</div>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="mt-3">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function RentasMoreFilters({
   lang,
   value,
@@ -64,7 +96,6 @@ function RentasMoreFilters({
 }) {
   const t = {
     es: {
-      price: "Precio (mensual)",
       min: "Mín",
       max: "Máx",
       beds: "Recámaras",
@@ -84,7 +115,6 @@ function RentasMoreFilters({
       monthToMonth: "Mes a mes",
     },
     en: {
-      price: "Price (monthly)",
       min: "Min",
       max: "Max",
       beds: "Bedrooms",
@@ -115,11 +145,11 @@ function RentasMoreFilters({
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <Label>{t.min} ($)</Label>
+          <Label>{lang === "es" ? "Precio mín. ($)" : "Min price ($)"}</Label>
           <Input value={value.minRent} onChange={(v) => set({ minRent: v })} placeholder="0" inputMode="numeric" />
         </div>
         <div>
-          <Label>{t.max} ($)</Label>
+          <Label>{lang === "es" ? "Precio máx. ($)" : "Max price ($)"}</Label>
           <Input value={value.maxRent} onChange={(v) => set({ maxRent: v })} placeholder="5000" inputMode="numeric" />
         </div>
 
@@ -295,47 +325,86 @@ export default function Page() {
   }, [filters, lang, sp]);
 
   const hasAnyFilter = useMemo(() => {
-    // DEFAULT_RENTAS_FILTERS uses enums; quick check by comparing JSON strings is safe here.
     return JSON.stringify(filters) !== JSON.stringify(DEFAULT_RENTAS_FILTERS);
   }, [filters]);
 
   const t = {
     es: {
       title: "Rentas",
-      subtitle:
-        "Departamentos, casas, estudios y cuartos. Filtros reales para encontrar rápido.",
+      subtitle: "Departamentos, casas, estudios, cuartos y estancias flexibles (mes a mes).",
       view: "Ver rentas disponibles",
       exploreAll: "Explorar todas las categorías",
       reset: "Restablecer",
       quick: "Filtros rápidos",
       more: "Más filtros",
-      priceMin: "Precio mín. ($)",
-      priceMax: "Precio máx. ($)",
+      sidebar: "Filtros",
+      any: "Cualquiera",
+      priceMin: "Precio mín.",
+      priceMax: "Precio máx.",
       beds: "Recámaras",
       type: "Tipo",
-      any: "Cualquiera",
+      chipsTitle: "Atajos",
+      chipRoom: "Cuartos",
+      chipStudio: "Estudios",
+      chipApt: "Apartamentos",
+      chipHouse: "Casas",
+      chipFlex: "Temporales",
     },
     en: {
       title: "Rentals",
-      subtitle:
-        "Apartments, houses, studios and rooms. Real filters to find faster.",
+      subtitle: "Apartments, houses, studios, rooms and flexible stays (month-to-month).",
       view: "Browse rentals",
       exploreAll: "Explore all categories",
       reset: "Reset",
       quick: "Quick filters",
       more: "More filters",
-      priceMin: "Min price ($)",
-      priceMax: "Max price ($)",
+      sidebar: "Filters",
+      any: "Any",
+      priceMin: "Min price",
+      priceMax: "Max price",
       beds: "Bedrooms",
       type: "Type",
-      any: "Any",
+      chipsTitle: "Shortcuts",
+      chipRoom: "Rooms",
+      chipStudio: "Studios",
+      chipApt: "Apartments",
+      chipHouse: "Houses",
+      chipFlex: "Short-term",
     },
   }[lang];
 
   const set = (patch: Partial<RentasFilters>) => setFilters((p) => ({ ...p, ...patch }));
 
+  const applyShortcut = (key: "room" | "studio" | "apartment" | "house" | "flex") => {
+    if (key === "room") {
+      setFilters((p) => ({ ...p, beds: "room" }));
+      return;
+    }
+    if (key === "studio") {
+      setFilters((p) => ({ ...p, beds: "studio" }));
+      return;
+    }
+    if (key === "apartment") {
+      setFilters((p) => ({ ...p, propertyType: "apartment" }));
+      return;
+    }
+    if (key === "house") {
+      setFilters((p) => ({ ...p, propertyType: "house" }));
+      return;
+    }
+    // flex: month-to-month + furnished any (keeps fairness)
+    setFilters((p) => ({ ...p, leaseTerm: "month-to-month" }));
+  };
+
+  const Sidebar = (
+    <div className="space-y-3">
+      <RentasMoreFilters lang={lang} value={filters} onChange={setFilters} />
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-20 md:pt-24 pb-14">
+      {/* HERO */}
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
@@ -366,60 +435,109 @@ export default function Page() {
         </div>
       </div>
 
-      {/* QUICK FILTERS */}
-      <div className="mt-7 rounded-2xl border border-white/10 bg-black/50 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
-          <button
-            type="button"
-            onClick={() => setMoreOpen((v) => !v)}
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
-          >
-            {t.more}
-          </button>
-        </div>
+      {/* LAYOUT */}
+      <div className="mt-8 grid gap-4 md:grid-cols-[320px_1fr]">
+        {/* Sidebar desktop */}
+        <aside className="hidden md:block">{Sidebar}</aside>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <Label>{t.priceMin}</Label>
-            <Input value={filters.minRent} onChange={(v) => set({ minRent: v })} placeholder="0" inputMode="numeric" />
-          </div>
-          <div>
-            <Label>{t.priceMax}</Label>
-            <Input value={filters.maxRent} onChange={(v) => set({ maxRent: v })} placeholder="5000" inputMode="numeric" />
+        <main>
+          {/* Shortcuts */}
+          <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-yellow-200">{t.chipsTitle}</div>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className="md:hidden rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+              >
+                {t.more}
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => applyShortcut("room")}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+              >
+                {t.chipRoom}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyShortcut("studio")}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+              >
+                {t.chipStudio}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyShortcut("apartment")}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+              >
+                {t.chipApt}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyShortcut("house")}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+              >
+                {t.chipHouse}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyShortcut("flex")}
+                className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1.5 text-xs font-semibold text-yellow-200 hover:bg-yellow-400/15"
+              >
+                {t.chipFlex}
+              </button>
+            </div>
           </div>
 
-          <div>
-            <Label>{t.beds}</Label>
-            <Select value={filters.beds} onChange={(v) => set({ beds: v })}>
-              <option value="">{t.any}</option>
-              <option value="room">{lang === "es" ? "Cuarto" : "Room"}</option>
-              <option value="studio">{lang === "es" ? "Estudio" : "Studio"}</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4+">4+</option>
-            </Select>
-          </div>
+          {/* Quick filters */}
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/50 p-4">
+            <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
 
-          <div>
-            <Label>{t.type}</Label>
-            <Select value={filters.propertyType} onChange={(v) => set({ propertyType: v })}>
-              <option value="">{t.any}</option>
-              <option value="apartment">{lang === "es" ? "Apartamento" : "Apartment"}</option>
-              <option value="house">{lang === "es" ? "Casa" : "House"}</option>
-              <option value="condo">{lang === "es" ? "Condominio" : "Condo"}</option>
-              <option value="adu">ADU / In-law</option>
-            </Select>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <Label>{t.priceMin} ($)</Label>
+                <Input value={filters.minRent} onChange={(v) => set({ minRent: v })} placeholder="0" inputMode="numeric" />
+              </div>
+              <div>
+                <Label>{t.priceMax} ($)</Label>
+                <Input value={filters.maxRent} onChange={(v) => set({ maxRent: v })} placeholder="5000" inputMode="numeric" />
+              </div>
+
+              <div>
+                <Label>{t.beds}</Label>
+                <Select value={filters.beds} onChange={(v) => set({ beds: v })}>
+                  <option value="">{t.any}</option>
+                  <option value="room">{lang === "es" ? "Cuarto" : "Room"}</option>
+                  <option value="studio">{lang === "es" ? "Studio" : "Studio"}</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4+">4+</option>
+                </Select>
+              </div>
+
+              <div>
+                <Label>{t.type}</Label>
+                <Select value={filters.propertyType} onChange={(v) => set({ propertyType: v })}>
+                  <option value="">{t.any}</option>
+                  <option value="apartment">{lang === "es" ? "Apartamento" : "Apartment"}</option>
+                  <option value="house">{lang === "es" ? "Casa" : "House"}</option>
+                  <option value="condo">{lang === "es" ? "Condo" : "Condo"}</option>
+                  <option value="adu">ADU</option>
+                </Select>
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
 
-      {moreOpen ? (
-        <div className="mt-4">
-          <RentasMoreFilters lang={lang} value={filters} onChange={setFilters} />
-        </div>
-      ) : null}
+      <Drawer open={moreOpen} onClose={() => setMoreOpen(false)} title={t.sidebar}>
+        {Sidebar}
+      </Drawer>
     </div>
   );
 }

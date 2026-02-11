@@ -1,202 +1,236 @@
 "use client";
 
-import type React from "react";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Navbar from "../../components/Navbar";
+import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
-type ClasesFilters = {
-  subject: string;
-  level: string;
-  mode: string;
-};
-
-const DEFAULT_FILTERS: ClasesFilters = {
-  subject: "",
-  level: "",
-  mode: "",
-};
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-xs font-semibold text-gray-300">{children}</label>;
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }
 
-function Input({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500"
-    />
-  );
+function withLang(path: string, lang: Lang) {
+  const hasQuery = path.includes("?");
+  return `${path}${hasQuery ? "&" : "?"}lang=${lang}`;
 }
 
-function Select({
-  value,
-  onChange,
-  children,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
-    >
-      {children}
-    </select>
-  );
-}
-
-function buildParams(f: ClasesFilters) {
-  const p = new URLSearchParams();
-  if (f.subject.trim()) p.set("csubject", f.subject.trim());
-  if (f.level) p.set("clevel", f.level);
-  if (f.mode) p.set("cmode", f.mode);
-  return p;
-}
-
-export default function Page() {
-  const sp = useSearchParams(); // Next 15: possibly null
+export default function ClasesPage() {
   const router = useRouter();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const sp = useSearchParams();
 
-  const [filters, setFilters] = useState<ClasesFilters>(DEFAULT_FILTERS);
+  // ✅ Null-safe (some setups type this hook as possibly null)
+  const lang = useMemo<Lang>(() => {
+    const v = sp?.get("lang");
+    return v === "en" ? "en" : "es";
+  }, [sp]);
 
-  const t = {
-    es: {
-      title: "Clases",
+  // Lightweight filter collectors (no engine duplication)
+  const [subject, setSubject] = useState("");
+  const [level, setLevel] = useState("");
+  const [mode, setMode] = useState<"" | "online" | "in-person">("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [city, setCity] = useState("");
+  const [radius, setRadius] = useState("");
+
+  const t = useMemo(
+    () => ({
+      title: lang === "es" ? "Clases" : "Classes",
       subtitle:
-        "Aprende algo nuevo. Clases y talleres (en línea o en persona).",
-      view: "Ver resultados",
-      exploreAll: "Explorar todas las categorías",
-      reset: "Restablecer",
-      quick: "Filtros rápidos",
-      subject: "Tema",
-      level: "Nivel",
-      mode: "Modalidad",
-      any: "Cualquiera",
-    },
-    en: {
-      title: "Classes",
-      subtitle:
-        "Learn something new. Classes and workshops (online or in person).",
-      view: "See results",
-      exploreAll: "Explore all categories",
-      reset: "Reset",
-      quick: "Quick filters",
-      subject: "Subject",
-      level: "Level",
-      mode: "Mode",
-      any: "Any",
-    },
-  }[lang];
+        lang === "es"
+          ? "Encuentra instructores, cursos y programas en tu área."
+          : "Find instructors, courses, and programs near you.",
+      cta: lang === "es" ? "Ver resultados" : "View results",
+      clear: lang === "es" ? "Limpiar" : "Clear",
+      subject: lang === "es" ? "Tema" : "Subject",
+      level: lang === "es" ? "Nivel" : "Level",
+      mode: lang === "es" ? "Modalidad" : "Mode",
+      online: lang === "es" ? "En línea" : "Online",
+      inPerson: lang === "es" ? "Presencial" : "In-person",
+      price: lang === "es" ? "Precio" : "Price",
+      city: lang === "es" ? "Ciudad" : "City",
+      radius: lang === "es" ? "Radio" : "Radius",
+      miles: lang === "es" ? "millas" : "miles",
+      back: lang === "es" ? "Regresar" : "Back",
+    }),
+    [lang]
+  );
 
-  const goToListaHref = useMemo(() => {
+  function goToLista() {
     const params = new URLSearchParams();
-    params.set("cat", "clases");
     params.set("lang", lang);
+    params.set("cat", "clases");
 
-    const keep = ["q", "city", "zip", "r", "sort", "view"];
-    for (const k of keep) {
-      const v = sp?.get(k);
-      if (v) params.set(k, v);
-    }
+    if (subject.trim()) params.set("q", subject.trim());
+    if (level.trim()) params.set("level", level.trim());
+    if (mode) params.set("mode", mode);
 
-    const extra = buildParams(filters);
-    extra.forEach((v, k) => params.set(k, v));
+    if (minPrice.trim()) params.set("min", minPrice.trim());
+    if (maxPrice.trim()) params.set("max", maxPrice.trim());
 
-    return `/clasificados/lista?${params.toString()}`;
-  }, [filters, lang, sp]);
+    if (city.trim()) params.set("city", city.trim());
+    if (radius.trim()) params.set("radius", radius.trim());
 
-  const hasAnyFilter = useMemo(() => JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS), [filters]);
+    router.push(`/clasificados/lista?${params.toString()}`);
+  }
+
+  function clearAll() {
+    setSubject("");
+    setLevel("");
+    setMode("");
+    setMinPrice("");
+    setMaxPrice("");
+    setCity("");
+    setRadius("");
+  }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-20 md:pt-24 pb-14">
-      <div className="text-center">
-        <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => router.push(goToListaHref)}
-            className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
-          >
-            {t.view}
-          </button>
-
-          <a
-            href={`/clasificados?lang=${lang}`}
-            className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-white hover:bg-black/60"
-          >
-            {t.exploreAll}
-          </a>
-
-          {hasAnyFilter ? (
-            <button
-              onClick={() => setFilters(DEFAULT_FILTERS)}
-              className="text-xs font-semibold text-gray-300 underline underline-offset-4 hover:text-white"
-            >
-              {t.reset}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-7 rounded-2xl border border-white/10 bg-black/50 p-4">
-        <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <Label>{t.subject}</Label>
-            <Input
-              value={filters.subject}
-              onChange={(v) => setFilters((p) => ({ ...p, subject: v }))}
-              placeholder={lang === "es" ? "Ej: inglés, guitarra, computación…" : "e.g. English, guitar, coding…"}
+      <main className="max-w-6xl mx-auto px-6 pt-28 pb-16">
+        {/* Hero */}
+        <section className="text-center">
+          <div className="flex items-center justify-center mb-6">
+            <Image
+              src={newLogo}
+              alt="LEONIX"
+              width={90}
+              height={90}
+              className="h-[90px] w-[90px]"
+              priority
             />
           </div>
 
-          <div>
-            <Label>{t.level}</Label>
-            <Select value={filters.level} onChange={(v) => setFilters((p) => ({ ...p, level: v }))}>
-              <option value="">{t.any}</option>
-              <option value="beginner">{lang === "es" ? "Principiante" : "Beginner"}</option>
-              <option value="intermediate">{lang === "es" ? "Intermedio" : "Intermediate"}</option>
-              <option value="advanced">{lang === "es" ? "Avanzado" : "Advanced"}</option>
-              <option value="kids">{lang === "es" ? "Niños" : "Kids"}</option>
-            </Select>
-          </div>
+          <h1 className="text-3xl md:text-4xl font-semibold text-yellow-400 tracking-tight">
+            {t.title}
+          </h1>
+          <p className="mt-3 text-gray-300 max-w-2xl mx-auto">
+            {t.subtitle}
+          </p>
 
-          <div>
-            <Label>{t.mode}</Label>
-            <Select value={filters.mode} onChange={(v) => setFilters((p) => ({ ...p, mode: v }))}>
-              <option value="">{t.any}</option>
-              <option value="in-person">{lang === "es" ? "En persona" : "In-person"}</option>
-              <option value="online">{lang === "es" ? "En línea" : "Online"}</option>
-              <option value="either">{lang === "es" ? "Cualquiera" : "Either"}</option>
-            </Select>
-          </div>
-        </div>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <button
+              onClick={() => router.push(withLang("/clasificados", lang))}
+              className={cx(
+                "rounded-xl border border-yellow-600/30 bg-black/40 px-4 py-2 text-sm",
+                "hover:border-yellow-500/40 hover:bg-black/55 transition"
+              )}
+            >
+              {t.back}
+            </button>
 
-        <div className="mt-3 text-[11px] text-gray-400">
-          {lang === "es"
-            ? "Clases y Comunidad pueden ser gratis cuando sirven a familias. Publica con claridad para que te encuentren."
-            : "Classes and Community can be free when serving families. Post clearly so people can find you."}
-        </div>
-      </div>
+            <button
+              onClick={goToLista}
+              className={cx(
+                "rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-black",
+                "hover:bg-yellow-400 transition"
+              )}
+            >
+              {t.cta}
+            </button>
+          </div>
+        </section>
+
+        {/* Filters */}
+        <section className="mt-10">
+          <div className="rounded-2xl border border-yellow-600/20 bg-black/35 p-5 md:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs text-gray-300">{t.subject}</label>
+                <input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                  placeholder={lang === "es" ? "Ej: Inglés, Matemáticas" : "e.g., English, Math"}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-300">{t.level}</label>
+                <input
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                  placeholder={lang === "es" ? "Ej: Básico, Avanzado" : "e.g., Beginner, Advanced"}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-300">{t.mode}</label>
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as any)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                >
+                  <option value="">—</option>
+                  <option value="online">{t.online}</option>
+                  <option value="in-person">{t.inPerson}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-300">{t.price}</label>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  <input
+                    inputMode="numeric"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                    placeholder={lang === "es" ? "Mín" : "Min"}
+                  />
+                  <input
+                    inputMode="numeric"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                    placeholder={lang === "es" ? "Máx" : "Max"}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-300">{t.city}</label>
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                  placeholder={lang === "es" ? "Ej: San José" : "e.g., San Jose"}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-300">{t.radius}</label>
+                <input
+                  inputMode="numeric"
+                  value={radius}
+                  onChange={(e) => setRadius(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-yellow-600/40"
+                  placeholder={lang === "es" ? `Ej: 25 ${t.miles}` : `e.g., 25 ${t.miles}`}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
+              <button
+                onClick={clearAll}
+                className="rounded-xl border border-yellow-600/30 bg-black/40 px-4 py-2 text-sm hover:border-yellow-500/40 hover:bg-black/55 transition"
+              >
+                {t.clear}
+              </button>
+              <button
+                onClick={goToLista}
+                className="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+              >
+                {t.cta}
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

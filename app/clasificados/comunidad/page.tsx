@@ -1,155 +1,295 @@
 "use client";
 
-import type React from "react";
-import { useMemo, useState } from "react";
+import Image from "next/image";
+import React, { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Navbar from "../../components/Navbar";
+import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
-type ComunidadFilters = {
-  ctype: string;
-};
+const PRESERVE_KEYS = ["q", "city", "zip", "r", "sort", "view"];
 
-const DEFAULT_FILTERS: ComunidadFilters = {
-  ctype: "",
-};
+export default function ComunidadPage() {
+  const sp = useSearchParams();
+  const router = useRouter();
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-xs font-semibold text-gray-300">{children}</label>;
-}
+  const lang = ((sp?.get("lang") ?? "es") === "en" ? "en" : "es") as Lang;
 
-function Select({
-  value,
-  onChange,
-  children,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
+  const [ctype, setCtype] = useState("");
+
+  const hasActive = useMemo(() => {
+    return (
+      ctype !== ""
+    );
+  }, [ctype]);
+
+  function buildListaUrl() {
+    const p = new URLSearchParams();
+
+    for (const k of PRESERVE_KEYS) {
+      const v = sp?.get(k);
+      if (v) p.set(k, v);
+    }
+
+    p.set("lang", lang);
+    p.set("cat", "comunidad");
+
+    if (ctype) p.set("ctype", ctype); else p.delete("ctype");
+
+    return `/clasificados/lista?${p.toString()}`;
+  }
+
+  function resetAll() {
+    setCtype("");
+  }
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
-    >
-      {children}
-    </select>
+    <main className="min-h-screen bg-black text-white">
+      <Navbar />
+
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.16),transparent_55%)]" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-16 sm:pt-20 pb-10">
+          <div className="flex flex-col items-center text-center">
+            <Image
+              src={newLogo}
+              alt="LEONIX"
+              width={92}
+              height={92}
+              className="h-20 w-20 sm:h-24 sm:w-24"
+              priority
+            />
+            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#d4af37]">
+              {lang === "es" ? "Comunidad" : "Community"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm sm:text-base text-white/80">
+              {lang === "es" ? "Anuncios y actividades comunitarias. Manténlo ligero y fácil de navegar." : "Community announcements and activities. Keep it light and easy to browse."}
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => router.push(buildListaUrl())}
+                className="rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-black hover:brightness-95"
+              >
+                {lang === "es" ? "Ver resultados" : "See results"}
+              </button>
+              <button
+                onClick={() => router.push(`/clasificados?lang=${lang}`)}
+                className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                {lang === "es" ? "Explorar todas las categorías" : "Explore all categories"}
+              </button>
+              {hasActive && (
+                <button
+                  onClick={resetAll}
+                  className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+                >
+                  {lang === "es" ? "Restablecer" : "Reset"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-6">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">
+                {lang === "es" ? "Filtros rápidos" : "Quick filters"}
+              </p>
+              <p className="mt-0.5 text-xs text-white/70">
+                {lang === "es" ? "Ajusta lo básico y abre Más filtros para detalles." : "Set the basics, then open More filters for details."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+            >
+              {lang === "es" ? "Más filtros" : "More filters"}
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <FieldContainer label={lang === "es" ? "Tipo" : "Type"}>
+  <select
+    value={ctype}
+    onChange={(e) => setCtype(e.target.value)}
+    className="w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-[#d4af37]/60"
+  >
+    <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+    <option value="announcement">{lang === "es" ? "Anuncio" : "Announcement"}</option>
+    <option value="meetup">{lang === "es" ? "Reunión/Meetup" : "Meetup"}</option>
+    <option value="volunteer">{lang === "es" ? "Voluntariado" : "Volunteer"}</option>
+    <option value="youth">{lang === "es" ? "Juventud" : "Youth"}</option>
+    <option value="family">{lang === "es" ? "Familiar" : "Family"}</option>
+    <option value="other">{lang === "es" ? "Otro" : "Other"}</option>
+  </select>
+</FieldContainer>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => router.push(buildListaUrl())}
+              className="rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-black hover:brightness-95"
+            >
+              {lang === "es" ? "Ver resultados" : "See results"}
+            </button>
+
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+            >
+              {lang === "es" ? "Abrir filtros avanzados" : "Open advanced filters"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <aside className="hidden lg:block lg:col-span-4">
+            <div className="sticky top-24 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    {lang === "es" ? "Filtros avanzados" : "Advanced filters"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/70">
+                    {lang === "es" ? "Refina tu búsqueda sin saturar la vista." : "Refine without clutter."}
+                  </p>
+                </div>
+                {hasActive && (
+                  <button
+                    onClick={resetAll}
+                    className="text-xs text-white/70 hover:text-white underline underline-offset-4"
+                  >
+                    {lang === "es" ? "Restablecer" : "Reset"}
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 space-y-3">
+                
+              </div>
+
+              <button
+                onClick={() => router.push(buildListaUrl())}
+                className="mt-4 w-full rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-black hover:brightness-95"
+              >
+                {lang === "es" ? "Ver resultados" : "See results"}
+              </button>
+            </div>
+          </aside>
+
+          <div className="lg:col-span-8">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <p className="text-sm font-semibold text-white">
+                {lang === "es" ? "Resultados" : "Results"}
+              </p>
+              <p className="mt-1 text-sm text-white/70">
+                {lang === "es"
+                  ? "Tus resultados aparecen en la página de Lista. Usa el botón arriba para verlos con tus filtros."
+                  : "Results render on the Lista page. Use the button above to view them with your filters."}
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  onClick={() => router.push(buildListaUrl())}
+                  className="rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-black hover:brightness-95"
+                >
+                  {lang === "es" ? "Ver resultados ahora" : "View results now"}
+                </button>
+                <button
+                  onClick={() => router.push(`/clasificados/lista?lang=${lang}`)}
+                  className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+                >
+                  {lang === "es" ? "Explorar todo" : "Explore all"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50">
+          <button
+            aria-label="Close"
+            onClick={() => setDrawerOpen(false)}
+            className="absolute inset-0 bg-black/70"
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[82vh] rounded-t-3xl border border-white/10 bg-[#0b0b0c] p-4 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {lang === "es" ? "Filtros avanzados" : "Advanced filters"}
+                </p>
+                <p className="mt-0.5 text-xs text-white/70">
+                  {lang === "es" ? "Ajusta detalles y aplica." : "Adjust details and apply."}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {hasActive && (
+                  <button
+                    onClick={resetAll}
+                    className="text-xs text-white/70 hover:text-white underline underline-offset-4"
+                  >
+                    {lang === "es" ? "Restablecer" : "Reset"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"
+                >
+                  {lang === "es" ? "Cerrar" : "Close"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3 overflow-auto pr-1">
+              
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => {
+                  setDrawerOpen(false);
+                  router.push(buildListaUrl());
+                }}
+                className="flex-1 rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-black hover:brightness-95"
+              >
+                {lang === "es" ? "Aplicar" : "Apply"}
+              </button>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                {lang === "es" ? "Seguir viendo" : "Keep browsing"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
 
-function buildParams(f: ComunidadFilters) {
-  const p = new URLSearchParams();
-  if (f.ctype) p.set("ctype", f.ctype);
-  return p;
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <span className="text-xs text-white/70">{children}</span>;
 }
 
-export default function Page() {
-  const sp = useSearchParams(); // Next 15: possibly null
-  const router = useRouter();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
-
-  const [filters, setFilters] = useState<ComunidadFilters>(DEFAULT_FILTERS);
-
-  const t = {
-    es: {
-      title: "Comunidad",
-      subtitle:
-        "Anuncios comunitarios, actividades, voluntariado y más. Ligero, familiar y accesible.",
-      view: "Ver resultados",
-      exploreAll: "Explorar todas las categorías",
-      reset: "Restablecer",
-      quick: "Filtros",
-      type: "Tipo",
-      any: "Cualquiera",
-    },
-    en: {
-      title: "Community",
-      subtitle:
-        "Community posts, activities, volunteering and more. Lightweight, family-friendly and accessible.",
-      view: "See results",
-      exploreAll: "Explore all categories",
-      reset: "Reset",
-      quick: "Filters",
-      type: "Type",
-      any: "Any",
-    },
-  }[lang];
-
-  const goToListaHref = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("cat", "comunidad");
-    params.set("lang", lang);
-
-    const keep = ["q", "city", "zip", "r", "sort", "view"];
-    for (const k of keep) {
-      const v = sp?.get(k);
-      if (v) params.set(k, v);
-    }
-
-    const extra = buildParams(filters);
-    extra.forEach((v, k) => params.set(k, v));
-
-    return `/clasificados/lista?${params.toString()}`;
-  }, [filters, lang, sp]);
-
-  const hasAnyFilter = useMemo(() => JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS), [filters]);
-
+function FieldContainer({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-20 md:pt-24 pb-14">
-      <div className="text-center">
-        <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
-
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => router.push(goToListaHref)}
-            className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
-          >
-            {t.view}
-          </button>
-
-          <a
-            href={`/clasificados?lang=${lang}`}
-            className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-white hover:bg-black/60"
-          >
-            {t.exploreAll}
-          </a>
-
-          {hasAnyFilter ? (
-            <button
-              onClick={() => setFilters(DEFAULT_FILTERS)}
-              className="text-xs font-semibold text-gray-300 underline underline-offset-4 hover:text-white"
-            >
-              {t.reset}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-7 rounded-2xl border border-white/10 bg-black/50 p-4">
-        <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
-
-        <div className="mt-4 grid grid-cols-1 gap-3">
-          <div>
-            <Label>{t.type}</Label>
-            <Select value={filters.ctype} onChange={(v) => setFilters({ ctype: v })}>
-              <option value="">{t.any}</option>
-              <option value="announcement">{lang === "es" ? "Anuncio" : "Announcement"}</option>
-              <option value="meetup">{lang === "es" ? "Reunión" : "Meetup"}</option>
-              <option value="volunteer">{lang === "es" ? "Voluntariado" : "Volunteer"}</option>
-              <option value="community-event">{lang === "es" ? "Actividad" : "Activity"}</option>
-              <option value="lost-found">{lang === "es" ? "Perdido y encontrado" : "Lost & found"}</option>
-            </Select>
-          </div>
-        </div>
-
-        <div className="mt-3 text-[11px] text-gray-400">
-          {lang === "es"
-            ? "Este espacio es comunitario. Mantén el anuncio claro y familiar."
-            : "This is a community space. Keep posts clear and family-friendly."}
-        </div>
-      </div>
-    </div>
+    <label className="block">
+      <div className="mb-1"><FieldLabel>{label}</FieldLabel></div>
+      {children}
+    </label>
   );
 }

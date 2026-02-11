@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -64,45 +65,89 @@ function buildAutosParams(f: AutosFilters) {
   return p;
 }
 
+function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/70"
+      />
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-auto rounded-t-3xl border border-white/10 bg-[#0B0B0B] p-4 shadow-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-bold text-white">{title}</div>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="mt-3">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   const sp = useSearchParams(); // Next 15: possibly null
   const router = useRouter();
 
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const [filters, setFilters] = useState<AutosFilters>(DEFAULT_AUTOS_FILTERS);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const t = {
     es: {
       title: "Autos",
-      subtitle:
-        "Encuentra tu próximo auto. Usa filtros rápidos (precio, año, marca, modelo) y luego refina en resultados.",
+      subtitle: "Encuentra tu próximo auto. Filtros rápidos arriba; filtros profundos en el panel lateral.",
       view: "Ver autos disponibles",
       exploreAll: "Explorar todas las categorías",
       reset: "Restablecer",
+      quick: "Filtros rápidos",
+      more: "Más filtros",
+      sidebar: "Filtros",
       price: "Precio",
       min: "Mín",
       max: "Máx",
       year: "Año",
       make: "Marca",
       model: "Modelo",
-      hint: "Ej: Toyota, Honda, Chevrolet…",
-      more: "Más filtros (pronto)",
+      hintMake: "Ej: Toyota, Honda, Chevrolet…",
+      hintModel: "Camry, Civic, Silverado…",
+      note:
+        "Nota: si un anuncio aún no tiene año/marca/modelo, no se oculta por esos filtros.",
     },
     en: {
       title: "Autos",
-      subtitle:
-        "Find your next car. Use quick filters (price, year, make, model) then refine in results.",
+      subtitle: "Find your next car. Quick filters on top; deeper filters in the side panel.",
       view: "Browse cars",
       exploreAll: "Explore all categories",
       reset: "Reset",
+      quick: "Quick filters",
+      more: "More filters",
+      sidebar: "Filters",
       price: "Price",
       min: "Min",
       max: "Max",
       year: "Year",
       make: "Make",
       model: "Model",
-      hint: "e.g. Toyota, Honda, Chevrolet…",
-      more: "More filters (soon)",
+      hintMake: "e.g. Toyota, Honda, Chevrolet…",
+      hintModel: "Camry, Civic, Silverado…",
+      note: "Note: if a listing doesn’t have year/make/model yet, it won’t be hidden by those filters.",
     },
   }[lang];
 
@@ -128,8 +173,83 @@ export default function Page() {
     return Object.values(filters).some((v) => String(v ?? "").trim().length > 0);
   }, [filters]);
 
+  const SidebarContent = (
+    <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
+      <div className="text-sm font-semibold text-yellow-200">{t.sidebar}</div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <Label>
+            {t.price} {t.min} ($)
+          </Label>
+          <Input
+            value={filters.minPrice}
+            onChange={(v) => setFilters((p) => ({ ...p, minPrice: v }))}
+            placeholder="0"
+            inputMode="numeric"
+          />
+        </div>
+        <div>
+          <Label>
+            {t.price} {t.max} ($)
+          </Label>
+          <Input
+            value={filters.maxPrice}
+            onChange={(v) => setFilters((p) => ({ ...p, maxPrice: v }))}
+            placeholder="50000"
+            inputMode="numeric"
+          />
+        </div>
+
+        <div>
+          <Label>
+            {t.year} {t.min}
+          </Label>
+          <Input
+            value={filters.yearMin}
+            onChange={(v) => setFilters((p) => ({ ...p, yearMin: v }))}
+            placeholder="2005"
+            inputMode="numeric"
+          />
+        </div>
+        <div>
+          <Label>
+            {t.year} {t.max}
+          </Label>
+          <Input
+            value={filters.yearMax}
+            onChange={(v) => setFilters((p) => ({ ...p, yearMax: v }))}
+            placeholder="2025"
+            inputMode="numeric"
+          />
+        </div>
+
+        <div className="col-span-2">
+          <Label>{t.make}</Label>
+          <Input
+            value={filters.make}
+            onChange={(v) => setFilters((p) => ({ ...p, make: v }))}
+            placeholder={t.hintMake}
+          />
+        </div>
+
+        <div className="col-span-2">
+          <Label>{t.model}</Label>
+          <Input
+            value={filters.model}
+            onChange={(v) => setFilters((p) => ({ ...p, model: v }))}
+            placeholder={t.hintModel}
+          />
+        </div>
+      </div>
+
+      <div className="mt-3 text-[11px] text-gray-400">{t.note}</div>
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-20 md:pt-24 pb-14">
+      {/* HERO */}
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
@@ -160,93 +280,92 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="mt-7 rounded-2xl border border-white/10 bg-black/50 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold text-yellow-200">
-            {lang === "es" ? "Filtros rápidos" : "Quick filters"}
-          </div>
-          <button
-            type="button"
-            disabled
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-gray-300 opacity-60"
-            title={lang === "es" ? "Próximamente" : "Coming soon"}
-          >
-            {t.more}
-          </button>
-        </div>
+      {/* LAYOUT: sidebar (desktop) + main */}
+      <div className="mt-8 grid gap-4 md:grid-cols-[320px_1fr]">
+        {/* Sidebar desktop */}
+        <aside className="hidden md:block">{SidebarContent}</aside>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <Label>
-              {t.price} {t.min} ($)
-            </Label>
-            <Input
-              value={filters.minPrice}
-              onChange={(v) => setFilters((p) => ({ ...p, minPrice: v }))}
-              placeholder="0"
-              inputMode="numeric"
-            />
-          </div>
-          <div>
-            <Label>
-              {t.price} {t.max} ($)
-            </Label>
-            <Input
-              value={filters.maxPrice}
-              onChange={(v) => setFilters((p) => ({ ...p, maxPrice: v }))}
-              placeholder="50000"
-              inputMode="numeric"
-            />
+        <main>
+          {/* Quick bar (always compact) */}
+          <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
+
+              {/* Mobile opens drawer */}
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className="md:hidden rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/10"
+              >
+                {t.more}
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <Label>{t.price} {t.min}</Label>
+                <Input
+                  value={filters.minPrice}
+                  onChange={(v) => setFilters((p) => ({ ...p, minPrice: v }))}
+                  placeholder="0"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <Label>{t.price} {t.max}</Label>
+                <Input
+                  value={filters.maxPrice}
+                  onChange={(v) => setFilters((p) => ({ ...p, maxPrice: v }))}
+                  placeholder="50000"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <Label>{t.year} {t.min}</Label>
+                <Input
+                  value={filters.yearMin}
+                  onChange={(v) => setFilters((p) => ({ ...p, yearMin: v }))}
+                  placeholder="2005"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <Label>{t.year} {t.max}</Label>
+                <Input
+                  value={filters.yearMax}
+                  onChange={(v) => setFilters((p) => ({ ...p, yearMax: v }))}
+                  placeholder="2025"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="col-span-2 sm:col-span-2">
+                <Label>{t.make}</Label>
+                <Input
+                  value={filters.make}
+                  onChange={(v) => setFilters((p) => ({ ...p, make: v }))}
+                  placeholder={t.hintMake}
+                />
+              </div>
+              <div className="col-span-2 sm:col-span-2">
+                <Label>{t.model}</Label>
+                <Input
+                  value={filters.model}
+                  onChange={(v) => setFilters((p) => ({ ...p, model: v }))}
+                  placeholder={t.hintModel}
+                />
+              </div>
+            </div>
           </div>
 
-          <div>
-            <Label>
-              {t.year} {t.min}
-            </Label>
-            <Input
-              value={filters.yearMin}
-              onChange={(v) => setFilters((p) => ({ ...p, yearMin: v }))}
-              placeholder="2005"
-              inputMode="numeric"
-            />
-          </div>
-          <div>
-            <Label>
-              {t.year} {t.max}
-            </Label>
-            <Input
-              value={filters.yearMax}
-              onChange={(v) => setFilters((p) => ({ ...p, yearMax: v }))}
-              placeholder="2025"
-              inputMode="numeric"
-            />
-          </div>
-
-          <div className="col-span-2">
-            <Label>{t.make}</Label>
-            <Input
-              value={filters.make}
-              onChange={(v) => setFilters((p) => ({ ...p, make: v }))}
-              placeholder={t.hint}
-            />
-          </div>
-
-          <div className="col-span-2">
-            <Label>{t.model}</Label>
-            <Input
-              value={filters.model}
-              onChange={(v) => setFilters((p) => ({ ...p, model: v }))}
-              placeholder="Camry, Civic, Silverado…"
-            />
-          </div>
-        </div>
-
-        <div className="mt-3 text-[11px] text-gray-400">
-          {lang === "es"
-            ? "Nota: si un anuncio no tiene año/marca/modelo aún, no se oculta por esos filtros."
-            : "Note: if a listing doesn’t have year/make/model yet, it won’t be hidden by those filters."}
-        </div>
+          {/* Guidance */}
+          <div className="mt-3 text-[11px] text-gray-400">{t.note}</div>
+        </main>
       </div>
+
+      <Drawer open={moreOpen} onClose={() => setMoreOpen(false)} title={t.sidebar}>
+        {SidebarContent}
+      </Drawer>
     </div>
   );
 }
