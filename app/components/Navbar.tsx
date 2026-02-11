@@ -82,12 +82,12 @@ function NavbarContent() {
       className="
         fixed top-0 left-0 w-full z-50
         backdrop-blur-md bg-black/40
-        border-b-0 py-2 px-6
+        border-b border-white/10 py-2 px-4 sm:px-6
         flex justify-center items-center
       "
     >
       {/* DESKTOP MENU */}
-      <div className="hidden md:flex gap-8 text-white text-sm font-medium">
+      <div className="hidden md:flex gap-7 text-white text-sm font-medium tracking-tight">
         {navLinks.map((item, i) => (
           <Link
             key={i}
@@ -117,7 +117,7 @@ function NavbarContent() {
       </div>
 
       {/* MOBILE HAMBURGER */}
-      <button className="md:hidden text-white text-2xl absolute right-6" onClick={() => setMobileOpen(true)}>
+      <button className="md:hidden text-white text-xl absolute right-6" onClick={() => setMobileOpen(true)}>
         ☰
       </button>
 
@@ -126,7 +126,7 @@ function NavbarContent() {
         <div
           className="
             fixed top-0 right-0
-            min-h-[70vh] w-64
+            min-h-[70vh] w-72 max-w-[85vw]
             bg-black/90 backdrop-blur-xl
             rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)]
             z-[999] p-6 pt-10 flex flex-col gap-6
@@ -142,7 +142,7 @@ function NavbarContent() {
               href={buildLink(item.href)}
               onClick={() => setMobileOpen(false)}
               className={`
-                text-lg font-semibold
+                text-base font-semibold
                 ${item.gold ? "text-yellow-300" : "text-white"}
               `}
             >
@@ -151,7 +151,7 @@ function NavbarContent() {
           ))}
 
           {/* LANGUAGE TOGGLE MOBILE */}
-          <div className="flex gap-6 pt-6 text-white text-lg font-semibold">
+          <div className="flex gap-6 pt-6 text-white text-base font-semibold">
             <button
               onClick={() => {
                 switchLang("es");

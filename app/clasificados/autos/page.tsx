@@ -44,7 +44,7 @@ function Input({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       inputMode={inputMode}
-      className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500"
+      className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500"
     />
   );
 }
@@ -129,7 +129,7 @@ export default function Page() {
   }, [filters]);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 pt-24 pb-14">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-20 md:pt-24 pb-14">
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
@@ -137,14 +137,14 @@ export default function Page() {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={() => router.push(goToListaHref)}
-            className="rounded-full bg-yellow-400 px-5 py-2 text-sm font-bold text-black hover:bg-yellow-300"
+            className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
           >
             {t.view}
           </button>
 
           <a
             href={`/clasificados?lang=${lang}`}
-            className="rounded-full border border-white/15 bg-black/40 px-5 py-2 text-sm font-semibold text-white hover:bg-black/60"
+            className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-white hover:bg-black/60"
           >
             {t.exploreAll}
           </a>
@@ -160,7 +160,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-white/10 bg-black/45 p-4">
+      <div className="mt-7 rounded-2xl border border-white/10 bg-black/50 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm font-semibold text-yellow-200">
             {lang === "es" ? "Filtros rápidos" : "Quick filters"}

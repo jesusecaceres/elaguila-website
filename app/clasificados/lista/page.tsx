@@ -64,12 +64,13 @@ type Listing = {
   availableInDays?: number;
   leaseTerm?: string; // "month-to-month" | "6" | "12" | etc.
 
-  // ✅ Contact / business fields (optional; safe with existing sample data)
+  // ✅ Contact / close-the-sale fields (optional; safe)
   phone?: string;
   email?: string;
   website?: string;
   address?: string;
-  verified?: boolean;
+  businessName?: string;
+  handle?: string; // e.g., @dealername
 };
 
 const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
@@ -110,7 +111,6 @@ const UI = {
   hasImage: { es: "Con foto", en: "Has image" },
   results: { es: "Resultados", en: "Results" },
   showing: { es: "Mostrando", en: "Showing" },
-  categoryPage: { es: "Ver página de categoría", en: "View category page" },
   of: { es: "de", en: "of" },
   prev: { es: "Anterior", en: "Previous" },
   next: { es: "Siguiente", en: "Next" },
@@ -221,31 +221,6 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
 
   const final = `${url.pathname}?${sp.toString()}`;
   window.history.replaceState({}, "", final);
-}
-
-// ✅ Favorites (safe localStorage helpers)
-const FAV_KEY = "leonix_favorites_v1";
-
-function readFavorites(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(FAV_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x) => typeof x === "string");
-  } catch {
-    return [];
-  }
-}
-
-function writeFavorites(ids: string[]) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(FAV_KEY, JSON.stringify(ids));
-  } catch {
-    // ignore
-  }
 }
 
 /** ✅ Rentas param helpers (internal only; no exports) */
@@ -397,10 +372,38 @@ export default function ListaPage() {
   const [sellerType, setSellerType] = useState<SellerType | null>(null);
   const [onlyWithImage, setOnlyWithImage] = useState(false);
 
+  // Favorites (works logged out via localStorage)
+  const FAV_KEY = "leonix:favorites:v1";
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FAV_KEY);
+      if (!raw) return;
+      const arr = JSON.parse(raw) as string[];
+      if (Array.isArray(arr)) setFavIds(new Set(arr));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAV_KEY, JSON.stringify(Array.from(favIds)));
+    } catch {}
+  }, [favIds]);
+
+  const toggleFav = (id: string) => {
+    setFavIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const [page, setPage] = useState(1);
   const perPage = 9;
 
-  const [compact, setCompact] = useState(true);
+  const [compact, setCompact] = useState(false);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -421,26 +424,10 @@ export default function ListaPage() {
   // ✅ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
 
-  // ✅ Favorites (works even when logged out)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [favHintDismissed, setFavHintDismissed] = useState(false);
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isMobile = window.innerWidth < 768;
     setView(isMobile ? "list-img" : "grid");
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const ids = readFavorites();
-    setFavorites(new Set(ids));
-  }, []);
-
-  useEffect(() => {
-    // load favorites once
-    const ids = readFavorites();
-    setFavorites(new Set(ids));
   }, []);
 
   useEffect(() => {
@@ -967,10 +954,21 @@ export default function ListaPage() {
     setPage(1);
   }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
 
-  const visible = useMemo(() => {
-    const start = (pageClamped - 1) * perPage;
-    return filtered.slice(start, start + perPage);
-  }, [filtered, pageClamped]);
+  const businessTop = useMemo(() => {
+  // Show a small "Profesionales / Businesses" strip only on page 1,
+  // and only when user isn't already filtering to business-only.
+  if (pageClamped !== 1) return [] as Listing[];
+  if (sellerType === "business") return [] as Listing[];
+  const biz = filtered.filter((x) => x.sellerType === "business");
+  return biz.slice(0, 4);
+}, [filtered, pageClamped, sellerType]);
+
+const visible = useMemo(() => {
+  const topIds = new Set(businessTop.map((x) => x.id));
+  const main = topIds.size ? filtered.filter((x) => !topIds.has(x.id)) : filtered;
+  const start = (pageClamped - 1) * perPage;
+  return main.slice(start, start + perPage);
+}, [filtered, pageClamped, perPage, businessTop]);
 
   const locationLabel = useMemo(() => {
     if (zipMode) return `ZIP ${zipClean}`;
@@ -1111,26 +1109,6 @@ export default function ListaPage() {
     setRentasParams(EMPTY_RENTAS_PARAMS);
   };
 
-  const categoryPageHref = useMemo(() => {
-    if (category === "all") return null;
-
-    const p = new URLSearchParams();
-    p.set("lang", lang);
-
-    const qv = q.trim();
-    if (qv) p.set("q", qv);
-
-    if (zipMode && zipClean) p.set("zip", zipClean);
-    else if (normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)) p.set("city", city);
-
-    if (radiusMi !== DEFAULT_RADIUS_MI) p.set("r", String(radiusMi));
-    if (sort !== "newest") p.set("sort", sort);
-    if (view !== "grid") p.set("view", view);
-
-    return `/clasificados/${category}?${p.toString()}`;
-  }, [category, lang, q, zipMode, zipClean, city, radiusMi, sort, view]);
-
-
   const onUseMyLocation = async () => {
     try {
       setUsingMyLocation(true);
@@ -1187,76 +1165,143 @@ export default function ListaPage() {
     el.scrollBy({ left: dx, behavior: "smooth" });
   };
 
-  const isFav = (id: string) => favorites.has(id);
-
-  const toggleFav = (id: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      writeFavorites(Array.from(next));
-      return next;
-    });
-  };
-
   const mapsHref = (address: string) =>
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
-  const ListingCardGrid = (x: Listing) => (
+const microLine = (x: Listing) => {
+  if (x.category === "autos") {
+    const bits = [
+      x.year ? String(x.year) : null,
+      x.make ?? null,
+      x.model ?? null,
+      typeof (x as any).mileage === "number" ? `${(x as any).mileage.toLocaleString()} mi` : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  if (x.category === "rentas") {
+    const bits = [
+      typeof x.beds === "number" ? `${x.beds === 0 ? "Studio" : `${x.beds} bd`}` : null,
+      typeof x.baths === "number" ? `${x.baths} ba` : null,
+      x.propertyType ? String(x.propertyType) : null,
+      x.furnished ? (lang === "es" ? "Amueblado" : "Furnished") : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  if (x.category === "empleos") {
+    const bits = [
+      (x as any).jobType ? String((x as any).jobType) : null,
+      (x as any).pay ? String((x as any).pay) : null,
+      (x as any).remote ? (lang === "es" ? "Remoto" : "Remote") : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  if (x.category === "servicios") {
+    const bits = [
+      (x as any).serviceType ? String((x as any).serviceType) : null,
+      (x as any).pricing ? String((x as any).pricing) : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  if (x.category === "en-venta") {
+    const bits = [
+      (x as any).condition ? String((x as any).condition) : null,
+      (x as any).itemType ? String((x as any).itemType) : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  if (x.category === "clases") {
+    const bits = [
+      (x as any).subject ? String((x as any).subject) : null,
+      (x as any).level ? String((x as any).level) : null,
+      (x as any).mode ? String((x as any).mode) : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  if (x.category === "comunidad") {
+    const bits = [
+      (x as any).ctype ? String((x as any).ctype) : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(" • ") : null;
+  }
+  return null;
+};
+
+const ActionPills = (x: Listing) => {
+  const pills: Array<{ href: string; label: string; external?: boolean }> = [];
+  if (x.phone) pills.push({ href: `tel:${x.phone}`, label: lang === "es" ? "Llamar" : "Call" });
+  if (x.email) pills.push({ href: `mailto:${x.email}`, label: lang === "es" ? "Email" : "Email" });
+  if (x.website) pills.push({ href: x.website, label: lang === "es" ? "Web" : "Website", external: true });
+  if (x.address) pills.push({ href: mapsHref(x.address), label: lang === "es" ? "Mapa" : "Map", external: true });
+
+  if (!pills.length) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {pills.slice(0, 4).map((p) => (
+        <a
+          key={p.href + p.label}
+          href={p.href}
+          target={p.external ? "_blank" : undefined}
+          rel={p.external ? "noreferrer" : undefined}
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-100 hover:bg-white/10"
+        >
+          {p.label}
+        </a>
+      ))}
+    </div>
+  );
+};
+
+const ListingCardGrid = (x: Listing) => {
+  const isFav = favIds.has(x.id);
+  const micro = microLine(x);
+
+  return (
     <div
       key={x.id}
-      className="rounded-2xl border border-white/10 bg-black/30 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
+      className="rounded-2xl border border-white/10 bg-black/35 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-lg font-semibold text-white">{x.title[lang]}</div>
+        <div className="min-w-0">
+          <div className="truncate text-lg font-semibold text-white">{x.title[lang]}</div>
           <div className="mt-1 text-sm text-gray-300">
             {x.city} • {x.postedAgo[lang]}
           </div>
+          {micro ? <div className="mt-1 text-xs text-gray-300">{micro}</div> : null}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {x.sellerType ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-gray-200">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
                 {SELLER_LABELS[x.sellerType][lang]}
               </span>
             ) : null}
-            {x.verified ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-gray-200">
-                {lang === "es" ? "Verificado" : "Verified"}
+            {x.handle ? (
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+                {x.handle}
+              </span>
+            ) : null}
+            {x.hasImage ? (
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+                📷
               </span>
             ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {x.hasImage ? (
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-200">
-              📷
-            </div>
-          ) : null}
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              toggleFav(x.id);
-            }}
-            className={cx(
-              "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs",
-              isFav(x.id) ? "text-yellow-300" : "text-gray-200",
-              "hover:bg-white/10"
-            )}
-            aria-label={
-              isFav(x.id)
-                ? lang === "es"
-                  ? "Quitar de favoritos"
-                  : "Remove from favorites"
-                : lang === "es"
-                  ? "Guardar en favoritos"
-                  : "Save to favorites"
-            }
-          >
-            {isFav(x.id) ? "★" : "☆"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => toggleFav(x.id)}
+          className={cx(
+            "shrink-0 rounded-xl border px-3 py-2 text-sm",
+            isFav
+              ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+              : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+          )}
+          aria-label={
+            isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")
+          }
+        >
+          {isFav ? "★" : "☆"}
+        </button>
       </div>
 
       <div className="mt-3 text-lg font-semibold text-yellow-300">
@@ -1266,50 +1311,7 @@ export default function ListaPage() {
         {x.blurb[lang]}
       </div>
 
-      {(x.phone || x.email || x.website || x.address) ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {x.phone ? (
-            <a
-              href={`tel:${x.phone}`}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-            >
-              {lang === "es" ? "Llamar" : "Call"}
-            </a>
-          ) : null}
-          {x.email ? (
-            <a
-              href={`mailto:${x.email}`}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-            >
-              {lang === "es" ? "Email" : "Email"}
-            </a>
-          ) : null}
-          {x.website ? (
-            <a
-              href={x.website}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-            >
-              {lang === "es" ? "Sitio" : "Website"}
-            </a>
-          ) : null}
-          {x.address ? (
-            <a
-              href={mapsHref(x.address)}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-            >
-              {lang === "es" ? "Mapa" : "Map"}
-            </a>
-          ) : null}
-        </div>
-      ) : null}
+      {ActionPills(x)}
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
@@ -1319,135 +1321,87 @@ export default function ListaPage() {
       </a>
     </div>
   );
+};
 
-  const ListingRow = (x: Listing, withImg: boolean) => (
-    <a
+const ListingRow = (x: Listing, withImg: boolean) => {
+  const isFav = favIds.has(x.id);
+  const micro = microLine(x);
+
+  return (
+    <div
       key={x.id}
-      href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 hover:bg-white/10"
+      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/35 p-4 hover:bg-white/10"
     >
       {withImg ? (
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           {x.hasImage ? (
-            <div className="flex h-full w-full items-center justify-center text-sm text-gray-200">
-              📷
-            </div>
+            <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
-              —
-            </div>
+            <div className="h-full w-full bg-white/5" />
           )}
         </div>
       ) : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white group-hover:text-yellow-100">
+          <a
+            href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
+            className="min-w-0"
+          >
+            <div className="truncate text-base font-semibold text-white">
               {x.title[lang]}
             </div>
-            <div className="mt-1 text-xs text-gray-300">
+            <div className="mt-0.5 text-xs text-gray-300">
               {x.city} • {x.postedAgo[lang]}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {x.sellerType ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-200">
-                  {SELLER_LABELS[x.sellerType][lang]}
-                </span>
-              ) : null}
-              {x.verified ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-200">
-                  {lang === "es" ? "Verificado" : "Verified"}
-                </span>
-              ) : null}
+            {micro ? <div className="mt-0.5 text-xs text-gray-300">{micro}</div> : null}
+          </a>
+
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-semibold text-yellow-300">
+              {x.priceLabel[lang]}
             </div>
-          </div>
-          <div className="shrink-0 text-right">
-            <div className="text-sm font-semibold text-yellow-300">{x.priceLabel[lang]}</div>
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleFav(x.id);
-              }}
+              onClick={() => toggleFav(x.id)}
               className={cx(
-                "mt-1 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs hover:bg-white/10",
-                isFav(x.id) ? "text-yellow-300" : "text-gray-200"
+                "rounded-lg border px-2 py-1 text-xs",
+                isFav
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
               )}
               aria-label={
-                isFav(x.id)
-                  ? lang === "es"
-                    ? "Quitar de favoritos"
-                    : "Remove from favorites"
-                  : lang === "es"
-                    ? "Guardar en favoritos"
-                    : "Save to favorites"
+                isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")
               }
             >
-              {isFav(x.id) ? "★" : "☆"}
+              {isFav ? "★" : "☆"}
             </button>
           </div>
         </div>
-        <div className="mt-2 line-clamp-2 text-xs text-gray-200">
-          {x.blurb[lang]}
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {x.sellerType ? (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+              {SELLER_LABELS[x.sellerType][lang]}
+            </span>
+          ) : null}
+          {x.handle ? (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+              {x.handle}
+            </span>
+          ) : null}
+          {x.hasImage ? (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+              📷
+            </span>
+          ) : null}
         </div>
 
-        {(x.phone || x.email || x.website || x.address) ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {x.phone ? (
-              <a
-                href={`tel:${x.phone}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.location.href = `tel:${x.phone}`;
-                }}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
-              >
-                {lang === "es" ? "Llamar" : "Call"}
-              </a>
-            ) : null}
-            {x.email ? (
-              <a
-                href={`mailto:${x.email}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.location.href = `mailto:${x.email}`;
-                }}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
-              >
-                {lang === "es" ? "Email" : "Email"}
-              </a>
-            ) : null}
-            {x.website ? (
-              <a
-                href={x.website}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
-              >
-                {lang === "es" ? "Sitio" : "Website"}
-              </a>
-            ) : null}
-            {x.address ? (
-              <a
-                href={mapsHref(x.address)}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white hover:bg-white/10"
-              >
-                {lang === "es" ? "Mapa" : "Map"}
-              </a>
-            ) : null}
-          </div>
-        ) : null}
+        {ActionPills(x)}
       </div>
-    </a>
+    </div>
   );
+};
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -1480,16 +1434,16 @@ export default function ListaPage() {
         {/* FILTER BAR (Option B: shorter height ONLY) */}
         <section
           className={cx(
-            "sticky top-[64px] z-30 mt-6",
+            "sticky top-[72px] z-30 mt-10",
             "rounded-2xl border border-white/10 bg-black/60 backdrop-blur",
             compact ? "shadow-lg" : ""
           )}
         >
-          <div className={cx("p-2 md:p-3", compact ? "md:py-2" : "")}>
+          <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
               {/* Search */}
               <div ref={searchBoxRef} className="col-span-2 md:col-span-5">
-                <label className="hidden md:block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-gray-300">
                   {UI.search[lang]}
                 </label>
                 <div className="relative mt-1.5">
@@ -1504,7 +1458,7 @@ export default function ListaPage() {
                         ? "Buscar: trabajo, troca, cuarto…"
                         : "Search: jobs, truck, room…"
                     }
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                     aria-label={UI.search[lang]}
                   />
 
@@ -1536,13 +1490,13 @@ export default function ListaPage() {
 
               {/* Location */}
               <div className="col-span-1 md:col-span-3">
-                <label className="hidden md:block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-gray-300">
                   {UI.location[lang]}
                 </label>
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-left text-sm text-white hover:bg-white/10"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -1556,13 +1510,13 @@ export default function ListaPage() {
 
               {/* Radius */}
               <div className="col-span-1 md:col-span-2">
-                <label className="hidden md:block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-gray-300">
                   {UI.radius[lang]}
                 </label>
                 <select
                   value={radiusMi}
                   onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   {[5, 10, 25, 40, 50].map((r) => (
                     <option key={r} value={r}>
@@ -1574,13 +1528,13 @@ export default function ListaPage() {
 
               {/* Category */}
               <div className="col-span-1 md:col-span-2">
-                <label className="hidden md:block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-gray-300">
                   {UI.category[lang]}
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   <option value="all">{CATEGORY_LABELS.all[lang]}</option>
                   <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
@@ -1594,24 +1548,22 @@ export default function ListaPage() {
               </div>
 
               {/* Buttons */}
-              <div className="col-span-2 flex items-center justify-end gap-3 md:col-span-12 md:justify-end">
+              <div className="col-span-2 flex items-center justify-between gap-3 md:col-span-12 md:justify-end">
                 <button
                   type="button"
                   onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
                 >
                   {UI.moreFilters[lang]}
                 </button>
 
-                {activeChips.length ? (
-                  <button
-                    type="button"
-                    onClick={resetAll}
-                    className="text-sm text-gray-300 hover:text-white"
-                  >
-                    {UI.reset[lang]}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={resetAll}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                >
+                  {UI.reset[lang]}
+                </button>
               </div>
             </div>
 
@@ -1678,43 +1630,28 @@ export default function ListaPage() {
         </section>
 
         {/* RESULTS TOOLBAR (unchanged) */}
-        <section className="md:sticky md:top-[calc(72px+16px)] z-20 mt-4">
+        <section className="mt-4 md:sticky md:top-[calc(72px+16px)] z-20">
           <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
-                <div className="text-base font-semibold text-yellow-300">
+                <div className="text-lg font-semibold text-yellow-300">
                   {UI.results[lang]}
                 </div>
-                <div className="text-xs text-gray-300">
-                  {UI.showing[lang]} {visible.length} {UI.of[lang]}{" "}
-                  {filtered.length}
-                </div>
-
-                {category !== "all" && categoryPageHref ? (
+                {category !== "all" ? (
                   <a
-                    href={categoryPageHref}
-                    className="mt-1 inline-flex text-xs font-semibold text-yellow-200 underline underline-offset-4 hover:text-yellow-100"
+                    href={`/clasificados/${category}?lang=${lang}${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
+                    className="mt-1 inline-block text-xs text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
                   >
-                    {UI.categoryPage[lang]}
+                    {lang === "es"
+                      ? `Ver página de ${CATEGORY_LABELS[category].es}`
+                      : `Open ${CATEGORY_LABELS[category].en} page`}
                   </a>
                 ) : null}
 
-                {!favHintDismissed && favorites.size > 0 ? (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-200">
-                    <span>
-                      {lang === "es"
-                        ? `Tienes ${favorites.size} favorito${favorites.size === 1 ? "" : "s"}.`
-                        : `You have ${favorites.size} favorite${favorites.size === 1 ? "" : "s"}.`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setFavHintDismissed(true)}
-                      className="text-gray-300 underline underline-offset-4 hover:text-gray-100"
-                    >
-                      {lang === "es" ? "Ocultar" : "Hide"}
-                    </button>
-                  </div>
-                ) : null}
+                <div className="text-xs text-gray-300">
+                  {UI.showing[lang]} {visible.length + businessTop.length} {UI.of[lang]}{" "}
+                  {filtered.length}
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-3 md:justify-end">
@@ -1775,7 +1712,68 @@ export default function ListaPage() {
           </div>
         </section>
 
-        <section className="mt-6">
+        
+{businessTop.length ? (
+  <section className="mt-6">
+    <div className="mb-3 flex items-end justify-between">
+      <div>
+        <div className="text-sm font-semibold text-yellow-200">
+          {lang === "es" ? "Profesionales" : "Businesses"}
+        </div>
+        <div className="text-xs text-gray-300">
+          {lang === "es"
+            ? "Opciones de negocios y profesionales (sin ocultar anuncios personales)"
+            : "Business & pro options (personal listings are never hidden)"}
+        </div>
+      </div>
+      <a
+        href={`/clasificados/lista?lang=${lang}&cat=${category !== "all" ? category : "all"}&seller=business`}
+        className="text-xs text-yellow-200/90 underline underline-offset-4 hover:text-yellow-200"
+      >
+        {lang === "es" ? "Ver todos" : "View all"}
+      </a>
+    </div>
+
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      {businessTop.map((x) => (
+        <div key={x.id} className="rounded-2xl border border-white/10 bg-black/30 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-white">
+                {x.businessName ?? x.title[lang]}
+              </div>
+              <div className="mt-0.5 text-xs text-gray-300">
+                {x.city} • {x.postedAgo[lang]}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggleFav(x.id)}
+              className={cx(
+                "shrink-0 rounded-lg border px-2 py-1 text-xs",
+                favIds.has(x.id)
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+              )}
+              aria-label={favIds.has(x.id) ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
+            >
+              {favIds.has(x.id) ? "★" : "☆"}
+            </button>
+          </div>
+
+          <div className="mt-2 text-sm font-semibold text-yellow-300">{x.priceLabel[lang]}</div>
+
+          <a
+            href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
+            className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs font-medium text-white hover:bg-white/10"
+          >
+            {lang === "es" ? "Ver detalle" : "View details"}
+          </a>
+        </div>
+      ))}
+    </div>
+  </section>
+) : null}        <section className="mt-6">
           {view === "grid" ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {visible.map(ListingCardGrid)}
@@ -1826,9 +1824,9 @@ export default function ListaPage() {
       {moreOpen ? (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/70" onClick={() => setMoreOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/10 bg-black/95 p-5 shadow-2xl md:left-1/2 md:top-1/2 md:bottom-auto md:right-auto md:w-[92vw] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl">
+          <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="text-base font-semibold text-yellow-300">{UI.moreFilters[lang]}</div>
+              <div className="text-lg font-semibold text-yellow-300">{UI.moreFilters[lang]}</div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
@@ -1840,7 +1838,7 @@ export default function ListaPage() {
 
             <div className="mt-4 grid gap-4">
               <div>
-                <label className="hidden md:block text-xs font-semibold text-gray-300">{UI.seller[lang]}</label>
+                <label className="block text-xs font-semibold text-gray-300">{UI.seller[lang]}</label>
                 <select
                   value={sellerType ?? "all"}
                   onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as SellerType))}
@@ -1891,7 +1889,7 @@ export default function ListaPage() {
           <div className="absolute inset-0 bg-black/70" onClick={() => setLocationOpen(false)} />
           <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="text-base font-semibold text-yellow-300">{UI.location[lang]}</div>
+              <div className="text-lg font-semibold text-yellow-300">{UI.location[lang]}</div>
               <button
                 type="button"
                 onClick={() => setLocationOpen(false)}
@@ -1903,7 +1901,7 @@ export default function ListaPage() {
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div ref={citySuggestRef} className="relative">
-                <label className="hidden md:block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-gray-300">
                   {lang === "es" ? "Ciudad" : "City"}
                 </label>
                 <input
@@ -1946,7 +1944,7 @@ export default function ListaPage() {
               </div>
 
               <div>
-                <label className="hidden md:block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-gray-300">
                   {UI.zip[lang]}
                 </label>
                 <input

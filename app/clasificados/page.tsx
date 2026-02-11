@@ -340,7 +340,7 @@ export default function ClasificadosPage() {
         // ✅ CHANGED: from lista params to dedicated category page route
         href={withCategoryRoute(cat)}
         className={cx(
-          "group block rounded-2xl border border-white/10 bg-black/30 backdrop-blur",
+          "group block rounded-2xl border border-white/10 bg-black/35 backdrop-blur",
           "hover:bg-black/45 transition"
         )}
       >
@@ -372,7 +372,7 @@ export default function ClasificadosPage() {
     return (
       <div
         className={cx(
-          "rounded-2xl border bg-black/30 backdrop-blur p-6",
+          "rounded-2xl border bg-black/35 backdrop-blur p-6",
           accent === "gold" ? "border-yellow-400/25" : "border-white/10"
         )}
       >
@@ -406,13 +406,13 @@ export default function ClasificadosPage() {
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
             <a
               href={withLang(t.routeLogin)}
-              className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-4 py-2 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
             >
               {t.authSignIn}
             </a>
             <a
               href={withLang(t.routeLogin)}
-              className="px-5 py-2.5 rounded-full border border-yellow-400/30 bg-yellow-400/10 text-yellow-200 font-semibold hover:bg-yellow-400/15 transition"
+              className="px-4 py-2 text-sm rounded-full border border-yellow-400/30 bg-yellow-400/10 text-yellow-200 font-semibold hover:bg-yellow-400/15 transition"
             >
               {t.authCreate}
             </a>
@@ -430,21 +430,21 @@ export default function ClasificadosPage() {
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
               href={withLang(t.routePost)}
-              className="px-7 py-3 rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+              className="px-5 py-2.5 text-sm rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
             >
               {t.ctaPost}
             </a>
 
             <a
               href={withListParams()}
-              className="px-7 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
             >
               {t.ctaView}
             </a>
 
             <a
               href={withLang(t.routeMemberships)}
-              className="px-7 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
             >
               {t.ctaMemberships}
             </a>
@@ -506,7 +506,7 @@ export default function ClasificadosPage() {
                   <a
                     // ✅ CHANGED: from lista params to dedicated category page route
                     href={withCategoryRoute(cat)}
-                    className="px-5 py-2.5 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
+                    className="px-4 py-2 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
                   >
                     {t.viewMore} →
                   </a>
@@ -536,7 +536,7 @@ export default function ClasificadosPage() {
 
       {/* MEMBERSHIPS (benefits only, no prices) */}
       <section className="max-w-6xl mx-auto px-6 mt-16">
-        <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/30">
+        <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/35">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
@@ -549,7 +549,7 @@ export default function ClasificadosPage() {
 
             <a
               href={withLang(t.routeMemberships)}
-              className="px-6 py-3 rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+              className="px-5 py-2.5 text-sm rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
             >
               {t.ctaMemberships} →
             </a>
