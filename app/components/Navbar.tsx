@@ -23,57 +23,57 @@ function NavbarContent() {
   const t = {
     es: {
       home: "Inicio",
-      news: "Noticias",
-      events: "Eventos",
-      coupons: "Cupones",
-      sweepstakes: "Sorteos",
-      magazine: "Revista",
-      shop: "Tienda",
       classifieds: "Clasificados",
-      contact: "Contacto",
+      coupons: "Cupones",
+      magazine: "Revista",
+      news: "Noticias",
+      churches: "Iglesias",
+      shop: "Tienda",
       about: "Nosotros",
+      contact: "Contacto",
       advertise: "Anúnciate",
     },
     en: {
       home: "Home",
-      news: "News",
-      events: "Events",
-      coupons: "Coupons",
-      sweepstakes: "Sweepstakes",
-      magazine: "Magazine",
-      shop: "Shop",
       classifieds: "Classifieds",
-      contact: "Contact",
+      coupons: "Coupons",
+      magazine: "Magazine",
+      news: "News",
+      churches: "Churches",
+      shop: "Shop",
       about: "About Us",
+      contact: "Contact",
       advertise: "Advertise",
     },
   };
 
   const L = t[lang];
 
-  // Fix Inicio/Home → always goes to /home?lang={}
+  // Inicio/Home → always goes to /home?lang={}
   const buildLink = (href: string) => {
     if (href === "/") return `/home?lang=${lang}`;
     const cleanHref = href.split("?")[0];
     return `${cleanHref}?lang=${lang}`;
   };
 
+  // Preserve current query params, only switch lang.
   const switchLang = (target: "es" | "en") => {
-    const clean = pathname.split("?")[0];
-    router.push(`${clean}?lang=${target}`);
+    const next = new URLSearchParams(searchParams?.toString() ?? "");
+    next.set("lang", target);
+    router.push(`${pathname}?${next.toString()}`);
   };
 
+  // NAV ORDER (LOCKED)
   const navLinks = [
     { href: "/", label: L.home },
-    { href: "/noticias", label: L.news },
-    { href: "/eventos", label: L.events },
-    { href: "/coupons", label: L.coupons },
-    { href: "/sorteos", label: L.sweepstakes },
-    { href: "/magazine", label: L.magazine },
-    { href: "/tienda", label: L.shop },
     { href: "/clasificados", label: L.classifieds },
-    { href: "/contacto", label: L.contact },
+    { href: "/coupons", label: L.coupons },
+    { href: "/magazine", label: L.magazine },
+    { href: "/noticias", label: L.news },
+    { href: "/iglesias", label: L.churches },
+    { href: "/tienda", label: L.shop },
     { href: "/about", label: L.about },
+    { href: "/contacto", label: L.contact },
     { href: "/advertise", label: L.advertise, gold: true },
   ];
 
@@ -92,9 +92,7 @@ function NavbarContent() {
           <Link
             key={i}
             href={buildLink(item.href)}
-            className={
-              item.gold ? "text-yellow-300 font-bold" : "hover:text-yellow-200 transition"
-            }
+            className={item.gold ? "text-yellow-300 font-bold" : "hover:text-yellow-200 transition"}
           >
             {item.label}
           </Link>
@@ -119,10 +117,7 @@ function NavbarContent() {
       </div>
 
       {/* MOBILE HAMBURGER */}
-      <button
-        className="md:hidden text-white text-2xl absolute right-6"
-        onClick={() => setMobileOpen(true)}
-      >
+      <button className="md:hidden text-white text-2xl absolute right-6" onClick={() => setMobileOpen(true)}>
         ☰
       </button>
 
@@ -137,10 +132,7 @@ function NavbarContent() {
             z-[999] p-6 pt-10 flex flex-col gap-6
           "
         >
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="text-white text-3xl self-end"
-          >
+          <button onClick={() => setMobileOpen(false)} className="text-white text-3xl self-end">
             ×
           </button>
 
