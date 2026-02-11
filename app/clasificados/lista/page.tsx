@@ -348,6 +348,65 @@ function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
   });
 }
 
+/** ✅ Autos param helpers (internal only; no exports) */
+type AutosParams = {
+  apmin: string;
+  apmax: string;
+  aymin: string;
+  aymax: string;
+  amake: string;
+  amodel: string;
+};
+
+const EMPTY_AUTOS_PARAMS: AutosParams = {
+  apmin: "",
+  apmax: "",
+  aymin: "",
+  aymax: "",
+  amake: "",
+  amodel: "",
+};
+
+function getAutosPriceValue(x: Listing): number | null {
+  const lbl = x.priceLabel?.es ?? x.priceLabel?.en ?? "";
+  if (/gratis|free/i.test(lbl)) return 0;
+  return parseNumLoose(lbl);
+}
+
+function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
+  const min = ap.apmin ? parseNumLoose(ap.apmin) : null;
+  const max = ap.apmax ? parseNumLoose(ap.apmax) : null;
+
+  const yMin = ap.aymin ? parseNumLoose(ap.aymin) : null;
+  const yMax = ap.aymax ? parseNumLoose(ap.aymax) : null;
+
+  const wantMake = normalize(ap.amake || "");
+  const wantModel = normalize(ap.amodel || "");
+
+  return list.filter((x) => {
+    // price
+    if (min !== null || max !== null) {
+      const p = getAutosPriceValue(x);
+      if (min !== null && p !== null && p < min) return false;
+      if (max !== null && p !== null && p > max) return false;
+    }
+
+    // year (do not hide if missing)
+    if (yMin !== null && typeof x.year === "number" && x.year < yMin) return false;
+    if (yMax !== null && typeof x.year === "number" && x.year > yMax) return false;
+
+    // make/model (do not hide if missing)
+    if (wantMake) {
+      if (x.make && normalize(x.make) !== wantMake) return false;
+    }
+    if (wantModel) {
+      if (x.model && normalize(x.model) !== wantModel) return false;
+    }
+
+    return true;
+  });
+}
+
 export default function ListaPage() {
   const params = useSearchParams();
   const lang: Lang = (params?.get("lang") as Lang) === "en" ? "en" : "es";
@@ -387,6 +446,9 @@ export default function ListaPage() {
 
   // ✅ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
+
+  // ✅ Autos param state (only used when cat=autos)
+  const [autosParams, setAutosParams] = useState<AutosParams>(EMPTY_AUTOS_PARAMS);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -467,6 +529,21 @@ export default function ListaPage() {
       });
     } else {
       setRentasParams(EMPTY_RENTAS_PARAMS);
+    }
+
+    // ✅ Autos params: only track them if cat=autos
+    const catIsAutos = pCat === "autos";
+    if (catIsAutos) {
+      setAutosParams({
+        apmin: params?.get("apmin") ?? "",
+        apmax: params?.get("apmax") ?? "",
+        aymin: params?.get("aymin") ?? "",
+        aymax: params?.get("aymax") ?? "",
+        amake: params?.get("amake") ?? "",
+        amodel: params?.get("amodel") ?? "",
+      });
+    } else {
+      setAutosParams(EMPTY_AUTOS_PARAMS);
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -895,8 +972,9 @@ export default function ListaPage() {
     });
 
     const rentasApplied = category === "rentas" ? applyRentasParams(base, rentasParams) : base;
+    const autosApplied = category === "autos" ? applyAutosParams(rentasApplied, autosParams) : rentasApplied;
 
-    const sorted = [...rentasApplied].sort((a, b) => {
+    const sorted = [...autosApplied].sort((a, b) => {
       if (sort === "newest") {
         return (
           new Date(b.createdAtISO).getTime() -
@@ -909,14 +987,14 @@ export default function ListaPage() {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
 
   useEffect(() => {
     setPage(1);
-  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
+  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams]);
 
   const visible = useMemo(() => {
     const start = (pageClamped - 1) * perPage;
@@ -986,6 +1064,46 @@ export default function ListaPage() {
       if (rentasParams.rleaseterm) chips.push({ key: "rleaseterm", text: `${lang === "es" ? "Contrato" : "Lease"}: ${rentasParams.rleaseterm}`, clear: () => setRentasParams((p) => ({ ...p, rleaseterm: "" })) });
     }
 
+    // ✅ Autos chips (only show when in autos + has params)
+    if (category === "autos") {
+      if (autosParams.apmin)
+        chips.push({
+          key: "apmin",
+          text: `Min: $${autosParams.apmin}`,
+          clear: () => setAutosParams((p) => ({ ...p, apmin: "" })),
+        });
+      if (autosParams.apmax)
+        chips.push({
+          key: "apmax",
+          text: `Max: $${autosParams.apmax}`,
+          clear: () => setAutosParams((p) => ({ ...p, apmax: "" })),
+        });
+      if (autosParams.aymin)
+        chips.push({
+          key: "aymin",
+          text: `${lang === "es" ? "Año" : "Year"}: ${autosParams.aymin}+`,
+          clear: () => setAutosParams((p) => ({ ...p, aymin: "" })),
+        });
+      if (autosParams.aymax)
+        chips.push({
+          key: "aymax",
+          text: `${lang === "es" ? "Año" : "Year"}: ≤${autosParams.aymax}`,
+          clear: () => setAutosParams((p) => ({ ...p, aymax: "" })),
+        });
+      if (autosParams.amake)
+        chips.push({
+          key: "amake",
+          text: `${lang === "es" ? "Marca" : "Make"}: ${autosParams.amake}`,
+          clear: () => setAutosParams((p) => ({ ...p, amake: "" })),
+        });
+      if (autosParams.amodel)
+        chips.push({
+          key: "amodel",
+          text: `${lang === "es" ? "Modelo" : "Model"}: ${autosParams.amodel}`,
+          clear: () => setAutosParams((p) => ({ ...p, amodel: "" })),
+        });
+    }
+
     if (sort !== "newest") {
       chips.push({
         key: "sort",
@@ -1042,8 +1160,16 @@ export default function ListaPage() {
       rsqmin: category === "rentas" && rentasParams.rsqmin ? rentasParams.rsqmin : null,
       rsqmax: category === "rentas" && rentasParams.rsqmax ? rentasParams.rsqmax : null,
       rleaseterm: category === "rentas" && rentasParams.rleaseterm ? rentasParams.rleaseterm : null,
+
+      // ✅ Autos params are preserved in URL only when cat=autos
+      apmin: category === "autos" && autosParams.apmin ? autosParams.apmin : null,
+      apmax: category === "autos" && autosParams.apmax ? autosParams.apmax : null,
+      aymin: category === "autos" && autosParams.aymin ? autosParams.aymin : null,
+      aymax: category === "autos" && autosParams.aymax ? autosParams.aymax : null,
+      amake: category === "autos" && autosParams.amake ? autosParams.amake : null,
+      amodel: category === "autos" && autosParams.amodel ? autosParams.amodel : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams]);
 
   const resetAll = () => {
     setQ("");
@@ -1060,6 +1186,7 @@ export default function ListaPage() {
     setSuggestions([]);
     setSuggestionsOpen(false);
     setRentasParams(EMPTY_RENTAS_PARAMS);
+    setAutosParams(EMPTY_AUTOS_PARAMS);
   };
 
   const onUseMyLocation = async () => {
