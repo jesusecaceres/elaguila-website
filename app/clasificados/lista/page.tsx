@@ -25,7 +25,8 @@ type CategoryKey =
   | "servicios"
   | "empleos"
   | "clases"
-  | "comunidad";
+  | "comunidad"
+  | "travel";
 
 type SortKey = "newest" | "price-asc" | "price-desc";
 type SellerType = "personal" | "business";
@@ -82,6 +83,7 @@ const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
   empleos: { es: "Empleos", en: "Jobs" },
   clases: { es: "Clases", en: "Classes" },
   comunidad: { es: "Comunidad", en: "Community" },
+  travel: { es: "Viajes", en: "Travel" },
 };
 
 const SORT_LABELS: Record<SortKey, { es: string; en: string }> = {
@@ -205,7 +207,8 @@ function isCategoryKey(v: string): v is CategoryKey {
     v === "servicios" ||
     v === "empleos" ||
     v === "clases" ||
-    v === "comunidad"
+    v === "comunidad" ||
+    v === "travel"
   );
 }
 
@@ -807,6 +810,50 @@ export default function ListaPage() {
           "volunteer",
         ],
       ],
+      [
+        "travel",
+        [
+          "viaje",
+          "viajes",
+          "vacacion",
+          "vacación",
+          "vacaciones",
+          "turismo",
+          "tour",
+          "tours",
+          "excursion",
+          "excursión",
+          "excursiones",
+          "crucero",
+          "cruceros",
+          "resort",
+          "resorts",
+          "paquete",
+          "paquetes",
+          "hotel",
+          "hoteles",
+          "vuelo",
+          "vuelos",
+          "flight",
+          "flights",
+          "trip",
+          "trips",
+          "travel",
+          "vacation",
+          "vacations",
+          "cruise",
+          "cruises",
+          "car rental",
+          "car rentals",
+          "rent a car",
+          "renta de carro",
+          "renta de autos",
+          "agencia de viajes",
+          "travel agent",
+          "travel agency",
+        ],
+      ],
+
     ];
 
     const index = new Map<string, Exclude<CategoryKey, "all">>();
@@ -1549,6 +1596,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   <option value="empleos">{CATEGORY_LABELS.empleos[lang]}</option>
                   <option value="clases">{CATEGORY_LABELS.clases[lang]}</option>
                   <option value="comunidad">{CATEGORY_LABELS.comunidad[lang]}</option>
+                  <option value="travel">{CATEGORY_LABELS.travel[lang]}</option>
                 </select>
               </div>
 
