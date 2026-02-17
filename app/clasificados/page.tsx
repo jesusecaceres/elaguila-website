@@ -297,7 +297,7 @@ export default function ClasificadosPage() {
       <a
         href={href}
         className={cx(
-          "block rounded-2xl border bg-black/35 backdrop-blur transition hover:bg-black/45",
+          "block rounded-2xl border bg-black/25 backdrop-blur transition hover:bg-black/30",
           isBusiness ? "border-yellow-400/25" : "border-white/10"
         )}
       >
@@ -349,8 +349,8 @@ export default function ClasificadosPage() {
         // ✅ CHANGED: from lista params to dedicated category page route
         href={withCategoryRoute(cat)}
         className={cx(
-          "group block rounded-2xl border border-white/10 bg-black/35 backdrop-blur",
-          "hover:bg-black/45 transition"
+          "group block rounded-2xl border border-yellow-600/20 bg-black/25 backdrop-blur",
+          "hover:bg-black/30 transition"
         )}
       >
         <div className="p-5">
@@ -381,7 +381,7 @@ export default function ClasificadosPage() {
     return (
       <div
         className={cx(
-          "rounded-2xl border bg-black/35 backdrop-blur p-6",
+          "rounded-2xl border bg-black/25 backdrop-blur p-6",
           accent === "gold" ? "border-yellow-400/25" : "border-white/10"
         )}
       >
@@ -406,7 +406,7 @@ export default function ClasificadosPage() {
   };
 
   return (
-    <div className="bg-black min-h-screen text-white pb-28">
+    <div className="min-h-screen bg-black text-white pb-28 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.12),transparent_55%)]">
       <Navbar />
 
       {/* HERO (keep strong, cohesive) */}
@@ -415,7 +415,7 @@ export default function ClasificadosPage() {
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
             <a
               href={withLang(t.routeLogin)}
-              className="px-4 py-2 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-4 py-2 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
             >
               {t.authSignIn}
             </a>
@@ -446,14 +446,14 @@ export default function ClasificadosPage() {
 
             <a
               href={withListParams()}
-              className="px-5 py-2.5 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
             >
               {t.ctaView}
             </a>
 
             <a
               href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
             >
               {t.ctaMemberships}
             </a>
@@ -502,7 +502,7 @@ export default function ClasificadosPage() {
             return (
               <div
                 key={cat}
-                className="border border-white/10 bg-black/20 rounded-2xl p-6"
+                className="border border-yellow-600/20 bg-black/20 rounded-2xl p-6"
               >
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
@@ -515,7 +515,7 @@ export default function ClasificadosPage() {
                   <a
                     // ✅ CHANGED: from lista params to dedicated category page route
                     href={withCategoryRoute(cat)}
-                    className="px-4 py-2 text-sm rounded-full border border-white/10 bg-black/35 text-gray-100 font-semibold hover:bg-black/45 transition"
+                    className="px-4 py-2 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
                   >
                     {t.viewMore} →
                   </a>

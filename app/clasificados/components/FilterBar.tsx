@@ -12,8 +12,8 @@ export default function FilterBar({
   const cfg = categoryConfig[category];
 
   return (
-    <div className="mt-6 mb-8 rounded-xl border border-white/10 bg-black/30 px-6 py-4">
-      <p className="text-sm text-white/70">
+    <div className="mt-6 mb-8 rounded-xl border border-slate-200 bg-white px-6 py-4">
+      <p className="text-sm text-slate-600">
         {lang === "es"
           ? `Próximamente: filtros para ${cfg.label.es}`
           : `Coming soon: filters for ${cfg.label.en}`}

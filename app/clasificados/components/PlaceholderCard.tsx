@@ -1,29 +1,19 @@
+"use client";
 
-'use client';
-
-import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from "next/navigation";
 
 export default function PlaceholderCard() {
-  const params = useSearchParams()!;
-  const lang = params.get('lang') === 'en' ? 'en' : 'es';
+  const params = useSearchParams();
 
-  const label = lang === 'en' ? 'Advertise Here' : 'Anúnciate Aquí';
+  // Next.js types may allow `params` to be null during build-time type checking.
+  const lang = params?.get("lang") === "en" ? "en" : "es";
+
+  const label = lang === "en" ? "Advertise Here" : "Anúnciate Aquí";
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-yellow-400/30 bg-black hover:scale-[1.01] transition">
-      <Image
-        src="/classifieds/placeholders/classifieds-placeholder-bilingual.png"
-        alt={label}
-        width={600}
-        height={600}
-        className="object-cover w-full h-full"
-      />
-      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-        <span className="text-xl font-bold text-yellow-300">
-          {label}
-        </span>
-      </div>
+    <div className="rounded-2xl border border-yellow-600/20 bg-black/30 p-5">
+      <div className="text-sm text-gray-300">{label}</div>
+      <div className="mt-2 h-24 rounded-xl border border-yellow-600/10 bg-black/30" />
     </div>
   );
 }

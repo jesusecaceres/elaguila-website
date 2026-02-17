@@ -17,7 +17,7 @@ export default function ListingsGrid({
   // 🔹 NO LISTINGS → show placeholder CTA
   if (!listings.length) {
     return (
-      <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <PlaceholderCard />
       </div>
     );
@@ -25,7 +25,7 @@ export default function ListingsGrid({
 
   // 🔹 REAL LISTINGS → show cards
   return (
-    <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {listings.map((item) => (
         <ListingCard key={item.id} item={item} />
       ))}

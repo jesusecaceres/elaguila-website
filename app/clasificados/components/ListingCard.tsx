@@ -1,18 +1,17 @@
-
 'use client';
 
 import { ClassifiedItem } from '../../data/classifieds';
 
 export default function ListingCard({ item }: { item: ClassifiedItem }) {
   return (
-    <div className="rounded-xl border border-yellow-400/20 bg-black p-6 hover:bg-[#140d00] transition">
-      <h3 className="text-xl font-semibold text-yellow-400 mb-2">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:-translate-y-[1px] transition">
+      <h3 className="text-lg font-semibold text-slate-900 mb-1.5">
         {item.title}
       </h3>
-      <p className="text-white/70 text-sm mb-4">
+      <p className="text-slate-600 text-sm mb-4">
         {item.description}
       </p>
-      <span className="text-xs text-white/50">
+      <span className="text-xs text-slate-500">
         Publicado: {item.createdAt}
       </span>
     </div>

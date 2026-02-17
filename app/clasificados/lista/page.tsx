@@ -1306,7 +1306,7 @@ const ListingCardGrid = (x: Listing) => {
   return (
     <div
       key={x.id}
-      className="rounded-2xl border border-white/10 bg-black/35 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
+      className="rounded-2xl border border-white/10 bg-black/25 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -1377,7 +1377,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   return (
     <div
       key={x.id}
-      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/35 p-4 hover:bg-white/10"
+      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 hover:bg-white/10"
     >
       {withImg ? (
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
@@ -1451,7 +1451,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
 };
 
   return (
-    <div className="min-h-screen bg-black text-white pb-28">
+    <div className="min-h-screen bg-black text-white pb-28 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.10),transparent_55%)]">
       <Navbar />
 
       {/* Subtle cinematic backdrop */}
@@ -1487,7 +1487,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
         <section
           className={cx(
             "sticky top-[72px] z-30 mt-10",
-            "rounded-2xl border border-white/10 bg-black/60 backdrop-blur",
+            "rounded-2xl border border-white/10 bg-black/45 backdrop-blur",
             compact ? "shadow-lg" : ""
           )}
         >
@@ -1510,12 +1510,12 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                         ? "Buscar: trabajo, troca, cuarto…"
                         : "Search: jobs, truck, room…"
                     }
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                     aria-label={UI.search[lang]}
                   />
 
                   {suggestionsOpen && suggestions.length ? (
-                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-2xl">
+                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border border-white/10 bg-black/90 shadow-2xl">
                       <div className="px-3 py-2 text-[11px] text-gray-400">
                         {lang === "es" ? "Sugerencias" : "Suggestions"}
                       </div>
@@ -1548,7 +1548,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -1568,7 +1568,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <select
                   value={radiusMi}
                   onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   {[5, 10, 25, 40, 50].map((r) => (
                     <option key={r} value={r}>
@@ -1586,7 +1586,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   <option value="all">{CATEGORY_LABELS.all[lang]}</option>
                   <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
@@ -1684,7 +1684,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
 
         {/* RESULTS TOOLBAR (unchanged) */}
         <section className="mt-4 md:sticky md:top-[calc(72px+16px)] z-20">
-          <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur px-4 py-3">
+          <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
                 <div className="text-lg font-semibold text-yellow-300">
@@ -1753,7 +1753,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
                   aria-label={UI.sort[lang]}
                 >
                   <option value="newest">{SORT_LABELS.newest[lang]}</option>
@@ -1895,7 +1895,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <select
                   value={sellerType ?? "all"}
                   onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as SellerType))}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
                 >
                   <option value="all">{lang === "es" ? "Todos" : "All"}</option>
                   <option value="personal">{SELLER_LABELS.personal[lang]}</option>
@@ -1965,11 +1965,11 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   }}
                   onFocus={() => setCitySuggestOpen(true)}
                   placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                 />
 
                 {citySuggestOpen ? (
-                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-56 overflow-auto rounded-xl border border-white/10 bg-black/95 shadow-xl">
+                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-56 overflow-auto rounded-xl border border-white/10 bg-black/90 shadow-xl">
                     {cityOptions.map((name) => (
                       <button
                         key={name}
@@ -2018,7 +2018,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   }}
                   placeholder={lang === "es" ? "Ej: 95116" : "e.g. 95116"}
                   inputMode="numeric"
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                 />
 
                 <div className="mt-1 text-[11px] text-gray-400">
