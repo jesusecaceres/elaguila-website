@@ -34,15 +34,15 @@ export default function CategoryTabs() {
   const lang = (sp?.get('lang') === 'en' ? 'en' : 'es') as Lang;
 
   return (
-    <div className="space-y-10">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {topCategories.map((cat) => (
           <CategoryButton key={cat.slug} slug={cat.slug} label={cat.label[lang]} lang={lang} />
         ))}
       </div>
 
       <div className="flex justify-center">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl w-full">
           {bottomCategories.map((cat) => (
             <CategoryButton key={cat.slug} slug={cat.slug} label={cat.label[lang]} lang={lang} />
           ))}
@@ -56,7 +56,7 @@ function CategoryButton({ slug, label, lang }: { slug: string; label: string; la
   return (
     <Link
       href={withLang(`/clasificados/${slug}`, lang)}
-      className="rounded-xl border border-yellow-400/30 bg-black hover:bg-[#1a1100] transition p-6 text-center font-semibold text-white"
+      className="rounded-2xl border border-yellow-600/20 bg-black/30 p-5 text-center font-semibold text-white transition hover:bg-black/40"
     >
       {label}
     </Link>

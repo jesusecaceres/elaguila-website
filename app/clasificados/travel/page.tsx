@@ -1,7 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Navbar from "../../components/Navbar";
+import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
@@ -32,24 +35,37 @@ export default function TravelCategoryPage() {
   }, [router, targetHref]);
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-6 text-center">
-      <div className="max-w-xl">
-        <div className="text-yellow-400 text-2xl font-extrabold">
-          {lang === "en" ? "Travel" : "Viajes"}
-        </div>
-        <div className="mt-2 text-gray-300">
-          {lang === "en"
-            ? "Redirecting to listings…"
-            : "Redirigiendo a los anuncios…"}
-        </div>
+    <main className="min-h-screen bg-black text-white">
+      <Navbar />
 
-        <a
-          href={targetHref}
-          className="inline-flex mt-6 items-center justify-center px-5 py-3 rounded-xl border border-yellow-400/30 bg-black/40 text-white font-semibold hover:bg-black/55 transition"
-        >
-          {lang === "en" ? "Open Travel listings" : "Ver anuncios de Viajes"}
-        </a>
-      </div>
-    </div>
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.16),transparent_55%)]" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-16 sm:pt-20 pb-10">
+          <div className="flex flex-col items-center text-center">
+            <Image
+              src={newLogo}
+              alt="LEONIX"
+              width={92}
+              height={92}
+              className="h-20 w-20 sm:h-24 sm:w-24"
+              priority
+            />
+            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#d4af37]">
+              {lang === "en" ? "Travel" : "Viajes"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm sm:text-base text-white/80">
+              {lang === "en" ? "Redirecting to listings…" : "Redirigiendo a los anuncios…"}
+            </p>
+
+            <a
+              href={targetHref}
+              className="mt-6 inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+            >
+              {lang === "en" ? "Open Travel listings" : "Ver anuncios de Viajes"}
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Navbar from "../../components/Navbar";
+import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
@@ -248,46 +251,63 @@ export default function Page() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-20 md:pt-24 pb-14">
-      {/* HERO */}
-      <div className="text-center">
-        <h1 className="text-3xl font-extrabold tracking-tight text-yellow-300">{t.title}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-300">{t.subtitle}</p>
+    <main className="min-h-screen bg-black text-white">
+      <Navbar />
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => router.push(goToListaHref)}
-            className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
-          >
-            {t.view}
-          </button>
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.16),transparent_55%)]" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-16 sm:pt-20 pb-10">
+          <div className="flex flex-col items-center text-center">
+            <Image
+              src={newLogo}
+              alt="LEONIX"
+              width={92}
+              height={92}
+              className="h-20 w-20 sm:h-24 sm:w-24"
+              priority
+            />
+            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#d4af37]">
+              {t.title}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm sm:text-base text-white/80">{t.subtitle}</p>
 
-          <a
-            href={`/clasificados?lang=${lang}`}
-            className="rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm font-semibold text-white hover:bg-black/60"
-          >
-            {t.exploreAll}
-          </a>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => router.push(goToListaHref)}
+                className="rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-black hover:brightness-95"
+              >
+                {t.view}
+              </button>
 
-          {hasAnyFilter ? (
-            <button
-              onClick={() => setFilters(DEFAULT_AUTOS_FILTERS)}
-              className="text-xs font-semibold text-gray-300 underline underline-offset-4 hover:text-white"
-            >
-              {t.reset}
-            </button>
-          ) : null}
+              <a
+                href={`/clasificados?lang=${lang}`}
+                className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                {t.exploreAll}
+              </a>
+
+              {hasAnyFilter ? (
+                <button
+                  onClick={() => setFilters(DEFAULT_AUTOS_FILTERS)}
+                  className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+                >
+                  {t.reset}
+                </button>
+              ) : null}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* LAYOUT: sidebar (desktop) + main */}
-      <div className="mt-8 grid gap-4 md:grid-cols-[320px_1fr]">
-        {/* Sidebar desktop */}
-        <aside className="hidden md:block">{SidebarContent}</aside>
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+        {/* LAYOUT: sidebar (desktop) + main */}
+        <div className="grid gap-4 md:grid-cols-[320px_1fr]">
+          {/* Sidebar desktop */}
+          <aside className="hidden md:block">{SidebarContent}</aside>
 
-        <main>
-          {/* Quick bar (always compact) */}
-          <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
+          <div>
+            {/* Quick bar (always compact) */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-yellow-200">{t.quick}</div>
 
@@ -360,12 +380,13 @@ export default function Page() {
 
           {/* Guidance */}
           <div className="mt-3 text-[11px] text-gray-400">{t.note}</div>
-        </main>
-      </div>
+          </div>
+        </div>
+      </section>
 
       <Drawer open={moreOpen} onClose={() => setMoreOpen(false)} title={t.sidebar}>
         {SidebarContent}
       </Drawer>
-    </div>
+    </main>
   );
 }
