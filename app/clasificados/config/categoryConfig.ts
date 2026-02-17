@@ -5,7 +5,8 @@ export type CategoryKey =
   | "venta"
   | "autos"
   | "clases"
-  | "comunidad";
+  | "comunidad"
+  | "travel";
 
 type CategoryConfig = {
   label: { es: string; en: string };
@@ -40,5 +41,9 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
   comunidad: {
     label: { es: "Comunidad", en: "Community" },
     futureFilters: ["location"],
+  },
+  travel: {
+    label: { es: "Viajes", en: "Travel" },
+    futureFilters: ["mode", "dates", "location"],
   },
 };

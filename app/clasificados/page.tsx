@@ -17,7 +17,8 @@ type CategoryKey =
   | "servicios"
   | "empleos"
   | "clases"
-  | "comunidad";
+  | "comunidad"
+  | "travel";
 
 type SellerType = "personal" | "business";
 
@@ -38,6 +39,7 @@ const CATEGORY_ORDER: CategoryKey[] = [
   "en-venta",
   "empleos",
   "servicios",
+  "travel",
   "autos",
   "clases",
   "comunidad",
@@ -84,6 +86,10 @@ export default function ClasificadosPage() {
           comunidad: {
             label: "Comunidad",
             hint: "Actividades y anuncios comunitarios.",
+          },
+          travel: {
+            label: "Viajes",
+            hint: "Ofertas, agentes y rentas de carros.",
           },
         },
 
@@ -157,6 +163,7 @@ export default function ClasificadosPage() {
           autos: { label: "Autos", hint: "Cars and dealer inventory." },
           clases: { label: "Classes", hint: "Learn and share with community." },
           comunidad: { label: "Community", hint: "Activities and community posts." },
+          travel: { label: "Travel", hint: "Deals, agents, and car rentals." },
         },
 
         membershipsTitle: "Memberships",
@@ -252,6 +259,7 @@ export default function ClasificadosPage() {
       "en-venta": isMobile ? big3Mobile : big3Desktop,
       empleos: isMobile ? big3Mobile : big3Desktop,
       servicios: isMobile ? otherMobile : otherDesktop,
+      travel: isMobile ? otherMobile : otherDesktop,
       autos: isMobile ? otherMobile : otherDesktop,
       clases: isMobile ? 2 : 4,
       comunidad: isMobile ? 2 : 4,
@@ -264,6 +272,7 @@ export default function ClasificadosPage() {
       "en-venta": [],
       empleos: [],
       servicios: [],
+      travel: [],
       autos: [],
       clases: [],
       comunidad: [],
