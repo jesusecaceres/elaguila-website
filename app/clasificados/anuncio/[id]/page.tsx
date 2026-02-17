@@ -17,7 +17,8 @@ type CategoryKey =
   | "servicios"
   | "empleos"
   | "clases"
-  | "comunidad";
+  | "comunidad"
+  | "travel";
 
 type SellerType = "personal" | "business";
 type ListingStatus = "active" | "sold";
@@ -136,6 +137,7 @@ export default function AnuncioDetallePage() {
       empleos: { es: "Empleos", en: "Jobs" },
       clases: { es: "Clases", en: "Classes" },
       comunidad: { es: "Comunidad", en: "Community" },
+      travel: { es: "Viajes", en: "Travel" },
     };
     return map;
   }, []);
