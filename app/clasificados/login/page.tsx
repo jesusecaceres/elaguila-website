@@ -1,17 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+
+type Lang = "es" | "en";
 
 export default function ClasificadosLoginRedirect() {
   const searchParams = useSearchParams()!;
 
-  useEffect(() => {
-    const redirectTo =
-      searchParams.get('redirect') || '/clasificados/publicar';
-
-    window.location.href = `/login?redirect=${encodeURIComponent(redirectTo)}`;
+  const redirectTo = useMemo(() => {
+    const lang = (searchParams.get("lang") as Lang) || "es";
+    return searchParams.get("redirect") || `/clasificados/publicar?lang=${lang}`;
   }, [searchParams]);
+
+  useEffect(() => {
+    const next = `/login?redirect=${encodeURIComponent(redirectTo)}`;
+    window.location.href = next;
+  }, [redirectTo]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-gray-300">
