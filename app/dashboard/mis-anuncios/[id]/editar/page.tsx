@@ -41,6 +41,12 @@ export default function EditListingPage() {
         fieldsTitle: "Título",
         fieldsPrice: "Precio",
         fieldsDesc: "Descripción",
+        photos: "Fotos",
+        addPhotos: "Agregar fotos",
+        upload: "Subir",
+        uploading: "Subiendo…",
+        photosHelp: "Puedes subir varias fotos. Se guardan en tu anuncio.",
+        photosUnavailable: "Este anuncio no admite fotos todavía (falta columna en la base de datos).",
         save: "Guardar cambios",
         saving: "Guardando…",
         saved: "Guardado",
@@ -63,6 +69,12 @@ export default function EditListingPage() {
         fieldsTitle: "Title",
         fieldsPrice: "Price",
         fieldsDesc: "Description",
+        photos: "Photos",
+        addPhotos: "Add photos",
+        upload: "Upload",
+        uploading: "Uploading…",
+        photosHelp: "You can upload multiple photos. They will be saved on your listing.",
+        photosUnavailable: "This listing can’t store photos yet (missing DB column).",
         save: "Save changes",
         saving: "Saving…",
         saved: "Saved",
@@ -91,6 +103,14 @@ export default function EditListingPage() {
   const [price, setPrice] = useState<string>("");
   const [description, setDescription] = useState<string>("");
 
+
+const [userId, setUserId] = useState<string | null>(null);
+
+const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+const [uploading, setUploading] = useState(false);
+const [uploadNote, setUploadNote] = useState<string | null>(null);
+
+
   useEffect(() => {
     if (!id) return;
     const supabase = createSupabaseBrowserClient();
@@ -110,6 +130,7 @@ export default function EditListingPage() {
       }
 
       const u = data.user;
+      setUserId(u.id);
 
       const { data: row, error: qErr } = await supabase
         .from("listings")
@@ -151,6 +172,102 @@ export default function EditListingPage() {
   const createdIso: string | null = listing?.created_at || listing?.created || null;
   const mins = minutesSince(createdIso);
   const isEditable = mins !== null && mins <= EDIT_WINDOW_MINUTES;
+
+
+async function uploadImages() {
+  if (!id) return;
+  if (!userId) return;
+  if (selectedFiles.length === 0) return;
+
+  const supabase = createSupabaseBrowserClient();
+  setUploading(true);
+  setUploadNote(null);
+  setError(null);
+  setSuccess(null);
+
+  const bucketCandidates = ["listing-images", "listing_images", "listings", "images"];
+
+  const supportsArray = listing && Array.isArray((listing as any).image_urls);
+  const supportsImage = listing && ("image" in listing);
+
+  if (!supportsArray && !supportsImage) {
+    setUploadNote(L.photosUnavailable);
+    setUploading(false);
+    return;
+  }
+
+  const uploadedUrls: string[] = [];
+
+  for (const file of selectedFiles) {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const safeExt = ext.length <= 6 ? ext : "jpg";
+    const path = `${userId}/${id}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+
+    let lastErr: any = null;
+    let publicUrl: string | null = null;
+
+    for (const bucket of bucketCandidates) {
+      const { error: upErr } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, { upsert: false });
+
+      if (upErr) {
+        lastErr = upErr;
+        // Try next bucket if not found / invalid
+        const msg = (upErr as any)?.message || "";
+        if (
+          msg.toLowerCase().includes("bucket") ||
+          msg.toLowerCase().includes("not found")
+        ) {
+          continue;
+        }
+        // If it fails for another reason (policy, size), stop.
+        break;
+      }
+
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+      publicUrl = urlData?.publicUrl ?? null;
+      break;
+    }
+
+    if (!publicUrl) {
+      setError(lastErr?.message || "Upload failed");
+      setUploading(false);
+      return;
+    }
+
+    uploadedUrls.push(publicUrl);
+  }
+
+  // Persist to DB
+  try {
+    const payload: any = {};
+
+    if (listing && "image_urls" in listing) {
+      const prev = Array.isArray((listing as any).image_urls) ? (listing as any).image_urls : [];
+      payload.image_urls = [...prev, ...uploadedUrls];
+    } else if (listing && "image" in listing) {
+      payload.image = uploadedUrls[0];
+    }
+
+    const { error: uErr } = await supabase.from("listings").update(payload).eq("id", id);
+
+    if (uErr) {
+      setError(uErr.message);
+      setUploading(false);
+      return;
+    }
+
+    setListing((prev: any) => ({ ...(prev || {}), ...payload }));
+    setSelectedFiles([]);
+    setUploadNote(null);
+    setSuccess(lang === "es" ? "Fotos actualizadas" : "Photos updated");
+  } catch (e: any) {
+    setError(e?.message || "Upload failed");
+  } finally {
+    setUploading(false);
+  }
+}
 
   async function save() {
     if (!id) return;
@@ -311,6 +428,70 @@ export default function EditListingPage() {
                     />
                   </label>
                 ) : null}
+
+<div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <div className="text-sm font-semibold text-white/90">{L.photos}</div>
+      <div className="text-xs text-white/60 mt-1">{L.photosHelp}</div>
+    </div>
+  </div>
+
+  <div className="mt-3 flex flex-wrap items-center gap-3">
+    <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm text-white/90 hover:bg-black/50 transition">
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          setSelectedFiles(files);
+        }}
+        disabled={uploading}
+      />
+      {L.addPhotos}
+    </label>
+
+    <button
+      type="button"
+      onClick={uploadImages}
+      disabled={uploading || selectedFiles.length === 0}
+      className="inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 hover:bg-white/15 transition disabled:opacity-50"
+    >
+      {uploading ? L.uploading : L.upload}
+    </button>
+
+    {uploadNote ? (
+      <span className="text-xs text-yellow-200/90">{uploadNote}</span>
+    ) : null}
+  </div>
+
+  {selectedFiles.length > 0 ? (
+    <div className="mt-3 text-xs text-white/60">
+      {selectedFiles.length} {lang === "es" ? "archivo(s) seleccionados" : "file(s) selected"}
+    </div>
+  ) : null}
+
+  {Array.isArray((listing as any)?.image_urls) && (listing as any).image_urls.length > 0 ? (
+    <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
+      {(listing as any).image_urls.slice(0, 8).map((url: string) => (
+        <div key={url} className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="photo" className="h-full w-full object-cover" />
+        </div>
+      ))}
+    </div>
+  ) : (listing && (listing as any).image ? (
+    <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
+      <div className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={(listing as any).image} alt="photo" className="h-full w-full object-cover" />
+      </div>
+    </div>
+  ) : null)}
+</div>
+
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <button

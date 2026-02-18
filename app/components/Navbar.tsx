@@ -7,6 +7,21 @@ import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
 
+type Plan = "free" | "pro" | "business";
+
+function normalizePlan(raw: unknown): Plan {
+  const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
+  if (v === "pro") return "pro";
+  if (v === "business" || v === "lite" || v === "premium") return "business";
+  return "free";
+}
+
+function planLabel(plan: Plan, lang: Lang) {
+  if (plan === "pro") return lang === "es" ? "Pro" : "Pro";
+  if (plan === "business") return lang === "es" ? "Business" : "Business";
+  return lang === "es" ? "Gratis" : "Free";
+}
+
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -45,6 +60,7 @@ function NavbarContent() {
 
   // Auth UI state
   const [user, setUser] = useState<NavbarUser | null>(null);
+  const [plan, setPlan] = useState<Plan>("free");
   const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
 
@@ -173,6 +189,7 @@ function NavbarContent() {
         const u = data.user;
         if (!u) {
           setUser(null);
+          setPlan("free");
           setAuthLoading(false);
           return;
         }
@@ -194,9 +211,27 @@ function NavbarContent() {
           avatarUrl,
         });
         setAuthLoading(false);
+// Plan badge (role-ready). We try profiles.plan / profiles.role if table exists.
+try {
+  const { data: pData, error: pErr } = await supabase
+    .from("profiles")
+    .select("plan, role")
+    .eq("id", u.id)
+    .maybeSingle();
+
+  if (!pErr && pData) {
+    setPlan(normalizePlan((pData as any).plan ?? (pData as any).role));
+  } else {
+    setPlan("free");
+  }
+} catch {
+  setPlan("free");
+}
+
       } catch {
         if (!mounted) return;
         setUser(null);
+        setPlan("free");
         setAuthLoading(false);
       }
     }
@@ -299,6 +334,9 @@ function NavbarContent() {
                   <span className="text-white/90 text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/20 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                    {planLabel(plan, lang)}
+                  </span>
                   <span className="text-white/60 text-xs">{accountOpen ? "▲" : "▼"}</span>
                 </button>
 
@@ -307,6 +345,14 @@ function NavbarContent() {
                     className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-[0_12px_30px_rgba(0,0,0,0.55)] overflow-hidden"
                     role="menu"
                   >
+
+<div className="px-4 py-3 border-b border-white/10">
+  <div className="text-xs text-white/80 truncate">{user?.email}</div>
+  <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/20 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+    {planLabel(plan, lang)}
+  </div>
+</div>
+
                     <Link
                       href={`/dashboard?lang=${lang}`}
                       className="block px-4 py-3 text-sm text-white/90 hover:bg-white/5"

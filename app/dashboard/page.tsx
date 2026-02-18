@@ -105,6 +105,21 @@ export default function DashboardPage() {
       setPlan(normalizePlan(inferred));
 
 
+// Try profiles table (role-ready). If missing, we keep inferred plan.
+try {
+  const { data: pData, error: pErr } = await supabase
+    .from("profiles")
+    .select("plan, role")
+    .eq("id", u.id)
+    .maybeSingle();
+
+  if (!pErr && pData) {
+    setPlan(normalizePlan((pData as any).plan ?? (pData as any).role ?? inferred));
+  }
+} catch {
+  // ignore
+}
+
       // Count listings (safe, used for dashboard summary)
       const { count } = await supabase
         .from("listings")
