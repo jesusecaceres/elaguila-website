@@ -24,6 +24,8 @@ type ListingRow = {
   category?: string | null;
 };
 
+const EDIT_WINDOW_MINUTES = 30;
+
 function formatPrice(v: ListingRow["price"], lang: Lang) {
   if (v === null || v === undefined || v === "") return lang === "es" ? "Gratis" : "Free";
   const n = typeof v === "number" ? v : Number(String(v).replace(/[^0-9.]/g, ""));
@@ -46,6 +48,15 @@ function formatDateIso(iso?: string | null) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function canEditListing(createdAtIso?: string | null) {
+  if (!createdAtIso) return false;
+  const createdMs = new Date(createdAtIso).getTime();
+  if (!Number.isFinite(createdMs)) return false;
+  const nowMs = Date.now();
+  const minutes = (nowMs - createdMs) / 1000 / 60;
+  return minutes <= EDIT_WINDOW_MINUTES;
+}
+
 export default function MyListingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,11 +76,15 @@ export default function MyListingsPage() {
         emptyTitle: "Aún no tienes anuncios",
         emptyBody: "Publica tu primer anuncio para empezar.",
         view: "Ver",
+        edit: "Editar",
+        editLocked: `Editar (solo ${EDIT_WINDOW_MINUTES} min)`,
         markSold: "Marcar como vendido",
         markActive: "Marcar como activo",
         deleting: "Eliminando…",
         delete: "Eliminar",
         confirmDelete: "¿Eliminar este anuncio? Esta acción no se puede deshacer.",
+        deleteGuard:
+          "Nota: eliminar no permite volver a publicar lo mismo para evadir límites. El sistema detecta duplicados.",
         statusActive: "Activo",
         statusSold: "Vendido",
         errorTitle: "No pudimos cargar tus anuncios",
@@ -85,11 +100,15 @@ export default function MyListingsPage() {
         emptyTitle: "You don’t have any listings yet",
         emptyBody: "Post your first listing to get started.",
         view: "View",
+        edit: "Edit",
+        editLocked: `Edit (${EDIT_WINDOW_MINUTES} min only)`,
         markSold: "Mark sold",
         markActive: "Mark active",
         deleting: "Deleting…",
         delete: "Delete",
         confirmDelete: "Delete this listing? This can’t be undone.",
+        deleteGuard:
+          "Note: deleting doesn’t let you repost the same item to bypass limits. The system detects duplicates.",
         statusActive: "Active",
         statusSold: "Sold",
         errorTitle: "We couldn’t load your listings",
@@ -217,7 +236,9 @@ export default function MyListingsPage() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/40 p-6">
-          <div className="text-sm text-white/70">{name || "—"} · {email || "—"}</div>
+          <div className="text-sm text-white/70">
+            {name || "—"} · {email || "—"}
+          </div>
 
           {error ? (
             <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
@@ -245,9 +266,11 @@ export default function MyListingsPage() {
               {listings.map((x) => {
                 const status = (x.status || "active").toLowerCase();
                 const isSold = status === "sold";
-                const dateText = formatDateIso(x.created_at || x.created) || "";
+                const createdIso = x.created_at || x.created || null;
+                const dateText = formatDateIso(createdIso) || "";
                 const priceText = formatPrice(x.price, lang);
                 const busy = busyId === x.id;
+                const canEdit = canEditListing(createdIso);
 
                 return (
                   <div
@@ -256,9 +279,7 @@ export default function MyListingsPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <div className="text-lg font-semibold text-white truncate">
-                          {x.title || "—"}
-                        </div>
+                        <div className="text-lg font-semibold text-white truncate">{x.title || "—"}</div>
                         <span
                           className={
                             "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold " +
@@ -287,6 +308,22 @@ export default function MyListingsPage() {
                         {L.view}
                       </Link>
 
+                      {canEdit ? (
+                        <Link
+                          href={`/dashboard/mis-anuncios/${x.id}/editar?lang=${lang}`}
+                          className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+                        >
+                          {L.edit}
+                        </Link>
+                      ) : (
+                        <span
+                          title={L.editLocked}
+                          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/40 cursor-not-allowed"
+                        >
+                          {L.editLocked}
+                        </span>
+                      )}
+
                       {isSold ? (
                         <button
                           onClick={() => markStatus(x.id, "active")}
@@ -313,6 +350,8 @@ export default function MyListingsPage() {
                         {busy ? L.deleting : L.delete}
                       </button>
                     </div>
+
+                    <div className="text-xs text-white/50 md:text-right">{L.deleteGuard}</div>
                   </div>
                 );
               })}
