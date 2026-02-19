@@ -2,7 +2,7 @@ export type CategoryKey =
   | "servicios"
   | "empleos"
   | "rentas"
-  | "venta"
+  | "en-venta"
   | "autos"
   | "clases"
   | "comunidad"
@@ -26,7 +26,7 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
     label: { es: "Rentas", en: "Rentals" },
     futureFilters: ["bedrooms", "price", "location"],
   },
-  venta: {
+  "en-venta": {
     label: { es: "En Venta", en: "For Sale" },
     futureFilters: ["condition", "price"],
   },

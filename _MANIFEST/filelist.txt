@@ -1,8 +1,18 @@
 ﻿FILES INCLUDED:
-app\components\Navbar.tsx
 app\clasificados\page.tsx
 app\clasificados\components\FilterBar.tsx
-app\clasificados\components\CategoryTabs.tsx
 app\clasificados\components\ListingsGrid.tsx
 app\clasificados\components\ListingCard.tsx
 app\clasificados\components\PlaceholderCard.tsx
+app\clasificados\components\CategoryTabs.tsx
+app\clasificados\config\categoryConfig.ts
+app\data\classifieds.ts
+app\data\classifieds\sampleListings.ts
+app\clasificados\rentas\page.tsx
+app\clasificados\empleos\page.tsx
+app\clasificados\autos\page.tsx
+app\clasificados\en-venta\page.tsx
+app\clasificados\servicios\page.tsx
+app\clasificados\clases\page.tsx
+app\clasificados\comunidad\page.tsx
+app\clasificados\travel\page.tsx
