@@ -1408,12 +1408,12 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold tracking-wide leading-tight whitespace-nowrap",
         cls
       )}
       title={label}
     >
-      <span aria-hidden="true" className="text-[12px] leading-none">
+      <span aria-hidden="true" className="text-[11px] sm:text-[12px] leading-none">
         {icon}
       </span>
       <span className="leading-none">{label}</span>
@@ -1503,7 +1503,7 @@ const ListingCardGrid = (x: Listing) => {
     <div
       key={x.id}
       className={cx(
-        "rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
+        "relative overflow-hidden rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[1px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
           ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_0_22px_rgba(250,204,21,0.10),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
           : tier === "corona"
@@ -1512,7 +1512,7 @@ const ListingCardGrid = (x: Listing) => {
               ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
       )}
-    >
+    >\n      {/* Tier accent (clarity, no layout shift) */}\n      {tier ? (\n        <div\n          aria-hidden=\"true\"\n          className={cx(\n            \"pointer-events-none absolute inset-x-0 top-0 h-[2px]\",\n            tier === \"corona-oro\"\n              ? \"bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent\"\n              : tier === \"corona\"\n                ? \"bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent\"\n                : tier === \"joya\"\n                  ? \"bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent\"\n                  : \"\"\n          )}\n        />\n      ) : null}\n
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Title */}
@@ -1547,7 +1547,7 @@ const ListingCardGrid = (x: Listing) => {
           {micro ? <div className="mt-1 text-[11px] sm:text-xs text-gray-300">{micro}</div> : null}
 
           {/* Chips */}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {x.sellerType && tier !== "corona" && tier !== "corona-oro" ? (
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
                 {SELLER_LABELS[x.sellerType][lang]}
@@ -1570,7 +1570,7 @@ const ListingCardGrid = (x: Listing) => {
           type="button"
           onClick={() => toggleFav(x.id)}
           className={cx(
-            "shrink-0 rounded-xl border px-3 py-2 text-sm",
+            "shrink-0 rounded-xl border px-2.5 py-1.5 text-sm",
             isFav
               ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
               : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
@@ -1590,7 +1590,7 @@ const ListingCardGrid = (x: Listing) => {
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-        className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+        className="mt-2.5 block rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-center text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
       >
         {lang === "es" ? "Ver detalle" : "View details"}
       </a>
@@ -1607,7 +1607,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
     <div
       key={x.id}
       className={cx(
-        "group flex items-stretch gap-3 rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[2px]",
+        "group relative overflow-hidden flex items-stretch gap-3 rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[1px]",
         tier === "corona-oro"
           ? "border-yellow-300/55 ring-1 ring-yellow-300/20 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.16),0_0_18px_rgba(250,204,21,0.08)]"
           : tier === "corona"
@@ -1616,9 +1616,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
       )}
-    >
+    >\n      {/* Tier accent (clarity, no layout shift) */}\n      {tier ? (\n        <div\n          aria-hidden=\"true\"\n          className={cx(\n            \"pointer-events-none absolute inset-x-0 top-0 h-[2px]\",\n            tier === \"corona-oro\"\n              ? \"bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent\"\n              : tier === \"corona\"\n                ? \"bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent\"\n                : tier === \"joya\"\n                  ? \"bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent\"\n                  : \"\"\n          )}\n        />\n      ) : null}\n
       {withImg ? (
-        <div className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+        <div className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           {x.hasImage ? (
             <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
           ) : (
@@ -1675,7 +1675,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
           {x.sellerType && tier !== "corona" && tier !== "corona-oro" ? (
             <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
               {SELLER_LABELS[x.sellerType][lang]}
@@ -2438,7 +2438,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
       </a>
     </div>
 
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-2.5 sm:gap-3 md:grid-cols-2 lg:grid-cols-4">
       {businessTop.map((x) => (
         <div key={x.id} className="rounded-2xl border border-white/10 bg-black/30 p-4">
           <div className="flex items-start justify-between gap-3">
@@ -2479,11 +2479,11 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   </section>
 ) : null}        <section className="mt-6">
           {view === "grid" ? (
-            <div className="grid gap-3 sm:gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2.5 sm:gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {visible.map(ListingCardGrid)}
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5 sm:gap-3">
               {visible.map((x) => ListingRow(x, view === "list-img"))}
             </div>
           )}
