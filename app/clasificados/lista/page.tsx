@@ -1356,21 +1356,27 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
           ? "Corona de Oro"
           : "Golden Crown";
 
+  const icon = tier === "joya" ? "💎" : tier === "corona" ? "👑" : "👑✨";
+
   const cls =
     tier === "joya"
-      ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]"
+      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-50 shadow-[0_0_0_1px_rgba(16,185,129,0.14)]"
       : tier === "corona"
-        ? "border-yellow-400/25 bg-yellow-400/10 text-yellow-100 shadow-[0_0_0_1px_rgba(250,204,21,0.10)]"
-        : "border-yellow-300/50 bg-yellow-400/15 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_0_18px_rgba(250,204,21,0.10)]";
+        ? "border-yellow-400/30 bg-yellow-400/10 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.12)]"
+        : "border-yellow-300/60 bg-yellow-400/20 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.22),0_0_22px_rgba(250,204,21,0.12)]";
 
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium tracking-wide",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide",
         cls
       )}
+      title={label}
     >
-      {label}
+      <span aria-hidden="true" className="text-[12px] leading-none">
+        {icon}
+      </span>
+      <span className="leading-none">{label}</span>
     </span>
   );
 };
@@ -1386,7 +1392,7 @@ const ListingCardGrid = (x: Listing) => {
       className={cx(
         "rounded-2xl border bg-black/25 p-3 sm:p-4 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
-          ? "border-yellow-400/25 ring-1 ring-yellow-400/10 shadow-[0_0_0_1px_rgba(250,204,21,0.10),0_10px_30px_-14px_rgba(0,0,0,0.75)]"
+          ? "border-yellow-400/30 ring-1 ring-yellow-400/15 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.12),0_12px_34px_-16px_rgba(0,0,0,0.78)]"
           : tier === "corona"
             ? "border-yellow-400/15"
             : tier === "joya"
@@ -1406,6 +1412,9 @@ const ListingCardGrid = (x: Listing) => {
           <div className="mt-1 text-sm text-gray-300">
             <span className="text-gray-200">{x.city}</span> <span className="text-gray-400">•</span> {x.postedAgo[lang]}
           </div>
+          {x.sellerType === "business" && x.businessName ? (
+            <div className="mt-1 text-xs font-medium text-yellow-100/90">{x.businessName}</div>
+          ) : null}
           {micro ? <div className="mt-1 text-xs text-gray-300">{micro}</div> : null}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {x.sellerType && tier !== "corona" && tier !== "corona-oro" ? (
@@ -1473,7 +1482,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
       className={cx(
         "group flex items-stretch gap-3 rounded-2xl border bg-black/25 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[2px]",
         tier === "corona-oro"
-          ? "border-yellow-400/25 ring-1 ring-yellow-400/10"
+          ? "border-yellow-400/30 ring-1 ring-yellow-400/15 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25"
           : tier === "corona"
             ? "border-yellow-400/15"
             : tier === "joya"
@@ -1506,6 +1515,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             <div className="mt-0.5 text-xs text-gray-300">
               {x.city} • {x.postedAgo[lang]}
             </div>
+            {x.sellerType === "business" && x.businessName ? (
+              <div className="mt-0.5 text-[11px] font-medium text-yellow-100/90">{x.businessName}</div>
+            ) : null}
             {micro ? <div className="mt-0.5 text-xs text-gray-300">{micro}</div> : null}
           </a>
 
