@@ -1463,9 +1463,9 @@ const ListingCardGrid = (x: Listing) => {
     <div
       key={x.id}
       className={cx(
-        "rounded-2xl border bg-black/25 p-2.5 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
+        "rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
-          ? "border-yellow-400/30 ring-1 ring-yellow-400/15 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.12),0_12px_34px_-16px_rgba(0,0,0,0.78)]"
+          ? "border-yellow-400/35 ring-1 ring-yellow-400/20 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.14),0_0_26px_rgba(250,204,21,0.08),0_12px_34px_-16px_rgba(0,0,0,0.78)]"
           : tier === "corona"
             ? "border-yellow-400/15"
             : tier === "joya"
@@ -1553,9 +1553,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
     <div
       key={x.id}
       className={cx(
-        "group flex items-stretch gap-3 rounded-2xl border bg-black/25 p-2.5 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[2px]",
+        "group flex items-stretch gap-3 rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[2px]",
         tier === "corona-oro"
-          ? "border-yellow-400/30 ring-1 ring-yellow-400/15 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25"
+          ? "border-yellow-400/35 ring-1 ring-yellow-400/20 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.14),0_0_26px_rgba(250,204,21,0.08)]"
           : tier === "corona"
             ? "border-yellow-400/15"
             : tier === "joya"
@@ -1901,9 +1901,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
         {/* RESULTS TOOLBAR (unchanged) */}
         <section className="mt-3 md:sticky md:top-[calc(72px+16px)] z-20">
           <div className="rounded-2xl border border-white/10 bg-neutral-900/55 backdrop-blur px-4 py-2.5 sm:py-3 ring-1 ring-yellow-600/10 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
-                <div className="text-lg font-semibold tracking-tight text-yellow-300">
+                <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">
                   {UI.results[lang]}
                 </div>
                 {category !== "all" ? (
@@ -2411,7 +2411,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           <div className="absolute inset-0 bg-black/70" onClick={() => setMoreOpen(false)} />
           <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold tracking-tight text-yellow-300">{UI.moreFilters[lang]}</div>
+              <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">{UI.moreFilters[lang]}</div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
@@ -2474,7 +2474,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           <div className="absolute inset-0 bg-black/70" onClick={() => setLocationOpen(false)} />
           <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold tracking-tight text-yellow-300">{UI.location[lang]}</div>
+              <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">{UI.location[lang]}</div>
               <button
                 type="button"
                 onClick={() => setLocationOpen(false)}
@@ -2573,7 +2573,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <button
                 type="button"
                 onClick={onUseMyLocation}
