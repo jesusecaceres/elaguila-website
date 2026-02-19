@@ -1381,6 +1381,79 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
   );
 };
 
+const BadgeLegend = ({ lang }: { lang: Lang }) => {
+  const summary =
+    lang === "es" ? "¿Qué significan las insignias?" : "What do the badges mean?";
+
+  const items: Array<{ tier: VisualTier; text: { es: string; en: string } }> = [
+    {
+      tier: "corona-oro",
+      text: {
+        es: "Corona de Oro — negocios con perfil completo y contacto directo.",
+        en: "Gold Crown — businesses with a complete profile and direct contact.",
+      },
+    },
+    {
+      tier: "corona",
+      text: {
+        es: "Corona — negocio verificado (presencia profesional).",
+        en: "Crown — verified business presence.",
+      },
+    },
+    {
+      tier: "joya",
+      text: {
+        es: "Joya — vendedor personal con perfil mejorado.",
+        en: "Jewel — personal seller with an upgraded profile.",
+      },
+    },
+  ];
+
+  return (
+    <details className="group mt-2 w-fit max-w-full text-left">
+      <summary
+        className={cx(
+          "cursor-pointer select-none text-xs font-medium text-gray-300",
+          "hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/60",
+          "rounded-md"
+        )}
+      >
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-500/60" aria-hidden="true" />
+          {summary}
+          <span
+            className="text-gray-400 group-open:rotate-180 transition-transform"
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </span>
+      </summary>
+
+      <div className="mt-2 rounded-xl border border-yellow-600/20 bg-black/40 p-3">
+        <div className="space-y-2">
+          {items.map((it) => (
+            <div key={it.tier ?? "none"} className="flex items-start gap-2">
+              <div className="mt-[1px] shrink-0">
+                <TierBadge tier={it.tier} lang={lang} />
+              </div>
+              <div className="text-xs text-gray-300 leading-snug">
+                {it.text[lang]}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-2 text-[11px] text-gray-400">
+          {lang === "es"
+            ? "Las insignias son una señal visual. No reemplazan los filtros."
+            : "Badges are a visual signal. They don’t replace filters."}
+        </div>
+      </div>
+    </details>
+  );
+};
+
 const ListingCardGrid = (x: Listing) => {
   const isFav = favIds.has(x.id);
   const micro = microLine(x);
@@ -1848,6 +1921,8 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   {UI.showing[lang]} {visible.length + businessTop.length} {UI.of[lang]}{" "}
                   {filtered.length}
                 </div>
+
+                <BadgeLegend lang={lang} />
               </div>
 
               <div className="hidden md:flex items-center justify-between gap-3 md:justify-end">
