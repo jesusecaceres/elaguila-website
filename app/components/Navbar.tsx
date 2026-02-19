@@ -57,6 +57,7 @@ function NavbarContent() {
   const urlLang = searchParams?.get("lang");
   const [lang, setLang] = useState<Lang>(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
 
   // Auth UI state
   const [user, setUser] = useState<NavbarUser | null>(null);
@@ -75,6 +76,7 @@ function NavbarContent() {
   useEffect(() => {
     setMobileOpen(false);
     setAccountOpen(false);
+    setMobileAccountOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, urlLang, searchParams?.toString()]);
 
@@ -428,82 +430,98 @@ try {
               ×
             </button>
 
-            {/* ACCOUNT (MOBILE) */}
-            <div className="border border-white/10 rounded-2xl bg-black/30 p-4">
-              {authLoading ? (
-                <div className="h-10 rounded-xl bg-white/10 animate-pulse" />
-              ) : user ? (
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold">
-                    {initials}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-white/90 font-semibold truncate">
-                      {accountLabel}
-                    </div>
-                    <div className="text-white/50 text-xs truncate">
-                      {user.email}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    goToLogin();
-                  }}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
-                >
-                  {L.signIn}
-                </button>
-              )}
-
-              {user && (
-                <div className="mt-4 flex flex-col gap-2">
-                  <Link
-                    href={`/dashboard?lang=${lang}`}
-                    className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {L.dashboard}
-                  </Link>
-                  <Link
-                    href={`/dashboard/mis-anuncios?lang=${lang}`}
-                    className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {L.myListings}
-                  </Link>
-                  <button
-                    onClick={async () => {
-                      await signOut();
-                      setMobileOpen(false);
-                    }}
-                    className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition text-left"
-                  >
-                    {L.signOut}
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* NAV LINKS */}
-            {navLinks.map((item, i) => (
-              <Link
-                key={i}
-                href={buildLink(item.href)}
-                onClick={() => setMobileOpen(false)}
-                className={cx(
-                  "text-base font-semibold",
-                  item.gold ? "text-yellow-300" : "text-white",
-                  isActive(item.href) && !item.gold && "text-yellow-200"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+{navLinks.map((item, i) => (
+  <Link
+    key={i}
+    href={buildLink(item.href)}
+    onClick={() => setMobileOpen(false)}
+    className={cx(
+      "text-base font-semibold",
+      item.gold ? "text-yellow-300" : "text-white",
+      isActive(item.href) && !item.gold && "text-yellow-200"
+    )}
+  >
+    {item.label}
+  </Link>
+))}
 
-            {/* LANGUAGE TOGGLE MOBILE */}
+{/* ACCOUNT (MOBILE) — collapsible so it never pushes nav down */}
+<div className="mt-2 rounded-2xl border border-white/10 bg-black/25 overflow-hidden">
+  <button
+    type="button"
+    onClick={() => setMobileAccountOpen((v) => !v)}
+    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+    aria-expanded={mobileAccountOpen}
+  >
+    <div className="text-white/90 font-semibold">
+      {lang === "es" ? "Cuenta" : "Account"}
+    </div>
+    <div className="text-white/70 text-lg">{mobileAccountOpen ? "−" : "+"}</div>
+  </button>
+
+  {mobileAccountOpen && (
+    <div className="px-4 pb-4">
+      {authLoading ? (
+        <div className="h-10 rounded-xl bg-white/10 animate-pulse" />
+      ) : user ? (
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <div className="text-white/90 font-semibold truncate">
+              {accountLabel}
+            </div>
+            <div className="text-white/50 text-xs truncate">
+              {user.email}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => {
+            setMobileOpen(false);
+            goToLogin();
+          }}
+          className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
+        >
+          {L.signIn}
+        </button>
+      )}
+
+      {user && (
+        <div className="mt-4 flex flex-col gap-2">
+          <Link
+            href={`/dashboard?lang=${lang}`}
+            className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
+            onClick={() => setMobileOpen(false)}
+          >
+            {L.dashboard}
+          </Link>
+          <Link
+            href={`/dashboard/mis-anuncios?lang=${lang}`}
+            className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
+            onClick={() => setMobileOpen(false)}
+          >
+            {L.myListings}
+          </Link>
+          <button
+            onClick={async () => {
+              await signOut();
+              setMobileOpen(false);
+            }}
+            className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition text-left"
+          >
+            {L.signOut}
+          </button>
+        </div>
+      )}
+    </div>
+  )}
+</div>
+
+{/* LANGUAGE TOGGLE MOBILE */}
             <div className="flex gap-6 pt-6 text-white text-base font-semibold">
               <button
                 onClick={() => {

@@ -283,7 +283,19 @@ export default function ClasificadosPage() {
       const business = all.filter((x) => x.sellerType === "business");
       const personal = all.filter((x) => x.sellerType === "personal");
       const limit = (limits as any)[cat] as number;
-      out[cat] = [...business, ...personal].slice(0, limit);
+// Fair mix: businesses get priority visibility, but personal listings must appear early too
+const mixed: Listing[] = [];
+let bi = 0;
+let pi = 0;
+
+// Pattern: B, P, B, P... (keeps businesses strong but prevents a wall of only business)
+while (mixed.length < limit && (bi < business.length || pi < personal.length)) {
+  if (bi < business.length) mixed.push(business[bi++]);
+  if (mixed.length >= limit) break;
+  if (pi < personal.length) mixed.push(personal[pi++]);
+}
+
+out[cat] = mixed.slice(0, limit);
     }
 
     return out;

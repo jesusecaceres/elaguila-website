@@ -1,0 +1,8 @@
+﻿FILES INCLUDED:
+app\components\Navbar.tsx
+app\clasificados\page.tsx
+app\clasificados\components\FilterBar.tsx
+app\clasificados\components\CategoryTabs.tsx
+app\clasificados\components\ListingsGrid.tsx
+app\clasificados\components\ListingCard.tsx
+app\clasificados\components\PlaceholderCard.tsx
