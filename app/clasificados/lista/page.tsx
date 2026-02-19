@@ -1363,7 +1363,7 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
       ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-50 shadow-[0_0_0_1px_rgba(16,185,129,0.14)]"
       : tier === "corona"
         ? "border-yellow-400/30 bg-yellow-400/10 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.12)]"
-        : "border-yellow-300/60 bg-yellow-400/20 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.22),0_0_22px_rgba(250,204,21,0.12)]";
+        : "border-yellow-300/70 bg-gradient-to-r from-yellow-500/20 via-yellow-300/15 to-yellow-500/20 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.26),0_0_26px_rgba(250,204,21,0.14)]";
 
   return (
     <span
@@ -1465,11 +1465,11 @@ const ListingCardGrid = (x: Listing) => {
       className={cx(
         "rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
-          ? "border-yellow-400/35 ring-1 ring-yellow-400/20 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.14),0_0_26px_rgba(250,204,21,0.08),0_12px_34px_-16px_rgba(0,0,0,0.78)]"
+          ? "border-yellow-400/45 ring-1 ring-yellow-400/25 bg-gradient-to-b from-yellow-500/14 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.16),0_0_30px_rgba(250,204,21,0.10),0_14px_40px_-18px_rgba(0,0,0,0.82)]"
           : tier === "corona"
-            ? "border-yellow-400/15"
+            ? "border-yellow-400/20 bg-yellow-500/5"
             : tier === "joya"
-              ? "border-emerald-400/15"
+              ? "border-emerald-400/20 bg-emerald-500/5"
               : "border-white/10"
       )}
     >
@@ -1525,7 +1525,7 @@ const ListingCardGrid = (x: Listing) => {
         </button>
       </div>
 
-      <div className="mt-2 text-base sm:text-lg font-semibold text-yellow-300 tracking-tight">
+      <div className="mt-2 text-base sm:text-lg font-bold text-yellow-200 tracking-tight">
         {x.priceLabel[lang]}
       </div>
       <div className="mt-2 line-clamp-2 text-sm text-gray-200">
@@ -1557,9 +1557,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
         tier === "corona-oro"
           ? "border-yellow-400/35 ring-1 ring-yellow-400/20 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.14),0_0_26px_rgba(250,204,21,0.08)]"
           : tier === "corona"
-            ? "border-yellow-400/15"
+            ? "border-yellow-400/20 bg-yellow-500/5"
             : tier === "joya"
-              ? "border-emerald-400/15"
+              ? "border-emerald-400/20 bg-emerald-500/5"
               : "border-white/10"
       )}
     >
@@ -1595,7 +1595,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </a>
 
           <div className="flex items-center gap-2">
-            <div className="text-sm font-bold text-yellow-300">
+            <div className="text-sm sm:text-base font-extrabold text-yellow-200 tracking-tight">
               {x.priceLabel[lang]}
             </div>
             <button
@@ -2343,7 +2343,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             </button>
           </div>
 
-          <div className="mt-2 text-sm font-semibold text-yellow-300">{x.priceLabel[lang]}</div>
+          <div className="mt-2 text-sm font-bold text-yellow-200 tracking-tight">{x.priceLabel[lang]}</div>
 
           <a
             href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
@@ -2357,7 +2357,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   </section>
 ) : null}        <section className="mt-6">
           {view === "grid" ? (
-            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {visible.map(ListingCardGrid)}
             </div>
           ) : (
