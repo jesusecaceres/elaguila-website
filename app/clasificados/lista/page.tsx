@@ -1732,57 +1732,75 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </p>
         </div>
 
-<div className="mt-7">
-  <div className="mx-auto max-w-6xl">
-    <div className="flex items-center justify-between gap-3">
-      <div className="text-xs font-semibold text-gray-300">
-        {lang === "es" ? "Explorar por categoría" : "Browse by category"}
-      </div>
+        <section className="mt-7">
+          <div className="rounded-2xl border border-yellow-600/20 bg-black/30 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold text-gray-200">
+                {lang === "es" ? "Explorar por categoría" : "Browse by category"}
+              </div>
 
-      <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-500">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-500/60" />
-        <span>{lang === "es" ? "Cambio rápido" : "Quick switch"}</span>
-      </div>
-    </div>
+              <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-500">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-500/60" />
+                <span>{lang === "es" ? "Cambio rápido" : "Quick switch"}</span>
+              </div>
+            </div>
 
-    <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {CATEGORY_ORDER.map((c) => {
-        const active = c === category;
-        return (
-          <button
-            key={c}
-            type="button"
-            onClick={() => switchCategory(c)}
-            aria-current={active ? "page" : undefined}
-            className={cx(
-              "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors",
-              active
-                ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-            )}
-          >
-            {CATEGORY_LABELS[c][lang]}
-          </button>
-        );
-      })}
-    </div>
-  </div>
-</div>
+            {/* Switch feedback (no layout shift) */}
+            <div
+              className={cx(
+                "mt-3 h-0.5 w-full overflow-hidden rounded-full bg-white/10 transition-colors",
+                isSwitchingCategory ? "bg-yellow-500/25" : ""
+              )}
+              aria-hidden="true"
+            >
+              <div
+                className={cx(
+                  "h-full w-full transition-opacity",
+                  isSwitchingCategory ? "opacity-100 animate-pulse bg-yellow-400/40" : "opacity-0"
+                )}
+              />
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {CATEGORY_ORDER.map((c) => {
+                const active = c === category;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => switchCategory(c)}
+                    aria-current={active ? "page" : undefined}
+                    className={cx(
+                      "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400/50",
+                      active
+                        ? "border-yellow-500/50 bg-yellow-500/15 text-yellow-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                    )}
+                  >
+                    {CATEGORY_LABELS[c][lang]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
 
 <div ref={resultsTopRef} />
 
         <div
           className={cx(
-            "mt-10",
+            "mt-8 transition-opacity duration-200",
             "md:grid md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[280px,1fr]"
+            filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[280px,1fr]",
+            isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
         {/* FILTER BAR (Option B: shorter height ONLY) */}
         <section
           className={cx(
             "hidden md:block",
-            "sticky top-[72px] z-30 mt-10 md:mt-0 md:top-[calc(72px+16px)]",
+            "sticky top-[72px] z-30 mt-0 md:top-[calc(72px+16px)]",
             "rounded-2xl border border-white/10 bg-neutral-900/60 backdrop-blur",
             compact ? "shadow-lg" : ""
           )}
@@ -1997,12 +2015,18 @@ const ListingRow = (x: Listing, withImg: boolean) => {
         <div className="md:col-start-2 md:mt-0">
 
         {/* RESULTS TOOLBAR (unchanged) */}
-        <section className="mt-3 md:sticky md:top-[calc(72px+16px)] z-20">
-          <div className="rounded-2xl border border-white/10 bg-neutral-900/55 backdrop-blur px-4 py-2.5 sm:py-3 ring-1 ring-yellow-600/10 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]">
+        <section className="mt-3 md:sticky md:top-[calc(72px+16px)] z-20" aria-busy={isSwitchingCategory}>
+          <div className={cx("rounded-2xl border border-white/10 bg-neutral-900/55 backdrop-blur px-4 py-2.5 sm:py-3 ring-1 ring-yellow-600/10 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] transition-opacity duration-200", isSwitchingCategory ? "opacity-85" : "opacity-100")}>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
                 <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">
                   {UI.results[lang]}
+                </div>
+                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-400">
+                  <span className={cx("inline-flex h-1.5 w-1.5 rounded-full bg-white/20 transition-opacity", isSwitchingCategory ? "opacity-100 bg-yellow-400/60 animate-pulse" : "opacity-0")} aria-hidden="true" />
+                  <span className={cx("transition-opacity", isSwitchingCategory ? "opacity-100" : "opacity-0")} aria-live="polite">
+                    {lang === "es" ? "Cambiando categoría…" : "Switching category…"}
+                  </span>
                 </div>
                 {category !== "all" ? (
                   <a
