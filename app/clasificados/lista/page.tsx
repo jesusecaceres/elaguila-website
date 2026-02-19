@@ -408,6 +408,8 @@ export default function ListaPage() {
 
   const [compact, setCompact] = useState(false);
 
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
 
@@ -1483,16 +1485,39 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </p>
         </div>
 
+                <div
+          className={cx(
+            "mt-10",
+            "md:grid md:gap-6",
+            filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[280px,1fr]"
+          )}
+        >
         {/* FILTER BAR (Option B: shorter height ONLY) */}
         <section
           className={cx(
-            "sticky top-[72px] z-30 mt-10",
-            "rounded-2xl border border-white/10 bg-black/45 backdrop-blur",
+            "sticky top-[72px] z-30 mt-10 md:mt-0 md:top-[calc(72px+16px)]",
+            "rounded-2xl border border-white/10 bg-neutral-900/60 backdrop-blur",
             compact ? "shadow-lg" : ""
           )}
         >
           <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
+          <div className="hidden md:flex items-start justify-between gap-4 mb-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Refina tus resultados" : "Refine your results"}</div>
+              <div className="mt-0.5 text-xs text-gray-400">{lang === "es" ? "Usa filtros para encontrar lo que necesitas más rápido." : "Use filters to find what you need faster."}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersCollapsed((v) => !v)}
+              className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10"
+              aria-label={lang === "es" ? "Colapsar filtros" : "Collapse filters"}
+            >
+              {filtersCollapsed
+                ? `${lang === "es" ? "Filtros" : "Filters"} (${activeChips.length})`
+                : lang === "es" ? "Colapsar" : "Collapse"}
+            </button>
+          </div>
+            <div className={cx("grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end", filtersCollapsed ? "md:hidden" : "")}>
               {/* Search */}
               <div ref={searchBoxRef} className="col-span-2 md:col-span-5">
                 <label className="block text-xs font-semibold text-gray-300">
@@ -1682,9 +1707,11 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </div>
         </section>
 
+        <div className="md:col-start-2 md:mt-0">
+
         {/* RESULTS TOOLBAR (unchanged) */}
         <section className="mt-4 md:sticky md:top-[calc(72px+16px)] z-20">
-          <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur px-4 py-3">
+          <div className="rounded-2xl border border-white/10 bg-neutral-900/50 backdrop-blur px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
                 <div className="text-lg font-semibold text-yellow-300">
@@ -1871,6 +1898,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             {UI.next[lang]}
           </button>
         </section>
+
+        </div>
+        </div>
       </main>
 
       {/* MORE FILTERS DRAWER (unchanged) */}
