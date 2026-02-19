@@ -1313,7 +1313,7 @@ const ActionPills = (x: Listing) => {
           href={p.href}
           target={p.external ? "_blank" : undefined}
           rel={p.external ? "noreferrer" : undefined}
-          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-100 hover:bg-white/10"
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
         >
           {p.label}
         </a>
@@ -1364,7 +1364,7 @@ const ListingCardGrid = (x: Listing) => {
             "shrink-0 rounded-xl border px-3 py-2 text-sm",
             isFav
               ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-              : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+              : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
           )}
           aria-label={
             isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")
@@ -1385,7 +1385,7 @@ const ListingCardGrid = (x: Listing) => {
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-        className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10"
+        className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
       >
         {lang === "es" ? "Ver detalle" : "View details"}
       </a>
@@ -1438,7 +1438,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 "rounded-lg border px-2 py-1 text-xs",
                 isFav
                   ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               )}
               aria-label={
                 isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")
@@ -1531,7 +1531,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             <button
               type="button"
               onClick={() => setFiltersCollapsed((v) => !v)}
-              className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10"
+              className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               aria-label={lang === "es" ? "Colapsar filtros" : "Collapse filters"}
             >
               {filtersCollapsed
@@ -1574,7 +1574,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                             setCategory(c);
                             setSuggestionsOpen(false);
                           }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
                           <span className="text-xs text-gray-400">
@@ -1595,7 +1595,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -1652,7 +1652,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 >
                   {UI.moreFilters[lang]}
                 </button>
@@ -1660,7 +1660,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={resetAll}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 >
                   {UI.reset[lang]}
                 </button>
@@ -1688,7 +1688,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={() => scrollChips("left")}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                   aria-label={lang === "es" ? "Desplazar izquierda" : "Scroll left"}
                 >
                   ‹
@@ -1709,7 +1709,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                         "whitespace-nowrap rounded-full border px-3 py-1 text-xs",
                         normalize(c.city) === normalize(resolvedCity.name)
                           ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                       )}
                     >
                       {c.city}
@@ -1719,7 +1719,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={() => scrollChips("right")}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10"
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                   aria-label={lang === "es" ? "Desplazar derecha" : "Scroll right"}
                 >
                   ›
@@ -1765,7 +1765,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list"
                         ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                     )}
                     aria-label={lang === "es" ? "Vista de lista" : "List view"}
                   >
@@ -1778,7 +1778,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list-img"
                         ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                     )}
                     aria-label={lang === "es" ? "Lista con imagen" : "List with images"}
                   >
@@ -1791,7 +1791,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "grid"
                         ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                     )}
                     aria-label={lang === "es" ? "Vista de cuadrícula" : "Grid view"}
                   >
@@ -1831,7 +1831,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 "rounded-xl border px-3 py-2 text-sm",
                 mobilePanelTab === "filters"
                   ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               )}
             >
               {lang === "es" ? "Filtros" : "Filters"}
@@ -1848,7 +1848,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 "rounded-xl border px-3 py-2 text-sm",
                 mobilePanelTab === "sort"
                   ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               )}
             >
               {lang === "es" ? "Ordenar" : "Sort"}
@@ -1858,7 +1858,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
             aria-label={lang === "es" ? "Cerrar" : "Close"}
           >
             ✕
@@ -1904,7 +1904,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                             setCategory(c);
                             setSuggestionsOpen(false);
                           }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
                           <span className="text-xs text-gray-400">
@@ -1925,7 +1925,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -1980,7 +1980,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               >
                 {UI.moreFilters[lang]}
               </button>
@@ -2015,7 +2015,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list"
                         ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                     )}
                   >
                     {lang === "es" ? "Lista" : "List"}
@@ -2027,7 +2027,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list-img"
                         ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                     )}
                   >
                     {lang === "es" ? "Lista + foto" : "List + image"}
@@ -2039,7 +2039,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "grid"
                         ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                     )}
                   >
                     {lang === "es" ? "Cuadrícula" : "Grid"}
@@ -2072,7 +2072,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             onClick={() => {
               resetAll();
             }}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10"
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
           >
             {UI.reset[lang]}
           </button>
@@ -2099,7 +2099,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             setMobilePanelTab("filters");
             setMobilePanelOpen(true);
           }}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
         >
           {lang === "es" ? "Filtros" : "Filters"}
           {activeChips.length ? (
@@ -2114,7 +2114,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
             setMobilePanelTab("sort");
             setMobilePanelOpen(true);
           }}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
         >
           {lang === "es" ? "Ordenar" : "Sort"}
         </button>
@@ -2166,7 +2166,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 "shrink-0 rounded-lg border px-2 py-1 text-xs",
                 favIds.has(x.id)
                   ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               )}
               aria-label={favIds.has(x.id) ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
             >
@@ -2178,7 +2178,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
 
           <a
             href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-            className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs font-medium text-white hover:bg-white/10"
+            className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
           >
             {lang === "es" ? "Ver detalle" : "View details"}
           </a>
@@ -2188,7 +2188,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   </section>
 ) : null}        <section className="mt-6">
           {view === "grid" ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {visible.map(ListingCardGrid)}
             </div>
           ) : (
@@ -2207,7 +2207,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped <= 1
                 ? "border-white/10 bg-white/5 text-gray-500"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
             )}
           >
             {UI.prev[lang]}
@@ -2225,7 +2225,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped >= totalPages
                 ? "border-white/10 bg-white/5 text-gray-500"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
             )}
           >
             {UI.next[lang]}
@@ -2246,7 +2246,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               >
                 {UI.close[lang]}
               </button>
@@ -2282,7 +2282,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                     setSellerType(null);
                     setOnlyWithImage(false);
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 >
                   {UI.clear[lang]}
                 </button>
@@ -2309,7 +2309,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               <button
                 type="button"
                 onClick={() => setLocationOpen(false)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               >
                 {UI.close[lang]}
               </button>
@@ -2344,7 +2344,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                           setCitySuggestOpen(false);
                           setLocMsg("");
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                       >
                         {name}
                       </button>
@@ -2413,7 +2413,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   "rounded-xl border px-4 py-2 text-sm",
                   usingMyLocation
                     ? "border-white/10 bg-white/5 text-gray-500"
-                    : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                    : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 )}
               >
                 {UI.useMyLocation[lang]}
@@ -2428,7 +2428,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                     setCityQuery("");
                     setLocMsg("");
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                 >
                   {UI.clear[lang]}
                 </button>
@@ -2462,7 +2462,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                         "rounded-full border px-3 py-1 text-xs",
                         normalize(c.city) === normalize(resolvedCity.name)
                           ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
                       )}
                     >
                       {c.city}
