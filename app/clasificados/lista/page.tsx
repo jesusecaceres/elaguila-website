@@ -447,7 +447,12 @@ useEffect(() => {
     if (typeof window === "undefined") return;
     const isMobile = window.innerWidth < 768;
     setIsMobileUI(isMobile);
-    setView(isMobile ? "list" : "grid");
+    const savedView = localStorage.getItem("leonix_view_mode");
+    if (savedView) {
+      setView(savedView as any);
+    } else {
+      setView(isMobile ? "list" : "grid");
+    }
   }, []);
 
   useEffect(() => {
@@ -1754,7 +1759,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setView("list")}
+                    onClick={() => { setView("list"); localStorage.setItem("leonix_view_mode","list"); }}
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list"
@@ -1767,7 +1772,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setView("list-img")}
+                    onClick={() => { setView("list-img"); localStorage.setItem("leonix_view_mode","list-img"); }}
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list-img"
@@ -1780,7 +1785,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setView("grid")}
+                    onClick={() => { setView("grid"); localStorage.setItem("leonix_view_mode","grid"); }}
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "grid"
@@ -2004,7 +2009,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setView("list")}
+                    onClick={() => { setView("list"); localStorage.setItem("leonix_view_mode","list"); }}
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list"
@@ -2016,7 +2021,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setView("list-img")}
+                    onClick={() => { setView("list-img"); localStorage.setItem("leonix_view_mode","list-img"); }}
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list-img"
@@ -2028,7 +2033,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setView("grid")}
+                    onClick={() => { setView("grid"); localStorage.setItem("leonix_view_mode","grid"); }}
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "grid"
