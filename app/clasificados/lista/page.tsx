@@ -86,6 +86,18 @@ const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
   travel: { es: "Viajes", en: "Travel" },
 };
 
+const CATEGORY_ORDER: CategoryKey[] = [
+  "all",
+  "en-venta",
+  "rentas",
+  "autos",
+  "servicios",
+  "empleos",
+  "clases",
+  "comunidad",
+  "travel",
+];
+
 const SORT_LABELS: Record<SortKey, { es: string; en: string }> = {
   newest: { es: "Más nuevos", en: "Newest" },
   "price-asc": { es: "Precio ↑", en: "Price ↑" },
@@ -411,6 +423,34 @@ export default function ListaPage() {
   const [showTop, setShowTop] = useState(false);
 
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+
+// Category switching polish (A4.19)
+const resultsTopRef = useRef<HTMLDivElement | null>(null);
+const switchTimerRef = useRef<number | null>(null);
+const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
+
+const scrollToResultsTop = (behavior: ScrollBehavior = "smooth") => {
+  const el = resultsTopRef.current;
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY - 96; // navbar + breathing room
+  window.scrollTo({ top: Math.max(0, y), behavior });
+};
+
+const switchCategory = (next: CategoryKey) => {
+  if (next === category) return;
+  // subtle "state change" feel without layout shift
+  if (switchTimerRef.current) window.clearTimeout(switchTimerRef.current);
+  setIsSwitchingCategory(true);
+  setCategory(next);
+  scrollToResultsTop("smooth");
+  switchTimerRef.current = window.setTimeout(() => setIsSwitchingCategory(false), 180);
+};
+
+useEffect(() => {
+  return () => {
+    if (switchTimerRef.current) window.clearTimeout(switchTimerRef.current);
+  };
+}, []);
 
 // ✅ Mobile full-screen Filters/Sort panel (A3)
 const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
@@ -1673,7 +1713,46 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </p>
         </div>
 
-                <div
+<div className="mt-7">
+  <div className="mx-auto max-w-6xl">
+    <div className="flex items-center justify-between gap-3">
+      <div className="text-xs font-semibold text-gray-300">
+        {lang === "es" ? "Explorar por categoría" : "Browse by category"}
+      </div>
+
+      <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-500">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-500/60" />
+        <span>{lang === "es" ? "Cambio rápido" : "Quick switch"}</span>
+      </div>
+    </div>
+
+    <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {CATEGORY_ORDER.map((c) => {
+        const active = c === category;
+        return (
+          <button
+            key={c}
+            type="button"
+            onClick={() => switchCategory(c)}
+            aria-current={active ? "page" : undefined}
+            className={cx(
+              "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors",
+              active
+                ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            )}
+          >
+            {CATEGORY_LABELS[c][lang]}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+</div>
+
+<div ref={resultsTopRef} />
+
+        <div
           className={cx(
             "mt-10",
             "md:grid md:gap-6",
