@@ -1706,7 +1706,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                         setZip("");
                       }}
                       className={cx(
-                        "whitespace-nowrap rounded-full border px-3 py-1 text-xs",
+                        "whitespace-nowrap snap-start rounded-full border px-3 py-1 text-xs",
                         normalize(c.city) === normalize(resolvedCity.name)
                           ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
                           : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
