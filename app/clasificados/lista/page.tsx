@@ -407,6 +407,7 @@ export default function ListaPage() {
   const perPage = 9;
 
   const [compact, setCompact] = useState(false);
+  const [isMobileUI, setIsMobileUI] = useState(false);
 
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
@@ -445,7 +446,8 @@ useEffect(() => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isMobile = window.innerWidth < 768;
-    setView(isMobile ? "list-img" : "grid");
+    setIsMobileUI(isMobile);
+    setView(isMobile ? "list" : "grid");
   }, []);
 
   useEffect(() => {
@@ -1022,7 +1024,7 @@ useEffect(() => {
   if (pageClamped !== 1) return [] as Listing[];
   if (sellerType === "business") return [] as Listing[];
   const biz = filtered.filter((x) => x.sellerType === "business");
-  return biz.slice(0, 4);
+  return biz.slice(0, isMobileUI ? 2 : 4);
 }, [filtered, pageClamped, sellerType]);
 
 const visible = useMemo(() => {
@@ -1299,7 +1301,7 @@ const ActionPills = (x: Listing) => {
 
   return (
     <div className="mt-4 flex flex-wrap gap-2">
-      {pills.slice(0, 4).map((p) => (
+      {pills.slice(0, isMobileUI ? 2 : 4).map((p) => (
         <a
           key={p.href + p.label}
           href={p.href}
@@ -1321,11 +1323,11 @@ const ListingCardGrid = (x: Listing) => {
   return (
     <div
       key={x.id}
-      className="rounded-2xl border border-white/10 bg-black/25 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
+      className="rounded-2xl border border-white/10 bg-black/25 p-3 sm:p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-lg font-semibold text-white">{x.title[lang]}</div>
+          <div className="truncate text-base sm:text-lg font-semibold text-white leading-snug">{x.title[lang]}</div>
           <div className="mt-1 text-sm text-gray-300">
             {x.city} • {x.postedAgo[lang]}
           </div>
@@ -1366,10 +1368,10 @@ const ListingCardGrid = (x: Listing) => {
         </button>
       </div>
 
-      <div className="mt-3 text-lg font-semibold text-yellow-300">
+      <div className="mt-2 text-base sm:text-lg font-semibold text-yellow-300">
         {x.priceLabel[lang]}
       </div>
-      <div className="mt-3 line-clamp-3 text-sm text-gray-200">
+      <div className="mt-2 line-clamp-2 text-sm text-gray-200">
         {x.blurb[lang]}
       </div>
 
@@ -1377,7 +1379,7 @@ const ListingCardGrid = (x: Listing) => {
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-        className="mt-5 block rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-medium text-white hover:bg-white/10"
+        className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10"
       >
         {lang === "es" ? "Ver detalle" : "View details"}
       </a>
@@ -1392,10 +1394,10 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   return (
     <div
       key={x.id}
-      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 hover:bg-white/10"
+      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 sm:p-4 hover:bg-white/10"
     >
       {withImg ? (
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+        <div className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           {x.hasImage ? (
             <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
           ) : (
