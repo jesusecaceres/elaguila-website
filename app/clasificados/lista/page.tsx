@@ -408,6 +408,7 @@ export default function ListaPage() {
 
   const [compact, setCompact] = useState(false);
   const [isMobileUI, setIsMobileUI] = useState(false);
+  const [showTop, setShowTop] = useState(false);
 
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
@@ -2473,15 +2474,17 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </div>
         </div>
       ) : null}
+
+      {/* Back To Top */}
+      {showTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-yellow-500 p-3 text-black shadow-lg hover:bg-yellow-400 md:hidden"
+          aria-label="Back to top"
+        >
+          ↑
+        </button>
+      )}
     </div>
   );
 }
-
-
-  {/* Back To Top */}
-  <button
-    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-    className="fixed bottom-6 right-6 z-50 rounded-full bg-yellow-500 p-3 text-black shadow-lg hover:bg-yellow-400"
-  >
-    ↑
-  </button>

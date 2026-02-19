@@ -1,8 +1,2 @@
 ﻿FILES INCLUDED:
 app\clasificados\lista\page.tsx
-app\clasificados\components\FilterBar.tsx
-app\clasificados\components\ListingsGrid.tsx
-app\clasificados\components\ListingCard.tsx
-app\clasificados\components\PlaceholderCard.tsx
-app\clasificados\config\categoryConfig.ts
-app\data\classifieds\sampleListings.ts
