@@ -410,6 +410,19 @@ export default function ListaPage() {
 
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
+// ✅ Mobile full-screen Filters/Sort panel (A3)
+const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+const [mobilePanelTab, setMobilePanelTab] = useState<"filters" | "sort">("filters");
+
+useEffect(() => {
+  if (!mobilePanelOpen) return;
+  const prev = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+  return () => {
+    document.body.style.overflow = prev;
+  };
+}, [mobilePanelOpen]);
+
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
 
@@ -1495,6 +1508,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
         {/* FILTER BAR (Option B: shorter height ONLY) */}
         <section
           className={cx(
+            "hidden md:block",
             "sticky top-[72px] z-30 mt-10 md:mt-0 md:top-[calc(72px+16px)]",
             "rounded-2xl border border-white/10 bg-neutral-900/60 backdrop-blur",
             compact ? "shadow-lg" : ""
@@ -1734,7 +1748,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 md:justify-end">
+              <div className="hidden md:flex items-center justify-between gap-3 md:justify-end">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1790,7 +1804,318 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               </div>
             </div>
           </div>
-        </section>
+        
+{/* Mobile full-screen Filters/Sort (A3) */}
+{mobilePanelOpen ? (
+  <div className="fixed inset-0 z-50 md:hidden">
+    <div
+      className="absolute inset-0 bg-black/70"
+      onClick={() => setMobilePanelOpen(false)}
+    />
+    <div className="absolute inset-0 flex flex-col">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-4">
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-neutral-900/95 backdrop-blur p-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMobilePanelTab("filters")}
+              className={cx(
+                "rounded-xl border px-3 py-2 text-sm",
+                mobilePanelTab === "filters"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+              )}
+            >
+              {lang === "es" ? "Filtros" : "Filters"}
+              {activeChips.length ? (
+                <span className="ml-2 text-xs text-gray-200/80">
+                  ({activeChips.length})
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobilePanelTab("sort")}
+              className={cx(
+                "rounded-xl border px-3 py-2 text-sm",
+                mobilePanelTab === "sort"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+              )}
+            >
+              {lang === "es" ? "Ordenar" : "Sort"}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobilePanelOpen(false)}
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10"
+            aria-label={lang === "es" ? "Cerrar" : "Close"}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-6 pt-3">
+        <div className="h-full overflow-y-auto rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur p-4">
+          {mobilePanelTab === "filters" ? (
+            <div className="grid grid-cols-1 gap-3">
+              {/* Search */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.search[lang]}
+                </label>
+                <div className="relative mt-1.5">
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    onFocus={() => {
+                      if (suggestions.length) setSuggestionsOpen(true);
+                    }}
+                    placeholder={
+                      lang === "es"
+                        ? "Buscar: trabajo, troca, cuarto…"
+                        : "Search: jobs, truck, room…"
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    aria-label={UI.search[lang]}
+                  />
+
+                  {suggestionsOpen && suggestions.length ? (
+                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-white/10 bg-black/90 shadow-2xl">
+                      <div className="px-3 py-2 text-[11px] text-gray-400">
+                        {lang === "es" ? "Sugerencias" : "Suggestions"}
+                      </div>
+                      {suggestions.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setCategory(c);
+                            setSuggestionsOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        >
+                          <span>{CATEGORY_LABELS[c][lang]}</span>
+                          <span className="text-xs text-gray-400">
+                            {lang === "es" ? "Categoría" : "Category"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.location[lang]}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setLocationOpen(true)}
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                >
+                  <span className="truncate">{locationLabel}</span>
+                  <span className="ml-3 shrink-0 text-xs text-gray-400">
+                    {UI.edit[lang]}
+                  </span>
+                </button>
+                {locMsg ? (
+                  <div className="mt-1 text-[11px] text-gray-400">{locMsg}</div>
+                ) : null}
+              </div>
+
+              {/* Radius */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.radius[lang]}
+                </label>
+                <select
+                  value={radiusMi}
+                  onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                >
+                  {[5, 10, 25, 40, 50].map((r) => (
+                    <option key={r} value={r}>
+                      {r} mi
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-300">
+                  {UI.category[lang]}
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as CategoryKey)}
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                >
+                  <option value="all">{CATEGORY_LABELS.all[lang]}</option>
+                  <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
+                  <option value="rentas">{CATEGORY_LABELS.rentas[lang]}</option>
+                  <option value="autos">{CATEGORY_LABELS.autos[lang]}</option>
+                  <option value="servicios">{CATEGORY_LABELS.servicios[lang]}</option>
+                  <option value="empleos">{CATEGORY_LABELS.empleos[lang]}</option>
+                  <option value="clases">{CATEGORY_LABELS.clases[lang]}</option>
+                  <option value="comunidad">{CATEGORY_LABELS.comunidad[lang]}</option>
+                  <option value="travel">{CATEGORY_LABELS.travel[lang]}</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+              >
+                {UI.moreFilters[lang]}
+              </button>
+
+              {activeChips.length ? (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {activeChips.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={c.clear}
+                      className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1 text-xs text-yellow-100 hover:bg-yellow-600/15"
+                      aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
+                    >
+                      {c.text} <span className="ml-1 opacity-80">×</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-200">
+                  {lang === "es" ? "Vista" : "View"}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setView("list")}
+                    className={cx(
+                      "rounded-lg border px-3 py-2 text-sm",
+                      view === "list"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                    )}
+                  >
+                    {lang === "es" ? "Lista" : "List"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("list-img")}
+                    className={cx(
+                      "rounded-lg border px-3 py-2 text-sm",
+                      view === "list-img"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                    )}
+                  >
+                    {lang === "es" ? "Lista + foto" : "List + image"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("grid")}
+                    className={cx(
+                      "rounded-lg border px-3 py-2 text-sm",
+                      view === "grid"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                    )}
+                  >
+                    {lang === "es" ? "Cuadrícula" : "Grid"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-200">
+                  {UI.sort[lang]}
+                </label>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortKey)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                  aria-label={UI.sort[lang]}
+                >
+                  <option value="newest">{SORT_LABELS.newest[lang]}</option>
+                  <option value="price-asc">{SORT_LABELS["price-asc"][lang]}</option>
+                  <option value="price-desc">{SORT_LABELS["price-desc"][lang]}</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              resetAll();
+            }}
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10"
+          >
+            {UI.reset[lang]}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobilePanelOpen(false)}
+            className="flex-1 rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-500/20"
+          >
+            {UI.done[lang]}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+) : null}
+
+<div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
+  <div className="mx-auto w-full max-w-6xl px-4 pb-4">
+    <div className="rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur shadow-lg">
+      <div className="flex items-center gap-3 p-3">
+        <button
+          type="button"
+          onClick={() => {
+            setMobilePanelTab("filters");
+            setMobilePanelOpen(true);
+          }}
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10"
+        >
+          {lang === "es" ? "Filtros" : "Filters"}
+          {activeChips.length ? (
+            <span className="ml-2 text-xs font-medium text-gray-200/80">
+              ({activeChips.length})
+            </span>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMobilePanelTab("sort");
+            setMobilePanelOpen(true);
+          }}
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10"
+        >
+          {lang === "es" ? "Ordenar" : "Sort"}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
 
         
 {businessTop.length ? (
