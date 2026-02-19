@@ -1512,7 +1512,24 @@ const ListingCardGrid = (x: Listing) => {
               ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
       )}
-    >\n      {/* Tier accent (clarity, no layout shift) */}\n      {tier ? (\n        <div\n          aria-hidden=\"true\"\n          className={cx(\n            \"pointer-events-none absolute inset-x-0 top-0 h-[2px]\",\n            tier === \"corona-oro\"\n              ? \"bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent\"\n              : tier === \"corona\"\n                ? \"bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent\"\n                : tier === \"joya\"\n                  ? \"bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent\"\n                  : \"\"\n          )}\n        />\n      ) : null}\n
+    >
+      {/* Tier accent (clarity, no layout shift) */}
+      {tier ? (
+        <div
+          aria-hidden="true"
+          className={cx(
+            "pointer-events-none absolute inset-x-0 top-0 h-[2px]",
+            tier === "corona-oro"
+              ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+              : tier === "corona"
+                ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+                : tier === "joya"
+                  ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+                  : ""
+          )}
+        />
+      ) : null}
+
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Title */}
@@ -1616,7 +1633,24 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
       )}
-    >\n      {/* Tier accent (clarity, no layout shift) */}\n      {tier ? (\n        <div\n          aria-hidden=\"true\"\n          className={cx(\n            \"pointer-events-none absolute inset-x-0 top-0 h-[2px]\",\n            tier === \"corona-oro\"\n              ? \"bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent\"\n              : tier === \"corona\"\n                ? \"bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent\"\n                : tier === \"joya\"\n                  ? \"bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent\"\n                  : \"\"\n          )}\n        />\n      ) : null}\n
+    >
+      {/* Tier accent (clarity, no layout shift) */}
+      {tier ? (
+        <div
+          aria-hidden="true"
+          className={cx(
+            "pointer-events-none absolute inset-x-0 top-0 h-[2px]",
+            tier === "corona-oro"
+              ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+              : tier === "corona"
+                ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+                : tier === "joya"
+                  ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+                  : ""
+          )}
+        />
+      ) : null}
+
       {withImg ? (
         <div className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           {x.hasImage ? (
@@ -1732,7 +1766,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </p>
         </div>
 
-        <section className="mt-7">
+        <section className="mt-6">
           <div className="rounded-2xl border border-yellow-600/20 bg-black/30 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-gray-200">
@@ -1790,7 +1824,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
 
         <div
           className={cx(
-            "mt-8 transition-opacity duration-200",
+            "mt-6 transition-opacity duration-200",
             "md:grid md:gap-6",
             filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[280px,1fr]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
@@ -2489,7 +2523,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           )}
         </section>
 
-        <section className="mt-8 flex items-center justify-center gap-3 pb-16">
+        <section className="mt-6 flex items-center justify-center gap-3 pb-14">
           <button
             type="button"
             disabled={pageClamped <= 1}
