@@ -2476,3 +2476,12 @@ const ListingRow = (x: Listing, withImg: boolean) => {
     </div>
   );
 }
+
+
+  {/* Back To Top */}
+  <button
+    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+    className="fixed bottom-6 right-6 z-50 rounded-full bg-yellow-500 p-3 text-black shadow-lg hover:bg-yellow-400"
+  >
+    ↑
+  </button>
