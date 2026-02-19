@@ -1400,10 +1400,10 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
 
   const cls =
     tier === "joya"
-      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-50 shadow-[0_0_0_1px_rgba(16,185,129,0.14)]"
+      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-50 shadow-[0_0_0_1px_rgba(16,185,129,0.16)]"
       : tier === "corona"
-        ? "border-yellow-400/30 bg-yellow-400/10 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.12)]"
-        : "border-yellow-300/70 bg-gradient-to-r from-yellow-500/20 via-yellow-300/15 to-yellow-500/20 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.26),0_0_26px_rgba(250,204,21,0.14)]";
+        ? "border-yellow-400/32 bg-yellow-400/10 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.14)]"
+        : "border-yellow-300/80 bg-gradient-to-r from-yellow-500/18 via-yellow-300/14 to-yellow-500/18 text-yellow-50 shadow-[0_0_0_1px_rgba(250,204,21,0.28),0_0_16px_rgba(250,204,21,0.12)]";
 
   return (
     <span
@@ -1505,30 +1505,48 @@ const ListingCardGrid = (x: Listing) => {
       className={cx(
         "rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
-          ? "border-yellow-400/45 ring-1 ring-yellow-400/25 bg-gradient-to-b from-yellow-500/14 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.16),0_0_30px_rgba(250,204,21,0.10),0_14px_40px_-18px_rgba(0,0,0,0.82)]"
+          ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_0_22px_rgba(250,204,21,0.10),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
           : tier === "corona"
-            ? "border-yellow-400/20 bg-yellow-500/5"
+            ? "border-yellow-400/25 bg-yellow-500/6"
             : tier === "joya"
-              ? "border-emerald-400/20 bg-emerald-500/5"
+              ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
+          {/* Title */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="min-w-0 flex-1">
-              <div className="truncate text-base sm:text-lg font-semibold tracking-tight text-white leading-snug">{x.title[lang]}</div>
+              <div className="truncate text-base sm:text-lg font-semibold tracking-tight text-white leading-snug">
+                {x.title[lang]}
+              </div>
             </div>
             <TierBadge tier={tier} lang={lang} />
           </div>
 
-          <div className="mt-1 text-sm text-gray-300">
-            <span className="text-gray-200">{x.city}</span> <span className="text-gray-400">•</span> {x.postedAgo[lang]}
+          {/* Price (scan-first) */}
+          <div className="mt-1 text-base sm:text-lg font-extrabold text-yellow-200 tracking-tight">
+            {x.priceLabel[lang]}
           </div>
+
+          {/* Location + time */}
+          <div className="mt-1 text-xs sm:text-sm text-gray-300">
+            <span className="text-gray-200">{x.city}</span> <span className="text-gray-500">•</span>{" "}
+            <span className="text-gray-300">{x.postedAgo[lang]}</span>
+          </div>
+
+          {/* Business identity */}
           {x.sellerType === "business" && x.businessName ? (
-            <div className="mt-1 text-xs font-medium text-yellow-100/90">{x.businessName}</div>
+            <div className="mt-1 text-[11px] sm:text-xs font-medium text-yellow-100/90">
+              {x.businessName}
+            </div>
           ) : null}
-          {micro ? <div className="mt-1 text-xs text-gray-300">{micro}</div> : null}
+
+          {/* Micro facts */}
+          {micro ? <div className="mt-1 text-[11px] sm:text-xs text-gray-300">{micro}</div> : null}
+
+          {/* Chips */}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {x.sellerType && tier !== "corona" && tier !== "corona-oro" ? (
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
@@ -1564,10 +1582,6 @@ const ListingCardGrid = (x: Listing) => {
           {isFav ? "★" : "☆"}
         </button>
       </div>
-
-      <div className="mt-2 text-base sm:text-lg font-bold text-yellow-200 tracking-tight">
-        {x.priceLabel[lang]}
-      </div>
       <div className="mt-2 line-clamp-2 text-sm text-gray-200">
         {x.blurb[lang]}
       </div>
@@ -1595,11 +1609,11 @@ const ListingRow = (x: Listing, withImg: boolean) => {
       className={cx(
         "group flex items-stretch gap-3 rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[2px]",
         tier === "corona-oro"
-          ? "border-yellow-400/35 ring-1 ring-yellow-400/20 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.14),0_0_26px_rgba(250,204,21,0.08)]"
+          ? "border-yellow-300/55 ring-1 ring-yellow-300/20 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.16),0_0_18px_rgba(250,204,21,0.08)]"
           : tier === "corona"
-            ? "border-yellow-400/20 bg-yellow-500/5"
+            ? "border-yellow-400/25 bg-yellow-500/6"
             : tier === "joya"
-              ? "border-emerald-400/20 bg-emerald-500/5"
+              ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
       )}
     >
@@ -1621,12 +1635,20 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           >
             <div className="flex flex-wrap items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-base font-semibold tracking-tight text-white leading-snug">{x.title[lang]}</div>
+                <div className="truncate text-base font-semibold tracking-tight text-white leading-snug">
+                  {x.title[lang]}
+                </div>
               </div>
               <TierBadge tier={tier} lang={lang} />
             </div>
+
+            <div className="mt-0.5 text-sm font-extrabold text-yellow-200 tracking-tight">
+              {x.priceLabel[lang]}
+            </div>
+
             <div className="mt-0.5 text-xs text-gray-300">
-              {x.city} • {x.postedAgo[lang]}
+              <span className="text-gray-200">{x.city}</span> <span className="text-gray-500">•</span>{" "}
+              <span className="text-gray-300">{x.postedAgo[lang]}</span>
             </div>
             {x.sellerType === "business" && x.businessName ? (
               <div className="mt-0.5 text-[11px] font-medium text-yellow-100/90">{x.businessName}</div>
@@ -1635,9 +1657,6 @@ const ListingRow = (x: Listing, withImg: boolean) => {
           </a>
 
           <div className="flex items-center gap-2">
-            <div className="text-sm sm:text-base font-extrabold text-yellow-200 tracking-tight">
-              {x.priceLabel[lang]}
-            </div>
             <button
               type="button"
               onClick={() => toggleFav(x.id)}
