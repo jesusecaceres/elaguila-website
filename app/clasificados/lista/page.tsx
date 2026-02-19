@@ -1313,7 +1313,7 @@ const ActionPills = (x: Listing) => {
           href={p.href}
           target={p.external ? "_blank" : undefined}
           rel={p.external ? "noreferrer" : undefined}
-          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
         >
           {p.label}
         </a>
@@ -1674,7 +1674,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                     key={c.key}
                     type="button"
                     onClick={c.clear}
-                    className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1 text-xs text-yellow-100 hover:bg-yellow-600/15"
+                    className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1.5 text-xs sm:py-1 text-yellow-100 hover:bg-yellow-600/15"
                     aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                   >
                     {c.text} <span className="ml-1 opacity-80">×</span>
@@ -1706,7 +1706,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                         setZip("");
                       }}
                       className={cx(
-                        "whitespace-nowrap snap-start rounded-full border px-3 py-1 text-xs",
+                        "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1",
                         normalize(c.city) === normalize(resolvedCity.name)
                           ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
                           : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
@@ -1992,7 +1992,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                       key={c.key}
                       type="button"
                       onClick={c.clear}
-                      className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1 text-xs text-yellow-100 hover:bg-yellow-600/15"
+                      className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1.5 text-xs sm:py-1 text-yellow-100 hover:bg-yellow-600/15"
                       aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                     >
                       {c.text} <span className="ml-1 opacity-80">×</span>
@@ -2459,7 +2459,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                         setLocMsg("");
                       }}
                       className={cx(
-                        "rounded-full border px-3 py-1 text-xs",
+                        "rounded-full border px-3 py-1.5 text-xs sm:py-1",
                         normalize(c.city) === normalize(resolvedCity.name)
                           ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
                           : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
