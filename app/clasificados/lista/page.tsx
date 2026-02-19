@@ -1329,7 +1329,7 @@ const ListingCardGrid = (x: Listing) => {
   return (
     <div
       key={x.id}
-      className="rounded-2xl border border-white/10 bg-black/25 p-3 sm:p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
+      className="rounded-2xl border border-white/10 bg-black/25 p-3 sm:p-5 transition-all duration-200 ease-out hover:-translate-y-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -1400,7 +1400,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   return (
     <div
       key={x.id}
-      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 sm:p-4 hover:bg-white/10"
+      className="group flex items-stretch gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[2px]"
     >
       {withImg ? (
         <div className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
