@@ -870,10 +870,15 @@ if (isPro && videoFile && !videoError) {
     }
 
     if (videoUrl) {
+      const marker =
+        `[LEONIX_PRO_VIDEO]\nurl=${videoUrl}\n` +
+        (thumbUrl ? `thumb=${thumbUrl}\n` : "") +
+        `[/LEONIX_PRO_VIDEO]`;
+
       const videoAppendix =
         lang === "es"
-          ? `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nMiniatura: ${thumbUrl}` : ""}\n`
-          : `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nThumbnail: ${thumbUrl}` : ""}\n`;
+          ? `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nMiniatura: ${thumbUrl}` : ""}\n${marker}\n`
+          : `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nThumbnail: ${thumbUrl}` : ""}\n${marker}\n`;
 
       await supabase
         .from("listings")

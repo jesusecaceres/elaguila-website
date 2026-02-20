@@ -7,6 +7,7 @@ import Navbar from "../../../components/Navbar";
 import newLogo from "../../../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../../../data/classifieds/sampleListings";
+import { extractProVideoInfo } from "../../components/proVideo";
 
 type Lang = "es" | "en";
 
@@ -152,6 +153,16 @@ export default function AnuncioDetallePage() {
   const isSold = status === "sold";
   const isBusiness = listing?.sellerType === "business";
 
+  const proVideoInfo = useMemo(() => {
+    if (!listing) return null;
+    // Parse from the currently displayed blurb, but also include the other language
+    // to maximize compatibility with mixed-language posts.
+    const blob = `${listing.blurb?.[lang] ?? ""}\n${listing.blurb?.[lang === "es" ? "en" : "es"] ?? ""}`;
+    return extractProVideoInfo(blob);
+  }, [listing, lang]);
+
+  const [showProVideo, setShowProVideo] = useState(false);
+
   // v2 placeholder: wired later to real auth
   const [isAuthed] = useState<boolean>(false);
 
@@ -278,6 +289,74 @@ export default function AnuncioDetallePage() {
               <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-6">
                 <div className="text-sm text-gray-300">{listing.blurb[lang]}</div>
               </div>
+
+
+{proVideoInfo && (
+  <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <div className="text-sm font-semibold text-yellow-200">
+          {lang === "es" ? "Video (Pro)" : "Pro Video"}
+        </div>
+        <div className="mt-1 text-xs text-gray-400">
+          {lang === "es"
+            ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
+            : "Tap the thumbnail to play. No autoplay."}
+        </div>
+      </div>
+      {!showProVideo && (
+        <button
+          type="button"
+          onClick={() => setShowProVideo(true)}
+          className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-yellow-500/15"
+        >
+          {lang === "es" ? "Reproducir" : "Play"}
+        </button>
+      )}
+    </div>
+
+    <div className="mt-4">
+      {!showProVideo ? (
+        proVideoInfo.thumbUrl ? (
+          <button
+            type="button"
+            onClick={() => setShowProVideo(true)}
+            className="group relative block w-full overflow-hidden rounded-xl border border-white/10"
+            aria-label={lang === "es" ? "Reproducir video" : "Play video"}
+          >
+            {/* Use <img> to avoid Next/Image remote domain config issues */}
+            <img
+              src={proVideoInfo.thumbUrl}
+              alt={lang === "es" ? "Miniatura del video" : "Video thumbnail"}
+              className="h-auto w-full object-cover opacity-95 group-hover:opacity-100"
+              loading="lazy"
+            />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="rounded-full border border-white/20 bg-black/60 px-4 py-2 text-sm font-semibold text-white">
+                {lang === "es" ? "▶ Reproducir" : "▶ Play"}
+              </div>
+            </div>
+          </button>
+        ) : (
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-gray-300">
+            {lang === "es"
+              ? "Este anuncio incluye un video Pro. Presione “Reproducir” para verlo."
+              : "This listing includes a Pro video. Press “Play” to watch."}
+          </div>
+        )
+      ) : (
+        <video
+          className="w-full rounded-xl border border-white/10 bg-black"
+          controls
+          preload="none"
+          playsInline
+          poster={proVideoInfo.thumbUrl}
+          src={proVideoInfo.url}
+        />
+      )}
+    </div>
+  </div>
+)}
 
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
