@@ -1326,6 +1326,57 @@ const inferRentasFromTitle = (title: string) => {
   return null;
 };
 
+
+const parseEmpleoFromText = (title: string, blurb: string, payLabel: string) => {
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  const isRemote = /(\bremoto\b|\bremote\b|\bhybrid\b|\bh[ií]brido\b|\bdesde casa\b|\bwork from home\b)/i.test(t);
+
+  let jobType: "full" | "part" | "contract" | "temp" | null = null;
+  if (/(tiempo completo|full[-\s]?time)/i.test(t)) jobType = "full";
+  else if (/(tiempo parcial|part[-\s]?time)/i.test(t)) jobType = "part";
+  else if (/(contrato|contract)/i.test(t)) jobType = "contract";
+  else if (/(temporal|temp(\b|\s)|seasonal)/i.test(t)) jobType = "temp";
+
+  // Salary / rate hint (only if explicitly present)
+  const salaryMatch = (`${title} ${blurb} ${payLabel}`).match(/\$\s?\d+(?:[\.,]\d+)?\s?(?:\/\s?(?:h|hr|hora))?/i);
+  const salaryLabel = salaryMatch ? normalizeSpace(salaryMatch[0].replace(/\s+/g, " ")) : null;
+
+  return { isRemote, jobType, salaryLabel };
+};
+
+const empleoJobTypeLabel = (jobType: "full" | "part" | "contract" | "temp" | null, lang: Lang) => {
+  if (!jobType) return null;
+  const map = {
+    full: { es: "Tiempo completo", en: "Full-time" },
+    part: { es: "Tiempo parcial", en: "Part-time" },
+    contract: { es: "Contrato", en: "Contract" },
+    temp: { es: "Temporal", en: "Temporary" },
+  } as const;
+  return map[jobType][lang];
+};
+
+const serviceTagsFromText = (title: string, blurb: string) => {
+  const t = `${title} ${blurb}`.toLowerCase();
+  const tags: string[] = [];
+
+  const add = (tag: string) => {
+    if (!tags.includes(tag)) tags.push(tag);
+  };
+
+  if (/(plomer[ií]a|plumbing)/i.test(t)) add("Plomería");
+  if (/(jardin|yard|mowing|pasto)/i.test(t)) add("Jardinería");
+  if (/(limpieza|cleaning|cleanup)/i.test(t)) add("Limpieza");
+  if (/(electric|electricidad|electricista)/i.test(t)) add("Electricidad");
+  if (/(pintura|painting)/i.test(t)) add("Pintura");
+  if (/(mudanza|moving)/i.test(t)) add("Mudanzas");
+  if (/(tech|computadora|computer|wifi|internet)/i.test(t)) add("Tecnología");
+  if (/(tutor|clase|lessons|classes)/i.test(t)) add("Clases");
+  if (/(reparaci[oó]n|repair)/i.test(t)) add("Reparación");
+
+  return tags.slice(0, 3);
+};
+
 const microLine = (x: Listing) => {
   // Phase C: category-specific micro facts
   // Autos gets a dedicated spec + mileage line in the card (stronger scan),
@@ -1548,6 +1599,9 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
 const ListingCardGrid = (x: Listing) => {
   const isFav = favIds.has(x.id);
   const isAutos = x.category === "autos";
+  const isEmpleos = x.category === "empleos";
+  const isServicios = x.category === "servicios";
+  const isComunidad = x.category === "comunidad";
   const tier = inferVisualTier(x);
 
   // Autos: structured scan (AutoTrader-style)
@@ -1568,8 +1622,18 @@ const ListingCardGrid = (x: Listing) => {
             : autosParsed?.mileageLabel || null)
       : null;
 
-  // Non-autos micro facts (keeps other categories unchanged)
-  const micro = !isAutos ? microLine(x) : null;
+// Keep autos meta in-scope and simple (avoid duplicate/undefined vars)
+// autosSpec + autosMileage already include safe fallbacks.
+
+// Empleos: Indeed-style clarity (safe inference; no fabricated data)
+const empleo = isEmpleos ? parseEmpleoFromText(x.title[lang], x.blurb[lang], x.priceLabel[lang]) : null;
+const empleoJobType = empleo ? empleoJobTypeLabel(empleo.jobType, lang) : null;
+
+// Servicios: Yelp/Angi-style scan tags (derived from text only)
+const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lang]) : null;
+
+// Comunidad: lighter feel (keep trust + badges, reduce commercial emphasis)
+const isComunidadLite = isComunidad;
 
   return (
     <div
@@ -1611,18 +1675,73 @@ const ListingCardGrid = (x: Listing) => {
                 {x.title[lang]}
               </div>
             </div>
-            <TierBadge tier={tier} lang={lang} />
+            <div className={cx(isComunidadLite && "opacity-80")}><TierBadge tier={tier} lang={lang} /></div>
           </div>
 
-          {/* Price (scan-first, Autos extra emphasis) */}
+          {/* Primary line (Price/Pay/CTA) */}
           <div
             className={cx(
-              "mt-1 font-extrabold text-yellow-200 tracking-tight",
-              isAutos ? "text-lg sm:text-xl" : "text-base sm:text-lg"
+              "mt-1 tracking-tight",
+              isComunidadLite
+                ? "font-bold text-yellow-100 text-sm sm:text-base"
+                : isServicios
+                  ? "font-extrabold text-yellow-200 text-base sm:text-lg"
+                  : isEmpleos
+                    ? "font-extrabold text-yellow-200 text-lg sm:text-xl"
+                    : isAutos
+                      ? "font-extrabold text-yellow-200 text-lg sm:text-xl"
+                      : "font-extrabold text-yellow-200 text-base sm:text-lg"
             )}
           >
-            {x.priceLabel[lang]}
+            {isEmpleos && !/\$/.test(x.priceLabel[lang]) ? (
+              <>
+                <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
+                <span>{x.priceLabel[lang]}</span>
+              </>
+            ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
+              <>
+                <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
+                <span>{x.priceLabel[lang]}</span>
+              </>
+            ) : (
+              x.priceLabel[lang]
+            )}
           </div>
+
+{/* Empleos: salary/job type/remote (Indeed-style) */}
+{isEmpleos ? (
+  <div className="mt-1 flex flex-wrap items-center gap-2">
+    {empleo?.salaryLabel ? (
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+        {lang === "es" ? "Tarifa" : "Rate"}: {empleo.salaryLabel}
+      </span>
+    ) : null}
+    {empleoJobType ? (
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+        {empleoJobType}
+      </span>
+    ) : null}
+    {empleo?.isRemote ? (
+      <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] sm:text-xs text-emerald-100">
+        {lang === "es" ? "Remoto" : "Remote"}
+      </span>
+    ) : null}
+  </div>
+) : null}
+
+{/* Servicios: quick tags (Yelp/Angi-style scan) */}
+{isServicios && serviceTags && serviceTags.length ? (
+  <div className="mt-1 flex flex-wrap items-center gap-2">
+    {serviceTags.map((t) => (
+      <span
+        key={t}
+        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100"
+      >
+        {t}
+      </span>
+    ))}
+  </div>
+) : null}
 
           {/* Autos: specs + mileage ABOVE location/time */}
           {isAutos && autosSpec ? (
@@ -1642,6 +1761,12 @@ const ListingCardGrid = (x: Listing) => {
               {x.businessName}
             </div>
           ) : null}
+{isEmpleos && x.sellerType === "business" && !x.businessName ? (
+  <div className="mt-1 text-[11px] sm:text-xs font-medium text-yellow-100/90">
+    {lang === "es" ? "Empresa" : "Business"}
+  </div>
+) : null}
+
 
           {/* Location + time (Autos pushed lower for scan hierarchy) */}
           <div className={cx("text-gray-300", isAutos ? "mt-1 text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm")}>
@@ -1651,9 +1776,9 @@ const ListingCardGrid = (x: Listing) => {
           </div>
 
           {/* Micro facts (non-autos only) */}
-          {micro ? (
+          {!isAutos ? (
             <div className="mt-1 text-[11px] sm:text-xs text-gray-300">
-              {micro}
+              {microLine(x)}
             </div>
           ) : null}
 
@@ -1733,6 +1858,10 @@ const ListingCardGrid = (x: Listing) => {
 const ListingRow = (x: Listing, withImg: boolean) => {
   const isFav = favIds.has(x.id);
   const isAutos = x.category === "autos";
+  const isEmpleos = x.category === "empleos";
+  const isServicios = x.category === "servicios";
+  const isComunidad = x.category === "comunidad";
+  const isComunidadLite = isComunidad;
   const tier = inferVisualTier(x);
 
   const autosSpec = isAutos
@@ -1745,9 +1874,10 @@ const ListingRow = (x: Listing, withImg: boolean) => {
       : isAutos && typeof (x as any).mileage === "string"
         ? String((x as any).mileage)
         : null;
+const empleo = isEmpleos ? parseEmpleoFromText(x.title[lang], x.blurb[lang], x.priceLabel[lang]) : null;
+const empleoJobType = empleo ? empleoJobTypeLabel(empleo.jobType, lang) : null;
 
-  const micro = !isAutos ? microLine(x) : null;
-
+const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lang]) : null;
   return (
     <div
       key={x.id}
@@ -1806,26 +1936,126 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   {x.title[lang]}
                 </div>
               </div>
-              <TierBadge tier={tier} lang={lang} />
+              <div className={cx(isComunidadLite && "opacity-80")}><TierBadge tier={tier} lang={lang} /></div>
             </div>
 
-            <div className={cx("mt-0.5 font-extrabold text-yellow-200 tracking-tight", isAutos ? "text-base sm:text-lg" : "text-sm")}>
-              {x.priceLabel[lang]}
-            </div>
+            <div
+  className={cx(
+    "mt-0.5 tracking-tight",
+    isComunidadLite
+      ? "font-bold text-yellow-100 text-sm"
+      : isServicios
+        ? "font-extrabold text-yellow-200 text-sm sm:text-base"
+        : isEmpleos
+          ? "font-extrabold text-yellow-200 text-base sm:text-lg"
+          : isAutos
+            ? "font-extrabold text-yellow-200 text-base sm:text-lg"
+            : "font-extrabold text-yellow-200 text-sm"
+  )}
+>
+  {isEmpleos && !/\$/.test(x.priceLabel[lang]) ? (
+    <>
+      <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
+      <span>{x.priceLabel[lang]}</span>
+    </>
+  ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
+    <>
+      <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
+      <span>{x.priceLabel[lang]}</span>
+    </>
+  ) : (
+    x.priceLabel[lang]
+  )}
+</div>
 
-            {/* Autos: specs + mileage ABOVE location/time */}
-            {isAutos && autosSpec ? (
-              <div className="mt-0.5 text-xs text-gray-200">{autosSpec}</div>
-            ) : null}
-            {isAutos && autosMileage ? (
-              <div className="mt-0.5 text-xs font-semibold text-gray-100">{autosMileage}</div>
-            ) : null}
+  {/* Empleos: salary/job type/remote (Indeed-style) */}
+{isEmpleos ? (
+  <div className="mt-1 flex flex-wrap items-center gap-2">
+    {empleo?.salaryLabel ? (
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+        {lang === "es" ? "Tarifa" : "Rate"}: {empleo.salaryLabel}
+      </span>
+    ) : null}
+    {empleoJobType ? (
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+        {empleoJobType}
+      </span>
+    ) : null}
+    {empleo?.isRemote ? (
+      <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] sm:text-xs text-emerald-100">
+        {lang === "es" ? "Remoto" : "Remote"}
+      </span>
+    ) : null}
+  </div>
+) : null}
+
+{/* Servicios: quick tags (Yelp/Angi-style scan) */}
+{isServicios && serviceTags && serviceTags.length ? (
+  <div className="mt-1 flex flex-wrap items-center gap-2">
+    {serviceTags.map((t) => (
+      <span
+        key={t}
+        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100"
+      >
+        {t}
+      </span>
+    ))}
+  </div>
+) : null}{/* Empleos: salary/job type/remote (Indeed-style) */}
+{isEmpleos ? (
+  <div className="mt-1 flex flex-wrap items-center gap-2">
+    {empleo?.salaryLabel ? (
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+        {lang === "es" ? "Tarifa" : "Rate"}: {empleo.salaryLabel}
+      </span>
+    ) : null}
+    {empleoJobType ? (
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+        {empleoJobType}
+      </span>
+    ) : null}
+    {empleo?.isRemote ? (
+      <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-100">
+        {lang === "es" ? "Remoto" : "Remote"}
+      </span>
+    ) : null}
+  </div>
+) : null}
+
+{/* Servicios: quick tags */}
+{isServicios && serviceTags && serviceTags.length ? (
+  <div className="mt-1 flex flex-wrap items-center gap-2">
+    {serviceTags.map((t) => (
+      <span
+        key={t}
+        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100"
+      >
+        {t}
+      </span>
+    ))}
+  </div>
+) : null}
+
+{/* Autos: specs + mileage ABOVE location/time */}
+{isAutos && autosSpec ? (
+  <div className="mt-0.5 text-xs text-gray-200">{autosSpec}</div>
+) : null}
+{isAutos && autosMileage ? (
+  <div className="mt-0.5 text-xs font-semibold text-gray-100">{autosMileage}</div>
+) : null}
+
 
             {x.sellerType === "business" && x.businessName ? (
               <div className={cx("mt-0.5 font-medium text-yellow-100/90", isAutos ? "text-xs" : "text-[11px]")}>
                 {x.businessName}
               </div>
             ) : null}
+{isEmpleos && x.sellerType === "business" && !x.businessName ? (
+  <div className="mt-0.5 text-[11px] font-medium text-yellow-100/90">
+    {lang === "es" ? "Empresa" : "Business"}
+  </div>
+) : null}
+
 
             <div className="mt-0.5 text-xs text-gray-300">
               <span className="text-gray-200">{x.city}</span>{" "}
@@ -1833,8 +2063,8 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               <span className="text-gray-300">{x.postedAgo[lang]}</span>
             </div>
 
-            {micro ? (
-              <div className="mt-0.5 text-xs text-gray-300">{micro}</div>
+            {!isAutos ? (
+              <div className="mt-0.5 text-xs text-gray-300">{microLine(x)}</div>
             ) : null}
           </a>
 
