@@ -17,6 +17,7 @@ type DraftV1 = {
   price: string;
   city: string;
   category: string;
+  details: Record<string, string>;
   contactMethod: "phone" | "email" | "both";
   contactPhone: string;
   contactEmail: string;
@@ -52,6 +53,167 @@ function formatMoneyMaybe(raw: string, lang: Lang) {
 
 const DRAFT_KEY = "leonix_clasificados_post_draft_v1";
 
+
+type DetailField = {
+  key: string;
+  label: { es: string; en: string };
+  type: "text" | "number" | "select";
+  placeholder?: { es: string; en: string };
+  options?: Array<{ value: string; label: { es: string; en: string } }>;
+};
+
+const DETAIL_FIELDS: Record<string, DetailField[]> = {
+  autos: [
+    { key: "year", label: { es: "Año", en: "Year" }, type: "number", placeholder: { es: "Ej: 2018", en: "e.g. 2018" } },
+    { key: "make", label: { es: "Marca", en: "Make" }, type: "text", placeholder: { es: "Ej: Toyota", en: "e.g. Toyota" } },
+    { key: "model", label: { es: "Modelo", en: "Model" }, type: "text", placeholder: { es: "Ej: Camry", en: "e.g. Camry" } },
+    { key: "mileage", label: { es: "Millas", en: "Mileage" }, type: "number", placeholder: { es: "Ej: 85000", en: "e.g. 85000" } },
+    {
+      key: "condition",
+      label: { es: "Condición", en: "Condition" },
+      type: "select",
+      options: [
+        { value: "new", label: { es: "Nuevo", en: "New" } },
+        { value: "used", label: { es: "Usado", en: "Used" } },
+        { value: "certified", label: { es: "Certificado", en: "Certified" } },
+      ],
+    },
+    {
+      key: "transmission",
+      label: { es: "Transmisión", en: "Transmission" },
+      type: "select",
+      options: [
+        { value: "auto", label: { es: "Automática", en: "Automatic" } },
+        { value: "manual", label: { es: "Manual", en: "Manual" } },
+      ],
+    },
+  ],
+  rentas: [
+    {
+      key: "beds",
+      label: { es: "Recámaras", en: "Bedrooms" },
+      type: "select",
+      options: [
+        { value: "studio", label: { es: "Estudio", en: "Studio" } },
+        { value: "1", label: { es: "1", en: "1" } },
+        { value: "2", label: { es: "2", en: "2" } },
+        { value: "3", label: { es: "3", en: "3" } },
+        { value: "4+", label: { es: "4+", en: "4+" } },
+        { value: "room", label: { es: "Cuarto (Room)", en: "Room" } },
+      ],
+    },
+    {
+      key: "baths",
+      label: { es: "Baños", en: "Bathrooms" },
+      type: "select",
+      options: [
+        { value: "1", label: { es: "1", en: "1" } },
+        { value: "1.5", label: { es: "1.5", en: "1.5" } },
+        { value: "2", label: { es: "2", en: "2" } },
+        { value: "2.5", label: { es: "2.5", en: "2.5" } },
+        { value: "3+", label: { es: "3+", en: "3+" } },
+      ],
+    },
+    { key: "deposit", label: { es: "Depósito", en: "Deposit" }, type: "text", placeholder: { es: "Ej: $1500 / 1 mes", en: "e.g. $1500 / 1 month" } },
+    { key: "available", label: { es: "Disponible", en: "Available" }, type: "text", placeholder: { es: "Ej: Inmediato / 1 de Marzo", en: "e.g. Now / Mar 1" } },
+    {
+      key: "furnished",
+      label: { es: "Amueblado", en: "Furnished" },
+      type: "select",
+      options: [
+        { value: "yes", label: { es: "Sí", en: "Yes" } },
+        { value: "no", label: { es: "No", en: "No" } },
+      ],
+    },
+    {
+      key: "pets",
+      label: { es: "Mascotas", en: "Pets" },
+      type: "select",
+      options: [
+        { value: "allowed", label: { es: "Permitidas", en: "Allowed" } },
+        { value: "no", label: { es: "No", en: "No" } },
+        { value: "cats", label: { es: "Solo gatos", en: "Cats only" } },
+        { value: "dogs", label: { es: "Solo perros", en: "Dogs only" } },
+      ],
+    },
+  ],
+  empleos: [
+    { key: "company", label: { es: "Empresa", en: "Company" }, type: "text", placeholder: { es: "Nombre de la empresa", en: "Company name" } },
+    {
+      key: "jobType",
+      label: { es: "Tipo de trabajo", en: "Job type" },
+      type: "select",
+      options: [
+        { value: "full", label: { es: "Tiempo completo", en: "Full-time" } },
+        { value: "part", label: { es: "Medio tiempo", en: "Part-time" } },
+        { value: "contract", label: { es: "Contrato", en: "Contract" } },
+        { value: "temp", label: { es: "Temporal", en: "Temporary" } },
+      ],
+    },
+    {
+      key: "workMode",
+      label: { es: "Modalidad", en: "Work mode" },
+      type: "select",
+      options: [
+        { value: "onsite", label: { es: "Presencial", en: "On-site" } },
+        { value: "remote", label: { es: "Remoto", en: "Remote" } },
+        { value: "hybrid", label: { es: "Híbrido", en: "Hybrid" } },
+      ],
+    },
+    { key: "pay", label: { es: "Pago", en: "Pay" }, type: "text", placeholder: { es: "Ej: $22/hr o $900/sem", en: "e.g. $22/hr or $900/wk" } },
+  ],
+  servicios: [
+    { key: "serviceType", label: { es: "Tipo de servicio", en: "Service type" }, type: "text", placeholder: { es: "Ej: Jardinería, Plomería", en: "e.g. Landscaping, Plumbing" } },
+    { key: "area", label: { es: "Zona", en: "Service area" }, type: "text", placeholder: { es: "Ej: San José + 15 mi", en: "e.g. San Jose + 15 mi" } },
+    { key: "availability", label: { es: "Disponibilidad", en: "Availability" }, type: "text", placeholder: { es: "Ej: Lun–Sáb", en: "e.g. Mon–Sat" } },
+  ],
+  "en-venta": [
+    { key: "itemType", label: { es: "Tipo de artículo", en: "Item type" }, type: "text", placeholder: { es: "Ej: Muebles, Electrónica", en: "e.g. Furniture, Electronics" } },
+    {
+      key: "condition",
+      label: { es: "Condición", en: "Condition" },
+      type: "select",
+      options: [
+        { value: "new", label: { es: "Nuevo", en: "New" } },
+        { value: "like-new", label: { es: "Como nuevo", en: "Like new" } },
+        { value: "good", label: { es: "Buen estado", en: "Good" } },
+        { value: "fair", label: { es: "Regular", en: "Fair" } },
+      ],
+    },
+  ],
+};
+
+function getCategoryFields(cat: string): DetailField[] {
+  return DETAIL_FIELDS[cat] ?? [];
+}
+
+function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>) {
+  const fields = getCategoryFields(cat);
+  const out: Array<{ label: string; value: string }> = [];
+  for (const f of fields) {
+    const raw = (details[f.key] ?? "").toString().trim();
+    if (!raw) continue;
+
+    if (f.type === "select" && f.options) {
+      const opt = f.options.find((o) => o.value === raw);
+      out.push({ label: f.label[lang], value: opt ? opt.label[lang] : raw });
+      continue;
+    }
+
+    out.push({ label: f.label[lang], value: raw });
+  }
+  return out;
+}
+
+function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, string>) {
+  const pairs = getDetailPairs(cat, lang, details);
+  if (!pairs.length) return "";
+  const header = lang === "es" ? "Detalles" : "Details";
+  const lines = pairs.map((p) => `${p.label}: ${p.value}`).join("\n");
+  return `\n\n—\n${header}:\n${lines}`.trim();
+}
+
+
 export default function PublicarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,6 +240,9 @@ export default function PublicarPage() {
     return c || "en-venta";
   });
 
+
+  // Details (category-specific structured fields)
+  const [details, setDetails] = useState<Record<string, string>>({});
   // Basics
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -229,6 +394,7 @@ export default function PublicarPage() {
       setPrice(typeof parsed.price === "string" ? parsed.price : "");
       setCity(typeof parsed.city === "string" ? parsed.city : "");
       setCategory(typeof parsed.category === "string" && parsed.category ? parsed.category : category);
+      setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
       setContactMethod((parsed.contactMethod as any) || "phone");
       setContactPhone(typeof parsed.contactPhone === "string" ? parsed.contactPhone : "");
       setContactEmail(typeof parsed.contactEmail === "string" ? parsed.contactEmail : "");
@@ -253,6 +419,7 @@ export default function PublicarPage() {
         price,
         city,
         category,
+        details,
         contactMethod,
         contactPhone,
         contactEmail,
@@ -268,7 +435,7 @@ export default function PublicarPage() {
     return () => {
       if (draftTimer.current) window.clearTimeout(draftTimer.current);
     };
-  }, [signedIn, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail]);
+  }, [signedIn, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
 
   // Image previews
   useEffect(() => {
@@ -326,10 +493,11 @@ export default function PublicarPage() {
 
     setPublishing(true);
     try {
+      const finalDescription = (description.trim() + buildDetailsAppendix(category, lang, details)).trim();
       // Minimal insert to avoid schema guessing.
       const insertPayload: any = {
         title: title.trim(),
-        description: description.trim(),
+        description: finalDescription,
         city: city.trim(),
         category: category.trim(),
         price: isFree ? 0 : Number((price ?? "").replace(/[^0-9.]/g, "")) || 0,
@@ -564,21 +732,88 @@ export default function PublicarPage() {
                 {step === "details" && (
                   <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
                     <h2 className="text-lg font-semibold text-gray-100">{copy.detailsTitle}</h2>
-                    <p className="mt-2 text-sm text-white/60">{copy.detailsNote}</p>
+                    <p className="mt-2 text-sm text-white/60">
+                      {lang === "es"
+                        ? "Estos detalles ayudan a que tu anuncio se vea como en las mejores plataformas. Solo llena lo que aplica."
+                        : "These details help your listing look like the top platforms. Fill only what applies."}
+                    </p>
 
                     <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
                       <div className="text-sm text-white/70">
                         {lang === "es" ? "Categoría:" : "Category:"}{" "}
                         <span className="text-white/90 font-semibold">{category}</span>
                       </div>
-                      <div className="mt-2 text-xs text-white/45">
-                        {lang === "es"
-                          ? "En el próximo batch, aquí aparecerán los campos estructurados por categoría (Autos, Rentas, Empleos, Servicios, En Venta)."
-                          : "In the next batch, structured category fields will appear here (Autos, Rentals, Jobs, Services, For Sale)."}
+
+                      {getCategoryFields(category).length === 0 ? (
+                        <div className="mt-3 text-sm text-white/55">
+                          {lang === "es"
+                            ? "Por ahora no hay campos extra para esta categoría."
+                            : "No extra fields for this category yet."}
+                        </div>
+                      ) : (
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {getCategoryFields(category).map((f) => {
+                            const v = details[f.key] ?? "";
+                            const label = f.label[lang];
+                            const placeholder = f.placeholder ? f.placeholder[lang] : undefined;
+
+                            if (f.type === "select" && f.options) {
+                              return (
+                                <label key={f.key} className="block">
+                                  <div className="text-xs text-white/60 mb-1">{label}</div>
+                                  <select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setDetails((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                    }
+                                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+                                  >
+                                    <option value="">{lang === "es" ? "Selecciona…" : "Select…"}</option>
+                                    {f.options.map((o) => (
+                                      <option key={o.value} value={o.value}>
+                                        {o.label[lang]}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              );
+                            }
+
+                            return (
+                              <label key={f.key} className="block">
+                                <div className="text-xs text-white/60 mb-1">{label}</div>
+                                <input
+                                  value={v}
+                                  onChange={(e) =>
+                                    setDetails((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                  }
+                                  inputMode={f.type === "number" ? "numeric" : undefined}
+                                  placeholder={placeholder}
+                                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/20"
+                                />
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setDetails({})}
+                          className="text-xs text-white/60 hover:text-white/80"
+                        >
+                          {lang === "es" ? "Limpiar detalles" : "Clear details"}
+                        </button>
+                        <div className="text-xs text-white/40">
+                          {lang === "es"
+                            ? "Estos detalles se guardan en tu borrador."
+                            : "These details are saved in your draft."}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-5 flex items-center justify-between gap-3">
+<div className="mt-5 flex items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={() => setStep("basics")}
@@ -762,7 +997,23 @@ export default function PublicarPage() {
                                 ))}
                               </div>
                             )}
-                            <div className="mt-3 text-sm text-gray-200 whitespace-pre-wrap">
+                            
+                            {getDetailPairs(category, lang, details).length > 0 && (
+                              <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                                <div className="text-xs text-white/50 mb-2">
+                                  {lang === "es" ? "Detalles" : "Details"}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                  {getDetailPairs(category, lang, details).map((p) => (
+                                    <div key={p.label} className="text-sm text-white/75">
+                                      <span className="text-white/45">{p.label}:</span>{" "}
+                                      <span className="text-white/85">{p.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+<div className="mt-3 text-sm text-gray-200 whitespace-pre-wrap">
                               {description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)")}
                             </div>
                           </div>
