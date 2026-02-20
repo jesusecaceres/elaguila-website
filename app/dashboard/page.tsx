@@ -63,6 +63,17 @@ export default function DashboardPage() {
         basicAnalytics: "Analíticas",
         views: "Vistas",
         saves: "Guardados",
+        verifiedTitle: "Vendedor verificado",
+        verifiedSubtitle: "Gánate una insignia por confianza (no se compra).",
+        verifiedDisclaimer: "La verificación ayuda a reducir fraude, pero no garantiza resultados.",
+        verifiedEligible: "Elegible",
+        verifiedActive: "Verificado",
+        checkEmail: "Email confirmado",
+        checkPhone: "Teléfono confirmado",
+        checkAge: "Antigüedad de cuenta",
+        checkProfile: "Perfil completado",
+        checkViolations: "Sin infracciones",
+        comingSoon: "Próximamente",
       },
       en: {
         title: "My account",
@@ -93,6 +104,17 @@ export default function DashboardPage() {
         basicAnalytics: "Analytics",
         views: "Views",
         saves: "Saves",
+        verifiedTitle: "Verified seller",
+        verifiedSubtitle: "Earn a trust badge (not for sale).",
+        verifiedDisclaimer: "Verification helps reduce fraud, but it doesn’t guarantee outcomes.",
+        verifiedEligible: "Eligible",
+        verifiedActive: "Verified",
+        checkEmail: "Email confirmed",
+        checkPhone: "Phone confirmed",
+        checkAge: "Account age",
+        checkProfile: "Profile completion",
+        checkViolations: "No violations",
+        comingSoon: "Coming soon",
       },
     }),
     []
@@ -109,6 +131,11 @@ export default function DashboardPage() {
   // lightweight profile completion based on known, safe fields
   const [hasPhone, setHasPhone] = useState(false);
   const [hasCity, setHasCity] = useState(false);
+
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [phoneConfirmed, setPhoneConfirmed] = useState(false);
+  const [accountAgeDays, setAccountAgeDays] = useState<number | null>(null);
+  const [verifiedSeller, setVerifiedSeller] = useState(false);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -139,6 +166,11 @@ export default function DashboardPage() {
       setHasPhone(Boolean(u.user_metadata?.phone));
       setHasCity(Boolean(u.user_metadata?.city || u.user_metadata?.location));
       setPlan(inferredPlan);
+
+      setEmailConfirmed(Boolean((u as any).email_confirmed_at));
+      setPhoneConfirmed(Boolean((u as any).phone_confirmed_at));
+      setAccountAgeDays(u.created_at ? Math.max(0, Math.floor((Date.now() - new Date(u.created_at).getTime()) / 86400000)) : null);
+      setVerifiedSeller(Boolean((u.user_metadata as any)?.verified_seller || (u.user_metadata as any)?.verifiedSeller || (u.user_metadata as any)?.verified === true));
 
       // Try profiles table (role-ready). If missing, keep inferred plan.
       try {
@@ -191,6 +223,19 @@ export default function DashboardPage() {
   ];
   const completionOk = completionParts.filter((p) => p.ok).length;
   const completionPct = clamp(Math.round((completionOk / completionParts.length) * 100), 0, 100);
+
+
+  const minAgeDays = 14;
+  const checkEmailOk = emailConfirmed;
+  const checkPhoneOk = phoneConfirmed;
+  const checkAgeOk = typeof accountAgeDays === "number" ? accountAgeDays >= minAgeDays : false;
+  const checkProfileOk = completionPct >= 75;
+  // Violations system is Phase 2. We don't auto-verify based on unknown data.
+  const checkViolationsOk = false;
+
+  const eligible =
+    checkEmailOk && checkPhoneOk && checkAgeOk && checkProfileOk;
+
 
   const nav = [
     { href: `/dashboard?lang=${lang}`, label: L.overview, active: true },
