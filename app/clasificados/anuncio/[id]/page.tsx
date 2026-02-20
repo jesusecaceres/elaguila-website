@@ -8,6 +8,7 @@ import newLogo from "../../../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../../../data/classifieds/sampleListings";
 import { extractProVideoInfo } from "../../components/proVideo";
+import { isVerifiedSeller } from "../../components/verifiedSeller";
 
 type Lang = "es" | "en";
 
@@ -152,6 +153,7 @@ export default function AnuncioDetallePage() {
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
   const isBusiness = listing?.sellerType === "business";
+  const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
   const proVideoInfo = useMemo(() => {
     if (!listing) return null;
@@ -273,7 +275,18 @@ export default function AnuncioDetallePage() {
                     {isBusiness ? t.sellerBusiness : t.sellerPersonal}
                   </span>
 
-                  <span
+                  
+                    {verifiedSeller ? (
+                      <span
+                        className={cx(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                        )}
+                      >
+                        <span aria-hidden="true">✓</span>
+                        Verificado • Verified
+                      </span>
+                    ) : null}
+<span
                     className={cx(
                       "px-3 py-1 rounded-full text-xs font-extrabold border",
                       isSold

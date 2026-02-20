@@ -1,6 +1,7 @@
 "use client";
 
 import { ClassifiedItem } from "../../data/classifieds";
+import { isVerifiedSeller } from "./verifiedSeller";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -8,12 +9,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 export default function ListingCard({ item }: { item: ClassifiedItem }) {
 
-  const verified = Boolean(
-    (item as any).verifiedSeller ||
-      (item as any).sellerVerified ||
-      (item as any).verified === true ||
-      (Array.isArray((item as any).badges) && (item as any).badges.includes("verified"))
-  );
+  const verified = isVerifiedSeller(item as any);
   return (
     <div
       className={cx(
