@@ -1377,6 +1377,29 @@ const serviceTagsFromText = (title: string, blurb: string) => {
   return tags.slice(0, 3);
 };
 
+const extractDepositFromText = (text: string): string | null => {
+  const t = text.toLowerCase();
+  // Look for "deposit"/"depósito"/"depos" plus a dollar amount nearby
+  const m =
+    t.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})(?:\s*(?:deposit|dep[oó]sito|depos))?/) ||
+    t.match(/(?:deposit|dep[oó]sito|depos)\s*[:\-]?\s*\$\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})/);
+  if (!m) return null;
+  const amt = m[1];
+  // Avoid showing rent price as "deposit" by requiring the keyword somewhere in the text
+  if (!/(deposit|dep[oó]sito|depos)/.test(t)) return null;
+  return `$${amt}`;
+};
+
+const rentasAvailabilityLabel = (x: Listing, lang: Lang): string | null => {
+  if (x.availableNow) return lang === "es" ? "Disponible ahora" : "Available now";
+  if (typeof x.availableInDays === "number") {
+    return lang === "es"
+      ? `Disponible en ${x.availableInDays} días`
+      : `Available in ${x.availableInDays} days`;
+  }
+  return null;
+};
+
 const microLine = (x: Listing) => {
   // Phase C: category-specific micro facts
   // Autos gets a dedicated spec + mileage line in the card (stronger scan),
@@ -1385,6 +1408,8 @@ const microLine = (x: Listing) => {
     return null;
   }
   if (x.category === "rentas") {
+    const deposit = extractDepositFromText(x.blurb[lang]);
+    const avail = rentasAvailabilityLabel(x, lang);
     const bits = [
       typeof x.beds === "number"
         ? `${x.beds === 0 ? "Studio" : `${x.beds} bd`}`
@@ -1396,6 +1421,9 @@ const microLine = (x: Listing) => {
       typeof x.baths === "number" ? `${x.baths} ba` : null,
       x.propertyType ? String(x.propertyType) : null,
       x.furnished ? (lang === "es" ? "Amueblado" : "Furnished") : null,
+      deposit ? `${lang === "es" ? "Depósito" : "Deposit"} ${deposit}` : null,
+      avail,
+      x.leaseTerm ? `${lang === "es" ? "Contrato" : "Lease"} ${x.leaseTerm}` : null,
     ].filter(Boolean);
     return bits.length ? bits.join(" • ") : null;
   }
@@ -1756,8 +1784,18 @@ const isComunidadLite = isComunidad;
           ) : null}
 
           {/* Business identity (Autos slightly earlier, stronger trust) */}
-          {x.sellerType === "business" && x.businessName ? (
+          {x.businessName ? (
             <div className={cx("mt-1 font-medium text-gray-100/90", isAutos ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
+              <span className="text-gray-400">
+                {isAutos
+                  ? (lang === "es" ? "Agencia" : "Dealer")
+                  : isEmpleos
+                    ? (lang === "es" ? "Empresa" : "Company")
+                    : isServicios
+                      ? (lang === "es" ? "Negocio" : "Business")
+                      : (lang === "es" ? "Perfil" : "Profile")}
+                {" · "}
+              </span>
               {x.businessName}
             </div>
           ) : null}

@@ -20,6 +20,10 @@ function normalizePlan(raw: unknown): Plan {
   return "free";
 }
 
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,10 +46,23 @@ export default function DashboardPage() {
         viewListings: "Ver mis anuncios",
         upgradeTitle: "Desbloquea más con LEONIX Pro",
         upgradeBody:
-          "Muy pronto podrás mejorar tu plan para publicar más, ver estadísticas y acceder a herramientas avanzadas.",
+          "Publica más, sube más fotos, ordena tu media y desbloquea LEONIX AI Insights.",
         free: "Gratis",
         pro: "LEONIX Pro",
         business: "Business",
+        activeListings: "Anuncios activos",
+        of: "de",
+        profileCompletion: "Perfil completado",
+        completeProfile: "Completar perfil",
+        aiInsights: "LEONIX AI Insights",
+        visibilityAssist: "Asistente de visibilidad",
+        aiTeaser: "Disponible en Pro",
+        aiTeaserBody:
+          "Sugerencias inteligentes para mejorar tu anuncio (título, precio, fotos) y aumentar visitas.",
+        proUnlocked: "Desbloqueado",
+        basicAnalytics: "Analíticas",
+        views: "Vistas",
+        saves: "Guardados",
       },
       en: {
         title: "My account",
@@ -59,10 +76,23 @@ export default function DashboardPage() {
         viewListings: "View my listings",
         upgradeTitle: "Unlock more with LEONIX Pro",
         upgradeBody:
-          "Coming soon: upgrade to post more, see stats, and access advanced tools.",
+          "Post more, upload more photos, reorder media, and unlock LEONIX AI Insights.",
         free: "Free",
         pro: "LEONIX Pro",
         business: "Business",
+        activeListings: "Active listings",
+        of: "of",
+        profileCompletion: "Profile completion",
+        completeProfile: "Complete profile",
+        aiInsights: "LEONIX AI Insights",
+        visibilityAssist: "Visibility Assist",
+        aiTeaser: "Available on Pro",
+        aiTeaserBody:
+          "Smart suggestions to improve your listing (title, price, photos) and increase views.",
+        proUnlocked: "Unlocked",
+        basicAnalytics: "Analytics",
+        views: "Views",
+        saves: "Saves",
       },
     }),
     []
@@ -76,6 +106,10 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<Plan>("free");
   const [listingsCount, setListingsCount] = useState<number | null>(null);
 
+  // lightweight profile completion based on known, safe fields
+  const [hasPhone, setHasPhone] = useState(false);
+  const [hasCity, setHasCity] = useState(false);
+
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     let mounted = true;
@@ -85,60 +119,78 @@ export default function DashboardPage() {
       if (!mounted) return;
 
       if (!data.user) {
-        const redirect = encodeURIComponent(
-          `${pathname}${window.location.search || ""}`
-        );
+        const redirect = encodeURIComponent(`${pathname}${window.location.search || ""}`);
         router.replace(`/login?redirect=${redirect}`);
         return;
       }
 
       const u = data.user;
+
+      const inferred =
+        u.user_metadata?.plan ?? u.app_metadata?.plan ?? u.user_metadata?.role;
+      const inferredPlan = normalizePlan(inferred);
+
       setEmail(u.email ?? null);
       setName(
         (u.user_metadata?.full_name as string | undefined) ||
           (u.user_metadata?.name as string | undefined) ||
           null
       );
+      setHasPhone(Boolean(u.user_metadata?.phone));
+      setHasCity(Boolean(u.user_metadata?.city || u.user_metadata?.location));
+      setPlan(inferredPlan);
 
-      const inferred =
-        u.user_metadata?.plan ?? u.app_metadata?.plan ?? u.user_metadata?.role;
-      setPlan(normalizePlan(inferred));
+      // Try profiles table (role-ready). If missing, keep inferred plan.
+      try {
+        const { data: pData, error: pErr } = await supabase
+          .from("profiles")
+          .select("plan, role, phone, city")
+          .eq("id", u.id)
+          .maybeSingle();
 
-
-// Try profiles table (role-ready). If missing, we keep inferred plan.
-try {
-  const { data: pData, error: pErr } = await supabase
-    .from("profiles")
-    .select("plan, role")
-    .eq("id", u.id)
-    .maybeSingle();
-
-  if (!pErr && pData) {
-    setPlan(normalizePlan((pData as any).plan ?? (pData as any).role ?? inferred));
-  }
-} catch {
-  // ignore
-}
+        if (!pErr && pData) {
+          setPlan(normalizePlan((pData as any).plan ?? (pData as any).role ?? inferred));
+          setHasPhone(Boolean((pData as any).phone) || Boolean(u.user_metadata?.phone));
+          setHasCity(Boolean((pData as any).city) || Boolean(u.user_metadata?.city || u.user_metadata?.location));
+        }
+      } catch {
+        // ignore
+      }
 
       // Count listings (safe, used for dashboard summary)
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", u.id);
+      try {
+        const { count } = await supabase
+          .from("listings")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", u.id);
 
-      setListingsCount(typeof count === "number" ? count : null);
+        if (mounted) setListingsCount(typeof count === "number" ? count : null);
+      } catch {
+        if (mounted) setListingsCount(null);
+      }
 
-      setLoading(false);
+      if (mounted) setLoading(false);
     }
 
-    load();
+    void load();
     return () => {
       mounted = false;
     };
   }, [router, pathname]);
 
-  const planLabel =
-    plan === "pro" ? L.pro : plan === "business" ? L.business : L.free;
+  const planLabel = plan === "pro" ? L.pro : plan === "business" ? L.business : L.free;
+
+  const maxActive = plan === "pro" ? 5 : plan === "business" ? 25 : 2;
+  const active = typeof listingsCount === "number" ? listingsCount : 0;
+
+  const completionParts = [
+    { key: "name", ok: Boolean(name), label: lang === "es" ? "Nombre" : "Name" },
+    { key: "email", ok: Boolean(email), label: lang === "es" ? "Email" : "Email" },
+    { key: "phone", ok: hasPhone, label: lang === "es" ? "Teléfono" : "Phone" },
+    { key: "city", ok: hasCity, label: lang === "es" ? "Ciudad" : "City" },
+  ];
+  const completionOk = completionParts.filter((p) => p.ok).length;
+  const completionPct = clamp(Math.round((completionOk / completionParts.length) * 100), 0, 100);
 
   const nav = [
     { href: `/dashboard?lang=${lang}`, label: L.overview, active: true },
@@ -146,22 +198,27 @@ try {
     { href: `/dashboard/mis-anuncios?lang=${lang}`, label: L.myListings, active: false },
   ];
 
+  const isPro = plan === "pro" || plan === "business";
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
       <main className="max-w-6xl mx-auto px-6 pt-28 pb-16">
         <div className="text-center">
-          <h1 className="text-3xl md:text-4xl font-semibold text-yellow-400">
-            {L.title}
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-semibold text-yellow-400">{L.title}</h1>
           <p className="mt-2 text-gray-300">{L.subtitle}</p>
         </div>
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
-          <aside className="rounded-2xl border border-yellow-600/20 bg-black/40 p-4">
+          <aside className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between">
               <div className="text-sm text-white/80">{L.plan}</div>
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+              <span className={cx(
+                "inline-flex items-center rounded-full px-3 py-1 text-xs",
+                plan === "pro"
+                  ? "border border-yellow-500/30 bg-yellow-500/10 text-yellow-200"
+                  : "border border-white/10 bg-black/30 text-white/80"
+              )}>
                 {planLabel}
               </span>
             </div>
@@ -181,13 +238,43 @@ try {
               ))}
             </nav>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="text-sm font-medium text-white">{name || "—"}</div>
               <div className="mt-1 text-xs text-white/70">{email || "—"}</div>
             </div>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-white/70">{L.profileCompletion}</div>
+                <div className="text-xs font-semibold text-white">{completionPct}%</div>
+              </div>
+              <div className="mt-2 h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                <div className="h-2 rounded-full bg-yellow-500" style={{ width: `${completionPct}%` }} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {completionParts.map((p) => (
+                  <span
+                    key={p.key}
+                    className={cx(
+                      "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px]",
+                      p.ok ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200" : "border-white/10 bg-white/5 text-white/70"
+                    )}
+                  >
+                    {p.label}
+                  </span>
+                ))}
+              </div>
+
+              <Link
+                href={`/dashboard/perfil?lang=${lang}`}
+                className="mt-3 inline-flex text-xs text-yellow-300 hover:text-yellow-200"
+              >
+                {L.completeProfile} →
+              </Link>
+            </div>
           </aside>
 
-          <section className="rounded-2xl border border-yellow-600/20 bg-black/40 p-6">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
             {loading ? (
               <div className="text-white/70">Loading…</div>
             ) : (
@@ -206,40 +293,105 @@ try {
                     </Link>
                     <Link
                       href={`/dashboard/mis-anuncios?lang=${lang}`}
-                      className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
+                      className="inline-flex items-center justify-center rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
                     >
                       {L.viewListings}
                     </Link>
                   </div>
                 </div>
 
-
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                     <div className="text-xs text-white/70">{L.plan}</div>
                     <div className="mt-2 text-lg font-semibold text-white">{planLabel}</div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-                    <div className="text-xs text-white/70">{L.myListings}</div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                    <div className="text-xs text-white/70">{L.activeListings}</div>
                     <div className="mt-2 text-lg font-semibold text-white">
-                      {typeof listingsCount === "number" ? listingsCount : "—"}
+                      {active} {L.of} {maxActive}
+                    </div>
+                    <div className="mt-2 h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full bg-yellow-500"
+                        style={{ width: `${clamp(Math.round((active / maxActive) * 100), 0, 100)}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-                    <div className="text-xs text-white/70">{L.quickActions}</div>
-                    <div className="mt-2 text-sm text-white/80">
-                      {lang === "es" ? "Publica o administra tus anuncios." : "Post or manage your listings."}
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                    <div className="text-xs text-white/70">{L.basicAnalytics}</div>
+                    <div className="mt-2 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                        <div className="text-[11px] text-white/70">{L.views}</div>
+                        <div className="mt-1 text-sm font-semibold text-white">—</div>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                        <div className="text-[11px] text-white/70">{L.saves}</div>
+                        <div className="mt-1 text-sm font-semibold text-white">—</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-[11px] text-white/60">
+                      {lang === "es"
+                        ? "Más métricas se activan en Pro."
+                        : "More metrics unlock on Pro."}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-                  <div className="text-base font-semibold text-white">{L.upgradeTitle}</div>
-                  <p className="mt-2 text-sm text-white/70">{L.upgradeBody}</p>
-                  <div className="mt-4 inline-flex items-center rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs text-white/70">
-                    {lang === "es" ? "Pagos no activados en esta fase." : "Payments not enabled in this phase."}
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="text-base font-semibold text-white">{L.visibilityAssist}</div>
+                      <span className={cx(
+                        "text-xs rounded-full border px-3 py-1",
+                        isPro ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-200" : "border-white/10 bg-white/5 text-white/70"
+                      )}>
+                        {isPro ? L.proUnlocked : L.aiTeaser}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-white/70">
+                      {isPro
+                        ? (lang === "es"
+                            ? "Recomendaciones para mejorar visibilidad: fotos, título y precio."
+                            : "Recommendations to improve visibility: photos, title, and price.")
+                        : L.aiTeaserBody}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="text-base font-semibold text-white">{L.aiInsights}</div>
+                      <span className={cx(
+                        "text-xs rounded-full border px-3 py-1",
+                        isPro ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-200" : "border-white/10 bg-white/5 text-white/70"
+                      )}>
+                        {isPro ? L.proUnlocked : L.aiTeaser}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-white/70">
+                      {isPro
+                        ? (lang === "es"
+                            ? "Insights privados sobre rendimiento y calidad del anuncio (sin mostrar AI al público)."
+                            : "Private insights on listing quality and performance (AI stays invisible publicly).")
+                        : L.aiTeaserBody}
+                    </p>
+                    {!isPro && (
+                      <div className="mt-4">
+                        <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
+                          {lang === "es" ? "Pagos no activados en esta fase." : "Payments not enabled in this phase."}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {!isPro && (
+                  <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-6">
+                    <div className="text-base font-semibold text-white">{L.upgradeTitle}</div>
+                    <p className="mt-2 text-sm text-white/70">{L.upgradeBody}</p>
+                  </div>
+                )}
               </>
             )}
           </section>
