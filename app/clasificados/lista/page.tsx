@@ -1279,14 +1279,11 @@ const visible = useMemo(() => {
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
 const microLine = (x: Listing) => {
+  // Phase C: category-specific micro facts
+  // Autos gets a dedicated spec + mileage line in the card (stronger scan),
+  // so we keep microLine for other categories only.
   if (x.category === "autos") {
-    const bits = [
-      x.year ? String(x.year) : null,
-      x.make ?? null,
-      x.model ?? null,
-      typeof (x as any).mileage === "number" ? `${(x as any).mileage.toLocaleString()} mi` : null,
-    ].filter(Boolean);
-    return bits.length ? bits.join(" • ") : null;
+    return null;
   }
   if (x.category === "rentas") {
     const bits = [
@@ -1496,8 +1493,23 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
 
 const ListingCardGrid = (x: Listing) => {
   const isFav = favIds.has(x.id);
-  const micro = microLine(x);
+  const isAutos = x.category === "autos";
   const tier = inferVisualTier(x);
+
+  // Autos: structured scan (AutoTrader-style)
+  const autosSpec = isAutos
+    ? [x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" • ")
+    : null;
+
+  const autosMileage =
+    isAutos && typeof (x as any).mileage === "number"
+      ? `${(x as any).mileage.toLocaleString()} mi`
+      : isAutos && typeof (x as any).mileage === "string"
+        ? String((x as any).mileage)
+        : null;
+
+  // Non-autos micro facts (keeps other categories unchanged)
+  const micro = !isAutos ? microLine(x) : null;
 
   return (
     <div
@@ -1542,26 +1554,48 @@ const ListingCardGrid = (x: Listing) => {
             <TierBadge tier={tier} lang={lang} />
           </div>
 
-          {/* Price (scan-first) */}
-          <div className="mt-1 text-base sm:text-lg font-extrabold text-yellow-200 tracking-tight">
+          {/* Price (scan-first, Autos extra emphasis) */}
+          <div
+            className={cx(
+              "mt-1 font-extrabold text-yellow-200 tracking-tight",
+              isAutos ? "text-lg sm:text-xl" : "text-base sm:text-lg"
+            )}
+          >
             {x.priceLabel[lang]}
           </div>
 
-          {/* Location + time */}
-          <div className="mt-1 text-xs sm:text-sm text-gray-300">
-            <span className="text-gray-200">{x.city}</span> <span className="text-gray-500">•</span>{" "}
-            <span className="text-gray-300">{x.postedAgo[lang]}</span>
-          </div>
+          {/* Autos: specs + mileage ABOVE location/time */}
+          {isAutos && autosSpec ? (
+            <div className="mt-1 text-xs sm:text-sm text-gray-200">
+              {autosSpec}
+            </div>
+          ) : null}
+          {isAutos && autosMileage ? (
+            <div className="mt-0.5 text-xs sm:text-sm font-semibold text-gray-100">
+              {autosMileage}
+            </div>
+          ) : null}
 
-          {/* Business identity */}
+          {/* Business identity (Autos slightly earlier, stronger trust) */}
           {x.sellerType === "business" && x.businessName ? (
-            <div className="mt-1 text-[11px] sm:text-xs font-medium text-yellow-100/90">
+            <div className={cx("mt-1 font-medium text-yellow-100/90", isAutos ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
               {x.businessName}
             </div>
           ) : null}
 
-          {/* Micro facts */}
-          {micro ? <div className="mt-1 text-[11px] sm:text-xs text-gray-300">{micro}</div> : null}
+          {/* Location + time (Autos pushed lower for scan hierarchy) */}
+          <div className={cx("text-gray-300", isAutos ? "mt-1 text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm")}>
+            <span className="text-gray-200">{x.city}</span>{" "}
+            <span className="text-gray-500">•</span>{" "}
+            <span className="text-gray-300">{x.postedAgo[lang]}</span>
+          </div>
+
+          {/* Micro facts (non-autos only) */}
+          {micro ? (
+            <div className="mt-1 text-[11px] sm:text-xs text-gray-300">
+              {micro}
+            </div>
+          ) : null}
 
           {/* Chips */}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -1583,22 +1617,42 @@ const ListingCardGrid = (x: Listing) => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => toggleFav(x.id)}
-          className={cx(
-            "shrink-0 rounded-xl border px-2.5 py-1.5 text-sm",
-            isFav
-              ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-              : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-          )}
-          aria-label={
-            isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")
-          }
-        >
-          {isFav ? "★" : "☆"}
-        </button>
+        <div className={cx("shrink-0 flex flex-col items-end gap-2", !isAutos && "justify-start")}>
+          {/* Autos: consistent thumbnail (small, fixed, no layout shift) */}
+          {isAutos ? (
+            <div className="h-16 w-16 sm:h-[72px] sm:w-[72px] overflow-hidden rounded-xl border border-white/10 bg-white/5">
+              {x.hasImage ? (
+                <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
+              ) : (
+                <div className="h-full w-full bg-white/5" />
+              )}
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => toggleFav(x.id)}
+            className={cx(
+              "rounded-xl border px-2.5 py-1.5 text-sm",
+              isFav
+                ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            )}
+            aria-label={
+              isFav
+                ? lang === "es"
+                  ? "Quitar de favoritos"
+                  : "Remove favorite"
+                : lang === "es"
+                  ? "Guardar favorito"
+                  : "Save favorite"
+            }
+          >
+            {isFav ? "★" : "☆"}
+          </button>
+        </div>
       </div>
+
       <div className="mt-2 line-clamp-2 text-sm text-gray-200">
         {x.blurb[lang]}
       </div>
@@ -1615,10 +1669,24 @@ const ListingCardGrid = (x: Listing) => {
   );
 };
 
+
 const ListingRow = (x: Listing, withImg: boolean) => {
   const isFav = favIds.has(x.id);
-  const micro = microLine(x);
+  const isAutos = x.category === "autos";
   const tier = inferVisualTier(x);
+
+  const autosSpec = isAutos
+    ? [x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" • ")
+    : null;
+
+  const autosMileage =
+    isAutos && typeof (x as any).mileage === "number"
+      ? `${(x as any).mileage.toLocaleString()} mi`
+      : isAutos && typeof (x as any).mileage === "string"
+        ? String((x as any).mileage)
+        : null;
+
+  const micro = !isAutos ? microLine(x) : null;
 
   return (
     <div
@@ -1652,7 +1720,12 @@ const ListingRow = (x: Listing, withImg: boolean) => {
       ) : null}
 
       {withImg ? (
-        <div className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+        <div
+          className={cx(
+            "shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5",
+            isAutos ? "h-14 w-14 sm:h-16 sm:w-16" : "h-12 w-12 sm:h-14 sm:w-14"
+          )}
+        >
           {x.hasImage ? (
             <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
           ) : (
@@ -1676,18 +1749,33 @@ const ListingRow = (x: Listing, withImg: boolean) => {
               <TierBadge tier={tier} lang={lang} />
             </div>
 
-            <div className="mt-0.5 text-sm font-extrabold text-yellow-200 tracking-tight">
+            <div className={cx("mt-0.5 font-extrabold text-yellow-200 tracking-tight", isAutos ? "text-base sm:text-lg" : "text-sm")}>
               {x.priceLabel[lang]}
             </div>
 
+            {/* Autos: specs + mileage ABOVE location/time */}
+            {isAutos && autosSpec ? (
+              <div className="mt-0.5 text-xs text-gray-200">{autosSpec}</div>
+            ) : null}
+            {isAutos && autosMileage ? (
+              <div className="mt-0.5 text-xs font-semibold text-gray-100">{autosMileage}</div>
+            ) : null}
+
+            {x.sellerType === "business" && x.businessName ? (
+              <div className={cx("mt-0.5 font-medium text-yellow-100/90", isAutos ? "text-xs" : "text-[11px]")}>
+                {x.businessName}
+              </div>
+            ) : null}
+
             <div className="mt-0.5 text-xs text-gray-300">
-              <span className="text-gray-200">{x.city}</span> <span className="text-gray-500">•</span>{" "}
+              <span className="text-gray-200">{x.city}</span>{" "}
+              <span className="text-gray-500">•</span>{" "}
               <span className="text-gray-300">{x.postedAgo[lang]}</span>
             </div>
-            {x.sellerType === "business" && x.businessName ? (
-              <div className="mt-0.5 text-[11px] font-medium text-yellow-100/90">{x.businessName}</div>
+
+            {micro ? (
+              <div className="mt-0.5 text-xs text-gray-300">{micro}</div>
             ) : null}
-            {micro ? <div className="mt-0.5 text-xs text-gray-300">{micro}</div> : null}
           </a>
 
           <div className="flex items-center gap-2">
@@ -1701,7 +1789,13 @@ const ListingRow = (x: Listing, withImg: boolean) => {
                   : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               )}
               aria-label={
-                isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")
+                isFav
+                  ? lang === "es"
+                    ? "Quitar de favoritos"
+                    : "Remove favorite"
+                  : lang === "es"
+                    ? "Guardar favorito"
+                    : "Save favorite"
               }
             >
               {isFav ? "★" : "☆"}
@@ -1732,6 +1826,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
     </div>
   );
 };
+
 
   return (
     <div className="min-h-screen bg-black text-white pb-28 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.10),transparent_55%)]">
