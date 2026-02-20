@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Navbar from "../components/Navbar";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 
@@ -233,6 +234,11 @@ export default function PublicarPage() {
   const [signedIn, setSignedIn] = useState(false);
   const [userId, setUserId] = useState<string>("");
   const [authError, setAuthError] = useState<string>("");
+  const [isPro, setIsPro] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoThumbBlob, setVideoThumbBlob] = useState<Blob | null>(null);
+  const [videoInfo, setVideoInfo] = useState<{ duration: number; width: number; height: number } | null>(null);
+  const [videoError, setVideoError] = useState<string>("");
 
   const [step, setStep] = useState<PublishStep>("basics");
   const [category, setCategory] = useState<string>(() => {
@@ -294,6 +300,14 @@ export default function PublicarPage() {
 
       setUserId(data.user.id);
       setSignedIn(true);
+
+const planRaw =
+  (data.user.user_metadata?.leonix_plan as string | undefined) ||
+  (data.user.user_metadata?.plan as string | undefined) ||
+  (data.user.app_metadata?.plan as string | undefined) ||
+  "";
+const plan = String(planRaw).toLowerCase();
+setIsPro(plan.includes("pro"));
       setChecking(false);
     }
 
@@ -325,6 +339,10 @@ export default function PublicarPage() {
         mediaTitle: "Media + Contacto",
         images: "Fotos (mínimo 1)",
         addImages: "Agregar fotos",
+        video: "Video (solo Pro, 1 por anuncio)",
+        addVideo: "Agregar video",
+        videoHint: "Máx 20s, 720p. Sin autoplay en la lista.",
+        videoLocked: "Desbloquea video con LEONIX Pro.",
         contact: "Método de contacto",
         phone: "Teléfono",
         email: "Email",
@@ -359,6 +377,10 @@ export default function PublicarPage() {
         mediaTitle: "Media + Contact",
         images: "Photos (min 1)",
         addImages: "Add photos",
+        video: "Video (Pro only, 1 per listing)",
+        addVideo: "Add video",
+        videoHint: "Max 20s, 720p. No autoplay in grid.",
+        videoLocked: "Unlock video with LEONIX Pro.",
         contact: "Contact method",
         phone: "Phone",
         email: "Email",
@@ -474,7 +496,104 @@ export default function PublicarPage() {
     }
   }
 
-  async function publish() {
+  
+async function inspectAndThumbVideo(file: File) {
+  setVideoError("");
+  setVideoInfo(null);
+  setVideoThumbBlob(null);
+
+  if (!file.type.startsWith("video/")) {
+    setVideoError(lang === "es" ? "Selecciona un archivo de video." : "Please select a video file.");
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const info = await new Promise<{ duration: number; width: number; height: number }>((resolve, reject) => {
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.muted = true;
+      v.src = url;
+
+      const cleanup = () => {
+        v.removeAttribute("src");
+        try { v.load(); } catch {}
+      };
+
+      v.onloadedmetadata = () => {
+        const duration = Number(v.duration || 0);
+        const width = Number((v as any).videoWidth || 0);
+        const height = Number((v as any).videoHeight || 0);
+        cleanup();
+        resolve({ duration, width, height });
+      };
+      v.onerror = () => {
+        cleanup();
+        reject(new Error("metadata"));
+      };
+    });
+
+    if (info.duration > 20.2) {
+      setVideoError(lang === "es" ? "El video debe ser de 20 segundos o menos." : "Video must be 20 seconds or less.");
+      return;
+    }
+    if (info.width > 1280 || info.height > 720) {
+      setVideoError(
+        lang === "es"
+          ? "El video debe ser 720p o menos (1280×720)."
+          : "Video must be 720p or less (1280×720)."
+      );
+      return;
+    }
+
+    setVideoInfo(info);
+
+    // Generate thumbnail (capture ~0.5s)
+    const thumb = await new Promise<Blob | null>((resolve) => {
+      const v = document.createElement("video");
+      v.preload = "auto";
+      v.muted = true;
+      v.playsInline = true;
+      v.src = url;
+
+      const done = (b: Blob | null) => {
+        v.removeAttribute("src");
+        try { v.load(); } catch {}
+        resolve(b);
+      };
+
+      v.onloadeddata = () => {
+        const t = Math.min(0.5, Math.max(0, (v.duration || 1) * 0.1));
+        try {
+          v.currentTime = t;
+        } catch {
+          done(null);
+        }
+      };
+
+      v.onseeked = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = (v as any).videoWidth || 640;
+          canvas.height = (v as any).videoHeight || 360;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return done(null);
+          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((b) => done(b), "image/jpeg", 0.82);
+        } catch {
+          done(null);
+        }
+      };
+
+      v.onerror = () => done(null);
+    });
+
+    setVideoThumbBlob(thumb);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+async function publish() {
     setPublishError("");
     setPublishedId("");
 
@@ -522,6 +641,52 @@ export default function PublicarPage() {
         setPublishError(lang === "es" ? "Publicado, pero no se recibió ID." : "Published, but no ID returned.");
         return;
       }
+
+
+// Pro video upload (optional, Pro-only). We store URLs inside description to avoid schema guessing.
+let videoUrl: string | null = null;
+let thumbUrl: string | null = null;
+
+if (isPro && videoFile && !videoError) {
+  try {
+    const basePath = `${userId}/${id}/video`;
+    const ext = (videoFile.name.split(".").pop() || "mp4").toLowerCase();
+    const videoPath = `${basePath}/clip.${ext}`;
+    const up1 = await supabase.storage
+      .from("listing-images")
+      .upload(videoPath, videoFile, { upsert: true, contentType: videoFile.type });
+
+    if (up1.error) throw up1.error;
+
+    videoUrl = supabase.storage.from("listing-images").getPublicUrl(videoPath).data.publicUrl;
+
+    if (videoThumbBlob) {
+      const thumbPath = `${basePath}/thumb.jpg`;
+      const up2 = await supabase.storage
+        .from("listing-images")
+        .upload(thumbPath, videoThumbBlob, { upsert: true, contentType: "image/jpeg" });
+
+      if (!up2.error) {
+        thumbUrl = supabase.storage.from("listing-images").getPublicUrl(thumbPath).data.publicUrl;
+      }
+    }
+
+    if (videoUrl) {
+      const videoAppendix =
+        lang === "es"
+          ? `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nMiniatura: ${thumbUrl}` : ""}\n`
+          : `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nThumbnail: ${thumbUrl}` : ""}\n`;
+
+      await supabase
+        .from("listings")
+        .update({ description: (finalDescription + videoAppendix).trim() })
+        .eq("id", id);
+    }
+  } catch (e: any) {
+    // Don't fail the publish for video issues; keep listing live.
+    console.warn("video upload failed", e?.message || e);
+  }
+}
 
       setPublishedId(id);
       deleteDraft();
@@ -877,10 +1042,98 @@ export default function PublicarPage() {
                           <div className="mt-1 text-xs text-white/40">
                             {lang === "es" ? "Requerido: mínimo 1 foto." : "Required: at least 1 photo."}
                           </div>
-                        )}
-                      </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+  )}
+</div>
+
+<div className="rounded-2xl border border-white/10 bg-black/20 p-4 relative overflow-hidden">
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <div className="text-sm text-white/80">{copy.video}</div>
+      <div className="mt-1 text-xs text-white/45">{copy.videoHint}</div>
+    </div>
+
+    <label
+      className={cx(
+        "rounded-xl border px-4 py-2 text-sm font-semibold cursor-pointer",
+        isPro
+          ? "border-white/10 bg-white/5 hover:bg-white/8 text-white/80"
+          : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed"
+      )}
+    >
+      {copy.addVideo}
+      <input
+        type="file"
+        accept="video/mp4,video/webm"
+        className="hidden"
+        disabled={!isPro}
+        onChange={async (e) => {
+          const f = (e.target.files ?? [])[0] || null;
+          setVideoFile(f);
+          setVideoError("");
+          setVideoInfo(null);
+          setVideoThumbBlob(null);
+          if (f) await inspectAndThumbVideo(f);
+        }}
+      />
+    </label>
+  </div>
+
+  {!isPro && (
+    <div className="mt-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-sm text-yellow-200/90 flex items-center justify-between gap-3">
+      <div>{copy.videoLocked}</div>
+      <Link
+        href={`/dashboard?lang=${lang}`}
+        className="shrink-0 rounded-lg border border-yellow-400/30 bg-black/30 px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-black/40"
+      >
+        {lang === "es" ? "Ver Pro" : "See Pro"}
+      </Link>
+    </div>
+  )}
+
+  {videoError && <div className="mt-3 text-sm text-red-300">{videoError}</div>}
+
+  {videoFile && !videoError && (
+    <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm text-white/75 truncate">{videoFile.name}</div>
+        <button
+          type="button"
+          onClick={() => {
+            setVideoFile(null);
+            setVideoThumbBlob(null);
+            setVideoInfo(null);
+            setVideoError("");
+          }}
+          className="text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 text-white/70"
+        >
+          {lang === "es" ? "Quitar" : "Remove"}
+        </button>
+      </div>
+
+      {videoInfo && (
+        <div className="mt-2 text-xs text-white/45">
+          {Math.round(videoInfo.duration * 10) / 10}s • {videoInfo.width}×{videoInfo.height}
+        </div>
+      )}
+
+      {videoThumbBlob && (
+        <div className="mt-3">
+          <div className="text-xs text-white/45 mb-2">{lang === "es" ? "Miniatura" : "Thumbnail"}</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt="video thumbnail"
+            className="w-full max-w-sm rounded-xl border border-white/10"
+            src={URL.createObjectURL(videoThumbBlob)}
+          />
+        </div>
+      )}
+    </div>
+  )}
+</div>
+
+<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+
                         <div className="text-sm text-white/80">{copy.contact}</div>
 
                         <div className="mt-3 grid grid-cols-3 gap-2">
