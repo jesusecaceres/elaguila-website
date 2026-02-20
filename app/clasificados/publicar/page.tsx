@@ -268,6 +268,7 @@ export default function PublicarPage() {
   const [videoThumbBlob, setVideoThumbBlob] = useState<Blob | null>(null);
   const [videoInfo, setVideoInfo] = useState<{ duration: number; width: number; height: number } | null>(null);
   const [videoError, setVideoError] = useState<string>("");
+  const [showProVideoPreview, setShowProVideoPreview] = useState(false);
 
   const [step, setStep] = useState<PublishStep>("basics");
   const [category, setCategory] = useState<string>(() => {
@@ -291,6 +292,31 @@ export default function PublicarPage() {
   const [contactEmail, setContactEmail] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
+
+  const proVideoThumbPreviewUrl = useMemo(() => {
+    if (!videoThumbBlob) return "";
+    try {
+      return URL.createObjectURL(videoThumbBlob);
+    } catch {
+      return "";
+    }
+  }, [videoThumbBlob]);
+
+  const proVideoPreviewUrl = useMemo(() => {
+    if (!videoFile) return "";
+    try {
+      return URL.createObjectURL(videoFile);
+    } catch {
+      return "";
+    }
+  }, [videoFile]);
+
+  useEffect(() => {
+    return () => {
+      if (proVideoThumbPreviewUrl) URL.revokeObjectURL(proVideoThumbPreviewUrl);
+      if (proVideoPreviewUrl) URL.revokeObjectURL(proVideoPreviewUrl);
+    };
+  }, [proVideoThumbPreviewUrl, proVideoPreviewUrl]);
 
   // Publish
   const [publishError, setPublishError] = useState<string>("");
@@ -1355,9 +1381,10 @@ if (isPro && videoFile && !videoError) {
           type="button"
           onClick={() => {
             setVideoFile(null);
-            setVideoThumbBlob(null);
-            setVideoInfo(null);
-            setVideoError("");
+          setVideoThumbBlob(null);
+          setVideoInfo(null);
+          setVideoError("");
+          setShowProVideoPreview(false);
           }}
           className="text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 text-white/70"
         >
@@ -1378,7 +1405,7 @@ if (isPro && videoFile && !videoError) {
           <img
             alt="video thumbnail"
             className="w-full max-w-sm rounded-xl border border-white/10"
-            src={URL.createObjectURL(videoThumbBlob)}
+            src={proVideoThumbPreviewUrl}
           />
         </div>
       )}
@@ -1504,7 +1531,73 @@ if (isPro && videoFile && !videoError) {
                                 ))}
                               </div>
                             )}
-                            
+                            {isPro && videoFile && (
+                              <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm font-semibold text-yellow-200">
+                                      {lang === "es" ? "Video (Pro)" : "Pro Video"}
+                                    </div>
+                                    <div className="mt-1 text-xs text-white/50">
+                                      {lang === "es"
+                                        ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
+                                        : "Tap the thumbnail to play. No autoplay."}
+                                    </div>
+                                  </div>
+                                  {!showProVideoPreview && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowProVideoPreview(true)}
+                                      className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-yellow-500/15"
+                                    >
+                                      {lang === "es" ? "Reproducir" : "Play"}
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="mt-3">
+                                  {!showProVideoPreview ? (
+                                    proVideoThumbPreviewUrl ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowProVideoPreview(true)}
+                                        className="group relative block w-full overflow-hidden rounded-xl border border-white/10"
+                                        aria-label={lang === "es" ? "Reproducir video" : "Play video"}
+                                      >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={proVideoThumbPreviewUrl}
+                                          alt={lang === "es" ? "Miniatura del video" : "Video thumbnail"}
+                                          className="h-auto w-full object-cover opacity-95 group-hover:opacity-100"
+                                          loading="lazy"
+                                        />
+                                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                          <div className="rounded-full border border-white/20 bg-black/60 px-4 py-2 text-sm font-semibold text-white">
+                                            {lang === "es" ? "▶ Reproducir" : "▶ Play"}
+                                          </div>
+                                        </div>
+                                      </button>
+                                    ) : (
+                                      <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+                                        {lang === "es"
+                                          ? "Este anuncio incluirá un video Pro al publicarse."
+                                          : "This listing will include a Pro video when published."}
+                                      </div>
+                                    )
+                                  ) : (
+                                    <video
+                                      className="w-full rounded-xl border border-white/10 bg-black"
+                                      controls
+                                      preload="none"
+                                      playsInline
+                                      poster={proVideoThumbPreviewUrl || undefined}
+                                      src={proVideoPreviewUrl || undefined}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                             {getDetailPairs(category, lang, details).length > 0 && (
                               <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
                                 <div className="text-xs text-white/50 mb-2">
