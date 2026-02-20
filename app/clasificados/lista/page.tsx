@@ -2220,10 +2220,39 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "hidden md:block",
             "sticky top-[72px] z-30 mt-0 md:top-[calc(72px+16px)]",
-            "rounded-2xl border border-white/10 bg-neutral-900/60 backdrop-blur",
+            "rounded-2xl border border-white/10 bg-neutral-800/60 backdrop-blur",
             compact ? "shadow-lg" : ""
           )}
         >
+          {filtersCollapsed ? (
+            <div className="flex h-full flex-col items-center justify-start p-2">
+              <button
+                type="button"
+                onClick={() => setFiltersCollapsed(false)}
+                className="mt-1 flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-2 py-3 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                aria-label={lang === "es" ? "Abrir filtros" : "Open filters"}
+                title={lang === "es" ? "Abrir filtros" : "Open filters"}
+              >
+                <span
+                  className="text-[11px] font-semibold tracking-wide text-gray-200"
+                  style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+                >
+                  {(lang === "es" ? "Filtros" : "Filters") + (activeChips.length ? ` (${activeChips.length})` : "")}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={resetAll}
+                className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-[11px] text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                aria-label={UI.reset[lang]}
+                title={UI.reset[lang]}
+              >
+                ↺
+              </button>
+            </div>
+          ) : (
+
           <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
           <div className="hidden md:flex items-start justify-between gap-4 mb-3">
             <div>
@@ -2429,6 +2458,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               </div>
             ) : null}
           </div>
+          )}
+
         </section>
 
         <div className="md:col-start-2 md:mt-0">
@@ -2898,7 +2929,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   </section>
 ) : null}        <section className="mt-6">
           {view === "grid" ? (
-            <div className="grid gap-2.5 sm:gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div
+              className={cx(
+                "grid gap-2.5 sm:gap-3 md:gap-4",
+                filtersCollapsed ? "md:grid-cols-3 lg:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-3"
+              )}
+            >
               {visible.map(ListingCardGrid)}
             </div>
           ) : (
