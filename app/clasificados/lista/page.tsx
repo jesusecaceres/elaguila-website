@@ -1455,7 +1455,7 @@ const ActionPills = (x: Listing) => {
           href={p.href}
           target={p.external ? "_blank" : undefined}
           rel={p.external ? "noreferrer" : undefined}
-          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
         >
           {p.label}
         </a>
@@ -1572,7 +1572,7 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
         </span>
       </summary>
 
-      <div className="mt-2 rounded-xl border border-yellow-600/20 bg-black/40 p-3">
+      <div className="mt-2 rounded-xl border border-white/12 bg-black/40 p-3">
         <div className="space-y-2">
           {items.map((it) => (
             <div key={it.tier ?? "none"} className="flex items-start gap-2">
@@ -1683,7 +1683,7 @@ const isComunidadLite = isComunidad;
             className={cx(
               "mt-1 tracking-tight",
               isComunidadLite
-                ? "font-bold text-yellow-100 text-sm sm:text-base"
+                ? "font-bold text-gray-100 text-sm sm:text-base"
                 : isServicios
                   ? "font-extrabold text-yellow-200 text-base sm:text-lg"
                   : isEmpleos
@@ -1757,12 +1757,12 @@ const isComunidadLite = isComunidad;
 
           {/* Business identity (Autos slightly earlier, stronger trust) */}
           {x.sellerType === "business" && x.businessName ? (
-            <div className={cx("mt-1 font-medium text-yellow-100/90", isAutos ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
+            <div className={cx("mt-1 font-medium text-gray-100/90", isAutos ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
               {x.businessName}
             </div>
           ) : null}
 {isEmpleos && x.sellerType === "business" && !x.businessName ? (
-  <div className="mt-1 text-[11px] sm:text-xs font-medium text-yellow-100/90">
+  <div className="mt-1 text-[11px] sm:text-xs font-medium text-gray-100/90">
     {lang === "es" ? "Empresa" : "Business"}
   </div>
 ) : null}
@@ -1820,8 +1820,8 @@ const isComunidadLite = isComunidad;
             className={cx(
               "rounded-xl border px-2.5 py-1.5 text-sm",
               isFav
-                ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
             aria-label={
               isFav
@@ -1846,7 +1846,7 @@ const isComunidadLite = isComunidad;
 
       <a
         href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-        className="mt-2.5 block rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-center text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+        className="mt-2.5 block rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-center text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
       >
         {lang === "es" ? "Ver detalle" : "View details"}
       </a>
@@ -1943,7 +1943,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   className={cx(
     "mt-0.5 tracking-tight",
     isComunidadLite
-      ? "font-bold text-yellow-100 text-sm"
+      ? "font-bold text-gray-100 text-sm"
       : isServicios
         ? "font-extrabold text-yellow-200 text-sm sm:text-base"
         : isEmpleos
@@ -2046,12 +2046,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
 
             {x.sellerType === "business" && x.businessName ? (
-              <div className={cx("mt-0.5 font-medium text-yellow-100/90", isAutos ? "text-xs" : "text-[11px]")}>
+              <div className={cx("mt-0.5 font-medium text-gray-100/90", isAutos ? "text-xs" : "text-[11px]")}>
                 {x.businessName}
               </div>
             ) : null}
 {isEmpleos && x.sellerType === "business" && !x.businessName ? (
-  <div className="mt-0.5 text-[11px] font-medium text-yellow-100/90">
+  <div className="mt-0.5 text-[11px] font-medium text-gray-100/90">
     {lang === "es" ? "Empresa" : "Business"}
   </div>
 ) : null}
@@ -2075,8 +2075,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "rounded-lg border px-2 py-1 text-xs",
                 isFav
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
               aria-label={
                 isFav
@@ -2152,7 +2152,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
 
         <section className="mt-6">
-          <div className="rounded-2xl border border-yellow-600/20 bg-black/30 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+          <div className="rounded-2xl border border-white/12 bg-black/30 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-gray-200">
                 {lang === "es" ? "Explorar por categoría" : "Browse by category"}
@@ -2190,9 +2190,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     onClick={() => switchCategory(c)}
                     aria-current={active ? "page" : undefined}
                     className={cx(
-                      "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400/50",
+                      "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400/40",
                       active
-                        ? "border-yellow-500/50 bg-yellow-500/15 text-yellow-100"
+                        ? "border-yellow-500/50 bg-yellow-500/15 text-gray-100"
                         : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
                     )}
                   >
@@ -2220,7 +2220,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "hidden md:block",
             "sticky top-[72px] z-30 mt-0 md:top-[calc(72px+16px)]",
-            "rounded-2xl border border-white/10 bg-neutral-800/60 backdrop-blur",
+            "rounded-2xl border border-white/12 bg-neutral-800/45 backdrop-blur shadow-sm",
             compact ? "shadow-lg" : ""
           )}
         >
@@ -2229,7 +2229,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setFiltersCollapsed(false)}
-                className="mt-1 flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-2 py-3 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                className="mt-1 flex w-full items-center justify-center rounded-2xl border border-white/12 bg-white/6 px-2 py-3 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 aria-label={lang === "es" ? "Abrir filtros" : "Open filters"}
                 title={lang === "es" ? "Abrir filtros" : "Open filters"}
               >
@@ -2244,7 +2244,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={resetAll}
-                className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-[11px] text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/12 bg-white/6 px-2 py-2 text-[11px] text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 aria-label={UI.reset[lang]}
                 title={UI.reset[lang]}
               >
@@ -2262,7 +2262,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <button
               type="button"
               onClick={() => setFiltersCollapsed((v) => !v)}
-              className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+              className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               aria-label={lang === "es" ? "Colapsar filtros" : "Collapse filters"}
             >
               {filtersCollapsed
@@ -2305,7 +2305,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                             setCategory(c);
                             setSuggestionsOpen(false);
                           }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
                           <span className="text-xs text-gray-400">
@@ -2326,7 +2326,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -2383,7 +2383,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {UI.moreFilters[lang]}
                 </button>
@@ -2391,7 +2391,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={resetAll}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {UI.reset[lang]}
                 </button>
@@ -2405,7 +2405,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     key={c.key}
                     type="button"
                     onClick={c.clear}
-                    className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1.5 text-xs sm:py-1 text-yellow-100 hover:bg-yellow-600/15"
+                    className="whitespace-nowrap rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/8 transition"
                     aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                   >
                     {c.text} <span className="ml-1 opacity-80">×</span>
@@ -2419,7 +2419,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => scrollChips("left")}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   aria-label={lang === "es" ? "Desplazar izquierda" : "Scroll left"}
                 >
                   ‹
@@ -2439,8 +2439,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       className={cx(
                         "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1",
                         normalize(c.city) === normalize(resolvedCity.name)
-                          ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                          ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                       )}
                     >
                       {c.city}
@@ -2450,7 +2450,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => scrollChips("right")}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   aria-label={lang === "es" ? "Desplazar derecha" : "Scroll right"}
                 >
                   ›
@@ -2494,6 +2494,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   {filtered.length}
                 </div>
 
+                <div className="mt-1 text-xs text-gray-400">
+                  <span className="font-medium text-gray-300">{CATEGORY_LABELS[category][lang]}</span>
+                  <span className="mx-2 text-gray-500">•</span>
+                  <span>{lang === "es" ? "en" : "in"} {city}</span>
+                  <span className="mx-2 text-gray-500">•</span>
+                  <span>{radiusMi} mi</span>
+                </div>
+
                 <BadgeLegend lang={lang} />
               </div>
 
@@ -2505,8 +2513,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                     aria-label={lang === "es" ? "Vista de lista" : "List view"}
                   >
@@ -2518,8 +2526,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list-img"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                     aria-label={lang === "es" ? "Lista con imagen" : "List with images"}
                   >
@@ -2531,8 +2539,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "grid"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                     aria-label={lang === "es" ? "Vista de cuadrícula" : "Grid view"}
                   >
@@ -2571,8 +2579,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "rounded-xl border px-3 py-2 text-sm",
                 mobilePanelTab === "filters"
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
             >
               {lang === "es" ? "Filtros" : "Filters"}
@@ -2588,8 +2596,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "rounded-xl border px-3 py-2 text-sm",
                 mobilePanelTab === "sort"
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
             >
               {lang === "es" ? "Ordenar" : "Sort"}
@@ -2599,7 +2607,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             aria-label={lang === "es" ? "Cerrar" : "Close"}
           >
             ✕
@@ -2645,7 +2653,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                             setCategory(c);
                             setSuggestionsOpen(false);
                           }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
                           <span className="text-xs text-gray-400">
@@ -2666,7 +2674,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -2721,7 +2729,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.moreFilters[lang]}
               </button>
@@ -2733,7 +2741,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       key={c.key}
                       type="button"
                       onClick={c.clear}
-                      className="whitespace-nowrap rounded-full border border-yellow-600/30 bg-yellow-600/10 px-3 py-1.5 text-xs sm:py-1 text-yellow-100 hover:bg-yellow-600/15"
+                      className="whitespace-nowrap rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/8 transition"
                       aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                     >
                       {c.text} <span className="ml-1 opacity-80">×</span>
@@ -2755,8 +2763,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                   >
                     {lang === "es" ? "Lista" : "List"}
@@ -2767,8 +2775,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list-img"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                   >
                     {lang === "es" ? "Lista + foto" : "List + image"}
@@ -2779,8 +2787,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "grid"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                   >
                     {lang === "es" ? "Cuadrícula" : "Grid"}
@@ -2813,14 +2821,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             onClick={() => {
               resetAll();
             }}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
           >
             {UI.reset[lang]}
           </button>
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="flex-1 rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-500/20"
+            className="flex-1 rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-yellow-500/20"
           >
             {UI.done[lang]}
           </button>
@@ -2840,7 +2848,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             setMobilePanelTab("filters");
             setMobilePanelOpen(true);
           }}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
         >
           {lang === "es" ? "Filtros" : "Filters"}
           {activeChips.length ? (
@@ -2855,7 +2863,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             setMobilePanelTab("sort");
             setMobilePanelOpen(true);
           }}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
         >
           {lang === "es" ? "Ordenar" : "Sort"}
         </button>
@@ -2906,8 +2914,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "shrink-0 rounded-lg border px-2 py-1 text-xs",
                 favIds.has(x.id)
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
               aria-label={favIds.has(x.id) ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
             >
@@ -2919,7 +2927,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
           <a
             href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-            className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            className="mt-3 block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
           >
             {lang === "es" ? "Ver detalle" : "View details"}
           </a>
@@ -2953,7 +2961,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped <= 1
                 ? "border-white/10 bg-white/5 text-gray-500"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
           >
             {UI.prev[lang]}
@@ -2971,7 +2979,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped >= totalPages
                 ? "border-white/10 bg-white/5 text-gray-500"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
           >
             {UI.next[lang]}
@@ -2992,7 +3000,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.close[lang]}
               </button>
@@ -3028,14 +3036,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     setSellerType(null);
                     setOnlyWithImage(false);
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {UI.clear[lang]}
                 </button>
                 <button
                   type="button"
                   onClick={() => setMoreOpen(false)}
-                  className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-2 text-sm text-yellow-100 hover:bg-yellow-500/20"
+                  className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
                 >
                   {lang === "es" ? "Aplicar" : "Apply"}
                 </button>
@@ -3055,7 +3063,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setLocationOpen(false)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.close[lang]}
               </button>
@@ -3090,7 +3098,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           setCitySuggestOpen(false);
                           setLocMsg("");
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                        className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                       >
                         {name}
                       </button>
@@ -3159,7 +3167,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   "rounded-xl border px-4 py-2 text-sm",
                   usingMyLocation
                     ? "border-white/10 bg-white/5 text-gray-500"
-                    : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                    : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 )}
               >
                 {UI.useMyLocation[lang]}
@@ -3174,14 +3182,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     setCityQuery("");
                     setLocMsg("");
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {UI.clear[lang]}
                 </button>
                 <button
                   type="button"
                   onClick={() => setLocationOpen(false)}
-                  className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-2 text-sm text-yellow-100 hover:bg-yellow-500/20"
+                  className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
                 >
                   {UI.done[lang]}
                 </button>
@@ -3207,8 +3215,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       className={cx(
                         "rounded-full border px-3 py-1.5 text-xs sm:py-1",
                         normalize(c.city) === normalize(resolvedCity.name)
-                          ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-100"
-                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                          ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
+                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                       )}
                     >
                       {c.city}

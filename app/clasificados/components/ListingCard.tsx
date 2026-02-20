@@ -11,10 +11,10 @@ export default function ListingCard({ item }: { item: ClassifiedItem }) {
     <div
       className={cx(
         "rounded-2xl border",
-        "border-white/10 bg-white/5",
+        "border-white/12 bg-white/6",
         "p-4 sm:p-5",
         "shadow-sm transition",
-        "hover:-translate-y-[1px] hover:bg-white/7"
+        "hover:-translate-y-[1px] hover:bg-white/8"
       )}
     >
       <h3 className="mb-1 text-base sm:text-lg font-semibold text-gray-100 leading-snug">

@@ -142,7 +142,7 @@ export default function FilterBar({
       <div
         className={cx(
           "mt-6 rounded-2xl border",
-          "border-white/10 bg-white/5",
+          "border-white/12 bg-white/6 shadow-sm",
           "px-4 py-4 md:px-6"
         )}
       >
@@ -277,7 +277,7 @@ export default function FilterBar({
       {drawerOpen && (
         <div className="fixed inset-0 z-[999]">
           <button
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
             onClick={() => setDrawerOpen(false)}
             aria-label={t.close}
           />

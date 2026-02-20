@@ -11,9 +11,9 @@ export default function PlaceholderCard() {
   const label = lang === "en" ? "Advertise Here" : "Anúnciate Aquí";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+    <div className="rounded-2xl border border-white/12 bg-white/6 p-5">
       <div className="text-sm font-semibold text-gray-100">{label}</div>
-      <div className="mt-2 h-24 rounded-xl border border-white/10 bg-black/20" />
+      <div className="mt-2 h-24 rounded-xl border border-white/12 bg-black/15" />
       <div className="mt-2 text-xs text-gray-400">
         {lang === "en"
           ? "Reserved space for featured placements."
