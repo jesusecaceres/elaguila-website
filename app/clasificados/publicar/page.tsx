@@ -52,6 +52,23 @@ function formatMoneyMaybe(raw: string, lang: Lang) {
   }
 }
 
+
+function parseIsoMaybe(v: unknown): Date | null {
+  if (!v) return null;
+  const d = new Date(String(v));
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function isoPlusDays(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+}
+
+function daysBetween(a: Date, b: Date) {
+  const ms = b.getTime() - a.getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
 const DRAFT_KEY = "leonix_clasificados_post_draft_v1";
 
 
@@ -235,6 +252,18 @@ export default function PublicarPage() {
   const [userId, setUserId] = useState<string>("");
   const [authError, setAuthError] = useState<string>("");
   const [isPro, setIsPro] = useState(false);
+
+  // Garage Mode (Free-only, En Venta only) — +4 temporary listings for 7 days, once per 30 days.
+  const FREE_EN_VENTA_LIMIT = 2;
+  const GARAGE_EXTRA = 4;
+  const GARAGE_WINDOW_DAYS = 7;
+  const GARAGE_COOLDOWN_DAYS = 30;
+
+  const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
+  const [garageActive, setGarageActive] = useState(false);
+  const [garageExpiresAt, setGarageExpiresAt] = useState<string>("");
+  const [garageLastUsedAt, setGarageLastUsedAt] = useState<string>("");
+  const [garageLoading, setGarageLoading] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoThumbBlob, setVideoThumbBlob] = useState<Blob | null>(null);
   const [videoInfo, setVideoInfo] = useState<{ duration: number; width: number; height: number } | null>(null);
@@ -308,6 +337,15 @@ const planRaw =
   "";
 const plan = String(planRaw).toLowerCase();
 setIsPro(plan.includes("pro"));
+
+      const gm = (data.user.user_metadata as any)?.garage_mode_en_venta || null;
+      const lastUsed = (gm && (gm.lastUsedAt || gm.last_used_at || gm.last_used)) ? String(gm.lastUsedAt || gm.last_used_at || gm.last_used) : "";
+      const expires = (gm && (gm.expiresAt || gm.expires_at || gm.expires)) ? String(gm.expiresAt || gm.expires_at || gm.expires) : "";
+      setGarageLastUsedAt(lastUsed);
+      setGarageExpiresAt(expires);
+      const expD = parseIsoMaybe(expires);
+      setGarageActive(!!(expD && expD.getTime() > Date.now()));
+
       setChecking(false);
     }
 
@@ -426,6 +464,53 @@ setIsPro(plan.includes("pro"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
+  // Load active listing count for Garage Mode messaging (Free-only, En Venta).
+  useEffect(() => {
+    if (!signedIn || !userId) return;
+
+    if (category !== "en-venta") {
+      setEnVentaActiveCount(null);
+      return;
+    }
+
+    let mounted = true;
+    async function loadCount() {
+      setGarageLoading(true);
+      try {
+        const supabase = createSupabaseBrowserClient();
+
+        // Try the most correct query first (status + user_id). Fall back safely if schema differs.
+        const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
+
+        // Attempt with user_id + status=active
+        let r = await base.eq("user_id", userId).eq("status", "active");
+        if (r.error) {
+          const msg = String(r.error.message || "");
+          // Missing status column
+          if (/status/i.test(msg) && /(does not exist|unknown|column)/i.test(msg)) {
+            r = await base.eq("user_id", userId);
+          }
+        }
+
+        if (r.error) {
+          // If user_id column is missing, we can't enforce Garage Mode safely.
+          if (mounted) setEnVentaActiveCount(null);
+          return;
+        }
+
+        if (mounted) setEnVentaActiveCount(typeof r.count === "number" ? r.count : 0);
+      } finally {
+        if (mounted) setGarageLoading(false);
+      }
+    }
+
+    loadCount();
+    return () => {
+      mounted = false;
+    };
+  }, [signedIn, userId, category]);
+
+
   // Draft autosave (debounced)
   useEffect(() => {
     if (!signedIn) return;
@@ -487,6 +572,57 @@ setIsPro(plan.includes("pro"));
       allOk: titleOk && descOk && cityOk && priceOk && imagesOk && phoneOk && emailOk,
     };
   }, [title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
+  const garage = useMemo(() => {
+    if (category !== "en-venta") {
+      return {
+        applicable: false,
+        active: false,
+        eligibleToActivate: false,
+        effectiveLimit: null as number | null,
+        remaining: null as number | null,
+        cooldownDaysLeft: null as number | null,
+      };
+    }
+
+    const now = new Date();
+    const expD = parseIsoMaybe(garageExpiresAt);
+    const lastD = parseIsoMaybe(garageLastUsedAt);
+
+    const active = !!(expD && expD.getTime() > now.getTime());
+    const cooldownDaysLeft =
+      lastD && Number.isFinite(lastD.getTime())
+        ? Math.max(0, GARAGE_COOLDOWN_DAYS - daysBetween(lastD, now))
+        : 0;
+
+    const effectiveLimit = FREE_EN_VENTA_LIMIT + (active ? GARAGE_EXTRA : 0);
+
+    const remaining =
+      typeof enVentaActiveCount === "number"
+        ? Math.max(0, effectiveLimit - enVentaActiveCount)
+        : null;
+
+    const eligibleToActivate =
+      !isPro && !active && cooldownDaysLeft === 0 && typeof enVentaActiveCount === "number" && enVentaActiveCount >= FREE_EN_VENTA_LIMIT;
+
+    return {
+      applicable: !isPro,
+      active,
+      eligibleToActivate,
+      effectiveLimit,
+      remaining,
+      cooldownDaysLeft,
+    };
+  }, [
+    category,
+    isPro,
+    enVentaActiveCount,
+    garageExpiresAt,
+    garageLastUsedAt,
+    FREE_EN_VENTA_LIMIT,
+    GARAGE_EXTRA,
+    GARAGE_COOLDOWN_DAYS,
+  ]);
+
 
   function deleteDraft() {
     try {
@@ -612,6 +748,68 @@ async function publish() {
 
     setPublishing(true);
     try {
+      // Garage Mode enforcement (Free-only, En Venta only).
+      if (!isPro && category === "en-venta" && typeof enVentaActiveCount === "number") {
+        const now = new Date();
+        const expD = parseIsoMaybe(garageExpiresAt);
+        const lastD = parseIsoMaybe(garageLastUsedAt);
+
+        const garageIsActive = !!(expD && expD.getTime() > now.getTime());
+        const cooldownLeft =
+          lastD && Number.isFinite(lastD.getTime())
+            ? Math.max(0, GARAGE_COOLDOWN_DAYS - daysBetween(lastD, now))
+            : 0;
+
+        const effectiveLimit = FREE_EN_VENTA_LIMIT + (garageIsActive ? GARAGE_EXTRA : 0);
+
+        // Hard stop if user is already at/over the maximum possible during the window.
+        if (enVentaActiveCount >= effectiveLimit) {
+          const expText = garageIsActive && expD ? expD.toLocaleDateString(lang === "es" ? "es-US" : "en-US") : "";
+          const msg =
+            lang === "es"
+              ? garageIsActive
+                ? `Has alcanzado tu límite actual de En Venta (${effectiveLimit}). Tu Modo Garaje está activo hasta ${expText}. Marca anuncios como vendidos o espera, o mejora a LEONIX Pro.`
+                : `Has alcanzado tu límite de En Venta (${FREE_EN_VENTA_LIMIT}). Para publicar más, mejora a LEONIX Pro.`
+              : garageIsActive
+                ? `You’ve reached your current For Sale limit (${effectiveLimit}). Garage Mode is active until ${expText}. Mark items sold or wait, or upgrade to LEONIX Pro.`
+                : `You’ve reached your For Sale limit (${FREE_EN_VENTA_LIMIT}). To post more, upgrade to LEONIX Pro.`;
+          setPublishError(msg);
+          return;
+        }
+
+        // If user is at/over the free limit and Garage Mode is not active, try to activate once per 30 days.
+        if (!garageIsActive && enVentaActiveCount >= FREE_EN_VENTA_LIMIT) {
+          if (cooldownLeft > 0) {
+            const msg =
+              lang === "es"
+                ? `Ya usaste el Modo Garaje recientemente. Podrás usarlo de nuevo en ${cooldownLeft} día(s). Mientras tanto, mejora a LEONIX Pro para publicar sin límites de Free.`
+                : `You’ve used Garage Mode recently. You can use it again in ${cooldownLeft} day(s). Meanwhile, upgrade to LEONIX Pro to post beyond Free limits.`;
+            setPublishError(msg);
+            return;
+          }
+
+          // Activate Garage Mode now (7-day window, +4 listings). Store in user_metadata to persist.
+          const newExpires = isoPlusDays(GARAGE_WINDOW_DAYS);
+          const newMeta: any = {
+            ...(await supabase.auth.getUser()).data.user?.user_metadata,
+            garage_mode_en_venta: {
+              lastUsedAt: now.toISOString(),
+              expiresAt: newExpires,
+            },
+          };
+
+          const up = await supabase.auth.updateUser({ data: newMeta });
+          if (up.error) {
+            // If metadata update fails, we don't risk breaking publish; we just continue with Free rules.
+            console.warn("garage mode metadata update failed", up.error.message);
+          } else {
+            setGarageLastUsedAt(now.toISOString());
+            setGarageExpiresAt(newExpires);
+            setGarageActive(true);
+          }
+        }
+      }
+
       const finalDescription = (description.trim() + buildDetailsAppendix(category, lang, details)).trim();
       // Minimal insert to avoid schema guessing.
       const insertPayload: any = {
@@ -785,6 +983,57 @@ if (isPro && videoFile && !videoError) {
                 {step === "basics" && (
                   <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
                     <h2 className="text-lg font-semibold text-gray-100">{copy.basicsTitle}</h2>
+                    {!isPro && category === "en-venta" && (
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/6 p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-100">
+                              {lang === "es" ? "Modo Garaje" : "Garage Mode"}
+                            </div>
+                            <p className="mt-1 text-xs text-white/70 max-w-xl">
+                              {lang === "es"
+                                ? "Solo para usuarios Free en En Venta. Cuando llegas al límite, puedes desbloquear +4 anuncios por 7 días (1 vez cada 30 días)."
+                                : "Free users in For Sale only. When you hit the limit, unlock +4 listings for 7 days (once every 30 days)."}
+                            </p>
+                          </div>
+
+                          <div className="text-xs text-white/70">
+                            {garageLoading
+                              ? (lang === "es" ? "Calculando…" : "Calculating…")
+                              : typeof enVentaActiveCount === "number"
+                                ? (lang === "es"
+                                    ? `Activos: ${enVentaActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`
+                                    : `Active: ${enVentaActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`)
+                                : (lang === "es" ? "Activos: —" : "Active: —")}
+                          </div>
+                        </div>
+
+                        {garage.active && garageExpiresAt && (
+                          <div className="mt-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs text-yellow-100">
+                            {lang === "es"
+                              ? `Modo Garaje activo hasta ${new Date(garageExpiresAt).toLocaleDateString("es-US")}.`
+                              : `Garage Mode active until ${new Date(garageExpiresAt).toLocaleDateString("en-US")}.`}
+                          </div>
+                        )}
+
+                        {!garage.active && typeof garage.cooldownDaysLeft === "number" && garage.cooldownDaysLeft > 0 && (
+                          <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/70">
+                            {lang === "es"
+                              ? `Disponible de nuevo en ${garage.cooldownDaysLeft} día(s).`
+                              : `Available again in ${garage.cooldownDaysLeft} day(s).`}
+                          </div>
+                        )}
+
+                        {!garage.active && garage.eligibleToActivate && (
+                          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-xs text-emerald-100">
+                            {lang === "es"
+                              ? "Estás en el límite. Al publicar, activaremos Modo Garaje automáticamente para darte +4 anuncios por 7 días."
+                              : "You’re at the limit. When you publish, we’ll automatically activate Garage Mode to give you +4 listings for 7 days."}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
 
                     <div className="mt-4 grid gap-4">
                       <div>
