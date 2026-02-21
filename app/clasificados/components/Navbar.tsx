@@ -176,7 +176,7 @@ function NavbarContent() {
     { href: "/", label: L.home },
     { href: "/magazine", label: L.magazine },
     { href: "/clasificados", label: L.classifieds },
-    { href: "/coupons", label: L.coupons },
+    { href: "/cupones", label: L.coupons },
     { href: "/tienda", label: L.shop },
     { href: "/noticias", label: L.news },
     { href: "/contacto", label: L.contact },
