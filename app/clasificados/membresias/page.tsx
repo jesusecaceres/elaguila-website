@@ -23,10 +23,10 @@ export default function Page() {
           "Todo lo necesario para vender con calma: más duración, mejor presentación y visibilidad temporal — sin convertirte en negocio.",
         cta1: "Ver anuncios",
         href1: "/clasificados",
-        cta2: "Membresías de negocio",
-        href2: "/clasificados/membresias-negocio",
+        cta2: "",
+        href2: "" ,
         blocks: [
-          ["p", "Precio: $16.99/mes"],
+          ["p", "Precio: $24.99/mes (mensual)"],
           ["p", "Para: vendedores personales (sin inventario, sin lenguaje de tienda)."],
           [
             "ul",
@@ -51,10 +51,10 @@ export default function Page() {
           "Everything you need to sell smoothly: longer duration, better presentation, and time-limited visibility — without becoming a business.",
         cta1: "View listings",
         href1: "/clasificados",
-        cta2: "Business memberships",
-        href2: "/clasificados/membresias-negocio",
+        cta2: "",
+        href2: "" ,
         blocks: [
-          ["p", "Price: $16.99/month"],
+          ["p", "Price: $24.99/month (monthly)"],
           ["p", "For: personal sellers (no inventory, no storefront language)."],
           [
             "ul",
