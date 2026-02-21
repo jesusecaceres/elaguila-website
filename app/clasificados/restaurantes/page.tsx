@@ -59,6 +59,42 @@ export default async function Page({
           </Link>
         </div>
 
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div className="text-sm font-semibold text-white">
+              {lang === "es" ? "Acción inmediata" : "Instant action"}
+            </div>
+            <div className="mt-1 text-sm text-gray-300">
+              {lang === "es"
+                ? "Llamar, texto o direcciones en un toque. Menos fricción, más clientes."
+                : "Call, text, or get directions in one tap. Less friction, more customers."}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div className="text-sm font-semibold text-white">
+              {lang === "es" ? "Confianza primero" : "Trust first"}
+            </div>
+            <div className="mt-1 text-sm text-gray-300">
+              {lang === "es"
+                ? "Verificados y apoyados se muestran con insignias claras — sin etiquetas de pago."
+                : "Verified and supporter badges are clear — no “paid” labels."}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-yellow-400/15 bg-black/30 p-5">
+            <div className="text-sm font-semibold text-yellow-200">
+              {lang === "es" ? "Cupones del magazine" : "Magazine coupons"}
+            </div>
+            <div className="mt-1 text-sm text-gray-300">
+              {lang === "es"
+                ? "Los cupones son exclusivos para anunciantes del magazine. Beneficios, no trucos."
+                : "Coupons are exclusive to magazine advertisers. Benefits, not gimmicks."}
+            </div>
+          </div>
+        </div>
+
+
         <div className="mt-12 text-left">
           <div className="flex items-end justify-between gap-4">
             <div>
