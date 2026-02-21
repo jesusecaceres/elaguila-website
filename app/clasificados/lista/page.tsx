@@ -2164,6 +2164,33 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
     <div className="min-h-screen bg-black text-white pb-28 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.10),transparent_55%)]">
       <Navbar />
 
+      {/* Sticky quick actions (always reachable) */}
+      <div className="sticky top-[72px] z-40 border-b border-white/10 bg-black/35 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-3 px-4 py-3">
+          <a
+            href={`/clasificados/publicar?lang=${lang}`}
+            className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-black hover:opacity-95 transition"
+          >
+            {lang === "es" ? "Publicar anuncio" : "Post listing"}
+          </a>
+
+          <a
+            href={`/clasificados/lista?lang=${lang}`}
+            className="rounded-full border border-yellow-600/20 bg-black/25 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/30 transition"
+          >
+            {lang === "es" ? "Ver anuncios" : "View listings"}
+          </a>
+
+          <a
+            href={`/clasificados/membresias?lang=${lang}`}
+            className="rounded-full border border-yellow-600/20 bg-black/25 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/30 transition"
+          >
+            {lang === "es" ? "Membresías" : "Memberships"}
+          </a>
+        </div>
+      </div>
+
+
       {/* Subtle cinematic backdrop */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(234,179,8,0.12),rgba(0,0,0,0.75),rgba(0,0,0,1))]" />
