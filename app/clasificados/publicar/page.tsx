@@ -928,6 +928,11 @@ async function publish() {
         return;
       }
 
+      // Optimistic local count update for Free En Venta caps (keeps UI in sync without extra fetch).
+      if (!isPro && category === "en-venta" && typeof enVentaActiveCount === "number") {
+        setEnVentaActiveCount((prev) => (typeof prev === "number" ? prev + 1 : prev));
+      }
+
 
 // Pro video upload (optional, Pro-only). We store URLs inside description to avoid schema guessing.
 let videoUrl: string | null = null;
