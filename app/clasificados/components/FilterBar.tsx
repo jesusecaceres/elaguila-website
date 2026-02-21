@@ -142,9 +142,10 @@ export default function FilterBar({
       <div
         className={cx(
           "mt-6 rounded-2xl border",
-          "border-white/12 bg-white/6 shadow-sm",
+          "border-yellow-600/15 bg-black/35 shadow-sm",
           "px-4 py-4 md:px-6",
-          "sticky top-20 z-30 backdrop-blur-md md:static"
+          // With the sticky quick actions bar above, keep filters below it on mobile
+          "sticky top-[124px] z-30 backdrop-blur-md md:static"
         )}
       >
         {/* Top intent bar */}
@@ -335,7 +336,7 @@ export default function FilterBar({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/7 transition"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/45 transition"
               >
                 {lang === "es" ? "Listo" : "Done"}
               </button>

@@ -18,6 +18,7 @@ type CategoryKey =
   | "empleos"
   | "clases"
   | "comunidad"
+  | "restaurantes"
   | "travel";
 
 type SellerType = "personal" | "business";
@@ -39,6 +40,7 @@ const CATEGORY_ORDER: CategoryKey[] = [
   "en-venta",
   "empleos",
   "servicios",
+  "restaurantes",
   "travel",
   "autos",
   "clases",
@@ -86,6 +88,10 @@ export default function ClasificadosPage() {
           comunidad: {
             label: "Comunidad",
             hint: "Actividades y anuncios comunitarios.",
+          },
+          restaurantes: {
+            label: "Restaurantes",
+            hint: "Opciones locales, menús y reseñas.",
           },
           travel: {
             label: "Viajes",
@@ -163,6 +169,10 @@ export default function ClasificadosPage() {
           autos: { label: "Autos", hint: "Cars and dealer inventory." },
           clases: { label: "Classes", hint: "Learn and share with community." },
           comunidad: { label: "Community", hint: "Activities and community posts." },
+          restaurantes: {
+            label: "Restaurants",
+            hint: "Local spots, menus, and reviews.",
+          },
           travel: { label: "Travel", hint: "Deals, agents, and car rentals." },
         },
 
@@ -276,6 +286,7 @@ export default function ClasificadosPage() {
       autos: [],
       clases: [],
       comunidad: [],
+      restaurantes: [],
     };
 
     for (const cat of Object.keys(out) as CategoryKey[]) {

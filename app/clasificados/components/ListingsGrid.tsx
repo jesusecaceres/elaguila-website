@@ -16,9 +16,8 @@ export default function ListingsGrid({
   lang: "es" | "en";
   sidebarCollapsed?: boolean;
 }) {
-  // NOTE: category/lang are kept for future per-category rendering rules
+  // NOTE: category is kept for future per-category rendering rules
   void category;
-  void lang;
 
   // 🔹 NO LISTINGS → show placeholder CTA
   if (!listings.length) {
@@ -39,7 +38,7 @@ export default function ListingsGrid({
       }
     >
       {listings.map((item) => (
-        <ListingCard key={item.id} item={item} />
+        <ListingCard key={item.id} item={item} lang={lang} />
       ))}
     </div>
   );
