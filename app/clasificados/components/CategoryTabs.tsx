@@ -14,6 +14,7 @@ const topCategories: Category[] = [
   { slug: 'rentas', label: { es: 'Rentas', en: 'Rentals' } },
   { slug: 'empleos', label: { es: 'Empleos', en: 'Jobs' } },
   { slug: 'autos', label: { es: 'Autos', en: 'Autos' } },
+  { slug: 'restaurantes', label: { es: 'Restaurantes', en: 'Restaurants' } },
   { slug: 'en-venta', label: { es: 'En Venta', en: 'For Sale' } },
 ];
 
@@ -35,7 +36,7 @@ export default function CategoryTabs() {
 
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
         {topCategories.map((cat) => (
           <CategoryButton key={cat.slug} slug={cat.slug} label={cat.label[lang]} lang={lang} />
         ))}

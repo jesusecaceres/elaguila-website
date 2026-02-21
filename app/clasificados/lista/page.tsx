@@ -26,7 +26,8 @@ type CategoryKey =
   | "empleos"
   | "clases"
   | "comunidad"
-  | "travel";
+  | "travel"
+  | "restaurantes";
 
 type SortKey = "newest" | "price-asc" | "price-desc";
 type SellerType = "personal" | "business";
@@ -84,6 +85,7 @@ const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
   clases: { es: "Clases", en: "Classes" },
   comunidad: { es: "Comunidad", en: "Community" },
   travel: { es: "Viajes", en: "Travel" },
+  restaurantes: { es: "Restaurantes", en: "Restaurants" },
 };
 
 const CATEGORY_ORDER: CategoryKey[] = [
@@ -91,6 +93,7 @@ const CATEGORY_ORDER: CategoryKey[] = [
   "en-venta",
   "rentas",
   "autos",
+  "restaurantes",
   "servicios",
   "empleos",
   "clases",
@@ -220,7 +223,8 @@ function isCategoryKey(v: string): v is CategoryKey {
     v === "empleos" ||
     v === "clases" ||
     v === "comunidad" ||
-    v === "travel"
+    v === "travel" ||
+    v === "restaurantes"
   );
 }
 
