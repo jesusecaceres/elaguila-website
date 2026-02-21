@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
-type Plan = "free" | "pro" | "business";
+type Plan = "free" | "pro";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -15,14 +15,27 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 function normalizePlan(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
-  if (v === "pro") return "pro";
-  if (v === "business" || v === "lite" || v === "premium") return "business";
+  // LOCKED: Plans are Free + LEONIX Pro only.
+  // If legacy metadata contains other tiers, we treat them as Pro to avoid confusing users.
+  if (v.includes("pro") || v.includes("business") || v.includes("lite") || v.includes("premium")) return "pro";
   return "free";
 }
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
+
+function parseIsoMaybe(v: unknown): Date | null {
+  if (!v) return null;
+  const d = new Date(String(v));
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function daysBetween(a: Date, b: Date) {
+  const ms = b.getTime() - a.getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -131,6 +144,12 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<Plan>("free");
   const [listingsCount, setListingsCount] = useState<number | null>(null);
 
+  // Garage Mode (Free-only, En Venta only) status for dashboard guidance.
+  const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
+  const [garageActive, setGarageActive] = useState(false);
+  const [garageExpiresAt, setGarageExpiresAt] = useState<string>("");
+  const [garageCooldownDaysLeft, setGarageCooldownDaysLeft] = useState<number | null>(null);
+
   // lightweight profile completion based on known, safe fields
   const [hasPhone, setHasPhone] = useState(false);
   const [hasCity, setHasCity] = useState(false);
@@ -170,6 +189,23 @@ export default function DashboardPage() {
       setHasCity(Boolean(u.user_metadata?.city || u.user_metadata?.location));
       setPlan(inferredPlan);
 
+      // Garage Mode status (stored in user_metadata.garage_mode_en_venta)
+      const gm = (u.user_metadata as any)?.garage_mode_en_venta || null;
+      const lastUsed = gm && (gm.lastUsedAt || gm.last_used_at || gm.last_used) ? String(gm.lastUsedAt || gm.last_used_at || gm.last_used) : "";
+      const expires = gm && (gm.expiresAt || gm.expires_at || gm.expires) ? String(gm.expiresAt || gm.expires_at || gm.expires) : "";
+      setGarageExpiresAt(expires);
+      const expD = parseIsoMaybe(expires);
+      setGarageActive(Boolean(expD && expD.getTime() > Date.now()));
+
+      const lastD = parseIsoMaybe(lastUsed);
+      if (lastD) {
+        const now = new Date();
+        const left = Math.max(0, 30 - daysBetween(lastD, now));
+        setGarageCooldownDaysLeft(left);
+      } else {
+        setGarageCooldownDaysLeft(null);
+      }
+
       setEmailConfirmed(Boolean((u as any).email_confirmed_at));
       setPhoneConfirmed(Boolean((u as any).phone_confirmed_at));
       setAccountAgeDays(u.created_at ? Math.max(0, Math.floor((Date.now() - new Date(u.created_at).getTime()) / 86400000)) : null);
@@ -204,6 +240,22 @@ export default function DashboardPage() {
         if (mounted) setListingsCount(null);
       }
 
+      // En Venta active count (used for Garage Mode guidance). Safe fallbacks if schema differs.
+      try {
+        const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
+        let r = await base.eq("user_id", u.id).eq("status", "active");
+        if (r.error) {
+          const msg = String(r.error.message || "");
+          if (/status/i.test(msg) && /(does not exist|unknown|column)/i.test(msg)) {
+            r = await base.eq("user_id", u.id);
+          }
+        }
+        if (!r.error && mounted) setEnVentaActiveCount(typeof r.count === "number" ? r.count : 0);
+        if (r.error && mounted) setEnVentaActiveCount(null);
+      } catch {
+        if (mounted) setEnVentaActiveCount(null);
+      }
+
       if (mounted) setLoading(false);
     }
 
@@ -213,9 +265,9 @@ export default function DashboardPage() {
     };
   }, [router, pathname]);
 
-  const planLabel = plan === "pro" ? L.pro : plan === "business" ? L.business : L.free;
+  const planLabel = plan === "pro" ? L.pro : L.free;
 
-  const maxActive = plan === "pro" ? 5 : plan === "business" ? 25 : 2;
+  const maxActive = plan === "pro" ? 5 : 2;
   const active = typeof listingsCount === "number" ? listingsCount : 0;
 
   const completionParts = [
@@ -246,7 +298,7 @@ export default function DashboardPage() {
     { href: `/dashboard/mis-anuncios?lang=${lang}`, label: L.myListings, active: false },
   ];
 
-  const isPro = plan === "pro" || plan === "business";
+  const isPro = plan === "pro";
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -424,7 +476,66 @@ export default function DashboardPage() {
                             : "Private insights on listing quality and performance (AI stays invisible publicly).")
                         : L.aiTeaserBody}
                     </p>
-                    {!isPro && (
+    
+                {!isPro && (
+                  <div className="mt-6 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-6">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div>
+                        <div className="text-base font-semibold text-white">
+                          {lang === "es" ? "Modo Garaje (En Venta)" : "Garage Mode (For Sale)"}
+                        </div>
+                        <p className="mt-2 text-sm text-white/70">
+                          {lang === "es"
+                            ? "Cuando llegas al límite de anuncios Gratis en En Venta, puedes desbloquear +4 anuncios por 7 días (una vez cada 30 días)."
+                            : "When you hit the Free limit in For Sale, you can unlock +4 listings for 7 days (once every 30 days)."}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-xs text-white/60">
+                          {typeof enVentaActiveCount === "number"
+                            ? (lang === "es"
+                                ? `Activos En Venta: ${enVentaActiveCount} / ${2 + (garageActive ? 4 : 0)}`
+                                : `For Sale active: ${enVentaActiveCount} / ${2 + (garageActive ? 4 : 0)}`)
+                            : (lang === "es" ? "Activos En Venta: —" : "For Sale active: —")}
+                        </div>
+
+                        {garageActive && garageExpiresAt && (
+                          <div className="mt-2 text-xs text-emerald-200">
+                            {lang === "es"
+                              ? `Activo hasta ${new Date(garageExpiresAt).toLocaleDateString("es-US")}`
+                              : `Active until ${new Date(garageExpiresAt).toLocaleDateString("en-US")}`}
+                          </div>
+                        )}
+
+                        {!garageActive && typeof garageCooldownDaysLeft === "number" && garageCooldownDaysLeft > 0 && (
+                          <div className="mt-2 text-xs text-white/60">
+                            {lang === "es"
+                              ? `Disponible de nuevo en ${garageCooldownDaysLeft} día(s)`
+                              : `Available again in ${garageCooldownDaysLeft} day(s)`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link
+                        href={`/clasificados/publicar?lang=${lang}&categoria=en-venta`}
+                        className="inline-flex items-center justify-center rounded-full border border-emerald-400/25 bg-black/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
+                      >
+                        {lang === "es" ? "Publicar en En Venta" : "Post in For Sale"}
+                      </Link>
+                      <Link
+                        href={membershipHref}
+                        className="inline-flex items-center justify-center rounded-full bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                      >
+                        {lang === "es" ? "Mejorar a Pro" : "Upgrade to Pro"}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {!isPro && (
                       <div className="mt-4">
                         <Link
                           href={membershipHref}
