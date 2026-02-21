@@ -32,6 +32,9 @@ export default function DashboardPage() {
   const urlLang = searchParams?.get("lang");
   const lang: Lang = urlLang === "en" ? "en" : "es";
 
+  const membershipHref = `/clasificados/membresias?lang=${lang}`;
+
+
   const t = useMemo(
     () => ({
       es: {
@@ -46,7 +49,7 @@ export default function DashboardPage() {
         viewListings: "Ver mis anuncios",
         upgradeTitle: "Desbloquea más con LEONIX Pro",
         upgradeBody:
-          "Publica más, sube más fotos, ordena tu media y desbloquea LEONIX AI Insights.",
+          "Publica más, sube más fotos, ordena tu media y desbloquea LEONIX AI Insights. Pro: $24.99/mes.",
         free: "Gratis",
         pro: "LEONIX Pro",
         business: "Business",
@@ -423,9 +426,12 @@ export default function DashboardPage() {
                     </p>
                     {!isPro && (
                       <div className="mt-4">
-                        <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
-                          {lang === "es" ? "Pagos no activados en esta fase." : "Payments not enabled in this phase."}
-                        </div>
+                        <Link
+                          href={membershipHref}
+                          className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+                        >
+                          {lang === "es" ? "Ver LEONIX Pro ($24.99/mes)" : "View LEONIX Pro ($24.99/mo)"}
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -435,6 +441,21 @@ export default function DashboardPage() {
                   <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-6">
                     <div className="text-base font-semibold text-white">{L.upgradeTitle}</div>
                     <p className="mt-2 text-sm text-white/70">{L.upgradeBody}</p>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link
+                        href={membershipHref}
+                        className="inline-flex items-center justify-center rounded-full bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                      >
+                        {lang === "es" ? "Ver LEONIX Pro ($24.99/mes)" : "View LEONIX Pro ($24.99/mo)"}
+                      </Link>
+                      <Link
+                        href={`/clasificados/lista?lang=${lang}`}
+                        className="inline-flex items-center justify-center rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
+                      >
+                        {lang === "es" ? "Seguir explorando" : "Keep browsing"}
+                      </Link>
+                    </div>
                   </div>
                 )}
               </>
