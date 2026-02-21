@@ -56,7 +56,7 @@ export default function FilterBar({
       contextMi: "mi",
       drawerTitle: "Filtros",
       drawerHint:
-        "Base visual lista. Los filtros por categoría se conectan en la siguiente fase (sin reescribir el motor).",
+        "Ajusta búsqueda, ciudad y radio para ver resultados más relevantes. Más filtros según la categoría.",
       sortNewest: "Más recientes",
       sortPriceAsc: "Precio ↑",
       sortPriceDesc: "Precio ↓",
@@ -74,7 +74,7 @@ export default function FilterBar({
       contextMi: "mi",
       drawerTitle: "Filters",
       drawerHint:
-        "Visual foundation ready. Category filters hook up in the next phase (no engine rewrites).",
+        "Refine your search with city and radius for better results. More filters appear by category.",
       sortNewest: "Newest",
       sortPriceAsc: "Price ↑",
       sortPriceDesc: "Price ↓",
@@ -143,7 +143,8 @@ export default function FilterBar({
         className={cx(
           "mt-6 rounded-2xl border",
           "border-white/12 bg-white/6 shadow-sm",
-          "px-4 py-4 md:px-6"
+          "px-4 py-4 md:px-6",
+          "sticky top-20 z-30 backdrop-blur-md md:static"
         )}
       >
         {/* Top intent bar */}
