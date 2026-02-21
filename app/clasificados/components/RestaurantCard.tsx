@@ -76,7 +76,7 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
         <ActionButton
           enabled={has.directions}
           href={mapsHref || "#"}
-          text={label(lang, "Direcciones", "Directions")}
+          text={label(lang, "Cómo llegar", "Directions")}
           external
         />
         <ActionButton

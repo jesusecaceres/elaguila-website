@@ -32,7 +32,7 @@ export function ReviewSummary({ restaurantId, lang }: { restaurantId: string; la
   if (!stats.count) {
     return (
       <div className="text-xs text-gray-400">
-        {t(lang, "Sé el primero en dejar una reseña positiva.", "Be the first to leave a positive review.")}
+        {t(lang, "Sé el primero en dejar una reseña positiva (ayuda a otras familias).", "Be the first to leave a positive review (it helps other families).")}
       </div>
     );
   }
@@ -177,7 +177,7 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
         <div>
           <div className="text-lg font-semibold text-white">{t(lang, "Alertas (opt‑in)", "Alerts (opt‑in)")}</div>
           <div className="mt-1 text-sm text-gray-400">
-            {t(lang, "Sin spam. Tú eliges el tipo de comida, radio y frecuencia.", "No spam. You choose cuisine, radius, and frequency.")}
+            {t(lang, "Sin spam. Tú eliges comida, radio y frecuencia. Cancela cuando quieras.", "No spam. You choose cuisine, radius, and frequency. Cancel anytime.")}
           </div>
         </div>
 
