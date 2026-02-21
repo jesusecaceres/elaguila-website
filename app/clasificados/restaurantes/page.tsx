@@ -52,7 +52,7 @@ export default async function Page({
             {lang === "es" ? "Ver restaurantes" : "Browse restaurants"}
           </Link>
           <Link
-            href={`/clasificados/restaurantes/publicar?lang=${lang}`}
+            href={`/clasificados/restaurantes/paquetes?lang=${lang}`}
             className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
           >
             {lang === "es" ? "Anuncia tu restaurante" : "List your restaurant"}
@@ -141,7 +141,7 @@ export default async function Page({
               </div>
               <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
-                  href={`/clasificados/restaurantes/publicar?lang=${lang}`}
+                  href={`/clasificados/restaurantes/paquetes?lang=${lang}`}
                   className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
                 >
                   {lang === "es" ? "Publicar restaurante" : "Post restaurant"}

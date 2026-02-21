@@ -15,7 +15,7 @@ const PLACE_TYPES = [
   { key: "popup", es: "Pop-up / puesto temporal", en: "Pop-up / temporary stand" },
 ] as const;
 
-export default function RestaurantPublishForm({ lang }: { lang: Lang }) {
+export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan?: string }) {
   const router = useRouter();
 
   const [placeType, setPlaceType] = useState<(typeof PLACE_TYPES)[number]["key"]>("brick");
@@ -43,6 +43,7 @@ export default function RestaurantPublishForm({ lang }: { lang: Lang }) {
     const qp = new URLSearchParams();
     qp.set("cat", "restaurantes");
     qp.set("lang", lang);
+    if (plan) qp.set("plan", plan);
     qp.set("placeType", placeType);
     qp.set("bizName", name.trim());
     if (cuisine.trim()) qp.set("cuisine", cuisine.trim());

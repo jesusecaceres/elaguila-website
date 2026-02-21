@@ -19,6 +19,8 @@ export default async function Page({
 }) {
   const sp = (await searchParams) ?? {};
   const lang = getLang(sp);
+  const planRaw = sp?.plan;
+  const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -43,7 +45,7 @@ export default async function Page({
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
-              href={`/clasificados/restaurantes?lang=${lang}`}
+              href={`/clasificados/restaurantes/paquetes?lang=${lang}`}
               className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
             >
               {lang === "es" ? "← Volver" : "← Back"}
@@ -59,7 +61,7 @@ export default async function Page({
 
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <RestaurantPublishForm lang={lang} />
+            <RestaurantPublishForm lang={lang} plan={plan} />
           </div>
 
           <aside className="space-y-4">
