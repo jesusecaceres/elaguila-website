@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../components/Navbar";
+import ProBadge from "../clasificados/components/ProBadge";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
@@ -313,14 +314,18 @@ export default function DashboardPage() {
           <aside className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between">
               <div className="text-sm text-white/80">{L.plan}</div>
-              <span className={cx(
-                "inline-flex items-center rounded-full px-3 py-1 text-xs",
-                plan === "pro"
-                  ? "border border-yellow-500/30 bg-yellow-500/10 text-yellow-200"
-                  : "border border-white/10 bg-black/30 text-white/80"
-              )}>
+              {plan === "pro" ? (
+              <ProBadge />
+            ) : (
+              <span
+                className={cx(
+                  "inline-flex items-center rounded-full px-3 py-1 text-xs",
+                  "border border-white/10 bg-black/30 text-white/80"
+                )}
+              >
                 {planLabel}
               </span>
+            )}
             </div>
 
             <nav className="mt-4 space-y-1">

@@ -8,6 +8,8 @@ import newLogo from "../../../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../../../data/classifieds/sampleListings";
 import { extractProVideoInfo } from "../../components/proVideo";
+import ProBadge from "../../components/ProBadge";
+import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 
 type Lang = "es" | "en";
@@ -153,6 +155,7 @@ export default function AnuncioDetallePage() {
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
   const isBusiness = listing?.sellerType === "business";
+  const isPro = isProListing(listing as any);
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
   const proVideoInfo = useMemo(() => {
@@ -274,6 +277,8 @@ export default function AnuncioDetallePage() {
                   >
                     {isBusiness ? t.sellerBusiness : t.sellerPersonal}
                   </span>
+
+                  {isPro ? <ProBadge /> : null}
 
                   
                     {verifiedSeller ? (
