@@ -41,6 +41,21 @@ export default function Page() {
     return "/clasificados/lista?" + params.toString();
   }, [sp]);
 
+  const postHref = useMemo(() => {
+    const params = new URLSearchParams(sp?.toString() ?? "");
+    params.set("lang", lang);
+    params.set("cat", CATEGORY);
+    params.set("category", CATEGORY);
+    return "/clasificados/publicar?" + params.toString();
+  }, [sp, lang]);
+
+  const membershipsHref = useMemo(() => {
+    const params = new URLSearchParams(sp?.toString() ?? "");
+    params.set("lang", lang);
+    return "/clasificados/membresias?" + params.toString();
+  }, [sp, lang]);
+
+
   useEffect(() => {
     router.replace(href);
   }, [router, href]);
