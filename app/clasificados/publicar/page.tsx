@@ -293,6 +293,36 @@ export default function PublicarPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
 
+  const maxImages = isPro ? 12 : 5;
+
+  // If plan changes to Free, trim images to Free limit.
+  useEffect(() => {
+    if (!isPro && files.length > 5) {
+      setFiles((prev) => prev.slice(0, 5));
+    }
+  }, [isPro, files.length]);
+
+  const moveImage = (from: number, to: number) => {
+    setFiles((prev) => {
+      if (from === to) return prev;
+      if (from < 0 || from >= prev.length) return prev;
+      if (to < 0 || to >= prev.length) return prev;
+      const next = prev.slice();
+      const [picked] = next.splice(from, 1);
+      next.splice(to, 0, picked);
+      return next;
+    });
+  };
+
+  const makeCover = (idx: number) => moveImage(idx, 0);
+
+  const moveLeft = (idx: number) => moveImage(idx, idx - 1);
+  const moveRight = (idx: number) => moveImage(idx, idx + 1);
+
+  const removeImage = (idx: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const proVideoThumbPreviewUrl = useMemo(() => {
     if (!videoThumbBlob) return "";
     try {
@@ -728,6 +758,17 @@ async function inspectAndThumbVideo(file: File) {
 
   if (!file.type.startsWith("video/")) {
     setVideoError(lang === "es" ? "Selecciona un archivo de video." : "Please select a video file.");
+    return;
+  }
+
+  // Size safety (keeps uploads reliable on mobile)
+  const maxBytes = 25 * 1024 * 1024; // 25MB
+  if (file.size > maxBytes) {
+    setVideoError(
+      lang === "es"
+        ? "El video es muy grande. Usa un clip más corto o comprimido (máx ~25MB)."
+        : "Video file is too large. Please use a shorter/compressed clip (max ~25MB)."
+    );
     return;
   }
 
@@ -1420,7 +1461,14 @@ if (isPro && videoFile && !videoError) {
                     <div className="mt-4 grid gap-5">
                       <div>
                         <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm text-white/80">{copy.images}</div>
+                          <div className="text-sm text-white/80">
+                            {copy.images}
+                            <span className="ml-2 text-xs text-white/50">
+                              {lang === "es"
+                                ? `(Máx ${maxImages}. ${isPro ? "Puedes reordenar." : "Pro: 12 + reordenar."})`
+                                : `(Max ${maxImages}. ${isPro ? "You can reorder." : "Pro: 12 + reorder."})`}
+                            </span>
+                          </div>
                           <label className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-4 py-2 text-sm font-semibold text-white/80 cursor-pointer">
                             {copy.addImages}
                             <input
@@ -1429,8 +1477,24 @@ if (isPro && videoFile && !videoError) {
                               multiple
                               className="hidden"
                               onChange={(e) => {
-                                const nextFiles = Array.from(e.target.files ?? []);
-                                setFiles(nextFiles.slice(0, 12));
+                                const selected = Array.from(e.target.files ?? []);
+                                // Allow adding more photos across multiple picks
+                                const combined = [...files, ...selected];
+
+                                // De-dupe by (name,size,lastModified) to avoid accidental duplicates
+                                const seen = new Set<string>();
+                                const deduped: File[] = [];
+                                for (const f of combined) {
+                                  const k = `${f.name}__${f.size}__${f.lastModified}`;
+                                  if (seen.has(k)) continue;
+                                  seen.add(k);
+                                  deduped.push(f);
+                                }
+
+                                setFiles(deduped.slice(0, maxImages));
+
+                                // reset input so picking the same file again triggers change
+                                try { (e.target as HTMLInputElement).value = ""; } catch {}
                               }}
                             />
                           </label>
@@ -1443,12 +1507,74 @@ if (isPro && videoFile && !videoError) {
                         ) : (
                           <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-2">
                             {filePreviews.map((src, idx) => (
-                              <img
+                              <div
                                 key={idx}
-                                src={src}
-                                alt="preview"
-                                className="h-20 w-full object-cover rounded-xl border border-white/10"
-                              />
+                                className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20"
+                              >
+                                <img src={src} alt="preview" className="h-20 w-full object-cover" />
+                                {idx === 0 && (
+                                  <div className="absolute left-1 top-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-200 border border-yellow-400/20">
+                                    {lang === "es" ? "Portada" : "Cover"}
+                                  </div>
+                                )}
+
+                                <div className="absolute right-1 top-1 flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeImage(idx)}
+                                    className="rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-black/70"
+                                    aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
+                                    title={lang === "es" ? "Quitar" : "Remove"}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+
+                                {isPro && (
+                                  <div className="absolute left-1 bottom-1 flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={idx === 0}
+                                      onClick={() => makeCover(idx)}
+                                      className={cx(
+                                        "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold",
+                                        idx === 0
+                                          ? "border-white/10 bg-black/40 text-white/40 cursor-not-allowed"
+                                          : "border-yellow-400/25 bg-black/60 text-yellow-200 hover:bg-black/70"
+                                      )}
+                                      title={lang === "es" ? "Hacer portada" : "Make cover"}
+                                    >
+                                      {lang === "es" ? "Portada" : "Cover"}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      disabled={idx === 0}
+                                      onClick={() => moveLeft(idx)}
+                                      className={cx(
+                                        "rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-black/70",
+                                        idx === 0 && "opacity-40 cursor-not-allowed"
+                                      )}
+                                      title={lang === "es" ? "Mover izquierda" : "Move left"}
+                                    >
+                                      ◀
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      disabled={idx === filePreviews.length - 1}
+                                      onClick={() => moveRight(idx)}
+                                      className={cx(
+                                        "rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-black/70",
+                                        idx === filePreviews.length - 1 && "opacity-40 cursor-not-allowed"
+                                      )}
+                                      title={lang === "es" ? "Mover derecha" : "Move right"}
+                                    >
+                                      ▶
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
