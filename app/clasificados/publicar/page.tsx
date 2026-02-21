@@ -598,6 +598,68 @@ setIsPro(plan.includes("pro"));
       allOk: titleOk && descOk && cityOk && priceOk && imagesOk && phoneOk && emailOk,
     };
   }, [title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
+
+
+  const requirementItems = useMemo(() => {
+    const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
+      {
+        key: "title",
+        label: lang === "es" ? "Título" : "Title",
+        ok: requirements.titleOk,
+        step: "basics",
+      },
+      {
+        key: "desc",
+        label: lang === "es" ? "Descripción" : "Description",
+        ok: requirements.descOk,
+        step: "basics",
+      },
+      {
+        key: "price",
+        label: lang === "es" ? (isFree ? "Gratis" : "Precio") : (isFree ? "Free" : "Price"),
+        ok: requirements.priceOk,
+        step: "basics",
+      },
+      {
+        key: "city",
+        label: lang === "es" ? "Ciudad" : "City",
+        ok: requirements.cityOk,
+        step: "basics",
+      },
+      {
+        key: "images",
+        label: lang === "es" ? "1+ foto" : "1+ photo",
+        ok: requirements.imagesOk,
+        step: "media",
+      },
+      {
+        key: "contact",
+        label:
+          lang === "es"
+            ? contactMethod === "email"
+              ? "Email"
+              : contactMethod === "phone"
+                ? "Teléfono"
+                : "Contacto"
+            : contactMethod === "email"
+              ? "Email"
+              : contactMethod === "phone"
+                ? "Phone"
+                : "Contact",
+        ok: requirements.phoneOk && requirements.emailOk,
+        step: "details",
+      },
+    ];
+    return items;
+  }, [requirements, lang, isFree, contactMethod]);
+
+  const missingRequirementsText = useMemo(() => {
+    const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
+    if (missing.length === 0) return "";
+    const prefix = lang === "es" ? "Falta:" : "Missing:";
+    return `${prefix} ${missing.join(" · ")}`;
+  }, [requirementItems, lang]);
+
   const garage = useMemo(() => {
     if (category !== "en-venta") {
       return {
@@ -760,7 +822,7 @@ async function publish() {
     setPublishedId("");
 
     if (!requirements.allOk) {
-      setPublishError(copy.needReqs);
+      setPublishError(`${copy.needReqs}${missingRequirementsText ? " " + missingRequirementsText : ""}`);
       return;
     }
 
@@ -1009,7 +1071,75 @@ if (isPro && videoFile && !videoError) {
                 </button>
               </div>
 
-              <div className="mt-6 grid gap-6">
+              
+
+              {/* Requirements checklist (quality gate) */}
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-100">
+                      {lang === "es" ? "Requisitos para publicar" : "Publish requirements"}
+                    </div>
+                    <p className="mt-1 text-xs text-white/70">
+                      {lang === "es"
+                        ? "Completa esto para que tu anuncio salga bien en la lista. Te guiamos paso a paso."
+                        : "Complete these so your listing shows up cleanly in search. We’ll guide you step by step."}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setStep("basics")}
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                    >
+                      {copy.steps.basics}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep("details")}
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                    >
+                      {copy.steps.details}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep("media")}
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                    >
+                      {copy.steps.media}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {requirementItems.map((it) => (
+                    <button
+                      key={it.key}
+                      type="button"
+                      onClick={() => setStep(it.step)}
+                      className={cx(
+                        "text-xs rounded-full border px-3 py-1.5",
+                        it.ok
+                          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
+                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/8"
+                      )}
+                      aria-label={it.ok ? `${it.label} OK` : `${it.label} missing`}
+                    >
+                      {it.ok ? "✓ " : "• "}
+                      {it.label}
+                    </button>
+                  ))}
+                </div>
+
+                {!requirements.allOk && (
+                  <div className="mt-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs text-yellow-100">
+                    {missingRequirementsText}
+                  </div>
+                )}
+              </div>
+
+<div className="mt-6 grid gap-6">
                 {/* BASICS */}
                 {step === "basics" && (
                   <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
@@ -1653,11 +1783,11 @@ if (isPro && videoFile && !videoError) {
                           )}
                           <button
                             type="button"
-                            disabled={publishing}
+                            disabled={publishing || !requirements.allOk}
                             onClick={publish}
                             className={cx(
                               "rounded-xl font-semibold px-6 py-3",
-                              publishing
+                              publishing || !requirements.allOk
                                 ? "bg-yellow-500/40 text-black/70 cursor-not-allowed"
                                 : "bg-yellow-500/90 hover:bg-yellow-500 text-black"
                             )}
