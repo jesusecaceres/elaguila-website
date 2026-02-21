@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { restaurants } from "../../data/restaurants";
 import RestaurantCard from "../components/RestaurantCard";
+import { AlertsPanel } from "./components/R3Widgets";
 
 type Lang = "es" | "en";
 
@@ -116,7 +117,12 @@ export default async function Page({
             </Link>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <div className="mt-8">
+            <AlertsPanel lang={lang} />
+          </div>
+
+<div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             {restaurants.length > 0 ? (
               restaurants.map((r) => <RestaurantCard key={r.id} r={r} lang={lang} />)
             ) : (

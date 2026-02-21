@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { Restaurant } from "../../data/restaurants";
+import { ReviewButton, ReviewSummary } from "../restaurantes/components/R3Widgets";
 
 type Lang = "es" | "en";
 
@@ -48,7 +51,13 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+      
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <ReviewSummary restaurantId={r.id} lang={lang} />
+        <ReviewButton restaurantId={r.id} lang={lang} />
+      </div>
+
+<div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <ActionButton
           enabled={has.phone}
           href={r.phone ? `tel:${r.phone}` : "#"}
