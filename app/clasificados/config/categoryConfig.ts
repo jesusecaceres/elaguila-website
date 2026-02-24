@@ -4,6 +4,7 @@ export type CategoryKey =
   | "rentas"
   | "en-venta"
   | "autos"
+  | "restaurantes"
   | "clases"
   | "comunidad"
   | "travel";
@@ -33,6 +34,12 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
   autos: {
     label: { es: "Autos", en: "Cars" },
     futureFilters: ["make", "model", "year"],
+  },
+  restaurantes: {
+    label: { es: "Restaurantes", en: "Restaurants" },
+    // Restaurants are discovery-first. Keep filters intentionally light at launch.
+    // Future: price range, open now, delivery/pickup, etc.
+    futureFilters: ["location", "cuisine"],
   },
   clases: {
     label: { es: "Clases", en: "Classes" },
