@@ -7,8 +7,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 type Lang = "es" | "en";
 
-type Plan = "free" | "pro" | "business";
-
+type Plan = "free" | "pro";
 function createSupabaseBrowserClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -30,14 +29,13 @@ function createSupabaseBrowserClient(): SupabaseClient | null {
 function normalizePlan(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
   if (v === "pro") return "pro";
-  if (v === "business" || v === "lite" || v === "premium") return "business";
+  if (v === "business" || v === "lite" || v === "premium") return "pro";
   return "free";
 }
 
 function planLabel(plan: Plan, lang: Lang) {
   if (plan === "pro") return lang === "es" ? "Pro" : "Pro";
-  if (plan === "business") return lang === "es" ? "Business" : "Business";
-  return lang === "es" ? "Gratis" : "Free";
+    return lang === "es" ? "Gratis" : "Free";
 }
 
 function cx(...classes: Array<string | false | null | undefined>) {

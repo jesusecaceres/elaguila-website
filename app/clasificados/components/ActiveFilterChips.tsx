@@ -109,7 +109,7 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
 
       <a
         href={clearAllHref}
-        className="ml-1 text-xs text-gray-300 underline decoration-white/20 hover:text-gray-100"
+        className="ml-2 inline-flex items-center rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
       >
         {t.clearAll}
       </a>

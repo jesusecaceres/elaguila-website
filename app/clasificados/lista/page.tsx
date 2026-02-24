@@ -2559,9 +2559,26 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 ) : null}
 
                 <div className="text-xs font-medium text-gray-300">
-                  {UI.showing[lang]} {visible.length + businessTop.length} {UI.of[lang]}{" "}
-                  {filtered.length}
+                  {UI.showing[lang]}{" "}
+                  {filtered.length === 0
+                    ? 0
+                    : (pageClamped - 1) * perPage + 1}
+                  {"–"}
+                  {filtered.length === 0
+                    ? 0
+                    : Math.min(
+                        (pageClamped - 1) * perPage +
+                          (visible.length + businessTop.length),
+                        filtered.length
+                      )}{" "}
+                  {UI.of[lang]} {filtered.length}
+                
+                <div className="mt-1 text-[11px] text-gray-400">
+                  {lang === "es"
+                    ? "Sin trucos: lo gratis también aparece. Anti‑spam automático."
+                    : "No tricks: free listings still show. Automatic anti-spam."}
                 </div>
+</div>
 
                 <div className="mt-1 text-xs text-gray-400">
                   <span className="font-medium text-gray-300">{CATEGORY_LABELS[category][lang]}</span>
