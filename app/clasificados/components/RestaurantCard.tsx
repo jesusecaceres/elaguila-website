@@ -10,6 +10,17 @@ function label(lang: Lang, es: string, en: string) {
   return lang === "es" ? es : en;
 }
 
+function normalizePhoneForHref(raw: string) {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  // US-friendly: 10 digits => +1XXXXXXXXXX, 11 starting with 1 => +1XXXXXXXXXX
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  // fallback
+  return raw.trim().startsWith("+") ? `+${digits}` : `+${digits}`;
+}
+
+
 export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang }) {
   const has = {
     phone: Boolean(r.phone),
@@ -60,12 +71,12 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
 <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <ActionButton
           enabled={has.phone}
-          href={r.phone ? `tel:${r.phone}` : "#"}
+          href={r.phone ? `tel:${normalizePhoneForHref(r.phone)}` : "#"}
           text={label(lang, "Llamar", "Call")}
         />
         <ActionButton
           enabled={has.text}
-          href={r.text ? `sms:${r.text}` : "#"}
+          href={r.text ? `sms:${normalizePhoneForHref(r.text)}` : "#"}
           text={label(lang, "Texto", "Text")}
         />
         <ActionButton
@@ -141,7 +152,7 @@ function ActionButton({
     <a
       href={href}
       target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer" : undefined}
+      rel={external ? "noreferrer noopener" : undefined}
       className={`${base} border-yellow-400/25 bg-black/30 text-white hover:bg-[#1a1100]`}
     >
       {text}

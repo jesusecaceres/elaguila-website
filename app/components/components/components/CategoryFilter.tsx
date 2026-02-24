@@ -1,1 +1,2 @@
-export default function CategoryFilter(){return (<div>Filter</div>);}
+export { default } from "../../CategoryFilter";
+export * from "../../CategoryFilter";

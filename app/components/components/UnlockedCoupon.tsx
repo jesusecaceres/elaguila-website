@@ -1,1 +1,2 @@
-export default function UnlockedCoupon(){return (<div>Unlocked Coupon</div>);}
+export { default } from "../UnlockedCoupon";
+export * from "../UnlockedCoupon";

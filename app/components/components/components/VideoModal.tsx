@@ -1,1 +1,2 @@
-export default function VideoModal(){return (<div>Video Modal</div>);}
+export { default } from "../../VideoModal";
+export * from "../../VideoModal";
