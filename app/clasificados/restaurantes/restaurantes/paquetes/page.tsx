@@ -28,11 +28,11 @@ export default async function Page({
   base.set("lang", lang);
   if (placeType) base.set("placeType", placeType);
 
-  const lite = new URLSearchParams(base);
-  lite.set("plan", "lite");
+  const free = new URLSearchParams(base);
+  free.set("plan", "free");
 
-  const premium = new URLSearchParams(base);
-  premium.set("plan", "premium");
+  const pro = new URLSearchParams(base);
+  pro.set("plan", "pro");
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -79,7 +79,7 @@ export default async function Page({
                   {lang === "es" ? "Recomendado para empezar" : "Best to start"}
                 </div>
                 <div className="mt-1 text-lg font-bold text-white">
-                  {lang === "es" ? "Business Lite" : "Business Lite"}
+                  {lang === "es" ? "Gratis" : "Gratis"}
                 </div>
               </div>
               <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-gray-300">
@@ -90,16 +90,16 @@ export default async function Page({
             <ul className="mt-4 space-y-2 text-sm text-gray-300">
               <li>• {lang === "es" ? "Perfil público con fotos y botones rápidos" : "Public profile with photos + fast action buttons"}</li>
               <li>• {lang === "es" ? "Más visibilidad que listados personales" : "Higher visibility than personal listings"}</li>
-              <li>• {lang === "es" ? "Insignia de negocio (sin etiquetas de pago)" : "Business badge (no “paid” labels)"}</li>
+              <li>• {lang === "es" ? "Insignia 💎 Pro (sutil)" : "💎 Pro badge (subtle)"}</li>
               <li>• {lang === "es" ? "Analítica básica (vistas / acciones)" : "Basic analytics (views / actions)"}</li>
             </ul>
 
             <div className="mt-6">
               <Link
-                href={`/clasificados/restaurantes/publicar?${lite.toString()}`}
+                href={`/clasificados/restaurantes/publicar?${free.toString()}`}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
               >
-                {lang === "es" ? "Elegir Lite y continuar" : "Choose Lite & continue"}
+                {lang === "es" ? "Elegir Gratis y continuar" : "Choose Free & continue"}
               </Link>
             </div>
 
@@ -117,7 +117,7 @@ export default async function Page({
                   {lang === "es" ? "Máxima conversión" : "Maximum conversion"}
                 </div>
                 <div className="mt-1 text-lg font-bold text-yellow-100">
-                  {lang === "es" ? "Business Premium" : "Business Premium"}
+                  {lang === "es" ? "LEONIX Pro" : "LEONIX Pro"}
                 </div>
               </div>
               <div className="rounded-full border border-yellow-400/30 bg-black/30 px-3 py-1 text-xs text-yellow-200">
@@ -126,7 +126,7 @@ export default async function Page({
             </div>
 
             <ul className="mt-4 space-y-2 text-sm text-gray-200">
-              <li>• {lang === "es" ? "Todo lo de Lite" : "Everything in Lite"}</li>
+              <li>• {lang === "es" ? "Todo lo de Gratis" : "Everything in Free"}</li>
               <li>• {lang === "es" ? "Mejor ranking y presencia más premium" : "Higher ranking + more premium presence"}</li>
               <li>• {lang === "es" ? "Herramientas de contacto/lead (según disponibilidad)" : "Lead/contact tools (when available)"}</li>
               <li>• {lang === "es" ? "Perfil mejorado para cerrar más ventas" : "Enhanced profile to close more sales"}</li>
@@ -134,10 +134,10 @@ export default async function Page({
 
             <div className="mt-6">
               <Link
-                href={`/clasificados/restaurantes/publicar?${premium.toString()}`}
+                href={`/clasificados/restaurantes/publicar?${pro.toString()}`}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/40 bg-yellow-500/15 px-5 py-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-500/20 transition"
               >
-                {lang === "es" ? "Elegir Premium y continuar" : "Choose Premium & continue"}
+                {lang === "es" ? "Elegir Pro y continuar" : "Choose Pro & continue"}
               </Link>
             </div>
 

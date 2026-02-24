@@ -119,22 +119,6 @@ export default function ClasificadosPage() {
           "Reglas anti-spam (sin lenguaje de negocio, sin inventario)",
         ] as const,
 
-        bizLiteTitle: "Business Lite",
-        bizLiteBullets: [
-          "Insignia de negocio (confianza)",
-          "Múltiples anuncios activos",
-          "Mayor visibilidad que perfiles personales",
-          "Presencia consistente en tu categoría",
-        ] as const,
-
-        bizPremTitle: "Business Premium",
-        bizPremBullets: [
-          "Prioridad de visibilidad",
-          "Perfil mejorado de negocio/dealer",
-          "Herramientas de contacto por anuncio (llamar, mensaje, solicitud)",
-          "Herramientas por categoría (citas/solicitudes según el tipo)",
-        ] as const,
-
         trustLine:
           "Un espacio confiable, familiar y comunitario. Los anuncios gratuitos siempre permanecen visibles en la búsqueda.",
 
@@ -194,22 +178,6 @@ export default function ClasificadosPage() {
           "1 short “visibility assist” per listing",
           "Basic analytics (views/saves)",
           "Anti-spam rules (no business language, no inventory behavior)",
-        ] as const,
-
-        bizLiteTitle: "Business Lite",
-        bizLiteBullets: [
-          "Business badge (trust)",
-          "Multiple active listings",
-          "Higher visibility than personal profiles",
-          "Consistent presence in your category",
-        ] as const,
-
-        bizPremTitle: "Business Premium",
-        bizPremBullets: [
-          "Priority visibility",
-          "Enhanced business/dealer profile",
-          "Contact tools per listing (call, message, request)",
-          "Category-specific tools (appointments/requests by type)",
         ] as const,
 
         trustLine:
@@ -587,11 +555,9 @@ out[cat] = mixed.slice(0, limit);
             </a>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlanCard title={t.freeTitle} bullets={t.freeBullets} />
             <PlanCard title={t.proTitle} bullets={t.proBullets} accent="gold" />
-            <PlanCard title={t.bizLiteTitle} bullets={t.bizLiteBullets} />
-            <PlanCard title={t.bizPremTitle} bullets={t.bizPremBullets} />
           </div>
         </div>
       </section>

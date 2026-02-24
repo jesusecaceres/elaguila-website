@@ -7,18 +7,19 @@ import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 
 type Lang = "es" | "en";
 
-type Plan = "free" | "pro" | "business";
+type Plan = "free" | "pro";
 
 function normalizePlan(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
   if (v === "pro") return "pro";
-  if (v === "business" || v === "lite" || v === "premium") return "business";
+  // LOCKED: only Free + LEONIX Pro exist publicly.
+  // Legacy tiers map to Pro for backward compatibility.
+  if (v === "business" || v === "lite" || v === "premium") return "pro";
   return "free";
 }
 
 function planLabel(plan: Plan, lang: Lang) {
   if (plan === "pro") return lang === "es" ? "Pro" : "Pro";
-  if (plan === "business") return lang === "es" ? "Business" : "Business";
   return lang === "es" ? "Gratis" : "Free";
 }
 

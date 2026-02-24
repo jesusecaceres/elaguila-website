@@ -90,7 +90,7 @@ export default function AnuncioDetallePage() {
 
         contactTitle: "Contacto",
         contactBody:
-          "En v2, las acciones de contacto avanzadas se activan para Business Premium. Por ahora, esta pantalla es de lectura y validación.",
+          "En v2, las acciones de contacto avanzadas se activan para LEONIX Pro. Por ahora, esta pantalla es de lectura y validación.",
       },
       en: {
         back: "Back to Classifieds",
@@ -126,7 +126,7 @@ export default function AnuncioDetallePage() {
 
         contactTitle: "Contact",
         contactBody:
-          "In v2, advanced contact/lead tools are enabled for Business Premium. For now this screen is read-only for testing.",
+          "In v2, advanced contact/lead tools are enabled for LEONIX Pro. For now this screen is read-only for testing.",
       },
     } as const;
     return ui[lang];
@@ -501,8 +501,8 @@ export default function AnuncioDetallePage() {
 
               <div className="mt-4 text-xs text-gray-400">
                 {lang === "es"
-                  ? "Estas herramientas se activan con Business Premium (leads por anuncio)."
-                  : "These tools activate with Business Premium (per-listing leads)."}
+                  ? "Estas herramientas se activan con LEONIX Pro (leads por anuncio)."
+                  : "These tools activate with LEONIX Pro (per-listing leads)."}
               </div>
             </div>
           </div>
