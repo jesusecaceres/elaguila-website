@@ -2571,7 +2571,13 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <span>{radiusMi} mi</span>
                 </div>
 
-                <BadgeLegend lang={lang} />
+                                <div className="mt-2 text-[11px] text-gray-400/90">
+                  {lang === "es"
+                    ? "Tip: en móvil, la vista en cuadrícula muestra más anuncios a la vez."
+                    : "Tip: on mobile, grid view shows more listings at once."}
+                </div>
+
+<BadgeLegend lang={lang} />
               </div>
 
               <div className="hidden md:flex items-center justify-between gap-3 md:justify-end">
@@ -2965,7 +2971,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       </a>
     </div>
 
-    <div className="grid gap-2.5 sm:gap-3 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
       {businessTop.map((x) => (
         <div key={x.id} className="rounded-2xl border border-white/10 bg-black/30 p-4">
           <div className="flex items-start justify-between gap-3">
