@@ -96,6 +96,7 @@ export default function CinematicCarousel({ items, title, lang }: Props) {
             <a
               href={current.link}
               target="_blank"
+              rel="noopener noreferrer"
               className="inline-block bg-gradient-to-b from-[#FFD700] to-[#B8860B] text-black font-semibold px-6 py-3 rounded-xl hover:scale-105 transition-all shadow-lg"
             >
               {lang === "es" ? "Ver Evento" : "View Event"}

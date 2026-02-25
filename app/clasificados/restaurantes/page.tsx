@@ -27,7 +27,7 @@ export default async function Page({
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="max-w-6xl mx-auto px-6 pt-28 pb-16 text-center">
+      <div className="max-w-6xl mx-auto px-6 pt-28 pb-32 text-center">
         <div className="mx-auto max-w-3xl">
           <Image
             src="/logo.png"
@@ -98,7 +98,7 @@ export default async function Page({
         </div>
 
 
-        <div id="discovery" className="mt-12 text-left">
+        <div id="discovery" className="mt-12 text-left scroll-mt-28">
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-yellow-300">
@@ -120,7 +120,7 @@ export default async function Page({
           </div>
 
           
-          <div className="mt-8">
+          <div id="alerts" className="mt-8 scroll-mt-28">
             <AlertsPanel lang={lang} />
           </div>
 
@@ -164,6 +164,33 @@ export default async function Page({
             </div>
           )}
         </div>
+      {/* Mobile sticky actions */}
+      <div className="sm:hidden fixed bottom-4 left-0 right-0 z-40 px-4">
+        <div className="mx-auto max-w-md grid grid-cols-3 gap-3 rounded-2xl border border-yellow-600/30 bg-black/80 backdrop-blur px-3 py-3 shadow-lg">
+          <a
+            href="#discovery"
+            aria-label="Discover restaurants"
+            className="text-center text-sm font-semibold rounded-xl bg-yellow-600/20 border border-yellow-600/30 py-2 hover:bg-yellow-600/30"
+          >
+            {lang === "es" ? "Descubrir" : "Discover"}
+          </a>
+          <a
+            href="#alerts"
+            aria-label="Restaurant alerts"
+            className="text-center text-sm font-semibold rounded-xl bg-yellow-600/20 border border-yellow-600/30 py-2 hover:bg-yellow-600/30"
+          >
+            {lang === "es" ? "Alertas" : "Alerts"}
+          </a>
+          <Link
+            href={`/clasificados/restaurantes/publicar?lang=${lang}`}
+            aria-label="Post a restaurant"
+            className="text-center text-sm font-semibold rounded-xl bg-yellow-500 text-black py-2 hover:bg-yellow-400"
+          >
+            {lang === "es" ? "Publicar" : "Post"}
+          </Link>
+        </div>
+      </div>
+
       </div>
     </div>
   );
@@ -194,6 +221,33 @@ function Placeholder({ lang }: { lang: Lang }) {
           {lang === "es" ? "Tu negocio puede estar aquí" : "Your business can be here"}
         </div>
         <div className="mt-2 h-3 w-52 bg-white/10 rounded" />
+      {/* Mobile sticky actions */}
+      <div className="sm:hidden fixed bottom-4 left-0 right-0 z-40 px-4">
+        <div className="mx-auto max-w-md grid grid-cols-3 gap-3 rounded-2xl border border-yellow-600/30 bg-black/80 backdrop-blur px-3 py-3 shadow-lg">
+          <a
+            href="#discovery"
+            aria-label="Discover restaurants"
+            className="text-center text-sm font-semibold rounded-xl bg-yellow-600/20 border border-yellow-600/30 py-2 hover:bg-yellow-600/30"
+          >
+            {lang === "es" ? "Descubrir" : "Discover"}
+          </a>
+          <a
+            href="#alerts"
+            aria-label="Restaurant alerts"
+            className="text-center text-sm font-semibold rounded-xl bg-yellow-600/20 border border-yellow-600/30 py-2 hover:bg-yellow-600/30"
+          >
+            {lang === "es" ? "Alertas" : "Alerts"}
+          </a>
+          <Link
+            href={`/clasificados/restaurantes/publicar?lang=${lang}`}
+            aria-label="Post a restaurant"
+            className="text-center text-sm font-semibold rounded-xl bg-yellow-500 text-black py-2 hover:bg-yellow-400"
+          >
+            {lang === "es" ? "Publicar" : "Post"}
+          </Link>
+        </div>
+      </div>
+
       </div>
     </div>
   );

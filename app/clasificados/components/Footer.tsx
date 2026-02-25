@@ -12,6 +12,7 @@ export default function Footer() {
               <a
                 href="https://facebook.com/elaguilamagazine"
                 target="_blank"
+              rel="noopener noreferrer"
                 className="hover:text-yellow-300"
               >
                 Facebook
@@ -21,18 +22,19 @@ export default function Footer() {
               <a
                 href="https://instagram.com/elaguila_magazine"
                 target="_blank"
+              rel="noopener noreferrer"
                 className="hover:text-yellow-300"
               >
                 Instagram
               </a>
             </li>
             <li>
-              <a href="#" className="hover:text-yellow-300">
+              <a href="#" aria-disabled="true" title="Pronto" className="hover:text-yellow-300 opacity-60 cursor-not-allowed pointer-events-none">
                 TikTok
               </a>
             </li>
             <li>
-              <a href="#" className="hover:text-yellow-300">
+              <a href="#" aria-disabled="true" title="Pronto" className="hover:text-yellow-300 opacity-60 cursor-not-allowed pointer-events-none">
                 YouTube
               </a>
             </li>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
@@ -435,19 +436,21 @@ out[cat] = mixed.slice(0, limit);
               {t.ctaPost}
             </a>
 
-            <a
+            <Link
               href={withListParams()}
               className="px-5 py-2.5 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
+              aria-label={t.ctaView}
             >
               {t.ctaView}
-            </a>
+            </Link>
 
-            <a
+            <Link
               href={withLang(t.routeMemberships)}
               className="px-5 py-2.5 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
+              aria-label={t.ctaMemberships}
             >
               {t.ctaMemberships}
-            </a>
+            </Link>
           </div>
 
           <div className="mt-8 text-sm text-gray-400 max-w-3xl mx-auto">

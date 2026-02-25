@@ -3,13 +3,31 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Clasificados",
   description: "Explora anuncios locales y descubre oportunidades en tu comunidad — LEONIX Clasificados.",
+  keywords: [
+    "clasificados",
+    "anuncios",
+    "rentas",
+    "empleos",
+    "autos",
+    "servicios",
+    "San José",
+    "Área de la Bahía",
+    "LEONIX",
+    "El Águila",
+  ],
   alternates: {
     canonical: "/clasificados",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Clasificados — LEONIX",
+    description:
+      "Explora anuncios locales y descubre oportunidades en tu comunidad — LEONIX Clasificados.",
   },
   openGraph: {
     title: "Clasificados — LEONIX",
     description: "Explora anuncios locales y descubre oportunidades en tu comunidad — LEONIX Clasificados.",
-    url: "/clasificados",
+url: "/clasificados",
     siteName: "LEONIX",
     type: "website",
   },

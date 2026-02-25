@@ -107,12 +107,13 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
         </button>
       ))}
 
-      <a
-        href={clearAllHref}
+      <button
+        type="button"
+        onClick={() => router.push(clearAllHref)}
         className="ml-2 inline-flex items-center rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
       >
-        {t.clearAll}
-      </a>
+        {lang === "es" ? "Quitar todo" : "Clear all"}
+      </button>
     </div>
   );
 }
