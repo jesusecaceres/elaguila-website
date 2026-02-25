@@ -302,10 +302,10 @@ export default function PublicarPage() {
   const [videoError, setVideoError] = useState<string>("");
   const [showProVideoPreview, setShowProVideoPreview] = useState(false);
 
-  const [step, setStep] = useState<PublishStep>("basics");
-  const [category, setCategory] = useState<string>(() => {
+  const [step, setStep] = useState<PublishStep>("basics");  const [category, setCategory] = useState<string>(() => {
     const c = (searchParams?.get("categoria") ?? searchParams?.get("category") ?? searchParams?.get("cat") ?? "en-venta").trim();
     return c || "en-venta";
+  });
 
   // Restaurants do not require a listing price in our flow (treated as Free by default)
   useEffect(() => {
@@ -315,7 +315,6 @@ export default function PublicarPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
-  });
 
 
   // Details (category-specific structured fields)
@@ -481,7 +480,7 @@ setIsPro(plan.includes("pro"));
         back: "Atrás",
         detailsTitle: "Detalles (por categoría)",
         detailsNote:
-          "En esta fase dejamos los campos estructurados para el siguiente batch. Aquí mantenemos la experiencia limpia y segura.",
+          "Agrega solo lo que aplica. Estos detalles ayudan a que tu anuncio se vea más profesional.",
         mediaTitle: "Media + Contacto",
         images: "Fotos (mínimo 1)",
         addImages: "Agregar fotos",
