@@ -199,6 +199,25 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
       ],
     },
   ],
+  restaurantes: [
+    {
+      key: "placeType",
+      label: { es: "Tipo de negocio", en: "Business type" },
+      type: "select",
+      options: [
+        { value: "brick", label: { es: "Local (restaurante / café)", en: "Brick & mortar (restaurant / café)" } },
+        { value: "truck", label: { es: "Food truck", en: "Food truck" } },
+        { value: "popup", label: { es: "Pop-up / puesto temporal", en: "Pop-up / temporary stand" } },
+      ],
+    },
+    { key: "cuisine", label: { es: "Cocina", en: "Cuisine" }, type: "text", placeholder: { es: "Ej: Mexicana, Pupusas", en: "e.g. Mexican, Pupusas" } },
+    { key: "address", label: { es: "Dirección (opcional)", en: "Address (optional)" }, type: "text", placeholder: { es: "Ej: 123 Main St", en: "e.g. 123 Main St" } },
+    { key: "zip", label: { es: "ZIP (opcional)", en: "ZIP (optional)" }, type: "text", placeholder: { es: "Ej: 95112", en: "e.g. 95112" } },
+    { key: "hours", label: { es: "Horario (opcional)", en: "Hours (optional)" }, type: "text", placeholder: { es: "Ej: Lun–Sab 10am–9pm", en: "e.g. Mon–Sat 10am–9pm" } },
+    { key: "website", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, type: "text", placeholder: { es: "https://", en: "https://" } },
+    { key: "notes", label: { es: "Notas (opcional)", en: "Notes (optional)" }, type: "text", placeholder: { es: "Pedidos por teléfono, especialidades…", en: "Phone orders, specialties…" } },
+  ],
+
 };
 
 function getCategoryFields(cat: string): DetailField[] {
@@ -239,6 +258,19 @@ export default function PublicarPage() {
   const urlLang = searchParams?.get("lang");
   const lang: Lang = urlLang === "en" ? "en" : "es";
 
+  // Prefill support (used by category-specific pre-forms like Restaurants)
+  const prefill = useMemo(() => {
+    const get = (k: string) => (searchParams?.get(k) ?? "").trim();
+    const bizName = get("bizName") || get("name");
+    const placeType = get("placeType");
+    const cuisine = get("cuisine");
+    const city = get("city");
+    const phone = get("phone");
+    const website = get("website");
+    const notes = get("notes");
+    return { bizName, placeType, cuisine, city, phone, website, notes };
+  }, [searchParams]);
+
   const redirectForLogin = useMemo(() => {
     const qs = searchParams?.toString() ?? "";
     const here = qs
@@ -272,23 +304,43 @@ export default function PublicarPage() {
 
   const [step, setStep] = useState<PublishStep>("basics");
   const [category, setCategory] = useState<string>(() => {
-    const c = (searchParams?.get("categoria") ?? searchParams?.get("category") ?? "en-venta").trim();
+    const c = (searchParams?.get("categoria") ?? searchParams?.get("category") ?? searchParams?.get("cat") ?? "en-venta").trim();
     return c || "en-venta";
+
+  // Restaurants do not require a listing price in our flow (treated as Free by default)
+  useEffect(() => {
+    if (category === "restaurantes") {
+      setIsFree(true);
+      setPrice("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
   });
 
 
   // Details (category-specific structured fields)
-  const [details, setDetails] = useState<Record<string, string>>({});
+  const [details, setDetails] = useState<Record<string, string>>(() => {
+    const d: Record<string, string> = {};
+    // Pre-fill from category pre-forms (e.g., Restaurants)
+    if (prefill.placeType) d["placeType"] = prefill.placeType;
+    if (prefill.cuisine) d["cuisine"] = prefill.cuisine;
+    if (prefill.website) d["website"] = prefill.website;
+    if (prefill.notes) d["notes"] = prefill.notes;
+    return d;
+  });
   // Basics
   const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
+  const [description, setDescription] = useState<string>(() => {
+    if (prefill.notes) return prefill.notes;
+    return "";
+  });
   const [isFree, setIsFree] = useState<boolean>(false);
   const [price, setPrice] = useState<string>("");
-  const [city, setCity] = useState<string>("");
+  const [city, setCity] = useState<string>(() => prefill.city || "");
 
   // Media + contact
   const [contactMethod, setContactMethod] = useState<"phone" | "email" | "both">("phone");
-  const [contactPhone, setContactPhone] = useState<string>("");
+  const [contactPhone, setContactPhone] = useState<string>(() => prefill.phone || "");
   const [contactEmail, setContactEmail] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);

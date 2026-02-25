@@ -23,7 +23,7 @@ function Stars({ value }: { value: number }) {
 }
 
 export function ReviewSummary({ restaurantId, lang }: { restaurantId: string; lang: Lang }) {
-  const [stats, setStats] = useState<{ avg: number; count: number }>({ avg: 0, count: 0 });
+  const [stats, setStats] = useState<{ avg: number; count: number; recommendPct: number }>({ avg: 0, count: 0, recommendPct: 0 });
 
   useEffect(() => {
     setStats(getReviewStats(restaurantId));
@@ -42,6 +42,11 @@ export function ReviewSummary({ restaurantId, lang }: { restaurantId: string; la
       <Stars value={stats.avg} />
       <span className="font-semibold text-white">{stats.avg.toFixed(1)}</span>
       <span className="text-gray-500">({stats.count})</span>
+      {stats.count >= 3 && (
+        <span className="ml-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
+          {t(lang, "Recomendado", "Recommended")} {stats.recommendPct}%
+        </span>
+      )}
     </div>
   );
 }
@@ -49,11 +54,13 @@ export function ReviewSummary({ restaurantId, lang }: { restaurantId: string; la
 export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState<number>(5);
+  const [recommend, setRecommend] = useState<boolean>(true);
   const [note, setNote] = useState("");
 
   function submit() {
-    addReview(restaurantId, { rating, note });
+    addReview(restaurantId, { rating, recommend, note });
     setNote("");
+    setRecommend(true);
     setOpen(false);
   }
 
@@ -108,6 +115,27 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
                 <div className="text-sm text-gray-400">{t(lang, "1–5 estrellas", "1–5 stars")}</div>
               </div>
 
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-white">{t(lang, "¿Lo recomiendas a familias?", "Would you recommend to families?")}</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRecommend(true)}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${recommend ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"}`}
+                  >
+                    {t(lang, "Sí", "Yes")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecommend(false)}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${!recommend ? "border-red-400/40 bg-red-500/10 text-red-200" : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"}`}
+                  >
+                    {t(lang, "No", "No")}
+                  </button>
+                  <div className="text-sm text-gray-400">{t(lang, "Solo para orientar a otros.", "Just to guide others.")}</div>
+                </div>
+              </div>
+
               <div className="mt-4 text-sm font-semibold text-white">{t(lang, "Mensaje", "Message")}</div>
               <textarea
                 value={note}
@@ -146,6 +174,7 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
 }
 
 export function AlertsPanel({ lang }: { lang: Lang }) {
+  const [expanded, setExpanded] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [cuisine, setCuisine] = useState("");
   const [radiusMi, setRadiusMi] = useState<10 | 25 | 40 | 50>(25);
@@ -171,11 +200,47 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  if (!expanded) {
+    return (
+      <div className="rounded-2xl border border-yellow-400/15 bg-black/30 p-5 text-left">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-base font-semibold text-white">{t(lang, "Alertas (opt‑in)", "Alerts (opt‑in)")}</div>
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="mt-2 text-xs font-semibold text-gray-300 hover:text-white"
+          >
+            {t(lang, "Cerrar configuración", "Close setup")}
+          </button>
+            <div className="mt-1 text-sm text-gray-400">
+              {t(lang, "Recibe avisos cuando aparezcan nuevos lugares. Sin spam.", "Get a note when new spots appear. No spam.")}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
+          >
+            {t(lang, "Configurar", "Set up")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-yellow-400/20 bg-black/40 p-6 text-left">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-lg font-semibold text-white">{t(lang, "Alertas (opt‑in)", "Alerts (opt‑in)")}</div>
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="mt-2 text-xs font-semibold text-gray-300 hover:text-white"
+          >
+            {t(lang, "Cerrar configuración", "Close setup")}
+          </button>
           <div className="mt-1 text-sm text-gray-400">
             {t(lang, "Sin spam. Tú eliges comida, radio y frecuencia. Cancela cuando quieras.", "No spam. You choose cuisine, radius, and frequency. Cancel anytime.")}
           </div>

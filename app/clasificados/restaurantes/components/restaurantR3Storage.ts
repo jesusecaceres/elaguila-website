@@ -3,6 +3,7 @@
 export type RestaurantReview = {
   id: string;
   rating: number; // 1-5
+  recommend?: boolean; // would you recommend to families?
   note: string;
   createdAt: string; // ISO
 };
@@ -36,6 +37,7 @@ export function addReview(restaurantId: string, review: Omit<RestaurantReview, "
     {
       id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       rating: Math.max(1, Math.min(5, Math.round(review.rating))),
+      recommend: typeof review.recommend === "boolean" ? review.recommend : (Number(review.rating) >= 4),
       note: (review.note || "").slice(0, 600),
       createdAt: new Date().toISOString(),
     },
@@ -45,13 +47,23 @@ export function addReview(restaurantId: string, review: Omit<RestaurantReview, "
   window.localStorage.setItem(key, JSON.stringify(next));
 }
 
-export function getReviewStats(restaurantId: string): { avg: number; count: number } {
+export function getReviewStats(restaurantId: string): { avg: number; count: number; recommendPct: number } {
   const items = getReviews(restaurantId);
   const count = items.length;
-  if (!count) return { avg: 0, count: 0 };
+
+  // No reviews yet
+  if (!count) return { avg: 0, count: 0, recommendPct: 0 };
+
   const sum = items.reduce((a, r) => a + (Number(r.rating) || 0), 0);
   const avg = Math.round((sum / count) * 10) / 10;
-  return { avg, count };
+
+  // "Recommend %" is only meaningful once we have enough signal.
+  const recommendItems = items.filter((r) => typeof r.recommend === "boolean");
+  const denom = recommendItems.length;
+  const yes = recommendItems.filter((r) => r.recommend === true).length;
+  const recommendPct = denom >= 3 ? Math.round((yes / denom) * 100) : 0;
+
+  return { avg, count, recommendPct };
 }
 
 export type RestaurantAlertPrefs = {

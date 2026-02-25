@@ -21,20 +21,30 @@ function normalizePhoneForHref(raw: string) {
 }
 
 
+function normalizeUrl(raw: string) {
+  const v = (raw || "").trim();
+  if (!v) return "";
+  if (v.startsWith("http://") || v.startsWith("https://")) return v;
+  if (v.startsWith("//")) return `https:${v}`;
+  return `https://${v}`;
+}
+
+
 export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang }) {
   const has = {
     phone: Boolean(r.phone),
     text: Boolean(r.text),
     email: Boolean(r.email),
-    directions: Boolean(r.googleMapsUrl || r.address),
+    directions: Boolean(r.googleMapsUrl || r.address || r.city),
     website: Boolean(r.website),
     social: Boolean(r.instagram || r.facebook),
     coupons: Boolean(r.couponsUrl),
   };
 
+  const mapsQuery = r.address || [r.name, r.city].filter(Boolean).join(" ");
   const mapsHref =
     r.googleMapsUrl ||
-    (r.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}` : "");
+    (mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : "");
 
   return (
     <div className="rounded-2xl border border-yellow-400/25 bg-black/40 p-6 text-left shadow-sm">
@@ -92,13 +102,13 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
         />
         <ActionButton
           enabled={has.website}
-          href={r.website || "#"}
+          href={r.website ? normalizeUrl(r.website) : "#"}
           text={label(lang, "Sitio web", "Website")}
           external
         />
         <ActionButton
           enabled={has.social}
-          href={(r.instagram || r.facebook) || "#"}
+          href={(r.instagram || r.facebook) ? normalizeUrl(r.instagram || r.facebook || "") : "#"}
           text={label(lang, "Social", "Social")}
           external
         />

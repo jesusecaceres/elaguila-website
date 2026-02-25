@@ -41,6 +41,8 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
     if (errors.length) return;
 
     const qp = new URLSearchParams();
+    qp.set("category", "restaurantes");
+    qp.set("categoria", "restaurantes");
     qp.set("cat", "restaurantes");
     qp.set("lang", lang);
     if (plan) qp.set("plan", plan);
