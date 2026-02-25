@@ -1634,11 +1634,10 @@ if (isPro && videoFile && !videoError) {
                           <div className="mt-1 text-xs text-white/40">
                             {lang === "es" ? "Requerido: mínimo 1 foto." : "Required: at least 1 photo."}
                           </div>
+                        )}
+                      </div>
 
-  )}
-</div>
-
-<div className="rounded-2xl border border-white/10 bg-black/20 p-4 relative overflow-hidden">
+                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 relative overflow-hidden">
   <div className="flex items-start justify-between gap-3">
     <div>
       <div className="text-sm text-white/80">{copy.video}</div>
