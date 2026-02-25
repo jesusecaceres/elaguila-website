@@ -50,13 +50,10 @@ export default function Page() {
   }, [sp, lang]);
 
   const membershipsHref = useMemo(() => {
-    const params = new URLSearchParams(sp?.toString() ?? "");
-    params.set("lang", lang);
-    return "/clasificados/membresias?" + params.toString();
-  }, [sp, lang]);
+    return `/clasificados?lang=${lang}#memberships`;
+  }, [lang]);
 
-
-  useEffect(() => {
+useEffect(() => {
     router.replace(href);
   }, [router, href]);
 

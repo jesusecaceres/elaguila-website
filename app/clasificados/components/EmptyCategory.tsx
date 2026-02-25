@@ -28,7 +28,7 @@ export default function EmptyCategory() {
           Publicar anuncio
         </Link>
         <Link
-          href="/clasificados/membresias"
+          href="/clasificados#memberships"
           className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-black/20 px-5 py-2.5 text-sm font-semibold text-gray-200 hover:bg-black/30"
         >
           Ver membresías

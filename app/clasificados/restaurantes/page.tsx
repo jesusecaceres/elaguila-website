@@ -199,7 +199,7 @@ export default async function Page({
                   {lang === "es" ? "Publicar restaurante" : "Post restaurant"}
                 </Link>
                 <Link
-                  href={`/clasificados/membresias?lang=${lang}`}
+                  href={`/clasificados#memberships?lang=${lang}`}
                   className="rounded-xl border border-white/15 bg-white/5 px-5 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
                 >
                   {lang === "es" ? "Ver beneficios" : "See benefits"}

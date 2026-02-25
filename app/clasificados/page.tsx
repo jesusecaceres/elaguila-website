@@ -125,7 +125,7 @@ export default function ClasificadosPage() {
 
         routePost: "/clasificados/publicar",
         routeList: "/clasificados/lista",
-        routeMemberships: "/clasificados/membresias",
+        routeMemberships: "/clasificados#memberships",
         routeLogin: "/clasificados/login",
       },
       en: {
@@ -186,7 +186,7 @@ export default function ClasificadosPage() {
 
         routePost: "/clasificados/publicar",
         routeList: "/clasificados/lista",
-        routeMemberships: "/clasificados/membresias",
+        routeMemberships: "/clasificados#memberships",
         routeLogin: "/clasificados/login",
       },
     } as const;
@@ -195,8 +195,11 @@ export default function ClasificadosPage() {
   }, [lang]);
 
   const withLang = (path: string) => {
-    const joiner = path.includes("?") ? "&" : "?";
-    return `${path}${joiner}lang=${lang}`;
+    // Preserve hash fragments like /clasificados#memberships
+    const [base, hash] = path.split("#");
+    const joiner = base.includes("?") ? "&" : "?";
+    const withParam = `${base}${joiner}lang=${lang}`;
+    return hash ? `${withParam}#${hash}` : withParam;
   };
 
   // ✅ NEW: route category tiles to their dedicated category pages (wrappers)
@@ -538,7 +541,7 @@ out[cat] = mixed.slice(0, limit);
       </section>
 
       {/* MEMBERSHIPS (benefits only, no prices) */}
-      <section className="max-w-6xl mx-auto px-6 mt-16">
+      <section id="memberships" className="max-w-6xl mx-auto px-6 mt-16">
         <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/35">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
