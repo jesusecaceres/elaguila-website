@@ -2280,15 +2280,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "mt-6 transition-opacity duration-200",
             "md:grid md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[280px,1fr]",
+            filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[320px,1fr]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
-        {/* FILTER BAR (Option B: shorter height ONLY) */}
-        <section
+        {/* FILTERS SIDEBAR (desktop) */}
+        <aside
           className={cx(
             "hidden md:block",
-            "sticky top-[72px] z-30 mt-0 md:top-[calc(72px+16px)]",
+            "sticky top-[calc(72px+16px)] z-30",
             "rounded-2xl border border-white/12 bg-neutral-800/45 backdrop-blur shadow-sm",
             compact ? "shadow-lg" : ""
           )}
@@ -2298,179 +2298,307 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setFiltersCollapsed(false)}
-                className="mt-1 flex w-full items-center justify-center rounded-2xl border border-white/12 bg-white/6 px-2 py-3 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                aria-label={lang === "es" ? "Abrir filtros" : "Open filters"}
-                title={lang === "es" ? "Abrir filtros" : "Open filters"}
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                aria-label={lang === "es" ? "Mostrar filtros" : "Show filters"}
+                title={lang === "es" ? "Mostrar filtros" : "Show filters"}
               >
-                <span
-                  className="text-[11px] font-semibold tracking-wide text-gray-200"
-                  style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-                >
-                  {(lang === "es" ? "Filtros" : "Filters") + (activeChips.length ? ` (${activeChips.length})` : "")}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={resetAll}
-                className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/12 bg-white/6 px-2 py-2 text-[11px] text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                aria-label={UI.reset[lang]}
-                title={UI.reset[lang]}
-              >
-                ↺
+                ≡
               </button>
             </div>
           ) : (
-
-          <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
-            <div className="hidden md:flex items-start justify-between gap-4 mb-3">
-              <div>
-                <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Refina tus resultados" : "Refine your results"}</div>
-                <div className="mt-0.5 text-xs text-gray-400">{lang === "es" ? "Usa filtros para encontrar lo que necesitas más rápido." : "Use filters to find what you need faster."}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFiltersCollapsed((v) => !v)}
-                className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                aria-label={lang === "es" ? "Colapsar filtros" : "Collapse filters"}
-              >
-                {filtersCollapsed
-                  ? `${lang === "es" ? "Filtros" : "Filters"} (${activeChips.length})`
-                  : lang === "es"
-                    ? "Colapsar"
-                    : "Collapse"}
-              </button>
-            </div>
-            <div className={cx("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end", filtersCollapsed ? "md:hidden" : "")}>
-              {/* Search */}
-              <div ref={searchBoxRef} className="col-span-2 md:col-span-5">
-                <label className="block text-xs font-semibold text-gray-300">
-                  {UI.search[lang]}
-                </label>
-                <div className="relative mt-1.5">
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    onFocus={() => {
-                      if (suggestions.length) setSuggestionsOpen(true);
-                    }}
-                    placeholder={
-                      lang === "es"
-                        ? "Buscar: trabajo, troca, cuarto…"
-                        : "Search: jobs, truck, room…"
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
-                    aria-label={UI.search[lang]}
-                  />
-
-                  {suggestionsOpen && suggestions.length ? (
-                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border border-white/10 bg-black/90 shadow-2xl">
-                      <div className="px-3 py-2 text-[11px] text-gray-400">
-                        {lang === "es" ? "Sugerencias" : "Suggestions"}
-                      </div>
-                      {suggestions.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => {
-                            setCategory(c);
-                            setSuggestionsOpen(false);
-                          }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                        >
-                          <span>{CATEGORY_LABELS[c][lang]}</span>
-                          <span className="text-xs text-gray-400">
-                            {lang === "es" ? "Categoría" : "Category"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-gray-200">
+                    {lang === "es" ? "Filtros" : "Filters"}
+                  </div>
+                  <div className="mt-0.5 text-xs text-gray-400">
+                    {lang === "es"
+                      ? "Ajusta para afinar resultados."
+                      : "Adjust to refine results."}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setFiltersCollapsed(true)}
+                  className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  aria-label={lang === "es" ? "Colapsar" : "Collapse"}
+                >
+                  {lang === "es" ? "Colapsar" : "Collapse"}
+                </button>
+              </div>
+
+              {/* Category-shaped: RENTAS */}
+              {category === "rentas" ? (
+                <div className="mt-4 grid gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">
+                        {lang === "es" ? "Precio mín." : "Min price"}
+                      </label>
+                      <input
+                        value={rentasParams.rpmin}
+                        onChange={(e) =>
+                          setRentasParams((p) => ({ ...p, rpmin: e.target.value }))
+                        }
+                        inputMode="numeric"
+                        placeholder="$"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">
+                        {lang === "es" ? "Precio máx." : "Max price"}
+                      </label>
+                      <input
+                        value={rentasParams.rpmax}
+                        onChange={(e) =>
+                          setRentasParams((p) => ({ ...p, rpmax: e.target.value }))
+                        }
+                        inputMode="numeric"
+                        placeholder="$"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">
+                        {lang === "es" ? "Recámaras" : "Beds"}
+                      </label>
+                      <select
+                        value={rentasParams.rbeds}
+                        onChange={(e) =>
+                          setRentasParams((p) => ({ ...p, rbeds: e.target.value }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="0">{lang === "es" ? "Estudio" : "Studio"}</option>
+                        <option value="1">1+</option>
+                        <option value="2">2+</option>
+                        <option value="3">3+</option>
+                        <option value="4">4+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">
+                        {lang === "es" ? "Baños" : "Baths"}
+                      </label>
+                      <select
+                        value={rentasParams.rbaths}
+                        onChange={(e) =>
+                          setRentasParams((p) => ({ ...p, rbaths: e.target.value }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="1">1+</option>
+                        <option value="1.5">1.5+</option>
+                        <option value="2">2+</option>
+                        <option value="2.5">2.5+</option>
+                        <option value="3">3+</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Generic advanced filters */}
+              <div className="mt-4 grid gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300">
+                    {UI.seller[lang]}
+                  </label>
+                  <select
+                    value={sellerType ?? "all"}
+                    onChange={(e) =>
+                      setSellerType(
+                        e.target.value === "all"
+                          ? null
+                          : (e.target.value as SellerType)
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                  >
+                    <option value="all">{lang === "es" ? "Todos" : "All"}</option>
+                    <option value="personal">{SELLER_LABELS.personal[lang]}</option>
+                    <option value="business">{SELLER_LABELS.business[lang]}</option>
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+                  <input
+                    type="checkbox"
+                    checked={onlyWithImage}
+                    onChange={(e) => setOnlyWithImage(e.target.checked)}
+                  />
+                  {UI.hasImage[lang]}
+                </label>
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSellerType(null);
+                      setOnlyWithImage(false);
+                      setRentasParams((p) => ({
+                        ...p,
+                        rpmin: "",
+                        rpmax: "",
+                        rbeds: "",
+                        rbaths: "",
+                        rtype: "",
+                        rpets: "",
+                      }));
+                    }}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
+                    {UI.clear[lang]}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={resetAll}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
+                    {UI.reset[lang]}
+                  </button>
+                </div>
+
+                <div className="text-[11px] text-gray-500">
+                  {lang === "es"
+                    ? "Consejo: en móvil usa “Más filtros”."
+                    : "Tip: on mobile use “More filters”."}
+                </div>
+              </div>
+            </div>
+          )}
+        </aside>
+
+<div className="md:col-start-2 md:mt-0">
+
+        {/* TOP QUICK FILTERS (compact) */}
+        <section className="mt-3">
+          <div className="rounded-2xl border border-white/12 bg-black/30 px-4 py-3 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
+              {/* Search */}
+              <div ref={searchBoxRef} className="xl:col-span-5">
+                <label className="block text-xs font-semibold text-gray-300">{UI.search[lang]}</label>
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={category === "rentas"
+                    ? (lang === "es" ? "Buscar: apartamento, cuarto, zona…" : "Search: apartment, room, area…")
+                    : category === "autos"
+                      ? (lang === "es" ? "Buscar: Toyota, 2016, camioneta…" : "Search: Toyota, 2016, truck…")
+                      : (lang === "es" ? "Buscar: trabajo, troca, cuarto…" : "Search: job, truck, room…")}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400/40"
+                />
               </div>
 
               {/* Location */}
-              <div className="col-span-1 md:col-span-3">
-                <label className="block text-xs font-semibold text-gray-300">
-                  {UI.location[lang]}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                >
-                  <span className="truncate">{locationLabel}</span>
-                  <span className="ml-3 shrink-0 text-xs text-gray-400">
+              <div className="xl:col-span-3">
+                <label className="block text-xs font-semibold text-gray-300">{UI.location[lang]}</label>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocationOpen(true)}
+                    className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-left text-sm text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
+                    {locationLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocationOpen(true)}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  >
                     {UI.edit[lang]}
-                  </span>
-                </button>
-                {locMsg ? (
-                  <div className="mt-1 text-[11px] text-gray-400">{locMsg}</div>
-                ) : null}
+                  </button>
+                </div>
               </div>
 
               {/* Radius */}
-              <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">
-                  {UI.radius[lang]}
-                </label>
+              <div className="xl:col-span-2">
+                <label className="block text-xs font-semibold text-gray-300">{UI.radius[lang]}</label>
                 <select
-                  value={radiusMi}
-                  onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  value={String(radiusMi)}
+                  onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
                 >
-                  {[5, 10, 25, 40, 50].map((r) => (
-                    <option key={r} value={r}>
-                      {r} mi
-                    </option>
+                  {[10, 25, 40, 50].map((m) => (
+                    <option key={m} value={String(m)}>{m} mi</option>
                   ))}
                 </select>
               </div>
 
               {/* Category */}
-              <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">
-                  {UI.category[lang]}
-                </label>
+              <div className="xl:col-span-2">
+                <label className="block text-xs font-semibold text-gray-300">{UI.category[lang]}</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
                 >
-                  <option value="all">{CATEGORY_LABELS.all[lang]}</option>
-                  <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
-                  <option value="rentas">{CATEGORY_LABELS.rentas[lang]}</option>
-                  <option value="autos">{CATEGORY_LABELS.autos[lang]}</option>
-                  <option value="servicios">{CATEGORY_LABELS.servicios[lang]}</option>
-                  <option value="empleos">{CATEGORY_LABELS.empleos[lang]}</option>
-                  <option value="clases">{CATEGORY_LABELS.clases[lang]}</option>
-                  <option value="comunidad">{CATEGORY_LABELS.comunidad[lang]}</option>
-                  <option value="travel">{CATEGORY_LABELS.travel[lang]}</option>
+                  {CATEGORY_ORDER.map((k) => (
+                    <option key={k} value={k}>{CATEGORY_LABELS[k][lang]}</option>
+                  ))}
                 </select>
-              </div>
-
-              {/* Buttons */}
-              <div className="col-span-2 flex items-center justify-between gap-3 md:col-span-12 md:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                >
-                  {UI.moreFilters[lang]}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={resetAll}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                >
-                  {UI.reset[lang]}
-                </button>
               </div>
             </div>
 
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="sr-only">{UI.sort[lang]}</label>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortKey)}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                >
+                  {Object.keys(SORT_LABELS).map((k) => (
+                    <option key={k} value={k}>{SORT_LABELS[k as SortKey][lang]}</option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
+                  {(["grid","list","list-img"] as ViewMode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setView(m)}
+                      className={cx(
+                        "rounded-lg px-2 py-1.5 text-xs",
+                        view === m ? "bg-yellow-500/20 text-yellow-200" : "text-gray-300 hover:bg-white/10"
+                      )}
+                      aria-label={m}
+                      title={m}
+                    >
+                      {m === "grid" ? "▦" : m === "list" ? "≡" : "▤"}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(true)}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 md:hidden"
+                >
+                  {UI.moreFilters[lang]}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetAll}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+              >
+                {UI.reset[lang]}
+              </button>
+            </div>
+
             {activeChips.length ? (
-              <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
                 {activeChips.map((c) => (
                   <button
                     key={c.key}
@@ -2484,13 +2612,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 ))}
               </div>
             ) : null}
-
           </div>
-          )}
-
         </section>
 
-        <div className="md:col-start-2 md:mt-0">
+
 
         {/* RESULTS TOOLBAR (unchanged) */}
         <section className="mt-3 md:sticky md:top-[calc(72px+16px)] z-20" aria-busy={isSwitchingCategory}>
