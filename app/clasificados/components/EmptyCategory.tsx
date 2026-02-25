@@ -4,13 +4,14 @@ import Link from "next/link";
 
 export default function EmptyCategory() {
   return (
-    <div className="text-center py-32">
+    <div className="mx-auto max-w-3xl px-6 py-24 text-center">
+      <div className="rounded-2xl border border-white/12 bg-white/6 p-10">
       <h2 className="text-2xl font-semibold mb-4 text-gray-100">
         No hay anuncios todavía
       </h2>
       <p className="text-white/70 max-w-xl mx-auto">
-        Esta categoría está lista para arrancar. Sé de los primeros en publicar
-        y aparecerás aquí.
+        Esta categoría está lista para arrancar. Publica el primero y tu anuncio
+        aparecerá aquí.
       </p>
 
       <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -32,6 +33,10 @@ export default function EmptyCategory() {
         >
           Ver membresías
         </Link>
+      </div>
+        <p className="mt-6 text-xs text-gray-400">
+          Consejo: fotos claras + descripción honesta ayudan a vender más rápido. Protección anti‑spam activa.
+        </p>
       </div>
     </div>
   );

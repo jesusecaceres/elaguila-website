@@ -39,7 +39,7 @@ export default function FiltersSidebar({
   const t = useMemo(() => {
     const es = {
       filters: "Filtros",
-      hint: "Filtros por categoría (UI). La lógica completa se conecta en la siguiente fase.",
+      hint: "Ajusta tus filtros para encontrar justo lo que buscas. Puedes quitarlos rápido arriba.",
       placeholder: "Ejemplos: precio, recámaras, año, salario, etc.",
     };
     const en = {

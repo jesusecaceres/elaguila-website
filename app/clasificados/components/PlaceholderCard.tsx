@@ -16,8 +16,8 @@ export default function PlaceholderCard() {
       <div className="mt-2 h-24 rounded-xl border border-yellow-600/10 bg-black/25" />
       <div className="mt-2 text-xs text-gray-400">
         {lang === "en"
-          ? "Reserved space for featured placements."
-          : "Espacio reservado para destacados."}
+          ? "Reserved space for featured placements — real listings appear here as soon as they’re posted."
+          : "Espacio reservado para destacados — los anuncios reales aparecen aquí en cuanto se publiquen."}
       </div>
     </div>
   );
