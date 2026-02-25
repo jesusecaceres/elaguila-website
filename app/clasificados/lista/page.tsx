@@ -422,7 +422,7 @@ export default function ListaPage() {
   const [page, setPage] = useState(1);
   const perPage = 9;
 
-  const [compact, setCompact] = useState(false);
+  const [compact, setCompact] = useState(true);
   const [isMobileUI, setIsMobileUI] = useState(false);
   const [showTop, setShowTop] = useState(false);
 
@@ -2323,23 +2323,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           ) : (
 
           <div className={cx("p-3 md:p-4", compact ? "md:py-3" : "")}>
-          <div className="hidden md:flex items-start justify-between gap-4 mb-3">
-            <div>
-              <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Refina tus resultados" : "Refine your results"}</div>
-              <div className="mt-0.5 text-xs text-gray-400">{lang === "es" ? "Usa filtros para encontrar lo que necesitas más rápido." : "Use filters to find what you need faster."}</div>
+            <div className="hidden md:flex items-start justify-between gap-4 mb-3">
+              <div>
+                <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Refina tus resultados" : "Refine your results"}</div>
+                <div className="mt-0.5 text-xs text-gray-400">{lang === "es" ? "Usa filtros para encontrar lo que necesitas más rápido." : "Use filters to find what you need faster."}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFiltersCollapsed((v) => !v)}
+                className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                aria-label={lang === "es" ? "Colapsar filtros" : "Collapse filters"}
+              >
+                {filtersCollapsed
+                  ? `${lang === "es" ? "Filtros" : "Filters"} (${activeChips.length})`
+                  : lang === "es"
+                    ? "Colapsar"
+                    : "Collapse"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setFiltersCollapsed((v) => !v)}
-              className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-              aria-label={lang === "es" ? "Colapsar filtros" : "Collapse filters"}
-            >
-              {filtersCollapsed
-                ? `${lang === "es" ? "Filtros" : "Filters"} (${activeChips.length})`
-                : lang === "es" ? "Colapsar" : "Collapse"}
-            </button>
-          </div>
-            <div className={cx("grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end", filtersCollapsed ? "md:hidden" : "")}>
+            <div className={cx("grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end", filtersCollapsed ? "md:hidden" : "")}>
               {/* Search */}
               <div ref={searchBoxRef} className="col-span-2 md:col-span-5">
                 <label className="block text-xs font-semibold text-gray-300">
@@ -2483,49 +2485,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               </div>
             ) : null}
 
-            {nearbyCityChips.length ? (
-              <div className="mt-2 hidden items-center gap-2 md:flex">
-                <button
-                  type="button"
-                  onClick={() => scrollChips("left")}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                  aria-label={lang === "es" ? "Desplazar izquierda" : "Scroll left"}
-                >
-                  ‹
-                </button>
-                <div
-                  ref={chipsRowRef}
-                  className="flex flex-1 items-center gap-2 overflow-x-auto pb-1"
-                >
-                  {nearbyCityChips.map((c) => (
-                    <button
-                      key={c.city}
-                      type="button"
-                      onClick={() => {
-                        setCity(c.city);
-                        setZip("");
-                      }}
-                      className={cx(
-                        "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1",
-                        normalize(c.city) === normalize(resolvedCity.name)
-                          ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                      )}
-                    >
-                      {c.city}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => scrollChips("right")}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                  aria-label={lang === "es" ? "Desplazar derecha" : "Scroll right"}
-                >
-                  ›
-                </button>
-              </div>
-            ) : null}
           </div>
           )}
 
