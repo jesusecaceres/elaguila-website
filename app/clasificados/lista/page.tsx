@@ -2165,25 +2165,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <Navbar />
 
       {/* Sticky quick actions (always reachable) */}
-      <div className="sticky top-[72px] z-40 border-b border-white/10 bg-black/35 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-3 px-4 py-3">
+      <div className="sticky top-[56px] z-40 border-b border-white/10 bg-black/35 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2">
           <a
             href={`/clasificados/publicar?lang=${lang}`}
-            className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-black hover:opacity-95 transition"
+            className="rounded-full bg-yellow-400 px-3 py-1.5 text-xs font-semibold text-black hover:opacity-95 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Publicar anuncio" : "Post listing"}
           </a>
 
           <a
             href={`/clasificados/lista?lang=${lang}`}
-            className="rounded-full border border-yellow-600/20 bg-black/25 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/30 transition"
+            className="rounded-full border border-yellow-600/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-black/30 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Ver anuncios" : "View listings"}
           </a>
 
           <a
-            href={`/clasificados/membresias?lang=${lang}`}
-            className="rounded-full border border-yellow-600/20 bg-black/25 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/30 transition"
+            href={`/clasificados?lang=${lang}#memberships`}
+            className="rounded-full border border-yellow-600/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-black/30 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Membresías" : "Memberships"}
           </a>
@@ -2279,8 +2279,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <div
           className={cx(
             "mt-6 transition-opacity duration-200",
-            "md:grid md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[72px,1fr]" : "md:grid-cols-[320px,1fr]",
+            "md:grid md:items-start md:gap-6",
+            filtersCollapsed ? "md:grid-cols-[72px,minmax(0,1fr)]" : "md:grid-cols-[minmax(260px,320px),minmax(0,1fr)]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
@@ -2288,7 +2288,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <aside
           className={cx(
             "hidden md:block",
-            "sticky top-[calc(72px+16px)] z-30",
+            "sticky top-[calc(56px+12px)] z-30",
             "rounded-2xl border border-white/12 bg-neutral-800/45 backdrop-blur shadow-sm",
             compact ? "shadow-lg" : ""
           )}
@@ -2477,12 +2477,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           )}
         </aside>
 
-<div className="md:col-start-2 md:mt-0">
+<div className="md:col-start-2 md:mt-0 min-w-0">
 
         {/* TOP QUICK FILTERS (compact) */}
         <section className="mt-3">
-          <div className="rounded-2xl border border-white/12 bg-black/30 px-4 py-3 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
+          <div className="rounded-2xl border border-white/12 bg-black/30 px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search */}
               <div ref={searchBoxRef} className="xl:col-span-5">
                 <label className="block text-xs font-semibold text-gray-300">{UI.search[lang]}</label>
