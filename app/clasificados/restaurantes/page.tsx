@@ -5,6 +5,7 @@ import Navbar from "../../components/Navbar";
 import { restaurants } from "../../data/restaurants";
 import RestaurantCard from "../components/RestaurantCard";
 import { AlertsPanel } from "./components/R3Widgets";
+import DiscoveryClient from "./components/DiscoveryClient";
 
 type Lang = "es" | "en";
 
@@ -16,6 +17,15 @@ function getLang(searchParams: SearchParams): Lang {
   return s === "en" ? "en" : "es";
 }
 
+function first(sp: SearchParams, key: string): string {
+  const v = sp?.[key];
+  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+}
+
+function truthy(v: string) {
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
 export default async function Page({
   searchParams,
 }: {
@@ -23,6 +33,36 @@ export default async function Page({
 }) {
   const sp = (await searchParams) ?? {};
   const lang = getLang(sp);
+  const initialDiscovery = {
+    q: first(sp, "q"),
+    city: first(sp, "city"),
+    radiusMi: (Number(first(sp, "r")) || 25) as 10 | 25 | 40 | 50,
+    cuisine: first(sp, "cuisine"),
+    price: (first(sp, "price") as any) || "",
+    savedOnly: truthy(first(sp, "saved")),
+    openNow: truthy(first(sp, "open")),
+    family: truthy(first(sp, "family")),
+    diet: (first(sp, "diet") as any) || "",
+  };
+
+  const filtered = restaurants.filter((r) => {
+    const q = initialDiscovery.q.toLowerCase();
+    if (q) {
+      const hay = [r.name, r.cuisine, r.city, r.address].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (initialDiscovery.city) {
+      const city = (r.city || "").toLowerCase();
+      if (!city) return false;
+      if (!city.includes(initialDiscovery.city.toLowerCase())) return false;
+    }
+    if (initialDiscovery.cuisine) {
+      const c = (r.cuisine || "").toLowerCase();
+      if (!c.includes(initialDiscovery.cuisine.toLowerCase())) return false;
+    }
+    return true;
+  });
+
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -115,18 +155,22 @@ export default async function Page({
               href={`#discovery`}
               className="text-sm font-semibold text-yellow-200 hover:text-yellow-100"
             >
-              {lang === "es" ? "Abrir filtros →" : "Open filters →"}
+              {lang === "es" ? "Buscar y filtrar →" : "Search & filters →"}
             </Link>
           </div>
 
           
+          <div id="filters" className="mt-6 scroll-mt-28">
+            <DiscoveryClient lang={lang} initial={initialDiscovery} />
+          </div>
+
           <div id="alerts" className="mt-8 scroll-mt-28">
             <AlertsPanel lang={lang} />
           </div>
 
 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {restaurants.length > 0 ? (
-              restaurants.map((r) => <RestaurantCard key={r.id} r={r} lang={lang} />)
+            {filtered.length > 0 ? (
+              filtered.map((r) => <RestaurantCard key={r.id} r={r} lang={lang} />)
             ) : (
               <>
                 <Placeholder lang={lang} />

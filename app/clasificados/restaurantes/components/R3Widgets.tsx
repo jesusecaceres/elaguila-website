@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { addReview, getAlertPrefs, getReviewStats, saveAlertPrefs } from "./restaurantR3Storage";
+import { addReview, getAlertPrefs, getReviewStats, saveAlertPrefs, getRecentCities, pushRecentCity, saveGeoState, getGeoState } from "./restaurantR3Storage";
 
 type Lang = "es" | "en";
 
@@ -311,6 +311,277 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
           {saved ? t(lang, "Guardado ✅", "Saved ✅") : t(lang, "Guardar alertas", "Save alerts")}
         </button>
       </div>
+    </div>
+  );
+}
+
+
+
+type DiscoveryState = {
+  q: string;
+  city: string;
+  radiusMi: 10 | 25 | 40 | 50;
+  cuisine: string;
+  price: "" | "$" | "$$" | "$$$";
+  savedOnly: boolean;
+  openNow: boolean;
+  family: boolean;
+  diet: "" | "vegan" | "halal" | "glutenfree";
+};
+
+export function DiscoveryPanel({
+  lang,
+  initial,
+  onApply,
+}: {
+  lang: Lang;
+  initial: DiscoveryState;
+  onApply: (next: DiscoveryState) => void;
+}) {
+  const [q, setQ] = useState(initial.q);
+  const [city, setCity] = useState(initial.city);
+  const [radiusMi, setRadiusMi] = useState<10 | 25 | 40 | 50>(initial.radiusMi);
+  const [cuisine, setCuisine] = useState(initial.cuisine);
+  const [price, setPrice] = useState<"" | "$" | "$$" | "$$$">(initial.price);
+  const [savedOnly, setSavedOnly] = useState(initial.savedOnly);
+  const [openNow, setOpenNow] = useState(initial.openNow);
+  const [family, setFamily] = useState(initial.family);
+  const [diet, setDiet] = useState<"" | "vegan" | "halal" | "glutenfree">(initial.diet);
+
+  const [recentCities, setRecentCities] = useState<string[]>([]);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "saving" | "saved" | "blocked">("idle");
+
+  useEffect(() => {
+    setRecentCities(getRecentCities());
+    const g = getGeoState();
+    if (g) setGeoStatus("saved");
+  }, []);
+
+  function apply() {
+    const next: DiscoveryState = {
+      q: q.trim(),
+      city: city.trim(),
+      radiusMi,
+      cuisine,
+      price,
+      savedOnly,
+      openNow,
+      family,
+      diet,
+    };
+    if (next.city) pushRecentCity(next.city);
+    onApply(next);
+  }
+
+  function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("blocked");
+      return;
+    }
+    setGeoStatus("saving");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        saveGeoState(pos.coords.latitude, pos.coords.longitude);
+        setGeoStatus("saved");
+      },
+      () => setGeoStatus("blocked"),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+      <div className="flex flex-col lg:flex-row gap-4 lg:items-end lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-white">{t(lang, "Buscar", "Search")}</div>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t(lang, "Tacos, pho, carne asada…", "Tacos, pho, BBQ…")}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[520px]">
+          <div>
+            <div className="text-sm font-semibold text-white">{t(lang, "Ciudad", "City")}</div>
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder={t(lang, "Ej: San José", "e.g., San Jose")}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+            />
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold text-white">{t(lang, "Radio", "Radius")}</div>
+            <select
+              value={radiusMi}
+              onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/30"
+            >
+              <option value={10}>10 mi</option>
+              <option value={25}>25 mi</option>
+              <option value={40}>40 mi</option>
+              <option value={50}>50 mi</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col">
+            <div className="text-sm font-semibold text-white">{t(lang, "Ubicación", "Location")}</div>
+            <button
+              type="button"
+              onClick={useMyLocation}
+              className="mt-2 inline-flex items-center justify-center rounded-xl border border-yellow-400/25 bg-yellow-500/10 px-3 py-3 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+            >
+              {t(lang, "Usar mi ubicación", "Use my location")}
+            </button>
+            <div className="mt-1 text-[11px] text-gray-400">
+              {geoStatus === "saved"
+                ? t(lang, "Listo: usaremos tu zona cuando haya datos.", "Saved: we'll use your area once listings exist.")
+                : geoStatus === "blocked"
+                  ? t(lang, "Permiso denegado o no disponible.", "Permission denied or unavailable.")
+                  : t(lang, "Opcional. Respeta tu privacidad.", "Optional. Privacy-respectful.")}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {recentCities.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="text-xs font-semibold text-gray-400">{t(lang, "Recientes:", "Recent:")}</div>
+          {recentCities.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCity(c)}
+              className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition"
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {[
+          "Mexican",
+          "Latino",
+          "American",
+          "BBQ",
+          "Chinese",
+          "Japanese",
+          "Korean",
+          "Thai",
+          "Vietnamese",
+          "Indian",
+          "Greek",
+          "Italian",
+          "Seafood",
+          "Breakfast",
+          "Coffee",
+          "Dessert",
+        ].map((c) => {
+          const active = cuisine.toLowerCase() === c.toLowerCase();
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCuisine(active ? "" : c)}
+              className={
+                active
+                  ? "rounded-full border border-yellow-400/30 bg-yellow-500/15 px-3 py-1.5 text-xs font-semibold text-yellow-100"
+                  : "rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition"
+              }
+            >
+              {c}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div>
+          <div className="text-sm font-semibold text-white">{t(lang, "Precio", "Price")}</div>
+          <select
+            value={price}
+            onChange={(e) => setPrice((e.target.value as any) || "")}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/30"
+          >
+            <option value="">{t(lang, "Cualquiera", "Any")}</option>
+            <option value="$">$</option>
+            <option value="$$">$$</option>
+            <option value="$$$">$$$</option>
+          </select>
+        </div>
+
+        <Toggle lang={lang} label={t(lang, "Abierto ahora", "Open now")} value={openNow} onChange={setOpenNow} hint={t(lang, "Se activará cuando los negocios agreguen horario.", "Will activate once businesses add hours.")} disabled />
+        <Toggle lang={lang} label={t(lang, "Familiar", "Family-friendly")} value={family} onChange={setFamily} hint={t(lang, "Opcional.", "Optional.")} />
+        <div>
+          <div className="text-sm font-semibold text-white">{t(lang, "Dietas", "Diet")}</div>
+          <select
+            value={diet}
+            onChange={(e) => setDiet((e.target.value as any) || "")}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/30"
+          >
+            <option value="">{t(lang, "Opcional", "Optional")}</option>
+            <option value="vegan">{t(lang, "Vegano", "Vegan")}</option>
+            <option value="halal">Halal</option>
+            <option value="glutenfree">{t(lang, "Sin gluten", "Gluten-free")}</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <label className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+          <input
+            type="checkbox"
+            checked={savedOnly}
+            onChange={(e) => setSavedOnly(e.target.checked)}
+            className="h-4 w-4 rounded border border-white/20 bg-black/40"
+          />
+          {t(lang, "Solo guardados", "Saved only")}
+        </label>
+
+        <button
+          type="button"
+          onClick={apply}
+          className="inline-flex items-center justify-center rounded-xl border border-yellow-400/25 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+        >
+          {t(lang, "Aplicar", "Apply")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({
+  lang,
+  label,
+  value,
+  onChange,
+  hint,
+  disabled,
+}: {
+  lang: Lang;
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={disabled ? "opacity-60" : ""}>
+      <div className="text-sm font-semibold text-white">{label}</div>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onChange(!value)}
+        className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm font-semibold text-white hover:bg-white/10 transition disabled:cursor-not-allowed"
+      >
+        {value ? t(lang, "Activado", "On") : t(lang, "Apagado", "Off")}
+      </button>
+      {hint && <div className="mt-1 text-[11px] text-gray-400">{hint}</div>}
     </div>
   );
 }

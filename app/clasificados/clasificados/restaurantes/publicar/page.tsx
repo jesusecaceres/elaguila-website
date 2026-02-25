@@ -1,5 +1,2 @@
-import { redirect } from "next/navigation";
-
-export default function Page() {
-  redirect("/clasificados/restaurantes/publicar");
-}
+export { default } from "../../../restaurantes/publicar/page";
+export * from "../../../restaurantes/publicar/page";

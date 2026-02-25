@@ -11,6 +11,66 @@ export type RestaurantReview = {
 const REVIEWS_KEY_PREFIX = "leonix_restaurant_reviews_v1:";
 const ALERTS_KEY = "leonix_restaurant_alerts_v1";
 
+const FAVORITES_KEY = "leonix_restaurant_favorites_v1";
+const RECENT_CITIES_KEY = "leonix_restaurant_recent_cities_v1";
+const GEO_KEY = "leonix_restaurant_geo_v1";
+
+type GeoState = { lat: number; lng: number; updatedAt: string };
+
+function getSet(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  const raw = window.localStorage.getItem(FAVORITES_KEY);
+  const items = safeParse<string[]>(raw, []);
+  return new Set(Array.isArray(items) ? items.filter(Boolean) : []);
+}
+
+export function isFavoriteRestaurant(restaurantId: string): boolean {
+  return getSet().has(restaurantId);
+}
+
+export function toggleFavoriteRestaurant(restaurantId: string): boolean {
+  if (typeof window === "undefined") return false;
+  const set = getSet();
+  if (set.has(restaurantId)) set.delete(restaurantId);
+  else set.add(restaurantId);
+
+  const arr = Array.from(set).slice(0, 500);
+  window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(arr));
+  return set.has(restaurantId);
+}
+
+export function getFavoriteRestaurantIds(): string[] {
+  return Array.from(getSet());
+}
+
+export function getRecentCities(): string[] {
+  if (typeof window === "undefined") return [];
+  const items = safeParse<string[]>(window.localStorage.getItem(RECENT_CITIES_KEY), []);
+  return Array.isArray(items) ? items.filter(Boolean).slice(0, 10) : [];
+}
+
+export function pushRecentCity(city: string) {
+  if (typeof window === "undefined") return;
+  const v = (city || "").trim();
+  if (!v) return;
+  const current = getRecentCities();
+  const next = [v, ...current.filter((c) => c.toLowerCase() !== v.toLowerCase())].slice(0, 10);
+  window.localStorage.setItem(RECENT_CITIES_KEY, JSON.stringify(next));
+}
+
+export function getGeoState(): GeoState | null {
+  if (typeof window === "undefined") return null;
+  const v = safeParse<GeoState | null>(window.localStorage.getItem(GEO_KEY), null);
+  if (!v || typeof v.lat !== "number" || typeof v.lng !== "number") return null;
+  return v;
+}
+
+export function saveGeoState(lat: number, lng: number) {
+  if (typeof window === "undefined") return;
+  const next: GeoState = { lat, lng, updatedAt: new Date().toISOString() };
+  window.localStorage.setItem(GEO_KEY, JSON.stringify(next));
+}
+
 function safeParse<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;
   try {

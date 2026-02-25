@@ -1,2 +1,2 @@
-// Duplicate subtree neutralized — canonical lives under /app/clasificados
-export {};
+export { default } from "../../../restaurantes/publicar/RestaurantPublishForm";
+export * from "../../../restaurantes/publicar/RestaurantPublishForm";

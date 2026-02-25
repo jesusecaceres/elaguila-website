@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Restaurant } from "../../data/restaurants";
 import { ReviewButton, ReviewSummary } from "../restaurantes/components/R3Widgets";
+import { isFavoriteRestaurant, toggleFavoriteRestaurant } from "../restaurantes/components/restaurantR3Storage";
 
 type Lang = "es" | "en";
 
@@ -31,6 +33,12 @@ function normalizeUrl(raw: string) {
 
 
 export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang }) {
+  const [fav, setFav] = useState(false);
+
+  useEffect(() => {
+    setFav(isFavoriteRestaurant(r.id));
+  }, [r.id]);
+
   const has = {
     phone: Boolean(r.phone),
     text: Boolean(r.text),
@@ -51,6 +59,15 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFav(toggleFavoriteRestaurant(r.id))}
+              className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/30 text-sm text-white hover:bg-white/10 transition"
+              aria-label={fav ? label(lang, "Quitar de guardados", "Remove from saved") : label(lang, "Guardar", "Save")}
+              title={fav ? label(lang, "Guardado", "Saved") : label(lang, "Guardar", "Save")}
+            >
+              <span aria-hidden="true">{fav ? "★" : "☆"}</span>
+            </button>
             <h3 className="text-lg font-semibold text-white truncate">{r.name}</h3>
             {r.verified && (
               <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-200">

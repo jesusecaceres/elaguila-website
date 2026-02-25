@@ -1,5 +1,2 @@
-import { redirect } from "next/navigation";
-
-export default function Page() {
-  redirect("/clasificados/restaurantes/restaurantes/paquetes");
-}
+export { default } from "../../../../restaurantes/paquetes/page";
+export * from "../../../../restaurantes/paquetes/page";
