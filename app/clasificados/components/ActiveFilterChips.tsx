@@ -28,6 +28,8 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
       radius: "Radio",
       category: "Categoría",
       sort: "Orden",
+      zip: "ZIP",
+      view: "Vista",
     };
     const en = {
       clearAll: "Clear filters",
@@ -36,6 +38,8 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
       radius: "Radius",
       category: "Category",
       sort: "Sort",
+      zip: "ZIP",
+      view: "View",
     };
     return lang === "es" ? es : en;
   }, [lang]);
@@ -48,21 +52,25 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
 
     const q = sp.get("q")?.trim() ?? "";
     const city = sp.get("city")?.trim() ?? "";
-    const radius = sp.get("radius")?.trim() ?? "";
+        const radius = (sp.get("radius")?.trim() ?? sp.get("r")?.trim() ?? "");
     const cat = sp.get("cat")?.trim() ?? "";
     const sort = sp.get("sort")?.trim() ?? "";
+    const zip = sp.get("zip")?.trim() ?? "";
+    const view = sp.get("view")?.trim() ?? "";
 
     if (q) out.push({ key: "q", label: t.search, value: q });
     if (city) out.push({ key: "city", label: t.location, value: city });
     if (radius) out.push({ key: "radius", label: t.radius, value: prettyRadius(radius) || radius });
     if (cat) out.push({ key: "cat", label: t.category, value: cat });
     if (sort) out.push({ key: "sort", label: t.sort, value: sort });
+    if (zip) out.push({ key: "zip", label: t.zip, value: zip });
+    if (view) out.push({ key: "view", label: t.view, value: view });
 
     // Any other deep filters become chips too (UI only)
     sp.forEach((value, key) => {
       const v = value?.trim() ?? "";
       if (!v) return;
-      if (["lang", "q", "city", "radius", "cat", "sort", "page"].includes(key)) return;
+      if (["lang", "q", "city", "radius", "r", "cat", "sort", "zip", "view", "page"].includes(key)) return;
       out.push({ key, label: key, value: v });
     });
 
@@ -72,10 +80,15 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
   const clearAllHref = useMemo(() => {
     const sp = new URLSearchParams(params?.toString() ?? "");
     const langParam = sp.get("lang");
+        const catParam = sp.get("cat");
+    const viewParam = sp.get("view");
     sp.forEach((_, key) => {
-      if (key !== "lang") sp.delete(key);
+      if (["lang", "cat", "view"].includes(key)) return;
+      sp.delete(key);
     });
     if (langParam) sp.set("lang", langParam);
+    if (catParam) sp.set("cat", catParam);
+    if (viewParam) sp.set("view", viewParam);
     const qs = sp.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   }, [params, pathname]);
@@ -112,7 +125,7 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
         onClick={() => router.push(clearAllHref)}
         className="ml-2 inline-flex items-center rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
       >
-        {lang === "es" ? "Quitar todo" : "Clear all"}
+        {t.clearAll}
       </button>
     </div>
   );

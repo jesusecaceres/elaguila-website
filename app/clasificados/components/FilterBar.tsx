@@ -99,6 +99,18 @@ export default function FilterBar({
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+
+  // Lock body scroll while the filters drawer is open (mobile UX polish)
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [drawerOpen]);
+
+
   // Keep local state synced when user navigates via back/forward
   useEffect(() => setQ(urlQ), [urlQ]);
   useEffect(() => setCity(urlCity), [urlCity]);
@@ -286,9 +298,9 @@ export default function FilterBar({
 
           <div
             className={cx(
-              "absolute left-1/2 top-[6%] w-[94vw] max-w-2xl -translate-x-1/2",
-              "rounded-2xl border border-white/10 bg-[#0b0f14]/95 backdrop-blur-xl",
-              "p-5"
+              "absolute inset-x-0 bottom-0 w-full max-w-2xl md:left-1/2 md:top-[6%] md:bottom-auto md:w-[94vw] md:-translate-x-1/2",
+              "rounded-t-2xl md:rounded-2xl border border-white/10 bg-[#0b0f14]/95 backdrop-blur-xl",
+              "p-5 max-h-[85vh] overflow-y-auto md:overflow-visible"
             )}
           >
             <div className="flex items-start justify-between gap-3">

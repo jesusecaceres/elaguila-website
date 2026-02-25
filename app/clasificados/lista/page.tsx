@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
+import ActiveFilterChips from "../components/ActiveFilterChips";
 import newLogo from "../../../public/logo.png";
 
 import {
