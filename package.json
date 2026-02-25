@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prebuild": "node scripts/dup-guard.js",
+    "dup:guard": "node scripts/dup-guard.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
