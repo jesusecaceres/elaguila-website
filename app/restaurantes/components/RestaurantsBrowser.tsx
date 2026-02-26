@@ -10,6 +10,25 @@ function normalize(s: string) {
   return s.trim().toLowerCase();
 }
 
+
+
+function normalizeSlug(s: string) {
+  return s.trim().toLowerCase();
+}
+
+function getSlugCandidate(r: { id: string; name: string }) {
+  const base = r.name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+  return `${base}-${r.id}`;
+}
+
+function restaurantHref(r: { id: string; name: string }) {
+  return `/restaurantes/${normalizeSlug(getSlugCandidate(r))}`;
+}
 function safeHost(url: string) {
   try {
     const u = new URL(url);
@@ -97,6 +116,22 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
   }, [restaurants, q, city, cuisine, sort]);
 
   const hasAny = restaurants.length > 0;
+
+  const topPicks = useMemo(() => {
+    if (restaurants.length === 0) return [];
+    // If a city is selected, pick from that city first.
+    const pool = city !== "all" ? restaurants.filter((r) => (r.city || "").toLowerCase() === city) : restaurants;
+    // Use the same sorting logic (supporters/verified) by reusing the filtered list when possible.
+    const sorted = [...pool].sort((a, b) => {
+      const s = supporterRank(b.supporter) - supporterRank(a.supporter);
+      if (s !== 0) return s;
+      const v = (b.verified ? 1 : 0) - (a.verified ? 1 : 0);
+      if (v !== 0) return v;
+      return a.name.localeCompare(b.name);
+    });
+    return sorted.slice(0, 8);
+  }, [restaurants, city]);
+
 
   const hasActiveFilters = q.trim() !== "" || city !== "all" || cuisine !== "all" || sort !== "recommended";
 
@@ -258,6 +293,47 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
         </div>
       </div>
 
+
+      {hasAny && topPicks.length > 0 ? (
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-gray-100">
+              {city !== "all" ? `Top picks in ${city}` : "Top picks nearby"}
+            </div>
+            <div className="text-xs text-gray-400">Tap a card for details</div>
+          </div>
+
+          <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+            {topPicks.map((r) => (
+              <Link
+                key={r.id}
+                href={restaurantHref({ id: r.id, name: r.name })}
+                className="min-w-[240px] bg-black/30 border border-yellow-600/20 rounded-2xl p-4 hover:bg-white/5 transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-base font-semibold text-gray-100">{r.name}</div>
+                    <div className="mt-1 text-xs text-gray-300">{[r.cuisine, r.city].filter(Boolean).join(" • ")}</div>
+                  </div>
+                  {r.supporter ? (
+                    <span className="shrink-0 text-[11px] px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300">
+                      {r.supporter}
+                    </span>
+                  ) : null}
+                </div>
+
+                {r.address ? <div className="mt-2 text-xs text-gray-300 line-clamp-2">{r.address}</div> : null}
+
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-300">
+                  {r.price ? <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10">{r.price}</span> : null}
+                  {r.verified ? <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10">✅ Verified</span> : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {/* Empty state */}
       {!hasAny ? (
         <div className="mt-8 bg-black/30 border border-yellow-600/20 rounded-2xl p-6 md:p-8 text-center">
@@ -301,7 +377,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
             <article key={r.id} className="bg-black/30 border border-yellow-600/20 rounded-2xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-lg font-semibold text-gray-100">{r.name}</div>
+                  <Link href={restaurantHref({ id: r.id, name: r.name })} className="text-lg font-semibold text-gray-100 hover:text-yellow-200">{r.name}</Link>
                   <div className="mt-1 text-sm text-gray-300">
                     {[r.cuisine, r.city].filter(Boolean).join(" • ")}
                   </div>

@@ -46,6 +46,26 @@ export async function generateMetadata(props: { params: Promise<RouteParams> }):
   const p = await props.params;
   const slug = normalizeSlug(p.slug || "");
   const r = restaurants.find((x) => normalizeSlug(getSlugCandidate({ id: x.id, name: x.name })) === slug);
+
+const nearby = (restaurants || [])
+  .filter((x) => x && x.id !== r?.id)
+  .filter((x) => {
+    // Prefer same-city recs when possible; otherwise allow any.
+    const cityA = String((x as any).city || "").trim().toLowerCase();
+    const cityB = String((r as any)?.city || "").trim().toLowerCase();
+    return cityB ? cityA === cityB : true;
+  })
+  .slice(0, 6)
+  .map((x) => ({
+    id: (x as any).id,
+    name: (x as any).name,
+    city: (x as any).city,
+    cuisine: (x as any).cuisine,
+    price: (x as any).price,
+    photo: Array.isArray((x as any).photos) ? safeImageUrl(String((x as any).photos[0] || "")) : null,
+    href: `/restaurantes/${normalizeSlug(getSlugCandidate({ id: (x as any).id, name: (x as any).name }))}`,
+    supporter: (x as any).supporter,
+  }));
   return {
     title: r ? `${r.name} | Restaurantes | LEONIX` : "Restaurante | LEONIX",
     description: r ? r.text || `Info y contacto de ${r.name}.` : "Detalles del restaurante.",
@@ -57,6 +77,26 @@ export default async function RestaurantPage(props: { params: Promise<RouteParam
   const p = await props.params;
   const slug = normalizeSlug(p.slug || "");
   const r = restaurants.find((x) => normalizeSlug(getSlugCandidate({ id: x.id, name: x.name })) === slug);
+
+const nearby = (restaurants || [])
+  .filter((x) => x && x.id !== r?.id)
+  .filter((x) => {
+    // Prefer same-city recs when possible; otherwise allow any.
+    const cityA = String((x as any).city || "").trim().toLowerCase();
+    const cityB = String((r as any)?.city || "").trim().toLowerCase();
+    return cityB ? cityA === cityB : true;
+  })
+  .slice(0, 6)
+  .map((x) => ({
+    id: (x as any).id,
+    name: (x as any).name,
+    city: (x as any).city,
+    cuisine: (x as any).cuisine,
+    price: (x as any).price,
+    photo: Array.isArray((x as any).photos) ? safeImageUrl(String((x as any).photos[0] || "")) : null,
+    href: `/restaurantes/${normalizeSlug(getSlugCandidate({ id: (x as any).id, name: (x as any).name }))}`,
+    supporter: (x as any).supporter,
+  }));
 
   const website = r?.website ? safeExternal(r.website) : "";
   const menuUrl = (r as any)?.menuUrl ? safeExternal((r as any).menuUrl) : "";
