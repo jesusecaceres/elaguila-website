@@ -5,6 +5,7 @@ import ReviewSummaryCard from "../components/ReviewSummaryCard";
 import ReviewsList from "../components/ReviewsList";
 import SpecialsCard from "../components/SpecialsCard";
 import FavoriteButton from "../components/FavoriteButton";
+import LeadCaptureCard from "../components/LeadCaptureCard";
 import { restaurants } from "../../data/restaurants";
 function safeImageUrl(raw: string): string | null {
   const u = String(raw || "").trim();
@@ -222,6 +223,9 @@ const nearby = (restaurants || [])
             <SpecialsCard lang="es" isSupporter={Boolean(r.supporter)} />
 
             <ReviewSummaryCard restaurant={r} />
+
+            <LeadCaptureCard restaurantName={r.name} email={r.email} phone={r.phone} />
+
 
             <ReviewsList restaurant={r} />
 
