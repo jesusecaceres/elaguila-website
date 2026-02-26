@@ -3,6 +3,16 @@ import Link from "next/link";
 import PageHero from "../../components/PageHero";
 import ReviewSummaryCard from "../components/ReviewSummaryCard";
 import { restaurants } from "../../data/restaurants";
+function safeImageUrl(raw: string): string | null {
+  const u = String(raw || "").trim();
+  if (!u) return null;
+  // Block dangerous schemes
+  const lower = u.toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("data:")) return null;
+  // Allow absolute http(s) or relative (/...) URLs
+  if (lower.startsWith("http://") || lower.startsWith("https://") || u.startsWith("/")) return u;
+  return null;
+}
 
 type RouteParams = { slug: string };
 
@@ -256,6 +266,80 @@ export default async function RestaurantPage(props: { params: Promise<RouteParam
                 </div>
               </div>
             </div>
+
+            {/* Photos */}
+            {(r as any)?.photos && Array.isArray((r as any).photos) && (r as any).photos.length ? (
+              <div className="bg-black/30 border border-yellow-600/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-lg font-semibold text-gray-100">Photos</div>
+                  <div className="text-sm text-gray-400">{(r as any).photos.length}+</div>
+                </div>
+                <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                  {(r as any).photos
+                    .map((u: string) => safeImageUrl(String(u || "")))
+                    .filter(Boolean)
+                    .slice(0, 12)
+                    .map((u: string) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={u}
+                        src={u}
+                        alt={`${r.name} photo`}
+                        loading="lazy"
+                        className="h-28 w-40 md:h-32 md:w-48 object-cover rounded-xl border border-white/10 bg-white/5 flex-shrink-0"
+                      />
+                    ))}
+                </div>
+                <div className="mt-3 text-xs text-gray-500">
+                  Tip: real photos help families decide faster — we&apos;ll keep this section clean and spam-free.
+                </div>
+              </div>
+            ) : null}
+
+            {/* Menu + popular items */}
+            {menuUrl || ((r as any)?.popularItems && Array.isArray((r as any).popularItems) && (r as any).popularItems.length) ? (
+              <div className="bg-black/30 border border-yellow-600/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-lg font-semibold text-gray-100">Menu &amp; Popular Items</div>
+                  {menuUrl ? (
+                    <a
+                      href={menuUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                    >
+                      View Menu
+                    </a>
+                  ) : null}
+                </div>
+
+                {(r as any)?.popularItems && Array.isArray((r as any).popularItems) && (r as any).popularItems.length ? (
+                  <div className="mt-4">
+                    <div className="text-sm text-gray-400">Popular right now</div>
+                    <ul className="mt-3 space-y-2">
+                      {(r as any).popularItems.slice(0, 8).map((it: any) => (
+                        <li
+                          key={`${it?.name || "item"}-${it?.price || ""}`}
+                          className="flex items-start justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-100 truncate">{String(it?.name || "Item")}</div>
+                            {it?.note ? <div className="text-xs text-gray-400 mt-0.5">{String(it.note)}</div> : null}
+                          </div>
+                          {it?.price ? (
+                            <div className="text-sm text-gray-200 whitespace-nowrap">{String(it.price)}</div>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="mt-3 text-sm text-gray-400">
+                    Menu details coming soon — restaurants will be able to update this themselves.
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Highlights */}
             {(r as any)?.highlights && Array.isArray((r as any).highlights) && (r as any).highlights.length ? (

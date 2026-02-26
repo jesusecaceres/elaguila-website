@@ -16,6 +16,8 @@ export type Restaurant = {
   price?: "$" | "$$" | "$$$" | "$$$$";
   tags?: string[];
   highlights?: string[];
+  photos?: string[]; // image URLs
+  popularItems?: { name: string; price?: string; note?: string }[];
   hoursNote?: string;
   verified?: boolean;
   supporter?: "Corona" | "Corona de Oro";
