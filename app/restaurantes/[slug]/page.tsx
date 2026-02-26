@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "../../components/PageHero";
-import ReviewSummaryCard from "../components/ReviewSummaryCard";
-import ReviewsList from "../components/ReviewsList";
+import ReviewsPanel from "../components/ReviewsPanel";
 import SpecialsCard from "../components/SpecialsCard";
 import FavoriteButton from "../components/FavoriteButton";
 import LeadCaptureCard from "../components/LeadCaptureCard";
@@ -223,12 +222,10 @@ const nearby = (restaurants || [])
 
             <SpecialsCard lang="es" isSupporter={Boolean(r.supporter)} />
 
-            <ReviewSummaryCard restaurant={r} />
+            <ReviewsPanel restaurant={r} lang="es" />
 
             <LeadCaptureCard restaurantName={r.name} email={r.email} phone={r.phone} />
 
-
-            <ReviewsList restaurant={r} />
 
                         {/* Info grid */}
             <div className="grid gap-4 md:grid-cols-2">
