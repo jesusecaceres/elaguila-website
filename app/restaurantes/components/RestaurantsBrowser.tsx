@@ -30,6 +30,10 @@ function getSlugCandidate(r: { id: string; name: string }) {
 function restaurantHref(r: { id: string; name: string }) {
   return `/restaurantes/${normalizeSlug(getSlugCandidate(r))}`;
 }
+function formatPhoneForTel(phone: string) {
+  return phone.replace(/[^0-9+]/g, "");
+}
+
 function safeHost(url: string) {
   try {
     const u = new URL(url);
@@ -547,18 +551,24 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
 
               {r.address ? <div className="mt-3 text-sm text-gray-300">{r.address}</div> : null}
 
-              <div className="mt-4 flex flex-wrap gap-2 text-sm">
-                {r.website ? (
+              <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                {r.phone ? (
                   <a
-                    href={r.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                    href={`tel:${formatPhoneForTel(r.phone)}`}
+                    className="px-3 py-1.5 rounded-lg bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
                   >
-                    {safeHost(r.website)}
+                    {lang === "es" ? "Llamar" : "Call"}
                   </a>
                 ) : null}
-                {r.instagram ? (
+                {r.phone ? (
+                  <a
+                    href={`sms:${formatPhoneForTel(r.phone)}`}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                  >
+                    {lang === "es" ? "Texto" : "Text"}
+                  </a>
+                ) : null}
+{r.instagram ? (
                   <a
                     href={r.instagram}
                     target="_blank"
