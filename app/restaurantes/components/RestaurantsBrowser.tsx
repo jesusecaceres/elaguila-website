@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Restaurant } from "../../data/restaurants";
 
@@ -45,10 +45,51 @@ function supporterRank(supporter?: Restaurant["supporter"]) {
   if (supporter === "Corona") return 1;
   return 0;
 }
+const FAV_KEY = "leonix_restaurant_favorites_v1";
+
+function readFavs(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAV_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === "string");
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFavs(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FAV_KEY, JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
+}
+
 
 export default function RestaurantsBrowser({ restaurants }: { restaurants: Restaurant[] }) {
   const searchParams = useSearchParams();
   const lang = searchParams?.get("lang") || "es";
+  const [favIds, setFavIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const apply = () => setFavIds(readFavs());
+    apply();
+    const onEvt = (e: Event) => {
+      const ce = e as CustomEvent<{ ids?: string[] }>;
+      if (ce?.detail?.ids && Array.isArray(ce.detail.ids)) setFavIds(ce.detail.ids);
+      else apply();
+    };
+    window.addEventListener("leonix:favorites", onEvt as EventListener);
+    return () => window.removeEventListener("leonix:favorites", onEvt as EventListener);
+  }, []);
+
+  const favSet = useMemo(() => new Set(favIds), [favIds]);
+  const [showFavs, setShowFavs] = useState(false);
+
 
   const [q, setQ] = useState("");
   const [city, setCity] = useState("all");
@@ -85,6 +126,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
   const filtered = useMemo(() => {
     const qq = normalize(q);
     const base = restaurants.filter((r) => {
+      if (showFavs && !favSet.has(r.id)) return false;
       if (city !== "all" && (r.city || "") !== city) return false;
       if (cuisine !== "all" && (r.cuisine || "") !== cuisine) return false;
       if (!qq) return true;
@@ -120,7 +162,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
     });
 
     return sorted;
-  }, [restaurants, q, city, cuisine, sort]);
+  }, [restaurants, q, city, cuisine, sort, showFavs, favSet]);
 
   const hasAny = restaurants.length > 0;
 
@@ -228,6 +270,26 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
               </option>
             </select>
           </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowFavs((v) => !v)}
+            className={[
+              "px-3 py-2 rounded-xl text-sm font-semibold border transition",
+              showFavs
+                ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
+                : "bg-black/30 border-white/10 text-gray-100 hover:bg-black/40",
+            ].join(" ")}
+          >
+            {lang === "es" ? "Guardados" : "Saved"}
+          </button>
+          {showFavs ? (
+            <span className="text-xs text-gray-400">
+              {lang === "es" ? "Mostrando tus favoritos" : "Showing your favorites"}
+            </span>
+          ) : null}
         </div>
 
         {/* Quick cuisine chips */}
@@ -415,6 +477,29 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
                     {r.supporter}
                   </span>
                 ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ids = readFavs();
+                    const next = ids.includes(r.id) ? ids.filter((x) => x !== r.id) : [...ids, r.id];
+                    writeFavs(next);
+                    setFavIds(next);
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new CustomEvent("leonix:favorites", { detail: { ids: next } }));
+                    }
+                  }}
+                  aria-label={favSet.has(r.id) ? (lang === "es" ? "Quitar de guardados" : "Remove from saved") : (lang === "es" ? "Guardar" : "Save")}
+                  className={[
+                    "ml-2 inline-flex items-center justify-center h-10 w-10 rounded-xl border transition",
+                    favSet.has(r.id)
+                      ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
+                      : "bg-black/30 border-white/10 text-gray-200 hover:bg-black/40",
+                  ].join(" ")}
+                >
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill={favSet.has(r.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                    <path d="M12 21s-7.5-4.7-9.6-9.1C.9 8.7 2.5 6 5.5 6c1.8 0 3 .9 3.7 1.8.7-.9 1.9-1.8 3.7-1.8 3 0 4.6 2.7 3.1 5.9C19.5 16.3 12 21 12 21z" />
+                  </svg>
+                </button>
               </div>
 
               {r.address ? <div className="mt-3 text-sm text-gray-300">{r.address}</div> : null}

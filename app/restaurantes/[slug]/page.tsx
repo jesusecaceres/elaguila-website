@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "../../components/PageHero";
 import ReviewSummaryCard from "../components/ReviewSummaryCard";
+import FavoriteButton from "../components/FavoriteButton";
 import { restaurants } from "../../data/restaurants";
 function safeImageUrl(raw: string): string | null {
   const u = String(raw || "").trim();
@@ -148,6 +149,7 @@ const nearby = (restaurants || [])
                         {r.supporter}
                       </span>
                     ) : null}
+                    <FavoriteButton id={r.id} lang="es" size="sm" />
                     {(r.tags || []).slice(0, 6).map((t) => (
                       <span
                         key={t}
