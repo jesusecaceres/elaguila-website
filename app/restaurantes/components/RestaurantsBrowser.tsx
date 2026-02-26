@@ -231,7 +231,19 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
 
   const hasActiveFilters = q.trim() !== "" || city !== "all" || cuisine !== "all" || sort !== "recommended";
 
-  function resetAllFilters() {
+  
+function scrollToFilters() {
+  if (typeof document === "undefined") return;
+  const el = document.getElementById("restaurants-filters");
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scrollToTop() {
+  if (typeof window === "undefined") return;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function resetAllFilters() {
     setQ("");
     setCity("all");
     setCuisine("all");
@@ -261,7 +273,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
       </div>
 
       {/* Filters */}
-      <div className="bg-black/30 border border-yellow-600/20 rounded-2xl p-4 md:p-5 shadow-sm">
+      <div id="restaurants-filters" className="bg-black/30 border border-yellow-600/20 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           <div className="md:col-span-5">
             <input
@@ -599,6 +611,48 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
           Verified restaurants will carry trust signals and clearer contact actions. No fake listings.
         </div>
       ) : null}
+
+      {/* Mobile sticky bar */}
+      <div className="md:hidden fixed bottom-3 left-0 right-0 z-40 px-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 rounded-2xl bg-black/70 border border-yellow-600/25 backdrop-blur px-3 py-2 shadow-lg">
+          <button
+            type="button"
+            onClick={scrollToFilters}
+            className="flex-1 rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-sm font-semibold text-gray-100"
+          >
+            {lang === "es" ? "Filtros" : "Filters"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowFavs((v) => !v)}
+            className={[
+              "flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition",
+              showFavs
+                ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
+                : "bg-black/30 border-white/10 text-gray-100",
+            ].join(" ")}
+          >
+            {lang === "es" ? "Guardados" : "Saved"}
+          </button>
+
+          <Link
+            href={businessHref}
+            className="flex-1 rounded-xl bg-yellow-500/15 border border-yellow-500/35 px-3 py-2 text-center text-sm font-semibold text-yellow-200"
+          >
+            {lang === "es" ? "Publicar" : "List"}
+          </Link>
+
+          <button
+            type="button"
+            onClick={scrollToTop}
+            className="rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-sm font-semibold text-gray-100"
+            aria-label="Back to top"
+          >
+            ↑
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
