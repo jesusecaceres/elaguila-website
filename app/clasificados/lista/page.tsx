@@ -1207,7 +1207,7 @@ const visible = useMemo(() => {
     });
   }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams]);
 
-  const resetAll = () => {
+  const resetAllFilters = () => {
     setQ("");
     setCity(DEFAULT_CITY);
     setZip("");
@@ -2461,7 +2461,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                   <button
                     type="button"
-                    onClick={resetAll}
+                    onClick={resetAllFilters}
                     className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   >
                     {UI.reset[lang]}
@@ -2591,7 +2591,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               <button
                 type="button"
-                onClick={resetAll}
+                onClick={resetAllFilters}
                 className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.reset[lang]}
@@ -2996,7 +2996,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           <button
             type="button"
             onClick={() => {
-              resetAll();
+              resetAllFilters();
             }}
             className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
           >
