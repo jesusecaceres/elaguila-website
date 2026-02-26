@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "../../components/PageHero";
 import ReviewSummaryCard from "../components/ReviewSummaryCard";
+import ReviewsList from "../components/ReviewsList";
 import FavoriteButton from "../components/FavoriteButton";
 import { restaurants } from "../../data/restaurants";
 function safeImageUrl(raw: string): string | null {
@@ -218,6 +219,8 @@ const nearby = (restaurants || [])
             </div>
 
             <ReviewSummaryCard restaurant={r} />
+
+            <ReviewsList restaurant={r} />
 
                         {/* Info grid */}
             <div className="grid gap-4 md:grid-cols-2">
