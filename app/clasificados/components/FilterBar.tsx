@@ -19,8 +19,8 @@ function safeGet(sp: URLSearchParams | null, key: string) {
   return (sp?.get(key) ?? "").trim();
 }
 
-function buildNextHref(pathname: string, sp: URLSearchParams, updates: Record<string, string>) {
-  const next = new URLSearchParams(sp.toString());
+function buildNextHref(pathname: string, sp: URLSearchParams | null, updates: Record<string, string>) {
+  const next = new URLSearchParams(sp?.toString() ?? "");
   for (const [k, vRaw] of Object.entries(updates)) {
     const v = (vRaw ?? "").trim();
     if (!v) next.delete(k);
