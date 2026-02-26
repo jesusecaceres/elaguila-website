@@ -12,6 +12,11 @@ function normalize(s: string) {
 }
 
 
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+
 
 function normalizeSlug(s: string) {
   return s.trim().toLowerCase();
