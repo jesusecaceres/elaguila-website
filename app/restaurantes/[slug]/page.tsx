@@ -6,6 +6,7 @@ import ReviewsList from "../components/ReviewsList";
 import SpecialsCard from "../components/SpecialsCard";
 import FavoriteButton from "../components/FavoriteButton";
 import LeadCaptureCard from "../components/LeadCaptureCard";
+import ShareMapBar from "../components/ShareMapBar";
 import { restaurants } from "../../data/restaurants";
 function safeImageUrl(raw: string): string | null {
   const u = String(raw || "").trim();
@@ -258,6 +259,7 @@ const nearby = (restaurants || [])
                   ) : null}
                 </div>
 
+                <ShareMapBar name={r.name} address={r.address} />
                 <div className="mt-4 flex flex-wrap gap-2">
                   {website ? (
                     <a
