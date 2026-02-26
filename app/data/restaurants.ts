@@ -12,8 +12,20 @@ export type Restaurant = {
   facebook?: string;
   googleMapsUrl?: string;
   couponsUrl?: string;
+  menuUrl?: string;
+  price?: "$" | "$$" | "$$$" | "$$$$";
+  tags?: string[];
+  highlights?: string[];
+  hoursNote?: string;
   verified?: boolean;
   supporter?: "Corona" | "Corona de Oro";
+  reviewSummary?: {
+    ratingAvg?: number;
+    ratingCount?: number;
+    recommendPct?: number;
+    topMentions?: string[];
+    updatedAt?: string; // ISO
+  };
 };
 
 // R1 (Discovery): start empty; businesses will populate via R2 self-serve posting.
