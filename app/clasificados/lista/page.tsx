@@ -622,6 +622,274 @@ const EMPTY_SERVICIOS_PARAMS: ServiciosParams = {
   savail: "",
 };
 
+
+/** ✅ En Venta param helpers (internal only; no exports) */
+type VentaParams = {
+  vpmin: string;   // number string
+  vpmax: string;   // number string
+  vcond: string;   // condition key or ""
+  vtype: string;   // item type key or ""
+};
+
+const EMPTY_VENTA_PARAMS: VentaParams = {
+  vpmin: "",
+  vpmax: "",
+  vcond: "",
+  vtype: "",
+};
+
+type VentaCondition = "new" | "like-new" | "good" | "fair";
+type VentaItemType =
+  | "phone"
+  | "computer"
+  | "electronics"
+  | "furniture"
+  | "appliances"
+  | "tools"
+  | "baby-kids"
+  | "clothing"
+  | "sports"
+  | "auto-parts"
+  | "other";
+
+const ventaConditionLabel = (k: VentaCondition, lang: Lang) => {
+  const es: Record<VentaCondition, string> = {
+    new: "Nuevo",
+    "like-new": "Como nuevo",
+    good: "Bueno",
+    fair: "Regular",
+  };
+  const en: Record<VentaCondition, string> = {
+    new: "New",
+    "like-new": "Like new",
+    good: "Good",
+    fair: "Fair",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const ventaItemTypeLabel = (k: VentaItemType, lang: Lang) => {
+  const es: Record<VentaItemType, string> = {
+    phone: "Teléfono",
+    computer: "Computadora",
+    electronics: "Electrónica",
+    furniture: "Muebles",
+    appliances: "Electrodomésticos",
+    tools: "Herramientas",
+    "baby-kids": "Bebés / Niños",
+    clothing: "Ropa",
+    sports: "Deportes",
+    "auto-parts": "Partes de auto",
+    other: "Otro",
+  };
+  const en: Record<VentaItemType, string> = {
+    phone: "Phone",
+    computer: "Computer",
+    electronics: "Electronics",
+    furniture: "Furniture",
+    appliances: "Appliances",
+    tools: "Tools",
+    "baby-kids": "Baby / Kids",
+    clothing: "Clothing",
+    sports: "Sports",
+    "auto-parts": "Auto parts",
+    other: "Other",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const inferVentaType = (title: string, blurb: string): VentaItemType => {
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  if (/(iphone|android|galaxy|pixel|telefono|tel[eé]fono|celular|cell phone)/i.test(t)) return "phone";
+  if (/(laptop|macbook|pc|computer|computadora|desktop|monitor|tablet|ipad)/i.test(t)) return "computer";
+  if (/(tv|televisi[oó]n|camera|c[aá]mara|headphones|aud[ií]fonos|speaker|bocina|gaming|console|playstation|xbox|nintendo)/i.test(t)) return "electronics";
+  if (/(sofa|couch|bed|mattress|colch[oó]n|dresser|mesa|table|chair|silla|mueble)/i.test(t)) return "furniture";
+  if (/(refrigerator|fridge|refri|refrigerador|washer|dryer|lavadora|secadora|microwave|microondas|stove|estufa|oven|horno)/i.test(t)) return "appliances";
+  if (/(tools?|herramientas?|drill|taladro|saw|sierra|wrench|llave|compressor|compresor)/i.test(t)) return "tools";
+  if (/(baby|bebe|beb[eé]|stroller|car seat|cuna|crib|kids|ni[nñ]os?|toys?|juguetes?)/i.test(t)) return "baby-kids";
+  if (/(clothes|ropa|shoes|zapatos?|jack(et)?|chaqueta|pants|pantalones|dress|vestido)/i.test(t)) return "clothing";
+  if (/(bike|bici|bicycle|gym|pesas|soccer|f[uú]tbol|ball|pelota|skate|surf)/i.test(t)) return "sports";
+  if (/(auto parts|partes|llantas?|tires?|rims?|rin(es)?|battery|bater[ií]a|brakes?|frenos?)/i.test(t)) return "auto-parts";
+
+  return "other";
+};
+
+const inferVentaCondition = (title: string, blurb: string, explicit?: string): VentaCondition | null => {
+  const raw = `${explicit ?? ""}`.toLowerCase().trim();
+  if (raw === "new" || raw === "nuevo") return "new";
+  if (raw === "like-new" || raw === "comonuevo" || raw === "como nuevo") return "like-new";
+  if (raw === "good" || raw === "bueno") return "good";
+  if (raw === "fair" || raw === "regular") return "fair";
+
+  const t = `${title} ${blurb}`.toLowerCase();
+  if (/(brand new|nuevo|sin usar|unopened|sellado)/i.test(t)) return "new";
+  if (/(like new|como nuevo|casi nuevo|mint)/i.test(t)) return "like-new";
+  if (/(good condition|buena condici[oó]n|excellent|excelente|great)/i.test(t)) return "good";
+  if (/(fair|regular|needs work|para reparar|as[- ]?is)/i.test(t)) return "fair";
+  return null;
+};
+
+/** ✅ Clases param helpers (internal only; no exports) */
+type ClasesParams = {
+  csub: string;    // subject key or ""
+  clevel: string;  // level key or ""
+  cmode: string;   // mode key or ""
+};
+
+const EMPTY_CLASES_PARAMS: ClasesParams = {
+  csub: "",
+  clevel: "",
+  cmode: "",
+};
+
+type ClaseSubject = "music" | "tutoring" | "sports" | "dance" | "martial" | "coding" | "english" | "math" | "other";
+type ClaseLevel = "kids" | "teen" | "adult" | "beginner" | "intermediate" | "advanced";
+type ClaseMode = "inperson" | "online" | "hybrid";
+
+const claseSubjectLabel = (k: ClaseSubject, lang: Lang) => {
+  const es: Record<ClaseSubject, string> = {
+    music: "Música",
+    tutoring: "Tutoría",
+    sports: "Deportes",
+    dance: "Baile",
+    martial: "Artes marciales",
+    coding: "Programación",
+    english: "Inglés",
+    math: "Matemáticas",
+    other: "Otro",
+  };
+  const en: Record<ClaseSubject, string> = {
+    music: "Music",
+    tutoring: "Tutoring",
+    sports: "Sports",
+    dance: "Dance",
+    martial: "Martial arts",
+    coding: "Coding",
+    english: "English",
+    math: "Math",
+    other: "Other",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const claseLevelLabel = (k: ClaseLevel, lang: Lang) => {
+  const es: Record<ClaseLevel, string> = {
+    kids: "Niños",
+    teen: "Jóvenes",
+    adult: "Adultos",
+    beginner: "Principiante",
+    intermediate: "Intermedio",
+    advanced: "Avanzado",
+  };
+  const en: Record<ClaseLevel, string> = {
+    kids: "Kids",
+    teen: "Teens",
+    adult: "Adults",
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const claseModeLabel = (k: ClaseMode, lang: Lang) => {
+  const es: Record<ClaseMode, string> = {
+    inperson: "En persona",
+    online: "Online",
+    hybrid: "Híbrido",
+  };
+  const en: Record<ClaseMode, string> = {
+    inperson: "In-person",
+    online: "Online",
+    hybrid: "Hybrid",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const inferClaseSubject = (title: string, blurb: string): ClaseSubject => {
+  const t = `${title} ${blurb}`.toLowerCase();
+  if (/(guitarra|guitar|piano|violin|viol[ií]n|drums|bater[ií]a|music|m[uú]sica|canto|singing)/i.test(t)) return "music";
+  if (/(tutor|tutor[ií]a|tutoring|clases particulares|homework|tarea)/i.test(t)) return "tutoring";
+  if (/(soccer|f[uú]tbol|basket|baseball|tennis|gym|fitness|pesas|training)/i.test(t)) return "sports";
+  if (/(dance|baile|ballet|salsa|hip hop|folkl[oó]rico)/i.test(t)) return "dance";
+  if (/(karate|boxing|boxeo|mma|jiu[- ]?jitsu|taekwondo|martial)/i.test(t)) return "martial";
+  if (/(coding|programaci[oó]n|programming|python|javascript|web dev|desarrollo web)/i.test(t)) return "coding";
+  if (/(english|ingl[eé]s|esl)/i.test(t)) return "english";
+  if (/(math|matem[aá]ticas|algebra|c[aá]lculo|geometry|geometr[ií]a)/i.test(t)) return "math";
+  return "other";
+};
+
+const inferClaseMode = (title: string, blurb: string): ClaseMode | null => {
+  const t = `${title} ${blurb}`.toLowerCase();
+  const hasOnline = /(online|zoom|virtual|remoto)/i.test(t);
+  const hasInPerson = /(en persona|in-person|presencial|local|in studio|studio)/i.test(t);
+  if (hasOnline && hasInPerson) return "hybrid";
+  if (hasOnline) return "online";
+  if (hasInPerson) return "inperson";
+  return null;
+};
+
+const inferClaseLevel = (title: string, blurb: string): ClaseLevel | null => {
+  const t = `${title} ${blurb}`.toLowerCase();
+  if (/(kids|ni[nñ]os|infantil)/i.test(t)) return "kids";
+  if (/(teen|j[oó]venes|adolesc)/i.test(t)) return "teen";
+  if (/(adult|adultos)/i.test(t)) return "adult";
+  if (/(beginner|principiante)/i.test(t)) return "beginner";
+  if (/(intermediate|intermedio)/i.test(t)) return "intermediate";
+  if (/(advanced|avanzado)/i.test(t)) return "advanced";
+  return null;
+};
+
+/** ✅ Comunidad param helpers (internal only; no exports) */
+type ComunidadParams = {
+  gtype: string; // community type key or ""
+};
+
+const EMPTY_COMUNIDAD_PARAMS: ComunidadParams = {
+  gtype: "",
+};
+
+type ComunidadType = "donation" | "help" | "church" | "youth" | "lostfound" | "announcement" | "event" | "other";
+
+const comunidadTypeLabel = (k: ComunidadType, lang: Lang) => {
+  const es: Record<ComunidadType, string> = {
+    donation: "Donación",
+    help: "Ayuda / Recursos",
+    church: "Iglesia",
+    youth: "Jóvenes",
+    lostfound: "Perdido y encontrado",
+    announcement: "Anuncio",
+    event: "Evento",
+    other: "Otro",
+  };
+  const en: Record<ComunidadType, string> = {
+    donation: "Donation",
+    help: "Help / Resources",
+    church: "Church",
+    youth: "Youth",
+    lostfound: "Lost & found",
+    announcement: "Announcement",
+    event: "Event",
+    other: "Other",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const inferComunidadType = (title: string, blurb: string): ComunidadType => {
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  if (/(donat|donaci[oó]n|gratis|free|regalo)/i.test(t)) return "donation";
+  if (/(resource|recursos|ayuda|support|apoyo|food bank|banco de comida|clinic|cl[ií]nica)/i.test(t)) return "help";
+  if (/(church|iglesia|misa|culto|worship|oraci[oó]n)/i.test(t)) return "church";
+  if (/(youth|j[oó]venes|teen|adolesc)/i.test(t)) return "youth";
+  if (/(lost|found|perdid|encontr|missing)/i.test(t)) return "lostfound";
+  if (/(announce|anuncio|notice|aviso)/i.test(t)) return "announcement";
+  if (/(event|evento|festival|feria|meetup|reuni[oó]n)/i.test(t)) return "event";
+
+  return "other";
+};
+
 type ServicioType =
   | "cleaning"
   | "landscaping"
@@ -729,6 +997,87 @@ function applyServiciosParams(list: Listing[], sp: ServiciosParams): Listing[] {
   });
 }
 
+function applyVentaParams(list: Listing[], vp: VentaParams): Listing[] {
+  const pmin = Number(String(vp.vpmin || "").trim());
+  const pmax = Number(String(vp.vpmax || "").trim());
+  const hasMin = Number.isFinite(pmin) && String(vp.vpmin || "").trim() !== "";
+  const hasMax = Number.isFinite(pmax) && String(vp.vpmax || "").trim() !== "";
+  const cond = (vp.vcond || "").trim().toLowerCase();
+  const type = (vp.vtype || "").trim().toLowerCase();
+
+  return list.filter((x) => {
+    if (x.category !== "en-venta") return true;
+
+    const title = x.title.es || x.title.en || "";
+    const blurb = x.blurb.es || x.blurb.en || "";
+
+    const explicitCond = (x as any).condition ? String((x as any).condition) : "";
+    const inferredCond = inferVentaCondition(title, blurb, explicitCond);
+    const inferredType = (x as any).itemType
+      ? String((x as any).itemType).toLowerCase()
+      : inferVentaType(title, blurb);
+
+    if (cond && String(inferredCond ?? "").toLowerCase() !== cond) return false;
+    if (type && String(inferredType).toLowerCase() !== type) return false;
+
+    const pn = parsePriceLabel(x.priceLabel.en) ?? null;
+    if (hasMin && pn !== null && pn < pmin) return false;
+    if (hasMax && pn !== null && pn > pmax) return false;
+
+    return true;
+  });
+}
+
+function applyClasesParams(list: Listing[], cp: ClasesParams): Listing[] {
+  const sub = (cp.csub || "").trim().toLowerCase();
+  const lvl = (cp.clevel || "").trim().toLowerCase();
+  const mode = (cp.cmode || "").trim().toLowerCase();
+
+  return list.filter((x) => {
+    if (x.category !== "clases") return true;
+
+    const title = x.title.es || x.title.en || "";
+    const blurb = x.blurb.es || x.blurb.en || "";
+
+    const inferredSub = (x as any).subject
+      ? String((x as any).subject).toLowerCase()
+      : inferClaseSubject(title, blurb);
+
+    const inferredMode = (x as any).mode
+      ? String((x as any).mode).toLowerCase()
+      : inferClaseMode(title, blurb);
+
+    const inferredLvl = (x as any).level
+      ? String((x as any).level).toLowerCase()
+      : inferClaseLevel(title, blurb);
+
+    if (sub && String(inferredSub).toLowerCase() !== sub) return false;
+    if (mode && String(inferredMode ?? "").toLowerCase() !== mode) return false;
+    if (lvl && String(inferredLvl ?? "").toLowerCase() !== lvl) return false;
+
+    return true;
+  });
+}
+
+function applyComunidadParams(list: Listing[], gp: ComunidadParams): Listing[] {
+  const gtype = (gp.gtype || "").trim().toLowerCase();
+
+  return list.filter((x) => {
+    if (x.category !== "comunidad") return true;
+
+    const title = x.title.es || x.title.en || "";
+    const blurb = x.blurb.es || x.blurb.en || "";
+
+    const inferred = (x as any).ctype
+      ? String((x as any).ctype).toLowerCase()
+      : inferComunidadType(title, blurb);
+
+    if (gtype && String(inferred).toLowerCase() !== gtype) return false;
+    return true;
+  });
+}
+
+
 const resultsTopRef = useRef<HTMLDivElement | null>(null);
 const switchTimerRef = useRef<number | null>(null);
 const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
@@ -797,6 +1146,15 @@ useEffect(() => {
 
   // ✅ Servicios param state (only used when cat=servicios)
   const [serviciosParams, setServiciosParams] = useState<ServiciosParams>(EMPTY_SERVICIOS_PARAMS);
+
+  // ✅ En Venta param state (only used when cat=en-venta)
+  const [ventaParams, setVentaParams] = useState<VentaParams>(EMPTY_VENTA_PARAMS);
+
+  // ✅ Clases param state (only used when cat=clases)
+  const [clasesParams, setClasesParams] = useState<ClasesParams>(EMPTY_CLASES_PARAMS);
+
+  // ✅ Comunidad param state (only used when cat=comunidad)
+  const [comunidadParams, setComunidadParams] = useState<ComunidadParams>(EMPTY_COMUNIDAD_PARAMS);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -898,6 +1256,41 @@ useEffect(() => {
       });
     } else {
       setAutosParams(EMPTY_AUTOS_PARAMS);
+    }
+
+    // ✅ En Venta params: only track them if cat=en-venta
+    const catIsVenta = pCat === "en-venta";
+    if (catIsVenta) {
+      setVentaParams({
+        vpmin: params?.get("vpmin") ?? "",
+        vpmax: params?.get("vpmax") ?? "",
+        vcond: params?.get("vcond") ?? "",
+        vtype: params?.get("vtype") ?? "",
+      });
+    } else {
+      setVentaParams(EMPTY_VENTA_PARAMS);
+    }
+
+    // ✅ Clases params: only track them if cat=clases
+    const catIsClases = pCat === "clases";
+    if (catIsClases) {
+      setClasesParams({
+        csub: params?.get("csub") ?? "",
+        clevel: params?.get("clevel") ?? "",
+        cmode: params?.get("cmode") ?? "",
+      });
+    } else {
+      setClasesParams(EMPTY_CLASES_PARAMS);
+    }
+
+    // ✅ Comunidad params: only track them if cat=comunidad
+    const catIsComunidad = pCat === "comunidad";
+    if (catIsComunidad) {
+      setComunidadParams({
+        gtype: params?.get("gtype") ?? "",
+      });
+    } else {
+      setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
     }
 
 
@@ -1375,6 +1768,9 @@ useEffect(() => {
     if (category === "rentas") catApplied = applyRentasParams(base, rentasParams);
     if (category === "empleos") catApplied = applyEmpleosParams(base, empleosParams);
     if (category === "servicios") catApplied = applyServiciosParams(base, serviciosParams);
+    if (category === "en-venta") catApplied = applyVentaParams(base, ventaParams);
+    if (category === "clases") catApplied = applyClasesParams(base, clasesParams);
+    if (category === "comunidad") catApplied = applyComunidadParams(base, comunidadParams);
 
     const sorted = [...catApplied].sort((a, b) => {
       if (sort === "newest") {
@@ -1389,14 +1785,14 @@ useEffect(() => {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, empleosParams, serviciosParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
 
   useEffect(() => {
     setPage(1);
-  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams]);
+  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
   const businessTop = useMemo(() => {
   // Show a small "Profesionales / Businesses" strip only on page 1,
@@ -1504,7 +1900,27 @@ const visible = useMemo(() => {
       if (serviciosParams.savail) chips.push({ key: "savail", text: `${lang === "es" ? "Horario" : "Availability"}: ${servicioAvailLabel(serviciosParams.savail as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, savail: "" })) });
     }
 
-if (sort !== "newest") {
+    // ✅ En Venta chips (only show when in en-venta + has params)
+    if (category === "en-venta") {
+      if (ventaParams.vpmin) chips.push({ key: "vpmin", text: `${lang === "es" ? "Precio mín" : "Price min"}: $${ventaParams.vpmin}`, clear: () => setVentaParams((p) => ({ ...p, vpmin: "" })) });
+      if (ventaParams.vpmax) chips.push({ key: "vpmax", text: `${lang === "es" ? "Precio máx" : "Price max"}: $${ventaParams.vpmax}`, clear: () => setVentaParams((p) => ({ ...p, vpmax: "" })) });
+      if (ventaParams.vcond) chips.push({ key: "vcond", text: `${lang === "es" ? "Condición" : "Condition"}: ${ventaConditionLabel(ventaParams.vcond as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vcond: "" })) });
+      if (ventaParams.vtype) chips.push({ key: "vtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${ventaItemTypeLabel(ventaParams.vtype as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vtype: "" })) });
+    }
+
+    // ✅ Clases chips (only show when in clases + has params)
+    if (category === "clases") {
+      if (clasesParams.csub) chips.push({ key: "csub", text: `${lang === "es" ? "Materia" : "Subject"}: ${claseSubjectLabel(clasesParams.csub as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, csub: "" })) });
+      if (clasesParams.clevel) chips.push({ key: "clevel", text: `${lang === "es" ? "Nivel" : "Level"}: ${claseLevelLabel(clasesParams.clevel as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, clevel: "" })) });
+      if (clasesParams.cmode) chips.push({ key: "cmode", text: `${lang === "es" ? "Modalidad" : "Mode"}: ${claseModeLabel(clasesParams.cmode as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, cmode: "" })) });
+    }
+
+    // ✅ Comunidad chips (only show when in comunidad + has params)
+    if (category === "comunidad") {
+      if (comunidadParams.gtype) chips.push({ key: "gtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${comunidadTypeLabel(comunidadParams.gtype as any, lang)}`, clear: () => setComunidadParams((p) => ({ ...p, gtype: "" })) });
+    }
+
+    if (sort !== "newest") {
       chips.push({
         key: "sort",
         text: `${UI.sort[lang]}: ${SORT_LABELS[sort][lang]}`,
@@ -1529,7 +1945,7 @@ if (sort !== "newest") {
     }
 
     return chips;
-  }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
+  }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
   useEffect(() => {
     setUrlParams({
@@ -1568,8 +1984,22 @@ if (sort !== "newest") {
       amodel: category === "autos" && autosParams.amodel ? autosParams.amodel : null,
       amilesmax: category === "autos" && autosParams.amilesmax ? autosParams.amilesmax : null,
       acond: category === "autos" && autosParams.acond ? autosParams.acond : null,
+
+      // ✅ En Venta params are preserved in URL only when cat=en-venta
+      vpmin: category === "en-venta" && ventaParams.vpmin ? ventaParams.vpmin : null,
+      vpmax: category === "en-venta" && ventaParams.vpmax ? ventaParams.vpmax : null,
+      vcond: category === "en-venta" && ventaParams.vcond ? ventaParams.vcond : null,
+      vtype: category === "en-venta" && ventaParams.vtype ? ventaParams.vtype : null,
+
+      // ✅ Clases params are preserved in URL only when cat=clases
+      csub: category === "clases" && clasesParams.csub ? clasesParams.csub : null,
+      clevel: category === "clases" && clasesParams.clevel ? clasesParams.clevel : null,
+      cmode: category === "clases" && clasesParams.cmode ? clasesParams.cmode : null,
+
+      // ✅ Comunidad params are preserved in URL only when cat=comunidad
+      gtype: category === "comunidad" && comunidadParams.gtype ? comunidadParams.gtype : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, ventaParams, clasesParams, comunidadParams]);
 
   const resetAllFilters = () => {
     setQ("");
@@ -1589,6 +2019,9 @@ if (sort !== "newest") {
     setAutosParams(EMPTY_AUTOS_PARAMS);
     setEmpleosParams(EMPTY_EMPLEOS_PARAMS);
     setServiciosParams(EMPTY_SERVICIOS_PARAMS);
+    setVentaParams(EMPTY_VENTA_PARAMS);
+    setClasesParams(EMPTY_CLASES_PARAMS);
+    setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
   };
 
   const onUseMyLocation = async () => {
@@ -2892,6 +3325,156 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <option value="appointment">{servicioAvailLabel("appointment", lang)}</option>
                       </select>
                     </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {category === "en-venta" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "En Venta" : "For Sale"}</div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio min" : "Price min"}</label>
+                      <input
+                        value={ventaParams.vpmin}
+                        onChange={(e) => setVentaParams((p) => ({ ...p, vpmin: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="50"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio max" : "Price max"}</label>
+                      <input
+                        value={ventaParams.vpmax}
+                        onChange={(e) => setVentaParams((p) => ({ ...p, vpmax: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="500"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <select
+                        value={ventaParams.vtype || ""}
+                        onChange={(e) => setVentaParams((p) => ({ ...p, vtype: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="phone">{ventaItemTypeLabel("phone", lang)}</option>
+                        <option value="computer">{ventaItemTypeLabel("computer", lang)}</option>
+                        <option value="electronics">{ventaItemTypeLabel("electronics", lang)}</option>
+                        <option value="furniture">{ventaItemTypeLabel("furniture", lang)}</option>
+                        <option value="appliances">{ventaItemTypeLabel("appliances", lang)}</option>
+                        <option value="tools">{ventaItemTypeLabel("tools", lang)}</option>
+                        <option value="baby-kids">{ventaItemTypeLabel("baby-kids", lang)}</option>
+                        <option value="clothing">{ventaItemTypeLabel("clothing", lang)}</option>
+                        <option value="sports">{ventaItemTypeLabel("sports", lang)}</option>
+                        <option value="auto-parts">{ventaItemTypeLabel("auto-parts", lang)}</option>
+                        <option value="other">{ventaItemTypeLabel("other", lang)}</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Condición" : "Condition"}</label>
+                      <select
+                        value={ventaParams.vcond || ""}
+                        onChange={(e) => setVentaParams((p) => ({ ...p, vcond: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="new">{ventaConditionLabel("new", lang)}</option>
+                        <option value="like-new">{ventaConditionLabel("like-new", lang)}</option>
+                        <option value="good">{ventaConditionLabel("good", lang)}</option>
+                        <option value="fair">{ventaConditionLabel("fair", lang)}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {category === "clases" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Clases" : "Classes"}</div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Materia" : "Subject"}</label>
+                      <select
+                        value={clasesParams.csub || ""}
+                        onChange={(e) => setClasesParams((p) => ({ ...p, csub: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="music">{claseSubjectLabel("music", lang)}</option>
+                        <option value="tutoring">{claseSubjectLabel("tutoring", lang)}</option>
+                        <option value="sports">{claseSubjectLabel("sports", lang)}</option>
+                        <option value="dance">{claseSubjectLabel("dance", lang)}</option>
+                        <option value="martial">{claseSubjectLabel("martial", lang)}</option>
+                        <option value="coding">{claseSubjectLabel("coding", lang)}</option>
+                        <option value="english">{claseSubjectLabel("english", lang)}</option>
+                        <option value="math">{claseSubjectLabel("math", lang)}</option>
+                        <option value="other">{claseSubjectLabel("other", lang)}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Nivel" : "Level"}</label>
+                      <select
+                        value={clasesParams.clevel || ""}
+                        onChange={(e) => setClasesParams((p) => ({ ...p, clevel: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="kids">{claseLevelLabel("kids", lang)}</option>
+                        <option value="teen">{claseLevelLabel("teen", lang)}</option>
+                        <option value="adult">{claseLevelLabel("adult", lang)}</option>
+                        <option value="beginner">{claseLevelLabel("beginner", lang)}</option>
+                        <option value="intermediate">{claseLevelLabel("intermediate", lang)}</option>
+                        <option value="advanced">{claseLevelLabel("advanced", lang)}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Modalidad" : "Mode"}</label>
+                      <select
+                        value={clasesParams.cmode || ""}
+                        onChange={(e) => setClasesParams((p) => ({ ...p, cmode: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="inperson">{claseModeLabel("inperson", lang)}</option>
+                        <option value="online">{claseModeLabel("online", lang)}</option>
+                        <option value="hybrid">{claseModeLabel("hybrid", lang)}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {category === "comunidad" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Comunidad" : "Community"}</div>
+
+                  <div className="mt-3">
+                    <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                    <select
+                      value={comunidadParams.gtype || ""}
+                      onChange={(e) => setComunidadParams((p) => ({ ...p, gtype: e.target.value }))}
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                    >
+                      <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                      <option value="donation">{comunidadTypeLabel("donation", lang)}</option>
+                      <option value="help">{comunidadTypeLabel("help", lang)}</option>
+                      <option value="church">{comunidadTypeLabel("church", lang)}</option>
+                      <option value="youth">{comunidadTypeLabel("youth", lang)}</option>
+                      <option value="lostfound">{comunidadTypeLabel("lostfound", lang)}</option>
+                      <option value="announcement">{comunidadTypeLabel("announcement", lang)}</option>
+                      <option value="event">{comunidadTypeLabel("event", lang)}</option>
+                      <option value="other">{comunidadTypeLabel("other", lang)}</option>
+                    </select>
                   </div>
                 </div>
               ) : null}
