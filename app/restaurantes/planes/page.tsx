@@ -80,12 +80,14 @@ function getCopy(lang: string) {
             "Prioridad de visibilidad",
             "Perfil mejorado (botones de contacto)",
             "Herramientas de conversión (llamar, mensaje, reservar)",
+            "Opción de video (Premium)",
           ]
         : [
             "Everything in Lite",
             "Priority visibility",
             "Enhanced profile (contact buttons)",
             "Conversion tools (call, message, book)",
+            "Video option (Premium)",
           ],
     },
     ctaPrimary: isEs ? "Activar plan" : "Activate plan",
