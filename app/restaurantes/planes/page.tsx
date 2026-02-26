@@ -1,11 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PageHero from "../../components/PageHero";
 
 type PlanKey = "lite" | "premium";
+
+
+function buildLeadPayload(plan: PlanKey, lang: string) {
+  const isEs = lang === "es";
+  const planLabel = plan === "premium" ? "Business Premium" : "Business Lite";
+  const subject = encodeURIComponent(
+    isEs ? `Activar plan — ${planLabel}` : `Activate plan — ${planLabel}`
+  );
+
+  const bodyLines = isEs
+    ? [
+        "Hola LEONIX,",
+        "",
+        `Quiero activar: ${planLabel}`,
+        "",
+        "Nombre del negocio:",
+        "Ciudad:",
+        "Teléfono:",
+        "Enlace/Redes (opcional):",
+        "",
+        "Gracias.",
+      ]
+    : [
+        "Hi LEONIX,",
+        "",
+        `I want to activate: ${planLabel}`,
+        "",
+        "Business name:",
+        "City:",
+        "Phone:",
+        "Link/Social (optional):",
+        "",
+        "Thanks.",
+      ];
+
+  const bodyText = bodyLines.join("\n");
+  const body = encodeURIComponent(bodyText);
+  return { subject, body, bodyText, planLabel };
+}
 
 function getCopy(lang: string) {
   const isEs = lang === "es";
@@ -55,42 +94,10 @@ function getCopy(lang: string) {
   };
 }
 
+
 function buildMailto(plan: PlanKey, lang: string) {
-  const isEs = lang === "es";
-  const subject = encodeURIComponent(
-    isEs ? "Activar plan de Restaurantes" : "Activate Restaurant Plan"
-  );
-
-  const planLabel = plan === "premium" ? "Business Premium" : "Business Lite";
-
-  const bodyLines = isEs
-    ? [
-        "Hola LEONIX,",
-        "",
-        `Quiero activar: ${planLabel}`,
-        "",
-        "Nombre del negocio:",
-        "Ciudad:",
-        "Teléfono:",
-        "Enlace/Redes (opcional):",
-        "",
-        "Gracias.",
-      ]
-    : [
-        "Hi LEONIX,",
-        "",
-        `I want to activate: ${planLabel}`,
-        "",
-        "Business name:",
-        "City:",
-        "Phone:",
-        "Link/Social (optional):",
-        "",
-        "Thanks.",
-      ];
-
-  const body = encodeURIComponent(bodyLines.join("\n"));
-  return `mailto:ventas@leonixmedia.com?subject=${subject}&body=${body}`;
+  const payload = buildLeadPayload(plan, lang);
+  return `mailto:ventas@leonixmedia.com?subject=${payload.subject}&body=${payload.body}`;
 }
 
 export default function RestaurantPlansPage() {
@@ -98,6 +105,42 @@ export default function RestaurantPlansPage() {
   const lang = (sp?.get("lang") === "en") ? "en" : "es";
 
   const copy = useMemo(() => getCopy(lang), [lang]);
+
+const [toast, setToast] = useState<string | null>(null);
+
+const shareLead = useCallback(
+  async (plan: PlanKey) => {
+    try {
+      const payload = buildLeadPayload(plan, lang);
+      const title = lang === "es" ? "Activar plan" : "Activate plan";
+
+      const nav: any = typeof navigator !== "undefined" ? (navigator as any) : null;
+      if (nav?.share) {
+        await nav.share({ title, text: payload.bodyText });
+        setToast(lang === "es" ? "Listo: compartido." : "Done: shared.");
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payload.bodyText);
+        setToast(lang === "es" ? "Copiado al portapapeles." : "Copied to clipboard.");
+        return;
+      }
+
+      setToast(
+        lang === "es"
+          ? "No se pudo compartir en este dispositivo."
+          : "Unable to share on this device."
+      );
+    } catch {
+      setToast(lang === "es" ? "No se pudo compartir." : "Unable to share.");
+    } finally {
+      window.setTimeout(() => setToast(null), 2200);
+    }
+  },
+  [lang]
+);
+
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -133,6 +176,14 @@ export default function RestaurantPlansPage() {
               >
                 {copy.ctaPrimary}
               </a>
+
+<button
+  type="button"
+  onClick={() => shareLead("lite")}
+  className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/30 px-4 py-3 font-semibold text-yellow-300 hover:bg-black/50 transition"
+>
+  {lang === "en" ? "Share message" : "Compartir mensaje"}
+</button>
               <Link
                 href={`/restaurantes/negocio?lang=${lang}`}
                 className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/30 px-4 py-3 font-semibold text-yellow-300 hover:bg-black/50 transition"
@@ -166,6 +217,14 @@ export default function RestaurantPlansPage() {
               >
                 {copy.ctaPrimary}
               </a>
+
+<button
+  type="button"
+  onClick={() => shareLead("premium")}
+  className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/30 px-4 py-3 font-semibold text-yellow-300 hover:bg-black/50 transition"
+>
+  {lang === "en" ? "Share message" : "Compartir mensaje"}
+</button>
               <Link
                 href={`/restaurantes/negocio?lang=${lang}`}
                 className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/30 px-4 py-3 font-semibold text-yellow-300 hover:bg-black/50 transition"
@@ -185,6 +244,14 @@ export default function RestaurantPlansPage() {
           </Link>
         </div>
       </div>
+
+{toast && (
+  <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
+    <div className="rounded-xl border border-yellow-600/30 bg-black/90 px-4 py-2 text-sm text-yellow-200 shadow-lg">
+      {toast}
+    </div>
+  </div>
+)}
     </main>
   );
 }
