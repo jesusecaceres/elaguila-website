@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Restaurant } from "../../data/restaurants";
 
+type SortKey = "recommended" | "az" | "supporters";
+
 function normalize(s: string) {
   return s.trim().toLowerCase();
 }
@@ -17,10 +19,18 @@ function safeHost(url: string) {
   }
 }
 
+function supporterRank(supporter?: Restaurant["supporter"]) {
+  // Higher is better
+  if (supporter === "Corona de Oro") return 2;
+  if (supporter === "Corona") return 1;
+  return 0;
+}
+
 export default function RestaurantsBrowser({ restaurants }: { restaurants: Restaurant[] }) {
   const [q, setQ] = useState("");
   const [city, setCity] = useState("all");
   const [cuisine, setCuisine] = useState("all");
+  const [sort, setSort] = useState<SortKey>("recommended");
 
   const cities = useMemo(() => {
     const set = new Set<string>();
@@ -34,9 +44,21 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
     return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
   }, [restaurants]);
 
+  const topCuisineChips = useMemo(() => {
+    const counts = new Map<string, number>();
+    restaurants.forEach((r) => {
+      if (!r.cuisine) return;
+      counts.set(r.cuisine, (counts.get(r.cuisine) || 0) + 1);
+    });
+    const ranked = Array.from(counts.entries())
+      .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
+      .map(([name]) => name);
+    return ranked.slice(0, 8);
+  }, [restaurants]);
+
   const filtered = useMemo(() => {
     const qq = normalize(q);
-    return restaurants.filter((r) => {
+    const base = restaurants.filter((r) => {
       if (city !== "all" && (r.city || "") !== city) return false;
       if (cuisine !== "all" && (r.cuisine || "") !== cuisine) return false;
       if (!qq) return true;
@@ -54,44 +76,166 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
       );
       return hay.includes(qq);
     });
-  }, [restaurants, q, city, cuisine]);
+
+    const sorted = [...base].sort((a, b) => {
+      if (sort === "supporters") {
+        const sr = supporterRank(b.supporter) - supporterRank(a.supporter);
+        if (sr !== 0) return sr;
+        return a.name.localeCompare(b.name);
+      }
+      if (sort === "az") return a.name.localeCompare(b.name);
+
+      // recommended: supporters float, then verified, then name
+      const s = supporterRank(b.supporter) - supporterRank(a.supporter);
+      if (s !== 0) return s;
+      const v = (b.verified ? 1 : 0) - (a.verified ? 1 : 0);
+      if (v !== 0) return v;
+      return a.name.localeCompare(b.name);
+    });
+
+    return sorted;
+  }, [restaurants, q, city, cuisine, sort]);
 
   const hasAny = restaurants.length > 0;
+
+  const hasActiveFilters = q.trim() !== "" || city !== "all" || cuisine !== "all" || sort !== "recommended";
+
+  function resetAllFilters() {
+    setQ("");
+    setCity("all");
+    setCuisine("all");
+    setSort("recommended");
+  }
 
   return (
     <section className="w-full max-w-6xl mx-auto px-6 pb-20">
       {/* Filters */}
       <div className="bg-black/30 border border-yellow-600/20 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search restaurants, cuisine, city…"
-            className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 placeholder:text-gray-400 outline-none focus:border-yellow-500/50"
-          />
-          <select
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
-          >
-            {cities.map((c) => (
-              <option key={c} value={c} className="bg-black">
-                {c === "all" ? "All Cities" : c}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-5">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search restaurants, cuisine, city…"
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 placeholder:text-gray-400 outline-none focus:border-yellow-500/50"
+            />
+          </div>
+
+          <div className="md:col-span-3">
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
+            >
+              {cities.map((c) => (
+                <option key={c} value={c} className="bg-black">
+                  {c === "all" ? "All Cities" : c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <select
+              value={cuisine}
+              onChange={(e) => setCuisine(e.target.value)}
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
+            >
+              {cuisines.map((c) => (
+                <option key={c} value={c} className="bg-black">
+                  {c === "all" ? "All Cuisines" : c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
+            >
+              <option value="recommended" className="bg-black">
+                Recommended
               </option>
-            ))}
-          </select>
-          <select
-            value={cuisine}
-            onChange={(e) => setCuisine(e.target.value)}
-            className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
-          >
-            {cuisines.map((c) => (
-              <option key={c} value={c} className="bg-black">
-                {c === "all" ? "All Cuisines" : c}
+              <option value="supporters" className="bg-black">
+                Supporters first
               </option>
-            ))}
-          </select>
+              <option value="az" className="bg-black">
+                A–Z
+              </option>
+            </select>
+          </div>
         </div>
+
+        {/* Quick cuisine chips */}
+        {hasAny && topCuisineChips.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {topCuisineChips.map((c) => {
+              const active = cuisine === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCuisine(active ? "all" : c)}
+                  className={
+                    active
+                      ? "px-3 py-1.5 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-200 text-sm"
+                      : "px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100 text-sm"
+                  }
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {/* Active filter chips */}
+        {hasAny && hasActiveFilters ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {q.trim() !== "" ? (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                title="Clear search"
+              >
+                Search: “{q.trim()}” ✕
+              </button>
+            ) : null}
+            {city !== "all" ? (
+              <button
+                type="button"
+                onClick={() => setCity("all")}
+                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                title="Clear city"
+              >
+                City: {city} ✕
+              </button>
+            ) : null}
+            {cuisine !== "all" ? (
+              <button
+                type="button"
+                onClick={() => setCuisine("all")}
+                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                title="Clear cuisine"
+              >
+                Cuisine: {cuisine} ✕
+              </button>
+            ) : null}
+            {sort !== "recommended" ? (
+              <button
+                type="button"
+                onClick={() => setSort("recommended")}
+                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                title="Reset sort"
+              >
+                Sort: {sort === "az" ? "A–Z" : "Supporters first"} ✕
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-3 flex items-center justify-between text-sm text-gray-300">
           <div>
@@ -106,11 +250,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
           </div>
           <button
             type="button"
-            onClick={() => {
-              setQ("");
-              setCity("all");
-              setCuisine("all");
-            }}
+            onClick={resetAllFilters}
             className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
           >
             Reset
@@ -145,6 +285,15 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
         <div className="mt-8 bg-black/30 border border-yellow-600/20 rounded-2xl p-6 md:p-8 text-center">
           <div className="text-2xl md:text-3xl font-semibold text-yellow-300">No matches</div>
           <div className="mt-2 text-gray-300">Try a broader search or reset filters.</div>
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="px-5 py-3 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
+            >
+              Reset filters
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -156,6 +305,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
                   <div className="mt-1 text-sm text-gray-300">
                     {[r.cuisine, r.city].filter(Boolean).join(" • ")}
                   </div>
+                  {r.verified ? <div className="mt-1 text-xs text-yellow-200">Verified</div> : null}
                 </div>
                 {r.supporter ? (
                   <span className="text-xs px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300">
