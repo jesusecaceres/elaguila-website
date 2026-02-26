@@ -243,6 +243,63 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
   window.history.replaceState({}, "", final);
 }
 
+
+/** ✅ Autos param helpers (internal only; no exports) */
+type AutosParams = {
+  aymin: string;
+  aymax: string;
+  amake: string;
+  amodel: string;
+  amilesmax: string;
+  acond: string; // "new" | "used" | ""
+};
+
+const EMPTY_AUTOS_PARAMS: AutosParams = {
+  aymin: "",
+  aymax: "",
+  amake: "",
+  amodel: "",
+  amilesmax: "",
+  acond: "",
+};
+
+function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
+  const yMin = ap.aymin ? parseNumLoose(ap.aymin) : null;
+  const yMax = ap.aymax ? parseNumLoose(ap.aymax) : null;
+  const milesMax = ap.amilesmax ? parseNumLoose(ap.amilesmax) : null;
+  const makeQ = (ap.amake || "").trim().toLowerCase();
+  const modelQ = (ap.amodel || "").trim().toLowerCase();
+  const cond = (ap.acond || "").trim().toLowerCase();
+
+  return list.filter((x) => {
+    if (yMin !== null && typeof x.year === "number" && x.year < yMin) return false;
+    if (yMax !== null && typeof x.year === "number" && x.year > yMax) return false;
+
+    if (makeQ) {
+      const mk = (x.make || "").toLowerCase();
+      if (!mk.includes(makeQ)) return false;
+    }
+
+    if (modelQ) {
+      const md = (x.model || "").toLowerCase();
+      if (!md.includes(modelQ)) return false;
+    }
+
+    if (milesMax !== null && typeof (x as any).mileage === "number") {
+      const m = (x as any).mileage as number;
+      if (Number.isFinite(m) && m > milesMax) return false;
+    }
+
+    if (cond && typeof (x as any).condition === "string") {
+      const c = String((x as any).condition).toLowerCase();
+      if (cond === "new" && c !== "new") return false;
+      if (cond === "used" && c !== "used") return false;
+    }
+
+    return true;
+  });
+}
+
 /** ✅ Rentas param helpers (internal only; no exports) */
 type RentasParams = {
   rpmin: string;
@@ -489,6 +546,9 @@ useEffect(() => {
   // ✅ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
 
+  // ✅ Autos param state (only used when cat=autos)
+  const [autosParams, setAutosParams] = useState<AutosParams>(EMPTY_AUTOS_PARAMS);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isMobile = window.innerWidth < 768;
@@ -575,6 +635,22 @@ useEffect(() => {
     } else {
       setRentasParams(EMPTY_RENTAS_PARAMS);
     }
+
+    // ✅ Autos params: only track them if cat=autos
+    const catIsAutos = pCat === "autos";
+    if (catIsAutos) {
+      setAutosParams({
+        aymin: params?.get("aymin") ?? "",
+        aymax: params?.get("aymax") ?? "",
+        amake: params?.get("amake") ?? "",
+        amodel: params?.get("amodel") ?? "",
+        amilesmax: params?.get("amilesmax") ?? "",
+        acond: params?.get("acond") ?? "",
+      });
+    } else {
+      setAutosParams(EMPTY_AUTOS_PARAMS);
+    }
+
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
@@ -1045,9 +1121,11 @@ useEffect(() => {
       return haversineMi(anchor, cityLL) <= radiusMi;
     });
 
-    const rentasApplied = category === "rentas" ? applyRentasParams(base, rentasParams) : base;
+    let catApplied = base;
+    if (category === "autos") catApplied = applyAutosParams(base, autosParams);
+    if (category === "rentas") catApplied = applyRentasParams(base, rentasParams);
 
-    const sorted = [...rentasApplied].sort((a, b) => {
+    const sorted = [...catApplied].sort((a, b) => {
       if (sort === "newest") {
         return (
           new Date(b.createdAtISO).getTime() -
@@ -1067,7 +1145,7 @@ useEffect(() => {
 
   useEffect(() => {
     setPage(1);
-  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams]);
+  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams]);
 
   const businessTop = useMemo(() => {
   // Show a small "Profesionales / Businesses" strip only on page 1,
@@ -1148,6 +1226,17 @@ const visible = useMemo(() => {
       if (rentasParams.rleaseterm) chips.push({ key: "rleaseterm", text: `${lang === "es" ? "Contrato" : "Lease"}: ${rentasParams.rleaseterm}`, clear: () => setRentasParams((p) => ({ ...p, rleaseterm: "" })) });
     }
 
+
+    // ✅ Autos chips (only show when in autos + has params)
+    if (category === "autos") {
+      if (autosParams.aymin) chips.push({ key: "aymin", text: `${lang === "es" ? "Año min" : "Year min"}: ${autosParams.aymin}`, clear: () => setAutosParams((p) => ({ ...p, aymin: "" })) });
+      if (autosParams.aymax) chips.push({ key: "aymax", text: `${lang === "es" ? "Año max" : "Year max"}: ${autosParams.aymax}`, clear: () => setAutosParams((p) => ({ ...p, aymax: "" })) });
+      if (autosParams.amake) chips.push({ key: "amake", text: `${lang === "es" ? "Marca" : "Make"}: ${autosParams.amake}`, clear: () => setAutosParams((p) => ({ ...p, amake: "" })) });
+      if (autosParams.amodel) chips.push({ key: "amodel", text: `${lang === "es" ? "Modelo" : "Model"}: ${autosParams.amodel}`, clear: () => setAutosParams((p) => ({ ...p, amodel: "" })) });
+      if (autosParams.amilesmax) chips.push({ key: "amilesmax", text: `${lang === "es" ? "Millas máx" : "Miles max"}: ${autosParams.amilesmax}`, clear: () => setAutosParams((p) => ({ ...p, amilesmax: "" })) });
+      if (autosParams.acond) chips.push({ key: "acond", text: `${lang === "es" ? "Condición" : "Condition"}: ${autosParams.acond}`, clear: () => setAutosParams((p) => ({ ...p, acond: "" })) });
+    }
+
     if (sort !== "newest") {
       chips.push({
         key: "sort",
@@ -1204,8 +1293,16 @@ const visible = useMemo(() => {
       rsqmin: category === "rentas" && rentasParams.rsqmin ? rentasParams.rsqmin : null,
       rsqmax: category === "rentas" && rentasParams.rsqmax ? rentasParams.rsqmax : null,
       rleaseterm: category === "rentas" && rentasParams.rleaseterm ? rentasParams.rleaseterm : null,
+
+      // ✅ Autos params are preserved in URL only when cat=autos
+      aymin: category === "autos" && autosParams.aymin ? autosParams.aymin : null,
+      aymax: category === "autos" && autosParams.aymax ? autosParams.aymax : null,
+      amake: category === "autos" && autosParams.amake ? autosParams.amake : null,
+      amodel: category === "autos" && autosParams.amodel ? autosParams.amodel : null,
+      amilesmax: category === "autos" && autosParams.amilesmax ? autosParams.amilesmax : null,
+      acond: category === "autos" && autosParams.acond ? autosParams.acond : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams]);
 
   const resetAllFilters = () => {
     setQ("");
@@ -1222,6 +1319,7 @@ const visible = useMemo(() => {
     setSuggestions([]);
     setSuggestionsOpen(false);
     setRentasParams(EMPTY_RENTAS_PARAMS);
+    setAutosParams(EMPTY_AUTOS_PARAMS);
   };
 
   const onUseMyLocation = async () => {
@@ -3206,12 +3304,268 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 {UI.hasImage[lang]}
               </label>
 
+              {category === "autos" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Autos" : "Autos"}</div>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Año min" : "Year min"}</label>
+                      <input
+                        value={autosParams.aymin}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, aymin: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="2008"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Año max" : "Year max"}</label>
+                      <input
+                        value={autosParams.aymax}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, aymax: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="2024"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Marca" : "Make"}</label>
+                      <input
+                        value={autosParams.amake}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, amake: e.target.value }))}
+                        placeholder={lang === "es" ? "Toyota" : "Toyota"}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Modelo" : "Model"}</label>
+                      <input
+                        value={autosParams.amodel}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, amodel: e.target.value }))}
+                        placeholder={lang === "es" ? "Corolla" : "Corolla"}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Millas máx" : "Miles max"}</label>
+                      <input
+                        value={autosParams.amilesmax}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, amilesmax: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="120000"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Condición" : "Condition"}</label>
+                      <select
+                        value={autosParams.acond || ""}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, acond: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="used">{lang === "es" ? "Usado" : "Used"}</option>
+                        <option value="new">{lang === "es" ? "Nuevo" : "New"}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {category === "rentas" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Rentas" : "Rentals"}</div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio min" : "Price min"}</label>
+                      <input
+                        value={rentasParams.rpmin}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rpmin: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="1200"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio max" : "Price max"}</label>
+                      <input
+                        value={rentasParams.rpmax}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rpmax: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="2800"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Recámaras" : "Beds"}</label>
+                      <select
+                        value={rentasParams.rbeds}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rbeds: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="studio">{lang === "es" ? "Estudio" : "Studio"}</option>
+                        <option value="room">{lang === "es" ? "Cuarto" : "Room"}</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4+">4+</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Baños" : "Baths"}</label>
+                      <select
+                        value={rentasParams.rbaths}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rbaths: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="1">1+</option>
+                        <option value="2">2+</option>
+                        <option value="3">3+</option>
+                        <option value="4+">4+</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <select
+                        value={rentasParams.rtype}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rtype: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="apartment">{lang === "es" ? "Apartamento" : "Apartment"}</option>
+                        <option value="house">{lang === "es" ? "Casa" : "House"}</option>
+                        <option value="townhome">{lang === "es" ? "Townhome" : "Townhome"}</option>
+                        <option value="condo">{lang === "es" ? "Condominio" : "Condo"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Mascotas" : "Pets"}</label>
+                      <select
+                        value={rentasParams.rpets}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rpets: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="any">{lang === "es" ? "Se aceptan" : "Allowed"}</option>
+                        <option value="dogs">{lang === "es" ? "Perros" : "Dogs"}</option>
+                        <option value="cats">{lang === "es" ? "Gatos" : "Cats"}</option>
+                        <option value="none">{lang === "es" ? "No" : "None"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Estacionamiento" : "Parking"}</label>
+                      <select
+                        value={rentasParams.rparking}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rparking: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="garage">{lang === "es" ? "Garage" : "Garage"}</option>
+                        <option value="assigned">{lang === "es" ? "Asignado" : "Assigned"}</option>
+                        <option value="street">{lang === "es" ? "Calle" : "Street"}</option>
+                        <option value="none">{lang === "es" ? "Ninguno" : "None"}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Amueblado" : "Furnished"}</label>
+                      <select
+                        value={rentasParams.rfurnished}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rfurnished: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
+                        <option value="no">{lang === "es" ? "No" : "No"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Utilidades incl." : "Utilities incl."}</label>
+                      <select
+                        value={rentasParams.rutilities}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rutilities: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
+                        <option value="no">{lang === "es" ? "No" : "No"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Disponible" : "Available"}</label>
+                      <select
+                        value={rentasParams.ravailable}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, ravailable: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="now">{lang === "es" ? "Ahora" : "Now"}</option>
+                        <option value="30">{lang === "es" ? "En 30 días" : "In 30 days"}</option>
+                        <option value="60">{lang === "es" ? "En 60 días" : "In 60 days"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Contrato" : "Lease"}</label>
+                      <select
+                        value={rentasParams.rleaseterm}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rleaseterm: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="month-to-month">{lang === "es" ? "Mes a mes" : "Month-to-month"}</option>
+                        <option value="6">{lang === "es" ? "6 meses" : "6 months"}</option>
+                        <option value="12">{lang === "es" ? "12 meses" : "12 months"}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">Sqft min</label>
+                      <input
+                        value={rentasParams.rsqmin}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rsqmin: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="600"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">Sqft max</label>
+                      <input
+                        value={rentasParams.rsqmax}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rsqmax: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="1200"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setSellerType(null);
                     setOnlyWithImage(false);
+                    setRentasParams(EMPTY_RENTAS_PARAMS);
+                    setAutosParams(EMPTY_AUTOS_PARAMS);
                   }}
                   className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >

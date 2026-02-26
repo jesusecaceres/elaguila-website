@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
@@ -8,8 +9,14 @@ import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
+function withLang(href: string, lang: Lang) {
+  const [base, hash] = href.split("#");
+  const hasQuery = base.includes("?");
+  const joined = `${base}${hasQuery ? "&" : "?"}lang=${lang}`;
+  return hash ? `${joined}#${hash}` : joined;
+}
+
 export default function Page() {
-  // ✅ Null-safe guard (matches the pattern that’s failing builds)
   const sp = useSearchParams();
   const params = sp ?? new URLSearchParams();
 
@@ -18,144 +25,71 @@ export default function Page() {
   const t = useMemo(() => {
     const ui = {
       es: {
-        title: "Membresías de negocio",
+        title: "Membresías de negocio (próximamente)",
         subtitle:
-          "Para negocios que publican seguido: más anuncios, más confianza, y herramientas para convertir — sin cupones ni sorteos (eso es Print Ads).",
-        cta1: "Ver directorio de negocios",
-        href1: "/clasificados/negocios",
+          "Estamos preparando planes para negocios que publican seguido (más anuncios, más confianza y herramientas de conversión).",
+        note:
+          "Por ahora, todos los anuncios se publican como vendedor personal (Gratis / LEONIX Pro). Los precios y planes de negocio se verán después de iniciar sesión cuando estén listos.",
+        cta1: "Ver anuncios",
+        href1: "/clasificados/lista",
         cta2: "Volver a Clasificados",
-        href2: "/clasificados",
-        blocks: [
-          ["p", "Business Lite: $89/mes (Bronze: $59/mes)"],
-          [
-            "ul",
-            [
-              "Insignia de negocio",
-              "Múltiples anuncios activos",
-              "Mayor visibilidad que perfiles personales",
-              "Analíticas básicas",
-            ],
-          ],
-          ["p", "Business Premium: $149/mes (Bronze: $99/mes)"],
-          [
-            "ul",
-            [
-              "Todo lo de Lite",
-              "Prioridad en ranking",
-              "Perfil mejorado",
-              "Herramientas de leads por anuncio (llamar, mensaje, pedir info, agendar cita, subir foto opcional)",
-            ],
-          ],
-          [
-            "p",
-            "Regla ética: nunca ocultamos anuncios gratis. Solo cambiamos ranking/visibilidad por tiempo y agregamos herramientas premium.",
-          ],
-        ],
+        href2: "/clasificados#memberships",
       },
       en: {
-        title: "Business memberships",
+        title: "Business memberships (coming soon)",
         subtitle:
-          "For businesses that post often: more listings, more trust, and conversion tools — no coupons or sweepstakes (that’s Print Ads).",
-        cta1: "View business directory",
-        href1: "/clasificados/negocios",
+          "We’re preparing plans for businesses who post frequently (more listings, more trust, and conversion tools).",
+        note:
+          "For now, listings publish as personal seller (Free / LEONIX Pro). Business pricing and plans will appear after sign-in when they’re ready.",
+        cta1: "View listings",
+        href1: "/clasificados/lista",
         cta2: "Back to Classifieds",
-        href2: "/clasificados",
-        blocks: [
-          ["p", "Business Lite: $89/month (Bronze: $59/month)"],
-          [
-            "ul",
-            [
-              "Business badge",
-              "Multiple active listings",
-              "Higher visibility than personal profiles",
-              "Basic analytics",
-            ],
-          ],
-          ["p", "Business Premium: $149/month (Bronze: $99/month)"],
-          [
-            "ul",
-            [
-              "Everything in Lite",
-              "Priority ranking",
-              "Enhanced profile",
-              "Lead tools per listing (call, message, request info, book appointment, optional photo upload)",
-            ],
-          ],
-          [
-            "p",
-            "Ethical rule: we never hide free listings. We only affect ranking/time-limited visibility and add premium tools.",
-          ],
-        ],
+        href2: "/clasificados#memberships",
       },
-    } as const;
-
+    };
     return ui[lang];
   }, [lang]);
 
   return (
-    <div className="bg-black min-h-screen text-white pb-32">
+    <div className="min-h-screen bg-black text-gray-100">
       <Navbar />
 
-      <section className="max-w-6xl mx-auto px-6 pt-28">
-        <div className="text-center mb-12">
-          <Image src={newLogo} alt="LEONIX" width={320} className="mx-auto mb-6" />
-          <h1 className="text-5xl md:text-6xl font-bold text-yellow-400">{t.title}</h1>
-          <p className="mt-4 text-gray-300 max-w-3xl mx-auto text-lg md:text-xl">{t.subtitle}</p>
+      <main className="mx-auto max-w-6xl px-6 pt-28 pb-16">
+        <div className="text-center">
+          <Image
+            src={newLogo}
+            alt="LEONIX"
+            width={220}
+            className="mx-auto mb-6"
+            priority
+          />
+          <h1 className="text-4xl md:text-5xl font-bold text-yellow-400">
+            {t.title}
+          </h1>
+          <p className="mt-4 text-gray-300 max-w-3xl mx-auto">
+            {t.subtitle}
+          </p>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <a
-              href={`${t.href1}?lang=${lang}`}
-              className="px-7 py-3 rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href={withLang(t.href1, lang)}
+              className="rounded-full border border-yellow-600/20 bg-black/25 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/30 transition"
             >
               {t.cta1}
-            </a>
-
-            {t.cta2 && t.href2 ? (
-              <a
-                href={`${t.href2}?lang=${lang}`}
-                className="px-7 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
-              >
-                {t.cta2}
-              </a>
-            ) : null}
+            </Link>
+            <Link
+              href={withLang(t.href2, lang)}
+              className="rounded-full border border-yellow-600/20 bg-black/25 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/30 transition"
+            >
+              {t.cta2}
+            </Link>
           </div>
         </div>
 
-        <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/30">
-          <div className="space-y-5 text-gray-200 leading-relaxed">
-            {t.blocks.map((b, idx) => {
-              if (b[0] === "p") {
-                return (
-                  <p key={idx} className="text-gray-200">
-                    {b[1]}
-                  </p>
-                );
-              }
-              if (b[0] === "ul") {
-                return (
-                  <ul key={idx} className="space-y-2">
-                    {(b[1] as readonly string[]).map((li, j) => (
-                      <li key={j} className="text-gray-300">
-                        • {li}
-                      </li>
-                    ))}
-                  </ul>
-                );
-              }
-              return null;
-            })}
-          </div>
-        </div>
-
-        <div className="mt-10 text-center">
-          <a
-            href={`/clasificados?lang=${lang}`}
-            className="inline-flex px-6 py-3 rounded-full border border-white/10 bg-black/30 text-gray-100 font-semibold hover:bg-black/45 transition"
-          >
-            {lang === "es" ? "Volver a Clasificados" : "Back to Classifieds"}
-          </a>
-        </div>
-      </section>
+        <section className="mt-10 rounded-2xl border border-yellow-600/20 bg-black/35 p-6 text-gray-200">
+          {t.note}
+        </section>
+      </main>
     </div>
   );
 }
