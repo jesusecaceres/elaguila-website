@@ -45,6 +45,49 @@ function supporterRank(supporter?: Restaurant["supporter"]) {
   if (supporter === "Corona") return 1;
   return 0;
 }
+
+
+function renderTrustPills(r: any, lang: "es" | "en") {
+  const tags: string[] = Array.isArray(r?.tags) ? r.tags : [];
+  const tagText = tags.join(" ").toLowerCase();
+  const isOpenNow = /open\s*now|abierto\s*ahora|abierto\b|open\b/.test(tagText);
+  const fastResponse = Boolean(r?.phone || r?.email);
+
+  const pills: { key: string; label: string; className: string }[] = [];
+  if (r?.verified) {
+    pills.push({
+      key: "verified",
+      label: lang === "es" ? "Verificado" : "Verified",
+      className: "bg-yellow-500/10 border-yellow-500/30 text-yellow-300",
+    });
+  }
+  if (fastResponse) {
+    pills.push({
+      key: "fast",
+      label: lang === "es" ? "Respuesta rápida" : "Fast response",
+      className: "bg-white/5 border-white/10 text-gray-200",
+    });
+  }
+  if (isOpenNow) {
+    pills.push({
+      key: "open",
+      label: lang === "es" ? "Abierto ahora" : "Open now",
+      className: "bg-emerald-500/10 border-emerald-500/30 text-emerald-200",
+    });
+  }
+
+  if (!pills.length) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {pills.map((p) => (
+        <span key={p.key} className={["text-xs px-2 py-1 rounded-lg border", p.className].join(" ")}>
+          {p.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 const FAV_KEY = "leonix_restaurant_favorites_v1";
 
 function readFavs(): string[] {
@@ -72,7 +115,7 @@ function writeFavs(ids: string[]) {
 
 export default function RestaurantsBrowser({ restaurants }: { restaurants: Restaurant[] }) {
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") || "es";
+  const lang: "es" | "en" = (searchParams?.get("lang") === "en" ? "en" : "es");
   const [favIds, setFavIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -470,12 +513,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
                   <div className="mt-1 text-sm text-gray-300">
                     {[r.cuisine, r.city].filter(Boolean).join(" • ")}
                   </div>
-                  {r.verified ? <div className="mt-1 text-xs text-yellow-200">Verified</div> : null}
-                  {(r.supporter || r.verified) ? (
-                    <div className="mt-2 inline-flex text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-200">
-                      {lang === "es" ? "Oferta" : "Special"}
-                    </div>
-                  ) : null}
+                  {renderTrustPills(r, lang)}
                 </div>
                 {r.supporter ? (
                   <span className="text-xs px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300">
