@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Restaurant } from "../../data/restaurants";
 
 type SortKey = "recommended" | "az" | "supporters";
@@ -46,10 +47,15 @@ function supporterRank(supporter?: Restaurant["supporter"]) {
 }
 
 export default function RestaurantsBrowser({ restaurants }: { restaurants: Restaurant[] }) {
+  const searchParams = useSearchParams();
+  const lang = searchParams?.get("lang") || "es";
+
   const [q, setQ] = useState("");
   const [city, setCity] = useState("all");
   const [cuisine, setCuisine] = useState("all");
   const [sort, setSort] = useState<SortKey>("recommended");
+
+  const businessHref = `/restaurantes/negocio?lang=${lang}`;
 
   const cities = useMemo(() => {
     const set = new Set<string>();
@@ -144,6 +150,20 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
 
   return (
     <section className="w-full max-w-6xl mx-auto px-6 pb-20">
+      {/* Business CTA */}
+      <div className="mb-4 bg-black/30 border border-yellow-600/20 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-gray-100">{lang === "es" ? "¿Eres dueño de un restaurante?" : "Own a restaurant?"}</div>
+          <div className="mt-1 text-xs text-gray-300">{lang === "es" ? "Crea tu perfil verificado y empieza a recibir clientes." : "Create a verified profile and start getting customers."}</div>
+        </div>
+        <Link
+          href={businessHref}
+          className="inline-flex items-center justify-center rounded-xl bg-yellow-500/15 border border-yellow-500/40 text-yellow-200 px-4 py-3 text-sm font-semibold hover:bg-yellow-500/20 transition"
+        >
+          {lang === "es" ? "Publicar mi restaurante" : "List my restaurant"}
+        </Link>
+      </div>
+
       {/* Filters */}
       <div className="bg-black/30 border border-yellow-600/20 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
@@ -280,7 +300,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
                 <span className="text-gray-100">{restaurants.length}</span>
               </span>
             ) : (
-              <span>Ready for your first restaurant.</span>
+              <span>{lang === "es" ? "Listo para tu primer restaurante." : "Ready for your first restaurant."}</span>
             )}
           </div>
           <button
