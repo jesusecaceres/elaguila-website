@@ -471,6 +471,11 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
                     {[r.cuisine, r.city].filter(Boolean).join(" • ")}
                   </div>
                   {r.verified ? <div className="mt-1 text-xs text-yellow-200">Verified</div> : null}
+                  {(r.supporter || r.verified) ? (
+                    <div className="mt-2 inline-flex text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-200">
+                      {lang === "es" ? "Oferta" : "Special"}
+                    </div>
+                  ) : null}
                 </div>
                 {r.supporter ? (
                   <span className="text-xs px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300">

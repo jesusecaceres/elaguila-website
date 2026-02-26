@@ -3,6 +3,7 @@ import Link from "next/link";
 import PageHero from "../../components/PageHero";
 import ReviewSummaryCard from "../components/ReviewSummaryCard";
 import ReviewsList from "../components/ReviewsList";
+import SpecialsCard from "../components/SpecialsCard";
 import FavoriteButton from "../components/FavoriteButton";
 import { restaurants } from "../../data/restaurants";
 function safeImageUrl(raw: string): string | null {
@@ -217,6 +218,8 @@ const nearby = (restaurants || [])
               {r.address ? <div className="mt-4 text-gray-300">{r.address}</div> : null}
               {r.text ? <div className="mt-4 text-gray-300 whitespace-pre-line">{r.text}</div> : null}
             </div>
+
+            <SpecialsCard lang="es" isSupporter={Boolean(r.supporter)} />
 
             <ReviewSummaryCard restaurant={r} />
 
