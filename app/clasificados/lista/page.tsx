@@ -487,6 +487,248 @@ export default function ListaPage() {
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
 // Category switching polish (A4.19)
+
+/** ✅ Empleos param helpers (internal only; no exports) */
+type EmpleosParams = {
+  ejob: string;      // "full" | "part" | "contract" | "temp" | ""
+  eremote: string;   // "remote" | "onsite" | ""
+  epaymin: string;   // number string
+  epaymax: string;   // number string
+  eindustry: string; // industry key or ""
+};
+
+const EMPTY_EMPLEOS_PARAMS: EmpleosParams = {
+  ejob: "",
+  eremote: "",
+  epaymin: "",
+  epaymax: "",
+  eindustry: "",
+};
+
+type EmpleoIndustry =
+  | "construction"
+  | "restaurant"
+  | "cleaning"
+  | "office"
+  | "medical"
+  | "driving"
+  | "sales"
+  | "warehouse"
+  | "childcare"
+  | "other";
+
+const empleoIndustryLabel = (k: EmpleoIndustry, lang: Lang) => {
+  const es: Record<EmpleoIndustry, string> = {
+    construction: "Construcción",
+    restaurant: "Restaurante",
+    cleaning: "Limpieza",
+    office: "Oficina",
+    medical: "Salud",
+    driving: "Manejo / Delivery",
+    sales: "Ventas",
+    warehouse: "Bodega",
+    childcare: "Cuidado de niños",
+    other: "Otro",
+  };
+  const en: Record<EmpleoIndustry, string> = {
+    construction: "Construction",
+    restaurant: "Restaurant",
+    cleaning: "Cleaning",
+    office: "Office",
+    medical: "Medical",
+    driving: "Driving / Delivery",
+    sales: "Sales",
+    warehouse: "Warehouse",
+    childcare: "Childcare",
+    other: "Other",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const inferEmpleoIndustry = (title: string, blurb: string) => {
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  if (/(construction|construcci[oó]n|framing|roof|roofer|concrete|drywall|painter|pintor|remodel)/i.test(t)) return "construction" as const;
+  if (/(restaurant|restaurante|cocina|cook|cocinero|dishwasher|meser|mesero|server|bartender|barista|taquer|food)/i.test(t)) return "restaurant" as const;
+  if (/(cleaning|limpieza|housekeeper|janitor|maid)/i.test(t)) return "cleaning" as const;
+  if (/(office|oficina|admin|administrativ|reception|recepcion|assistant|asistente|clerical|data entry)/i.test(t)) return "office" as const;
+  if (/(medical|clinic|clinica|hospital|caregiver|cuid[aá]dor|nurse|enfermer)/i.test(t)) return "medical" as const;
+  if (/(driver|driving|delivery|uber|lyft|doordash|instacart|truck|trucking|camion|chofer|ch[oó]fer)/i.test(t)) return "driving" as const;
+  if (/(sales|ventas|sell|vendedor|vendedora|closer|retail|store)/i.test(t)) return "sales" as const;
+  if (/(warehouse|bodega|forklift|montacargas|picker|packer|fulfillment)/i.test(t)) return "warehouse" as const;
+  if (/(childcare|ni[nñ]os|daycare|guarder[ií]a|babysit|nanny)/i.test(t)) return "childcare" as const;
+
+  return "other" as const;
+};
+
+const parsePayNumberLoose = (salaryLabel: string | null, fallbackPrice: string) => {
+  const src = `${salaryLabel || ""} ${fallbackPrice || ""}`;
+  const m = src.match(/\$\s?(\d+(?:[\.,]\d+)?)/);
+  if (!m) return null;
+  const num = Number(String(m[1]).replace(",", ""));
+  return Number.isFinite(num) ? num : null;
+};
+
+function applyEmpleosParams(list: Listing[], ep: EmpleosParams): Listing[] {
+  const payMin = ep.epaymin ? parseNumLoose(ep.epaymin) : null;
+  const payMax = ep.epaymax ? parseNumLoose(ep.epaymax) : null;
+  const job = (ep.ejob || "").trim().toLowerCase();
+  const remote = (ep.eremote || "").trim().toLowerCase();
+  const industry = (ep.eindustry || "").trim().toLowerCase();
+
+  return list.filter((x) => {
+    if (x.category !== "empleos") return true;
+
+    const title = x.title.es || x.title.en || "";
+    const blurb = x.blurb.es || x.blurb.en || "";
+    const payLabel = x.priceLabel.es || x.priceLabel.en || "";
+
+    const parsed = parseEmpleoFromText(title, blurb, payLabel);
+    const inferredIndustry = inferEmpleoIndustry(title, blurb);
+
+    if (job) {
+      const jt = (parsed.jobType || "").toLowerCase();
+      if (jt !== job) return false;
+    }
+
+    if (remote) {
+      if (remote === "remote" && !parsed.isRemote) return false;
+      if (remote === "onsite" && parsed.isRemote) return false;
+    }
+
+    if (industry) {
+      if (String(inferredIndustry) !== industry) return false;
+    }
+
+    if (payMin !== null || payMax !== null) {
+      const pn = parsePayNumberLoose(parsed.salaryLabel, payLabel);
+      if (pn === null) return false;
+      if (payMin !== null && pn < payMin) return false;
+      if (payMax !== null && pn > payMax) return false;
+    }
+
+    return true;
+  });
+}
+
+/** ✅ Servicios param helpers (internal only; no exports) */
+type ServiciosParams = {
+  stype: string;   // service type key or ""
+  savail: string;  // availability key or ""
+};
+
+const EMPTY_SERVICIOS_PARAMS: ServiciosParams = {
+  stype: "",
+  savail: "",
+};
+
+type ServicioType =
+  | "cleaning"
+  | "landscaping"
+  | "mechanic"
+  | "plumbing"
+  | "electrician"
+  | "painting"
+  | "remodeling"
+  | "moving"
+  | "handyman"
+  | "other";
+
+const servicioTypeLabel = (k: ServicioType, lang: Lang) => {
+  const es: Record<ServicioType, string> = {
+    cleaning: "Limpieza",
+    landscaping: "Jardinería",
+    mechanic: "Mecánico",
+    plumbing: "Plomero",
+    electrician: "Electricista",
+    painting: "Pintura",
+    remodeling: "Remodelación",
+    moving: "Mudanza",
+    handyman: "Handyman",
+    other: "Otro",
+  };
+  const en: Record<ServicioType, string> = {
+    cleaning: "Cleaning",
+    landscaping: "Landscaping",
+    mechanic: "Mechanic",
+    plumbing: "Plumber",
+    electrician: "Electrician",
+    painting: "Painting",
+    remodeling: "Remodeling",
+    moving: "Moving",
+    handyman: "Handyman",
+    other: "Other",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+type ServicioAvail = "anytime" | "weekends" | "evenings" | "appointment";
+
+const servicioAvailLabel = (k: ServicioAvail, lang: Lang) => {
+  const es: Record<ServicioAvail, string> = {
+    anytime: "24/7 / Urgente",
+    weekends: "Fines de semana",
+    evenings: "Tardes / Noches",
+    appointment: "Con cita",
+  };
+  const en: Record<ServicioAvail, string> = {
+    anytime: "24/7 / Urgent",
+    weekends: "Weekends",
+    evenings: "Evenings",
+    appointment: "By appointment",
+  };
+  return lang === "es" ? es[k] : en[k];
+};
+
+const inferServicioType = (title: string, blurb: string, explicit?: string) => {
+  const base = (explicit || "").toLowerCase();
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  const src = `${base} ${t}`;
+  if (/(cleaning|limpieza|houseclean|deep clean|maid|janitor)/i.test(src)) return "cleaning" as const;
+  if (/(landscap|jardin|yard|lawn|cesped|césped)/i.test(src)) return "landscaping" as const;
+  if (/(mechanic|mec[aá]nic|auto repair|brakes|oil change|tire)/i.test(src)) return "mechanic" as const;
+  if (/(plumb|plomer|drain|toilet|sink|tuber[ií]a)/i.test(src)) return "plumbing" as const;
+  if (/(electric|electricista|wiring|panel|breaker)/i.test(src)) return "electrician" as const;
+  if (/(paint|pintur|painter|pintor)/i.test(src)) return "painting" as const;
+  if (/(remodel|remodelaci[oó]n|kitchen|bath|tile|drywall)/i.test(src)) return "remodeling" as const;
+  if (/(moving|mudanza|movers|haul|junk)/i.test(src)) return "moving" as const;
+  if (/(handyman|manitas|fix|repair|arreglo)/i.test(src)) return "handyman" as const;
+
+  return "other" as const;
+};
+
+const inferServicioAvail = (title: string, blurb: string) => {
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  if (/(24\/7|emergency|urgente|same day|mismo d[ií]a|hoy mismo)/i.test(t)) return "anytime" as const;
+  if (/(weekend|fines de semana|s[aá]bado|domingo)/i.test(t)) return "weekends" as const;
+  if (/(evening|noche|tarde|after 5|despu[eé]s de las 5)/i.test(t)) return "evenings" as const;
+
+  return "appointment" as const;
+};
+
+function applyServiciosParams(list: Listing[], sp: ServiciosParams): Listing[] {
+  const st = (sp.stype || "").trim().toLowerCase();
+  const av = (sp.savail || "").trim().toLowerCase();
+
+  return list.filter((x) => {
+    if (x.category !== "servicios") return true;
+
+    const title = x.title.es || x.title.en || "";
+    const blurb = x.blurb.es || x.blurb.en || "";
+    const explicit = (x as any).serviceType ? String((x as any).serviceType) : "";
+
+    const inferredType = inferServicioType(title, blurb, explicit);
+    const inferredAvail = inferServicioAvail(title, blurb);
+
+    if (st && String(inferredType) !== st) return false;
+    if (av && String(inferredAvail) !== av) return false;
+
+    return true;
+  });
+}
+
 const resultsTopRef = useRef<HTMLDivElement | null>(null);
 const switchTimerRef = useRef<number | null>(null);
 const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
@@ -548,6 +790,13 @@ useEffect(() => {
 
   // ✅ Autos param state (only used when cat=autos)
   const [autosParams, setAutosParams] = useState<AutosParams>(EMPTY_AUTOS_PARAMS);
+
+
+  // ✅ Empleos param state (only used when cat=empleos)
+  const [empleosParams, setEmpleosParams] = useState<EmpleosParams>(EMPTY_EMPLEOS_PARAMS);
+
+  // ✅ Servicios param state (only used when cat=servicios)
+  const [serviciosParams, setServiciosParams] = useState<ServiciosParams>(EMPTY_SERVICIOS_PARAMS);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1124,6 +1373,8 @@ useEffect(() => {
     let catApplied = base;
     if (category === "autos") catApplied = applyAutosParams(base, autosParams);
     if (category === "rentas") catApplied = applyRentasParams(base, rentasParams);
+    if (category === "empleos") catApplied = applyEmpleosParams(base, empleosParams);
+    if (category === "servicios") catApplied = applyServiciosParams(base, serviciosParams);
 
     const sorted = [...catApplied].sort((a, b) => {
       if (sort === "newest") {
@@ -1138,7 +1389,7 @@ useEffect(() => {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, empleosParams, serviciosParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
@@ -1237,7 +1488,23 @@ const visible = useMemo(() => {
       if (autosParams.acond) chips.push({ key: "acond", text: `${lang === "es" ? "Condición" : "Condition"}: ${autosParams.acond}`, clear: () => setAutosParams((p) => ({ ...p, acond: "" })) });
     }
 
-    if (sort !== "newest") {
+    
+    // ✅ Empleos chips (only show when in empleos + has params)
+    if (category === "empleos") {
+      if (empleosParams.ejob) chips.push({ key: "ejob", text: `${lang === "es" ? "Tipo" : "Type"}: ${empleoJobTypeLabel(empleosParams.ejob as any, lang) ?? empleosParams.ejob}`, clear: () => setEmpleosParams((p) => ({ ...p, ejob: "" })) });
+      if (empleosParams.eremote) chips.push({ key: "eremote", text: `${lang === "es" ? "Modalidad" : "Mode"}: ${empleosParams.eremote === "remote" ? (lang === "es" ? "Remoto" : "Remote") : (lang === "es" ? "Presencial" : "On-site")}`, clear: () => setEmpleosParams((p) => ({ ...p, eremote: "" })) });
+      if (empleosParams.epaymin) chips.push({ key: "epaymin", text: `${lang === "es" ? "Pago mín" : "Pay min"}: $${empleosParams.epaymin}`, clear: () => setEmpleosParams((p) => ({ ...p, epaymin: "" })) });
+      if (empleosParams.epaymax) chips.push({ key: "epaymax", text: `${lang === "es" ? "Pago máx" : "Pay max"}: $${empleosParams.epaymax}`, clear: () => setEmpleosParams((p) => ({ ...p, epaymax: "" })) });
+      if (empleosParams.eindustry) chips.push({ key: "eindustry", text: `${lang === "es" ? "Industria" : "Industry"}: ${empleoIndustryLabel(empleosParams.eindustry as any, lang)}`, clear: () => setEmpleosParams((p) => ({ ...p, eindustry: "" })) });
+    }
+
+    // ✅ Servicios chips (only show when in servicios + has params)
+    if (category === "servicios") {
+      if (serviciosParams.stype) chips.push({ key: "stype", text: `${lang === "es" ? "Tipo" : "Type"}: ${servicioTypeLabel(serviciosParams.stype as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, stype: "" })) });
+      if (serviciosParams.savail) chips.push({ key: "savail", text: `${lang === "es" ? "Horario" : "Availability"}: ${servicioAvailLabel(serviciosParams.savail as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, savail: "" })) });
+    }
+
+if (sort !== "newest") {
       chips.push({
         key: "sort",
         text: `${UI.sort[lang]}: ${SORT_LABELS[sort][lang]}`,
@@ -1320,6 +1587,8 @@ const visible = useMemo(() => {
     setSuggestionsOpen(false);
     setRentasParams(EMPTY_RENTAS_PARAMS);
     setAutosParams(EMPTY_AUTOS_PARAMS);
+    setEmpleosParams(EMPTY_EMPLEOS_PARAMS);
+    setServiciosParams(EMPTY_SERVICIOS_PARAMS);
   };
 
   const onUseMyLocation = async () => {
@@ -2503,6 +2772,130 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 </div>
               ) : null}
+
+              {category === "empleos" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Empleos" : "Jobs"}</div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <select
+                        value={empleosParams.ejob || ""}
+                        onChange={(e) => setEmpleosParams((p) => ({ ...p, ejob: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="full">{lang === "es" ? "Tiempo completo" : "Full-time"}</option>
+                        <option value="part">{lang === "es" ? "Medio tiempo" : "Part-time"}</option>
+                        <option value="contract">{lang === "es" ? "Contrato" : "Contract"}</option>
+                        <option value="temp">{lang === "es" ? "Temporal" : "Temp"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Modalidad" : "Mode"}</label>
+                      <select
+                        value={empleosParams.eremote || ""}
+                        onChange={(e) => setEmpleosParams((p) => ({ ...p, eremote: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="remote">{lang === "es" ? "Remoto" : "Remote"}</option>
+                        <option value="onsite">{lang === "es" ? "Presencial" : "On-site"}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Pago mín." : "Pay min"}</label>
+                      <input
+                        value={empleosParams.epaymin}
+                        onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymin: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="18"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Pago máx." : "Pay max"}</label>
+                      <input
+                        value={empleosParams.epaymax}
+                        onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymax: e.target.value }))}
+                        inputMode="numeric"
+                        placeholder="35"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Industria" : "Industry"}</label>
+                      <select
+                        value={empleosParams.eindustry || ""}
+                        onChange={(e) => setEmpleosParams((p) => ({ ...p, eindustry: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="construction">{empleoIndustryLabel("construction", lang)}</option>
+                        <option value="restaurant">{empleoIndustryLabel("restaurant", lang)}</option>
+                        <option value="cleaning">{empleoIndustryLabel("cleaning", lang)}</option>
+                        <option value="office">{empleoIndustryLabel("office", lang)}</option>
+                        <option value="medical">{empleoIndustryLabel("medical", lang)}</option>
+                        <option value="driving">{empleoIndustryLabel("driving", lang)}</option>
+                        <option value="sales">{empleoIndustryLabel("sales", lang)}</option>
+                        <option value="warehouse">{empleoIndustryLabel("warehouse", lang)}</option>
+                        <option value="childcare">{empleoIndustryLabel("childcare", lang)}</option>
+                        <option value="other">{empleoIndustryLabel("other", lang)}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {category === "servicios" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Servicios" : "Services"}</div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <select
+                        value={serviciosParams.stype || ""}
+                        onChange={(e) => setServiciosParams((p) => ({ ...p, stype: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="cleaning">{servicioTypeLabel("cleaning", lang)}</option>
+                        <option value="landscaping">{servicioTypeLabel("landscaping", lang)}</option>
+                        <option value="mechanic">{servicioTypeLabel("mechanic", lang)}</option>
+                        <option value="plumbing">{servicioTypeLabel("plumbing", lang)}</option>
+                        <option value="electrician">{servicioTypeLabel("electrician", lang)}</option>
+                        <option value="painting">{servicioTypeLabel("painting", lang)}</option>
+                        <option value="remodeling">{servicioTypeLabel("remodeling", lang)}</option>
+                        <option value="moving">{servicioTypeLabel("moving", lang)}</option>
+                        <option value="handyman">{servicioTypeLabel("handyman", lang)}</option>
+                        <option value="other">{servicioTypeLabel("other", lang)}</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Horario" : "Availability"}</label>
+                      <select
+                        value={serviciosParams.savail || ""}
+                        onChange={(e) => setServiciosParams((p) => ({ ...p, savail: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="anytime">{servicioAvailLabel("anytime", lang)}</option>
+                        <option value="weekends">{servicioAvailLabel("weekends", lang)}</option>
+                        <option value="evenings">{servicioAvailLabel("evenings", lang)}</option>
+                        <option value="appointment">{servicioAvailLabel("appointment", lang)}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
 
               {/* Generic advanced filters */}
               <div className="mt-4 grid gap-3">
