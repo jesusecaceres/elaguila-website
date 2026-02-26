@@ -56,6 +56,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
   const [sort, setSort] = useState<SortKey>("recommended");
 
   const businessHref = `/restaurantes/negocio?lang=${lang}`;
+  const packagesHref = `/restaurantes/planes?lang=${lang}`;
 
   const cities = useMemo(() => {
     const set = new Set<string>();
@@ -161,6 +162,12 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
           className="inline-flex items-center justify-center rounded-xl bg-yellow-500/15 border border-yellow-500/40 text-yellow-200 px-4 py-3 text-sm font-semibold hover:bg-yellow-500/20 transition"
         >
           {lang === "es" ? "Publicar mi restaurante" : "List my restaurant"}
+        </Link>
+        <Link
+          href={packagesHref}
+          className="inline-flex items-center justify-center rounded-xl bg-black/30 border border-yellow-500/25 text-gray-100 px-4 py-3 text-sm font-semibold hover:bg-black/40 transition"
+        >
+          {lang === "es" ? "Ver planes" : "View plans"}
         </Link>
       </div>
 

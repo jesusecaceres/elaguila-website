@@ -52,6 +52,8 @@ export default function RestaurantBusinessFormPage() {
   const searchParams = useSearchParams();
   const lang = searchParams?.get("lang") || "es";
 
+  const packagesHref = `/restaurantes/planes?lang=${lang}`;
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,7 +167,7 @@ export default function RestaurantBusinessFormPage() {
                   : "Open the email draft (pre-filled) and send it. We’ll reply to verify and publish."}
               </div>
 
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <a
                   href={mailTo}
                   className="inline-flex items-center justify-center rounded-xl bg-yellow-500/15 border border-yellow-500/40 text-yellow-200 px-4 py-3 text-sm font-semibold hover:bg-yellow-500/20 transition"
@@ -179,6 +181,12 @@ export default function RestaurantBusinessFormPage() {
                 >
                   {lang === "es" ? "Copiar detalles" : "Copy details"}
                 </button>
+                <Link
+                  href={packagesHref}
+                  className="inline-flex items-center justify-center rounded-xl bg-black/30 border border-yellow-500/25 text-gray-100 px-4 py-3 text-sm font-semibold hover:bg-black/40 transition"
+                >
+                  {lang === "es" ? "Ver planes" : "View plans"}
+                </Link>
               </div>
 
               <div className="mt-4 text-xs text-gray-300">
