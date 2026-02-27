@@ -33,7 +33,7 @@ if (!listings.length) {
 
   return (
     <div className="mt-8">
-      <div className="mb-4 rounded-2xl border border-white/12 bg-black/30 p-4 text-sm text-gray-200">
+      <div className="mb-4 rounded-2xl border border-white/12 bg-white/7 p-4 text-sm text-gray-200">
         <div className="font-semibold text-gray-100">{heading}</div>
         <div className="mt-1 text-gray-300">{body}</div>
       </div>

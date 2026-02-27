@@ -29,7 +29,7 @@ export default function EmptyCategory() {
         </Link>
         <Link
           href="/clasificados#memberships"
-          className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-black/20 px-5 py-2.5 text-sm font-semibold text-gray-200 hover:bg-black/30"
+          className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-white/5 px-5 py-2.5 text-sm font-semibold text-gray-200 hover:bg-white/7"
         >
           Ver membresías
         </Link>

@@ -41,10 +41,10 @@ export default function ListingCard({
       className={cx(
         "relative rounded-2xl border",
         // Warmer, premium card tone (no harsh white panels)
-        "border-yellow-600/15 bg-black/35",
+        "border-yellow-500/30 bg-white/8",
         "p-4 sm:p-5",
         "shadow-sm transition",
-        "hover:-translate-y-[1px] hover:bg-black/45 hover:border-yellow-500/25"
+        "hover:-translate-y-[1px] hover:bg-white/10 hover:border-yellow-500/30"
       )}
     >
       <button
@@ -56,7 +56,7 @@ export default function ListingCard({
         }}
         className={cx(
           "absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold transition",
-          "border-white/10 bg-black/50 text-gray-100 hover:bg-black/70"
+          "border-white/10 bg-white/12 text-gray-100 hover:bg-white/16"
         )}
         aria-label={saveText}
         title={saveText}

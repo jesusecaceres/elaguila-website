@@ -2619,7 +2619,7 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
         </span>
       </summary>
 
-      <div className="mt-2 rounded-xl border border-white/12 bg-black/40 p-3">
+      <div className="mt-2 rounded-xl border border-white/12 bg-white/9 p-3">
         <div className="space-y-2">
           {items.map((it) => (
             <div key={it.tier ?? "none"} className="flex items-start gap-2">
@@ -2686,11 +2686,11 @@ const isComunidadLite = isComunidad;
     <div
       key={x.id}
       className={cx(
-        "relative overflow-hidden rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[1px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
+        "relative overflow-hidden rounded-2xl border bg-white/6 p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[1px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
           ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_0_22px_rgba(250,204,21,0.10),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
           : tier === "corona"
-            ? "border-yellow-400/25 bg-yellow-500/6"
+            ? "border-yellow-500/25 bg-yellow-500/6"
             : tier === "joya"
               ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
@@ -2939,11 +2939,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
     <div
       key={x.id}
       className={cx(
-        "group relative overflow-hidden flex items-stretch gap-3 rounded-2xl border bg-black/25 p-2 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[1px]",
+        "group relative overflow-hidden flex items-stretch gap-3 rounded-2xl border bg-white/6 p-2 sm:p-3 md:p-4 hover:bg-white/10 transition-all duration-200 ease-out hover:-translate-y-[1px]",
         tier === "corona-oro"
           ? "border-yellow-300/55 ring-1 ring-yellow-300/20 bg-gradient-to-b from-yellow-500/10 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.16),0_0_18px_rgba(250,204,21,0.08)]"
           : tier === "corona"
-            ? "border-yellow-400/25 bg-yellow-500/6"
+            ? "border-yellow-500/25 bg-yellow-500/6"
             : tier === "joya"
               ? "border-emerald-400/22 bg-emerald-500/5"
               : "border-white/10"
@@ -3180,7 +3180,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <Navbar />
 
       {/* Sticky quick actions (always reachable) */}
-      <div className="sticky top-[56px] z-40 border-b border-white/10 bg-black/35 backdrop-blur">
+      <div className="sticky top-[56px] z-40 border-b border-white/10 bg-white/8 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2">
           <a
             href={`/clasificados/publicar?lang=${lang}`}
@@ -3191,14 +3191,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
           <a
             href={`/clasificados/lista?lang=${lang}`}
-            className="rounded-full border border-yellow-600/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-black/30 transition sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-yellow-500/30 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Ver anuncios" : "View listings"}
           </a>
 
           <a
             href={`/clasificados/membresias?lang=${lang}`}
-            className="rounded-full border border-yellow-600/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-black/30 transition sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-yellow-500/30 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Membresías" : "Memberships"}
           </a>
@@ -3236,7 +3236,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
 
         <section className="mt-6">
-          <div className="rounded-2xl border border-white/12 bg-black/30 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+          <div className="rounded-2xl border border-white/12 bg-white/7 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-gray-200">
                 {lang === "es" ? "Explorar por categoría" : "Browse by category"}
@@ -3358,7 +3358,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         }
                         inputMode="numeric"
                         placeholder="$"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -3372,7 +3372,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         }
                         inputMode="numeric"
                         placeholder="$"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none"
                       />
                     </div>
                   </div>
@@ -3387,7 +3387,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) =>
                           setRentasParams((p) => ({ ...p, rbeds: e.target.value }))
                         }
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="0">{lang === "es" ? "Estudio" : "Studio"}</option>
@@ -3406,7 +3406,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) =>
                           setRentasParams((p) => ({ ...p, rbaths: e.target.value }))
                         }
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="1">1+</option>
@@ -3430,7 +3430,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={empleosParams.ejob || ""}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, ejob: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="full">{lang === "es" ? "Tiempo completo" : "Full-time"}</option>
@@ -3445,7 +3445,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={empleosParams.eremote || ""}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, eremote: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="remote">{lang === "es" ? "Remoto" : "Remote"}</option>
@@ -3460,7 +3460,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymin: e.target.value }))}
                         inputMode="numeric"
                         placeholder="18"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
 
@@ -3471,7 +3471,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymax: e.target.value }))}
                         inputMode="numeric"
                         placeholder="35"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
 
@@ -3480,7 +3480,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={empleosParams.eindustry || ""}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, eindustry: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="construction">{empleoIndustryLabel("construction", lang)}</option>
@@ -3509,7 +3509,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={serviciosParams.stype || ""}
                         onChange={(e) => setServiciosParams((p) => ({ ...p, stype: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="cleaning">{servicioTypeLabel("cleaning", lang)}</option>
@@ -3530,7 +3530,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={serviciosParams.savail || ""}
                         onChange={(e) => setServiciosParams((p) => ({ ...p, savail: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="anytime">{servicioAvailLabel("anytime", lang)}</option>
@@ -3555,7 +3555,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setVentaParams((p) => ({ ...p, vpmin: e.target.value }))}
                         inputMode="numeric"
                         placeholder="50"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -3565,7 +3565,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setVentaParams((p) => ({ ...p, vpmax: e.target.value }))}
                         inputMode="numeric"
                         placeholder="500"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
 
@@ -3574,7 +3574,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={ventaParams.vtype || ""}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vtype: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="phone">{ventaItemTypeLabel("phone", lang)}</option>
@@ -3596,7 +3596,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={ventaParams.vcond || ""}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vcond: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="new">{ventaConditionLabel("new", lang)}</option>
@@ -3619,7 +3619,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={clasesParams.csub || ""}
                         onChange={(e) => setClasesParams((p) => ({ ...p, csub: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="music">{claseSubjectLabel("music", lang)}</option>
@@ -3639,7 +3639,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={clasesParams.clevel || ""}
                         onChange={(e) => setClasesParams((p) => ({ ...p, clevel: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="kids">{claseLevelLabel("kids", lang)}</option>
@@ -3656,7 +3656,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={clasesParams.cmode || ""}
                         onChange={(e) => setClasesParams((p) => ({ ...p, cmode: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="inperson">{claseModeLabel("inperson", lang)}</option>
@@ -3677,7 +3677,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     <select
                       value={comunidadParams.gtype || ""}
                       onChange={(e) => setComunidadParams((p) => ({ ...p, gtype: e.target.value }))}
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                     >
                       <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                       <option value="donation">{comunidadTypeLabel("donation", lang)}</option>
@@ -3709,7 +3709,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           : (e.target.value as SellerType)
                       )
                     }
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none"
                   >
                     <option value="all">{lang === "es" ? "Todos" : "All"}</option>
                     <option value="personal">{SELLER_LABELS.personal[lang]}</option>
@@ -3770,7 +3770,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         {/* TOP QUICK FILTERS (compact) */}
         <section className="mt-3">
-          <div className="rounded-2xl border border-white/12 bg-black/30 px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+          <div className="rounded-2xl border border-white/12 bg-white/7 px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search */}
               <div ref={searchBoxRef} className="xl:col-span-5">
@@ -3779,7 +3779,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={getSearchPlaceholder(category, lang)}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400/40"
                 />
               </div>
 
@@ -3790,7 +3790,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <button
                     type="button"
                     onClick={() => setLocationOpen(true)}
-                    className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-left text-sm text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    className="flex-1 rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-left text-sm text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   >
                     {locationLabel}
                   </button>
@@ -3810,7 +3810,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={String(radiusMi)}
                   onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                 >
                   {[10, 25, 40, 50].map((m) => (
                     <option key={m} value={String(m)}>{m} mi</option>
@@ -3824,7 +3824,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                 >
                   {CATEGORY_ORDER.map((k) => (
                     <option key={k} value={k}>{CATEGORY_LABELS[k][lang]}</option>
@@ -4023,7 +4023,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+                  className="rounded-xl border border-white/10 bg-white/7 px-3 py-2 text-sm text-white outline-none"
                   aria-label={UI.sort[lang]}
                 >
                   <option value="newest">{SORT_LABELS.newest[lang]}</option>
@@ -4038,7 +4038,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 {mobilePanelOpen ? (
   <div className="fixed inset-0 z-50 md:hidden">
     <div
-      className="absolute inset-0 bg-black/70"
+      className="absolute inset-0 bg-white/16"
       onClick={() => setMobilePanelOpen(false)}
     />
     <div className="absolute inset-0 flex flex-col">
@@ -4108,7 +4108,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         ? "Buscar: trabajo, troca, cuarto…"
                         : "Search: jobs, truck, room…"
                     }
-                    className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    className="w-full rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                     aria-label={UI.search[lang]}
                   />
 
@@ -4146,7 +4146,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   <span className="truncate">{locationLabel}</span>
                   <span className="ml-3 shrink-0 text-xs text-gray-400">
@@ -4166,7 +4166,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={radiusMi}
                   onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   {[5, 10, 25, 40, 50].map((r) => (
                     <option key={r} value={r}>
@@ -4184,7 +4184,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none focus:border-yellow-500/40"
                 >
                   <option value="all">{CATEGORY_LABELS.all[lang]}</option>
                   <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
@@ -4275,7 +4275,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-2.5 text-sm text-white outline-none"
                   aria-label={UI.sort[lang]}
                 >
                   <option value="newest">{SORT_LABELS.newest[lang]}</option>
@@ -4370,7 +4370,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
     <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
       {businessTop.map((x) => (
-        <div key={x.id} className="rounded-2xl border border-white/10 bg-black/30 p-4">
+        <div key={x.id} className="rounded-2xl border border-white/10 bg-white/7 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-white">
@@ -4465,7 +4465,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       {/* MORE FILTERS DRAWER (unchanged) */}
       {moreOpen ? (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setMoreOpen(false)} />
+          <div className="absolute inset-0 bg-white/16" onClick={() => setMoreOpen(false)} />
           <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">{UI.moreFilters[lang]}</div>
@@ -4484,7 +4484,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={sellerType ?? "all"}
                   onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as SellerType))}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                 >
                   <option value="all">{lang === "es" ? "Todos" : "All"}</option>
                   <option value="personal">{SELLER_LABELS.personal[lang]}</option>
@@ -4512,7 +4512,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setAutosParams((p) => ({ ...p, aymin: e.target.value }))}
                         inputMode="numeric"
                         placeholder="2008"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4522,7 +4522,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setAutosParams((p) => ({ ...p, aymax: e.target.value }))}
                         inputMode="numeric"
                         placeholder="2024"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4531,7 +4531,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         value={autosParams.amake}
                         onChange={(e) => setAutosParams((p) => ({ ...p, amake: e.target.value }))}
                         placeholder={lang === "es" ? "Toyota" : "Toyota"}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4540,7 +4540,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         value={autosParams.amodel}
                         onChange={(e) => setAutosParams((p) => ({ ...p, amodel: e.target.value }))}
                         placeholder={lang === "es" ? "Corolla" : "Corolla"}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4550,7 +4550,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setAutosParams((p) => ({ ...p, amilesmax: e.target.value }))}
                         inputMode="numeric"
                         placeholder="120000"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4558,7 +4558,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={autosParams.acond || ""}
                         onChange={(e) => setAutosParams((p) => ({ ...p, acond: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="used">{lang === "es" ? "Usado" : "Used"}</option>
@@ -4581,7 +4581,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setRentasParams((p) => ({ ...p, rpmin: e.target.value }))}
                         inputMode="numeric"
                         placeholder="1200"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4591,7 +4591,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setRentasParams((p) => ({ ...p, rpmax: e.target.value }))}
                         inputMode="numeric"
                         placeholder="2800"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
 
@@ -4600,7 +4600,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rbeds}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rbeds: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="studio">{lang === "es" ? "Estudio" : "Studio"}</option>
@@ -4617,7 +4617,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rbaths}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rbaths: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="1">1+</option>
@@ -4632,7 +4632,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rtype}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rtype: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="apartment">{lang === "es" ? "Apartamento" : "Apartment"}</option>
@@ -4647,7 +4647,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rpets}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rpets: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="any">{lang === "es" ? "Se aceptan" : "Allowed"}</option>
@@ -4662,7 +4662,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rparking}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rparking: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="garage">{lang === "es" ? "Garage" : "Garage"}</option>
@@ -4679,7 +4679,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rfurnished}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rfurnished: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
@@ -4692,7 +4692,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rutilities}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rutilities: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
@@ -4705,7 +4705,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.ravailable}
                         onChange={(e) => setRentasParams((p) => ({ ...p, ravailable: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="now">{lang === "es" ? "Ahora" : "Now"}</option>
@@ -4719,7 +4719,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <select
                         value={rentasParams.rleaseterm}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rleaseterm: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="month-to-month">{lang === "es" ? "Mes a mes" : "Month-to-month"}</option>
@@ -4737,7 +4737,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setRentasParams((p) => ({ ...p, rsqmin: e.target.value }))}
                         inputMode="numeric"
                         placeholder="600"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                     <div>
@@ -4747,7 +4747,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         onChange={(e) => setRentasParams((p) => ({ ...p, rsqmax: e.target.value }))}
                         inputMode="numeric"
                         placeholder="1200"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
                       />
                     </div>
                   </div>
@@ -4784,7 +4784,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       {/* LOCATION MODAL (unchanged) */}
       {locationOpen ? (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setLocationOpen(false)} />
+          <div className="absolute inset-0 bg-white/16" onClick={() => setLocationOpen(false)} />
           <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/90 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">{UI.location[lang]}</div>
@@ -4810,7 +4810,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   }}
                   onFocus={() => setCitySuggestOpen(true)}
                   placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                 />
 
                 {citySuggestOpen ? (
@@ -4863,7 +4863,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   }}
                   placeholder={lang === "es" ? "Ej: 95116" : "e.g. 95116"}
                   inputMode="numeric"
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                 />
 
                 <div className="mt-1 text-[11px] text-gray-400">

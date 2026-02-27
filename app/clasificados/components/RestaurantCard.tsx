@@ -55,14 +55,14 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
     (mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : "");
 
   return (
-    <div className="rounded-2xl border border-yellow-400/25 bg-black/40 p-6 text-left shadow-sm">
+    <div className="rounded-2xl border border-yellow-500/25 bg-white/9 p-6 text-left shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setFav(toggleFavoriteRestaurant(r.id))}
-              className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/30 text-sm text-white hover:bg-white/10 transition"
+              className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/7 text-sm text-white hover:bg-white/10 transition"
               aria-label={fav ? label(lang, "Quitar de guardados", "Remove from saved") : label(lang, "Guardar", "Save")}
               title={fav ? label(lang, "Guardado", "Saved") : label(lang, "Guardar", "Save")}
             >
@@ -75,7 +75,7 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
               </span>
             )}
             {r.supporter && (
-              <span className="inline-flex items-center rounded-full border border-yellow-400/30 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-200">
+              <span className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-200">
                 {r.supporter}
               </span>
             )}
@@ -135,7 +135,7 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
         {has.coupons ? (
           <Link
             href={r.couponsUrl!}
-            className="inline-flex items-center justify-center rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+            className="inline-flex items-center justify-center rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
           >
             {label(lang, "Ver cupones", "View coupons")}
           </Link>
@@ -180,7 +180,7 @@ function ActionButton({
       href={href}
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer noopener" : undefined}
-      className={`${base} border-yellow-400/25 bg-black/30 text-white hover:bg-[#1a1100]`}
+      className={`${base} border-yellow-500/25 bg-white/7 text-white hover:bg-[#1a1100]`}
     >
       {text}
     </a>

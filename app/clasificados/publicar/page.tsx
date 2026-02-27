@@ -1188,13 +1188,13 @@ if (isPro && videoFile && !videoError) {
           {!checking && signedIn && (
             <>
               {/* Stepper */}
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/30 p-3">
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/7 p-3">
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70">
                   <span
                     className={cx(
                       "px-2 py-1 rounded-lg border",
                       step === "category"
-                        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+                        ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
                         : "border-white/10 bg-white/5"
                     )}
                   >
@@ -1205,7 +1205,7 @@ if (isPro && videoFile && !videoError) {
                     className={cx(
                       "px-2 py-1 rounded-lg border",
                       step === "basics"
-                        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+                        ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
                         : "border-white/10 bg-white/5"
                     )}
                   >
@@ -1216,7 +1216,7 @@ if (isPro && videoFile && !videoError) {
                     className={cx(
                       "px-2 py-1 rounded-lg border",
                       step === "details"
-                        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+                        ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
                         : "border-white/10 bg-white/5"
                     )}
                   >
@@ -1227,7 +1227,7 @@ if (isPro && videoFile && !videoError) {
                     className={cx(
                       "px-2 py-1 rounded-lg border",
                       step === "media"
-                        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+                        ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
                         : "border-white/10 bg-white/5"
                     )}
                   >
@@ -1251,7 +1251,7 @@ if (isPro && videoFile && !videoError) {
               
 
               {/* Requirements checklist (quality gate) */}
-              <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-gray-100">
@@ -1326,7 +1326,7 @@ if (isPro && videoFile && !videoError) {
 <div className="mt-6 grid gap-6">
                 {/* CATEGORY (STEP 1) */}
                 {step === "category" && (
-                  <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                  <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
                     <h2 className="text-lg font-semibold text-gray-100">{copy.categoryTitle}</h2>
                     <p className="mt-2 text-sm text-white/60">{copy.categoryNote}</p>
 
@@ -1342,8 +1342,8 @@ if (isPro && videoFile && !videoError) {
                             className={cx(
                               "rounded-2xl border px-4 py-4 text-left",
                               selected
-                                ? "border-yellow-400/40 bg-yellow-400/10"
-                                : "border-white/10 bg-black/30 hover:bg-black/40"
+                                ? "border-yellow-500/35 bg-yellow-400/10"
+                                : "border-white/10 bg-white/7 hover:bg-white/9"
                             )}
                           >
                             <div className={cx("text-sm font-semibold", selected ? "text-yellow-100" : "text-white/90")}>
@@ -1381,7 +1381,7 @@ if (isPro && videoFile && !videoError) {
 
                 {/* BASICS */}
                 {step === "basics" && (
-                  <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                  <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
                     <h2 className="text-lg font-semibold text-gray-100">{copy.basicsTitle}</h2>
                     {!isPro && category === "en-venta" && (
                       <div className="mt-4 rounded-2xl border border-white/10 bg-white/6 p-4">
@@ -1417,7 +1417,7 @@ if (isPro && videoFile && !videoError) {
                         )}
 
                         {!garage.active && typeof garage.cooldownDaysLeft === "number" && garage.cooldownDaysLeft > 0 && (
-                          <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/70">
+                          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/70">
                             {lang === "es"
                               ? `Disponible de nuevo en ${garage.cooldownDaysLeft} día(s).`
                               : `Available again in ${garage.cooldownDaysLeft} day(s).`}
@@ -1442,7 +1442,7 @@ if (isPro && videoFile && !videoError) {
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "Ex: Great-condition sofa"}
-                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-white/9 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                         />
                         {!requirements.titleOk && (
                           <div className="mt-1 text-xs text-white/40">
@@ -1462,7 +1462,7 @@ if (isPro && videoFile && !videoError) {
                               : "Describe condition, size, pickup/delivery, etc."
                           }
                           rows={5}
-                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-white/9 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                         />
                         {!requirements.descOk && (
                           <div className="mt-1 text-xs text-white/40">
@@ -1483,7 +1483,7 @@ if (isPro && videoFile && !videoError) {
                               "mt-2 w-full rounded-xl border px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2",
                               isFree
                                 ? "border-white/5 bg-white/5 text-white/50"
-                                : "border-white/10 bg-black/40 focus:ring-yellow-400/30"
+                                : "border-white/10 bg-white/9 focus:ring-yellow-400/30"
                             )}
                           />
                           {!requirements.priceOk && (
@@ -1504,8 +1504,8 @@ if (isPro && videoFile && !videoError) {
                             className={cx(
                               "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
                               isFree
-                                ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
-                                : "border-white/10 bg-black/40 text-white/80 hover:bg-black/50"
+                                ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
+                                : "border-white/10 bg-white/9 text-white/80 hover:bg-white/12"
                             )}
                           >
                             {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
@@ -1519,7 +1519,7 @@ if (isPro && videoFile && !videoError) {
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
                           placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
-                          className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-white/9 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                         />
                         {!requirements.cityOk && (
                           <div className="mt-1 text-xs text-white/40">
@@ -1551,7 +1551,7 @@ if (isPro && videoFile && !videoError) {
 
                 {/* DETAILS */}
                 {step === "details" && (
-                  <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                  <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
                     <h2 className="text-lg font-semibold text-gray-100">{copy.detailsTitle}</h2>
                     <p className="mt-2 text-sm text-white/60">
                       {lang === "es"
@@ -1559,7 +1559,7 @@ if (isPro && videoFile && !videoError) {
                         : "These details help your listing look like the top platforms. Fill only what applies."}
                     </p>
 
-                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/6 p-4">
                       <div className="text-sm text-white/70">
                         {lang === "es" ? "Categoría:" : "Category:"}{" "}
                         <span className="text-white/90 font-semibold">{category}</span>
@@ -1655,7 +1655,7 @@ if (isPro && videoFile && !videoError) {
 
                 {/* MEDIA + CONTACT + PREVIEW */}
                 {step === "media" && (
-                  <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                  <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
                     <h2 className="text-lg font-semibold text-gray-100">{copy.mediaTitle}</h2>
 
                     <div className="mt-4 grid gap-5">
@@ -1701,7 +1701,7 @@ if (isPro && videoFile && !videoError) {
                         </div>
 
                         {files.length === 0 ? (
-                          <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/55">
+                          <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/55">
                             {lang === "es" ? "Agrega por lo menos 1 foto." : "Add at least 1 photo."}
                           </div>
                         ) : (
@@ -1709,11 +1709,11 @@ if (isPro && videoFile && !videoError) {
                             {filePreviews.map((src, idx) => (
                               <div
                                 key={idx}
-                                className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20"
+                                className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5"
                               >
                                 <img src={src} alt="preview" className="h-20 w-full object-cover" />
                                 {idx === 0 && (
-                                  <div className="absolute left-1 top-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-200 border border-yellow-400/20">
+                                  <div className="absolute left-1 top-1 rounded-md bg-white/14 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-200 border border-yellow-400/20">
                                     {lang === "es" ? "Portada" : "Cover"}
                                   </div>
                                 )}
@@ -1722,7 +1722,7 @@ if (isPro && videoFile && !videoError) {
                                   <button
                                     type="button"
                                     onClick={() => removeImage(idx)}
-                                    className="rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-black/70"
+                                    className="rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-white/16"
                                     aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
                                     title={lang === "es" ? "Quitar" : "Remove"}
                                   >
@@ -1739,8 +1739,8 @@ if (isPro && videoFile && !videoError) {
                                       className={cx(
                                         "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold",
                                         idx === 0
-                                          ? "border-white/10 bg-black/40 text-white/40 cursor-not-allowed"
-                                          : "border-yellow-400/25 bg-black/60 text-yellow-200 hover:bg-black/70"
+                                          ? "border-white/10 bg-white/9 text-white/40 cursor-not-allowed"
+                                          : "border-yellow-500/25 bg-white/14 text-yellow-200 hover:bg-white/16"
                                       )}
                                       title={lang === "es" ? "Hacer portada" : "Make cover"}
                                     >
@@ -1752,7 +1752,7 @@ if (isPro && videoFile && !videoError) {
                                       disabled={idx === 0}
                                       onClick={() => moveLeft(idx)}
                                       className={cx(
-                                        "rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-black/70",
+                                        "rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-white/16",
                                         idx === 0 && "opacity-40 cursor-not-allowed"
                                       )}
                                       title={lang === "es" ? "Mover izquierda" : "Move left"}
@@ -1765,7 +1765,7 @@ if (isPro && videoFile && !videoError) {
                                       disabled={idx === filePreviews.length - 1}
                                       onClick={() => moveRight(idx)}
                                       className={cx(
-                                        "rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-black/70",
+                                        "rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-white/16",
                                         idx === filePreviews.length - 1 && "opacity-40 cursor-not-allowed"
                                       )}
                                       title={lang === "es" ? "Mover derecha" : "Move right"}
@@ -1786,7 +1786,7 @@ if (isPro && videoFile && !videoError) {
                         )}
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 relative overflow-hidden">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 relative overflow-hidden">
   <div className="flex items-start justify-between gap-3">
     <div>
       <div className="text-sm text-white/80">{copy.video}</div>
@@ -1824,7 +1824,7 @@ if (isPro && videoFile && !videoError) {
       <div>{copy.videoLocked}</div>
       <Link
         href={`/dashboard?lang=${lang}`}
-        className="shrink-0 rounded-lg border border-yellow-400/30 bg-black/30 px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-black/40"
+        className="shrink-0 rounded-lg border border-yellow-500/30 bg-white/7 px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-white/9"
       >
         {lang === "es" ? "Ver Pro" : "See Pro"}
       </Link>
@@ -1834,7 +1834,7 @@ if (isPro && videoFile && !videoError) {
   {videoError && <div className="mt-3 text-sm text-red-300">{videoError}</div>}
 
   {videoFile && !videoError && (
-    <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3">
+    <div className="mt-3 rounded-xl border border-white/10 bg-white/7 p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm text-white/75 truncate">{videoFile.name}</div>
         <button
@@ -1873,7 +1873,7 @@ if (isPro && videoFile && !videoError) {
   )}
 </div>
 
-<div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+<div className="rounded-2xl border border-white/10 bg-white/5 p-4">
 
                         <div className="text-sm text-white/80">{copy.contact}</div>
 
@@ -1890,7 +1890,7 @@ if (isPro && videoFile && !videoError) {
                               className={cx(
                                 "rounded-xl border px-3 py-2 text-sm font-semibold",
                                 contactMethod === value
-                                  ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+                                  ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
                                   : "border-white/10 bg-white/5 text-white/80 hover:bg-white/8"
                               )}
                             >
@@ -1907,7 +1907,7 @@ if (isPro && videoFile && !videoError) {
                                 value={contactPhone}
                                 onChange={(e) => setContactPhone(e.target.value)}
                                 placeholder={lang === "es" ? "Ej: 408-555-1234" : "Ex: 408-555-1234"}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                className="mt-2 w-full rounded-xl border border-white/10 bg-white/9 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               />
                               {!requirements.phoneOk && (
                                 <div className="mt-1 text-xs text-white/40">
@@ -1924,7 +1924,7 @@ if (isPro && videoFile && !videoError) {
                                 value={contactEmail}
                                 onChange={(e) => setContactEmail(e.target.value)}
                                 placeholder={lang === "es" ? "Ej: nombre@email.com" : "Ex: name@email.com"}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                className="mt-2 w-full rounded-xl border border-white/10 bg-white/9 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               />
                               {!requirements.emailOk && (
                                 <div className="mt-1 text-xs text-white/40">
@@ -1937,7 +1937,7 @@ if (isPro && videoFile && !videoError) {
                       </div>
 
                       {/* Preview */}
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-semibold text-white/80">{copy.preview}</div>
                           <div className="text-xs text-white/40">
@@ -1959,7 +1959,7 @@ if (isPro && videoFile && !videoError) {
                                 return <ListingCard item={item} />;
                               })()
                             ) : (
-                              <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/60">
+                              <div className="rounded-2xl border border-white/10 bg-white/7 p-4 text-sm text-white/60">
                                 {lang === "es" ? "(Vista previa no disponible)" : "(Preview unavailable)"}
                               </div>
                             )}
@@ -1992,7 +1992,7 @@ if (isPro && videoFile && !videoError) {
                               </div>
                             )}
                             {isPro && videoFile && (
-                              <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+                              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
                                     <div className="text-sm font-semibold text-yellow-200">
@@ -2032,13 +2032,13 @@ if (isPro && videoFile && !videoError) {
                                           loading="lazy"
                                         />
                                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                          <div className="rounded-full border border-white/20 bg-black/60 px-4 py-2 text-sm font-semibold text-white">
+                                          <div className="rounded-full border border-white/20 bg-white/14 px-4 py-2 text-sm font-semibold text-white">
                                             {lang === "es" ? "▶ Reproducir" : "▶ Play"}
                                           </div>
                                         </div>
                                       </button>
                                     ) : (
-                                      <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
                                         {lang === "es"
                                           ? "Este anuncio incluirá un video Pro al publicarse."
                                           : "This listing will include a Pro video when published."}
@@ -2059,7 +2059,7 @@ if (isPro && videoFile && !videoError) {
                             )}
 
                             {getDetailPairs(category, lang, details).length > 0 && (
-                              <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
                                 <div className="text-xs text-white/50 mb-2">
                                   {lang === "es" ? "Detalles" : "Details"}
                                 </div>

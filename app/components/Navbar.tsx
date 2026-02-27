@@ -270,7 +270,7 @@ try {
     <nav className="fixed top-0 left-0 w-full z-50">
       <div
         className="
-          backdrop-blur-md bg-black/40
+          backdrop-blur-md bg-white/9
           border-b border-white/10 py-2 px-4 sm:px-6
           flex justify-center items-center
         "
@@ -332,7 +332,7 @@ try {
               <>
                 <button
                   onClick={() => setAccountOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 hover:bg-black/40 transition"
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/7 px-3 py-1.5 hover:bg-white/9 transition"
                   aria-label={L.myAccount}
                 >
                   <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold text-xs">
@@ -341,7 +341,7 @@ try {
                   <span className="text-white/90 text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
-                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/20 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
                     {planLabel(plan, lang)}
                   </span>
                   <span className="text-white/60 text-xs">{accountOpen ? "▲" : "▼"}</span>
@@ -355,7 +355,7 @@ try {
 
 <div className="px-4 py-3 border-b border-white/10">
   <div className="text-xs text-white/80 truncate">{user?.email}</div>
-  <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/20 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+  <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
     {planLabel(plan, lang)}
   </div>
 </div>
@@ -386,7 +386,7 @@ try {
             ) : (
               <button
                 onClick={goToLogin}
-                className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-white/90 hover:bg-black/40 transition"
+                className="rounded-full border border-white/10 bg-white/7 px-4 py-2 text-white/90 hover:bg-white/9 transition"
               >
                 {L.signIn}
               </button>
@@ -409,7 +409,7 @@ try {
         <div className="fixed inset-0 z-[999]">
           {/* overlay */}
           <button
-            className="absolute inset-0 bg-black/60 backdrop-blur-[1px]"
+            className="absolute inset-0 bg-white/14 backdrop-blur-[1px]"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
@@ -452,7 +452,7 @@ try {
 ))}
 
 {/* ACCOUNT (MOBILE) — collapsible so it never pushes nav down */}
-<div className="mt-2 rounded-2xl border border-white/10 bg-black/25 overflow-hidden">
+<div className="mt-2 rounded-2xl border border-white/10 bg-white/6 overflow-hidden">
   <button
     type="button"
     onClick={() => setMobileAccountOpen((v) => !v)}
@@ -489,7 +489,7 @@ try {
             setMobileOpen(false);
             goToLogin();
           }}
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
+          className="w-full rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition"
         >
           {L.signIn}
         </button>
@@ -499,14 +499,14 @@ try {
         <div className="mt-4 flex flex-col gap-2">
           <Link
             href={`/dashboard?lang=${lang}`}
-            className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
+            className="rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition"
             onClick={() => setMobileOpen(false)}
           >
             {L.dashboard}
           </Link>
           <Link
             href={`/dashboard/mis-anuncios?lang=${lang}`}
-            className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition"
+            className="rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition"
             onClick={() => setMobileOpen(false)}
           >
             {L.myListings}
@@ -516,7 +516,7 @@ try {
               await signOut();
               setMobileOpen(false);
             }}
-            className="rounded-xl border border-white/10 bg-black/40 px-4 py-2 text-white/90 hover:bg-black/50 transition text-left"
+            className="rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition text-left"
           >
             {L.signOut}
           </button>

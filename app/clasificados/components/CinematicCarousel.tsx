@@ -66,7 +66,7 @@ export default function CinematicCarousel({ items, title, lang }: Props) {
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
-          className="bg-black/40 backdrop-blur-xl border border-yellow-700 rounded-3xl p-8 max-w-3xl shadow-[0_0_40px_rgba(255,215,0,0.25)]"
+          className="bg-white/9 backdrop-blur-xl border border-yellow-700 rounded-3xl p-8 max-w-3xl shadow-[0_0_40px_rgba(255,215,0,0.25)]"
         >
           {/* IMAGE */}
           <div className="w-full h-72 relative mb-6 rounded-xl overflow-hidden bg-black">

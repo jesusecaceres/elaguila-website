@@ -303,8 +303,8 @@ out[cat] = mixed.slice(0, limit);
       <a
         href={href}
         className={cx(
-          "block rounded-2xl border bg-black/25 backdrop-blur transition hover:bg-black/30",
-          isBusiness ? "border-yellow-400/25" : "border-white/10"
+          "block rounded-2xl border bg-white/6 backdrop-blur transition hover:bg-white/7",
+          isBusiness ? "border-yellow-500/25" : "border-white/10"
         )}
       >
         <div className="p-4">
@@ -325,7 +325,7 @@ out[cat] = mixed.slice(0, limit);
               className={cx(
                 "shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border",
                 isBusiness
-                  ? "border-yellow-400/40 text-yellow-200 bg-yellow-400/10"
+                  ? "border-yellow-500/35 text-yellow-200 bg-yellow-400/10"
                   : "border-white/10 text-gray-200 bg-white/5"
               )}
             >
@@ -355,8 +355,8 @@ out[cat] = mixed.slice(0, limit);
         // ✅ CHANGED: from lista params to dedicated category page route
         href={withCategoryRoute(cat)}
         className={cx(
-          "group block rounded-2xl border border-yellow-600/20 bg-black/25 backdrop-blur",
-          "hover:bg-black/30 transition"
+          "group block rounded-2xl border border-yellow-500/30 bg-white/6 backdrop-blur",
+          "hover:bg-white/7 transition"
         )}
       >
         <div className="p-5">
@@ -387,8 +387,8 @@ out[cat] = mixed.slice(0, limit);
     return (
       <div
         className={cx(
-          "rounded-2xl border bg-black/25 backdrop-blur p-6",
-          accent === "gold" ? "border-yellow-400/25" : "border-white/10"
+          "rounded-2xl border bg-white/6 backdrop-blur p-6",
+          accent === "gold" ? "border-yellow-500/25" : "border-white/10"
         )}
       >
         <div
@@ -421,13 +421,13 @@ out[cat] = mixed.slice(0, limit);
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
             <a
               href={withLang(t.routeLogin)}
-              className="px-4 py-2 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
+              className="px-4 py-2 text-sm rounded-full border border-yellow-500/30 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
             >
               {t.authSignIn}
             </a>
             <a
               href={withLang(t.routeLogin)}
-              className="px-4 py-2 text-sm rounded-full border border-yellow-400/30 bg-yellow-400/10 text-yellow-200 font-semibold hover:bg-yellow-400/15 transition"
+              className="px-4 py-2 text-sm rounded-full border border-yellow-500/30 bg-yellow-400/10 text-yellow-200 font-semibold hover:bg-yellow-400/15 transition"
             >
               {t.authCreate}
             </a>
@@ -452,7 +452,7 @@ out[cat] = mixed.slice(0, limit);
 
             <Link
               href={withListParams()}
-              className="px-5 py-2.5 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/30 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
               aria-label={t.ctaView}
             >
               {t.ctaView}
@@ -460,7 +460,7 @@ out[cat] = mixed.slice(0, limit);
 
             <Link
               href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/30 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
               aria-label={t.ctaMemberships}
             >
               {t.ctaMemberships}
@@ -510,7 +510,7 @@ out[cat] = mixed.slice(0, limit);
             return (
               <div
                 key={cat}
-                className="border border-yellow-600/20 bg-black/20 rounded-2xl p-6"
+                className="border border-yellow-500/30 bg-white/5 rounded-2xl p-6"
               >
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
@@ -523,7 +523,7 @@ out[cat] = mixed.slice(0, limit);
                   <a
                     // ✅ CHANGED: from lista params to dedicated category page route
                     href={withCategoryRoute(cat)}
-                    className="px-4 py-2 text-sm rounded-full border border-yellow-600/20 bg-black/25 text-gray-100 font-semibold hover:bg-black/30 transition"
+                    className="px-4 py-2 text-sm rounded-full border border-yellow-500/30 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
                   >
                     {t.viewMore} →
                   </a>
@@ -553,7 +553,7 @@ out[cat] = mixed.slice(0, limit);
 
       {/* MEMBERSHIPS (benefits only, no prices) */}
       <section id="memberships" className="max-w-6xl mx-auto px-6 mt-16">
-        <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/35">
+        <div className="border border-yellow-500/30 rounded-2xl p-8 bg-white/8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">

@@ -154,7 +154,7 @@ export default function FilterBar({
       <div
         className={cx(
           "mt-6 rounded-2xl border",
-          "border-yellow-600/15 bg-black/35 shadow-sm",
+          "border-yellow-500/30 bg-white/8 shadow-sm",
           "px-4 py-4 md:px-6",
           // With the sticky quick actions bar above, keep filters below it on mobile
           "sticky top-[124px] z-30 backdrop-blur-md md:static"
@@ -164,7 +164,7 @@ export default function FilterBar({
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
           {/* Search */}
           <div className="flex-1">
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
               <span className="text-white/40 text-sm">⌕</span>
               <input
                 value={q}
@@ -178,7 +178,7 @@ export default function FilterBar({
 
           {/* Location */}
           <div className="flex gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
               <span className="text-white/40 text-sm">📍</span>
               <input
                 value={city}
@@ -200,7 +200,7 @@ export default function FilterBar({
                 setRadius(v);
                 pushNow({ radius: v });
               }}
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-gray-100 outline-none"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none"
               aria-label={t.radius}
             >
               <option value="">{t.radiusAny}</option>
@@ -221,7 +221,7 @@ export default function FilterBar({
                 setCat(v);
                 pushNow({ cat: v });
               }}
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-gray-100 outline-none"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none"
               aria-label={t.category}
             >
               {categories.map((k) => (
@@ -238,7 +238,7 @@ export default function FilterBar({
                 setSort(v);
                 pushNow({ sort: v });
               }}
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-gray-100 outline-none"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none"
               aria-label={t.sort}
             >
               <option value="newest">{t.sortNewest}</option>
@@ -252,8 +252,8 @@ export default function FilterBar({
               onClick={() => setDrawerOpen(true)}
               className={cx(
                 "md:hidden",
-                "rounded-xl border border-white/10 bg-black/20 px-3 py-2",
-                "text-sm font-semibold text-gray-100 hover:bg-black/25 transition"
+                "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
+                "text-sm font-semibold text-gray-100 hover:bg-white/6 transition"
               )}
             >
               {t.filters}
@@ -274,8 +274,8 @@ export default function FilterBar({
               type="button"
               onClick={() => setDrawerOpen(true)}
               className={cx(
-                "rounded-xl border border-white/10 bg-black/20 px-3 py-2",
-                "text-sm font-semibold text-gray-100 hover:bg-black/25 transition"
+                "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
+                "text-sm font-semibold text-gray-100 hover:bg-white/6 transition"
               )}
             >
               {t.filters}
@@ -348,7 +348,7 @@ export default function FilterBar({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-black/45 transition"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/10 transition"
               >
                 {lang === "es" ? "Listo" : "Done"}
               </button>

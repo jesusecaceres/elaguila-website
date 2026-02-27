@@ -67,7 +67,7 @@ export default function FiltersSidebar({
           onClick={onToggleCollapsed}
           className={cx(
             "h-full w-full rounded-2xl border",
-            "border-yellow-600/15 bg-black/35 hover:bg-black/45 transition",
+            "border-yellow-500/30 bg-white/8 hover:bg-white/10 transition",
             "flex items-center justify-center"
           )}
           aria-label={t.filters}
@@ -84,7 +84,7 @@ export default function FiltersSidebar({
           </div>
         </button>
       ) : (
-        <div className="rounded-2xl border border-yellow-600/15 bg-black/35 p-4">
+        <div className="rounded-2xl border border-yellow-500/30 bg-white/8 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-gray-100">
@@ -95,7 +95,7 @@ export default function FiltersSidebar({
             <button
               type="button"
               onClick={onToggleCollapsed}
-              className="rounded-xl border border-yellow-600/15 bg-black/35 px-2 py-1 text-xs text-gray-200 hover:bg-black/45 transition"
+              className="rounded-xl border border-yellow-500/30 bg-white/8 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
               aria-label={t.filters}
               title={t.filters}
             >
@@ -104,14 +104,14 @@ export default function FiltersSidebar({
           </div>
 
           <div className="mt-4 space-y-3">
-            <div className="rounded-xl border border-yellow-600/10 bg-black/25 p-3">
+            <div className="rounded-xl border border-yellow-600/10 bg-white/6 p-3">
               <div className="text-xs font-semibold text-gray-200">
                 {lang === "es" ? "Filtros principales" : "Primary filters"}
               </div>
               <div className="mt-2 text-xs text-gray-400">{t.placeholder}</div>
             </div>
 
-            <div className="rounded-xl border border-yellow-600/10 bg-black/25 p-3">
+            <div className="rounded-xl border border-yellow-600/10 bg-white/6 p-3">
               <div className="text-xs font-semibold text-gray-200">
                 {lang === "es" ? "Más filtros" : "More filters"}
               </div>
