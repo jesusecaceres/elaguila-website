@@ -1020,6 +1020,47 @@ async function publish() {
         return;
       }
 
+      let descriptionForUpdate = finalDescription;
+
+      // Upload photos (required). Store URLs in description to avoid schema guessing.
+      const photoUrls: string[] = [];
+      try {
+        const basePath = `${userId}/${id}/photos`;
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
+          const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
+          const path = `${basePath}/${String(i + 1).padStart(2, "0")}.${safeExt}`;
+
+          const up = await supabase.storage
+            .from("listing-images")
+            .upload(path, f, { upsert: true, contentType: f.type || "image/jpeg" });
+
+          if (up.error) {
+            console.warn("photo upload failed", up.error.message);
+            continue;
+          }
+          const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+          if (url) photoUrls.push(url);
+        }
+
+        if (photoUrls.length) {
+          const marker =
+            `[LEONIX_IMAGES]\n` + photoUrls.map((u) => `url=${u}`).join("\n") + `\n[/LEONIX_IMAGES]`;
+
+          const photosAppendix =
+            lang === "es"
+              ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
+              : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
+
+          descriptionForUpdate = (descriptionForUpdate + photosAppendix).trim();
+
+          await supabase.from("listings").update({ description: descriptionForUpdate }).eq("id", id);
+        }
+      } catch (e: any) {
+        // If photo upload fails, don't crash the publish flow; listing is already live.
+        console.warn("photo upload error", e?.message || e);
+      }
       // Optimistic local count update for Free En Venta caps (keeps UI in sync without extra fetch).
       if (!isPro && category === "en-venta" && typeof enVentaActiveCount === "number") {
         setEnVentaActiveCount((prev) => (typeof prev === "number" ? prev + 1 : prev));
@@ -1067,8 +1108,10 @@ if (isPro && videoFile && !videoError) {
 
       await supabase
         .from("listings")
-        .update({ description: (finalDescription + videoAppendix).trim() })
+        .update({ description: (descriptionForUpdate + videoAppendix).trim() })
         .eq("id", id);
+
+      descriptionForUpdate = (descriptionForUpdate + videoAppendix).trim();
     }
   } catch (e: any) {
     // Don't fail the publish for video issues; keep listing live.

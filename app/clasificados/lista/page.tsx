@@ -16,6 +16,25 @@ import {
 } from "../../data/locations/norcal";
 import { SAMPLE_LISTINGS } from "../../data/classifieds/sampleListings";
 
+const RADIUS_OPTIONS = [10, 25, 40, 50] as const;
+
+function clampRadiusMi(n: number) {
+  if (!Number.isFinite(n)) return DEFAULT_RADIUS_MI;
+  const v = Math.max(1, Math.round(n));
+  const opts = Array.from(RADIUS_OPTIONS);
+  if (opts.includes(v as any)) return v;
+  let best = opts[0];
+  let bestD = Math.abs(v - best);
+  for (const o of opts) {
+    const d = Math.abs(v - o);
+    if (d < bestD) {
+      bestD = d;
+      best = o;
+    }
+  }
+  return best;
+}
+
 type Lang = "es" | "en";
 
 type CategoryKey =
@@ -1209,9 +1228,9 @@ useEffect(() => {
     const pView = params?.get("view") ?? null;
 
     if (pQ) setQ(pQ);
-    if (pCity) setCity(pCity);
-    if (pZip) setZip(pZip);
-    if (pR && Number.isFinite(Number(pR))) setRadiusMi(Number(pR));
+    if (pCity) setCity(canonicalizeCity(pCity));
+    if (pZip) setZip(pZip.replace(/\D/g, "").slice(0, 5));
+    if (pR && Number.isFinite(Number(pR))) setRadiusMi(clampRadiusMi(Number(pR)));
 
     if (pCat && isCategoryKey(pCat)) setCategory(pCat as CategoryKey);
 
@@ -1958,8 +1977,8 @@ const visible = useMemo(() => {
       zip: zipMode ? zipClean : null,
       city: zipMode
         ? null
-        : normalize(city) && normalize(city) !== normalize(DEFAULT_CITY)
-          ? city
+        : resolvedCity.from !== "default" && normalize(resolvedCity.name) !== normalize(DEFAULT_CITY)
+          ? resolvedCity.name
           : null,
 
       // ✅ Rentas params are preserved in URL only when cat=rentas
