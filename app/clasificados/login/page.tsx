@@ -6,11 +6,11 @@ import { useSearchParams } from "next/navigation";
 type Lang = "es" | "en";
 
 export default function ClasificadosLoginRedirect() {
-  const searchParams = useSearchParams()!;
+  const searchParams = useSearchParams();
 
   const redirectTo = useMemo(() => {
-    const lang = (searchParams.get("lang") as Lang) || "es";
-    return searchParams.get("redirect") || `/clasificados/publicar?lang=${lang}`;
+    const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+    return searchParams?.get("redirect") || `/clasificados/publicar?lang=${lang}`;
   }, [searchParams]);
 
   useEffect(() => {
