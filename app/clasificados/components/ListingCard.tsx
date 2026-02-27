@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { ClassifiedItem } from "../../data/classifieds";
 import { isVerifiedSeller } from "./verifiedSeller";
 import ProBadge from "./ProBadge";
 import { isProListing } from "./planHelpers";
+import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "./savedListings";
 
 type Lang = "es" | "en";
 
@@ -23,10 +26,20 @@ export default function ListingCard({
 
   const postedLabel = lang === "es" ? "Publicado" : "Posted";
 
+  const [saved, setSaved] = useState<boolean>(() => isListingSaved(item.id));
+
+  useEffect(() => {
+    // Keep in sync if user saves/unsaves in another card/tab
+    return onSavedListingsChange(() => setSaved(isListingSaved(item.id)));
+  }, [item.id]);
+
+  const saveText = saved ? (lang === "es" ? "Guardado" : "Saved") : (lang === "es" ? "Guardar" : "Save");
+
+
   return (
     <div
       className={cx(
-        "rounded-2xl border",
+        "relative rounded-2xl border",
         // Warmer, premium card tone (no harsh white panels)
         "border-yellow-600/15 bg-black/35",
         "p-4 sm:p-5",
@@ -34,6 +47,23 @@ export default function ListingCard({
         "hover:-translate-y-[1px] hover:bg-black/45 hover:border-yellow-500/25"
       )}
     >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setSaved(toggleListingSaved(item.id));
+        }}
+        className={cx(
+          "absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold transition",
+          "border-white/10 bg-black/50 text-gray-100 hover:bg-black/70"
+        )}
+        aria-label={saveText}
+        title={saveText}
+      >
+        {saved ? "★" : "☆"} {saveText}
+      </button>
+
       <h3 className="mb-1 text-base sm:text-lg font-semibold text-gray-100 leading-snug">
         {item.title}
       </h3>

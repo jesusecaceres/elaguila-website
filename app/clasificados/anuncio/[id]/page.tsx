@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
 import newLogo from "../../../../public/logo.png";
@@ -11,6 +11,7 @@ import { extractProVideoInfo } from "../../components/proVideo";
 import ProBadge from "../../components/ProBadge";
 import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
+import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "../../components/savedListings";
 
 type Lang = "es" | "en";
 
@@ -151,6 +152,50 @@ export default function AnuncioDetallePage() {
     if (!id) return undefined;
     return (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
   }, [params?.id]);
+  const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
+
+  useEffect(() => {
+    if (!listing) return;
+    return onSavedListingsChange(() => setSaved(isListingSaved(listing.id)));
+  }, [listing?.id]);
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert(lang === "es" ? "Copiado." : "Copied.");
+    } catch {
+      // Fallback: prompt
+      window.prompt(lang === "es" ? "Copia este enlace:" : "Copy this link:", text);
+    }
+  };
+
+  const buildShareMessage = () => {
+    if (!listing) return "";
+    const title = listing.title[lang];
+    const price = listing.priceLabel[lang];
+    const city = listing.city;
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    return `${title} — ${price} (${city})\n${url}`;
+  };
+
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const title = listing ? listing.title[lang] : (lang === "es" ? "Anuncio" : "Listing");
+    const text = listing ? listing.blurb[lang] : "";
+    const nav: any = navigator as any;
+
+    try {
+      if (nav?.share) {
+        await nav.share({ title, text, url });
+        return;
+      }
+    } catch {
+      // ignore and fall back
+    }
+
+    await copyText(url || buildShareMessage());
+  };
+
 
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
@@ -431,6 +476,41 @@ export default function AnuncioDetallePage() {
               <div className="text-xl font-bold text-gray-100">{t.actionsTitle}</div>
 
               <div className="mt-4 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => listing && setSaved(toggleListingSaved(listing.id))}
+                  className={cx(
+                    "w-full px-5 py-3 rounded-full font-semibold transition border",
+                    "border-white/10 bg-black/40 text-gray-100 hover:bg-black/55"
+                  )}
+                >
+                  {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : (lang === "es" ? "☆ Guardar" : "☆ Save")}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-white/10 bg-black/40 text-gray-100 hover:bg-black/55"
+                >
+                  {lang === "es" ? "Compartir" : "Share"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => copyText(typeof window !== "undefined" ? window.location.href : "")}
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-white/10 bg-black/40 text-gray-100 hover:bg-black/55"
+                >
+                  {lang === "es" ? "Copiar enlace" : "Copy link"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => copyText(buildShareMessage())}
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-white/10 bg-black/40 text-gray-100 hover:bg-black/55"
+                >
+                  {lang === "es" ? "Copiar info" : "Copy info"}
+                </button>
+
                 <button
                   disabled={!isAuthed}
                   title={!isAuthed ? t.locked : ""}
