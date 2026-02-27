@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageHero from "../../components/PageHero";
+import ContactActions from "../../clasificados/components/ContactActions";
 import ReviewsPanel from "../components/ReviewsPanel";
 import SpecialsCard from "../components/SpecialsCard";
 import FavoriteButton from "../components/FavoriteButton";
@@ -166,41 +167,15 @@ const nearby = (restaurants || [])
 
                 {/* Quick actions */}
                 <div className="flex flex-wrap gap-2 md:justify-end">
-                  {phoneTel ? (
-                    <a
-                      href={`tel:${phoneTel}`}
-                      className="px-4 py-2 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
-                    >
-                      Call
-                    </a>
-                  ) : null}
-                  {r.text ? (
-                    <a
-                      href={`sms:${formatPhoneForTel(r.text)}`}
-                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                    >
-                      Text
-                    </a>
-                  ) : null}
-                  {r.email ? (
-                    <a
-                      href={`mailto:${r.email}`}
-                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                    >
-                      Email
-                    </a>
-                  ) : null}
+                  <ContactActions
+                    lang="en"
+                    phone={r.phone}
+                    text={r.text}
+                    email={r.email}
+                    mapsUrl={mapsUrl}
+                    website={r.website}
+                  />
 
-                  {mapsUrl ? (
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                    >
-                      Directions
-                    </a>
-                  ) : null}
                   {menuUrl ? (
                     <a
                       href={menuUrl}

@@ -12,6 +12,7 @@ import ProBadge from "../../components/ProBadge";
 import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "../../components/savedListings";
+import ContactActions from "../../components/ContactActions";
 
 type Lang = "es" | "en";
 
@@ -586,25 +587,8 @@ export default function AnuncioDetallePage() {
               <div className="text-xl font-bold text-white">{t.contactTitle}</div>
               <div className="mt-3 text-white">{t.contactBody}</div>
 
-              <div className="mt-5 flex flex-col gap-3">
-                <button
-                  disabled
-                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-white font-semibold cursor-not-allowed"
-                >
-                  {lang === "es" ? "Llamar" : "Call"}
-                </button>
-                <button
-                  disabled
-                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-white font-semibold cursor-not-allowed"
-                >
-                  {lang === "es" ? "Enviar mensaje" : "Message"}
-                </button>
-                <button
-                  disabled
-                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-white font-semibold cursor-not-allowed"
-                >
-                  {lang === "es" ? "Solicitar info" : "Request info"}
-                </button>
+              <div className="mt-5">
+                <ContactActions lang={lang} showDisabled />
               </div>
 
               <div className="mt-4 text-xs text-white">
