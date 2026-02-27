@@ -281,13 +281,13 @@ function NavbarContent() {
     <nav className="fixed top-0 left-0 w-full z-50">
       <div
         className="
-          backdrop-blur-md bg-white/10
-          border-b border-white/15 py-2 px-4 sm:px-6
+          backdrop-blur-sm bg-black/70
+          border-b border-white/10 py-2 px-4 sm:px-6
           flex flex-wrap items-center gap-x-4 gap-y-2
         "
       >
         {/* DESKTOP MENU */}
-        <div className="hidden md:flex gap-6 text-white text-[15px] font-semibold tracking-tight">
+        <div className="hidden md:flex flex-wrap gap-x-3 gap-y-2 text-white text-[14px] font-semibold tracking-tight">
           {navLinks.map((item, i) => {
             const active = isActive(item.href);
             return (
@@ -311,7 +311,7 @@ function NavbarContent() {
         </div>
 
         {/* RIGHT SIDE (LANG + ACCOUNT) */}
-        <div className="hidden md:flex items-center gap-4 absolute right-6 text-sm">
+        <div className="hidden md:flex items-center gap-3 text-sm ml-auto">
           {/* LANGUAGE TOGGLE */}
           <div className="flex gap-3 items-center">
             <button
@@ -349,10 +349,10 @@ function NavbarContent() {
                   <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/45 flex items-center justify-center text-yellow-200 font-bold text-xs">
                     {initials}
                   </div>
-                  <span className="text-white/90 text-xs max-w-[140px] truncate">
+                  <span className="hidden lg:inline text-white/90 text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
-                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                  <span className="hidden xl:inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
                     {planLabel(plan, lang)}
                   </span>
                   <span className="text-white text-xs">{accountOpen ? "▲" : "▼"}</span>
@@ -364,7 +364,7 @@ function NavbarContent() {
                     role="menu"
                   >
 
-<div className="px-4 py-3 border-b border-white/15">
+<div className="px-4 py-3 border-b border-white/10">
   <div className="text-xs text-white truncate">{user?.email}</div>
   <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
     {planLabel(plan, lang)}
