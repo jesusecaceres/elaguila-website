@@ -3295,7 +3295,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "mt-6 transition-opacity duration-200",
             "md:grid md:items-start md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[64px,minmax(0,1fr)]" : "md:grid-cols-[minmax(200px,240px),minmax(0,1fr)]",
+            filtersCollapsed ? "md:grid-cols-[56px,minmax(0,1fr)]" : "md:grid-cols-[minmax(180px,220px),minmax(0,1fr)]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >

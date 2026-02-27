@@ -283,7 +283,7 @@ function NavbarContent() {
         className="
           backdrop-blur-md bg-white/10
           border-b border-white/15 py-2 px-4 sm:px-6
-          flex justify-center items-center
+          flex flex-wrap items-center gap-x-4 gap-y-2
         "
       >
         {/* DESKTOP MENU */}

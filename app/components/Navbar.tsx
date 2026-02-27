@@ -272,11 +272,11 @@ try {
         className="
           backdrop-blur-md bg-white/10
           border-b border-white/15 py-2 px-4 sm:px-6
-          flex justify-center items-center
+          flex flex-wrap items-center gap-x-4 gap-y-2
         "
       >
         {/* DESKTOP MENU */}
-        <div className="hidden xl:flex gap-6 text-white text-[15px] font-semibold tracking-tight">
+        <div className="hidden sm:flex flex-wrap gap-x-4 gap-y-2 text-white text-[clamp(12px,1.05vw,15px)] font-semibold tracking-tight">
           {navLinks.map((item, i) => {
             const active = isActive(item.href);
             return (
@@ -300,7 +300,7 @@ try {
         </div>
 
         {/* RIGHT SIDE (LANG + ACCOUNT) */}
-        <div className="hidden xl:flex items-center gap-4 absolute right-6 text-sm">
+        <div className="hidden sm:flex items-center gap-3 ml-auto text-[clamp(11px,0.95vw,13px)]">
           {/* LANGUAGE TOGGLE */}
           <div className="flex gap-3 items-center">
             <button
@@ -396,7 +396,7 @@ try {
 
         {/* MOBILE HAMBURGER */}
         <button
-          className="xl:hidden text-white text-xl absolute right-6"
+          className="sm:hidden ml-auto text-white text-xl"
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
         >
