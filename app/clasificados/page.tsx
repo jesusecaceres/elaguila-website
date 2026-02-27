@@ -68,6 +68,7 @@ export default function ClasificadosPage() {
         ctaPost: "Publicar anuncio",
         ctaView: "Ver anuncios",
         ctaMemberships: "Membresías",
+        ctaPricing: "Ver opciones y precios",
 
         sectionBrowse: "Explorar por categoría",
         sectionFeatured: "Destacados por categoría",
@@ -138,6 +139,7 @@ export default function ClasificadosPage() {
         ctaPost: "Post listing",
         ctaView: "View listings",
         ctaMemberships: "Memberships",
+        ctaPricing: "See options & pricing",
 
         sectionBrowse: "Browse by category",
         sectionFeatured: "Featured by category",
@@ -207,7 +209,15 @@ export default function ClasificadosPage() {
     return withLang(`/clasificados/${cat}`);
   };
 
-  const withListParams = (cat?: CategoryKey) => {
+  
+  const withAccountMemberships = () => {
+    const target = `/clasificados/cuenta?lang=${lang}`;
+    const sp = new URLSearchParams();
+    sp.set("redirect", target);
+    return `/login?${sp.toString()}`;
+  };
+
+const withListParams = (cat?: CategoryKey) => {
     const base = t.routeList;
     const sp = new URLSearchParams();
     sp.set("lang", lang);
@@ -564,6 +574,14 @@ out[cat] = mixed.slice(0, limit);
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlanCard title={t.freeTitle} bullets={t.freeBullets} />
             <PlanCard title={t.proTitle} bullets={t.proBullets} accent="gold" />
+          </div>
+          <div className="mt-4 flex justify-start">
+            <Link
+              href={withAccountMemberships()}
+              className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/10 transition"
+            >
+              {t.ctaPricing} →
+            </Link>
           </div>
         </div>
       </section>
