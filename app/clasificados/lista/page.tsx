@@ -3917,14 +3917,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </span>
                 </div>
                 {category !== "all" ? (
-                  <a
-                    href={`/clasificados/${category}?lang=${lang}${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
-                    className="mt-1 inline-block text-xs text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
-                  >
-                    {lang === "es"
-                      ? `Ver anuncios de ${CATEGORY_LABELS[category].es}`
-                      : `View ${CATEGORY_LABELS[category].en} listings`}
-                  </a>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <a
+                      href={`/clasificados/lista?lang=${lang}&cat=${category}${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
+                      className="inline-block text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
+                    >
+                      {lang === "es"
+                        ? `Ver anuncios de ${CATEGORY_LABELS[category].es}`
+                        : `View ${CATEGORY_LABELS[category].en} listings`}
+                    </a>
+
+                    <span className="text-gray-500">•</span>
+
+                    <a
+                      href={`/clasificados/lista?lang=${lang}&cat=all${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
+                      className="inline-block text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
+                    >
+                      {lang === "es" ? "Ver todos los anuncios" : "View all listings"}
+                    </a>
+                  </div>
                 ) : null}
 
                 <div className="text-xs font-medium text-gray-300">
@@ -4353,7 +4364,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         href={`/clasificados/lista?lang=${lang}&cat=${category !== "all" ? category : "all"}&seller=business`}
         className="text-xs text-yellow-200/90 underline underline-offset-4 hover:text-yellow-200"
       >
-        {lang === "es" ? "Ver todos" : "View all"}
+        {lang === "es" ? "Ver todos los negocios" : "View all businesses"}
       </a>
     </div>
 
