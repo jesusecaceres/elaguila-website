@@ -88,7 +88,7 @@ export default function CinematicCarousel({ items, title, lang }: Props) {
 
           {/* DATE */}
           {current.date && (
-            <p className="text-white/70 text-sm mb-4">{current.date}</p>
+            <p className="text-white text-sm mb-4">{current.date}</p>
           )}
 
           {/* VIEW BUTTON */}

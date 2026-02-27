@@ -81,11 +81,11 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
             )}
           </div>
 
-          <div className="mt-1 text-sm text-gray-300">
+          <div className="mt-1 text-sm text-white">
             {[r.cuisine, r.city].filter(Boolean).join(" • ")}
           </div>
 
-          {r.address && <div className="mt-2 text-sm text-gray-400">{r.address}</div>}
+          {r.address && <div className="mt-2 text-sm text-white">{r.address}</div>}
         </div>
       </div>
 

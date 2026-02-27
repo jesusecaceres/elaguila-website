@@ -170,7 +170,7 @@ export default function FilterBar({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t.search}
-                className="w-full bg-transparent outline-none text-gray-100 placeholder:text-white/40 text-sm"
+                className="w-full bg-transparent outline-none text-white placeholder:text-white/40 text-sm"
                 aria-label={t.search}
               />
             </div>
@@ -188,7 +188,7 @@ export default function FilterBar({
                   pushNow({ city: v });
                 }}
                 placeholder={t.location}
-                className="w-[150px] bg-transparent outline-none text-gray-100 placeholder:text-white/40 text-sm"
+                className="w-[150px] bg-transparent outline-none text-white placeholder:text-white/40 text-sm"
                 aria-label={t.location}
               />
             </div>
@@ -200,7 +200,7 @@ export default function FilterBar({
                 setRadius(v);
                 pushNow({ radius: v });
               }}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
               aria-label={t.radius}
             >
               <option value="">{t.radiusAny}</option>
@@ -221,7 +221,7 @@ export default function FilterBar({
                 setCat(v);
                 pushNow({ cat: v });
               }}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
               aria-label={t.category}
             >
               {categories.map((k) => (
@@ -238,7 +238,7 @@ export default function FilterBar({
                 setSort(v);
                 pushNow({ sort: v });
               }}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-100 outline-none"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
               aria-label={t.sort}
             >
               <option value="newest">{t.sortNewest}</option>
@@ -253,7 +253,7 @@ export default function FilterBar({
               className={cx(
                 "md:hidden",
                 "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
-                "text-sm font-semibold text-gray-100 hover:bg-white/6 transition"
+                "text-sm font-semibold text-white hover:bg-white/6 transition"
               )}
             >
               {t.filters}
@@ -263,8 +263,8 @@ export default function FilterBar({
 
         {/* Context line */}
         <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div className="text-xs text-gray-400">
-            <span className="text-gray-200 font-semibold">{cfg.label[lang]}</span>
+          <div className="text-xs text-white">
+            <span className="text-white font-semibold">{cfg.label[lang]}</span>
             {contextLine ? <span className="ml-2">{contextLine}</span> : null}
           </div>
 
@@ -275,7 +275,7 @@ export default function FilterBar({
               onClick={() => setDrawerOpen(true)}
               className={cx(
                 "rounded-xl border border-white/10 bg-white/5 px-3 py-2",
-                "text-sm font-semibold text-gray-100 hover:bg-white/6 transition"
+                "text-sm font-semibold text-white hover:bg-white/6 transition"
               )}
             >
               {t.filters}
@@ -308,12 +308,12 @@ export default function FilterBar({
                 <div className="text-white font-semibold">
                   {t.drawerTitle} • {cfg.label[lang]}
                 </div>
-                <div className="mt-1 text-xs text-gray-400">{t.drawerHint}</div>
+                <div className="mt-1 text-xs text-white">{t.drawerHint}</div>
               </div>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="text-white/80 text-2xl"
+                className="text-white text-2xl"
                 aria-label={t.close}
               >
                 ×
@@ -322,10 +322,10 @@ export default function FilterBar({
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs font-semibold text-gray-100">
+                <div className="text-xs font-semibold text-white">
                   {lang === "es" ? "Filtros principales" : "Primary filters"}
                 </div>
-                <div className="mt-2 text-xs text-gray-400">
+                <div className="mt-2 text-xs text-white">
                   {lang === "es"
                     ? "Precio, recámaras, año, salario… (según la categoría)"
                     : "Price, beds, year, salary… (by category)"}
@@ -333,10 +333,10 @@ export default function FilterBar({
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs font-semibold text-gray-100">
+                <div className="text-xs font-semibold text-white">
                   {lang === "es" ? "Más filtros" : "More filters"}
                 </div>
-                <div className="mt-2 text-xs text-gray-400">
+                <div className="mt-2 text-xs text-white">
                   {lang === "es"
                     ? "Condición, tipo de vendedor, con foto…"
                     : "Condition, seller type, has photo…"}
@@ -348,7 +348,7 @@ export default function FilterBar({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/10 transition"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
               >
                 {lang === "es" ? "Listo" : "Done"}
               </button>

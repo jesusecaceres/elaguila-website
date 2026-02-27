@@ -83,14 +83,14 @@ function Tile({
               </span>
             ) : null}
             {comingSoon ? (
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-gray-200">
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-white">
                 Coming soon
               </span>
             ) : null}
           </div>
-          <div className="mt-1 text-sm text-gray-300">{desc}</div>
+          <div className="mt-1 text-sm text-white">{desc}</div>
         </div>
-        <div className="mt-0.5 shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-200 group-hover:bg-white/10">
+        <div className="mt-0.5 shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white group-hover:bg-white/10">
           Ver
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function TravelPage() {
           <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-yellow-400/10 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-6 pt-28 pb-10 text-center">
+        <div className="relative mx-auto max-w-screen-2xl px-6 pt-28 pb-10 text-center">
           <div className="mx-auto w-fit">
             <Image
               src={newLogo}
@@ -167,7 +167,7 @@ export default function TravelPage() {
           <h1 className="mt-6 text-5xl font-extrabold tracking-tight text-yellow-400 md:text-6xl">
             {t.title}
           </h1>
-          <p className="mx-auto mt-4 max-w-3xl text-base text-gray-300 md:text-lg">
+          <p className="mx-auto mt-4 max-w-3xl text-base text-white md:text-lg">
             {t.subtitle}
           </p>
 
@@ -175,7 +175,7 @@ export default function TravelPage() {
             <div className="text-sm font-semibold text-yellow-200">
               {lang === "en" ? "Trust" : "Confianza"}
             </div>
-            <div className="mt-1 text-sm text-gray-300">{t.trust}</div>
+            <div className="mt-1 text-sm text-white">{t.trust}</div>
           </div>
 
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
@@ -196,13 +196,13 @@ export default function TravelPage() {
       </section>
 
       {/* SECTIONS */}
-      <section className="mx-auto max-w-6xl px-6 pb-16">
+      <section className="mx-auto max-w-screen-2xl px-6 pb-16">
         <div className="mt-6 rounded-2xl border border-yellow-500/35 bg-black/30 p-6">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-2xl font-extrabold text-yellow-200 md:text-3xl">
               {t.sectionsTitle}
             </h2>
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-white">
               {lang === "en"
                 ? "Choose a lane — all routes open in the Travel listings engine."
                 : "Elige una opción — todo abre dentro del buscador de Viajes."}
@@ -281,7 +281,7 @@ export default function TravelPage() {
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="text-sm font-bold text-white">{t.noteTitle}</div>
-            <div className="mt-2 text-sm text-gray-300">{t.noteBody}</div>
+            <div className="mt-2 text-sm text-white">{t.noteBody}</div>
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">

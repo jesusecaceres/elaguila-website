@@ -95,7 +95,7 @@ export default function ClasificadosCuentaPage() {
     return (
       <div className="min-h-screen bg-black text-white">
         <Navbar />
-        <div className="mx-auto max-w-4xl px-4 py-16 text-gray-200">…</div>
+        <div className="mx-auto max-w-4xl px-4 py-16 text-white">…</div>
       </div>
     );
   }
@@ -106,16 +106,16 @@ export default function ClasificadosCuentaPage() {
       <main className="mx-auto max-w-5xl px-4 py-10">
         <div className="mb-6">
           <div className="text-3xl font-extrabold text-yellow-200">{t.title}</div>
-          <div className="mt-2 text-sm text-gray-300">{t.note}</div>
+          <div className="mt-2 text-sm text-white">{t.note}</div>
           <div className="mt-4">
-            <Link href={`/clasificados?lang=${lang}`} className="text-sm text-gray-200 underline underline-offset-4">
+            <Link href={`/clasificados?lang=${lang}`} className="text-sm text-white underline underline-offset-4">
               {t.back}
             </Link>
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <div className="text-sm font-semibold text-gray-100">{t.modeLabel}</div>
+          <div className="text-sm font-semibold text-white">{t.modeLabel}</div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -124,7 +124,7 @@ export default function ClasificadosCuentaPage() {
                 "rounded-xl border px-4 py-2 text-sm font-semibold transition " +
                 (mode === "personal"
                   ? "border-yellow-400/55 bg-yellow-500/10 text-yellow-200"
-                  : "border-white/10 bg-black/20 text-gray-100 hover:bg-white/5")
+                  : "border-white/10 bg-black/20 text-white hover:bg-white/5")
               }
             >
               {t.personal}
@@ -136,7 +136,7 @@ export default function ClasificadosCuentaPage() {
                 "rounded-xl border px-4 py-2 text-sm font-semibold transition " +
                 (mode === "business"
                   ? "border-yellow-400/55 bg-yellow-500/10 text-yellow-200"
-                  : "border-white/10 bg-black/20 text-gray-100 hover:bg-white/5")
+                  : "border-white/10 bg-black/20 text-white hover:bg-white/5")
               }
             >
               {t.business}
@@ -146,21 +146,21 @@ export default function ClasificadosCuentaPage() {
           {mode === "personal" ? (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                <div className="text-lg font-bold text-gray-100">{t.freeTitle}</div>
-                <div className="mt-2 text-sm text-gray-300">{t.freeHint}</div>
+                <div className="text-lg font-bold text-white">{t.freeTitle}</div>
+                <div className="mt-2 text-sm text-white">{t.freeHint}</div>
               </div>
               <div className="rounded-2xl border border-yellow-400/25 bg-yellow-500/10 p-5">
                 <div className="text-lg font-bold text-yellow-200">{t.proTitle}</div>
-                <div className="mt-2 text-sm text-gray-200">{t.proHint}</div>
+                <div className="mt-2 text-sm text-white">{t.proHint}</div>
               </div>
             </div>
           ) : (
             <div className="mt-6">
-              <div className="text-sm font-semibold text-gray-100">{t.pickCat}</div>
+              <div className="text-sm font-semibold text-white">{t.pickCat}</div>
               <select
                 value={bizCat}
                 onChange={(e) => setBizCat(e.target.value as BizCategory)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-gray-100"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
               >
                 <option value="rentas">{lang === "es" ? "Rentas" : "Rentals"}</option>
                 <option value="autos">{lang === "es" ? "Autos" : "Autos"}</option>
@@ -172,15 +172,15 @@ export default function ClasificadosCuentaPage() {
               </select>
 
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-5">
-                <div className="text-sm text-gray-300">{t.priceLabel}</div>
+                <div className="text-sm text-white">{t.priceLabel}</div>
                 <div className="mt-1 text-3xl font-extrabold text-yellow-200">
                   {bizPrice == null ? (lang === "es" ? "Gratis" : "Free") : `$${bizPrice}/mo`}
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm font-semibold text-gray-100">{t.included}</div>
-                    <ul className="mt-2 space-y-2 text-sm text-gray-300">
+                    <div className="text-sm font-semibold text-white">{t.included}</div>
+                    <ul className="mt-2 space-y-2 text-sm text-white">
                       {t.bizIncluded.map((b) => (
                         <li key={b} className="flex gap-2">
                           <span className="text-yellow-200">•</span>
@@ -190,11 +190,11 @@ export default function ClasificadosCuentaPage() {
                     </ul>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-gray-100">{t.excl}</div>
-                    <ul className="mt-2 space-y-2 text-sm text-gray-300">
+                    <div className="text-sm font-semibold text-white">{t.excl}</div>
+                    <ul className="mt-2 space-y-2 text-sm text-white">
                       {t.bizExcluded.map((b) => (
                         <li key={b} className="flex gap-2">
-                          <span className="text-gray-400">•</span>
+                          <span className="text-white">•</span>
                           <span>{b}</span>
                         </li>
                       ))}

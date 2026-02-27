@@ -36,7 +36,7 @@ export default async function Page({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-6xl mx-auto px-6 pt-28 pb-16">
+      <div className="max-w-screen-2xl mx-auto px-6 pt-28 pb-16">
         <div className="text-center">
           <Image
             src="/logo.png"
@@ -49,7 +49,7 @@ export default async function Page({
           <h1 className="mt-7 text-3xl md:text-4xl font-bold text-yellow-400">
             {lang === "es" ? "Paquetes para restaurantes" : "Restaurant packages"}
           </h1>
-          <p className="mt-3 text-sm md:text-base text-gray-300">
+          <p className="mt-3 text-sm md:text-base text-white">
             {lang === "es"
               ? "Elige el nivel de presencia que necesitas. Aquí mostramos beneficios — precios se ven dentro de tu cuenta."
               : "Choose the presence level you need. We show benefits here — pricing is shown inside your account."}
@@ -75,19 +75,19 @@ export default async function Page({
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-semibold text-gray-300">
+                <div className="text-xs font-semibold text-white">
                   {lang === "es" ? "Recomendado para empezar" : "Best to start"}
                 </div>
                 <div className="mt-1 text-lg font-bold text-white">
                   {lang === "es" ? "Gratis" : "Gratis"}
                 </div>
               </div>
-              <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-gray-300">
+              <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white">
                 {lang === "es" ? "Presencia sólida" : "Solid presence"}
               </div>
             </div>
 
-            <ul className="mt-4 space-y-2 text-sm text-gray-300">
+            <ul className="mt-4 space-y-2 text-sm text-white">
               <li>• {lang === "es" ? "Perfil público con fotos y botones rápidos" : "Public profile with photos + fast action buttons"}</li>
               <li>• {lang === "es" ? "Más visibilidad que listados personales" : "Higher visibility than personal listings"}</li>
               <li>• {lang === "es" ? "Insignia 💎 Pro (sutil)" : "💎 Pro badge (subtle)"}</li>
@@ -103,7 +103,7 @@ export default async function Page({
               </Link>
             </div>
 
-            <div className="mt-3 text-xs text-gray-400">
+            <div className="mt-3 text-xs text-white">
               {lang === "es"
                 ? "Ideal si quieres llamadas y direcciones rápido."
                 : "Ideal if you want calls and directions fast."}
@@ -125,7 +125,7 @@ export default async function Page({
               </div>
             </div>
 
-            <ul className="mt-4 space-y-2 text-sm text-gray-200">
+            <ul className="mt-4 space-y-2 text-sm text-white">
               <li>• {lang === "es" ? "Todo lo de Gratis" : "Everything in Free"}</li>
               <li>• {lang === "es" ? "Mejor ranking y presencia más premium" : "Higher ranking + more premium presence"}</li>
               <li>• {lang === "es" ? "Herramientas de contacto/lead (según disponibilidad)" : "Lead/contact tools (when available)"}</li>
@@ -153,7 +153,7 @@ export default async function Page({
           <div className="text-sm font-semibold text-white">
             {lang === "es" ? "Nota importante" : "Important note"}
           </div>
-          <p className="mt-2 text-sm text-gray-300">
+          <p className="mt-2 text-sm text-white">
             {lang === "es"
               ? "Los cupones y sorteos son beneficios del magazine impreso, no de membresías digitales."
               : "Coupons and sweepstakes are print magazine benefits, not digital membership perks."}

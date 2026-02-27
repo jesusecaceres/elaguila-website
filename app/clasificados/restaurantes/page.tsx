@@ -67,7 +67,7 @@ export default async function Page({
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="max-w-6xl mx-auto px-6 pt-28 pb-32 text-center">
+      <div className="max-w-screen-2xl mx-auto px-6 pt-28 pb-32 text-center">
         <div className="mx-auto max-w-3xl">
           <Image
             src="/logo.png"
@@ -80,7 +80,7 @@ export default async function Page({
           <h1 className="mt-8 text-4xl md:text-5xl font-bold text-yellow-400">
             {lang === "es" ? "Restaurantes" : "Restaurants"}
           </h1>
-          <p className="mt-3 text-base md:text-lg text-gray-300">
+          <p className="mt-3 text-base md:text-lg text-white">
             {lang === "es"
               ? "Descubre lugares cercanos y conecta en segundos."
               : "Discover nearby spots and connect in seconds."}
@@ -107,7 +107,7 @@ export default async function Page({
             <div className="text-sm font-semibold text-white">
               {lang === "es" ? "Acción inmediata" : "Instant action"}
             </div>
-            <div className="mt-1 text-sm text-gray-300">
+            <div className="mt-1 text-sm text-white">
               {lang === "es"
                 ? "Llamar, texto o direcciones en un toque. Menos fricción, más clientes."
                 : "Call, text, or get directions in one tap. Less friction, more customers."}
@@ -118,7 +118,7 @@ export default async function Page({
             <div className="text-sm font-semibold text-white">
               {lang === "es" ? "Confianza primero" : "Trust first"}
             </div>
-            <div className="mt-1 text-sm text-gray-300">
+            <div className="mt-1 text-sm text-white">
               {lang === "es"
                 ? "Verificados y apoyados se muestran con insignias claras — sin etiquetas de pago."
                 : "Verified and supporter badges are clear — no “paid” labels."}
@@ -129,7 +129,7 @@ export default async function Page({
             <div className="text-sm font-semibold text-yellow-200">
               {lang === "es" ? "Cupones del magazine" : "Magazine coupons"}
             </div>
-            <div className="mt-1 text-sm text-gray-300">
+            <div className="mt-1 text-sm text-white">
               {lang === "es"
                 ? "Los cupones son exclusivos para anunciantes del magazine. Beneficios, no trucos."
                 : "Coupons are exclusive to magazine advertisers. Benefits, not gimmicks."}
@@ -144,7 +144,7 @@ export default async function Page({
               <h2 className="text-xl font-bold text-yellow-300">
                 {lang === "es" ? "Descubrimiento" : "Discovery"}
               </h2>
-              <p className="mt-1 text-sm text-gray-300">
+              <p className="mt-1 text-sm text-white">
                 {lang === "es"
                   ? "Llamar, texto, direcciones, sitio web y redes — sin fricción."
                   : "Call, text, directions, website, and social — friction-free."}
@@ -186,7 +186,7 @@ export default async function Page({
               <div className="text-base font-semibold text-white">
                 {lang === "es" ? "Tu ciudad está lista." : "Your city is ready."}
               </div>
-              <div className="mt-2 text-sm text-gray-300">
+              <div className="mt-2 text-sm text-white">
                 {lang === "es"
                   ? "Lanza tu presencia aquí y recibe clientes con intent alto."
                   : "Launch your presence here and capture high-intent customers."}

@@ -63,7 +63,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
       <div className="text-sm font-semibold text-white">
         {t(lang, "Información básica", "Basic info")}
       </div>
-      <p className="mt-2 text-sm text-gray-300">
+      <p className="mt-2 text-sm text-white">
         {t(
           lang,
           "Esto crea tu borrador. En el siguiente paso podrás subir fotos y completar el anuncio.",
@@ -73,7 +73,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Tipo de negocio", "Business type")}
           </span>
           <select
@@ -90,7 +90,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Ciudad", "City")}
           </span>
           <input
@@ -102,7 +102,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
         </label>
 
         <label className="block md:col-span-2">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Nombre del restaurante", "Restaurant name")}
           </span>
           <input
@@ -114,7 +114,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Cocina (opcional)", "Cuisine (optional)")}
           </span>
           <input
@@ -126,7 +126,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Teléfono (opcional)", "Phone (optional)")}
           </span>
           <input
@@ -138,7 +138,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
         </label>
 
         <label className="block md:col-span-2">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Sitio web (opcional)", "Website (optional)")}
           </span>
           <input
@@ -150,7 +150,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
         </label>
 
         <label className="block md:col-span-2">
-          <span className="text-xs font-semibold text-gray-200">
+          <span className="text-xs font-semibold text-white">
             {t(lang, "Notas (opcional)", "Notes (optional)")}
           </span>
           <textarea
@@ -190,7 +190,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
           {t(lang, "Continuar", "Continue")}
         </button>
 
-        <div className="text-xs text-gray-400 self-center">
+        <div className="text-xs text-white self-center">
           {t(
             lang,
             "No publicamos nada hasta que completes el siguiente paso.",

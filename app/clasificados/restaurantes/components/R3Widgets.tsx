@@ -31,14 +31,14 @@ export function ReviewSummary({ restaurantId, lang }: { restaurantId: string; la
 
   if (!stats.count) {
     return (
-      <div className="text-xs text-gray-400">
+      <div className="text-xs text-white">
         {t(lang, "Sé el primero en dejar una reseña positiva (ayuda a otras familias).", "Be the first to leave a positive review (it helps other families).")}
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs text-gray-300">
+    <div className="flex items-center gap-2 text-xs text-white">
       <Stars value={stats.avg} />
       <span className="font-semibold text-white">{stats.avg.toFixed(1)}</span>
       <span className="text-gray-500">({stats.count})</span>
@@ -80,7 +80,7 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold text-white">{t(lang, "Reseña (positiva primero)", "Review (positive-first)")}</div>
-                <div className="mt-1 text-sm text-gray-400">
+                <div className="mt-1 text-sm text-white">
                   {t(
                     lang,
                     "Aquí celebramos lo bueno. Si hubo un problema serio, usa 'Email' o 'Texto' para resolverlo directamente.",
@@ -91,7 +91,7 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-200 hover:bg-white/10"
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white hover:bg-white/10"
                 aria-label={t(lang, "Cerrar", "Close")}
               >
                 ✕
@@ -112,7 +112,7 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
                     </option>
                   ))}
                 </select>
-                <div className="text-sm text-gray-400">{t(lang, "1–5 estrellas", "1–5 stars")}</div>
+                <div className="text-sm text-white">{t(lang, "1–5 estrellas", "1–5 stars")}</div>
               </div>
 
               <div className="mt-4">
@@ -121,18 +121,18 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
                   <button
                     type="button"
                     onClick={() => setRecommend(true)}
-                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${recommend ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"}`}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${recommend ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 bg-white/5 text-white hover:bg-white/10"}`}
                   >
                     {t(lang, "Sí", "Yes")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setRecommend(false)}
-                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${!recommend ? "border-red-400/40 bg-red-500/10 text-red-200" : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"}`}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${!recommend ? "border-red-400/40 bg-red-500/10 text-red-200" : "border-white/10 bg-white/5 text-white hover:bg-white/10"}`}
                   >
                     {t(lang, "No", "No")}
                   </button>
-                  <div className="text-sm text-gray-400">{t(lang, "Solo para orientar a otros.", "Just to guide others.")}</div>
+                  <div className="text-sm text-white">{t(lang, "Solo para orientar a otros.", "Just to guide others.")}</div>
                 </div>
               </div>
 
@@ -149,7 +149,7 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
                 >
                   {t(lang, "Cancelar", "Cancel")}
                 </button>
@@ -209,11 +209,11 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            className="mt-2 text-xs font-semibold text-gray-300 hover:text-white"
+            className="mt-2 text-xs font-semibold text-white hover:text-white"
           >
             {t(lang, "Cerrar configuración", "Close setup")}
           </button>
-            <div className="mt-1 text-sm text-gray-400">
+            <div className="mt-1 text-sm text-white">
               {t(lang, "Recibe avisos cuando aparezcan nuevos lugares. Sin spam.", "Get a note when new spots appear. No spam.")}
             </div>
           </div>
@@ -237,16 +237,16 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            className="mt-2 text-xs font-semibold text-gray-300 hover:text-white"
+            className="mt-2 text-xs font-semibold text-white hover:text-white"
           >
             {t(lang, "Cerrar configuración", "Close setup")}
           </button>
-          <div className="mt-1 text-sm text-gray-400">
+          <div className="mt-1 text-sm text-white">
             {t(lang, "Sin spam. Tú eliges comida, radio y frecuencia. Cancela cuando quieras.", "No spam. You choose cuisine, radius, and frequency. Cancel anytime.")}
           </div>
         </div>
 
-        <label className="inline-flex items-center gap-2 text-sm text-gray-200">
+        <label className="inline-flex items-center gap-2 text-sm text-white">
           <input
             type="checkbox"
             checked={enabled}
@@ -259,7 +259,7 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
 
       <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <div className="text-xs font-semibold text-gray-300">{t(lang, "Cocina", "Cuisine")}</div>
+          <div className="text-xs font-semibold text-white">{t(lang, "Cocina", "Cuisine")}</div>
           <input
             value={cuisine}
             onChange={(e) => setCuisine(e.target.value)}
@@ -269,7 +269,7 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
         </div>
 
         <div>
-          <div className="text-xs font-semibold text-gray-300">{t(lang, "Radio", "Radius")}</div>
+          <div className="text-xs font-semibold text-white">{t(lang, "Radio", "Radius")}</div>
           <select
             value={radiusMi}
             onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
@@ -284,7 +284,7 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
         </div>
 
         <div>
-          <div className="text-xs font-semibold text-gray-300">{t(lang, "Frecuencia", "Frequency")}</div>
+          <div className="text-xs font-semibold text-white">{t(lang, "Frecuencia", "Frequency")}</div>
           <select
             value={frequency}
             onChange={(e) => setFrequency(e.target.value as any)}
@@ -436,7 +436,7 @@ export function DiscoveryPanel({
             >
               {t(lang, "Usar mi ubicación", "Use my location")}
             </button>
-            <div className="mt-1 text-[11px] text-gray-400">
+            <div className="mt-1 text-[11px] text-white">
               {geoStatus === "saved"
                 ? t(lang, "Listo: usaremos tu zona cuando haya datos.", "Saved: we'll use your area once listings exist.")
                 : geoStatus === "blocked"
@@ -449,7 +449,7 @@ export function DiscoveryPanel({
 
       {recentCities.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <div className="text-xs font-semibold text-gray-400">{t(lang, "Recientes:", "Recent:")}</div>
+          <div className="text-xs font-semibold text-white">{t(lang, "Recientes:", "Recent:")}</div>
           {recentCities.map((c) => (
             <button
               key={c}
@@ -581,7 +581,7 @@ function Toggle({
       >
         {value ? t(lang, "Activado", "On") : t(lang, "Apagado", "Off")}
       </button>
-      {hint && <div className="mt-1 text-[11px] text-gray-400">{hint}</div>}
+      {hint && <div className="mt-1 text-[11px] text-white">{hint}</div>}
     </div>
   );
 }

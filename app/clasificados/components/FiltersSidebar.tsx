@@ -75,7 +75,7 @@ export default function FiltersSidebar({
         >
           <div className="flex flex-col items-center gap-2 py-4">
             <div
-              className="text-xs font-semibold tracking-wide text-gray-200"
+              className="text-xs font-semibold tracking-wide text-white"
               style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
               {t.filters}
@@ -87,15 +87,15 @@ export default function FiltersSidebar({
         <div className="rounded-2xl border border-yellow-500/45 bg-white/8 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-100">
+              <div className="text-sm font-semibold text-white">
                 {t.filters} • {cfg.label[lang]}
               </div>
-              <div className="mt-1 text-xs text-gray-400">{t.hint}</div>
+              <div className="mt-1 text-xs text-white">{t.hint}</div>
             </div>
             <button
               type="button"
               onClick={onToggleCollapsed}
-              className="rounded-xl border border-yellow-500/45 bg-white/8 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
+              className="rounded-xl border border-yellow-500/45 bg-white/8 px-2 py-1 text-xs text-white hover:bg-white/10 transition"
               aria-label={t.filters}
               title={t.filters}
             >
@@ -105,17 +105,17 @@ export default function FiltersSidebar({
 
           <div className="mt-4 space-y-3">
             <div className="rounded-xl border border-yellow-600/10 bg-white/6 p-3">
-              <div className="text-xs font-semibold text-gray-200">
+              <div className="text-xs font-semibold text-white">
                 {lang === "es" ? "Filtros principales" : "Primary filters"}
               </div>
-              <div className="mt-2 text-xs text-gray-400">{t.placeholder}</div>
+              <div className="mt-2 text-xs text-white">{t.placeholder}</div>
             </div>
 
             <div className="rounded-xl border border-yellow-600/10 bg-white/6 p-3">
-              <div className="text-xs font-semibold text-gray-200">
+              <div className="text-xs font-semibold text-white">
                 {lang === "es" ? "Más filtros" : "More filters"}
               </div>
-              <div className="mt-2 text-xs text-gray-400">{t.placeholder}</div>
+              <div className="mt-2 text-xs text-white">{t.placeholder}</div>
             </div>
           </div>
         </div>

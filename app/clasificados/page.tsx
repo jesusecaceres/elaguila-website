@@ -310,13 +310,13 @@ out[cat] = mixed.slice(0, limit);
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-base font-bold text-gray-100 leading-snug line-clamp-2">
+              <div className="text-base font-bold text-white leading-snug line-clamp-2">
                 {item.title[lang]}
               </div>
-              <div className="mt-1 text-sm text-gray-200 font-semibold">
+              <div className="mt-1 text-sm text-white font-semibold">
                 {item.priceLabel[lang]}
               </div>
-              <div className="mt-1 text-xs text-gray-400">
+              <div className="mt-1 text-xs text-white">
                 {item.city} • {item.postedAgo[lang]}
               </div>
             </div>
@@ -326,7 +326,7 @@ out[cat] = mixed.slice(0, limit);
                 "shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border",
                 isBusiness
                   ? "border-yellow-500/35 text-yellow-200 bg-yellow-400/10"
-                  : "border-white/10 text-gray-200 bg-white/5"
+                  : "border-white/10 text-white bg-white/5"
               )}
             >
               {isBusiness
@@ -339,7 +339,7 @@ out[cat] = mixed.slice(0, limit);
             </span>
           </div>
 
-          <div className="mt-3 text-sm text-gray-200 line-clamp-2">
+          <div className="mt-3 text-sm text-white line-clamp-2">
             {item.blurb[lang]}
           </div>
         </div>
@@ -362,10 +362,10 @@ out[cat] = mixed.slice(0, limit);
         <div className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-lg font-bold text-gray-100">{meta.label}</div>
-              <div className="mt-1 text-sm text-gray-400">{meta.hint}</div>
+              <div className="text-lg font-bold text-white">{meta.label}</div>
+              <div className="mt-1 text-sm text-white">{meta.hint}</div>
             </div>
-            <div className="shrink-0 text-gray-400 group-hover:text-gray-200 transition">
+            <div className="shrink-0 text-white group-hover:text-white transition">
               →
             </div>
           </div>
@@ -394,12 +394,12 @@ out[cat] = mixed.slice(0, limit);
         <div
           className={cx(
             "text-xl font-bold",
-            accent === "gold" ? "text-yellow-200" : "text-gray-100"
+            accent === "gold" ? "text-yellow-200" : "text-white"
           )}
         >
           {title}
         </div>
-        <ul className="mt-4 space-y-2 text-sm text-gray-300">
+        <ul className="mt-4 space-y-2 text-sm text-white">
           {bullets.map((b, i) => (
             <li key={i} className="flex gap-2">
               <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-yellow-400/70 shrink-0" />
@@ -416,12 +416,12 @@ out[cat] = mixed.slice(0, limit);
       <Navbar />
 
       {/* HERO (keep strong, cohesive) */}
-      <section className="max-w-6xl mx-auto px-6 pt-28">
+      <section className="max-w-screen-2xl mx-auto px-6 pt-28">
         <div className="relative text-center mb-14">
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
             <a
               href={withLang(t.routeLogin)}
-              className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
+              className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
             >
               {t.authSignIn}
             </a>
@@ -438,7 +438,7 @@ out[cat] = mixed.slice(0, limit);
           <h1 className="text-6xl md:text-7xl font-bold text-yellow-400">
             {t.pageTitle}
           </h1>
-          <p className="mt-5 text-gray-300 max-w-3xl mx-auto text-lg md:text-xl">
+          <p className="mt-5 text-white max-w-3xl mx-auto text-lg md:text-xl">
             {t.subtitle}
           </p>
 
@@ -452,7 +452,7 @@ out[cat] = mixed.slice(0, limit);
 
             <Link
               href={withListParams()}
-              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
               aria-label={t.ctaView}
             >
               {t.ctaView}
@@ -460,21 +460,21 @@ out[cat] = mixed.slice(0, limit);
 
             <Link
               href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
               aria-label={t.ctaMemberships}
             >
               {t.ctaMemberships}
             </Link>
           </div>
 
-          <div className="mt-8 text-sm text-gray-400 max-w-3xl mx-auto">
+          <div className="mt-8 text-sm text-white max-w-3xl mx-auto">
             {t.trustLine}
           </div>
         </div>
       </section>
 
       {/* CATEGORY ENTRY (premium tiles; replaces old pills) */}
-      <section className="max-w-6xl mx-auto px-6">
+      <section className="max-w-screen-2xl mx-auto px-6">
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
             {t.sectionBrowse}
@@ -489,13 +489,13 @@ out[cat] = mixed.slice(0, limit);
       </section>
 
       {/* FEATURED BY CATEGORY */}
-      <section className="max-w-6xl mx-auto px-6 mt-14">
+      <section className="max-w-screen-2xl mx-auto px-6 mt-14">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
               {t.sectionFeatured}
             </h2>
-            <p className="mt-2 text-sm text-gray-400 max-w-3xl">
+            <p className="mt-2 text-sm text-white max-w-3xl">
               {t.sectionFeaturedHint}
             </p>
           </div>
@@ -514,16 +514,16 @@ out[cat] = mixed.slice(0, limit);
               >
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
-                    <div className="text-xl font-bold text-gray-100">
+                    <div className="text-xl font-bold text-white">
                       {meta.label}
                     </div>
-                    <div className="mt-1 text-sm text-gray-400">{meta.hint}</div>
+                    <div className="mt-1 text-sm text-white">{meta.hint}</div>
                   </div>
 
                   <a
                     // ✅ CHANGED: from lista params to dedicated category page route
                     href={withCategoryRoute(cat)}
-                    className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-gray-100 font-semibold hover:bg-white/7 transition"
+                    className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
                   >
                     {t.viewMore} →
                   </a>
@@ -552,14 +552,14 @@ out[cat] = mixed.slice(0, limit);
       </section>
 
       {/* MEMBERSHIPS (benefits only, no prices) */}
-      <section id="memberships" className="max-w-6xl mx-auto px-6 mt-16">
+      <section id="memberships" className="max-w-screen-2xl mx-auto px-6 mt-16">
         <div className="border border-yellow-500/45 rounded-2xl p-8 bg-white/8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
                 {t.membershipsTitle}
               </h2>
-              <p className="mt-2 text-sm text-gray-400 max-w-3xl">
+              <p className="mt-2 text-sm text-white max-w-3xl">
                 {t.membershipsSubtitle}
               </p>
             </div>
@@ -579,7 +579,7 @@ out[cat] = mixed.slice(0, limit);
           <div className="mt-4 flex justify-start">
             <Link
               href={withAccountMemberships()}
-              className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-white/10 transition"
+              className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
             >
               {t.ctaPricing} →
             </Link>

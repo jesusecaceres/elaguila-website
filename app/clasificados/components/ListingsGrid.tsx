@@ -33,9 +33,9 @@ if (!listings.length) {
 
   return (
     <div className="mt-8">
-      <div className="mb-4 rounded-2xl border border-white/12 bg-white/7 p-4 text-sm text-gray-200">
-        <div className="font-semibold text-gray-100">{heading}</div>
-        <div className="mt-1 text-gray-300">{body}</div>
+      <div className="mb-4 rounded-2xl border border-white/12 bg-white/7 p-4 text-sm text-white">
+        <div className="font-semibold text-white">{heading}</div>
+        <div className="mt-1 text-white">{body}</div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">

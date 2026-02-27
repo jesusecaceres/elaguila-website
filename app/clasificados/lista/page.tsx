@@ -2502,7 +2502,7 @@ const ActionPills = (x: Listing) => {
           href={p.href}
           target={p.external ? "_blank" : undefined}
           rel={p.external ? "noreferrer" : undefined}
-          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs sm:py-1 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
         >
           {p.label}
         </a>
@@ -2602,8 +2602,8 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
     <details className="group mt-2 w-fit max-w-full text-left">
       <summary
         className={cx(
-          "cursor-pointer select-none text-xs font-medium text-gray-300",
-          "hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/60",
+          "cursor-pointer select-none text-xs font-medium text-white",
+          "hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/60",
           "rounded-md"
         )}
       >
@@ -2611,7 +2611,7 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-500/60" aria-hidden="true" />
           {summary}
           <span
-            className="text-gray-400 group-open:rotate-180 transition-transform"
+            className="text-white group-open:rotate-180 transition-transform"
             aria-hidden="true"
           >
             ▾
@@ -2626,14 +2626,14 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
               <div className="mt-[1px] shrink-0">
                 <TierBadge tier={it.tier} lang={lang} />
               </div>
-              <div className="text-xs text-gray-300 leading-snug">
+              <div className="text-xs text-white leading-snug">
                 {it.text[lang]}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-2 text-[11px] text-gray-400">
+        <div className="mt-2 text-[11px] text-white">
           {lang === "es"
             ? "Las insignias son una señal visual. No reemplazan los filtros."
             : "Badges are a visual signal. They don’t replace filters."}
@@ -2730,7 +2730,7 @@ const isComunidadLite = isComunidad;
             className={cx(
               "mt-1 tracking-tight",
               isComunidadLite
-                ? "font-bold text-gray-100 text-sm sm:text-base"
+                ? "font-bold text-white text-sm sm:text-base"
                 : isServicios
                   ? "font-extrabold text-yellow-200 text-base sm:text-lg"
                   : isEmpleos
@@ -2742,12 +2742,12 @@ const isComunidadLite = isComunidad;
           >
             {isEmpleos && !/\$/.test(x.priceLabel[lang]) ? (
               <>
-                <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
+                <span className="text-white font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
                 <span>{x.priceLabel[lang]}</span>
               </>
             ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
               <>
-                <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
+                <span className="text-white font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
                 <span>{x.priceLabel[lang]}</span>
               </>
             ) : (
@@ -2759,12 +2759,12 @@ const isComunidadLite = isComunidad;
 {isEmpleos ? (
   <div className="mt-1 flex flex-wrap items-center gap-2">
     {empleo?.salaryLabel ? (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-white">
         {lang === "es" ? "Tarifa" : "Rate"}: {empleo.salaryLabel}
       </span>
     ) : null}
     {empleoJobType ? (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-white">
         {empleoJobType}
       </span>
     ) : null}
@@ -2782,7 +2782,7 @@ const isComunidadLite = isComunidad;
     {serviceTags.map((t) => (
       <span
         key={t}
-        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100"
+        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-white"
       >
         {t}
       </span>
@@ -2792,20 +2792,20 @@ const isComunidadLite = isComunidad;
 
           {/* Autos: specs + mileage ABOVE location/time */}
           {isAutos && autosSpec ? (
-            <div className="mt-1 text-xs sm:text-sm text-gray-200">
+            <div className="mt-1 text-xs sm:text-sm text-white">
               {autosSpec}
             </div>
           ) : null}
           {isAutos && autosMileage ? (
-            <div className="mt-0.5 text-xs sm:text-sm font-semibold text-gray-100">
+            <div className="mt-0.5 text-xs sm:text-sm font-semibold text-white">
               {autosMileage}
             </div>
           ) : null}
 
           {/* Business identity (Autos slightly earlier, stronger trust) */}
           {x.businessName ? (
-            <div className={cx("mt-1 font-medium text-gray-100/90", isAutos ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
-              <span className="text-gray-400">
+            <div className={cx("mt-1 font-medium text-white/90", isAutos ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs")}>
+              <span className="text-white">
                 {isAutos
                   ? (lang === "es" ? "Agencia" : "Dealer")
                   : isEmpleos
@@ -2819,22 +2819,22 @@ const isComunidadLite = isComunidad;
             </div>
           ) : null}
 {isEmpleos && x.sellerType === "business" && !x.businessName ? (
-  <div className="mt-1 text-[11px] sm:text-xs font-medium text-gray-100/90">
+  <div className="mt-1 text-[11px] sm:text-xs font-medium text-white/90">
     {lang === "es" ? "Empresa" : "Business"}
   </div>
 ) : null}
 
 
           {/* Location + time (Autos pushed lower for scan hierarchy) */}
-          <div className={cx("text-gray-300", isAutos ? "mt-1 text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm")}>
-            <span className="text-gray-200">{x.city}</span>{" "}
+          <div className={cx("text-white", isAutos ? "mt-1 text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm")}>
+            <span className="text-white">{x.city}</span>{" "}
             <span className="text-gray-500">•</span>{" "}
-            <span className="text-gray-300">{x.postedAgo[lang]}</span>
+            <span className="text-white">{x.postedAgo[lang]}</span>
           </div>
 
           {/* Micro facts (non-autos only) */}
           {!isAutos ? (
-            <div className="mt-1 text-[11px] sm:text-xs text-gray-300">
+            <div className="mt-1 text-[11px] sm:text-xs text-white">
               {microLine(x)}
             </div>
           ) : null}
@@ -2842,17 +2842,17 @@ const isComunidadLite = isComunidad;
           {/* Chips */}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {x.sellerType && tier !== "corona" && tier !== "corona-oro" ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
                 {SELLER_LABELS[x.sellerType][lang]}
               </span>
             ) : null}
             {x.handle ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
                 {x.handle}
               </span>
             ) : null}
             {x.hasImage ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
                 📷
               </span>
             ) : null}
@@ -2877,8 +2877,8 @@ const isComunidadLite = isComunidad;
             className={cx(
               "rounded-xl border px-2.5 py-1.5 text-sm",
               isFav
-                ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
             aria-label={
               isFav
@@ -2895,7 +2895,7 @@ const isComunidadLite = isComunidad;
         </div>
       </div>
 
-      <div className="mt-2 line-clamp-2 text-sm text-gray-200">
+      <div className="mt-2 line-clamp-2 text-sm text-white">
         {x.blurb[lang]}
       </div>
 
@@ -3000,7 +3000,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   className={cx(
     "mt-0.5 tracking-tight",
     isComunidadLite
-      ? "font-bold text-gray-100 text-sm"
+      ? "font-bold text-white text-sm"
       : isServicios
         ? "font-extrabold text-yellow-200 text-sm sm:text-base"
         : isEmpleos
@@ -3012,12 +3012,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 >
   {isEmpleos && !/\$/.test(x.priceLabel[lang]) ? (
     <>
-      <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
+      <span className="text-white font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
       <span>{x.priceLabel[lang]}</span>
     </>
   ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
     <>
-      <span className="text-gray-300 font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
+      <span className="text-white font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
       <span>{x.priceLabel[lang]}</span>
     </>
   ) : (
@@ -3029,12 +3029,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 {isEmpleos ? (
   <div className="mt-1 flex flex-wrap items-center gap-2">
     {empleo?.salaryLabel ? (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-white">
         {lang === "es" ? "Tarifa" : "Rate"}: {empleo.salaryLabel}
       </span>
     ) : null}
     {empleoJobType ? (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-white">
         {empleoJobType}
       </span>
     ) : null}
@@ -3052,7 +3052,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
     {serviceTags.map((t) => (
       <span
         key={t}
-        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-gray-100"
+        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] sm:text-xs text-white"
       >
         {t}
       </span>
@@ -3062,12 +3062,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 {isEmpleos ? (
   <div className="mt-1 flex flex-wrap items-center gap-2">
     {empleo?.salaryLabel ? (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
         {lang === "es" ? "Tarifa" : "Rate"}: {empleo.salaryLabel}
       </span>
     ) : null}
     {empleoJobType ? (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
         {empleoJobType}
       </span>
     ) : null}
@@ -3085,7 +3085,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
     {serviceTags.map((t) => (
       <span
         key={t}
-        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100"
+        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white"
       >
         {t}
       </span>
@@ -3095,33 +3095,33 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
 {/* Autos: specs + mileage ABOVE location/time */}
 {isAutos && autosSpec ? (
-  <div className="mt-0.5 text-xs text-gray-200">{autosSpec}</div>
+  <div className="mt-0.5 text-xs text-white">{autosSpec}</div>
 ) : null}
 {isAutos && autosMileage ? (
-  <div className="mt-0.5 text-xs font-semibold text-gray-100">{autosMileage}</div>
+  <div className="mt-0.5 text-xs font-semibold text-white">{autosMileage}</div>
 ) : null}
 
 
             {x.sellerType === "business" && x.businessName ? (
-              <div className={cx("mt-0.5 font-medium text-gray-100/90", isAutos ? "text-xs" : "text-[11px]")}>
+              <div className={cx("mt-0.5 font-medium text-white/90", isAutos ? "text-xs" : "text-[11px]")}>
                 {x.businessName}
               </div>
             ) : null}
 {isEmpleos && x.sellerType === "business" && !x.businessName ? (
-  <div className="mt-0.5 text-[11px] font-medium text-gray-100/90">
+  <div className="mt-0.5 text-[11px] font-medium text-white/90">
     {lang === "es" ? "Empresa" : "Business"}
   </div>
 ) : null}
 
 
-            <div className="mt-0.5 text-xs text-gray-300">
-              <span className="text-gray-200">{x.city}</span>{" "}
+            <div className="mt-0.5 text-xs text-white">
+              <span className="text-white">{x.city}</span>{" "}
               <span className="text-gray-500">•</span>{" "}
-              <span className="text-gray-300">{x.postedAgo[lang]}</span>
+              <span className="text-white">{x.postedAgo[lang]}</span>
             </div>
 
             {!isAutos ? (
-              <div className="mt-0.5 text-xs text-gray-300">{microLine(x)}</div>
+              <div className="mt-0.5 text-xs text-white">{microLine(x)}</div>
             ) : null}
           </a>
 
@@ -3132,8 +3132,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "rounded-lg border px-2 py-1 text-xs",
                 isFav
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                  : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
               aria-label={
                 isFav
@@ -3152,17 +3152,17 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           {x.sellerType && tier !== "corona" && tier !== "corona-oro" ? (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
               {SELLER_LABELS[x.sellerType][lang]}
             </span>
           ) : null}
           {x.handle ? (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
               {x.handle}
             </span>
           ) : null}
           {x.hasImage ? (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-gray-100">
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white">
               📷
             </span>
           ) : null}
@@ -3181,7 +3181,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
       {/* Sticky quick actions (always reachable) */}
       <div className="sticky top-[56px] z-40 border-b border-white/10 bg-white/8 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-center gap-2 px-4 py-2">
           <a
             href={`/clasificados/publicar?lang=${lang}`}
             className="rounded-full bg-yellow-400 px-3 py-1.5 text-xs font-semibold text-black hover:opacity-95 transition sm:px-4 sm:py-2 sm:text-sm"
@@ -3191,14 +3191,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
           <a
             href={`/clasificados/lista?lang=${lang}`}
-            className="rounded-full border border-yellow-500/45 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-yellow-500/45 bg-white/6 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Ver anuncios" : "View listings"}
           </a>
 
           <a
             href={`/clasificados/membresias?lang=${lang}`}
-            className="rounded-full border border-yellow-500/45 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-yellow-500/45 bg-white/6 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Membresías" : "Memberships"}
           </a>
@@ -3212,7 +3212,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.1),rgba(0,0,0,1))]" />
       </div>
 
-      <main className="mx-auto w-full max-w-6xl px-6 pt-24 md:pt-28">
+      <main className="mx-auto w-full max-w-screen-2xl px-6 pt-24 md:pt-28">
         <div className="text-center">
           <div className="mx-auto mb-4 flex w-full items-center justify-center">
             <Image
@@ -3228,7 +3228,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             {lang === "es" ? "Clasificados" : "Classifieds"}
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl text-base text-gray-300 md:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-base text-white md:text-lg">
             {lang === "es"
               ? "Explora todos los anuncios con filtros."
               : "Browse all listings with filters."}
@@ -3238,7 +3238,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <section className="mt-6">
           <div className="rounded-2xl border border-white/12 bg-white/7 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-400/20 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold text-gray-200">
+              <div className="text-xs font-semibold text-white">
                 {lang === "es" ? "Explorar por categoría" : "Browse by category"}
               </div>
 
@@ -3276,8 +3276,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400/40",
                       active
-                        ? "border-yellow-500/50 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                        ? "border-yellow-500/50 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10"
                     )}
                   >
                     {CATEGORY_LABELS[c][lang]}
@@ -3313,7 +3313,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setFiltersCollapsed(false)}
-                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 aria-label={lang === "es" ? "Mostrar filtros" : "Show filters"}
                 title={lang === "es" ? "Mostrar filtros" : "Show filters"}
               >
@@ -3324,10 +3324,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-gray-200">
+                  <div className="text-sm font-semibold text-white">
                     {lang === "es" ? "Filtros" : "Filters"}
                   </div>
-                  <div className="mt-0.5 text-xs text-gray-400">
+                  <div className="mt-0.5 text-xs text-white">
                     {lang === "es"
                       ? "Ajusta para afinar resultados."
                       : "Adjust to refine results."}
@@ -3336,7 +3336,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setFiltersCollapsed(true)}
-                  className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   aria-label={lang === "es" ? "Colapsar" : "Collapse"}
                 >
                   {lang === "es" ? "Colapsar" : "Collapse"}
@@ -3348,7 +3348,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <div className="mt-4 grid gap-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">
+                      <label className="block text-xs font-semibold text-white">
                         {lang === "es" ? "Precio mín." : "Min price"}
                       </label>
                       <input
@@ -3362,7 +3362,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">
+                      <label className="block text-xs font-semibold text-white">
                         {lang === "es" ? "Precio máx." : "Max price"}
                       </label>
                       <input
@@ -3379,7 +3379,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">
+                      <label className="block text-xs font-semibold text-white">
                         {lang === "es" ? "Recámaras" : "Beds"}
                       </label>
                       <select
@@ -3398,7 +3398,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">
+                      <label className="block text-xs font-semibold text-white">
                         {lang === "es" ? "Baños" : "Baths"}
                       </label>
                       <select
@@ -3422,11 +3422,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "empleos" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Empleos" : "Jobs"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Empleos" : "Jobs"}</div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Tipo" : "Type"}</label>
                       <select
                         value={empleosParams.ejob || ""}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, ejob: e.target.value }))}
@@ -3441,7 +3441,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Modalidad" : "Mode"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Modalidad" : "Mode"}</label>
                       <select
                         value={empleosParams.eremote || ""}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, eremote: e.target.value }))}
@@ -3454,7 +3454,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Pago mín." : "Pay min"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Pago mín." : "Pay min"}</label>
                       <input
                         value={empleosParams.epaymin}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymin: e.target.value }))}
@@ -3465,7 +3465,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Pago máx." : "Pay max"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Pago máx." : "Pay max"}</label>
                       <input
                         value={empleosParams.epaymax}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymax: e.target.value }))}
@@ -3476,7 +3476,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Industria" : "Industry"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Industria" : "Industry"}</label>
                       <select
                         value={empleosParams.eindustry || ""}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, eindustry: e.target.value }))}
@@ -3501,11 +3501,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "servicios" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Servicios" : "Services"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Servicios" : "Services"}</div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Tipo" : "Type"}</label>
                       <select
                         value={serviciosParams.stype || ""}
                         onChange={(e) => setServiciosParams((p) => ({ ...p, stype: e.target.value }))}
@@ -3526,7 +3526,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Horario" : "Availability"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Horario" : "Availability"}</label>
                       <select
                         value={serviciosParams.savail || ""}
                         onChange={(e) => setServiciosParams((p) => ({ ...p, savail: e.target.value }))}
@@ -3545,11 +3545,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "en-venta" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "En Venta" : "For Sale"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "En Venta" : "For Sale"}</div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio min" : "Price min"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Precio min" : "Price min"}</label>
                       <input
                         value={ventaParams.vpmin}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vpmin: e.target.value }))}
@@ -3559,7 +3559,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio max" : "Price max"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Precio max" : "Price max"}</label>
                       <input
                         value={ventaParams.vpmax}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vpmax: e.target.value }))}
@@ -3570,7 +3570,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Tipo" : "Type"}</label>
                       <select
                         value={ventaParams.vtype || ""}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vtype: e.target.value }))}
@@ -3592,7 +3592,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Condición" : "Condition"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Condición" : "Condition"}</label>
                       <select
                         value={ventaParams.vcond || ""}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vcond: e.target.value }))}
@@ -3611,11 +3611,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "clases" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Clases" : "Classes"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Clases" : "Classes"}</div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Materia" : "Subject"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Materia" : "Subject"}</label>
                       <select
                         value={clasesParams.csub || ""}
                         onChange={(e) => setClasesParams((p) => ({ ...p, csub: e.target.value }))}
@@ -3635,7 +3635,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Nivel" : "Level"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Nivel" : "Level"}</label>
                       <select
                         value={clasesParams.clevel || ""}
                         onChange={(e) => setClasesParams((p) => ({ ...p, clevel: e.target.value }))}
@@ -3652,7 +3652,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Modalidad" : "Mode"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Modalidad" : "Mode"}</label>
                       <select
                         value={clasesParams.cmode || ""}
                         onChange={(e) => setClasesParams((p) => ({ ...p, cmode: e.target.value }))}
@@ -3670,10 +3670,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "comunidad" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Comunidad" : "Community"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Comunidad" : "Community"}</div>
 
                   <div className="mt-3">
-                    <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                    <label className="block text-xs font-semibold text-white">{lang === "es" ? "Tipo" : "Type"}</label>
                     <select
                       value={comunidadParams.gtype || ""}
                       onChange={(e) => setComunidadParams((p) => ({ ...p, gtype: e.target.value }))}
@@ -3697,7 +3697,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               {/* Generic advanced filters */}
               <div className="mt-4 grid gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300">
+                  <label className="block text-xs font-semibold text-white">
                     {UI.seller[lang]}
                   </label>
                   <select
@@ -3717,7 +3717,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </select>
                 </div>
 
-                <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+                <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white">
                   <input
                     type="checkbox"
                     checked={onlyWithImage}
@@ -3742,7 +3742,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         rpets: "",
                       }));
                     }}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   >
                     {UI.clear[lang]}
                   </button>
@@ -3750,7 +3750,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <button
                     type="button"
                     onClick={resetAllFilters}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   >
                     {UI.reset[lang]}
                   </button>
@@ -3774,7 +3774,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search */}
               <div ref={searchBoxRef} className="xl:col-span-5">
-                <label className="block text-xs font-semibold text-gray-300">{UI.search[lang]}</label>
+                <label className="block text-xs font-semibold text-white">{UI.search[lang]}</label>
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -3785,7 +3785,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {/* Location */}
               <div className="xl:col-span-3">
-                <label className="block text-xs font-semibold text-gray-300">{UI.location[lang]}</label>
+                <label className="block text-xs font-semibold text-white">{UI.location[lang]}</label>
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
@@ -3797,7 +3797,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <button
                     type="button"
                     onClick={() => setLocationOpen(true)}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   >
                     {UI.edit[lang]}
                   </button>
@@ -3806,7 +3806,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {/* Radius */}
               <div className="xl:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">{UI.radius[lang]}</label>
+                <label className="block text-xs font-semibold text-white">{UI.radius[lang]}</label>
                 <select
                   value={String(radiusMi)}
                   onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
@@ -3820,7 +3820,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {/* Category */}
               <div className="xl:col-span-2">
-                <label className="block text-xs font-semibold text-gray-300">{UI.category[lang]}</label>
+                <label className="block text-xs font-semibold text-white">{UI.category[lang]}</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as CategoryKey)}
@@ -3839,7 +3839,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {Object.keys(SORT_LABELS).map((k) => (
                     <option key={k} value={k}>{SORT_LABELS[k as SortKey][lang]}</option>
@@ -3854,7 +3854,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       onClick={() => setView(m)}
                       className={cx(
                         "rounded-lg px-2 py-1.5 text-xs",
-                        view === m ? "bg-yellow-500/20 text-yellow-200" : "text-gray-300 hover:bg-white/10"
+                        view === m ? "bg-yellow-500/20 text-yellow-200" : "text-white hover:bg-white/10"
                       )}
                       aria-label={m}
                       title={m}
@@ -3867,7 +3867,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 md:hidden"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 md:hidden"
                 >
                   {UI.moreFilters[lang]}
                 </button>
@@ -3876,7 +3876,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.reset[lang]}
               </button>
@@ -3889,7 +3889,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     key={c.key}
                     type="button"
                     onClick={c.clear}
-                    className="whitespace-nowrap rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/8 transition"
+                    className="whitespace-nowrap rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs sm:py-1 text-white hover:bg-white/8 transition"
                     aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                   >
                     {c.text} <span className="ml-1 opacity-80">×</span>
@@ -3910,7 +3910,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">
                   {UI.results[lang]}
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-400">
+                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white">
                   <span className={cx("inline-flex h-1.5 w-1.5 rounded-full bg-white/20 transition-opacity", isSwitchingCategory ? "opacity-100 bg-yellow-400/60 animate-pulse" : "opacity-0")} aria-hidden="true" />
                   <span className={cx("transition-opacity", isSwitchingCategory ? "opacity-100" : "opacity-0")} aria-live="polite">
                     {lang === "es" ? "Cambiando categoría…" : "Switching category…"}
@@ -3938,7 +3938,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 ) : null}
 
-                <div className="text-xs font-medium text-gray-300">
+                <div className="text-xs font-medium text-white">
                   {UI.showing[lang]}{" "}
                   {filtered.length === 0
                     ? 0
@@ -3953,22 +3953,22 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       )}{" "}
                   {UI.of[lang]} {filtered.length}
                 
-                <div className="mt-1 text-[11px] text-gray-400">
+                <div className="mt-1 text-[11px] text-white">
                   {lang === "es"
                     ? "Sin trucos: lo gratis también aparece. Anti‑spam automático."
                     : "No tricks: free listings still show. Automatic anti-spam."}
                 </div>
 </div>
 
-                <div className="mt-1 text-xs text-gray-400">
-                  <span className="font-medium text-gray-300">{CATEGORY_LABELS[category][lang]}</span>
+                <div className="mt-1 text-xs text-white">
+                  <span className="font-medium text-white">{CATEGORY_LABELS[category][lang]}</span>
                   <span className="mx-2 text-gray-500">•</span>
                   <span>{lang === "es" ? "en" : "in"} {city}</span>
                   <span className="mx-2 text-gray-500">•</span>
                   <span>{radiusMi} mi</span>
                 </div>
 
-                                <div className="mt-2 text-[11px] text-gray-400/90">
+                                <div className="mt-2 text-[11px] text-white/90">
                   {lang === "es"
                     ? "Tip: en móvil, la vista en cuadrícula muestra más anuncios a la vez."
                     : "Tip: on mobile, grid view shows more listings at once."}
@@ -3985,8 +3985,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                     aria-label={lang === "es" ? "Vista de lista" : "List view"}
                   >
@@ -3998,8 +3998,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "list-img"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                     aria-label={lang === "es" ? "Lista con imagen" : "List with images"}
                   >
@@ -4011,8 +4011,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-2 py-2 text-xs",
                       view === "grid"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                     aria-label={lang === "es" ? "Vista de cuadrícula" : "Grid view"}
                   >
@@ -4042,7 +4042,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       onClick={() => setMobilePanelOpen(false)}
     />
     <div className="absolute inset-0 flex flex-col">
-      <div className="mx-auto w-full max-w-6xl px-4 pt-4">
+      <div className="mx-auto w-full max-w-screen-2xl px-4 pt-4">
         <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-neutral-900/95 backdrop-blur p-3">
           <div className="flex items-center gap-2">
             <button
@@ -4051,13 +4051,13 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "rounded-xl border px-3 py-2 text-sm",
                 mobilePanelTab === "filters"
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                  : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
             >
               {lang === "es" ? "Filtros" : "Filters"}
               {activeChips.length ? (
-                <span className="ml-2 text-xs text-gray-200/80">
+                <span className="ml-2 text-xs text-white">
                   ({activeChips.length})
                 </span>
               ) : null}
@@ -4068,8 +4068,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "rounded-xl border px-3 py-2 text-sm",
                 mobilePanelTab === "sort"
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                  : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
             >
               {lang === "es" ? "Ordenar" : "Sort"}
@@ -4079,7 +4079,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             aria-label={lang === "es" ? "Cerrar" : "Close"}
           >
             ✕
@@ -4087,13 +4087,13 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-6 pt-3">
+      <div className="mx-auto w-full max-w-screen-2xl flex-1 px-4 pb-6 pt-3">
         <div className="h-full overflow-y-auto rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur p-4">
           {mobilePanelTab === "filters" ? (
             <div className="grid grid-cols-1 gap-3">
               {/* Search */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-white">
                   {UI.search[lang]}
                 </label>
                 <div className="relative mt-1.5">
@@ -4114,7 +4114,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                   {suggestionsOpen && suggestions.length ? (
                     <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-white/10 bg-black/90 shadow-2xl">
-                      <div className="px-3 py-2 text-[11px] text-gray-400">
+                      <div className="px-3 py-2 text-[11px] text-white">
                         {lang === "es" ? "Sugerencias" : "Suggestions"}
                       </div>
                       {suggestions.map((c) => (
@@ -4128,7 +4128,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-white">
                             {lang === "es" ? "Categoría" : "Category"}
                           </span>
                         </button>
@@ -4140,7 +4140,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {/* Location */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-white">
                   {UI.location[lang]}
                 </label>
                 <button
@@ -4149,18 +4149,18 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   <span className="truncate">{locationLabel}</span>
-                  <span className="ml-3 shrink-0 text-xs text-gray-400">
+                  <span className="ml-3 shrink-0 text-xs text-white">
                     {UI.edit[lang]}
                   </span>
                 </button>
                 {locMsg ? (
-                  <div className="mt-1 text-[11px] text-gray-400">{locMsg}</div>
+                  <div className="mt-1 text-[11px] text-white">{locMsg}</div>
                 ) : null}
               </div>
 
               {/* Radius */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-white">
                   {UI.radius[lang]}
                 </label>
                 <select
@@ -4178,7 +4178,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {/* Category */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-white">
                   {UI.category[lang]}
                 </label>
                 <select
@@ -4201,7 +4201,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.moreFilters[lang]}
               </button>
@@ -4213,7 +4213,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       key={c.key}
                       type="button"
                       onClick={c.clear}
-                      className="whitespace-nowrap rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs sm:py-1 text-gray-100 hover:bg-white/8 transition"
+                      className="whitespace-nowrap rounded-full border border-white/12 bg-white/6 px-3 py-1.5 text-xs sm:py-1 text-white hover:bg-white/8 transition"
                       aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                     >
                       {c.text} <span className="ml-1 opacity-80">×</span>
@@ -4225,7 +4225,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           ) : (
             <div className="space-y-4">
               <div>
-                <div className="text-sm font-semibold text-gray-200">
+                <div className="text-sm font-semibold text-white">
                   {lang === "es" ? "Vista" : "View"}
                 </div>
                 <div className="mt-2 flex items-center gap-2">
@@ -4235,8 +4235,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                   >
                     {lang === "es" ? "Lista" : "List"}
@@ -4247,8 +4247,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "list-img"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                   >
                     {lang === "es" ? "Lista + foto" : "List + image"}
@@ -4259,8 +4259,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className={cx(
                       "rounded-lg border px-3 py-2 text-sm",
                       view === "grid"
-                        ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                        : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                        ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     )}
                   >
                     {lang === "es" ? "Cuadrícula" : "Grid"}
@@ -4269,7 +4269,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-200">
+                <label className="block text-sm font-semibold text-white">
                   {UI.sort[lang]}
                 </label>
                 <select
@@ -4293,14 +4293,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             onClick={() => {
               resetAllFilters();
             }}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
           >
             {UI.reset[lang]}
           </button>
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="flex-1 rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-yellow-500/20"
+            className="flex-1 rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-white hover:bg-yellow-500/20"
           >
             {UI.done[lang]}
           </button>
@@ -4311,7 +4311,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 ) : null}
 
 <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
-  <div className="mx-auto w-full max-w-6xl px-4 pb-4">
+  <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4">
     <div className="rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur shadow-lg">
       <div className="flex items-center gap-3 p-3">
         <button
@@ -4320,11 +4320,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             setMobilePanelTab("filters");
             setMobilePanelOpen(true);
           }}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
         >
           {lang === "es" ? "Filtros" : "Filters"}
           {activeChips.length ? (
-            <span className="ml-2 text-xs font-medium text-gray-200/80">
+            <span className="ml-2 text-xs font-medium text-white">
               ({activeChips.length})
             </span>
           ) : null}
@@ -4335,7 +4335,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             setMobilePanelTab("sort");
             setMobilePanelOpen(true);
           }}
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
         >
           {lang === "es" ? "Ordenar" : "Sort"}
         </button>
@@ -4354,7 +4354,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <div className="text-sm font-semibold text-yellow-200">
           {lang === "es" ? "Profesionales" : "Businesses"}
         </div>
-        <div className="text-xs font-medium text-gray-300">
+        <div className="text-xs font-medium text-white">
           {lang === "es"
             ? "Opciones de negocios y profesionales (sin ocultar anuncios personales)"
             : "Business & pro options (personal listings are never hidden)"}
@@ -4376,7 +4376,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <div className="truncate text-sm font-semibold text-white">
                 {x.businessName ?? x.title[lang]}
               </div>
-              <div className="mt-0.5 text-xs text-gray-300">
+              <div className="mt-0.5 text-xs text-white">
                 {x.city} • {x.postedAgo[lang]}
               </div>
             </div>
@@ -4386,8 +4386,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               className={cx(
                 "shrink-0 rounded-lg border px-2 py-1 text-xs",
                 favIds.has(x.id)
-                  ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                  : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               )}
               aria-label={favIds.has(x.id) ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
             >
@@ -4433,13 +4433,13 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped <= 1
                 ? "border-white/10 bg-white/5 text-gray-500"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
           >
             {UI.prev[lang]}
           </button>
 
-          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white">
             {pageClamped}/{totalPages}
           </div>
 
@@ -4451,7 +4451,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped >= totalPages
                 ? "border-white/10 bg-white/5 text-gray-500"
-                : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
           >
             {UI.next[lang]}
@@ -4472,7 +4472,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.close[lang]}
               </button>
@@ -4480,7 +4480,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
             <div className="mt-4 grid gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-300">{UI.seller[lang]}</label>
+                <label className="block text-xs font-semibold text-white">{UI.seller[lang]}</label>
                 <select
                   value={sellerType ?? "all"}
                   onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as SellerType))}
@@ -4492,7 +4492,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </select>
               </div>
 
-              <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+              <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white">
                 <input
                   type="checkbox"
                   checked={onlyWithImage}
@@ -4503,10 +4503,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "autos" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Autos" : "Autos"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Autos" : "Autos"}</div>
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Año min" : "Year min"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Año min" : "Year min"}</label>
                       <input
                         value={autosParams.aymin}
                         onChange={(e) => setAutosParams((p) => ({ ...p, aymin: e.target.value }))}
@@ -4516,7 +4516,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Año max" : "Year max"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Año max" : "Year max"}</label>
                       <input
                         value={autosParams.aymax}
                         onChange={(e) => setAutosParams((p) => ({ ...p, aymax: e.target.value }))}
@@ -4526,7 +4526,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Marca" : "Make"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Marca" : "Make"}</label>
                       <input
                         value={autosParams.amake}
                         onChange={(e) => setAutosParams((p) => ({ ...p, amake: e.target.value }))}
@@ -4535,7 +4535,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Modelo" : "Model"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Modelo" : "Model"}</label>
                       <input
                         value={autosParams.amodel}
                         onChange={(e) => setAutosParams((p) => ({ ...p, amodel: e.target.value }))}
@@ -4544,7 +4544,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Millas máx" : "Miles max"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Millas máx" : "Miles max"}</label>
                       <input
                         value={autosParams.amilesmax}
                         onChange={(e) => setAutosParams((p) => ({ ...p, amilesmax: e.target.value }))}
@@ -4554,7 +4554,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Condición" : "Condition"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Condición" : "Condition"}</label>
                       <select
                         value={autosParams.acond || ""}
                         onChange={(e) => setAutosParams((p) => ({ ...p, acond: e.target.value }))}
@@ -4571,11 +4571,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
               {category === "rentas" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-semibold text-gray-200">{lang === "es" ? "Rentas" : "Rentals"}</div>
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Rentas" : "Rentals"}</div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio min" : "Price min"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Precio min" : "Price min"}</label>
                       <input
                         value={rentasParams.rpmin}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rpmin: e.target.value }))}
@@ -4585,7 +4585,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Precio max" : "Price max"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Precio max" : "Price max"}</label>
                       <input
                         value={rentasParams.rpmax}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rpmax: e.target.value }))}
@@ -4596,7 +4596,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Recámaras" : "Beds"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Recámaras" : "Beds"}</label>
                       <select
                         value={rentasParams.rbeds}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rbeds: e.target.value }))}
@@ -4613,7 +4613,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Baños" : "Baths"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Baños" : "Baths"}</label>
                       <select
                         value={rentasParams.rbaths}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rbaths: e.target.value }))}
@@ -4628,7 +4628,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Tipo" : "Type"}</label>
                       <select
                         value={rentasParams.rtype}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rtype: e.target.value }))}
@@ -4643,7 +4643,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Mascotas" : "Pets"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Mascotas" : "Pets"}</label>
                       <select
                         value={rentasParams.rpets}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rpets: e.target.value }))}
@@ -4658,7 +4658,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Estacionamiento" : "Parking"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Estacionamiento" : "Parking"}</label>
                       <select
                         value={rentasParams.rparking}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rparking: e.target.value }))}
@@ -4675,7 +4675,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Amueblado" : "Furnished"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Amueblado" : "Furnished"}</label>
                       <select
                         value={rentasParams.rfurnished}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rfurnished: e.target.value }))}
@@ -4688,7 +4688,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Utilidades incl." : "Utilities incl."}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Utilidades incl." : "Utilities incl."}</label>
                       <select
                         value={rentasParams.rutilities}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rutilities: e.target.value }))}
@@ -4701,7 +4701,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Disponible" : "Available"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Disponible" : "Available"}</label>
                       <select
                         value={rentasParams.ravailable}
                         onChange={(e) => setRentasParams((p) => ({ ...p, ravailable: e.target.value }))}
@@ -4715,7 +4715,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">{lang === "es" ? "Contrato" : "Lease"}</label>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Contrato" : "Lease"}</label>
                       <select
                         value={rentasParams.rleaseterm}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rleaseterm: e.target.value }))}
@@ -4731,7 +4731,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">Sqft min</label>
+                      <label className="block text-xs font-semibold text-white">Sqft min</label>
                       <input
                         value={rentasParams.rsqmin}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rsqmin: e.target.value }))}
@@ -4741,7 +4741,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-300">Sqft max</label>
+                      <label className="block text-xs font-semibold text-white">Sqft max</label>
                       <input
                         value={rentasParams.rsqmax}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rsqmax: e.target.value }))}
@@ -4764,14 +4764,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     setRentasParams(EMPTY_RENTAS_PARAMS);
                     setAutosParams(EMPTY_AUTOS_PARAMS);
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {UI.clear[lang]}
                 </button>
                 <button
                   type="button"
                   onClick={() => setMoreOpen(false)}
-                  className="rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
+                  className="rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-2 text-sm text-white hover:bg-yellow-500/20"
                 >
                   {lang === "es" ? "Aplicar" : "Apply"}
                 </button>
@@ -4791,7 +4791,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <button
                 type="button"
                 onClick={() => setLocationOpen(false)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
               >
                 {UI.close[lang]}
               </button>
@@ -4799,7 +4799,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div ref={citySuggestRef} className="relative">
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-white">
                   {lang === "es" ? "Ciudad" : "City"}
                 </label>
                 <input
@@ -4834,7 +4834,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 ) : null}
 
-                <div className="mt-1 text-[11px] text-gray-400">
+                <div className="mt-1 text-[11px] text-white">
                   {lang === "es"
                     ? "Si eliges ciudad, el ZIP se limpia automáticamente."
                     : "If you pick a city, ZIP is cleared automatically."}
@@ -4842,7 +4842,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300">
+                <label className="block text-xs font-semibold text-white">
                   {UI.zip[lang]}
                 </label>
                 <input
@@ -4866,7 +4866,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
                 />
 
-                <div className="mt-1 text-[11px] text-gray-400">
+                <div className="mt-1 text-[11px] text-white">
                   {lang === "es"
                     ? "ZIP solo aplica si existe (5 dígitos). Si no existe, no se aplica ubicación."
                     : "ZIP only applies if it exists (5 digits). If not found, location won’t apply."}
@@ -4879,7 +4879,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 ) : null}
 
                 {zipMode && zipNearestCity ? (
-                  <div className="mt-2 text-xs text-gray-300">
+                  <div className="mt-2 text-xs text-white">
                     {lang === "es" ? `Cerca de: ${zipNearestCity}` : `Near: ${zipNearestCity}`}
                   </div>
                 ) : null}
@@ -4895,7 +4895,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   "rounded-xl border px-4 py-2 text-sm",
                   usingMyLocation
                     ? "border-white/10 bg-white/5 text-gray-500"
-                    : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 )}
               >
                 {UI.useMyLocation[lang]}
@@ -4910,14 +4910,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     setCityQuery("");
                     setLocMsg("");
                   }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 >
                   {UI.clear[lang]}
                 </button>
                 <button
                   type="button"
                   onClick={() => setLocationOpen(false)}
-                  className="rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
+                  className="rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-2 text-sm text-white hover:bg-yellow-500/20"
                 >
                   {UI.done[lang]}
                 </button>
@@ -4926,7 +4926,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
             {nearbyCityChips.length ? (
               <div className="mt-5">
-                <div className="text-xs font-semibold text-gray-300">
+                <div className="text-xs font-semibold text-white">
                   {lang === "es" ? "Ciudades cercanas" : "Nearby cities"}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -4943,8 +4943,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       className={cx(
                         "rounded-full border px-3 py-1.5 text-xs sm:py-1",
                         normalize(c.city) === normalize(resolvedCity.name)
-                          ? "border-yellow-500/40 bg-yellow-500/15 text-gray-100"
-                          : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                          ? "border-yellow-500/40 bg-yellow-500/15 text-white"
+                          : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                       )}
                     >
                       {c.city}

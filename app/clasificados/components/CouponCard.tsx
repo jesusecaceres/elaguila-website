@@ -47,13 +47,13 @@ export default function CouponCard({
       </h2>
 
       {/* BUSINESS NAME */}
-      <p className="text-md text-gray-200 font-semibold">
+      <p className="text-md text-white font-semibold">
         {business}
       </p>
 
       {/* DESCRIPTION */}
       {description && (
-        <p className="text-sm text-gray-300">{description}</p>
+        <p className="text-sm text-white">{description}</p>
       )}
 
       {/* EXPIRATION */}
@@ -64,7 +64,7 @@ export default function CouponCard({
       )}
 
       {/* CONTACT INFO */}
-      <div className="text-xs text-gray-300 mt-2 space-y-1">
+      <div className="text-xs text-white mt-2 space-y-1">
         {phone && (
           <p>
             <span className="font-semibold">{lang === "es" ? "Teléfono:" : "Phone:"}</span>{" "}

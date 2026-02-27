@@ -281,13 +281,13 @@ function NavbarContent() {
     <nav className="fixed top-0 left-0 w-full z-50">
       <div
         className="
-          backdrop-blur-md bg-white/9
-          border-b border-white/10 py-2 px-4 sm:px-6
+          backdrop-blur-md bg-white/10
+          border-b border-white/15 py-2 px-4 sm:px-6
           flex justify-center items-center
         "
       >
         {/* DESKTOP MENU */}
-        <div className="hidden md:flex gap-7 text-white text-sm font-medium tracking-tight">
+        <div className="hidden md:flex gap-6 text-white text-[15px] font-semibold tracking-tight">
           {navLinks.map((item, i) => {
             const active = isActive(item.href);
             return (
@@ -295,11 +295,11 @@ function NavbarContent() {
                 key={i}
                 href={buildLink(item.href)}
                 className={cx(
-                  "transition",
+                  "transition px-2 py-1 rounded-lg border border-transparent hover:bg-white/10 hover:border-white/10",
                   item.gold
-                    ? "text-yellow-300 font-bold"
+                    ? "text-yellow-300 font-bold bg-yellow-600/10 border-yellow-500/30"
                     : active
-                    ? "text-yellow-200"
+                    ? "text-yellow-200 bg-white/10 border-yellow-500/30"
                     : "text-white hover:text-yellow-200"
                 )}
                 aria-current={active ? "page" : undefined}
@@ -317,7 +317,7 @@ function NavbarContent() {
             <button
               onClick={() => switchLang("es")}
               className={
-                lang === "es" ? "text-yellow-400 font-semibold" : "text-white/70"
+                lang === "es" ? "text-yellow-400 font-semibold" : "text-white"
               }
               aria-label="Cambiar idioma a Español"
             >
@@ -327,7 +327,7 @@ function NavbarContent() {
             <button
               onClick={() => switchLang("en")}
               className={
-                lang === "en" ? "text-yellow-400 font-semibold" : "text-white/70"
+                lang === "en" ? "text-yellow-400 font-semibold" : "text-white"
               }
               aria-label="Switch language to English"
             >
@@ -355,7 +355,7 @@ function NavbarContent() {
                   <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
                     {planLabel(plan, lang)}
                   </span>
-                  <span className="text-white/60 text-xs">{accountOpen ? "▲" : "▼"}</span>
+                  <span className="text-white text-xs">{accountOpen ? "▲" : "▼"}</span>
                 </button>
 
                 {accountOpen && (
@@ -364,8 +364,8 @@ function NavbarContent() {
                     role="menu"
                   >
 
-<div className="px-4 py-3 border-b border-white/10">
-  <div className="text-xs text-white/80 truncate">{user?.email}</div>
+<div className="px-4 py-3 border-b border-white/15">
+  <div className="text-xs text-white truncate">{user?.email}</div>
   <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
     {planLabel(plan, lang)}
   </div>
@@ -473,7 +473,7 @@ function NavbarContent() {
     <div className="text-white/90 font-semibold">
       {lang === "es" ? "Cuenta" : "Account"}
     </div>
-    <div className="text-white/70 text-lg">{mobileAccountOpen ? "−" : "+"}</div>
+    <div className="text-white text-lg">{mobileAccountOpen ? "−" : "+"}</div>
   </button>
 
   {mobileAccountOpen && (
@@ -489,7 +489,7 @@ function NavbarContent() {
             <div className="text-white/90 font-semibold truncate">
               {accountLabel}
             </div>
-            <div className="text-white/50 text-xs truncate">
+            <div className="text-white text-xs truncate">
               {user.email}
             </div>
           </div>

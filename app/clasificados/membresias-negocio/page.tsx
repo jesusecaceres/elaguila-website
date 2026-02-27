@@ -44,8 +44,8 @@ export default function RedirectToCuenta() {
     <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
         <h1 className="text-2xl font-semibold mb-3">{c.title}</h1>
-        <p className="text-white/80 mb-2">{c.line1}</p>
-        <p className="text-white/60 mb-6">{c.line2}</p>
+        <p className="text-white mb-2">{c.line1}</p>
+        <p className="text-white mb-6">{c.line2}</p>
         <Link
           href={href}
           className="inline-flex items-center justify-center rounded-xl px-5 py-3 bg-[#D4AF37] text-black font-semibold hover:opacity-90"

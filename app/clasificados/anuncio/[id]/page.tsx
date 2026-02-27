@@ -233,11 +233,11 @@ export default function AnuncioDetallePage() {
     return (
       <div className="bg-black min-h-screen text-white pb-24">
         <Navbar />
-        <section className="max-w-6xl mx-auto px-6 pt-28">
+        <section className="max-w-screen-2xl mx-auto px-6 pt-28">
           <div className="text-center">
             <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
             <h1 className="text-5xl md:text-6xl font-bold text-yellow-400">{t.notFoundTitle}</h1>
-            <p className="mt-5 text-gray-100 max-w-2xl mx-auto text-lg">{t.notFoundBody}</p>
+            <p className="mt-5 text-white max-w-2xl mx-auto text-lg">{t.notFoundBody}</p>
 
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <a
@@ -248,7 +248,7 @@ export default function AnuncioDetallePage() {
               </a>
               <a
                 href={`/clasificados/publicar?lang=${lang}`}
-                className="px-7 py-3 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-gray-100 font-semibold hover:bg-black/45 transition"
+                className="px-7 py-3 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
               >
                 {t.post}
               </a>
@@ -285,11 +285,11 @@ export default function AnuncioDetallePage() {
         }}
       />
 
-      <section className="max-w-6xl mx-auto px-6 pt-28">
+      <section className="max-w-screen-2xl mx-auto px-6 pt-28">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <a
             href={`/clasificados?lang=${lang}`}
-            className="px-5 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-gray-100 font-semibold hover:bg-black/45 transition"
+            className="px-5 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
           >
             ← {t.back}
           </a>
@@ -303,7 +303,7 @@ export default function AnuncioDetallePage() {
             </a>
             <a
               href={`/clasificados/login?lang=${lang}`}
-              className="px-6 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-gray-100 font-semibold hover:bg-black/45 transition"
+              className="px-6 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
             >
               {t.signIn}
             </a>
@@ -321,14 +321,14 @@ export default function AnuncioDetallePage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <h1 className="text-4xl md:text-5xl font-bold text-gray-100 leading-tight">
+                  <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
                     {listing.title[lang]}
                   </h1>
                   <div className="mt-3 text-2xl font-extrabold text-yellow-200">
                     {listing.priceLabel[lang]}
                   </div>
 
-                  <div className="mt-4 text-gray-100">
+                  <div className="mt-4 text-white">
                     {listing.city} • {listing.postedAgo[lang]}
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default function AnuncioDetallePage() {
                       "px-3 py-1 rounded-full text-xs font-semibold border",
                       isBusiness
                         ? "border-yellow-400/55 text-yellow-200 bg-yellow-400/10"
-                        : "border-white/10 text-gray-200 bg-white/5"
+                        : "border-white/10 text-white bg-white/5"
                     )}
                   >
                     {isBusiness ? t.sellerBusiness : t.sellerPersonal}
@@ -370,7 +370,7 @@ export default function AnuncioDetallePage() {
                   </span>
                 </div>
 
-<p className="mt-3 text-xs text-gray-200">
+<p className="mt-3 text-xs text-white">
   {lang === "es"
     ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
     : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
@@ -378,7 +378,7 @@ export default function AnuncioDetallePage() {
               </div>
 
               <div className="mt-8 rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-                <div className="text-sm text-gray-100">{listing.blurb[lang]}</div>
+                <div className="text-sm text-white">{listing.blurb[lang]}</div>
               </div>
 
 
@@ -389,7 +389,7 @@ export default function AnuncioDetallePage() {
         <div className="text-sm font-semibold text-yellow-200">
           {lang === "es" ? "Video (Pro)" : "Pro Video"}
         </div>
-        <div className="mt-1 text-xs text-gray-200">
+        <div className="mt-1 text-xs text-white">
           {lang === "es"
             ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
             : "Tap the thumbnail to play. No autoplay."}
@@ -429,7 +429,7 @@ export default function AnuncioDetallePage() {
             </div>
           </button>
         ) : (
-          <div className="rounded-xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4 text-sm text-gray-100">
+          <div className="rounded-xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4 text-sm text-white">
             {lang === "es"
               ? "Este anuncio incluye un video Pro. Presione “Reproducir” para verlo."
               : "This listing includes a Pro video. Press “Play” to watch."}
@@ -451,27 +451,27 @@ export default function AnuncioDetallePage() {
 
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-gray-200">{t.metaCategory}</div>
-                  <div className="mt-1 text-gray-100 font-semibold">
+                  <div className="text-xs text-white">{t.metaCategory}</div>
+                  <div className="mt-1 text-white font-semibold">
                     {categoryLabel[listing.category][lang]}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-gray-200">{t.metaCondition}</div>
-                  <div className="mt-1 text-gray-100 font-semibold">
+                  <div className="text-xs text-white">{t.metaCondition}</div>
+                  <div className="mt-1 text-white font-semibold">
                     {conditionText(listing.condition)}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-gray-200">{t.metaCity}</div>
-                  <div className="mt-1 text-gray-100 font-semibold">{listing.city}</div>
+                  <div className="text-xs text-white">{t.metaCity}</div>
+                  <div className="mt-1 text-white font-semibold">{listing.city}</div>
                 </div>
 
                 <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-gray-200">{t.metaPosted}</div>
-                  <div className="mt-1 text-gray-100 font-semibold">{listing.postedAgo[lang]}</div>
+                  <div className="text-xs text-white">{t.metaPosted}</div>
+                  <div className="mt-1 text-white font-semibold">{listing.postedAgo[lang]}</div>
                 </div>
               </div>
             </div>
@@ -479,11 +479,11 @@ export default function AnuncioDetallePage() {
             {/* Safety note */}
             <div className="mt-6 rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <div className="text-lg font-bold text-yellow-200">{t.guardTitle}</div>
-              <div className="mt-2 text-gray-100">{t.guardBody}</div>
+              <div className="mt-2 text-white">{t.guardBody}</div>
 
               <div className="mt-4">
                 <button
-                  className="px-5 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-gray-100 font-semibold hover:bg-black/45 transition"
+                  className="px-5 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
                   onClick={() => alert(lang === "es" ? "Gracias — recibido." : "Thanks — received.")}
                 >
                   {t.report}
@@ -495,7 +495,7 @@ export default function AnuncioDetallePage() {
           {/* Right rail */}
           <div className="lg:col-span-4 space-y-6">
             <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-              <div className="text-xl font-bold text-gray-100">{t.actionsTitle}</div>
+              <div className="text-xl font-bold text-white">{t.actionsTitle}</div>
 
               <div className="mt-4 space-y-3">
                 <button
@@ -503,7 +503,7 @@ export default function AnuncioDetallePage() {
                   onClick={() => listing && setSaved(toggleListingSaved(listing.id))}
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
-                    "border-white/10 bg-black/40 text-gray-100 hover:bg-black/55"
+                    "border-white/10 bg-black/40 text-white hover:bg-black/55"
                   )}
                 >
                   {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : (lang === "es" ? "☆ Guardar" : "☆ Save")}
@@ -512,7 +512,7 @@ export default function AnuncioDetallePage() {
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-gray-100 hover:bg-black/55"
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-white hover:bg-black/55"
                 >
                   {lang === "es" ? "Compartir" : "Share"}
                 </button>
@@ -520,7 +520,7 @@ export default function AnuncioDetallePage() {
                 <button
                   type="button"
                   onClick={() => copyText(typeof window !== "undefined" ? window.location.href : "")}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-gray-100 hover:bg-black/55"
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-white hover:bg-black/55"
                 >
                   {lang === "es" ? "Copiar enlace" : "Copy link"}
                 </button>
@@ -528,7 +528,7 @@ export default function AnuncioDetallePage() {
                 <button
                   type="button"
                   onClick={() => copyText(buildShareMessage())}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-gray-100 hover:bg-black/55"
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-white hover:bg-black/55"
                 >
                   {lang === "es" ? "Copiar info" : "Copy info"}
                 </button>
@@ -539,7 +539,7 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition",
                     !isAuthed
-                      ? "bg-white/5 text-gray-300 border border-white/10 cursor-not-allowed"
+                      ? "bg-white/5 text-white border border-white/10 cursor-not-allowed"
                       : "bg-yellow-400 text-black hover:opacity-95"
                   )}
                 >
@@ -552,8 +552,8 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
                     !isAuthed
-                      ? "bg-white/5 text-gray-300 border-white/10 cursor-not-allowed"
-                      : "bg-black/30 text-gray-100 border-white/10 hover:bg-black/45"
+                      ? "bg-white/5 text-white border-white/10 cursor-not-allowed"
+                      : "bg-black/30 text-white border-white/10 hover:bg-black/45"
                   )}
                 >
                   {t.edit}
@@ -565,7 +565,7 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
                     !isAuthed
-                      ? "bg-white/5 text-gray-300 border-white/10 cursor-not-allowed"
+                      ? "bg-white/5 text-white border-white/10 cursor-not-allowed"
                       : "bg-red-500/15 text-red-200 border-red-400/25 hover:bg-red-500/20"
                   )}
                 >
@@ -573,7 +573,7 @@ export default function AnuncioDetallePage() {
                 </button>
 
                 {!isAuthed && (
-                  <div className="text-xs text-gray-200 pt-2">
+                  <div className="text-xs text-white pt-2">
                     {lang === "es"
                       ? "Nota: en v2 estas acciones se habilitan cuando conectemos autenticación real."
                       : "Note: in v2 these actions will enable when we wire real authentication."}
@@ -583,31 +583,31 @@ export default function AnuncioDetallePage() {
             </div>
 
             <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-              <div className="text-xl font-bold text-gray-100">{t.contactTitle}</div>
-              <div className="mt-3 text-gray-100">{t.contactBody}</div>
+              <div className="text-xl font-bold text-white">{t.contactTitle}</div>
+              <div className="mt-3 text-white">{t.contactBody}</div>
 
               <div className="mt-5 flex flex-col gap-3">
                 <button
                   disabled
-                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-gray-300 font-semibold cursor-not-allowed"
+                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-white font-semibold cursor-not-allowed"
                 >
                   {lang === "es" ? "Llamar" : "Call"}
                 </button>
                 <button
                   disabled
-                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-gray-300 font-semibold cursor-not-allowed"
+                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-white font-semibold cursor-not-allowed"
                 >
                   {lang === "es" ? "Enviar mensaje" : "Message"}
                 </button>
                 <button
                   disabled
-                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-gray-300 font-semibold cursor-not-allowed"
+                  className="w-full px-5 py-3 rounded-full border border-white/10 bg-white/5 text-white font-semibold cursor-not-allowed"
                 >
                   {lang === "es" ? "Solicitar info" : "Request info"}
                 </button>
               </div>
 
-              <div className="mt-4 text-xs text-gray-200">
+              <div className="mt-4 text-xs text-white">
                 {lang === "es"
                   ? "Estas herramientas se activan con LEONIX Pro (leads por anuncio)."
                   : "These tools activate with LEONIX Pro (per-listing leads)."}

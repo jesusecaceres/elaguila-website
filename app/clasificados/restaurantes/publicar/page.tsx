@@ -24,7 +24,7 @@ export default async function Page({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-6xl mx-auto px-6 pt-28 pb-16">
+      <div className="max-w-screen-2xl mx-auto px-6 pt-28 pb-16">
         <div className="text-center">
           <Image
             src="/logo.png"
@@ -37,7 +37,7 @@ export default async function Page({
           <h1 className="mt-7 text-3xl md:text-4xl font-bold text-yellow-400">
             {lang === "es" ? "Anuncia tu restaurante" : "List your restaurant"}
           </h1>
-          <p className="mt-3 text-sm md:text-base text-gray-300">
+          <p className="mt-3 text-sm md:text-base text-white">
             {lang === "es"
               ? "Te guiamos paso a paso. En menos de 2 minutos puedes estar en línea."
               : "We’ll guide you step by step. You can be live in under 2 minutes."}
@@ -69,12 +69,12 @@ export default async function Page({
               <div className="text-sm font-semibold text-yellow-200">
                 {lang === "es" ? "¿Qué se publica?" : "What gets published?"}
               </div>
-              <p className="mt-2 text-sm text-gray-300">
+              <p className="mt-2 text-sm text-white">
                 {lang === "es"
                   ? "Un perfil con tus datos básicos, fotos y botones de contacto (llamar, texto, dirección, web)."
                   : "A profile with your basics, photos, and fast contact buttons (call, text, directions, website)."}
               </p>
-              <p className="mt-3 text-xs text-gray-400">
+              <p className="mt-3 text-xs text-white">
                 {lang === "es"
                   ? "LEONIX AI revisa duplicados y spam en silencio para proteger la comunidad."
                   : "LEONIX AI quietly checks duplicates and spam to protect the community."}
@@ -85,7 +85,7 @@ export default async function Page({
               <div className="text-sm font-semibold text-yellow-200">
                 {lang === "es" ? "Tip rápido" : "Quick tip"}
               </div>
-              <p className="mt-2 text-sm text-gray-300">
+              <p className="mt-2 text-sm text-white">
                 {lang === "es"
                   ? "Una buena foto de tu platillo principal + tu horario aumenta llamadas."
                   : "A great photo of your signature dish + your hours increases calls."}
@@ -96,7 +96,7 @@ export default async function Page({
               <div className="text-sm font-semibold text-white">
                 {lang === "es" ? "¿Ya tienes un anuncio?" : "Already have a listing?"}
               </div>
-              <p className="mt-2 text-sm text-gray-300">
+              <p className="mt-2 text-sm text-white">
                 {lang === "es"
                   ? "Adminístralo desde tu panel (si está disponible en tu cuenta)."
                   : "Manage it from your dashboard (if available in your account)."}

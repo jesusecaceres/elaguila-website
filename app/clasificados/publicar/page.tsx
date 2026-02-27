@@ -1172,10 +1172,10 @@ if (isPro && videoFile && !videoError) {
       <div className="max-w-4xl mx-auto px-6 pt-28 pb-16">
         <div className="rounded-2xl border border-white/10 bg-white/6 p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-100 text-center">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white text-center">
               {copy.title}
             </h1>
-            <p className="text-gray-300 text-center max-w-2xl mx-auto">
+            <p className="text-white text-center max-w-2xl mx-auto">
               {checking ? copy.checking : copy.subtitle}
             </p>
             {authError && (
@@ -1189,7 +1189,7 @@ if (isPro && videoFile && !videoError) {
             <>
               {/* Stepper */}
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/7 p-3">
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-white">
                   <span
                     className={cx(
                       "px-2 py-1 rounded-lg border",
@@ -1242,7 +1242,7 @@ if (isPro && videoFile && !videoError) {
                     setPublishError("");
                     setPublishedId("");
                   }}
-                  className="text-xs sm:text-sm rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                  className="text-xs sm:text-sm rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white"
                 >
                   {copy.deleteDraft}
                 </button>
@@ -1254,10 +1254,10 @@ if (isPro && videoFile && !videoError) {
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-gray-100">
+                    <div className="text-sm font-semibold text-white">
                       {lang === "es" ? "Requisitos para publicar" : "Publish requirements"}
                     </div>
-                    <p className="mt-1 text-xs text-white/70">
+                    <p className="mt-1 text-xs text-white">
                       {lang === "es"
                         ? "Completa esto para que tu anuncio salga bien en la lista. Te guiamos paso a paso."
                         : "Complete these so your listing shows up cleanly in search. We’ll guide you step by step."}
@@ -1268,28 +1268,28 @@ if (isPro && videoFile && !videoError) {
                     <button
                       type="button"
                       onClick={() => setStep("category")}
-                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white"
                     >
                       {copy.steps.category}
                     </button>
                     <button
                       type="button"
                       onClick={() => setStep("basics")}
-                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white"
                     >
                       {copy.steps.basics}
                     </button>
                     <button
                       type="button"
                       onClick={() => setStep("details")}
-                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white"
                     >
                       {copy.steps.details}
                     </button>
                     <button
                       type="button"
                       onClick={() => setStep("media")}
-                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white"
                     >
                       {copy.steps.media}
                     </button>
@@ -1306,7 +1306,7 @@ if (isPro && videoFile && !videoError) {
                         "text-xs rounded-full border px-3 py-1.5",
                         it.ok
                           ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
-                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/8"
+                          : "border-white/10 bg-white/5 text-white hover:bg-white/8"
                       )}
                       aria-label={it.ok ? `${it.label} OK` : `${it.label} missing`}
                     >
@@ -1327,8 +1327,8 @@ if (isPro && videoFile && !videoError) {
                 {/* CATEGORY (STEP 1) */}
                 {step === "category" && (
                   <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
-                    <h2 className="text-lg font-semibold text-gray-100">{copy.categoryTitle}</h2>
-                    <p className="mt-2 text-sm text-white/60">{copy.categoryNote}</p>
+                    <h2 className="text-lg font-semibold text-white">{copy.categoryTitle}</h2>
+                    <p className="mt-2 text-sm text-white">{copy.categoryNote}</p>
 
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {(Object.keys(categoryConfig) as CategoryKey[]).map((k) => {
@@ -1349,7 +1349,7 @@ if (isPro && videoFile && !videoError) {
                             <div className={cx("text-sm font-semibold", selected ? "text-yellow-100" : "text-white/90")}>
                               {label}
                             </div>
-                            <div className="mt-1 text-xs text-white/50">{k}</div>
+                            <div className="mt-1 text-xs text-white">{k}</div>
                           </button>
                         );
                       })}
@@ -1382,22 +1382,22 @@ if (isPro && videoFile && !videoError) {
                 {/* BASICS */}
                 {step === "basics" && (
                   <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
-                    <h2 className="text-lg font-semibold text-gray-100">{copy.basicsTitle}</h2>
+                    <h2 className="text-lg font-semibold text-white">{copy.basicsTitle}</h2>
                     {!isPro && category === "en-venta" && (
                       <div className="mt-4 rounded-2xl border border-white/10 bg-white/6 p-4">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                           <div>
-                            <div className="text-sm font-semibold text-gray-100">
+                            <div className="text-sm font-semibold text-white">
                               {lang === "es" ? "Modo Garaje" : "Garage Mode"}
                             </div>
-                            <p className="mt-1 text-xs text-white/70 max-w-xl">
+                            <p className="mt-1 text-xs text-white max-w-xl">
                               {lang === "es"
                                 ? "Solo para usuarios Free en En Venta. Cuando llegas al límite, puedes desbloquear +4 anuncios por 7 días (1 vez cada 30 días)."
                                 : "Free users in For Sale only. When you hit the limit, unlock +4 listings for 7 days (once every 30 days)."}
                             </p>
                           </div>
 
-                          <div className="text-xs text-white/70">
+                          <div className="text-xs text-white">
                             {garageLoading
                               ? (lang === "es" ? "Calculando…" : "Calculating…")
                               : typeof enVentaActiveCount === "number"
@@ -1417,7 +1417,7 @@ if (isPro && videoFile && !videoError) {
                         )}
 
                         {!garage.active && typeof garage.cooldownDaysLeft === "number" && garage.cooldownDaysLeft > 0 && (
-                          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/70">
+                          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white">
                             {lang === "es"
                               ? `Disponible de nuevo en ${garage.cooldownDaysLeft} día(s).`
                               : `Available again in ${garage.cooldownDaysLeft} day(s).`}
@@ -1437,7 +1437,7 @@ if (isPro && videoFile && !videoError) {
 
                     <div className="mt-4 grid gap-4">
                       <div>
-                        <label className="text-sm text-white/80">{copy.fieldTitle}</label>
+                        <label className="text-sm text-white">{copy.fieldTitle}</label>
                         <input
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
@@ -1452,7 +1452,7 @@ if (isPro && videoFile && !videoError) {
                       </div>
 
                       <div>
-                        <label className="text-sm text-white/80">{copy.fieldDesc}</label>
+                        <label className="text-sm text-white">{copy.fieldDesc}</label>
                         <textarea
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
@@ -1473,7 +1473,7 @@ if (isPro && videoFile && !videoError) {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="sm:col-span-2">
-                          <label className="text-sm text-white/80">{copy.fieldPrice}</label>
+                          <label className="text-sm text-white">{copy.fieldPrice}</label>
                           <input
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
@@ -1482,7 +1482,7 @@ if (isPro && videoFile && !videoError) {
                             className={cx(
                               "mt-2 w-full rounded-xl border px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2",
                               isFree
-                                ? "border-white/5 bg-white/5 text-white/50"
+                                ? "border-white/5 bg-white/5 text-white"
                                 : "border-white/10 bg-white/9 focus:ring-yellow-400/30"
                             )}
                           />
@@ -1494,7 +1494,7 @@ if (isPro && videoFile && !videoError) {
                         </div>
 
                         <div className="sm:col-span-1">
-                          <label className="text-sm text-white/80">{copy.freeToggle}</label>
+                          <label className="text-sm text-white">{copy.freeToggle}</label>
                           <button
                             type="button"
                             onClick={() => {
@@ -1505,7 +1505,7 @@ if (isPro && videoFile && !videoError) {
                               "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
                               isFree
                                 ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
-                                : "border-white/10 bg-white/9 text-white/80 hover:bg-white/12"
+                                : "border-white/10 bg-white/9 text-white hover:bg-white/12"
                             )}
                           >
                             {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
@@ -1514,7 +1514,7 @@ if (isPro && videoFile && !videoError) {
                       </div>
 
                       <div>
-                        <label className="text-sm text-white/80">{copy.fieldCity}</label>
+                        <label className="text-sm text-white">{copy.fieldCity}</label>
                         <input
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
@@ -1552,15 +1552,15 @@ if (isPro && videoFile && !videoError) {
                 {/* DETAILS */}
                 {step === "details" && (
                   <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
-                    <h2 className="text-lg font-semibold text-gray-100">{copy.detailsTitle}</h2>
-                    <p className="mt-2 text-sm text-white/60">
+                    <h2 className="text-lg font-semibold text-white">{copy.detailsTitle}</h2>
+                    <p className="mt-2 text-sm text-white">
                       {lang === "es"
                         ? "Estos detalles ayudan a que tu anuncio se vea como en las mejores plataformas. Solo llena lo que aplica."
                         : "These details help your listing look like the top platforms. Fill only what applies."}
                     </p>
 
                     <div className="mt-4 rounded-2xl border border-white/10 bg-white/6 p-4">
-                      <div className="text-sm text-white/70">
+                      <div className="text-sm text-white">
                         {lang === "es" ? "Categoría:" : "Category:"}{" "}
                         <span className="text-white/90 font-semibold">{category}</span>
                       </div>
@@ -1581,7 +1581,7 @@ if (isPro && videoFile && !videoError) {
                             if (f.type === "select" && f.options) {
                               return (
                                 <label key={f.key} className="block">
-                                  <div className="text-xs text-white/60 mb-1">{label}</div>
+                                  <div className="text-xs text-white mb-1">{label}</div>
                                   <select
                                     value={v}
                                     onChange={(e) =>
@@ -1602,7 +1602,7 @@ if (isPro && videoFile && !videoError) {
 
                             return (
                               <label key={f.key} className="block">
-                                <div className="text-xs text-white/60 mb-1">{label}</div>
+                                <div className="text-xs text-white mb-1">{label}</div>
                                 <input
                                   value={v}
                                   onChange={(e) =>
@@ -1622,7 +1622,7 @@ if (isPro && videoFile && !videoError) {
                         <button
                           type="button"
                           onClick={() => setDetails({})}
-                          className="text-xs text-white/60 hover:text-white/80"
+                          className="text-xs text-white hover:text-white"
                         >
                           {lang === "es" ? "Limpiar detalles" : "Clear details"}
                         </button>
@@ -1656,20 +1656,20 @@ if (isPro && videoFile && !videoError) {
                 {/* MEDIA + CONTACT + PREVIEW */}
                 {step === "media" && (
                   <section className="rounded-2xl border border-white/10 bg-white/6 p-5">
-                    <h2 className="text-lg font-semibold text-gray-100">{copy.mediaTitle}</h2>
+                    <h2 className="text-lg font-semibold text-white">{copy.mediaTitle}</h2>
 
                     <div className="mt-4 grid gap-5">
                       <div>
                         <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm text-white/80">
+                          <div className="text-sm text-white">
                             {copy.images}
-                            <span className="ml-2 text-xs text-white/50">
+                            <span className="ml-2 text-xs text-white">
                               {lang === "es"
                                 ? `(Máx ${maxImages}. ${isPro ? "Puedes reordenar." : "Pro: 12 + reordenar."})`
                                 : `(Max ${maxImages}. ${isPro ? "You can reorder." : "Pro: 12 + reorder."})`}
                             </span>
                           </div>
-                          <label className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-4 py-2 text-sm font-semibold text-white/80 cursor-pointer">
+                          <label className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-4 py-2 text-sm font-semibold text-white cursor-pointer">
                             {copy.addImages}
                             <input
                               type="file"
@@ -1722,7 +1722,7 @@ if (isPro && videoFile && !videoError) {
                                   <button
                                     type="button"
                                     onClick={() => removeImage(idx)}
-                                    className="rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-white/16"
+                                    className="rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white hover:bg-white/16"
                                     aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
                                     title={lang === "es" ? "Quitar" : "Remove"}
                                   >
@@ -1752,7 +1752,7 @@ if (isPro && videoFile && !videoError) {
                                       disabled={idx === 0}
                                       onClick={() => moveLeft(idx)}
                                       className={cx(
-                                        "rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-white/16",
+                                        "rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white hover:bg-white/16",
                                         idx === 0 && "opacity-40 cursor-not-allowed"
                                       )}
                                       title={lang === "es" ? "Mover izquierda" : "Move left"}
@@ -1765,7 +1765,7 @@ if (isPro && videoFile && !videoError) {
                                       disabled={idx === filePreviews.length - 1}
                                       onClick={() => moveRight(idx)}
                                       className={cx(
-                                        "rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white/80 hover:bg-white/16",
+                                        "rounded-md border border-white/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-white hover:bg-white/16",
                                         idx === filePreviews.length - 1 && "opacity-40 cursor-not-allowed"
                                       )}
                                       title={lang === "es" ? "Mover derecha" : "Move right"}
@@ -1789,7 +1789,7 @@ if (isPro && videoFile && !videoError) {
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 relative overflow-hidden">
   <div className="flex items-start justify-between gap-3">
     <div>
-      <div className="text-sm text-white/80">{copy.video}</div>
+      <div className="text-sm text-white">{copy.video}</div>
       <div className="mt-1 text-xs text-white/45">{copy.videoHint}</div>
     </div>
 
@@ -1797,7 +1797,7 @@ if (isPro && videoFile && !videoError) {
       className={cx(
         "rounded-xl border px-4 py-2 text-sm font-semibold cursor-pointer",
         isPro
-          ? "border-white/10 bg-white/5 hover:bg-white/8 text-white/80"
+          ? "border-white/10 bg-white/5 hover:bg-white/8 text-white"
           : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed"
       )}
     >
@@ -1846,7 +1846,7 @@ if (isPro && videoFile && !videoError) {
           setVideoError("");
           setShowProVideoPreview(false);
           }}
-          className="text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 text-white/70"
+          className="text-xs rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 text-white"
         >
           {lang === "es" ? "Quitar" : "Remove"}
         </button>
@@ -1875,7 +1875,7 @@ if (isPro && videoFile && !videoError) {
 
 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
 
-                        <div className="text-sm text-white/80">{copy.contact}</div>
+                        <div className="text-sm text-white">{copy.contact}</div>
 
                         <div className="mt-3 grid grid-cols-3 gap-2">
                           {([
@@ -1891,7 +1891,7 @@ if (isPro && videoFile && !videoError) {
                                 "rounded-xl border px-3 py-2 text-sm font-semibold",
                                 contactMethod === value
                                   ? "border-yellow-500/35 bg-yellow-400/10 text-yellow-200"
-                                  : "border-white/10 bg-white/5 text-white/80 hover:bg-white/8"
+                                  : "border-white/10 bg-white/5 text-white hover:bg-white/8"
                               )}
                             >
                               {label}
@@ -1902,7 +1902,7 @@ if (isPro && videoFile && !videoError) {
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {(contactMethod === "phone" || contactMethod === "both") && (
                             <div>
-                              <label className="text-xs text-white/70">{copy.phone}</label>
+                              <label className="text-xs text-white">{copy.phone}</label>
                               <input
                                 value={contactPhone}
                                 onChange={(e) => setContactPhone(e.target.value)}
@@ -1919,7 +1919,7 @@ if (isPro && videoFile && !videoError) {
 
                           {(contactMethod === "email" || contactMethod === "both") && (
                             <div>
-                              <label className="text-xs text-white/70">{copy.email}</label>
+                              <label className="text-xs text-white">{copy.email}</label>
                               <input
                                 value={contactEmail}
                                 onChange={(e) => setContactEmail(e.target.value)}
@@ -1939,7 +1939,7 @@ if (isPro && videoFile && !videoError) {
                       {/* Preview */}
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                         <div className="flex items-center justify-between">
-                          <div className="text-sm font-semibold text-white/80">{copy.preview}</div>
+                          <div className="text-sm font-semibold text-white">{copy.preview}</div>
                           <div className="text-xs text-white/40">
                             {lang === "es" ? "Así se verá tu anuncio" : "This is how your listing will look"}
                           </div>
@@ -1947,7 +1947,7 @@ if (isPro && videoFile && !videoError) {
 
                         <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <div className="text-xs text-white/50 mb-2">{copy.cardPreview}</div>
+                            <div className="text-xs text-white mb-2">{copy.cardPreview}</div>
                             {ListingCard ? (
                               (() => {
                                 const item: any = {
@@ -1959,18 +1959,18 @@ if (isPro && videoFile && !videoError) {
                                 return <ListingCard item={item} />;
                               })()
                             ) : (
-                              <div className="rounded-2xl border border-white/10 bg-white/7 p-4 text-sm text-white/60">
+                              <div className="rounded-2xl border border-white/10 bg-white/7 p-4 text-sm text-white">
                                 {lang === "es" ? "(Vista previa no disponible)" : "(Preview unavailable)"}
                               </div>
                             )}
                           </div>
 
                           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <div className="text-xs text-white/50 mb-2">{copy.detailPreview}</div>
-                            <div className="text-lg font-semibold text-gray-100 leading-snug">
+                            <div className="text-xs text-white mb-2">{copy.detailPreview}</div>
+                            <div className="text-lg font-semibold text-white leading-snug">
                               {title.trim() || (lang === "es" ? "(Sin título)" : "(No title)")}
                             </div>
-                            <div className="mt-1 text-sm text-white/70">
+                            <div className="mt-1 text-sm text-white">
                               {isFree
                                 ? lang === "es"
                                   ? "Gratis"
@@ -1998,7 +1998,7 @@ if (isPro && videoFile && !videoError) {
                                     <div className="text-sm font-semibold text-yellow-200">
                                       {lang === "es" ? "Video (Pro)" : "Pro Video"}
                                     </div>
-                                    <div className="mt-1 text-xs text-white/50">
+                                    <div className="mt-1 text-xs text-white">
                                       {lang === "es"
                                         ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
                                         : "Tap the thumbnail to play. No autoplay."}
@@ -2038,7 +2038,7 @@ if (isPro && videoFile && !videoError) {
                                         </div>
                                       </button>
                                     ) : (
-                                      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white">
                                         {lang === "es"
                                           ? "Este anuncio incluirá un video Pro al publicarse."
                                           : "This listing will include a Pro video when published."}
@@ -2060,7 +2060,7 @@ if (isPro && videoFile && !videoError) {
 
                             {getDetailPairs(category, lang, details).length > 0 && (
                               <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                                <div className="text-xs text-white/50 mb-2">
+                                <div className="text-xs text-white mb-2">
                                   {lang === "es" ? "Detalles" : "Details"}
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
@@ -2073,7 +2073,7 @@ if (isPro && videoFile && !videoError) {
                                 </div>
                               </div>
                             )}
-<div className="mt-3 text-sm text-gray-200 whitespace-pre-wrap">
+<div className="mt-3 text-sm text-white whitespace-pre-wrap">
                               {description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)")}
                             </div>
                           </div>

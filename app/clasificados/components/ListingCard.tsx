@@ -56,7 +56,7 @@ export default function ListingCard({
         }}
         className={cx(
           "absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold transition",
-          "border-white/10 bg-white/12 text-gray-100 hover:bg-white/16"
+          "border-white/10 bg-white/12 text-white hover:bg-white/16"
         )}
         aria-label={saveText}
         title={saveText}
@@ -64,7 +64,7 @@ export default function ListingCard({
         {saved ? "★" : "☆"} {saveText}
       </button>
 
-      <h3 className="mb-1 text-base sm:text-lg font-semibold text-gray-100 leading-snug">
+      <h3 className="mb-1 text-base sm:text-lg font-semibold text-white leading-snug">
         {item.title}
       </h3>
 
@@ -79,11 +79,11 @@ export default function ListingCard({
         ) : null}
       </div>
 
-      <p className="mb-2 text-sm text-gray-300 line-clamp-2">
+      <p className="mb-2 text-sm text-white line-clamp-2">
         {item.description}
       </p>
 
-      <span className="text-[11px] sm:text-xs text-gray-400">{`${postedLabel}: ${item.createdAt}`}</span>
+      <span className="text-[11px] sm:text-xs text-white">{`${postedLabel}: ${item.createdAt}`}</span>
     </div>
   );
 }
