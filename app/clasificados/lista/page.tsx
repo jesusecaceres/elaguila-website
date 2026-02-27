@@ -1989,7 +1989,53 @@ useEffect(() => {
     setPage(1);
   }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
-  const businessTop = useMemo(() => {
+  
+  // ------------------------------------------------------------
+  // E2 — Fair visibility mix (guarantee Free listings appear early)
+  // Rule: treat paid tiers as:
+  //   - Business (Corona / Corona de Oro) => paid
+  //   - Personal with handle (Joya)       => paid
+  // Free = Personal without handle
+  // Pattern: P, P, F repeating (until free runs out)
+  // ------------------------------------------------------------
+  const isPaidLike = (x: Listing) => {
+    if (x.sellerType === "business") return true;
+    if (x.sellerType === "personal" && !!x.handle) return true;
+    return false;
+  };
+
+  const mixFair = (items: Listing[]) => {
+    const paid: Listing[] = [];
+    const free: Listing[] = [];
+    for (const it of items) {
+      (isPaidLike(it) ? paid : free).push(it);
+    }
+    // If user filtered to business-only, or one side is empty, don't mix.
+    if (!free.length || !paid.length) return items;
+
+    const out: Listing[] = [];
+    let p = 0;
+    let f = 0;
+
+    // Repeat [P, P, F]
+    while (p < paid.length || f < free.length) {
+      for (let i = 0; i < 2 && p < paid.length; i++) out.push(paid[p++]);
+      if (f < free.length) out.push(free[f++]);
+      // If paid exhausted, append remaining free; if free exhausted, append remaining paid.
+      if (p >= paid.length) {
+        while (f < free.length) out.push(free[f++]);
+        break;
+      }
+      if (f >= free.length) {
+        while (p < paid.length) out.push(paid[p++]);
+        break;
+      }
+    }
+    return out;
+  };
+
+
+const businessTop = useMemo(() => {
   // Show a small "Profesionales / Businesses" strip only on page 1,
   // and only when user isn't already filtering to business-only.
   if (pageClamped !== 1) return [] as Listing[];
@@ -2001,8 +2047,9 @@ useEffect(() => {
 const visible = useMemo(() => {
   const topIds = new Set(businessTop.map((x) => x.id));
   const main = topIds.size ? filtered.filter((x) => !topIds.has(x.id)) : filtered;
+  const mixed = mixFair(main);
   const start = (pageClamped - 1) * perPage;
-  return main.slice(start, start + perPage);
+  return mixed.slice(start, start + perPage);
 }, [filtered, pageClamped, perPage, businessTop]);
 
   const locationLabel = useMemo(() => {
