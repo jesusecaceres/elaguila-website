@@ -189,7 +189,11 @@ function NavbarContent() {
   }, [pathname, searchParams]);
 
   const goToLogin = useCallback(() => {
-    const redirect = encodeURIComponent(currentPathWithQuery || `/home?lang=${lang}`);
+    // If user hit login while on the posting flow, send them back to Clasificados after auth.
+    const safePath = currentPathWithQuery?.startsWith("/clasificados/publicar")
+      ? `/clasificados?lang=${lang}`
+      : (currentPathWithQuery || `/home?lang=${lang}`);
+    const redirect = encodeURIComponent(safePath);
     router.push(`/login?redirect=${redirect}`);
   }, [currentPathWithQuery, lang, router]);
 

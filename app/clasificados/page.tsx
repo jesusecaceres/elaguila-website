@@ -126,7 +126,7 @@ export default function ClasificadosPage() {
 
         routePost: "/clasificados/publicar",
         routeList: "/clasificados/lista",
-        routeMemberships: "/clasificados#memberships",
+        routeMemberships: "/clasificados/membresias",
         routeLogin: "/clasificados/login",
       },
       en: {
@@ -188,7 +188,7 @@ export default function ClasificadosPage() {
 
         routePost: "/clasificados/publicar",
         routeList: "/clasificados/lista",
-        routeMemberships: "/clasificados#memberships",
+        routeMemberships: "/clasificados/membresias",
         routeLogin: "/clasificados/login",
       },
     } as const;

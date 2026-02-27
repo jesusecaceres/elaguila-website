@@ -50,7 +50,7 @@ export default function Page() {
   }, [sp, lang]);
 
   const membershipsHref = useMemo(() => {
-    return `/clasificados?lang=${lang}#memberships`;
+    return `/clasificados/membresias?lang=${lang}`;
   }, [lang]);
 
 useEffect(() => {

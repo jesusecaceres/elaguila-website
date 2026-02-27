@@ -3197,7 +3197,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           </a>
 
           <a
-            href={`/clasificados?lang=${lang}#memberships`}
+            href={`/clasificados/membresias?lang=${lang}`}
             className="rounded-full border border-yellow-600/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-black/30 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Membresías" : "Memberships"}
@@ -3922,8 +3922,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className="mt-1 inline-block text-xs text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
                   >
                     {lang === "es"
-                      ? `Ver página de ${CATEGORY_LABELS[category].es}`
-                      : `Open ${CATEGORY_LABELS[category].en} page`}
+                      ? `Ver anuncios de ${CATEGORY_LABELS[category].es}`
+                      : `View ${CATEGORY_LABELS[category].en} listings`}
                   </a>
                 ) : null}
 
