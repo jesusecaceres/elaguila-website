@@ -90,7 +90,7 @@ export default async function Page({
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href={`#discovery`}
-            className="rounded-full border border-yellow-400/30 bg-yellow-500/10 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+            className="rounded-full border border-yellow-400/45 bg-yellow-500/10 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
           >
             {lang === "es" ? "Ver restaurantes" : "Browse restaurants"}
           </Link>
@@ -194,7 +194,7 @@ export default async function Page({
               <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href={`/clasificados/restaurantes/paquetes?lang=${lang}`}
-                  className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+                  className="rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-5 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
                 >
                   {lang === "es" ? "Publicar restaurante" : "Post restaurant"}
                 </Link>

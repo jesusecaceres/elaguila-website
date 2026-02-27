@@ -75,7 +75,7 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
               </span>
             )}
             {r.supporter && (
-              <span className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-200">
+              <span className="inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-200">
                 {r.supporter}
               </span>
             )}
@@ -135,7 +135,7 @@ export default function RestaurantCard({ r, lang }: { r: Restaurant; lang: Lang 
         {has.coupons ? (
           <Link
             href={r.couponsUrl!}
-            className="inline-flex items-center justify-center rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+            className="inline-flex items-center justify-center rounded-xl border border-yellow-500/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
           >
             {label(lang, "Ver cupones", "View coupons")}
           </Link>

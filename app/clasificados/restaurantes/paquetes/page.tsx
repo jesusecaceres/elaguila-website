@@ -64,7 +64,7 @@ export default async function Page({
             </Link>
             <Link
               href={`/clasificados/lista?cat=restaurantes&lang=${lang}`}
-              className="rounded-full border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+              className="rounded-full border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
             >
               {lang === "es" ? "Ver restaurantes" : "Browse restaurants"}
             </Link>
@@ -97,7 +97,7 @@ export default async function Page({
             <div className="mt-6">
               <Link
                 href={`/clasificados/restaurantes/publicar?${free.toString()}`}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
               >
                 {lang === "es" ? "Elegir Gratis y continuar" : "Choose Free & continue"}
               </Link>
@@ -120,7 +120,7 @@ export default async function Page({
                   {lang === "es" ? "LEONIX Pro" : "LEONIX Pro"}
                 </div>
               </div>
-              <div className="rounded-full border border-yellow-400/30 bg-black/30 px-3 py-1 text-xs text-yellow-200">
+              <div className="rounded-full border border-yellow-400/45 bg-black/30 px-3 py-1 text-xs text-yellow-200">
                 {lang === "es" ? "Prioridad" : "Priority"}
               </div>
             </div>
@@ -135,7 +135,7 @@ export default async function Page({
             <div className="mt-6">
               <Link
                 href={`/clasificados/restaurantes/publicar?${pro.toString()}`}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/40 bg-yellow-500/15 px-5 py-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-500/20 transition"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/55 bg-yellow-500/15 px-5 py-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-500/20 transition"
               >
                 {lang === "es" ? "Elegir Pro y continuar" : "Choose Pro & continue"}
               </Link>

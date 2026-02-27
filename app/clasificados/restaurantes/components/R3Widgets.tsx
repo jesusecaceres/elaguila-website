@@ -156,7 +156,7 @@ export function ReviewButton({ restaurantId, lang }: { restaurantId: string; lan
                 <button
                   type="button"
                   onClick={submit}
-                  className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
+                  className="rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
                 >
                   {t(lang, "Guardar", "Save")}
                 </button>
@@ -220,7 +220,7 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
+            className="rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
           >
             {t(lang, "Configurar", "Set up")}
           </button>
@@ -306,7 +306,7 @@ export function AlertsPanel({ lang }: { lang: Lang }) {
         <button
           type="button"
           onClick={save}
-          className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
+          className="rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
         >
           {saved ? t(lang, "Guardado ✅", "Saved ✅") : t(lang, "Guardar alertas", "Save alerts")}
         </button>
@@ -398,7 +398,7 @@ export function DiscoveryPanel({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t(lang, "Tacos, pho, carne asada…", "Tacos, pho, BBQ…")}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-yellow-400/45"
           />
         </div>
 
@@ -409,7 +409,7 @@ export function DiscoveryPanel({
               value={city}
               onChange={(e) => setCity(e.target.value)}
               placeholder={t(lang, "Ej: San José", "e.g., San Jose")}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-yellow-400/30"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-yellow-400/45"
             />
           </div>
 
@@ -418,7 +418,7 @@ export function DiscoveryPanel({
             <select
               value={radiusMi}
               onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/30"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/45"
             >
               <option value={10}>10 mi</option>
               <option value={25}>25 mi</option>
@@ -490,7 +490,7 @@ export function DiscoveryPanel({
               onClick={() => setCuisine(active ? "" : c)}
               className={
                 active
-                  ? "rounded-full border border-yellow-400/30 bg-yellow-500/15 px-3 py-1.5 text-xs font-semibold text-yellow-100"
+                  ? "rounded-full border border-yellow-400/45 bg-yellow-500/15 px-3 py-1.5 text-xs font-semibold text-yellow-100"
                   : "rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition"
               }
             >
@@ -506,7 +506,7 @@ export function DiscoveryPanel({
           <select
             value={price}
             onChange={(e) => setPrice((e.target.value as any) || "")}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/30"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/45"
           >
             <option value="">{t(lang, "Cualquiera", "Any")}</option>
             <option value="$">$</option>
@@ -522,7 +522,7 @@ export function DiscoveryPanel({
           <select
             value={diet}
             onChange={(e) => setDiet((e.target.value as any) || "")}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/30"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-sm text-white outline-none focus:border-yellow-400/45"
           >
             <option value="">{t(lang, "Opcional", "Optional")}</option>
             <option value="vegan">{t(lang, "Vegano", "Vegan")}</option>

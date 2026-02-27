@@ -1,7 +1,7 @@
 // Footer.tsx
 export default function Footer() {
   return (
-    <footer className="w-full bg-white/18 text-white py-12 mt-20 border-t border-yellow-500/30">
+    <footer className="w-full bg-white/18 text-white py-12 mt-20 border-t border-yellow-500/45">
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
 
         {/* Social Media */}

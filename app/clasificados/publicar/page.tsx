@@ -1824,7 +1824,7 @@ if (isPro && videoFile && !videoError) {
       <div>{copy.videoLocked}</div>
       <Link
         href={`/dashboard?lang=${lang}`}
-        className="shrink-0 rounded-lg border border-yellow-500/30 bg-white/7 px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-white/9"
+        className="shrink-0 rounded-lg border border-yellow-500/45 bg-white/7 px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-white/9"
       >
         {lang === "es" ? "Ver Pro" : "See Pro"}
       </Link>
@@ -2008,7 +2008,7 @@ if (isPro && videoFile && !videoError) {
                                     <button
                                       type="button"
                                       onClick={() => setShowProVideoPreview(true)}
-                                      className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-yellow-500/15"
+                                      className="rounded-full border border-yellow-500/45 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-yellow-500/15"
                                     >
                                       {lang === "es" ? "Reproducir" : "Play"}
                                     </button>

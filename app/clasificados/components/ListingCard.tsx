@@ -41,10 +41,10 @@ export default function ListingCard({
       className={cx(
         "relative rounded-2xl border",
         // Warmer, premium card tone (no harsh white panels)
-        "border-yellow-500/30 bg-white/8",
+        "border-yellow-500/45 bg-white/8",
         "p-4 sm:p-5",
         "shadow-sm transition",
-        "hover:-translate-y-[1px] hover:bg-white/10 hover:border-yellow-500/30"
+        "hover:-translate-y-[1px] hover:bg-white/10 hover:border-yellow-500/45"
       )}
     >
       <button

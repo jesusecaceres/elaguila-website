@@ -3191,14 +3191,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
           <a
             href={`/clasificados/lista?lang=${lang}`}
-            className="rounded-full border border-yellow-500/30 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-yellow-500/45 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Ver anuncios" : "View listings"}
           </a>
 
           <a
             href={`/clasificados/membresias?lang=${lang}`}
-            className="rounded-full border border-yellow-500/30 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-yellow-500/45 bg-white/6 px-3 py-1.5 text-xs font-semibold text-gray-100 hover:bg-white/7 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Membresías" : "Memberships"}
           </a>
@@ -3236,7 +3236,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
 
         <section className="mt-6">
-          <div className="rounded-2xl border border-white/12 bg-white/7 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+          <div className="rounded-2xl border border-white/12 bg-white/7 px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-yellow-400/20 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-gray-200">
                 {lang === "es" ? "Explorar por categoría" : "Browse by category"}
@@ -3770,7 +3770,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         {/* TOP QUICK FILTERS (compact) */}
         <section className="mt-3">
-          <div className="rounded-2xl border border-white/12 bg-white/7 px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-600/10 backdrop-blur">
+          <div className="rounded-2xl border border-white/12 bg-white/7 px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-yellow-400/20 backdrop-blur">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search */}
               <div ref={searchBoxRef} className="xl:col-span-5">
@@ -3904,7 +3904,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         {/* RESULTS TOOLBAR (unchanged) */}
         <section className="mt-3 md:sticky md:top-[calc(72px+16px)] z-20" aria-busy={isSwitchingCategory}>
-          <div className={cx("rounded-2xl border border-white/10 bg-neutral-900/55 backdrop-blur px-4 py-2.5 sm:py-3 ring-1 ring-yellow-600/10 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] transition-opacity duration-200", isSwitchingCategory ? "opacity-85" : "opacity-100")}>
+          <div className={cx("rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur px-4 py-2.5 sm:py-3 ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] transition-opacity duration-200", isSwitchingCategory ? "opacity-85" : "opacity-100")}>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
                 <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">
@@ -4300,7 +4300,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="flex-1 rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-yellow-500/20"
+            className="flex-1 rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-3 text-sm font-semibold text-gray-100 hover:bg-yellow-500/20"
           >
             {UI.done[lang]}
           </button>
@@ -4771,7 +4771,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setMoreOpen(false)}
-                  className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
+                  className="rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
                 >
                   {lang === "es" ? "Aplicar" : "Apply"}
                 </button>
@@ -4917,7 +4917,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <button
                   type="button"
                   onClick={() => setLocationOpen(false)}
-                  className="rounded-xl border border-yellow-500/30 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
+                  className="rounded-xl border border-yellow-500/45 bg-yellow-500/15 px-4 py-2 text-sm text-gray-100 hover:bg-yellow-500/20"
                 >
                   {UI.done[lang]}
                 </button>

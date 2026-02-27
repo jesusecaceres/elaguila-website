@@ -154,7 +154,7 @@ export default function FilterBar({
       <div
         className={cx(
           "mt-6 rounded-2xl border",
-          "border-yellow-500/30 bg-white/8 shadow-sm",
+          "border-yellow-500/45 bg-white/8 shadow-sm",
           "px-4 py-4 md:px-6",
           // With the sticky quick actions bar above, keep filters below it on mobile
           "sticky top-[124px] z-30 backdrop-blur-md md:static"

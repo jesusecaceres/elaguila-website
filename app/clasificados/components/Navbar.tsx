@@ -346,13 +346,13 @@ function NavbarContent() {
                   className="flex items-center gap-2 rounded-full border border-white/10 bg-white/7 px-3 py-1.5 hover:bg-white/9 transition"
                   aria-label={L.myAccount}
                 >
-                  <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold text-xs">
+                  <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/45 flex items-center justify-center text-yellow-200 font-bold text-xs">
                     {initials}
                   </div>
                   <span className="text-white/90 text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
-                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
                     {planLabel(plan, lang)}
                   </span>
                   <span className="text-white/60 text-xs">{accountOpen ? "▲" : "▼"}</span>
@@ -366,7 +366,7 @@ function NavbarContent() {
 
 <div className="px-4 py-3 border-b border-white/10">
   <div className="text-xs text-white/80 truncate">{user?.email}</div>
-  <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+  <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/45 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
     {planLabel(plan, lang)}
   </div>
 </div>
@@ -482,7 +482,7 @@ function NavbarContent() {
         <div className="h-10 rounded-xl bg-white/10 animate-pulse" />
       ) : user ? (
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold">
+          <div className="h-10 w-10 rounded-full bg-yellow-600/20 border border-yellow-500/45 flex items-center justify-center text-yellow-200 font-bold">
             {initials}
           </div>
           <div className="min-w-0">

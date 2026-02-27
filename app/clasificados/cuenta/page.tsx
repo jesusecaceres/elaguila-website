@@ -123,7 +123,7 @@ export default function ClasificadosCuentaPage() {
               className={
                 "rounded-xl border px-4 py-2 text-sm font-semibold transition " +
                 (mode === "personal"
-                  ? "border-yellow-400/40 bg-yellow-500/10 text-yellow-200"
+                  ? "border-yellow-400/55 bg-yellow-500/10 text-yellow-200"
                   : "border-white/10 bg-black/20 text-gray-100 hover:bg-white/5")
               }
             >
@@ -135,7 +135,7 @@ export default function ClasificadosCuentaPage() {
               className={
                 "rounded-xl border px-4 py-2 text-sm font-semibold transition " +
                 (mode === "business"
-                  ? "border-yellow-400/40 bg-yellow-500/10 text-yellow-200"
+                  ? "border-yellow-400/55 bg-yellow-500/10 text-yellow-200"
                   : "border-white/10 bg-black/20 text-gray-100 hover:bg-white/5")
               }
             >

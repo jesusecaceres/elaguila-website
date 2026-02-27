@@ -67,7 +67,7 @@ export default function FiltersSidebar({
           onClick={onToggleCollapsed}
           className={cx(
             "h-full w-full rounded-2xl border",
-            "border-yellow-500/30 bg-white/8 hover:bg-white/10 transition",
+            "border-yellow-500/45 bg-white/8 hover:bg-white/10 transition",
             "flex items-center justify-center"
           )}
           aria-label={t.filters}
@@ -84,7 +84,7 @@ export default function FiltersSidebar({
           </div>
         </button>
       ) : (
-        <div className="rounded-2xl border border-yellow-500/30 bg-white/8 p-4">
+        <div className="rounded-2xl border border-yellow-500/45 bg-white/8 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-gray-100">
@@ -95,7 +95,7 @@ export default function FiltersSidebar({
             <button
               type="button"
               onClick={onToggleCollapsed}
-              className="rounded-xl border border-yellow-500/30 bg-white/8 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
+              className="rounded-xl border border-yellow-500/45 bg-white/8 px-2 py-1 text-xs text-gray-200 hover:bg-white/10 transition"
               aria-label={t.filters}
               title={t.filters}
             >

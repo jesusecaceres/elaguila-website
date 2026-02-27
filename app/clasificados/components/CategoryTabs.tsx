@@ -57,7 +57,7 @@ function CategoryButton({ slug, label, lang }: { slug: string; label: string; la
   return (
     <Link
       href={withLang(`/clasificados/lista?cat=${slug}`, lang)}
-      className="rounded-xl border border-yellow-500/30 bg-white/8 hover:bg-white/10 hover:border-yellow-500/30 transition p-6 text-center font-semibold text-white shadow-sm"
+      className="rounded-xl border border-yellow-500/45 bg-white/8 hover:bg-white/10 hover:border-yellow-500/45 transition p-6 text-center font-semibold text-white shadow-sm"
     >
       {label}
     </Link>

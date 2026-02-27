@@ -185,7 +185,7 @@ export default function RestaurantPublishForm({ lang, plan }: { lang: Lang; plan
           type="button"
           onClick={onContinue}
           disabled={errors.length > 0}
-          className="rounded-xl border border-yellow-400/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {t(lang, "Continuar", "Continue")}
         </button>

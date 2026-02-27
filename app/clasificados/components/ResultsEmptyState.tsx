@@ -67,7 +67,7 @@ export default function ResultsEmptyState({
 
           <Link
             href={`/clasificados/publicar?lang=${lang}`}
-            className="inline-flex items-center justify-center rounded-xl border border-yellow-500/30 bg-yellow-500/12 px-5 py-2.5 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/18"
+            className="inline-flex items-center justify-center rounded-xl border border-yellow-500/45 bg-yellow-500/12 px-5 py-2.5 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/18"
           >
             {isEs ? "Publicar anuncio" : "Post a listing"}
           </Link>

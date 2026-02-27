@@ -69,7 +69,7 @@ function Tile({
   return (
     <a
       href={href}
-      className={`group relative overflow-hidden rounded-2xl border border-yellow-600/20 bg-black/35 p-5 text-left shadow-lg transition hover:bg-black/45 ${
+      className={`group relative overflow-hidden rounded-2xl border border-yellow-500/35 bg-black/35 p-5 text-left shadow-lg transition hover:bg-black/45 ${
         comingSoon ? "opacity-80" : ""
       }`}
     >
@@ -171,7 +171,7 @@ export default function TravelPage() {
             {t.subtitle}
           </p>
 
-          <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-yellow-600/20 bg-black/35 px-5 py-4 text-left">
+          <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-yellow-500/35 bg-black/35 px-5 py-4 text-left">
             <div className="text-sm font-semibold text-yellow-200">
               {lang === "en" ? "Trust" : "Confianza"}
             </div>
@@ -181,7 +181,7 @@ export default function TravelPage() {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <a
               href={baseHref}
-              className="inline-flex items-center justify-center rounded-2xl border border-yellow-400/30 bg-yellow-500/15 px-6 py-3 text-sm font-bold text-yellow-100 transition hover:bg-yellow-500/20"
+              className="inline-flex items-center justify-center rounded-2xl border border-yellow-400/45 bg-yellow-500/15 px-6 py-3 text-sm font-bold text-yellow-100 transition hover:bg-yellow-500/20"
             >
               {t.primary}
             </a>
@@ -197,7 +197,7 @@ export default function TravelPage() {
 
       {/* SECTIONS */}
       <section className="mx-auto max-w-6xl px-6 pb-16">
-        <div className="mt-6 rounded-2xl border border-yellow-600/20 bg-black/30 p-6">
+        <div className="mt-6 rounded-2xl border border-yellow-500/35 bg-black/30 p-6">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-2xl font-extrabold text-yellow-200 md:text-3xl">
               {t.sectionsTitle}
@@ -287,7 +287,7 @@ export default function TravelPage() {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <a
               href={baseHref}
-              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-yellow-400/30 bg-black/35 px-6 py-3 text-sm font-bold text-yellow-100 hover:bg-black/45"
+              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-yellow-400/45 bg-black/35 px-6 py-3 text-sm font-bold text-yellow-100 hover:bg-black/45"
             >
               {lang === "en" ? "Open Travel engine" : "Abrir buscador de Viajes"}
             </a>
