@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import AlertsPanel from "./AlertsPanel";
 import { useSearchParams } from "next/navigation";
 import type { Restaurant } from "../../data/restaurants";
 
@@ -141,6 +142,7 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
 
   const favSet = useMemo(() => new Set(favIds), [favIds]);
   const [showFavs, setShowFavs] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
 
   const [q, setQ] = useState("");
@@ -348,6 +350,14 @@ function resetAllFilters() {
             ].join(" ")}
           >
             {lang === "es" ? "Guardados" : "Saved"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAlertsOpen(true)}
+            className="px-3 py-2 rounded-xl text-sm font-semibold border transition bg-black/30 border-white/10 text-gray-100 hover:bg-white/5"
+          >
+            {lang === "es" ? "Alertas" : "Alerts"}
           </button>
           {showFavs ? (
             <span className="text-xs text-gray-400">
