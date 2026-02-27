@@ -50,6 +50,14 @@ type CategoryKey =
   | "restaurantes";
 
 type SortKey = "newest" | "price-asc" | "price-desc";
+
+function normalizeSort(v: string | null | undefined): SortKey {
+  const s = (v ?? "").trim();
+  if (s === "price_asc" || s === "price-asc") return "price-asc";
+  if (s === "price_desc" || s === "price-desc") return "price-desc";
+  return "newest";
+}
+
 type SellerType = "personal" | "business";
 type ViewMode = "grid" | "list" | "list-img";
 
@@ -258,7 +266,8 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
     else sp.set(k, String(v));
   });
 
-  const final = `${url.pathname}?${sp.toString()}`;
+  const qs = sp.toString();
+  const final = qs ? `${url.pathname}?${qs}` : url.pathname;
   window.history.replaceState({}, "", final);
 }
 
@@ -1149,6 +1158,8 @@ useEffect(() => {
 
   const chipsRowRef = useRef<HTMLDivElement | null>(null);
 
+  const didHydrateRef = useRef(false);
+
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<Exclude<CategoryKey, "all">>>([]);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
@@ -1174,6 +1185,143 @@ useEffect(() => {
 
   // ✅ Comunidad param state (only used when cat=comunidad)
   const [comunidadParams, setComunidadParams] = useState<ComunidadParams>(EMPTY_COMUNIDAD_PARAMS);
+
+
+  // ✅ Hydrate state from URL params (deep-links + refresh + back/forward)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const hydrateFromSearch = () => {
+      const sp = new URLSearchParams(window.location.search);
+      const get = (k: string) => (sp.get(k) ?? "").trim();
+
+      const q0 = get("q");
+      const cat0 = get("cat") || "all";
+      const sort0 = get("sort");
+      const view0 = get("view");
+      const r0 = get("r");
+      const zip0 = get("zip").replace(/\D/g, "").slice(0, 5);
+      const city0 = get("city");
+
+      setQ(q0);
+
+      if (isCategoryKey(cat0)) setCategory(cat0);
+      else setCategory("all");
+
+      setSort(normalizeSort(sort0));
+
+      if (view0 === "list" || view0 === "grid") setView(view0);
+      else setView("grid");
+
+      if (r0) {
+        const n = Number(r0);
+        setRadiusMi(clampRadiusMi(n));
+      } else {
+        setRadiusMi(DEFAULT_RADIUS_MI);
+      }
+
+      if (zip0.length === 5) {
+        setZip(zip0);
+        setCity(DEFAULT_CITY);
+      } else {
+        setZip("");
+        setCity(city0 ? canonicalizeCity(city0) : DEFAULT_CITY);
+      }
+
+      // Category-specific params (only hydrate when cat matches; otherwise reset)
+      if (cat0 === "rentas") {
+        setRentasParams({
+          rpmin: get("rpmin"),
+          rpmax: get("rpmax"),
+          rbeds: get("rbeds"),
+          rbaths: get("rbaths"),
+          rtype: get("rtype"),
+          rpets: get("rpets"),
+          rparking: get("rparking"),
+          rfurnished: get("rfurnished"),
+          rutilities: get("rutilities"),
+          ravailable: get("ravailable"),
+          rsqmin: get("rsqmin"),
+          rsqmax: get("rsqmax"),
+          rleaseterm: get("rleaseterm"),
+        });
+      } else {
+        setRentasParams(EMPTY_RENTAS_PARAMS);
+      }
+
+      if (cat0 === "autos") {
+        setAutosParams({
+          aymin: get("aymin"),
+          aymax: get("aymax"),
+          amake: get("amake"),
+          amodel: get("amodel"),
+          amilesmax: get("amilesmax"),
+          acond: get("acond"),
+        });
+      } else {
+        setAutosParams(EMPTY_AUTOS_PARAMS);
+      }
+
+      if (cat0 === "empleos") {
+        setEmpleosParams({
+          ejob: get("ejob"),
+          eremote: get("eremote"),
+          epaymin: get("epaymin"),
+          epaymax: get("epaymax"),
+          eindustry: get("eindustry"),
+        });
+      } else {
+        setEmpleosParams(EMPTY_EMPLEOS_PARAMS);
+      }
+
+      if (cat0 === "servicios") {
+        setServiciosParams({
+          stype: get("stype"),
+          savail: get("savail"),
+        });
+      } else {
+        setServiciosParams(EMPTY_SERVICIOS_PARAMS);
+      }
+
+      if (cat0 === "en-venta") {
+        setVentaParams({
+          vpmin: get("vpmin"),
+          vpmax: get("vpmax"),
+          vcond: get("vcond"),
+          vtype: get("vtype"),
+        });
+      } else {
+        setVentaParams(EMPTY_VENTA_PARAMS);
+      }
+
+      if (cat0 === "clases") {
+        setClasesParams({
+          csub: get("csub"),
+          clevel: get("clevel"),
+          cmode: get("cmode"),
+        });
+      } else {
+        setClasesParams(EMPTY_CLASES_PARAMS);
+      }
+
+      if (cat0 === "comunidad") {
+        setComunidadParams({
+          gtype: get("gtype"),
+        });
+      } else {
+        setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
+      }
+    };
+
+    if (!didHydrateRef.current) {
+      hydrateFromSearch();
+      didHydrateRef.current = true;
+    }
+
+    const onPop = () => hydrateFromSearch();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1235,7 +1383,7 @@ useEffect(() => {
     if (pCat && isCategoryKey(pCat)) setCategory(pCat as CategoryKey);
 
     const sortOk: SortKey[] = ["newest", "price-asc", "price-desc"];
-    if (pSort && sortOk.includes(pSort as SortKey)) setSort(pSort as SortKey);
+    if (pSort) setSort(normalizeSort(pSort));
 
     const viewOk: ViewMode[] = ["grid", "list", "list-img"];
     if (pView && viewOk.includes(pView as ViewMode)) setView(pView as ViewMode);
