@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { categoryConfig, type CategoryKey } from "../config/categoryConfig";
 
 type Lang = "es" | "en";
-type PublishStep = "basics" | "details" | "media";
+type PublishStep = "category" | "basics" | "details" | "media";
 
 type DraftV1 = {
   v: 1;
@@ -50,6 +51,14 @@ function formatMoneyMaybe(raw: string, lang: Lang) {
   } catch {
     return `$${Math.round(n)}`;
   }
+}
+
+function normalizeCategory(raw: string): CategoryKey | "" {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (!v) return "";
+  const mapped = v === "viajes" ? "travel" : v;
+  const keys = Object.keys(categoryConfig) as CategoryKey[];
+  return keys.includes(mapped as CategoryKey) ? (mapped as CategoryKey) : "";
 }
 
 
@@ -302,9 +311,10 @@ export default function PublicarPage() {
   const [videoError, setVideoError] = useState<string>("");
   const [showProVideoPreview, setShowProVideoPreview] = useState(false);
 
-  const [step, setStep] = useState<PublishStep>("basics");  const [category, setCategory] = useState<string>(() => {
-    const c = (searchParams?.get("categoria") ?? searchParams?.get("category") ?? searchParams?.get("cat") ?? "en-venta").trim();
-    return c || "en-venta";
+  const [step, setStep] = useState<PublishStep>("category");
+  const [category, setCategory] = useState<CategoryKey | "">(() => {
+    const raw = (searchParams?.get("categoria") ?? searchParams?.get("category") ?? searchParams?.get("cat") ?? "").trim();
+    return normalizeCategory(raw);
   });
 
   // Restaurants do not require a listing price in our flow (treated as Free by default)
@@ -468,9 +478,11 @@ setIsPro(plan.includes("pro"));
       es: {
         title: "Publicar anuncio",
         subtitle: "Publica con claridad. Mientras más completo, más confianza y mejores resultados.",
-        steps: { basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
+        steps: { category: "Categoría", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
         deleteDraft: "Borrar borrador",
         basicsTitle: "Básicos",
+        categoryTitle: "Elige la categoría",
+        categoryNote: "Esto asegura que tu anuncio salga en el lugar correcto y muestre los campos adecuados.",
         fieldTitle: "Título",
         fieldDesc: "Descripción",
         fieldPrice: "Precio",
@@ -497,7 +509,7 @@ setIsPro(plan.includes("pro"));
         preview: "Vista previa",
         cardPreview: "Tarjeta (grid)",
         detailPreview: "Detalle",
-        requiredHint: "Requisitos: Título + Descripción + Precio/Gratis + Ciudad + 1 foto + Contacto.",
+        requiredHint: "Requisitos: Categoría + Título + Descripción + Precio/Gratis + Ciudad + 1 foto + Contacto.",
         published: "¡Listo! Tu anuncio fue publicado.",
         viewListing: "Ver anuncio",
         needReqs: "Revisa los requisitos antes de publicar.",
@@ -506,9 +518,11 @@ setIsPro(plan.includes("pro"));
       en: {
         title: "Post an ad",
         subtitle: "Post with clarity. The more complete it is, the more trust—and better results.",
-        steps: { basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
+        steps: { category: "Category", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
         deleteDraft: "Delete draft",
         basicsTitle: "Basics",
+        categoryTitle: "Choose a category",
+        categoryNote: "This ensures your listing appears in the right place and shows the right fields.",
         fieldTitle: "Title",
         fieldDesc: "Description",
         fieldPrice: "Price",
@@ -535,7 +549,7 @@ setIsPro(plan.includes("pro"));
         preview: "Preview",
         cardPreview: "Card (grid)",
         detailPreview: "Detail",
-        requiredHint: "Requirements: Title + Description + Price/Free + City + 1 photo + Contact.",
+        requiredHint: "Requirements: Category + Title + Description + Price/Free + City + 1 photo + Contact.",
         published: "Done! Your listing is live.",
         viewListing: "View listing",
         needReqs: "Please meet the requirements before publishing.",
@@ -554,13 +568,17 @@ setIsPro(plan.includes("pro"));
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
       if (parsed.v !== 1) return;
 
-      setStep((parsed.step as PublishStep) || "basics");
+      const savedStep = (parsed.step as PublishStep) || "category";
+      setStep(savedStep === "basics" || savedStep === "details" || savedStep === "media" || savedStep === "category"
+        ? savedStep
+        : "category");
       setTitle(typeof parsed.title === "string" ? parsed.title : "");
       setDescription(typeof parsed.description === "string" ? parsed.description : "");
       setIsFree(Boolean(parsed.isFree));
       setPrice(typeof parsed.price === "string" ? parsed.price : "");
       setCity(typeof parsed.city === "string" ? parsed.city : "");
-      setCategory(typeof parsed.category === "string" && parsed.category ? parsed.category : category);
+      const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
+      setCategory(draftCat || category);
       setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
       setContactMethod((parsed.contactMethod as any) || "phone");
       setContactPhone(typeof parsed.contactPhone === "string" ? parsed.contactPhone : "");
@@ -661,6 +679,7 @@ setIsPro(plan.includes("pro"));
   }, [files]);
 
   const requirements = useMemo(() => {
+    const categoryOk = !!normalizeCategory(category);
     const titleOk = title.trim().length >= 5;
     const descOk = description.trim().length >= 20;
     const cityOk = city.trim().length >= 2;
@@ -669,6 +688,7 @@ setIsPro(plan.includes("pro"));
     const phoneOk = contactMethod === "email" ? true : contactPhone.trim().length >= 7;
     const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
     return {
+      categoryOk,
       titleOk,
       descOk,
       cityOk,
@@ -676,13 +696,19 @@ setIsPro(plan.includes("pro"));
       imagesOk,
       phoneOk,
       emailOk,
-      allOk: titleOk && descOk && cityOk && priceOk && imagesOk && phoneOk && emailOk,
+      allOk: categoryOk && titleOk && descOk && cityOk && priceOk && imagesOk && phoneOk && emailOk,
     };
-  }, [title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
+  }, [category, title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
 
 
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
+      {
+        key: "category",
+        label: lang === "es" ? "Categoría" : "Category",
+        ok: requirements.categoryOk,
+        step: "category",
+      },
       {
         key: "title",
         label: lang === "es" ? "Título" : "Title",
@@ -1167,6 +1193,17 @@ if (isPro && videoFile && !videoError) {
                   <span
                     className={cx(
                       "px-2 py-1 rounded-lg border",
+                      step === "category"
+                        ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+                        : "border-white/10 bg-white/5"
+                    )}
+                  >
+                    {copy.steps.category}
+                  </span>
+                  <span className="text-white/30">→</span>
+                  <span
+                    className={cx(
+                      "px-2 py-1 rounded-lg border",
                       step === "basics"
                         ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
                         : "border-white/10 bg-white/5"
@@ -1230,6 +1267,13 @@ if (isPro && videoFile && !videoError) {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
+                      onClick={() => setStep("category")}
+                      className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
+                    >
+                      {copy.steps.category}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setStep("basics")}
                       className="text-xs rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 px-3 py-2 text-white/80"
                     >
@@ -1280,6 +1324,61 @@ if (isPro && videoFile && !videoError) {
               </div>
 
 <div className="mt-6 grid gap-6">
+                {/* CATEGORY (STEP 1) */}
+                {step === "category" && (
+                  <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                    <h2 className="text-lg font-semibold text-gray-100">{copy.categoryTitle}</h2>
+                    <p className="mt-2 text-sm text-white/60">{copy.categoryNote}</p>
+
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {(Object.keys(categoryConfig) as CategoryKey[]).map((k) => {
+                        const label = categoryConfig[k].label[lang];
+                        const selected = category === k;
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setCategory(k)}
+                            className={cx(
+                              "rounded-2xl border px-4 py-4 text-left",
+                              selected
+                                ? "border-yellow-400/40 bg-yellow-400/10"
+                                : "border-white/10 bg-black/30 hover:bg-black/40"
+                            )}
+                          >
+                            <div className={cx("text-sm font-semibold", selected ? "text-yellow-100" : "text-white/90")}>
+                              {label}
+                            </div>
+                            <div className="mt-1 text-xs text-white/50">{k}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {!requirements.categoryOk && (
+                      <div className="mt-4 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs text-yellow-100">
+                        {lang === "es" ? "Selecciona una categoría para continuar." : "Choose a category to continue."}
+                      </div>
+                    )}
+
+                    <div className="mt-5 flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        disabled={!requirements.categoryOk}
+                        onClick={() => setStep("basics")}
+                        className={cx(
+                          "rounded-xl font-semibold px-5 py-3",
+                          requirements.categoryOk
+                            ? "bg-yellow-500/90 hover:bg-yellow-500 text-black"
+                            : "bg-white/10 text-white/40 cursor-not-allowed"
+                        )}
+                      >
+                        {copy.next}
+                      </button>
+                    </div>
+                  </section>
+                )}
+
                 {/* BASICS */}
                 {step === "basics" && (
                   <section className="rounded-2xl border border-white/10 bg-black/25 p-5">
@@ -1431,7 +1530,14 @@ if (isPro && videoFile && !videoError) {
                     </div>
 
                     <div className="mt-5 flex items-center justify-between gap-3">
-                      <div className="text-xs text-white/40">{copy.requiredHint}</div>
+                      <button
+                        type="button"
+                        onClick={() => setStep("category")}
+                        className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 text-white font-semibold px-5 py-3"
+                      >
+                        {copy.back}
+                      </button>
+                      <div className="text-xs text-white/40 flex-1 text-center">{copy.requiredHint}</div>
                       <button
                         type="button"
                         onClick={() => setStep("details")}
