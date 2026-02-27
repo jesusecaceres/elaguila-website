@@ -56,7 +56,7 @@ export default function CategoryTabs() {
 function CategoryButton({ slug, label, lang }: { slug: string; label: string; lang: Lang }) {
   return (
     <Link
-      href={withLang(`/clasificados/${slug}`, lang)}
+      href={withLang(`/clasificados/lista?cat=${slug}`, lang)}
       className="rounded-xl border border-yellow-600/20 bg-black/35 hover:bg-black/45 hover:border-yellow-500/25 transition p-6 text-center font-semibold text-white shadow-sm"
     >
       {label}

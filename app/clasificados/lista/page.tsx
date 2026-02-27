@@ -164,6 +164,34 @@ const UI = {
   done: { es: "Listo", en: "Done" },
 };
 
+
+function getSearchPlaceholder(category: CategoryKey, lang: Lang) {
+  const es = lang === "es";
+  switch (category) {
+    case "rentas":
+      return es ? "Buscar: apartamento, cuarto, zona…" : "Search: apartment, room, area…";
+    case "autos":
+      return es ? "Buscar: Toyota, 2016, camioneta…" : "Search: Toyota, 2016, truck…";
+    case "empleos":
+      return es ? "Buscar: trabajo, empresa, jornada…" : "Search: job, company, shift…";
+    case "servicios":
+      return es ? "Buscar: plomero, jardinería, limpieza…" : "Search: plumber, landscaping, cleaning…";
+    case "en-venta":
+      return es ? "Buscar: sofá, celular, herramientas…" : "Search: sofa, phone, tools…";
+    case "restaurantes":
+      return es ? "Buscar: tacos, pupusas, mariscos…" : "Search: tacos, pupusas, seafood…";
+    case "travel":
+      return es ? "Buscar: vuelos, hotel, agente…" : "Search: flights, hotel, agent…";
+    case "clases":
+      return es ? "Buscar: inglés, guitarra, tutoría…" : "Search: English, guitar, tutoring…";
+    case "comunidad":
+      return es ? "Buscar: evento, ayuda, anuncio…" : "Search: event, help, notice…";
+    case "all":
+    default:
+      return es ? "Buscar en clasificados…" : "Search classifieds…";
+  }
+}
+
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -3750,11 +3778,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder={category === "rentas"
-                    ? (lang === "es" ? "Buscar: apartamento, cuarto, zona…" : "Search: apartment, room, area…")
-                    : category === "autos"
-                      ? (lang === "es" ? "Buscar: Toyota, 2016, camioneta…" : "Search: Toyota, 2016, truck…")
-                      : (lang === "es" ? "Buscar: trabajo, troca, cuarto…" : "Search: job, truck, room…")}
+                  placeholder={getSearchPlaceholder(category, lang)}
                   className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-yellow-400/40"
                 />
               </div>

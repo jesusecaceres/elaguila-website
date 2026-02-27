@@ -204,9 +204,10 @@ export default function ClasificadosPage() {
     return hash ? `${withParam}#${hash}` : withParam;
   };
 
-  // ✅ NEW: route category tiles to their dedicated category pages (wrappers)
+  // ✅ Canonical: route all category entry points into the single engine (/clasificados/lista)
+  // This guarantees consistent filters/labels no matter how users enter.
   const withCategoryRoute = (cat: CategoryKey) => {
-    return withLang(`/clasificados/${cat}`);
+    return withLang(`/clasificados/lista?cat=${cat}`);
   };
 
   
