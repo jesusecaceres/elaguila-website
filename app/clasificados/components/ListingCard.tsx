@@ -83,6 +83,37 @@ export default function ListingCard({
         {item.description}
       </p>
 
+      
+      {(() => {
+        const cat = (item as any)?.category as string | undefined;
+        if (cat !== "empleos") return null;
+
+        const blob = `${(item as any)?.title ?? ""} ${(item as any)?.description ?? ""}`.toLowerCase();
+        const chips: string[] = [];
+
+        const has = (re: RegExp) => re.test(blob);
+
+        if (has(/\bfull[-\s]?time\b|tiempo\s+completo/)) chips.push(lang === "es" ? "Tiempo completo" : "Full-time");
+        else if (has(/\bpart[-\s]?time\b|tiempo\s+parcial/)) chips.push(lang === "es" ? "Tiempo parcial" : "Part-time");
+
+        if (has(/\bremote\b|remoto/)) chips.push(lang === "es" ? "Remoto" : "Remote");
+
+        if (!chips.length) return null;
+
+        return (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {chips.map((c) => (
+              <span
+                key={c}
+                className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
+
       <span className="text-[11px] sm:text-xs text-white">{`${postedLabel}: ${item.createdAt}`}</span>
     </div>
   );

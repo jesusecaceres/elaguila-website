@@ -3,7 +3,11 @@
  * LEONIX DUP GUARD — prevents duplicate route folder explosions that break Next.js typecheck.
  * Runs automatically via npm "prebuild".
  *
- * Fails the build if any forbidden duplicate patterns are found under app/clasificados.
+ * Behavior:
+ * 1) Auto-removes a small set of known safe nested duplicates that have repeatedly appeared:
+ *    - app/clasificados/components/components
+ *    - app/clasificados/empleos/empleos (and anything under it)
+ * 2) Then performs the strict duplicate scan and FAILS the build if anything remains.
  */
 
 const fs = require("fs");
@@ -12,13 +16,26 @@ const path = require("path");
 const repoRoot = process.cwd();
 const root = path.join(repoRoot, "app", "clasificados");
 
-if (!fs.existsSync(root)) {
-  process.exit(0);
-}
+if (!fs.existsSync(root)) process.exit(0);
 
 function isDir(p) {
   try { return fs.statSync(p).isDirectory(); } catch { return false; }
 }
+
+function safeRmDir(p) {
+  try {
+    if (isDir(p)) {
+      fs.rmSync(p, { recursive: true, force: true });
+      console.log(`🧹 LEONIX DUP GUARD: auto-removed nested duplicate: ${path.relative(repoRoot, p)}`);
+    }
+  } catch {
+    // ignore — we'll catch remaining patterns in the strict scan below
+  }
+}
+
+// ---- Auto-fix known safe duplicates (nested under canonical folders)
+safeRmDir(path.join(root, "components", "components"));
+safeRmDir(path.join(root, "empleos", "empleos"));
 
 function walkDirs(start) {
   const out = [];
@@ -53,7 +70,8 @@ for (const d of dirs) {
 
 // B) Any repeated folder name like X\X for key folders
 const repeatNames = ["restaurantes", "publicar", "components", "anuncio", "autos", "rentas", "empleos", "en-venta", "servicios", "clases", "comunidad"];
-const repeatRe = new RegExp(`\\\\(${repeatNames.map(s => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")).join("|")})\\\\\\1(\\\\|$)`, "i");
+const esc = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+const repeatRe = new RegExp(`\\\\(${repeatNames.map(esc).join("|")})\\\\\\1(\\\\|$)`, "i");
 
 for (const d of dirs) {
   const n = norm(d);

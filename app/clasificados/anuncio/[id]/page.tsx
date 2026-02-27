@@ -153,6 +153,45 @@ export default function AnuncioDetallePage() {
     if (!id) return undefined;
     return (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
   }, [params?.id]);
+  const jobMeta = useMemo(() => {
+    if (!listing || listing.category !== "empleos") return null;
+
+    const t = (listing.title?.[lang] ?? "").toLowerCase();
+    const d = (listing.blurb?.[lang] ?? "").toLowerCase();
+    const p = (listing.priceLabel?.[lang] ?? "").toLowerCase();
+    const blob = `${t} ${d} ${p}`;
+
+    const has = (re: RegExp) => re.test(blob);
+
+    const chips: string[] = [];
+
+    // Job type / jornada (derived only from listing text)
+    if (has(/\bfull[-\s]?time\b|tiempo\s+completo/)) chips.push(lang === "es" ? "Tiempo completo" : "Full-time");
+    else if (has(/\bpart[-\s]?time\b|tiempo\s+parcial/)) chips.push(lang === "es" ? "Tiempo parcial" : "Part-time");
+
+    if (has(/\bcontract\b|contrato/)) chips.push(lang === "es" ? "Contrato" : "Contract");
+    if (has(/\btemporary\b|temporal/)) chips.push(lang === "es" ? "Temporal" : "Temporary");
+    if (has(/\bremote\b|remoto/)) chips.push(lang === "es" ? "Remoto" : "Remote");
+
+    // Pay cue (only if explicit)
+    let pay: string | null = null;
+    const money = (listing.priceLabel?.[lang] ?? "").trim();
+    if (money) {
+      pay = money;
+    } else if (has(/\$\s*\d/)) {
+      pay = lang === "es" ? "Pago (ver anuncio)" : "Pay (see listing)";
+    }
+
+    // Qualifications (only from explicit words)
+    const quals: string[] = [];
+    if (has(/experienc|experiencia/)) quals.push(lang === "es" ? "Experiencia" : "Experience");
+    if (has(/license|licencia/)) quals.push(lang === "es" ? "Licencia" : "License");
+    if (has(/bilingual|biling\w+/)) quals.push(lang === "es" ? "Bilingüe" : "Bilingual");
+    if (has(/benefits|beneficios/)) quals.push(lang === "es" ? "Beneficios" : "Benefits");
+
+    return { chips, pay, quals };
+  }, [listing, lang]);
+
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
 
   useEffect(() => {
@@ -587,7 +626,57 @@ export default function AnuncioDetallePage() {
               <div className="text-xl font-bold text-white">{t.contactTitle}</div>
               <div className="mt-3 text-white">{t.contactBody}</div>
 
-              <div className="mt-5">
+              
+              {listing?.category === "empleos" && jobMeta ? (
+                <div className="mt-5 rounded-xl border border-yellow-400/20 bg-black/20 p-4">
+                  <div className="text-sm font-semibold text-white">
+                    {lang === "es" ? "Detalles del trabajo" : "Job details"}
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {jobMeta.chips.map((c) => (
+                      <span
+                        key={c}
+                        className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                    {jobMeta.pay ? (
+                      <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white">
+                        {jobMeta.pay}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {jobMeta.quals.length ? (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold text-white/90">
+                        {lang === "es" ? "Requisitos (según el texto)" : "Qualifications (from text)"}
+                      </div>
+                      <ul className="mt-1 list-disc pl-5 text-sm text-white">
+                        {jobMeta.quals.map((q) => (
+                          <li key={q}>{q}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-yellow-400/35 bg-yellow-400/15 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-400/20 disabled:opacity-50"
+                    onClick={() => {
+                      const el = document.getElementById("contact-actions");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  >
+                    {lang === "es" ? "Aplicar / Contactar" : "Apply / Contact"}
+                  </button>
+                </div>
+              ) : null}
+
+              <div className="mt-5" id="contact-actions">
+
                 <ContactActions lang={lang} showDisabled />
               </div>
 
