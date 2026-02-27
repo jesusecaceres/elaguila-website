@@ -19,14 +19,32 @@ export default function ListingsGrid({
   // NOTE: category is kept for future per-category rendering rules
   void category;
 
-  // 🔹 NO LISTINGS → show placeholder CTA
-  if (!listings.length) {
-    return (
-      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+  // 🔹 NO LISTINGS → show CTA + trust note
+if (!listings.length) {
+  const heading =
+    lang === "es"
+      ? "No hay anuncios con estos filtros"
+      : "No listings match these filters";
+
+  const body =
+    lang === "es"
+      ? "Prueba quitar filtros o publica el primero. Protegemos la plataforma con detección anti‑spam y verificaciones."
+      : "Try removing filters or post the first one. We protect the platform with anti-spam detection and verification checks.";
+
+  return (
+    <div className="mt-8">
+      <div className="mb-4 rounded-2xl border border-white/12 bg-black/30 p-4 text-sm text-gray-200">
+        <div className="font-semibold text-gray-100">{heading}</div>
+        <div className="mt-1 text-gray-300">{body}</div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
         <PlaceholderCard />
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   // 🔹 REAL LISTINGS → show cards
   // With filters sidebar open, keep 3 columns (spec). If collapsed/full-width, allow 4 on xl.

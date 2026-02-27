@@ -302,6 +302,12 @@ export default function AnuncioDetallePage() {
                     {isSold ? t.statusSold : t.statusActive}
                   </span>
                 </div>
+
+<p className="mt-3 text-xs text-gray-400">
+  {lang === "es"
+    ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
+    : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
+</p>
               </div>
 
               <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-6">
