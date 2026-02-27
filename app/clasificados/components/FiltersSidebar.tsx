@@ -56,7 +56,7 @@ export default function FiltersSidebar({
     <aside
       className={cx(
         "hidden md:block",
-        collapsed ? "w-[44px]" : "w-[270px]",
+        collapsed ? "w-[44px]" : "w-[240px]",
         "shrink-0"
       )}
     >

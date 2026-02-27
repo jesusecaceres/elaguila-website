@@ -276,7 +276,7 @@ try {
         "
       >
         {/* DESKTOP MENU */}
-        <div className="hidden lg:flex gap-6 text-white text-[15px] font-semibold tracking-tight">
+        <div className="hidden xl:flex gap-6 text-white text-[15px] font-semibold tracking-tight">
           {navLinks.map((item, i) => {
             const active = isActive(item.href);
             return (
@@ -300,7 +300,7 @@ try {
         </div>
 
         {/* RIGHT SIDE (LANG + ACCOUNT) */}
-        <div className="hidden lg:flex items-center gap-4 absolute right-6 text-sm">
+        <div className="hidden xl:flex items-center gap-4 absolute right-6 text-sm">
           {/* LANGUAGE TOGGLE */}
           <div className="flex gap-3 items-center">
             <button
@@ -396,7 +396,7 @@ try {
 
         {/* MOBILE HAMBURGER */}
         <button
-          className="lg:hidden text-white text-xl absolute right-6"
+          className="xl:hidden text-white text-xl absolute right-6"
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
         >
