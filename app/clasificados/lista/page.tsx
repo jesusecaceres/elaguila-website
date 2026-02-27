@@ -2449,6 +2449,25 @@ const ActionPills = (x: Listing) => {
 
   return (
     <div className="mt-4 flex flex-wrap gap-2">
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            name: "Buscar anuncios — LEONIX Clasificados",
+            description: "Busca anuncios por categoría, ciudad y filtros en LEONIX Clasificados.",
+            url: "/clasificados/lista",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: "/clasificados/lista?search={search_term_string}",
+              "query-input": "required name=search_term_string",
+            },
+          }),
+        }}
+      />
+
       {pills.slice(0, isMobileUI ? 2 : 4).map((p) => (
         <a
           key={p.href + p.label}

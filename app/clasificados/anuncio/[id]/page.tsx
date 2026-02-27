@@ -263,6 +263,28 @@ export default function AnuncioDetallePage() {
     <div className="bg-black min-h-screen text-white pb-28">
       <Navbar />
 
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ClassifiedAd",
+            name: listing.title[lang],
+            description: listing.blurb[lang],
+            url: `/clasificados/anuncio/${listing.id}`,
+            price: listing.priceLabel[lang],
+            priceCurrency: "USD",
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: listing.city,
+              addressRegion: "CA",
+              addressCountry: "US",
+            },
+          }),
+        }}
+      />
+
       <section className="max-w-6xl mx-auto px-6 pt-28">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <a

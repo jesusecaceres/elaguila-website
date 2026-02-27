@@ -14,6 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${title} — LEONIX Clasificados`,
     description,
+    keywords: ["clasificados", "anuncio", "venta", "renta", "autos", "empleos", "servicios", "LEONIX"],
     alternates: {
       canonical: `/clasificados/anuncio/${id}`,
     },

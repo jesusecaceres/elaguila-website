@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Buscar anuncios",
+  title: "Buscar anuncios – LEONIX",
   description: "Busca anuncios por categoría, ciudad y filtros — LEONIX Clasificados.",
-  alternates: {
-    canonical: "/clasificados/lista",
-  },
+  keywords: [
+    "clasificados",
+    "anuncios",
+    "rentas",
+    "autos",
+    "empleos",
+    "servicios",
+    "San José",
+    "California",
+    "LEONIX",
+  ],
   openGraph: {
-    title: "Buscar anuncios — LEONIX",
+    title: "Buscar anuncios – LEONIX",
     description: "Busca anuncios por categoría, ciudad y filtros — LEONIX Clasificados.",
     url: "/clasificados/lista",
     siteName: "LEONIX",
@@ -15,6 +23,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function ListaLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
