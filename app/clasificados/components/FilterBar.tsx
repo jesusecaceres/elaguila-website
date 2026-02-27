@@ -195,6 +195,7 @@ export default function FilterBar({
 
             <select
               value={radius}
+              style={{ colorScheme: "dark" }}
               onChange={(e) => {
                 const v = e.target.value;
                 setRadius(v);
@@ -216,6 +217,7 @@ export default function FilterBar({
           <div className="flex gap-2">
             <select
               value={cat}
+              style={{ colorScheme: "dark" }}
               onChange={(e) => {
                 const v = e.target.value;
                 setCat(v);
@@ -233,6 +235,7 @@ export default function FilterBar({
 
             <select
               value={sort}
+              style={{ colorScheme: "dark" }}
               onChange={(e) => {
                 const v = e.target.value as SortKey;
                 setSort(v);

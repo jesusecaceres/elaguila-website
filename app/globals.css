@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* LEONIX dark UI form controls: make native <select> + dropdown options readable */
+.leonix-dark {
+  color-scheme: dark;
+}
+
+.leonix-dark select,
+.leonix-dark option {
+  background-color: #0b0b0b;
+  color: #ffffff;
+}

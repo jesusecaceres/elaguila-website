@@ -2828,7 +2828,7 @@ const isComunidadLite = isComunidad;
           {/* Location + time (Autos pushed lower for scan hierarchy) */}
           <div className={cx("text-white", isAutos ? "mt-1 text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm")}>
             <span className="text-white">{x.city}</span>{" "}
-            <span className="text-gray-500">•</span>{" "}
+            <span className="text-yellow-400/80">•</span>{" "}
             <span className="text-white">{x.postedAgo[lang]}</span>
           </div>
 
@@ -3116,7 +3116,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
             <div className="mt-0.5 text-xs text-white">
               <span className="text-white">{x.city}</span>{" "}
-              <span className="text-gray-500">•</span>{" "}
+              <span className="text-yellow-400/80">•</span>{" "}
               <span className="text-white">{x.postedAgo[lang]}</span>
             </div>
 
@@ -3242,7 +3242,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 {lang === "es" ? "Explorar por categoría" : "Browse by category"}
               </div>
 
-              <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-500">
+              <div className="hidden md:flex items-center gap-1 text-[11px] text-white">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-500/60" />
                 <span>{lang === "es" ? "Cambio rápido" : "Quick switch"}</span>
               </div>
@@ -3295,7 +3295,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "mt-6 transition-opacity duration-200",
             "md:grid md:items-start md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[72px,minmax(0,1fr)]" : "md:grid-cols-[minmax(260px,320px),minmax(0,1fr)]",
+            filtersCollapsed ? "md:grid-cols-[64px,minmax(0,1fr)]" : "md:grid-cols-[minmax(220px,260px),minmax(0,1fr)]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
@@ -3337,9 +3337,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   type="button"
                   onClick={() => setFiltersCollapsed(true)}
                   className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
-                  aria-label={lang === "es" ? "Colapsar" : "Collapse"}
+                  aria-label={lang === "es" ? "Cerrar" : "Close"}
                 >
-                  {lang === "es" ? "Colapsar" : "Collapse"}
+                  {lang === "es" ? "Cerrar" : "Close"}
                 </button>
               </div>
 
@@ -3756,7 +3756,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </button>
                 </div>
 
-                <div className="text-[11px] text-gray-500">
+                <div className="text-[11px] text-white">
                   {lang === "es"
                     ? "Consejo: en móvil usa “Más filtros”."
                     : "Tip: on mobile use “More filters”."}
@@ -3903,7 +3903,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
 
         {/* RESULTS TOOLBAR (unchanged) */}
-        <section className="mt-3 md:sticky md:top-[calc(72px+16px)] z-20" aria-busy={isSwitchingCategory}>
+        <section className="mt-3 z-20" aria-busy={isSwitchingCategory}>
           <div className={cx("rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur px-4 py-2.5 sm:py-3 ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] transition-opacity duration-200", isSwitchingCategory ? "opacity-85" : "opacity-100")}>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="text-left">
@@ -3927,7 +3927,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         : `View ${CATEGORY_LABELS[category].en} listings`}
                     </a>
 
-                    <span className="text-gray-500">•</span>
+                    <span className="text-yellow-400/80">•</span>
 
                     <a
                       href={`/clasificados/lista?lang=${lang}&cat=all${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
@@ -3962,9 +3962,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                 <div className="mt-1 text-xs text-white">
                   <span className="font-medium text-white">{CATEGORY_LABELS[category][lang]}</span>
-                  <span className="mx-2 text-gray-500">•</span>
+                  <span className="mx-2 text-yellow-400/80">•</span>
                   <span>{lang === "es" ? "en" : "in"} {city}</span>
-                  <span className="mx-2 text-gray-500">•</span>
+                  <span className="mx-2 text-yellow-400/80">•</span>
                   <span>{radiusMi} mi</span>
                 </div>
 
@@ -4108,7 +4108,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         ? "Buscar: trabajo, troca, cuarto…"
                         : "Search: jobs, truck, room…"
                     }
-                    className="w-full rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                    className="w-full rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white focus:border-yellow-500/40"
                     aria-label={UI.search[lang]}
                   />
 
@@ -4432,7 +4432,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             className={cx(
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped <= 1
-                ? "border-white/10 bg-white/5 text-gray-500"
+                ? "border-white/10 bg-white/5 text-white"
                 : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
           >
@@ -4450,7 +4450,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             className={cx(
               "rounded-xl border px-4 py-2 text-sm",
               pageClamped >= totalPages
-                ? "border-white/10 bg-white/5 text-gray-500"
+                ? "border-white/10 bg-white/5 text-white"
                 : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             )}
           >
@@ -4810,7 +4810,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   }}
                   onFocus={() => setCitySuggestOpen(true)}
                   placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-white focus:border-yellow-500/40"
                 />
 
                 {citySuggestOpen ? (
@@ -4863,7 +4863,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   }}
                   placeholder={lang === "es" ? "Ej: 95116" : "e.g. 95116"}
                   inputMode="numeric"
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-yellow-500/40"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-white focus:border-yellow-500/40"
                 />
 
                 <div className="mt-1 text-[11px] text-white">
@@ -4894,7 +4894,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 className={cx(
                   "rounded-xl border px-4 py-2 text-sm",
                   usingMyLocation
-                    ? "border-white/10 bg-white/5 text-gray-500"
+                    ? "border-white/10 bg-white/5 text-white"
                     : "border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                 )}
               >
