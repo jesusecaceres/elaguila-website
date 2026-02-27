@@ -7,17 +7,16 @@ import { useSearchParams } from "next/navigation";
 import type { Restaurant } from "../../data/restaurants";
 
 type SortKey = "recommended" | "az" | "supporters";
+type PriceKey = "all" | "$" | "$$" | "$$$" | "$$$$";
+type RadiusKey = 10 | 25 | 40 | 50;
 
 function normalize(s: string) {
   return s.trim().toLowerCase();
 }
 
-
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
-
-
 
 function normalizeSlug(s: string) {
   return s.trim().toLowerCase();
@@ -36,6 +35,7 @@ function getSlugCandidate(r: { id: string; name: string }) {
 function restaurantHref(r: { id: string; name: string }) {
   return `/restaurantes/${normalizeSlug(getSlugCandidate(r))}`;
 }
+
 function formatPhoneForTel(phone: string) {
   return phone.replace(/[^0-9+]/g, "");
 }
@@ -56,12 +56,32 @@ function supporterRank(supporter?: Restaurant["supporter"]) {
   return 0;
 }
 
+function tagHasAny(tags: string[] | undefined, patterns: RegExp[]) {
+  const t = (Array.isArray(tags) ? tags : []).join(" ").toLowerCase();
+  return patterns.some((p) => p.test(t));
+}
 
-function renderTrustPills(r: any, lang: "es" | "en") {
-  const tags: string[] = Array.isArray(r?.tags) ? r.tags : [];
-  const tagText = tags.join(" ").toLowerCase();
-  const isOpenNow = /open\s*now|abierto\s*ahora|abierto\b|open\b/.test(tagText);
-  const fastResponse = Boolean(r?.phone || r?.email);
+function isOpenNowByTags(r: Restaurant) {
+  return tagHasAny(r.tags, [/open\s*now/i, /abierto\s*ahora/i, /abierto\b/i, /open\b/i]);
+}
+
+function isFamilyFriendlyByTags(r: Restaurant) {
+  return tagHasAny(r.tags, [/family/i, /familia/i, /kids?/i, /niñ[oa]s?/i, /family-friendly/i]);
+}
+
+function isDietaryFriendlyByTags(r: Restaurant) {
+  return tagHasAny(r.tags, [/vegan/i, /vegano/i, /vegetarian/i, /vegetar/i, /halal/i, /gluten\s*-?free/i, /sin\s*gluten/i, /kosher/i]);
+}
+
+function hasSpecialsSignal(r: Restaurant) {
+  // Real signals only: couponsUrl or explicit tags
+  if (r.couponsUrl) return true;
+  return tagHasAny(r.tags, [/special/i, /oferta/i, /promo/i, /descuento/i, /coupon/i, /cupon/i]);
+}
+
+function renderTrustPills(r: Restaurant, lang: "es" | "en") {
+  const isOpenNow = isOpenNowByTags(r);
+  const fastResponse = Boolean(r?.phone || r?.email || r?.text);
 
   const pills: { key: string; label: string; className: string }[] = [];
   if (r?.verified) {
@@ -98,6 +118,7 @@ function renderTrustPills(r: any, lang: "es" | "en") {
     </div>
   );
 }
+
 const FAV_KEY = "leonix_restaurant_favorites_v1";
 
 function readFavs(): string[] {
@@ -122,11 +143,35 @@ function writeFavs(ids: string[]) {
   }
 }
 
+function emitFavs(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent("leonix:favorites", { detail: { ids } }));
+  } catch {
+    // ignore
+  }
+}
 
 export default function RestaurantsBrowser({ restaurants }: { restaurants: Restaurant[] }) {
   const searchParams = useSearchParams();
-  const lang: "es" | "en" = (searchParams?.get("lang") === "en" ? "en" : "es");
+  const lang: "es" | "en" = searchParams?.get("lang") === "en" ? "en" : "es";
+
   const [favIds, setFavIds] = useState<string[]>([]);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+
+  const [q, setQ] = useState("");
+  const [city, setCity] = useState("all");
+  const [radius, setRadius] = useState<RadiusKey>(25);
+  const [cuisine, setCuisine] = useState("all");
+  const [price, setPrice] = useState<PriceKey>("all");
+  const [openNow, setOpenNow] = useState(false);
+  const [family, setFamily] = useState(false);
+  const [dietary, setDietary] = useState(false);
+  const [specialsOnly, setSpecialsOnly] = useState(false);
+  const [sort, setSort] = useState<SortKey>("recommended");
+
+  const businessHref = `/restaurantes/negocio?lang=${lang}`;
+  const packagesHref = `/restaurantes/planes?lang=${lang}`;
 
   useEffect(() => {
     const apply = () => setFavIds(readFavs());
@@ -142,16 +187,6 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
 
   const favSet = useMemo(() => new Set(favIds), [favIds]);
   const [showFavs, setShowFavs] = useState(false);
-  const [alertsOpen, setAlertsOpen] = useState(false);
-
-
-  const [q, setQ] = useState("");
-  const [city, setCity] = useState("all");
-  const [cuisine, setCuisine] = useState("all");
-  const [sort, setSort] = useState<SortKey>("recommended");
-
-  const businessHref = `/restaurantes/negocio?lang=${lang}`;
-  const packagesHref = `/restaurantes/planes?lang=${lang}`;
 
   const cities = useMemo(() => {
     const set = new Set<string>();
@@ -168,102 +203,152 @@ export default function RestaurantsBrowser({ restaurants }: { restaurants: Resta
   const topCuisineChips = useMemo(() => {
     const counts = new Map<string, number>();
     restaurants.forEach((r) => {
-      if (!r.cuisine) return;
-      counts.set(r.cuisine, (counts.get(r.cuisine) || 0) + 1);
+      const c = (r.cuisine || "").trim();
+      if (!c) return;
+      counts.set(c, (counts.get(c) || 0) + 1);
     });
-    const ranked = Array.from(counts.entries())
-      .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
-      .map(([name]) => name);
-    return ranked.slice(0, 8);
+    const sorted = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([k]) => k);
+    return sorted.slice(0, 8);
   }, [restaurants]);
 
   const filtered = useMemo(() => {
-    const qq = normalize(q);
-    const base = restaurants.filter((r) => {
-      if (showFavs && !favSet.has(r.id)) return false;
-      if (city !== "all" && (r.city || "") !== city) return false;
-      if (cuisine !== "all" && (r.cuisine || "") !== cuisine) return false;
-      if (!qq) return true;
-      const hay = normalize(
-        [
-          r.name,
-          r.cuisine || "",
-          r.city || "",
-          r.address || "",
-          r.text || "",
-          r.website || "",
-          r.instagram || "",
-          r.facebook || "",
-        ].join(" ")
-      );
-      return hay.includes(qq);
-    });
+    const nq = normalize(q);
+    let list = (restaurants || []).slice();
 
-    const sorted = [...base].sort((a, b) => {
-      if (sort === "supporters") {
-        const sr = supporterRank(b.supporter) - supporterRank(a.supporter);
-        if (sr !== 0) return sr;
-        return a.name.localeCompare(b.name);
-      }
-      if (sort === "az") return a.name.localeCompare(b.name);
+    if (city !== "all") {
+      const nc = normalize(city);
+      list = list.filter((r) => normalize(r.city || "") === nc);
+    }
 
-      // recommended: supporters float, then verified, then name
-      const s = supporterRank(b.supporter) - supporterRank(a.supporter);
-      if (s !== 0) return s;
-      const v = (b.verified ? 1 : 0) - (a.verified ? 1 : 0);
-      if (v !== 0) return v;
-      return a.name.localeCompare(b.name);
-    });
+    // Note: radius is a preference UI right now (we only apply city filtering until geo coordinates exist).
+    // We still surface radius in the results header + alerts for future expansion.
 
-    return sorted;
-  }, [restaurants, q, city, cuisine, sort, showFavs, favSet]);
+    if (cuisine !== "all") {
+      const nc = normalize(cuisine);
+      list = list.filter((r) => normalize(r.cuisine || "") === nc);
+    }
 
-  const hasAny = restaurants.length > 0;
+    if (price !== "all") {
+      list = list.filter((r) => (r.price || "") === price);
+    }
 
-  const topPicks = useMemo(() => {
-    if (restaurants.length === 0) return [];
-    // If a city is selected, pick from that city first.
-    const pool = city !== "all" ? restaurants.filter((r) => (r.city || "").toLowerCase() === city) : restaurants;
-    // Use the same sorting logic (supporters/verified) by reusing the filtered list when possible.
-    const sorted = [...pool].sort((a, b) => {
-      const s = supporterRank(b.supporter) - supporterRank(a.supporter);
-      if (s !== 0) return s;
-      const v = (b.verified ? 1 : 0) - (a.verified ? 1 : 0);
-      if (v !== 0) return v;
-      return a.name.localeCompare(b.name);
-    });
-    return sorted.slice(0, 8);
-  }, [restaurants, city]);
+    if (openNow) list = list.filter((r) => isOpenNowByTags(r));
+    if (family) list = list.filter((r) => isFamilyFriendlyByTags(r));
+    if (dietary) list = list.filter((r) => isDietaryFriendlyByTags(r));
+    if (specialsOnly) list = list.filter((r) => hasSpecialsSignal(r));
 
+    if (nq) {
+      list = list.filter((r) => {
+        const hay =
+          normalize(r.name || "") +
+          " " +
+          normalize(r.cuisine || "") +
+          " " +
+          normalize(r.city || "") +
+          " " +
+          normalize(r.address || "") +
+          " " +
+          normalize((r.tags || []).join(" "));
+        return hay.includes(nq);
+      });
+    }
 
-  const hasActiveFilters = q.trim() !== "" || city !== "all" || cuisine !== "all" || sort !== "recommended";
+    // Favorites mode (post-filter)
+    if (showFavs) list = list.filter((r) => favSet.has(r.id));
 
-  
-function scrollToFilters() {
-  if (typeof document === "undefined") return;
-  const el = document.getElementById("restaurants-filters");
-  el?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
+    // Sorting
+    if (sort === "az") {
+      list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    } else if (sort === "supporters") {
+      list.sort((a, b) => {
+        const v = supporterRank(b.supporter) - supporterRank(a.supporter);
+        if (v !== 0) return v;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+    } else {
+      // recommended: supporters first, verified next, then alpha
+      list.sort((a, b) => {
+        const s = supporterRank(b.supporter) - supporterRank(a.supporter);
+        if (s !== 0) return s;
+        const v = Number(!!b.verified) - Number(!!a.verified);
+        if (v !== 0) return v;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+    }
 
-function scrollToTop() {
-  if (typeof window === "undefined") return;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+    return list;
+  }, [restaurants, q, city, cuisine, price, openNow, family, dietary, specialsOnly, sort, showFavs, favSet, radius]);
 
-function resetAllFilters() {
+  const hasAny = (restaurants || []).length > 0;
+  const hasActiveFilters =
+    q.trim() !== "" ||
+    city !== "all" ||
+    cuisine !== "all" ||
+    price !== "all" ||
+    openNow ||
+    family ||
+    dietary ||
+    specialsOnly ||
+    sort !== "recommended" ||
+    showFavs;
+
+  function scrollToFilters() {
+    if (typeof document === "undefined") return;
+    const el = document.getElementById("restaurants-filters");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetAllFilters() {
     setQ("");
     setCity("all");
+    setRadius(25);
     setCuisine("all");
+    setPrice("all");
+    setOpenNow(false);
+    setFamily(false);
+    setDietary(false);
+    setSpecialsOnly(false);
     setSort("recommended");
+    setShowFavs(false);
   }
+
+  function toggleFavorite(id: string) {
+    const next = new Set(readFavs());
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    const ids = Array.from(next);
+    writeFavs(ids);
+    setFavIds(ids);
+    emitFavs(ids);
+  }
+
+  function handleSpecialsNearMe() {
+    setSpecialsOnly(true);
+    scrollToFilters();
+  }
+
+  const resultsLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (city !== "all") parts.push(city);
+    if (city !== "all") parts.push(`${radius} mi`);
+    return parts.join(" • ");
+  }, [city, radius]);
 
   return (
     <section className="w-full max-w-6xl mx-auto px-6 pb-20">
       {/* Business CTA */}
       <div className="mb-4 bg-black/30 border border-yellow-600/20 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-gray-100">{lang === "es" ? "¿Eres dueño de un restaurante?" : "Own a restaurant?"}</div>
-          <div className="mt-1 text-xs text-gray-300">{lang === "es" ? "Crea tu perfil verificado y empieza a recibir clientes." : "Create a verified profile and start getting customers."}</div>
+          <div className="text-sm font-semibold text-gray-100">
+            {lang === "es" ? "¿Eres dueño de un restaurante?" : "Own a restaurant?"}
+          </div>
+          <div className="mt-1 text-xs text-gray-300">
+            {lang === "es"
+              ? "Crea tu perfil verificado y empieza a recibir clientes."
+              : "Create a verified profile and start getting customers."}
+          </div>
         </div>
         <Link
           href={businessHref}
@@ -279,6 +364,84 @@ function resetAllFilters() {
         </Link>
       </div>
 
+      {/* Quick actions */}
+      <div className="mb-4 bg-black/30 border border-yellow-600/20 rounded-2xl p-4 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="text-sm font-semibold text-gray-100">
+            {lang === "es" ? "Encuentra un lugar confiable cerca de ti" : "Find a trusted place near you"}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSpecialsNearMe}
+              className="px-3 py-2 rounded-xl text-sm font-semibold border transition bg-yellow-500/15 border-yellow-500/35 text-yellow-200 hover:bg-yellow-500/20"
+            >
+              {lang === "es" ? "Ofertas cerca de mí" : "Specials near me"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAlertsOpen(true)}
+              className="px-3 py-2 rounded-xl text-sm font-semibold border transition bg-black/30 border-white/10 text-gray-100 hover:bg-white/5"
+            >
+              {lang === "es" ? "Alertas" : "Alerts"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowFavs((v) => !v)}
+              className={cx(
+                "px-3 py-2 rounded-xl text-sm font-semibold border transition",
+                showFavs
+                  ? "bg-yellow-500/15 border-yellow-500/35 text-yellow-200"
+                  : "bg-black/30 border-white/10 text-gray-100 hover:bg-white/5"
+              )}
+            >
+              {showFavs ? (lang === "es" ? "Ver todos" : "View all") : (lang === "es" ? "Favoritos" : "Favorites")}
+            </button>
+
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="px-3 py-2 rounded-xl text-sm font-semibold border transition bg-black/30 border-white/10 text-gray-100 hover:bg-white/5"
+              >
+                {lang === "es" ? "Restablecer" : "Reset"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {showFavs ? (
+          <p className="mt-2 text-xs text-gray-400">{lang === "es" ? "Mostrando tus favoritos" : "Showing your favorites"}</p>
+        ) : null}
+
+        {/* Quick cuisine chips */}
+        {hasAny && topCuisineChips.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {topCuisineChips.map((c) => {
+              const active = cuisine === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCuisine(active ? "all" : c)}
+                  className={cx(
+                    "text-xs px-3 py-2 rounded-xl border transition",
+                    active
+                      ? "bg-yellow-500/15 border-yellow-500/35 text-yellow-200"
+                      : "bg-black/20 border-white/10 text-gray-100 hover:bg-white/5"
+                  )}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+
       {/* Filters */}
       <div id="restaurants-filters" className="bg-black/30 border border-yellow-600/20 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
@@ -286,7 +449,7 @@ function resetAllFilters() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search restaurants, cuisine, city…"
+              placeholder={lang === "es" ? "Buscar restaurante, comida, ciudad…" : "Search restaurants, cuisine, city…"}
               className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 placeholder:text-gray-400 outline-none focus:border-yellow-500/50"
             />
           </div>
@@ -298,8 +461,22 @@ function resetAllFilters() {
               className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
             >
               {cities.map((c) => (
-                <option key={c} value={c} className="bg-black">
-                  {c === "all" ? "All Cities" : c}
+                <option key={c} value={c}>
+                  {c === "all" ? (lang === "es" ? "Todas las ciudades" : "All cities") : c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <select
+              value={radius}
+              onChange={(e) => setRadius(Number(e.target.value) as RadiusKey)}
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
+            >
+              {[10, 25, 40, 50].map((m) => (
+                <option key={m} value={m}>
+                  {lang === "es" ? `${m} mi` : `${m} mi`}
                 </option>
               ))}
             </select>
@@ -312,362 +489,219 @@ function resetAllFilters() {
               className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
             >
               {cuisines.map((c) => (
-                <option key={c} value={c} className="bg-black">
-                  {c === "all" ? "All Cuisines" : c}
+                <option key={c} value={c}>
+                  {c === "all" ? (lang === "es" ? "Todas las cocinas" : "All cuisines") : c}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
+            <select
+              value={price}
+              onChange={(e) => setPrice(e.target.value as PriceKey)}
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
+            >
+              <option value="all">{lang === "es" ? "Todos los precios" : "All prices"}</option>
+              <option value="$">$</option>
+              <option value="$$">$$</option>
+              <option value="$$$">$$$</option>
+              <option value="$$$$">$$$$</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-3">
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
               className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-gray-100 outline-none focus:border-yellow-500/50"
             >
-              <option value="recommended" className="bg-black">
-                Recommended
-              </option>
-              <option value="supporters" className="bg-black">
-                Supporters first
-              </option>
-              <option value="az" className="bg-black">
-                A–Z
-              </option>
+              <option value="recommended">{lang === "es" ? "Recomendados" : "Recommended"}</option>
+              <option value="supporters">{lang === "es" ? "Supporters primero" : "Supporters first"}</option>
+              <option value="az">{lang === "es" ? "A–Z" : "A–Z"}</option>
             </select>
           </div>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowFavs((v) => !v)}
-            className={[
-              "px-3 py-2 rounded-xl text-sm font-semibold border transition",
-              showFavs
-                ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
-                : "bg-black/30 border-white/10 text-gray-100 hover:bg-black/40",
-            ].join(" ")}
-          >
-            {lang === "es" ? "Guardados" : "Saved"}
-          </button>
+          <div className="md:col-span-9 flex flex-wrap gap-2 items-center">
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-black/20 border border-white/10">
+              <input
+                type="checkbox"
+                checked={openNow}
+                onChange={(e) => setOpenNow(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm text-gray-100">{lang === "es" ? "Abierto ahora" : "Open now"}</span>
+            </label>
 
-          <button
-            type="button"
-            onClick={() => setAlertsOpen(true)}
-            className="px-3 py-2 rounded-xl text-sm font-semibold border transition bg-black/30 border-white/10 text-gray-100 hover:bg-white/5"
-          >
-            {lang === "es" ? "Alertas" : "Alerts"}
-          </button>
-          {showFavs ? (
-            <span className="text-xs text-gray-400">
-              {lang === "es" ? "Mostrando tus favoritos" : "Showing your favorites"}
-            </span>
-          ) : null}
-        </div>
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-black/20 border border-white/10">
+              <input
+                type="checkbox"
+                checked={family}
+                onChange={(e) => setFamily(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm text-gray-100">{lang === "es" ? "Familiar" : "Family-friendly"}</span>
+            </label>
 
-        {/* Quick cuisine chips */}
-        {hasAny && topCuisineChips.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {topCuisineChips.map((c) => {
-              const active = cuisine === c;
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCuisine(active ? "all" : c)}
-                  className={
-                    active
-                      ? "px-3 py-1.5 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-200 text-sm"
-                      : "px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100 text-sm"
-                  }
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-black/20 border border-white/10">
+              <input
+                type="checkbox"
+                checked={dietary}
+                onChange={(e) => setDietary(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm text-gray-100">{lang === "es" ? "Dietas" : "Dietary"}</span>
+            </label>
 
-        {/* Active filter chips */}
-        {hasAny && hasActiveFilters ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {q.trim() !== "" ? (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                title="Clear search"
-              >
-                Search: “{q.trim()}” ✕
-              </button>
-            ) : null}
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-black/20 border border-white/10">
+              <input
+                type="checkbox"
+                checked={specialsOnly}
+                onChange={(e) => setSpecialsOnly(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm text-gray-100">{lang === "es" ? "Ofertas" : "Specials"}</span>
+            </label>
+
             {city !== "all" ? (
-              <button
-                type="button"
-                onClick={() => setCity("all")}
-                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                title="Clear city"
-              >
-                City: {city} ✕
-              </button>
-            ) : null}
-            {cuisine !== "all" ? (
-              <button
-                type="button"
-                onClick={() => setCuisine("all")}
-                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                title="Clear cuisine"
-              >
-                Cuisine: {cuisine} ✕
-              </button>
-            ) : null}
-            {sort !== "recommended" ? (
-              <button
-                type="button"
-                onClick={() => setSort("recommended")}
-                className="text-sm px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                title="Reset sort"
-              >
-                Sort: {sort === "az" ? "A–Z" : "Supporters first"} ✕
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="mt-3 flex items-center justify-between text-sm text-gray-300">
-          <div>
-            {hasAny ? (
-              <span>
-                Showing <span className="text-gray-100">{filtered.length}</span> of{" "}
-                <span className="text-gray-100">{restaurants.length}</span>
+              <span className="text-xs text-gray-400">
+                {lang === "es"
+                  ? "Radio es preferencia (geo pronto)."
+                  : "Radius is a preference (geo soon)."}
               </span>
-            ) : (
-              <span>{lang === "es" ? "Listo para tu primer restaurante." : "Ready for your first restaurant."}</span>
-            )}
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={resetAllFilters}
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-          >
-            Reset
-          </button>
         </div>
       </div>
 
-
-      {hasAny && topPicks.length > 0 ? (
-        <div className="mt-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-gray-100">
-              {city !== "all" ? `Top picks in ${city}` : "Top picks nearby"}
-            </div>
-            <div className="text-xs text-gray-400">Tap a card for details</div>
+      {/* Results header */}
+      <div className="mt-6 flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+        <div>
+          <div className="text-sm font-semibold text-gray-100">
+            {lang === "es" ? "Resultados" : "Results"}
           </div>
-
-          <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-            {topPicks.map((r) => (
-              <Link
-                key={r.id}
-                href={restaurantHref({ id: r.id, name: r.name })}
-                className="min-w-[240px] bg-black/30 border border-yellow-600/20 rounded-2xl p-4 hover:bg-white/5 transition"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-base font-semibold text-gray-100">{r.name}</div>
-                    <div className="mt-1 text-xs text-gray-300">{[r.cuisine, r.city].filter(Boolean).join(" • ")}</div>
-                  </div>
-                  {r.supporter ? (
-                    <span className="shrink-0 text-[11px] px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300">
-                      {r.supporter}
-                    </span>
-                  ) : null}
-                </div>
-
-                {r.address ? <div className="mt-2 text-xs text-gray-300 line-clamp-2">{r.address}</div> : null}
-
-                <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-300">
-                  {r.price ? <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10">{r.price}</span> : null}
-                  {r.verified ? <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10">✅ Verified</span> : null}
-                </div>
-              </Link>
-            ))}
+          <div className="mt-1 text-xs text-gray-400">
+            {lang === "es"
+              ? `Mostrando ${filtered.length} ${resultsLabel ? `en ${resultsLabel}` : ""}`
+              : `Showing ${filtered.length} ${resultsLabel ? `in ${resultsLabel}` : ""}`}
           </div>
         </div>
-      ) : null}
 
-      {/* Empty state */}
-      {!hasAny ? (
-        <div className="mt-8 bg-black/30 border border-yellow-600/20 rounded-2xl p-6 md:p-8 text-center">
-          <div className="text-2xl md:text-3xl font-semibold text-yellow-300">Restaurants are launching.</div>
-          <div className="mt-2 text-gray-300 max-w-2xl mx-auto">
-            This page ships placeholder-safe — we don’t publish fake businesses. As restaurants join, you’ll see
-            verified profiles, real contact info, and community-trust signals.
-          </div>
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/clasificados?lang=es"
-              className="px-5 py-3 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
-            >
-              Explore Clasificados
-            </Link>
-            <a
-              href="mailto:chuy@leonixmedia.com?subject=Add%20my%20restaurant%20to%20LEONIX"
-              className="px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-100 hover:bg-white/10"
-            >
-              Add my restaurant
-            </a>
-          </div>
+        <div className="text-xs text-gray-500">
+          {lang === "es"
+            ? "Más rápido para cerrar: contacto + ofertas + alertas."
+            : "Faster to close: contact + specials + alerts."}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="mt-8 bg-black/30 border border-yellow-600/20 rounded-2xl p-6 md:p-8 text-center">
-          <div className="text-2xl md:text-3xl font-semibold text-yellow-300">No matches</div>
-          <div className="mt-2 text-gray-300">Try a broader search or reset filters.</div>
-          <div className="mt-5">
-            <button
-              type="button"
-              onClick={resetAllFilters}
-              className="px-5 py-3 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
-            >
-              Reset filters
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((r) => (
-            <article key={r.id} className="bg-black/30 border border-yellow-600/20 rounded-2xl p-5">
+      </div>
+
+      {/* List */}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filtered.map((r) => {
+          const href = restaurantHref({ id: r.id, name: r.name });
+          const phoneTel = r.phone ? formatPhoneForTel(r.phone) : "";
+          const websiteHost = r.website ? safeHost(r.website) : "";
+
+          return (
+            <div key={r.id} className="bg-black/30 border border-yellow-600/20 rounded-2xl p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Link href={restaurantHref({ id: r.id, name: r.name })} className="text-lg font-semibold text-gray-100 hover:text-yellow-200">{r.name}</Link>
-                  <div className="mt-1 text-sm text-gray-300">
-                    {[r.cuisine, r.city].filter(Boolean).join(" • ")}
+                <div className="min-w-0">
+                  <Link href={href} className="block text-lg font-semibold text-yellow-200 hover:underline truncate">
+                    {r.name}
+                  </Link>
+                  <div className="mt-1 text-sm text-gray-200">
+                    {[
+                      r.cuisine || "",
+                      r.city || "",
+                      r.price || "",
+                    ].filter(Boolean).join(" • ")}
                   </div>
                   {renderTrustPills(r, lang)}
                 </div>
-                {r.supporter ? (
-                  <span className="text-xs px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300">
-                    {r.supporter}
-                  </span>
-                ) : null}
+
                 <button
                   type="button"
-                  onClick={() => {
-                    const ids = readFavs();
-                    const next = ids.includes(r.id) ? ids.filter((x) => x !== r.id) : [...ids, r.id];
-                    writeFavs(next);
-                    setFavIds(next);
-                    if (typeof window !== "undefined") {
-                      window.dispatchEvent(new CustomEvent("leonix:favorites", { detail: { ids: next } }));
-                    }
-                  }}
-                  aria-label={favSet.has(r.id) ? (lang === "es" ? "Quitar de guardados" : "Remove from saved") : (lang === "es" ? "Guardar" : "Save")}
-                  className={[
-                    "ml-2 inline-flex items-center justify-center h-10 w-10 rounded-xl border transition",
+                  onClick={() => toggleFavorite(r.id)}
+                  className={cx(
+                    "shrink-0 px-3 py-2 rounded-xl border text-sm font-semibold transition",
                     favSet.has(r.id)
-                      ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
-                      : "bg-black/30 border-white/10 text-gray-200 hover:bg-black/40",
-                  ].join(" ")}
+                      ? "bg-yellow-500/15 border-yellow-500/35 text-yellow-200"
+                      : "bg-black/20 border-white/10 text-gray-100 hover:bg-white/5"
+                  )}
                 >
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill={favSet.has(r.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                    <path d="M12 21s-7.5-4.7-9.6-9.1C.9 8.7 2.5 6 5.5 6c1.8 0 3 .9 3.7 1.8.7-.9 1.9-1.8 3.7-1.8 3 0 4.6 2.7 3.1 5.9C19.5 16.3 12 21 12 21z" />
-                  </svg>
+                  {favSet.has(r.id) ? (lang === "es" ? "Guardado" : "Saved") : (lang === "es" ? "Guardar" : "Save")}
                 </button>
               </div>
 
-              {r.address ? <div className="mt-3 text-sm text-gray-300">{r.address}</div> : null}
-
-              <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                {r.phone ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {phoneTel ? (
                   <a
-                    href={`tel:${formatPhoneForTel(r.phone)}`}
-                    className="px-3 py-1.5 rounded-lg bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
+                    href={`tel:${phoneTel}`}
+                    className="px-4 py-2 rounded-xl bg-yellow-500 text-black font-semibold hover:bg-yellow-400"
                   >
                     {lang === "es" ? "Llamar" : "Call"}
                   </a>
                 ) : null}
-                {r.phone ? (
+
+                {r.text ? (
                   <a
-                    href={`sms:${formatPhoneForTel(r.phone)}`}
-                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                    href={`sms:${formatPhoneForTel(r.text)}`}
+                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
                   >
                     {lang === "es" ? "Texto" : "Text"}
                   </a>
                 ) : null}
-{r.instagram ? (
-                  <a
-                    href={r.instagram}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                  >
-                    Instagram
-                  </a>
-                ) : null}
-                {r.facebook ? (
-                  <a
-                    href={r.facebook}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
-                  >
-                    Facebook
-                  </a>
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
 
-      {hasAny ? (
-        <div className="mt-10 text-center text-xs text-gray-400">
-          Verified restaurants will carry trust signals and clearer contact actions. No fake listings.
+                {r.website ? (
+                  <a
+                    href={r.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                  >
+                    {lang === "es" ? "Sitio" : "Website"}{websiteHost ? ` • ${websiteHost}` : ""}
+                  </a>
+                ) : null}
+
+                <Link
+                  href={href}
+                  className="px-4 py-2 rounded-xl bg-black/30 border border-yellow-500/25 text-gray-100 hover:bg-black/40 font-semibold"
+                >
+                  {lang === "es" ? "Ver perfil" : "View profile"}
+                </Link>
+              </div>
+
+              {r.address ? <p className="mt-3 text-xs text-gray-400">{r.address}</p> : null}
+            </div>
+          );
+        })}
+      </div>
+
+      {!hasAny ? (
+        <div className="mt-8 bg-black/30 border border-yellow-600/20 rounded-2xl p-6 text-center">
+          <div className="text-sm font-semibold text-gray-100">{lang === "es" ? "Aún no hay restaurantes" : "No restaurants yet"}</div>
+          <div className="mt-2 text-xs text-gray-300">
+            {lang === "es"
+              ? "Los negocios se publicarán aquí con perfiles verificados."
+              : "Businesses will publish here with verified profiles."}
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Link
+              href={businessHref}
+              className="inline-flex items-center justify-center rounded-xl bg-yellow-500/15 border border-yellow-500/40 text-yellow-200 px-4 py-3 text-sm font-semibold hover:bg-yellow-500/20 transition"
+            >
+              {lang === "es" ? "Publicar mi restaurante" : "List my restaurant"}
+            </Link>
+            <Link
+              href={packagesHref}
+              className="inline-flex items-center justify-center rounded-xl bg-black/30 border border-yellow-500/25 text-gray-100 px-4 py-3 text-sm font-semibold hover:bg-black/40 transition"
+            >
+              {lang === "es" ? "Ver planes" : "View plans"}
+            </Link>
+          </div>
         </div>
       ) : null}
 
-      {/* Mobile sticky bar */}
-      <div className="md:hidden fixed bottom-3 left-0 right-0 z-40 px-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 rounded-2xl bg-black/70 border border-yellow-600/25 backdrop-blur px-3 py-2 shadow-lg">
-          <button
-            type="button"
-            onClick={scrollToFilters}
-            className="flex-1 rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-sm font-semibold text-gray-100"
-          >
-            {lang === "es" ? "Filtros" : "Filters"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowFavs((v) => !v)}
-            className={[
-              "flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition",
-              showFavs
-                ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-200"
-                : "bg-black/30 border-white/10 text-gray-100",
-            ].join(" ")}
-          >
-            {lang === "es" ? "Guardados" : "Saved"}
-          </button>
-
-          <Link
-            href={businessHref}
-            className="flex-1 rounded-xl bg-yellow-500/15 border border-yellow-500/35 px-3 py-2 text-center text-sm font-semibold text-yellow-200"
-          >
-            {lang === "es" ? "Publicar" : "List"}
-          </Link>
-
-          <button
-            type="button"
-            onClick={scrollToTop}
-            className="rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-sm font-semibold text-gray-100"
-            aria-label="Back to top"
-          >
-            ↑
-          </button>
-        </div>
-      </div>
+      <AlertsPanel open={alertsOpen} onClose={() => setAlertsOpen(false)} lang={lang} restaurants={restaurants} />
     </section>
   );
 }

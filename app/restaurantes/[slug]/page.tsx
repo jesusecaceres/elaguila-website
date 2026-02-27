@@ -174,6 +174,23 @@ const nearby = (restaurants || [])
                       Call
                     </a>
                   ) : null}
+                  {r.text ? (
+                    <a
+                      href={`sms:${formatPhoneForTel(r.text)}`}
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                    >
+                      Text
+                    </a>
+                  ) : null}
+                  {r.email ? (
+                    <a
+                      href={`mailto:${r.email}`}
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-100"
+                    >
+                      Email
+                    </a>
+                  ) : null}
+
                   {mapsUrl ? (
                     <a
                       href={mapsUrl}
@@ -241,7 +258,7 @@ const nearby = (restaurants || [])
                   {r.email ? (
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-gray-400">Email</div>
-                      <div className="text-gray-200">{r.email}</div>
+                      <a href={`mailto:${r.email}`} className="text-gray-200 hover:underline">{r.email}</a>
                     </div>
                   ) : null}
                   {r.address ? (
