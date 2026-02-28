@@ -782,7 +782,14 @@ export default function AnuncioDetallePage() {
 
               <div className="mt-5" id="contact-actions">
 
-                <ContactActions lang={lang} showDisabled />
+                <ContactActions
+                  lang={lang}
+                  phone={(listing as any)?.phone}
+                  text={(listing as any)?.text}
+                  email={(listing as any)?.email}
+                  website={(listing as any)?.website}
+                  mapsUrl={(listing as any)?.mapsUrl}
+                />
               </div>
 
               <div className="mt-4 text-xs text-white">

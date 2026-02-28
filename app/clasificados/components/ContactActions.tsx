@@ -23,8 +23,8 @@ type Props = {
   mapsUrl?: string | null;
 
   /**
-   * When true, renders the core buttons even if values are missing (disabled),
-   * so every category/detail page can show the same conversion cluster without fake data.
+   * Deprecated: we no longer render disabled CTAs. Buttons only appear when actionable.
+   * Kept for backward-compat with older call sites.
    */
   showDisabled?: boolean;
 
@@ -55,88 +55,47 @@ export default function ContactActions(props: Props) {
   const website = safeHttpUrl(props.website || "");
   const mapsUrl = safeHttpUrl(props.mapsUrl || "");
 
-  const showDisabled = Boolean(props.showDisabled);
-
   const labels =
     lang === "es"
       ? { call: "Llamar", text: "Texto", email: "Email", directions: "Direcciones", website: "Sitio web" }
       : { call: "Call", text: "Text", email: "Email", directions: "Directions", website: "Website" };
 
-  const BtnBase =
-    "px-4 py-2 rounded-xl font-semibold transition";
+  const BtnBase = "px-4 py-2 rounded-xl font-semibold transition";
+  const secondary = "bg-white/5 border border-white/10 hover:bg-white/10 text-white";
+  const primary = "bg-yellow-500 text-black hover:bg-yellow-400";
 
-  const secondary =
-    "bg-white/5 border border-white/10 hover:bg-white/10 text-white";
+  const hasAny = Boolean(phoneTel || textTel || email || mapsUrl || website);
 
-  const disabled =
-    "bg-white/5 border border-white/10 text-white/60 cursor-not-allowed";
-
-  const primary =
-    "bg-yellow-500 text-black hover:bg-yellow-400";
+  if (!hasAny) return null;
 
   return (
     <div className={cx("flex flex-wrap gap-2", props.className)}>
-      {phoneTel || showDisabled ? (
-        <a
-          href={phoneTel ? `tel:${phoneTel}` : undefined}
-          aria-disabled={!phoneTel}
-          onClick={(e) => {
-            if (!phoneTel) e.preventDefault();
-          }}
-          className={cx(BtnBase, phoneTel ? primary : disabled)}
-        >
+      {phoneTel ? (
+        <a href={`tel:${phoneTel}`} className={cx(BtnBase, primary)}>
           {labels.call}
         </a>
       ) : null}
 
-      {textTel || showDisabled ? (
-        <a
-          href={textTel ? `sms:${textTel}` : undefined}
-          aria-disabled={!textTel}
-          onClick={(e) => {
-            if (!textTel) e.preventDefault();
-          }}
-          className={cx(BtnBase, textTel ? secondary : disabled)}
-        >
+      {textTel ? (
+        <a href={`sms:${textTel}`} className={cx(BtnBase, secondary)}>
           {labels.text}
         </a>
       ) : null}
 
-      {email || showDisabled ? (
-        <a
-          href={email ? `mailto:${email}` : undefined}
-          aria-disabled={!email}
-          onClick={(e) => {
-            if (!email) e.preventDefault();
-          }}
-          className={cx(BtnBase, email ? secondary : disabled)}
-        >
+      {email ? (
+        <a href={`mailto:${email}`} className={cx(BtnBase, secondary)}>
           {labels.email}
         </a>
       ) : null}
 
-      {mapsUrl || showDisabled ? (
-        <a
-          href={mapsUrl || undefined}
-          target={mapsUrl ? "_blank" : undefined}
-          rel={mapsUrl ? "noreferrer" : undefined}
-          aria-disabled={!mapsUrl}
-          onClick={(e) => {
-            if (!mapsUrl) e.preventDefault();
-          }}
-          className={cx(BtnBase, mapsUrl ? secondary : disabled)}
-        >
+      {mapsUrl ? (
+        <a href={mapsUrl} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)}>
           {labels.directions}
         </a>
       ) : null}
 
       {website ? (
-        <a
-          href={website}
-          target="_blank"
-          rel="noreferrer"
-          className={cx(BtnBase, secondary)}
-        >
+        <a href={website} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)}>
           {labels.website}
         </a>
       ) : null}
