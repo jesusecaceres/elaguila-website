@@ -671,11 +671,13 @@ function applyEmpleosParams(list: Listing[], ep: EmpleosParams): Listing[] {
 type ServiciosParams = {
   stype: string;   // service type key or ""
   savail: string;  // availability key or ""
+  svisit: string;  // "comes" | "shop" | ""
 };
 
 const EMPTY_SERVICIOS_PARAMS: ServiciosParams = {
   stype: "",
   savail: "",
+  svisit: "",
 };
 
 
@@ -685,6 +687,7 @@ type VentaParams = {
   vpmax: string;   // number string
   vcond: string;   // condition key or ""
   vtype: string;   // item type key or ""
+  vneg: string;    // "yes" | ""
 };
 
 const EMPTY_VENTA_PARAMS: VentaParams = {
@@ -692,6 +695,7 @@ const EMPTY_VENTA_PARAMS: VentaParams = {
   vpmax: "",
   vcond: "",
   vtype: "",
+  vneg: "",
 };
 
 type VentaCondition = "new" | "like-new" | "good" | "fair";
@@ -1032,9 +1036,20 @@ const inferServicioAvail = (title: string, blurb: string) => {
   return "appointment" as const;
 };
 
+
+const inferServicioVisit = (title: string, blurb: string) => {
+  const t = `${title} ${blurb}`.toLowerCase();
+
+  if (/(a domicilio|domicilio|house call|we come|mobile|m[oó]vil|servicio m[oó]vil|voy a tu casa)/i.test(t)) return "comes" as const;
+  if (/(en local|en tienda|visit us|shop|oficina|local (abierto|f[ií]sico))/i.test(t)) return "shop" as const;
+
+  return "" as const;
+};
+
 function applyServiciosParams(list: Listing[], sp: ServiciosParams): Listing[] {
   const st = (sp.stype || "").trim().toLowerCase();
   const av = (sp.savail || "").trim().toLowerCase();
+  const sv = (sp.svisit || "").trim().toLowerCase();
 
   return list.filter((x) => {
     if (x.category !== "servicios") return true;
@@ -1045,9 +1060,11 @@ function applyServiciosParams(list: Listing[], sp: ServiciosParams): Listing[] {
 
     const inferredType = inferServicioType(title, blurb, explicit);
     const inferredAvail = inferServicioAvail(title, blurb);
+    const inferredVisit = inferServicioVisit(title, blurb);
 
     if (st && String(inferredType) !== st) return false;
     if (av && String(inferredAvail) !== av) return false;
+    if (sv && String(inferredVisit) !== sv) return false;
 
     return true;
   });
@@ -1060,6 +1077,7 @@ function applyVentaParams(list: Listing[], vp: VentaParams): Listing[] {
   const hasMax = Number.isFinite(pmax) && String(vp.vpmax || "").trim() !== "";
   const cond = (vp.vcond || "").trim().toLowerCase();
   const type = (vp.vtype || "").trim().toLowerCase();
+  const neg = (vp.vneg || "").trim().toLowerCase();
 
   return list.filter((x) => {
     if (x.category !== "en-venta") return true;
@@ -1073,8 +1091,11 @@ function applyVentaParams(list: Listing[], vp: VentaParams): Listing[] {
       ? String((x as any).itemType).toLowerCase()
       : inferVentaType(title, blurb);
 
+    const inferredNeg = /(negociable|obo|best offer|mejor oferta|or best offer)/i.test(`${title} ${blurb}`);
+
     if (cond && String(inferredCond ?? "").toLowerCase() !== cond) return false;
     if (type && String(inferredType).toLowerCase() !== type) return false;
+    if (neg === "yes" && !inferredNeg) return false;
 
     const pn = parsePriceLabel(x.priceLabel.en) ?? null;
     if (hasMin && pn !== null && pn < pmin) return false;
@@ -1306,6 +1327,7 @@ useEffect(() => {
         setServiciosParams({
           stype: get("stype"),
           savail: get("savail"),
+          svisit: get("svisit"),
         });
       } else {
         setServiciosParams(EMPTY_SERVICIOS_PARAMS);
@@ -1317,6 +1339,7 @@ useEffect(() => {
           vpmax: get("vpmax"),
           vcond: get("vcond"),
           vtype: get("vtype"),
+          vneg: get("vneg"),
         });
       } else {
         setVentaParams(EMPTY_VENTA_PARAMS);
@@ -1461,6 +1484,7 @@ useEffect(() => {
         vpmax: params?.get("vpmax") ?? "",
         vcond: params?.get("vcond") ?? "",
         vtype: params?.get("vtype") ?? "",
+        vneg: params?.get("vneg") ?? "",
       });
     } else {
       setVentaParams(EMPTY_VENTA_PARAMS);
@@ -2227,11 +2251,25 @@ const visible = useMemo(() => {
       amilesmax: category === "autos" && autosParams.amilesmax ? autosParams.amilesmax : null,
       acond: category === "autos" && autosParams.acond ? autosParams.acond : null,
 
-      // ✅ En Venta params are preserved in URL only when cat=en-venta
+      
+      // ✅ Empleos params are preserved in URL only when cat=empleos
+      ejob: category === "empleos" && empleosParams.ejob ? empleosParams.ejob : null,
+      eremote: category === "empleos" && empleosParams.eremote ? empleosParams.eremote : null,
+      epaymin: category === "empleos" && empleosParams.epaymin ? empleosParams.epaymin : null,
+      epaymax: category === "empleos" && empleosParams.epaymax ? empleosParams.epaymax : null,
+      eindustry: category === "empleos" && empleosParams.eindustry ? empleosParams.eindustry : null,
+
+      // ✅ Servicios params are preserved in URL only when cat=servicios
+      stype: category === "servicios" && serviciosParams.stype ? serviciosParams.stype : null,
+      savail: category === "servicios" && serviciosParams.savail ? serviciosParams.savail : null,
+      svisit: category === "servicios" && serviciosParams.svisit ? serviciosParams.svisit : null,
+
+// ✅ En Venta params are preserved in URL only when cat=en-venta
       vpmin: category === "en-venta" && ventaParams.vpmin ? ventaParams.vpmin : null,
       vpmax: category === "en-venta" && ventaParams.vpmax ? ventaParams.vpmax : null,
       vcond: category === "en-venta" && ventaParams.vcond ? ventaParams.vcond : null,
       vtype: category === "en-venta" && ventaParams.vtype ? ventaParams.vtype : null,
+      vneg: category === "en-venta" && ventaParams.vneg ? ventaParams.vneg : null,
 
       // ✅ Clases params are preserved in URL only when cat=clases
       csub: category === "clases" && clasesParams.csub ? clasesParams.csub : null,
@@ -2241,7 +2279,7 @@ const visible = useMemo(() => {
       // ✅ Comunidad params are preserved in URL only when cat=comunidad
       gtype: category === "comunidad" && comunidadParams.gtype ? comunidadParams.gtype : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, ventaParams, clasesParams, comunidadParams]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
   const resetAllFilters = () => {
     setQ("");
@@ -3334,6 +3372,20 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 );
               })}
             </div>
+            <div className="mt-2 text-xs text-white/85">
+              {category === "servicios"
+                ? (lang === "es"
+                    ? "Tip: empieza por el tipo de servicio; después afina por horario y si viene a domicilio."
+                    : "Tip: start with service type, then refine by availability and whether they come to you.")
+                : category === "en-venta"
+                  ? (lang === "es"
+                      ? "Tip: usa precio + tipo + condición. “Negociable” se detecta por palabras como OBO/negociable."
+                      : "Tip: use price + type + condition. “Negotiable” is inferred from OBO/negotiable keywords.")
+                  : (lang === "es"
+                      ? "Tip: elige una categoría y usa filtros para afinar resultados."
+                      : "Tip: pick a category and use filters to refine results.")}
+            </div>
+
           </div>
         </section>
 
@@ -3588,6 +3640,26 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <option value="appointment">{servicioAvailLabel("appointment", lang)}</option>
                       </select>
                     </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-white">
+                        {lang === "es" ? "Servicio" : "Service"}
+                      </label>
+                      <select
+                        value={serviciosParams.svisit || ""}
+                        onChange={(e) => setServiciosParams((p) => ({ ...p, svisit: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="comes">{lang === "es" ? "Viene a ti (a domicilio)" : "Comes to you"}</option>
+                        <option value="shop">{lang === "es" ? "En local / taller" : "At a shop"}</option>
+                      </select>
+                      <div className="mt-2 text-xs text-white/80">
+                        {lang === "es"
+                          ? "Tip: se infiere por palabras como “a domicilio”, “móvil”, “en tienda”."
+                          : "Tip: inferred from keywords like “mobile/house calls” or “shop/office”."}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               ) : null}
@@ -3654,6 +3726,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <option value="fair">{ventaConditionLabel("fair", lang)}</option>
                       </select>
                     </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-white">
+                        {lang === "es" ? "Negociable" : "Negotiable"}
+                      </label>
+                      <select
+                        value={ventaParams.vneg || ""}
+                        onChange={(e) => setVentaParams((p) => ({ ...p, vneg: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="yes">{lang === "es" ? "Sí (negociable/OB O)" : "Yes (negotiable/OB O)"}</option>
+                      </select>
+                      <div className="mt-2 text-xs text-white/80">
+                        {lang === "es"
+                          ? "Tip: se infiere por palabras como “negociable”, “mejor oferta”, “OBO”."
+                          : "Tip: inferred from “negotiable”, “best offer”, “OBO”."}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               ) : null}
