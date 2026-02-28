@@ -2325,7 +2325,9 @@ const visible = useMemo(() => {
   const mapsHref = (address: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
-const normalizeSpace = (s: string) => s.replace(/\s+/g, " ").trim();
+function normalizeSpace(s: string) {
+  return s.replace(/\s+/g, " ").trim();
+}
 
 const parseAutoFromTitle = (title: string) => {
   const t = normalizeSpace(title);
@@ -2374,7 +2376,7 @@ const inferRentasFromTitle = (title: string) => {
 };
 
 
-const parseEmpleoFromText = (title: string, blurb: string, payLabel: string) => {
+function parseEmpleoFromText(title: string, blurb: string, payLabel: string) {
   const t = `${title} ${blurb}`.toLowerCase();
 
   const isRemote = /(\bremoto\b|\bremote\b|\bhybrid\b|\bh[ií]brido\b|\bdesde casa\b|\bwork from home\b)/i.test(t);
@@ -2390,7 +2392,7 @@ const parseEmpleoFromText = (title: string, blurb: string, payLabel: string) => 
   const salaryLabel = salaryMatch ? normalizeSpace(salaryMatch[0].replace(/\s+/g, " ")) : null;
 
   return { isRemote, jobType, salaryLabel };
-};
+}
 
 const empleoJobTypeLabel = (jobType: "full" | "part" | "contract" | "temp" | null, lang: Lang) => {
   if (!jobType) return null;
