@@ -3344,7 +3344,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "mt-6 transition-opacity duration-200",
             "md:grid md:items-start md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[56px,minmax(0,1fr)]" : "md:grid-cols-[minmax(180px,220px),minmax(0,1fr)]",
+            filtersCollapsed ? "md:grid-cols-[52px,minmax(0,1fr)]" : "md:grid-cols-[minmax(156px,188px),minmax(0,1fr)]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
@@ -3370,7 +3370,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               </button>
             </div>
           ) : (
-            <div className="p-4">
+            <div className="p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-white">
