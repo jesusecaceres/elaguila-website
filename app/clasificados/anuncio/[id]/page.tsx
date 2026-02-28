@@ -192,6 +192,90 @@ export default function AnuncioDetallePage() {
     return { chips, pay, quals };
   }, [listing, lang]);
 
+
+  const autoMeta = useMemo(() => {
+    if (!listing || listing.category !== "autos") return null;
+
+    const title = (listing.title?.[lang] ?? "");
+    const blurb = (listing.blurb?.[lang] ?? "");
+    const blob = `${title} ${blurb} ${(listing.priceLabel?.[lang] ?? "")}`.toLowerCase();
+
+    const yearMatch = title.match(/(19\d{2}|20\d{2})/);
+    const year = yearMatch ? yearMatch[1] : null;
+
+    const mileageMatch =
+      title.match(/(\d{2,3})\s*k\b/) ||
+      title.match(/(\d{1,3}(?:,\d{3})+)\s*(?:miles|millas)\b/i);
+    let mileage: string | null = null;
+    if (mileageMatch) {
+      mileage = mileageMatch[1].includes(",") ? mileageMatch[1] : `${mileageMatch[1]}k`;
+      mileage = lang === "es" ? `${mileage} millas` : `${mileage} miles`;
+    }
+
+    const has = (re: RegExp) => re.test(blob);
+
+    const facts: Array<{ label: string; value: string }> = [];
+
+    if (year) facts.push({ label: lang === "es" ? "Año" : "Year", value: year });
+    if (mileage) facts.push({ label: lang === "es" ? "Millaje" : "Mileage", value: mileage });
+
+    if (has(/t[íi]tulo\s+limpio|clean\s+title/)) {
+      facts.push({ label: lang === "es" ? "Título" : "Title", value: lang === "es" ? "Limpio" : "Clean" });
+    } else if (has(/salvage|reconstru/)) {
+      facts.push({ label: lang === "es" ? "Título" : "Title", value: lang === "es" ? "Salvage/Rebuild" : "Salvage/Rebuild" });
+    }
+
+    if (has(/financ|financing/)) {
+      facts.push({ label: lang === "es" ? "Opciones" : "Options", value: lang === "es" ? "Financiamiento" : "Financing" });
+    } else if (has(/cash\s+only|solo\s+efectivo/)) {
+      facts.push({ label: lang === "es" ? "Opciones" : "Options", value: lang === "es" ? "Solo efectivo" : "Cash only" });
+    }
+
+    return facts.length ? { facts } : null;
+  }, [listing, lang]);
+
+  const rentasMeta = useMemo(() => {
+    if (!listing || listing.category !== "rentas") return null;
+
+    const title = (listing.title?.[lang] ?? "");
+    const blurb = (listing.blurb?.[lang] ?? "");
+    const blob = `${title} ${blurb} ${(listing.priceLabel?.[lang] ?? "")}`.toLowerCase();
+
+    const has = (re: RegExp) => re.test(blob);
+
+    const facts: Array<{ label: string; value: string }> = [];
+
+    // Type cue (derived only from text)
+    let type: string | null = null;
+    if (has(/\bcuarto\b|\broom\b/)) type = lang === "es" ? "Cuarto" : "Room";
+    else if (has(/\bestudio\b|\bstudio\b/)) type = lang === "es" ? "Estudio" : "Studio";
+    else if (has(/\bapartamento\b|\bapartment\b/)) type = lang === "es" ? "Apartamento" : "Apartment";
+    else if (has(/\bcasa\b|\bhouse\b|\bhogar\b/)) type = lang === "es" ? "Casa" : "House";
+
+    if (type) facts.push({ label: lang === "es" ? "Tipo" : "Type", value: type });
+
+    // Utilities / deposit cues
+    if (has(/utilities\s*incl|utilidades\s*incl|incl\.?\s*utilities/)) {
+      facts.push({ label: lang === "es" ? "Servicios" : "Utilities", value: lang === "es" ? "Incluidos" : "Included" });
+    } else if (has(/utilities|utilidades/)) {
+      facts.push({ label: lang === "es" ? "Servicios" : "Utilities", value: lang === "es" ? "Mencionados" : "Mentioned" });
+    }
+
+    if (has(/deposit|dep[oó]sito/)) {
+      facts.push({ label: lang === "es" ? "Depósito" : "Deposit", value: lang === "es" ? "Requerido (ver)" : "Required (see)" });
+    }
+
+    // Availability cue
+    const date = (title + " " + blurb).match(/\b(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/);
+    if (date) {
+      facts.push({ label: lang === "es" ? "Disponible" : "Available", value: date[1] });
+    } else if (has(/available\s+now|disponible\s+ya|inmediato/)) {
+      facts.push({ label: lang === "es" ? "Disponible" : "Available", value: lang === "es" ? "Ahora" : "Now" });
+    }
+
+    return facts.length ? { facts } : null;
+  }, [listing, lang]);
+
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
 
   useEffect(() => {
@@ -512,6 +596,27 @@ export default function AnuncioDetallePage() {
                 <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
                   <div className="text-xs text-white">{t.metaPosted}</div>
                   <div className="mt-1 text-white font-semibold">{listing.postedAgo[lang]}</div>
+
+                {autoMeta?.facts?.slice(0, 4).map((f) => (
+                  <div
+                    key={f.label}
+                    className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
+                  >
+                    <div className="text-xs text-white">{f.label}</div>
+                    <div className="mt-1 text-white font-semibold">{f.value}</div>
+                  </div>
+                ))}
+
+                {rentasMeta?.facts?.slice(0, 4).map((f) => (
+                  <div
+                    key={f.label}
+                    className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
+                  >
+                    <div className="text-xs text-white">{f.label}</div>
+                    <div className="mt-1 text-white font-semibold">{f.value}</div>
+                  </div>
+                ))}
+
                 </div>
               </div>
             </div>
