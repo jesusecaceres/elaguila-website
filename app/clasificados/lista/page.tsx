@@ -928,6 +928,40 @@ const EMPTY_COMUNIDAD_PARAMS: ComunidadParams = {
   gtype: "",
 };
 
+type TravelParams = {
+  ttype: string;   // travel type key or ""
+  tbmin: string;   // budget min (number string) or ""
+  tbmax: string;   // budget max (number string) or ""
+};
+
+const EMPTY_TRAVEL_PARAMS: TravelParams = {
+  ttype: "",
+  tbmin: "",
+  tbmax: "",
+};
+
+type TravelType = "package" | "cruise" | "hotel" | "flight" | "tour" | "other";
+
+const travelTypeLabel = (k: TravelType, lang: Lang) => {
+  const es: Record<TravelType, string> = {
+    package: "Paquete",
+    cruise: "Crucero",
+    hotel: "Hotel / Resort",
+    flight: "Vuelo",
+    tour: "Tour",
+    other: "Otro",
+  };
+  const en: Record<TravelType, string> = {
+    package: "Package",
+    cruise: "Cruise",
+    hotel: "Hotel / Resort",
+    flight: "Flight",
+    tour: "Tour",
+    other: "Other",
+  };
+  return (lang === "es" ? es : en)[k];
+};
+
 type ComunidadType = "donation" | "help" | "church" | "youth" | "lostfound" | "announcement" | "event" | "other";
 
 const comunidadTypeLabel = (k: ComunidadType, lang: Lang) => {
@@ -1253,6 +1287,9 @@ useEffect(() => {
   // ✅ Comunidad param state (only used when cat=comunidad)
   const [comunidadParams, setComunidadParams] = useState<ComunidadParams>(EMPTY_COMUNIDAD_PARAMS);
 
+  // ✅ Travel param state (only used when cat=travel)
+  const [travelParams, setTravelParams] = useState<TravelParams>(EMPTY_TRAVEL_PARAMS);
+
 
   // ✅ Hydrate state from URL params (deep-links + refresh + back/forward)
   useEffect(() => {
@@ -1381,6 +1418,17 @@ useEffect(() => {
         });
       } else {
         setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
+      }
+
+
+      if (cat0 === "travel") {
+        setTravelParams({
+          ttype: get("ttype"),
+          tbmin: get("tbmin"),
+          tbmax: get("tbmax"),
+        });
+      } else {
+        setTravelParams(EMPTY_TRAVEL_PARAMS);
       }
     };
 
@@ -2012,6 +2060,7 @@ useEffect(() => {
     if (category === "en-venta") catApplied = applyVentaParams(base, ventaParams);
     if (category === "clases") catApplied = applyClasesParams(base, clasesParams);
     if (category === "comunidad") catApplied = applyComunidadParams(base, comunidadParams);
+    if (category === "travel") catApplied = applyTravelParams(base, travelParams);
 
     const sorted = [...catApplied].sort((a, b) => {
       if (sort === "newest") {
@@ -2026,7 +2075,7 @@ useEffect(() => {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams, travelParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
@@ -2389,6 +2438,37 @@ const visible = useMemo(() => {
 
   const mapsHref = (address: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+function applyTravelParams(list: Listing[], p: TravelParams): Listing[] {
+  const ttype = (p.ttype ?? "").trim();
+  const bmin = Number((p.tbmin ?? "").replace(/[^0-9.]/g, ""));
+  const bmax = Number((p.tbmax ?? "").replace(/[^0-9.]/g, ""));
+
+  const typeKeywords: Record<string, string[]> = {
+    package: ["paquete", "packages", "package", "resort", "all inclusive", "todo incluido"],
+    cruise: ["crucero", "cruise", "naviera"],
+    hotel: ["hotel", "resort", "hospedaje", "stay"],
+    flight: ["vuelo", "flight", "air", "aereo", "aéreo"],
+    tour: ["tour", "excursion", "excursión", "paseo"],
+    other: [],
+  };
+
+  return list.filter((it) => {
+    const hay = `${it.title.es} ${it.title.en} ${it.blurb.es} ${it.blurb.en}`.toLowerCase();
+
+    if (ttype) {
+      const keys = typeKeywords[ttype] ?? [];
+      if (keys.length > 0 && !keys.some((k) => hay.includes(k))) return false;
+    }
+
+    const price = parsePriceLabel(it.priceLabel.en) ?? parsePriceLabel(it.priceLabel.es) ?? Number.NaN;
+    if (Number.isFinite(bmin) && bmin > 0 && Number.isFinite(price) && price < bmin) return false;
+    if (Number.isFinite(bmax) && bmax > 0 && Number.isFinite(price) && price > bmax) return false;
+
+    return true;
+  });
+}
+
+
 
 function normalizeSpace(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -3834,6 +3914,58 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 </div>
               ) : null}
+
+              {category === "travel" ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm font-semibold text-white">{lang === "es" ? "Viajes" : "Travel"}</div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Tipo" : "Type"}</label>
+                      <select
+                        value={travelParams.ttype || ""}
+                        onChange={(e) => setTravelParams((p) => ({ ...p, ttype: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="package">{travelTypeLabel("package", lang)}</option>
+                        <option value="cruise">{travelTypeLabel("cruise", lang)}</option>
+                        <option value="hotel">{travelTypeLabel("hotel", lang)}</option>
+                        <option value="flight">{travelTypeLabel("flight", lang)}</option>
+                        <option value="tour">{travelTypeLabel("tour", lang)}</option>
+                        <option value="other">{travelTypeLabel("other", lang)}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Presupuesto" : "Budget"}</label>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <input
+                          value={travelParams.tbmin}
+                          onChange={(e) => setTravelParams((p) => ({ ...p, tbmin: e.target.value }))}
+                          inputMode="numeric"
+                          placeholder={lang === "es" ? "mín." : "min"}
+                          className="w-full rounded-xl border border-white/10 bg-black/65 px-3 py-2.5 text-sm text-white outline-none"
+                        />
+                        <input
+                          value={travelParams.tbmax}
+                          onChange={(e) => setTravelParams((p) => ({ ...p, tbmax: e.target.value }))}
+                          inputMode="numeric"
+                          placeholder={lang === "es" ? "máx." : "max"}
+                          className="w-full rounded-xl border border-white/10 bg-black/65 px-3 py-2.5 text-sm text-white outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white">
+                    {lang === "es"
+                      ? "Tip: Usa presupuesto cuando el anuncio tenga precio numérico. Si dice “Ofertas”, se mantiene visible."
+                      : "Tip: Budget applies when a numeric price exists. “Deals” stays visible."}
+                  </div>
+                </div>
+              ) : null}
+
 
               {category === "comunidad" ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">

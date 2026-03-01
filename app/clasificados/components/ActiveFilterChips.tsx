@@ -61,6 +61,9 @@ function prettyKeyLabel(key: string, lang: Lang): string {
     clevel: "Nivel",
     cmode: "Modalidad",
     gtype: "Tipo",
+    ttype: "Tipo de viaje",
+    tbmin: "Presupuesto mín.",
+    tbmax: "Presupuesto máx.",
   };
 
   const en: Record<string, string> = {
@@ -107,6 +110,9 @@ function prettyKeyLabel(key: string, lang: Lang): string {
     clevel: "Level",
     cmode: "Mode",
     gtype: "Type",
+    ttype: "Travel type",
+    tbmin: "Min budget",
+    tbmax: "Max budget",
   };
 
   const map = lang === "es" ? es : en;
@@ -117,9 +123,36 @@ function prettyValue(key: string, value: string, lang: Lang): string {
   const v = value.trim();
   if (!v) return v;
 
+  if (key === "tbmin" || key === "tbmax") {
+    const n = v.replace(/[^0-9.]/g, "");
+    return n ? `$${n}` : v;
+  }
+
   if (key === "aseller" || key === "rseller") {
     if (v === "personal") return lang === "es" ? "Personal" : "Personal";
     if (v === "business") return lang === "es" ? "Negocio" : "Business";
+  }
+
+
+  if (key === "ttype") {
+    const esMap: Record<string, string> = {
+      package: "Paquete",
+      cruise: "Crucero",
+      hotel: "Hotel / Resort",
+      flight: "Vuelo",
+      tour: "Tour",
+      other: "Otro",
+    };
+    const enMap: Record<string, string> = {
+      package: "Package",
+      cruise: "Cruise",
+      hotel: "Hotel / Resort",
+      flight: "Flight",
+      tour: "Tour",
+      other: "Other",
+    };
+    const map = lang === "es" ? esMap : enMap;
+    return map[v] ?? v;
   }
 
   if (key === "svisit") {
