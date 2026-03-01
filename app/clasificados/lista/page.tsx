@@ -308,6 +308,7 @@ type AutosParams = {
   amodel: string;
   amilesmax: string;
   acond: string; // "new" | "used" | ""
+  aseller: string; // "personal" | "business" | ""
 };
 
 const EMPTY_AUTOS_PARAMS: AutosParams = {
@@ -317,6 +318,7 @@ const EMPTY_AUTOS_PARAMS: AutosParams = {
   amodel: "",
   amilesmax: "",
   acond: "",
+  aseller: "",
 };
 
 function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
@@ -352,6 +354,13 @@ function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
       if (cond === "used" && c !== "used") return false;
     }
 
+    // Seller type (personal/business) when available
+    const seller = (ap.aseller || "").trim().toLowerCase();
+    if (seller) {
+      const st = typeof (x as any).sellerType === "string" ? String((x as any).sellerType).toLowerCase() : "";
+      if (!st || st !== seller) return false;
+    }
+
     return true;
   });
 }
@@ -371,6 +380,7 @@ type RentasParams = {
   rsqmin: string;
   rsqmax: string;
   rleaseterm: string;
+  rseller: string; // "personal" | "business" | ""
 };
 
 const EMPTY_RENTAS_PARAMS: RentasParams = {
@@ -387,6 +397,7 @@ const EMPTY_RENTAS_PARAMS: RentasParams = {
   rsqmin: "",
   rsqmax: "",
   rleaseterm: "",
+  rseller: "",
 };
 
 function parseNumLoose(s: string): number | null {
@@ -483,6 +494,13 @@ function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
 
     if (rp.rleaseterm) {
       if (x.leaseTerm && x.leaseTerm !== rp.rleaseterm) return false;
+    }
+
+    // Posted by (personal/business) when available
+    const seller = (rp.rseller || "").trim().toLowerCase();
+    if (seller) {
+      const st = typeof (x as any).sellerType === "string" ? String((x as any).sellerType).toLowerCase() : "";
+      if (!st || st !== seller) return false;
     }
 
     return true;
@@ -1293,6 +1311,7 @@ useEffect(() => {
           rsqmin: get("rsqmin"),
           rsqmax: get("rsqmax"),
           rleaseterm: get("rleaseterm"),
+          rseller: get("rseller"),
         });
       } else {
         setRentasParams(EMPTY_RENTAS_PARAMS);
@@ -1306,6 +1325,7 @@ useEffect(() => {
           amodel: get("amodel"),
           amilesmax: get("amilesmax"),
           acond: get("acond"),
+          aseller: get("aseller"),
         });
       } else {
         setAutosParams(EMPTY_AUTOS_PARAMS);
@@ -1456,8 +1476,9 @@ useEffect(() => {
         rsqmin: params?.get("rsqmin") ?? "",
         rsqmax: params?.get("rsqmax") ?? "",
         rleaseterm: params?.get("rleaseterm") ?? "",
+        rseller: params?.get("rseller") ?? "",
       });
-    } else {
+} else {
       setRentasParams(EMPTY_RENTAS_PARAMS);
     }
 
@@ -1471,6 +1492,7 @@ useEffect(() => {
         amodel: params?.get("amodel") ?? "",
         amilesmax: params?.get("amilesmax") ?? "",
         acond: params?.get("acond") ?? "",
+        aseller: params?.get("aseller") ?? "",
       });
     } else {
       setAutosParams(EMPTY_AUTOS_PARAMS);
@@ -2137,6 +2159,7 @@ const visible = useMemo(() => {
       if (rentasParams.rsqmin) chips.push({ key: "rsqmin", text: `Sqft min: ${rentasParams.rsqmin}`, clear: () => setRentasParams((p) => ({ ...p, rsqmin: "" })) });
       if (rentasParams.rsqmax) chips.push({ key: "rsqmax", text: `Sqft max: ${rentasParams.rsqmax}`, clear: () => setRentasParams((p) => ({ ...p, rsqmax: "" })) });
       if (rentasParams.rleaseterm) chips.push({ key: "rleaseterm", text: `${lang === "es" ? "Contrato" : "Lease"}: ${rentasParams.rleaseterm}`, clear: () => setRentasParams((p) => ({ ...p, rleaseterm: "" })) });
+      if (rentasParams.rseller) chips.push({ key: "rseller", text: `${lang === "es" ? "Anunciante" : "Posted by"}: ${rentasParams.rseller === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}`, clear: () => setRentasParams((p) => ({ ...p, rseller: "" })) });
     }
 
 
@@ -2146,7 +2169,9 @@ const visible = useMemo(() => {
       if (autosParams.aymax) chips.push({ key: "aymax", text: `${lang === "es" ? "Año max" : "Year max"}: ${autosParams.aymax}`, clear: () => setAutosParams((p) => ({ ...p, aymax: "" })) });
       if (autosParams.amake) chips.push({ key: "amake", text: `${lang === "es" ? "Marca" : "Make"}: ${autosParams.amake}`, clear: () => setAutosParams((p) => ({ ...p, amake: "" })) });
       if (autosParams.amodel) chips.push({ key: "amodel", text: `${lang === "es" ? "Modelo" : "Model"}: ${autosParams.amodel}`, clear: () => setAutosParams((p) => ({ ...p, amodel: "" })) });
+      if (autosParams.aseller) chips.push({ key: "aseller", text: `${lang === "es" ? "Vendedor" : "Seller"}: ${autosParams.aseller === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}`, clear: () => setAutosParams((p) => ({ ...p, aseller: "" })) });
       if (autosParams.amilesmax) chips.push({ key: "amilesmax", text: `${lang === "es" ? "Millas máx" : "Miles max"}: ${autosParams.amilesmax}`, clear: () => setAutosParams((p) => ({ ...p, amilesmax: "" })) });
+      if (autosParams.aseller) chips.push({ key: "aseller", text: `${lang === "es" ? "Vendedor" : "Seller"}: ${autosParams.aseller === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}`, clear: () => setAutosParams((p) => ({ ...p, aseller: "" })) });
       if (autosParams.acond) chips.push({ key: "acond", text: `${lang === "es" ? "Condición" : "Condition"}: ${autosParams.acond}`, clear: () => setAutosParams((p) => ({ ...p, acond: "" })) });
     }
 
@@ -2242,6 +2267,7 @@ const visible = useMemo(() => {
       rsqmin: category === "rentas" && rentasParams.rsqmin ? rentasParams.rsqmin : null,
       rsqmax: category === "rentas" && rentasParams.rsqmax ? rentasParams.rsqmax : null,
       rleaseterm: category === "rentas" && rentasParams.rleaseterm ? rentasParams.rleaseterm : null,
+      rseller: category === "rentas" && rentasParams.rseller ? rentasParams.rseller : null,
 
       // ✅ Autos params are preserved in URL only when cat=autos
       aymin: category === "autos" && autosParams.aymin ? autosParams.aymin : null,
@@ -2250,6 +2276,7 @@ const visible = useMemo(() => {
       amodel: category === "autos" && autosParams.amodel ? autosParams.amodel : null,
       amilesmax: category === "autos" && autosParams.amilesmax ? autosParams.amilesmax : null,
       acond: category === "autos" && autosParams.acond ? autosParams.acond : null,
+      aseller: category === "autos" && autosParams.aseller ? autosParams.aseller : null,
 
       
       // ✅ Empleos params are preserved in URL only when cat=empleos
@@ -3970,10 +3997,22 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     <option key={k} value={k}>{CATEGORY_LABELS[k][lang]}</option>
                   ))}
                 </select>
-              </div>
-            </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Anunciante" : "Posted by"}</label>
+                      <select
+                        value={rentasParams.rseller || ""}
+                        onChange={(e) => setRentasParams((p) => ({ ...p, rseller: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="personal">{lang === "es" ? "Personal" : "Personal"}</option>
+                        <option value="business">{lang === "es" ? "Negocio" : "Business"}</option>
+                      </select>
+                    </div>
+                  </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <label className="sr-only">{UI.sort[lang]}</label>
                 <select
@@ -4705,6 +4744,19 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <option value="new">{lang === "es" ? "Nuevo" : "New"}</option>
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-white">{lang === "es" ? "Vendedor" : "Seller"}</label>
+                      <select
+                        value={autosParams.aseller || ""}
+                        onChange={(e) => setAutosParams((p) => ({ ...p, aseller: e.target.value }))}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/7 px-3 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                        <option value="personal">{lang === "es" ? "Personal" : "Personal"}</option>
+                        <option value="business">{lang === "es" ? "Negocio" : "Business"}</option>
+                      </select>
+                    </div>
+
                   </div>
                 </div>
               ) : null}
