@@ -13,6 +13,7 @@ import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "../../components/savedListings";
 import ContactActions from "../../components/ContactActions";
+import AiInsightsPanel from "../../components/AiInsightsPanel";
 
 type Lang = "es" | "en";
 
@@ -791,6 +792,11 @@ export default function AnuncioDetallePage() {
                   mapsUrl={(listing as any)?.mapsUrl}
                 />
               </div>
+
+              <div className="mt-6">
+                <AiInsightsPanel lang={lang} listing={listing as any} allListings={SAMPLE_LISTINGS as any} />
+              </div>
+
 
               <div className="mt-4 text-xs text-white">
                 {lang === "es"
