@@ -15,6 +15,150 @@ function prettyRadius(mi: string) {
   return `${n} mi`;
 }
 
+
+function prettyKeyLabel(key: string, lang: Lang): string {
+  const es: Record<string, string> = {
+    rpmin: "Precio mín.",
+    rpmax: "Precio máx.",
+    rbeds: "Recámaras",
+    rbaths: "Baños",
+    rtype: "Tipo",
+    rpets: "Mascotas",
+    rparking: "Estacionamiento",
+    rfurnished: "Amueblado",
+    rutilities: "Servicios",
+    ravailable: "Disponible",
+    rsqmin: "m² mín.",
+    rsqmax: "m² máx.",
+    rleaseterm: "Contrato",
+    rseller: "Publicado por",
+
+    aymin: "Año mín.",
+    aymax: "Año máx.",
+    amake: "Marca",
+    amodel: "Modelo",
+    amilesmax: "Millas máx.",
+    acond: "Condición",
+    aseller: "Vendedor",
+
+    ejob: "Tipo de trabajo",
+    eremote: "Modalidad",
+    epaymin: "Pago mín.",
+    epaymax: "Pago máx.",
+    eindustry: "Industria",
+
+    stype: "Tipo de servicio",
+    savail: "Horario",
+    svisit: "Servicio",
+
+    vpmin: "Precio mín.",
+    vpmax: "Precio máx.",
+    vtype: "Tipo",
+    vcond: "Condición",
+    vneg: "Negociable",
+
+    csub: "Materia",
+    clevel: "Nivel",
+    cmode: "Modalidad",
+    gtype: "Tipo",
+  };
+
+  const en: Record<string, string> = {
+    rpmin: "Min price",
+    rpmax: "Max price",
+    rbeds: "Beds",
+    rbaths: "Baths",
+    rtype: "Type",
+    rpets: "Pets",
+    rparking: "Parking",
+    rfurnished: "Furnished",
+    rutilities: "Utilities",
+    ravailable: "Available",
+    rsqmin: "Min sqft",
+    rsqmax: "Max sqft",
+    rleaseterm: "Lease term",
+    rseller: "Posted by",
+
+    aymin: "Min year",
+    aymax: "Max year",
+    amake: "Make",
+    amodel: "Model",
+    amilesmax: "Max miles",
+    acond: "Condition",
+    aseller: "Seller",
+
+    ejob: "Job type",
+    eremote: "Work mode",
+    epaymin: "Min pay",
+    epaymax: "Max pay",
+    eindustry: "Industry",
+
+    stype: "Service type",
+    savail: "Availability",
+    svisit: "Service",
+
+    vpmin: "Min price",
+    vpmax: "Max price",
+    vtype: "Type",
+    vcond: "Condition",
+    vneg: "Negotiable",
+
+    csub: "Subject",
+    clevel: "Level",
+    cmode: "Mode",
+    gtype: "Type",
+  };
+
+  const map = lang === "es" ? es : en;
+  return map[key] || key;
+}
+
+function prettyValue(key: string, value: string, lang: Lang): string {
+  const v = value.trim();
+  if (!v) return v;
+
+  if (key === "aseller" || key === "rseller") {
+    if (v === "personal") return lang === "es" ? "Personal" : "Personal";
+    if (v === "business") return lang === "es" ? "Negocio" : "Business";
+  }
+
+  if (key === "svisit") {
+    if (v === "comes") return lang === "es" ? "A domicilio" : "Comes to you";
+    if (v === "shop") return lang === "es" ? "En local" : "At a shop";
+  }
+
+  if (key === "eremote") {
+    if (v === "remote") return lang === "es" ? "Remoto" : "Remote";
+    if (v === "onsite") return lang === "es" ? "Presencial" : "On-site";
+  }
+
+  if (key === "ejob") {
+    const esMap: Record<string, string> = {
+      full: "Tiempo completo",
+      part: "Medio tiempo",
+      contract: "Contrato",
+      temp: "Temporal",
+    };
+    const enMap: Record<string, string> = {
+      full: "Full-time",
+      part: "Part-time",
+      contract: "Contract",
+      temp: "Temp",
+    };
+    return (lang === "es" ? esMap : enMap)[v] || v;
+  }
+
+  if (key === "acond") {
+    const esMap: Record<string, string> = { new: "Nuevo", used: "Usado" };
+    const enMap: Record<string, string> = { new: "New", used: "Used" };
+    return (lang === "es" ? esMap : enMap)[v] || v;
+  }
+
+  if (key === "vneg" && v === "yes") return lang === "es" ? "Sí" : "Yes";
+
+  return v;
+}
+
 export default function ActiveFilterChips({ lang }: { lang: Lang }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -57,6 +201,7 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
     const sort = sp.get("sort")?.trim() ?? "";
     const zip = sp.get("zip")?.trim() ?? "";
     const view = sp.get("view")?.trim() ?? "";
+    const langParam = (sp.get("lang") === "en" ? "en" : "es") as Lang;
 
     if (q) out.push({ key: "q", label: t.search, value: q });
     if (city) out.push({ key: "city", label: t.location, value: city });
@@ -71,7 +216,7 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
       const v = value?.trim() ?? "";
       if (!v) return;
       if (["lang", "q", "city", "radius", "r", "cat", "sort", "zip", "view", "page"].includes(key)) return;
-      out.push({ key, label: key, value: v });
+      out.push({ key, label: prettyKeyLabel(key, langParam), value: prettyValue(key, v, langParam) });
     });
 
     return out;
