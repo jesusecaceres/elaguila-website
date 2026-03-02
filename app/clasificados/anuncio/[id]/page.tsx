@@ -356,24 +356,24 @@ export default function AnuncioDetallePage() {
 
   if (!listing) {
     return (
-      <div className="bg-black min-h-screen text-white pb-24">
+      <div className="bg-[#D9D9D9] min-h-screen bg-[#D9D9D9] text-[#111111] pb-24">
         <Navbar />
         <section className="max-w-screen-2xl mx-auto px-6 pt-28">
           <div className="text-center">
             <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
             <h1 className="text-5xl md:text-6xl font-bold text-yellow-400">{t.notFoundTitle}</h1>
-            <p className="mt-5 text-white max-w-2xl mx-auto text-lg">{t.notFoundBody}</p>
+            <p className="mt-5 text-[#111111] max-w-2xl mx-auto text-lg">{t.notFoundBody}</p>
 
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <a
                 href={`/clasificados?lang=${lang}`}
-                className="px-7 py-3 rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+                className="px-7 py-3 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
               >
                 {t.viewAll}
               </a>
               <a
                 href={`/clasificados/publicar?lang=${lang}`}
-                className="px-7 py-3 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
+                className="px-7 py-3 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
               >
                 {t.post}
               </a>
@@ -385,7 +385,7 @@ export default function AnuncioDetallePage() {
   }
 
   return (
-    <div className="bg-black min-h-screen text-white pb-28">
+    <div className="bg-[#D9D9D9] min-h-screen text-[#111111] pb-28">
       <Navbar />
 
       <script
@@ -414,7 +414,7 @@ export default function AnuncioDetallePage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <a
             href={`/clasificados?lang=${lang}`}
-            className="px-5 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
+            className="px-5 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
           >
             ← {t.back}
           </a>
@@ -422,13 +422,13 @@ export default function AnuncioDetallePage() {
           <div className="flex flex-wrap gap-3">
             <a
               href={`/clasificados/publicar?lang=${lang}`}
-              className="px-6 py-2.5 rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+              className="px-6 py-2.5 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
             >
               {t.post}
             </a>
             <a
               href={`/clasificados/login?lang=${lang}`}
-              className="px-6 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
+              className="px-6 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
             >
               {t.signIn}
             </a>
@@ -440,20 +440,20 @@ export default function AnuncioDetallePage() {
           <div className="lg:col-span-8">
             <div
               className={cx(
-                "rounded-2xl border bg-black/35 backdrop-blur p-8",
-                isBusiness ? "border-yellow-400/45" : "border-white/10"
+                "rounded-2xl border bg-[#D9D9D9]/35 backdrop-blur p-8",
+                isBusiness ? "border-yellow-400/45" : "border-black/10"
               )}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
                     {listing.title[lang]}
                   </h1>
                   <div className="mt-3 text-2xl font-extrabold text-yellow-200">
                     {listing.priceLabel[lang]}
                   </div>
 
-                  <div className="mt-4 text-white">
+                  <div className="mt-4 text-[#111111]">
                     {listing.city} • {listing.postedAgo[lang]}
                   </div>
                 </div>
@@ -463,8 +463,8 @@ export default function AnuncioDetallePage() {
                     className={cx(
                       "px-3 py-1 rounded-full text-xs font-semibold border",
                       isBusiness
-                        ? "border-yellow-400/55 text-yellow-200 bg-yellow-400/10"
-                        : "border-white/10 text-white bg-white/5"
+                        ? "border-yellow-400/55 text-yellow-200 bg-[#F2EFE8]"
+                        : "border-black/10 text-[#111111] bg-[#F5F5F5]"
                     )}
                   >
                     {isBusiness ? t.sellerBusiness : t.sellerPersonal}
@@ -495,26 +495,26 @@ export default function AnuncioDetallePage() {
                   </span>
                 </div>
 
-<p className="mt-3 text-xs text-white">
+<p className="mt-3 text-xs text-[#111111]">
   {lang === "es"
     ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
     : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
 </p>
               </div>
 
-              <div className="mt-8 rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-                <div className="text-sm text-white">{listing.blurb[lang]}</div>
+              <div className="mt-8 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+                <div className="text-sm text-[#111111]">{listing.blurb[lang]}</div>
               </div>
 
 
 {proVideoInfo && (
-  <div className="mt-6 rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+  <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
     <div className="flex items-center justify-between gap-3">
       <div>
         <div className="text-sm font-semibold text-yellow-200">
           {lang === "es" ? "Video (Pro)" : "Pro Video"}
         </div>
-        <div className="mt-1 text-xs text-white">
+        <div className="mt-1 text-xs text-[#111111]">
           {lang === "es"
             ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
             : "Tap the thumbnail to play. No autoplay."}
@@ -524,7 +524,7 @@ export default function AnuncioDetallePage() {
         <button
           type="button"
           onClick={() => setShowProVideo(true)}
-          className="rounded-full border border-yellow-500/45 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-yellow-500/15"
+          className="rounded-full border border-[#C9B46A]/70 bg-[#F2EFE8] px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-[#F2EFE8]"
         >
           {lang === "es" ? "Reproducir" : "Play"}
         </button>
@@ -537,7 +537,7 @@ export default function AnuncioDetallePage() {
           <button
             type="button"
             onClick={() => setShowProVideo(true)}
-            className="group relative block w-full overflow-hidden rounded-xl border border-white/10"
+            className="group relative block w-full overflow-hidden rounded-xl border border-black/10"
             aria-label={lang === "es" ? "Reproducir video" : "Play video"}
           >
             {/* Use <img> to avoid Next/Image remote domain config issues */}
@@ -548,13 +548,13 @@ export default function AnuncioDetallePage() {
               loading="lazy"
             />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-full border border-yellow-400/30 bg-neutral-900/50 px-4 py-2 text-sm font-semibold text-white">
+              <div className="rounded-full border border-yellow-400/30 bg-neutral-900/50 px-4 py-2 text-sm font-semibold text-[#111111]">
                 {lang === "es" ? "▶ Reproducir" : "▶ Play"}
               </div>
             </div>
           </button>
         ) : (
-          <div className="rounded-xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4 text-sm text-white">
+          <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4 text-sm text-[#111111]">
             {lang === "es"
               ? "Este anuncio incluye un video Pro. Presione “Reproducir” para verlo."
               : "This listing includes a Pro video. Press “Play” to watch."}
@@ -562,7 +562,7 @@ export default function AnuncioDetallePage() {
         )
       ) : (
         <video
-          className="w-full rounded-xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+          className="w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
           controls
           preload="none"
           playsInline
@@ -575,46 +575,46 @@ export default function AnuncioDetallePage() {
 )}
 
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-white">{t.metaCategory}</div>
-                  <div className="mt-1 text-white font-semibold">
+                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                  <div className="text-xs text-[#111111]">{t.metaCategory}</div>
+                  <div className="mt-1 text-[#111111] font-semibold">
                     {categoryLabel[listing.category][lang]}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-white">{t.metaCondition}</div>
-                  <div className="mt-1 text-white font-semibold">
+                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                  <div className="text-xs text-[#111111]">{t.metaCondition}</div>
+                  <div className="mt-1 text-[#111111] font-semibold">
                     {conditionText(listing.condition)}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-white">{t.metaCity}</div>
-                  <div className="mt-1 text-white font-semibold">{listing.city}</div>
+                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                  <div className="text-xs text-[#111111]">{t.metaCity}</div>
+                  <div className="mt-1 text-[#111111] font-semibold">{listing.city}</div>
                 </div>
 
-                <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-white">{t.metaPosted}</div>
-                  <div className="mt-1 text-white font-semibold">{listing.postedAgo[lang]}</div>
+                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                  <div className="text-xs text-[#111111]">{t.metaPosted}</div>
+                  <div className="mt-1 text-[#111111] font-semibold">{listing.postedAgo[lang]}</div>
 
                 {autoMeta?.facts?.slice(0, 4).map((f) => (
                   <div
                     key={f.label}
-                    className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
+                    className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
                   >
-                    <div className="text-xs text-white">{f.label}</div>
-                    <div className="mt-1 text-white font-semibold">{f.value}</div>
+                    <div className="text-xs text-[#111111]">{f.label}</div>
+                    <div className="mt-1 text-[#111111] font-semibold">{f.value}</div>
                   </div>
                 ))}
 
                 {rentasMeta?.facts?.slice(0, 4).map((f) => (
                   <div
                     key={f.label}
-                    className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
+                    className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
                   >
-                    <div className="text-xs text-white">{f.label}</div>
-                    <div className="mt-1 text-white font-semibold">{f.value}</div>
+                    <div className="text-xs text-[#111111]">{f.label}</div>
+                    <div className="mt-1 text-[#111111] font-semibold">{f.value}</div>
                   </div>
                 ))}
 
@@ -623,13 +623,13 @@ export default function AnuncioDetallePage() {
             </div>
 
             {/* Safety note */}
-            <div className="mt-6 rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+            <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <div className="text-lg font-bold text-yellow-200">{t.guardTitle}</div>
-              <div className="mt-2 text-white">{t.guardBody}</div>
+              <div className="mt-2 text-[#111111]">{t.guardBody}</div>
 
               <div className="mt-4">
                 <button
-                  className="px-5 py-2.5 rounded-full border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-white font-semibold hover:bg-black/45 transition"
+                  className="px-5 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
                   onClick={() => alert(lang === "es" ? "Gracias — recibido." : "Thanks — received.")}
                 >
                   {t.report}
@@ -640,8 +640,8 @@ export default function AnuncioDetallePage() {
 
           {/* Right rail */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-              <div className="text-xl font-bold text-white">{t.actionsTitle}</div>
+            <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+              <div className="text-xl font-bold text-[#111111]">{t.actionsTitle}</div>
 
               <div className="mt-4 space-y-3">
                 <button
@@ -649,7 +649,7 @@ export default function AnuncioDetallePage() {
                   onClick={() => listing && setSaved(toggleListingSaved(listing.id))}
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
-                    "border-white/10 bg-black/40 text-white hover:bg-black/55"
+                    "border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                   )}
                 >
                   {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : (lang === "es" ? "☆ Guardar" : "☆ Save")}
@@ -658,7 +658,7 @@ export default function AnuncioDetallePage() {
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-white hover:bg-black/55"
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                 >
                   {lang === "es" ? "Compartir" : "Share"}
                 </button>
@@ -666,7 +666,7 @@ export default function AnuncioDetallePage() {
                 <button
                   type="button"
                   onClick={() => copyText(typeof window !== "undefined" ? window.location.href : "")}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-white hover:bg-black/55"
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                 >
                   {lang === "es" ? "Copiar enlace" : "Copy link"}
                 </button>
@@ -674,7 +674,7 @@ export default function AnuncioDetallePage() {
                 <button
                   type="button"
                   onClick={() => copyText(buildShareMessage())}
-                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-white hover:bg-black/55"
+                  className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                 >
                   {lang === "es" ? "Copiar info" : "Copy info"}
                 </button>
@@ -685,8 +685,8 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition",
                     !isAuthed
-                      ? "bg-white/5 text-white border border-white/10 cursor-not-allowed"
-                      : "bg-yellow-400 text-black hover:opacity-95"
+                      ? "bg-[#F5F5F5] text-[#111111] border border-black/10 cursor-not-allowed"
+                      : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                   )}
                 >
                   {t.markSold}
@@ -698,8 +698,8 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
                     !isAuthed
-                      ? "bg-white/5 text-white border-white/10 cursor-not-allowed"
-                      : "bg-black/30 text-white border-white/10 hover:bg-black/45"
+                      ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
+                      : "bg-[#D9D9D9]/30 text-[#111111] border-black/10 hover:bg-[#D9D9D9]/45"
                   )}
                 >
                   {t.edit}
@@ -711,7 +711,7 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
                     !isAuthed
-                      ? "bg-white/5 text-white border-white/10 cursor-not-allowed"
+                      ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
                       : "bg-red-500/15 text-red-200 border-red-400/25 hover:bg-red-500/20"
                   )}
                 >
@@ -719,7 +719,7 @@ export default function AnuncioDetallePage() {
                 </button>
 
                 {!isAuthed && (
-                  <div className="text-xs text-white pt-2">
+                  <div className="text-xs text-[#111111] pt-2">
                     {lang === "es"
                       ? "Nota: en v2 estas acciones se habilitan cuando conectemos autenticación real."
                       : "Note: in v2 these actions will enable when we wire real authentication."}
@@ -728,14 +728,14 @@ export default function AnuncioDetallePage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-yellow-400/35 bg-neutral-800/60 backdrop-blur ring-1 ring-yellow-400/20 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-              <div className="text-xl font-bold text-white">{t.contactTitle}</div>
-              <div className="mt-3 text-white">{t.contactBody}</div>
+            <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+              <div className="text-xl font-bold text-[#111111]">{t.contactTitle}</div>
+              <div className="mt-3 text-[#111111]">{t.contactBody}</div>
 
               
               {listing?.category === "empleos" && jobMeta ? (
-                <div className="mt-5 rounded-xl border border-yellow-400/20 bg-black/20 p-4">
-                  <div className="text-sm font-semibold text-white">
+                <div className="mt-5 rounded-xl border border-yellow-400/20 bg-[#D9D9D9]/20 p-4">
+                  <div className="text-sm font-semibold text-[#111111]">
                     {lang === "es" ? "Detalles del trabajo" : "Job details"}
                   </div>
 
@@ -743,13 +743,13 @@ export default function AnuncioDetallePage() {
                     {jobMeta.chips.map((c) => (
                       <span
                         key={c}
-                        className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white"
+                        className="inline-flex items-center rounded-full border border-white/15 bg-[#F5F5F5] px-3 py-1 text-xs text-[#111111]"
                       >
                         {c}
                       </span>
                     ))}
                     {jobMeta.pay ? (
-                      <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white">
+                      <span className="inline-flex items-center rounded-full border border-white/15 bg-[#F5F5F5] px-3 py-1 text-xs text-[#111111]">
                         {jobMeta.pay}
                       </span>
                     ) : null}
@@ -757,10 +757,10 @@ export default function AnuncioDetallePage() {
 
                   {jobMeta.quals.length ? (
                     <div className="mt-3">
-                      <div className="text-xs font-semibold text-white/90">
+                      <div className="text-xs font-semibold text-[#111111]/90">
                         {lang === "es" ? "Requisitos (según el texto)" : "Qualifications (from text)"}
                       </div>
-                      <ul className="mt-1 list-disc pl-5 text-sm text-white">
+                      <ul className="mt-1 list-disc pl-5 text-sm text-[#111111]">
                         {jobMeta.quals.map((q) => (
                           <li key={q}>{q}</li>
                         ))}
@@ -770,7 +770,7 @@ export default function AnuncioDetallePage() {
 
                   <button
                     type="button"
-                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-yellow-400/35 bg-yellow-400/15 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-400/20 disabled:opacity-50"
+                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-[#C9B46A]/55 bg-[#111111]/15 px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#111111]/20 disabled:opacity-50"
                     onClick={() => {
                       const el = document.getElementById("contact-actions");
                       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -798,7 +798,7 @@ export default function AnuncioDetallePage() {
               </div>
 
 
-              <div className="mt-4 text-xs text-white">
+              <div className="mt-4 text-xs text-[#111111]">
                 {lang === "es"
                   ? "Estas herramientas se activan con LEONIX Pro (leads por anuncio)."
                   : "These tools activate with LEONIX Pro (per-listing leads)."}

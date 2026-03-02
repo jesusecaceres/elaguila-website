@@ -1,0 +1,82 @@
+{
+  "featured": {
+    "title": {
+      "es": "El Águila lanza plataforma digital 2026",
+      "en": "El Águila launches digital platform 2026"
+    },
+    "desc": {
+      "es": "El nuevo hub digital llega para transformar la comunicación latina.",
+      "en": "The new digital hub arrives to transform Latino media."
+    },
+    "img": "/featured.png",
+    "category": "tendencias"
+  },
+
+  "articles": [
+    {
+      "id": 1,
+      "title": {
+        "es": "México anuncia nuevas oportunidades para emprendedores latinos",
+        "en": "Mexico announces new opportunities for Latino entrepreneurs"
+      },
+      "desc": {
+        "es": "Un programa nacional impulsará pequeñas empresas con apoyo financiero.",
+        "en": "A national program aims to boost small businesses with financial support."
+      },
+      "img": "https://images.unsplash.com/photo-1537202108838-e7072bad1927?q=80&w=800",
+      "category": "negocios"
+    },
+    {
+      "id": 2,
+      "title": {
+        "es": "Histórico triunfo en deportes: Latinoamérica celebra",
+        "en": "Historic sports victory: Latin America celebrates"
+      },
+      "desc": {
+        "es": "Un resultado que marca un antes y un después en el deporte latino.",
+        "en": "A result that marks a turning point in Latin American sports."
+      },
+      "img": "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?q=80&w=800",
+      "category": "deportes"
+    },
+    {
+      "id": 3,
+      "title": {
+        "es": "Nuevas innovaciones tecnológicas llegan al mercado latino",
+        "en": "New tech innovations enter the Latino market"
+      },
+      "desc": {
+        "es": "Startups emergentes presentan avances en IA y educación.",
+        "en": "Emerging startups introduce new advances in AI and education."
+      },
+      "img": "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800",
+      "category": "tecnologia"
+    },
+    {
+      "id": 4,
+      "title": {
+        "es": "Cultura Latina: Tradiciones que siguen uniendo generaciones",
+        "en": "Latino Culture: Traditions that continue uniting generations"
+      },
+      "desc": {
+        "es": "Celebraciones que mantienen vivas las raíces.",
+        "en": "Celebrations that keep cultural roots alive."
+      },
+      "img": "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?q=80&w=800",
+      "category": "cultura"
+    },
+    {
+      "id": 5,
+      "title": {
+        "es": "Comunidades locales se unen para apoyar a familias",
+        "en": "Local communities unite to support families"
+      },
+      "desc": {
+        "es": "Vecinos unen esfuerzos para ayudar a quienes más lo necesitan.",
+        "en": "Neighbors join efforts to help those in need."
+      },
+      "img": "https://images.unsplash.com/photo-1493836512294-502baa1986e2?q=80&w=800",
+      "category": "local"
+    }
+  ]
+}

@@ -60,15 +60,15 @@ useEffect(() => {
   const t = COPY[lang];
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] flex items-center justify-center px-6">
       <div className="w-full max-w-md text-center">
         <div className="mx-auto mb-4 h-10 w-10 rounded-full border border-yellow-600/30 bg-black/40 flex items-center justify-center">
           <span className="text-yellow-400 text-lg">↗</span>
         </div>
 
         <h1 className="text-2xl font-semibold text-yellow-400">{t.title}</h1>
-        <p className="mt-3 text-sm text-white leading-relaxed">{t.line1}</p>
-        <p className="mt-2 text-sm text-white leading-relaxed">{t.line2}</p>
+        <p className="mt-3 text-sm text-[#111111] leading-relaxed">{t.line1}</p>
+        <p className="mt-2 text-sm text-[#111111] leading-relaxed">{t.line2}</p>
 
         <div className="mt-6 flex items-center justify-center gap-3">
           <Link
@@ -80,7 +80,7 @@ useEffect(() => {
 
           <Link
             href={"/clasificados?lang=" + lang}
-            className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/40 px-4 py-2 text-sm font-medium text-white hover:bg-black/60 transition"
+            className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/40 px-4 py-2 text-sm font-medium text-[#111111] hover:bg-black/60 transition"
           >
             {lang === "es" ? "Volver" : "Back"}
           </Link>

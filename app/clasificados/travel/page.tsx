@@ -78,25 +78,25 @@ function Tile({
           <div className="flex items-center gap-2">
             <div className="text-lg font-extrabold text-yellow-200">{title}</div>
             {badge ? (
-              <span className="inline-flex items-center rounded-full border border-yellow-400/25 bg-yellow-500/10 px-2 py-0.5 text-[11px] font-semibold text-yellow-200">
+              <span className="inline-flex items-center rounded-full border border-yellow-400/25 bg-[#F2EFE8] px-2 py-0.5 text-[11px] font-semibold text-yellow-200">
                 {badge}
               </span>
             ) : null}
             {comingSoon ? (
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-white">
+              <span className="inline-flex items-center rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[11px] font-semibold text-[#111111]">
                 Coming soon
               </span>
             ) : null}
           </div>
-          <div className="mt-1 text-sm text-white">{desc}</div>
+          <div className="mt-1 text-sm text-[#111111]">{desc}</div>
         </div>
-        <div className="mt-0.5 shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white group-hover:bg-white/10">
+        <div className="mt-0.5 shrink-0 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-xs font-semibold text-[#111111] group-hover:bg-white/10">
           Ver
         </div>
       </div>
 
       <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
-        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-yellow-400/10 blur-3xl" />
+        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-[#F2EFE8] blur-3xl" />
       </div>
     </a>
   );
@@ -143,15 +143,15 @@ export default function TravelPage() {
   );
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <Navbar />
 
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-[#0B0B0B] to-black" />
         <div className="absolute inset-0 opacity-50">
-          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-yellow-500/10 blur-3xl" />
-          <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-yellow-400/10 blur-3xl" />
+          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#F2EFE8] blur-3xl" />
+          <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-[#F2EFE8] blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-screen-2xl px-6 pt-28 pb-10 text-center">
@@ -167,7 +167,7 @@ export default function TravelPage() {
           <h1 className="mt-6 text-5xl font-extrabold tracking-tight text-yellow-400 md:text-6xl">
             {t.title}
           </h1>
-          <p className="mx-auto mt-4 max-w-3xl text-base text-white md:text-lg">
+          <p className="mx-auto mt-4 max-w-3xl text-base text-[#111111] md:text-lg">
             {t.subtitle}
           </p>
 
@@ -175,19 +175,19 @@ export default function TravelPage() {
             <div className="text-sm font-semibold text-yellow-200">
               {lang === "en" ? "Trust" : "Confianza"}
             </div>
-            <div className="mt-1 text-sm text-white">{t.trust}</div>
+            <div className="mt-1 text-sm text-[#111111]">{t.trust}</div>
           </div>
 
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <a
               href={baseHref}
-              className="inline-flex items-center justify-center rounded-2xl border border-yellow-400/45 bg-yellow-500/15 px-6 py-3 text-sm font-bold text-yellow-100 transition hover:bg-yellow-500/20"
+              className="inline-flex items-center justify-center rounded-2xl border border-yellow-400/45 bg-[#F2EFE8] px-6 py-3 text-sm font-bold text-yellow-100 transition hover:bg-yellow-500/20"
             >
               {t.primary}
             </a>
             <a
               href={`${t.postHref}?lang=${lang}&cat=travel`}
-              className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+              className="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-[#F5F5F5] px-6 py-3 text-sm font-bold text-[#111111] transition hover:bg-white/10"
             >
               {t.secondary}
             </a>
@@ -202,7 +202,7 @@ export default function TravelPage() {
             <h2 className="text-2xl font-extrabold text-yellow-200 md:text-3xl">
               {t.sectionsTitle}
             </h2>
-            <div className="text-sm text-white">
+            <div className="text-sm text-[#111111]">
               {lang === "en"
                 ? "Choose a lane — all routes open in the Travel listings engine."
                 : "Elige una opción — todo abre dentro del buscador de Viajes."}
@@ -279,9 +279,9 @@ export default function TravelPage() {
             />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm font-bold text-white">{t.noteTitle}</div>
-            <div className="mt-2 text-sm text-white">{t.noteBody}</div>
+          <div className="mt-6 rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
+            <div className="text-sm font-bold text-[#111111]">{t.noteTitle}</div>
+            <div className="mt-2 text-sm text-[#111111]">{t.noteBody}</div>
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -293,7 +293,7 @@ export default function TravelPage() {
             </a>
             <a
               href="/clasificados"
-              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-white hover:bg-white/10"
+              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-black/10 bg-[#F5F5F5] px-6 py-3 text-sm font-bold text-[#111111] hover:bg-white/10"
             >
               {lang === "en" ? "Back to Classifieds" : "Volver a Clasificados"}
             </a>

@@ -288,20 +288,20 @@ export default function ActiveFilterChips({ lang }: { lang: Lang }) {
           className={cx(
             "inline-flex items-center gap-2 rounded-full border",
             "border-white/12 bg-white/6 px-3 py-1",
-            "text-xs text-white hover:bg-white/10 transition"
+            "text-xs text-[#2B2B2B] hover:bg-white/10 transition"
           )}
           aria-label={`${c.label}: ${c.value}`}
         >
-          <span className="text-white">{c.label}:</span>
-          <span className="font-semibold text-white">{c.value}</span>
-          <span className="text-white">×</span>
+          <span className="text-[#2B2B2B]">{c.label}:</span>
+          <span className="font-semibold text-[#111111]">{c.value}</span>
+          <span className="text-[#2B2B2B]">×</span>
         </button>
       ))}
 
       <button
         type="button"
         onClick={() => router.push(clearAllHref)}
-        className="ml-2 inline-flex items-center rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs text-white hover:bg-white/10 transition"
+        className="ml-2 inline-flex items-center rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-3 py-1 text-xs text-[#2B2B2B] hover:bg-[#EFEFEF] transition"
       >
         {t.clearAll}
       </button>

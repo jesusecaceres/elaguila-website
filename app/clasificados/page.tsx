@@ -303,20 +303,20 @@ out[cat] = mixed.slice(0, limit);
       <a
         href={href}
         className={cx(
-          "block rounded-2xl border bg-white/6 backdrop-blur transition hover:bg-white/7",
-          isBusiness ? "border-yellow-500/25" : "border-white/10"
+          "block rounded-2xl border bg-[#F5F5F5] backdrop-blur transition hover:bg-[#F5F5F5]",
+          isBusiness ? "border-yellow-500/25" : "border-black/10"
         )}
       >
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-base font-bold text-white leading-snug line-clamp-2">
+              <div className="text-base font-bold text-[#111111] leading-snug line-clamp-2">
                 {item.title[lang]}
               </div>
-              <div className="mt-1 text-sm text-white font-semibold">
+              <div className="mt-1 text-sm text-[#111111] font-semibold">
                 {item.priceLabel[lang]}
               </div>
-              <div className="mt-1 text-xs text-white">
+              <div className="mt-1 text-xs text-[#111111]">
                 {item.city} • {item.postedAgo[lang]}
               </div>
             </div>
@@ -325,8 +325,8 @@ out[cat] = mixed.slice(0, limit);
               className={cx(
                 "shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border",
                 isBusiness
-                  ? "border-yellow-500/35 text-yellow-200 bg-yellow-400/10"
-                  : "border-white/10 text-white bg-white/5"
+                  ? "border-[#C9B46A]/55 text-[#111111] bg-[#111111]/10"
+                  : "border-black/10 text-[#111111] bg-[#F5F5F5]"
               )}
             >
               {isBusiness
@@ -339,7 +339,7 @@ out[cat] = mixed.slice(0, limit);
             </span>
           </div>
 
-          <div className="mt-3 text-sm text-white line-clamp-2">
+          <div className="mt-3 text-sm text-[#111111] line-clamp-2">
             {item.blurb[lang]}
           </div>
         </div>
@@ -355,17 +355,17 @@ out[cat] = mixed.slice(0, limit);
         // ✅ CHANGED: from lista params to dedicated category page route
         href={withCategoryRoute(cat)}
         className={cx(
-          "group block rounded-2xl border border-yellow-500/45 bg-white/6 backdrop-blur",
-          "hover:bg-white/7 transition"
+          "group block rounded-2xl border border-[#C9B46A]/70 bg-[#F5F5F5] backdrop-blur",
+          "hover:bg-[#F5F5F5] transition"
         )}
       >
         <div className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-lg font-bold text-white">{meta.label}</div>
-              <div className="mt-1 text-sm text-white">{meta.hint}</div>
+              <div className="text-lg font-bold text-[#111111]">{meta.label}</div>
+              <div className="mt-1 text-sm text-[#111111]">{meta.hint}</div>
             </div>
-            <div className="shrink-0 text-white group-hover:text-white transition">
+            <div className="shrink-0 text-[#111111] group-hover:text-[#111111] transition">
               →
             </div>
           </div>
@@ -387,22 +387,22 @@ out[cat] = mixed.slice(0, limit);
     return (
       <div
         className={cx(
-          "rounded-2xl border bg-white/6 backdrop-blur p-6",
-          accent === "gold" ? "border-yellow-500/25" : "border-white/10"
+          "rounded-2xl border bg-[#F5F5F5] backdrop-blur p-6",
+          accent === "gold" ? "border-yellow-500/25" : "border-black/10"
         )}
       >
         <div
           className={cx(
             "text-xl font-bold",
-            accent === "gold" ? "text-yellow-200" : "text-white"
+            accent === "gold" ? "text-[#111111]" : "text-[#111111]"
           )}
         >
           {title}
         </div>
-        <ul className="mt-4 space-y-2 text-sm text-white">
+        <ul className="mt-4 space-y-2 text-sm text-[#111111]">
           {bullets.map((b, i) => (
             <li key={i} className="flex gap-2">
-              <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-yellow-400/70 shrink-0" />
+              <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-[#111111]/70 shrink-0" />
               <span>{b}</span>
             </li>
           ))}
@@ -412,7 +412,7 @@ out[cat] = mixed.slice(0, limit);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pb-28 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.12),transparent_55%)]">
+    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-28 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
       <Navbar />
 
       {/* HERO (keep strong, cohesive) */}
@@ -421,13 +421,13 @@ out[cat] = mixed.slice(0, limit);
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
             <a
               href={withLang(t.routeLogin)}
-              className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
+              className="px-4 py-2 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
             >
               {t.authSignIn}
             </a>
             <a
               href={withLang(t.routeLogin)}
-              className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-yellow-400/10 text-yellow-200 font-semibold hover:bg-yellow-400/15 transition"
+              className="px-4 py-2 text-sm rounded-full border border-[#C9B46A]/70 bg-[#111111]/10 text-[#111111] font-semibold hover:bg-[#111111]/12 transition"
             >
               {t.authCreate}
             </a>
@@ -435,24 +435,24 @@ out[cat] = mixed.slice(0, limit);
 
           <Image src={newLogo} alt="LEONIX" width={320} className="mx-auto mb-6" />
 
-          <h1 className="text-6xl md:text-7xl font-bold text-yellow-400">
+          <h1 className="text-6xl md:text-7xl font-bold text-[#111111]">
             {t.pageTitle}
           </h1>
-          <p className="mt-5 text-white max-w-3xl mx-auto text-lg md:text-xl">
+          <p className="mt-5 text-[#111111] max-w-3xl mx-auto text-lg md:text-xl">
             {t.subtitle}
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
               href={withLang(t.routePost)}
-              className="px-5 py-2.5 text-sm rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+              className="px-5 py-2.5 text-sm rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
             >
               {t.ctaPost}
             </a>
 
             <Link
               href={withListParams()}
-              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
               aria-label={t.ctaView}
             >
               {t.ctaView}
@@ -460,14 +460,14 @@ out[cat] = mixed.slice(0, limit);
 
             <Link
               href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
+              className="px-5 py-2.5 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
               aria-label={t.ctaMemberships}
             >
               {t.ctaMemberships}
             </Link>
           </div>
 
-          <div className="mt-8 text-sm text-white max-w-3xl mx-auto">
+          <div className="mt-8 text-sm text-[#111111] max-w-3xl mx-auto">
             {t.trustLine}
           </div>
         </div>
@@ -476,7 +476,7 @@ out[cat] = mixed.slice(0, limit);
       {/* CATEGORY ENTRY (premium tiles; replaces old pills) */}
       <section className="max-w-screen-2xl mx-auto px-6">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
             {t.sectionBrowse}
           </h2>
         </div>
@@ -492,10 +492,10 @@ out[cat] = mixed.slice(0, limit);
       <section className="max-w-screen-2xl mx-auto px-6 mt-14">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
               {t.sectionFeatured}
             </h2>
-            <p className="mt-2 text-sm text-white max-w-3xl">
+            <p className="mt-2 text-sm text-[#111111] max-w-3xl">
               {t.sectionFeaturedHint}
             </p>
           </div>
@@ -510,20 +510,20 @@ out[cat] = mixed.slice(0, limit);
             return (
               <div
                 key={cat}
-                className="border border-yellow-500/45 bg-white/5 rounded-2xl p-6"
+                className="border border-[#C9B46A]/70 bg-[#F5F5F5] rounded-2xl p-6"
               >
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
-                    <div className="text-xl font-bold text-white">
+                    <div className="text-xl font-bold text-[#111111]">
                       {meta.label}
                     </div>
-                    <div className="mt-1 text-sm text-white">{meta.hint}</div>
+                    <div className="mt-1 text-sm text-[#111111]">{meta.hint}</div>
                   </div>
 
                   <a
                     // ✅ CHANGED: from lista params to dedicated category page route
                     href={withCategoryRoute(cat)}
-                    className="px-4 py-2 text-sm rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/7 transition"
+                    className="px-4 py-2 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
                   >
                     {t.viewMore} →
                   </a>
@@ -553,20 +553,20 @@ out[cat] = mixed.slice(0, limit);
 
       {/* MEMBERSHIPS (benefits only, no prices) */}
       <section id="memberships" className="max-w-screen-2xl mx-auto px-6 mt-16">
-        <div className="border border-yellow-500/45 rounded-2xl p-8 bg-white/8">
+        <div className="border border-[#C9B46A]/70 rounded-2xl p-8 bg-[#EFEFEF]">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-yellow-200">
+              <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
                 {t.membershipsTitle}
               </h2>
-              <p className="mt-2 text-sm text-white max-w-3xl">
+              <p className="mt-2 text-sm text-[#111111] max-w-3xl">
                 {t.membershipsSubtitle}
               </p>
             </div>
 
             <a
               href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full bg-yellow-400 text-black font-semibold hover:opacity-95 transition"
+              className="px-5 py-2.5 text-sm rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
             >
               {t.ctaMemberships} →
             </a>
@@ -579,7 +579,7 @@ out[cat] = mixed.slice(0, limit);
           <div className="mt-4 flex justify-start">
             <Link
               href={withAccountMemberships()}
-              className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
+              className="inline-flex items-center rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-white/10 transition"
             >
               {t.ctaPricing} →
             </Link>

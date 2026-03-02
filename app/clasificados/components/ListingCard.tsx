@@ -41,10 +41,10 @@ export default function ListingCard({
       className={cx(
         "relative rounded-2xl border",
         // Warmer, premium card tone (no harsh white panels)
-        "border-yellow-500/45 bg-white/8",
+        "border-[#C9B46A]/70 bg-[#F5F5F5]",
         "p-4 sm:p-5",
         "shadow-sm transition",
-        "hover:-translate-y-[1px] hover:bg-white/10 hover:border-yellow-500/45"
+        "hover:-translate-y-[1px] hover:bg-[#EFEFEF] hover:border-[#A98C2A]"
       )}
     >
       <button
@@ -56,7 +56,7 @@ export default function ListingCard({
         }}
         className={cx(
           "absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold transition",
-          "border-white/10 bg-white/12 text-white hover:bg-white/16"
+          "border-white/10 bg-[#EFEFEF] text-[#111111] hover:bg-black/10"
         )}
         aria-label={saveText}
         title={saveText}
@@ -64,7 +64,7 @@ export default function ListingCard({
         {saved ? "★" : "☆"} {saveText}
       </button>
 
-      <h3 className="mb-1 text-base sm:text-lg font-semibold text-white leading-snug">
+      <h3 className="mb-1 text-base sm:text-lg font-semibold text-[#111111] leading-snug">
         {item.title}
       </h3>
 
@@ -79,7 +79,7 @@ export default function ListingCard({
         ) : null}
       </div>
 
-      <p className="mb-2 text-sm text-white line-clamp-2">
+      <p className="mb-2 text-sm text-[#111111] line-clamp-2">
         {item.description}
       </p>
 
@@ -105,7 +105,7 @@ export default function ListingCard({
             {chips.map((c) => (
               <span
                 key={c}
-                className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white"
+                className="inline-flex items-center rounded-full border border-black/10 bg-[#EFEFEF] px-3 py-1 text-[11px] text-[#2B2B2B]"
               >
                 {c}
               </span>
@@ -114,7 +114,7 @@ export default function ListingCard({
         );
       })()}
 
-      <span className="text-[11px] sm:text-xs text-white">{`${postedLabel}: ${item.createdAt}`}</span>
+      <span className="text-[11px] sm:text-xs text-[#111111]">{`${postedLabel}: ${item.createdAt}`}</span>
     </div>
   );
 }

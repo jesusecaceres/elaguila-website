@@ -19,7 +19,7 @@ export default function ClasificadosLoginRedirect() {
   }, [redirectTo]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+    <div className="min-h-screen flex items-center justify-center bg-[#D9D9D9] text-[#111111]">
       <p>Redirigiendo al inicio de sesión…</p>
     </div>
   );
