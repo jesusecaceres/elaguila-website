@@ -1300,7 +1300,8 @@ useEffect(() => {
       const get = (k: string) => (sp.get(k) ?? "").trim();
 
       const q0 = get("q");
-      const cat0 = get("cat") || "all";
+      const cat0Raw = get("cat") || "all";
+      const cat0 = cat0Raw === "viajes" ? "travel" : cat0Raw;
       const sort0 = get("sort");
       const view0 = get("view");
       const r0 = get("r");
@@ -1490,7 +1491,8 @@ useEffect(() => {
     const pCity = params?.get("city") ?? null;
     const pZip = params?.get("zip") ?? null;
     const pR = params?.get("r") ?? null;
-    const pCat = params?.get("cat") ?? null;
+    const pCatRaw = params?.get("cat") ?? null;
+    const pCat = pCatRaw === "viajes" ? "travel" : pCatRaw;
     const pSort = params?.get("sort") ?? null;
     const pView = params?.get("view") ?? null;
 
