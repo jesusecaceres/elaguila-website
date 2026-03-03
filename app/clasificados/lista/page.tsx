@@ -4141,13 +4141,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         <div
           className={cx(
-            "mt-6 transition-opacity duration-200",
+            "transition-opacity duration-200",
+            isServicios ? "mt-2" : "mt-6",
             "md:grid md:items-start md:gap-6",
             isServicios ? "md:grid-cols-[minmax(0,1fr)]" : (filtersCollapsed ? "md:grid-cols-[52px,minmax(0,1fr)]" : "md:grid-cols-[minmax(140px,168px),minmax(0,1fr)]"),
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
-        {/* FILTERS SIDEBAR (desktop) */}
+        {/* FILTERS SIDEBAR (desktop) — not shown for Servicios */}
+        {!isServicios && (
         <aside
           className={cx(
             "hidden md:block",
@@ -4347,8 +4349,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 </div>
               ) : null}
-
-              {category === "servicios" ? null : null}
 
               {category === "en-venta" ? (
                 <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
@@ -4643,19 +4643,23 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             </div>
           )}
         </aside>
+        )}
 
 <div className="md:col-start-2 md:mt-0 min-w-0">
 
         {/* TOP QUICK FILTERS (compact) */}
-        <section className="mt-3">
-          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
+        <section className={isServicios ? "mt-1" : "mt-3"}>
+          <div className={cx(
+            "rounded-2xl border border-black/10 bg-[#F5F5F5] px-3 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm",
+            isServicios ? "py-2" : "py-2.5"
+          )}>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
               {isServicios ? (
                 <div ref={serviciosTypeRef} className="xl:col-span-8">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
-                  <div className="relative mt-2">
+                  <div className="relative mt-1.5">
                     <div className="flex overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
                       <div className="flex-1 px-3 py-3">
                         <input
@@ -4723,7 +4727,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
 
                   {/* Yelp-style hover buckets + All drawer trigger */}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setServiciosAllOpen(true)}
@@ -4779,7 +4783,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
 
                   {/* Breadcrumb (SEO + clarity) */}
-                  <div className="mt-2 text-[12px] text-[#111111]">
+                  <div className="mt-1.5 text-[12px] text-[#111111]">
                     {serviciosBreadcrumb}
                   </div>
                 </div>
@@ -4960,6 +4964,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <div className="mx-auto w-full max-w-screen-2xl px-4 pt-4">
         <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-[#F5F5F5] backdrop-blur p-3">
           <div className="flex items-center gap-2">
+            {!isServicios && (
             <button
               type="button"
               onClick={() => setMobilePanelTab("filters")}
@@ -4977,6 +4982,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </span>
               ) : null}
             </button>
+            )}
             <button
               type="button"
               onClick={() => setMobilePanelTab("sort")}
@@ -5004,7 +5010,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
       <div className="mx-auto w-full max-w-screen-2xl flex-1 px-4 pb-6 pt-3">
         <div className="h-full overflow-y-auto rounded-2xl border border-black/10 bg-[#F5F5F5] backdrop-blur p-4">
-          {mobilePanelTab === "filters" ? (
+          {mobilePanelTab === "filters" && !isServicios ? (
             <div className="grid grid-cols-1 gap-3">
               {/* Search */}
               <div>
@@ -5229,6 +5235,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4">
     <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] backdrop-blur shadow-lg">
       <div className="flex items-center gap-3 p-3">
+        {!isServicios && (
         <button
           type="button"
           onClick={() => {
@@ -5244,6 +5251,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             </span>
           ) : null}
         </button>
+        )}
         <button
           type="button"
           onClick={() => {
