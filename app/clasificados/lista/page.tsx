@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -721,6 +721,11 @@ export default function ListaPage() {
   const [showTop, setShowTop] = useState(false);
 
   const [filtersCollapsed, setFiltersCollapsed] = useState(true);
+
+  // Servicios uses the Yelp-style top bar (Todo + hover groups). No collapsed sidebar button.
+  useEffect(() => {
+    if (category === "servicios" && filtersCollapsed) setFiltersCollapsed(false);
+  }, [category, filtersCollapsed]);
 
 // Category switching polish (A4.19)
 
@@ -4343,69 +4348,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </div>
               ) : null}
 
-              {category === "servicios" ? (
-                <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                  <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Tipo" : "Type"}</label>
-                      <select
-                        value={serviciosParams.stype || ""}
-                        onChange={(e) => setServiciosParams((p) => ({ ...p, stype: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="cleaning">{servicioTypeLabel("cleaning", lang)}</option>
-                        <option value="landscaping">{servicioTypeLabel("landscaping", lang)}</option>
-                        <option value="mechanic">{servicioTypeLabel("mechanic", lang)}</option>
-                        <option value="plumbing">{servicioTypeLabel("plumbing", lang)}</option>
-                        <option value="electrician">{servicioTypeLabel("electrician", lang)}</option>
-                        <option value="painting">{servicioTypeLabel("painting", lang)}</option>
-                        <option value="remodeling">{servicioTypeLabel("remodeling", lang)}</option>
-                        <option value="moving">{servicioTypeLabel("moving", lang)}</option>
-                        <option value="handyman">{servicioTypeLabel("handyman", lang)}</option>
-                        <option value="other">{servicioTypeLabel("other", lang)}</option>
-                      </select>
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Horario" : "Availability"}</label>
-                      <select
-                        value={serviciosParams.savail || ""}
-                        onChange={(e) => setServiciosParams((p) => ({ ...p, savail: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="anytime">{servicioAvailLabel("anytime", lang)}</option>
-                        <option value="weekends">{servicioAvailLabel("weekends", lang)}</option>
-                        <option value="evenings">{servicioAvailLabel("evenings", lang)}</option>
-                        <option value="appointment">{servicioAvailLabel("appointment", lang)}</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Servicio" : "Service"}
-                      </label>
-                      <select
-                        value={serviciosParams.svisit || ""}
-                        onChange={(e) => setServiciosParams((p) => ({ ...p, svisit: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="comes">{lang === "es" ? "Viene a ti (a domicilio)" : "Comes to you"}</option>
-                        <option value="shop">{lang === "es" ? "En local / taller" : "At a shop"}</option>
-                      </select>
-                      <div className="mt-2 text-xs text-[#111111]/80">
-                        {lang === "es"
-                          ? "Tip: se infiere por palabras como “a domicilio”, “móvil”, “en tienda”."
-                          : "Tip: inferred from keywords like “mobile/house calls” or “shop/office”."}
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              ) : null}
+              {category === "servicios" ? null : null}
 
               {category === "en-venta" ? (
                 <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
@@ -4907,6 +4850,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </div>
               )}
 
+{category === "rentas" && (
+
 <div>
                       <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Anunciante" : "Posted by"}</label>
                       <select
@@ -4919,10 +4864,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <option value="business">{lang === "es" ? "Negocio" : "Business"}</option>
                       </select>
                     </div>
+)}
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
+              {!isServicios && (
+<div className="flex flex-wrap items-center gap-2">
                 <label className="sr-only">{UI.sort[lang]}</label>
                 <select
                   value={sort}
@@ -4951,6 +4898,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </button>
                   ))}
                 </div>
+              </div>
+              )}
+
+
 
                 <button
                   type="button"
@@ -4974,9 +4925,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               >
                 {UI.reset[lang]}
               </button>
-            </div>
 
-            {activeChips.length ? (
+            {activeChips.length > 0 && (
               <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
                 {activeChips.map((c) => (
                   <button
@@ -4988,9 +4938,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   >
                     {c.text} <span className="ml-1 opacity-80">×</span>
                   </button>
-	                ))}
+                ))}
               </div>
-            ) : null}
+            )}
           </div>
         </section>
 
