@@ -192,7 +192,9 @@ function prettyValue(key: string, value: string, lang: Lang): string {
   return v;
 }
 
-export default function ActiveFilterChips({ lang }: { lang: Lang }) {
+export default function ActiveFilterChips({ lang, category }: { lang: Lang; category?: string }) {
+  if (category === "servicios") return null;
+
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname() || "";

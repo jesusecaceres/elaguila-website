@@ -4665,7 +4665,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <section className={isServicios ? "mt-0" : "mt-3"}>
           <div className={cx(
             "rounded-2xl border border-black/10 bg-[#F5F5F5] px-3 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm",
-            isServicios ? "py-1.5" : "py-2.5"
+            isServicios ? "py-1" : "py-2.5"
           )}>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
@@ -4800,7 +4800,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
 
                   {/* Breadcrumb path + deep filter chips (Servicios only) */}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#111111]">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#111111]">
                     <span className="font-medium">{serviciosBreadcrumb.replace(/ › /g, " > ")}</span>
                     {serviciosDeepChips.length > 0 && (
                       <>
@@ -4904,9 +4904,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 )}
                   </div>
 
+                  {!isServicios && (
+                  <>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              {!isServicios && (
-<div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="sr-only">{UI.sort[lang]}</label>
                 <select
                   value={sort}
@@ -4935,10 +4936,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </button>
                   ))}
                 </div>
-              </div>
-              )}
-
-
 
                 <button
                   type="button"
@@ -4962,6 +4959,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               >
                 {UI.reset[lang]}
               </button>
+            </div>
 
             {activeChips.length > 0 && (
               <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
@@ -4978,6 +4976,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 ))}
               </div>
             )}
+                  </>
+                  )}
           </div>
         </section>
 
