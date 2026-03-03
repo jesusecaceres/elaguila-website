@@ -3771,7 +3771,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
 
         <section className="mt-6">
-          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
+          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-4 py-3 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-[#111111]">
                 {lang === "es" ? "Explorar por categoría" : "Browse by category"}
@@ -3819,19 +3819,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </button>
                 );
               })}
-            </div>
-            <div className="mt-2 text-xs text-[#111111]/85">
-              {category === "servicios"
-                ? (lang === "es"
-                    ? "Tip: empieza por el tipo de servicio; después afina por horario y si viene a domicilio."
-                    : "Tip: start with service type, then refine by availability and whether they come to you.")
-                : category === "en-venta"
-                  ? (lang === "es"
-                      ? "Tip: usa precio + tipo + condición. “Negociable” se detecta por palabras como OBO/negociable."
-                      : "Tip: use price + type + condition. “Negotiable” is inferred from OBO/negotiable keywords.")
-                  : (lang === "es"
-                      ? "Tip: elige una categoría y usa filtros para afinar resultados."
-                      : "Tip: pick a category and use filters to refine results.")}
             </div>
 
           </div>
@@ -4567,136 +4554,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         {/* RESULTS TOOLBAR (unchanged) */}
         <section className="mt-3 z-20" aria-busy={isSwitchingCategory}>
-          <div className={cx("rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur-sm px-4 py-2.5 sm:py-3 ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] transition-opacity duration-200", isSwitchingCategory ? "opacity-85" : "opacity-100")}>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="text-left">
-                <div className="text-lg sm:text-xl font-semibold tracking-tight text-yellow-300">
-                  {UI.results[lang]}
-                </div>
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[#111111]">
-                  <span className={cx("inline-flex h-1.5 w-1.5 rounded-full bg-white/20 transition-opacity", isSwitchingCategory ? "opacity-100 bg-[#111111]/60 animate-pulse" : "opacity-0")} aria-hidden="true" />
-                  <span className={cx("transition-opacity", isSwitchingCategory ? "opacity-100" : "opacity-0")} aria-live="polite">
-                    {lang === "es" ? "Cambiando categoría…" : "Switching category…"}
-                  </span>
-                </div>
-                {category !== "all" ? (
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <a
-                      href={`/clasificados/lista?lang=${lang}&cat=${category}${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
-                      className="inline-block text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
-                    >
-                      {lang === "es"
-                        ? `Ver anuncios de ${CATEGORY_LABELS[category].es}`
-                        : `View ${CATEGORY_LABELS[category].en} listings`}
-                    </a>
 
-                    <span className="text-yellow-400/80">•</span>
-
-                    <a
-                      href={`/clasificados/lista?lang=${lang}&cat=all${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
-                      className="inline-block text-yellow-200/90 hover:text-yellow-200 underline underline-offset-4"
-                    >
-                      {lang === "es" ? "Ver todos los anuncios" : "View all listings"}
-                    </a>
-                  </div>
-                ) : null}
-
-                <div className="text-xs font-medium text-[#111111]">
-                  {UI.showing[lang]}{" "}
-                  {filtered.length === 0
-                    ? 0
-                    : (pageClamped - 1) * perPage + 1}
-                  {"–"}
-                  {filtered.length === 0
-                    ? 0
-                    : Math.min(
-                        (pageClamped - 1) * perPage +
-                          (visible.length + businessTop.length),
-                        filtered.length
-                      )}{" "}
-                  {UI.of[lang]} {filtered.length}
-                
-                <div className="mt-1 text-[11px] text-[#111111]">
-                  {lang === "es"
-                    ? "Sin trucos: lo gratis también aparece. Anti-spam automático."
-                    : "No tricks: free listings still show. Automatic anti-spam."}
-                </div>
-</div>
-
-                <div className="mt-1 text-xs text-[#111111]">
-                  <span className="font-medium text-[#111111]">{CATEGORY_LABELS[category][lang]}</span>
-                  <span className="mx-2 text-yellow-400/80">•</span>
-                  <span>{lang === "es" ? "en" : "in"} {city}</span>
-                  <span className="mx-2 text-yellow-400/80">•</span>
-                  <span>{radiusMi} mi</span>
-                </div>
-
-                                <div className="mt-2 text-[11px] text-[#111111]/90">
-                  {lang === "es"
-                    ? "Tip: en móvil, la vista en cuadrícula muestra más anuncios a la vez."
-                    : "Tip: on mobile, grid view shows more listings at once."}
-                </div>
-
-<BadgeLegend lang={lang} />
-              </div>
-
-              <div className="hidden md:flex items-center justify-between gap-3 md:justify-end">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setView("list"); localStorage.setItem("leonix_view_mode","list"); }}
-                    className={cx(
-                      "rounded-lg border px-2 py-2 text-xs",
-                      view === "list"
-                        ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
-                        : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                    )}
-                    aria-label={lang === "es" ? "Vista de lista" : "List view"}
-                  >
-                    ≡
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setView("list-img"); localStorage.setItem("leonix_view_mode","list-img"); }}
-                    className={cx(
-                      "rounded-lg border px-2 py-2 text-xs",
-                      view === "list-img"
-                        ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
-                        : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                    )}
-                    aria-label={lang === "es" ? "Lista con imagen" : "List with images"}
-                  >
-                    ☰
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setView("grid"); localStorage.setItem("leonix_view_mode","grid"); }}
-                    className={cx(
-                      "rounded-lg border px-2 py-2 text-xs",
-                      view === "grid"
-                        ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
-                        : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                    )}
-                    aria-label={lang === "es" ? "Vista de cuadrícula" : "Grid view"}
-                  >
-                    ▦
-                  </button>
-                </div>
-
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] outline-none"
-                  aria-label={UI.sort[lang]}
-                >
-                  <option value="newest">{SORT_LABELS.newest[lang]}</option>
-                  <option value="price-asc">{SORT_LABELS["price-asc"][lang]}</option>
-                  <option value="price-desc">{SORT_LABELS["price-desc"][lang]}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        
 {/* Mobile full-screen Filters/Sort (A3) */}
 {mobilePanelOpen ? (
   <div className="fixed inset-0 z-50 md:hidden">
