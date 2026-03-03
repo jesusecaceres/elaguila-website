@@ -2491,6 +2491,20 @@ const businessTop = useMemo(() => {
     return `${CATEGORY_LABELS.servicios[lang]} › ${gLbl} › ${typeLbl}`;
   }, [isServicios, serviciosGroup, serviciosParams.stype, lang]);
 
+  const serviciosDeepChips = useMemo(() => {
+    if (!isServicios) return [];
+    const chips: Array<{ key: string; text: string; clear: () => void }> = [];
+    if (serviciosParams.savail) chips.push({ key: "savail", text: servicioAvailLabel(serviciosParams.savail as any, lang), clear: () => setServiciosParams((p) => ({ ...p, savail: "" })) });
+    if (serviciosParams.svisit) chips.push({ key: "svisit", text: serviciosParams.svisit === "comes" ? (lang === "es" ? "A domicilio" : "Comes to you") : (lang === "es" ? "En local" : "At shop"), clear: () => setServiciosParams((p) => ({ ...p, svisit: "" })) });
+    if (serviciosParams.sfeat) {
+      const defs = getServiciosFeatureDefs(serviciosParams.stype);
+      const set = parseCsvSet(serviciosParams.sfeat);
+      const names = Array.from(set).map((k) => defs.find((d) => d.key === k)?.label[lang] || k);
+      if (names.length) chips.push({ key: "sfeat", text: names.join(", "), clear: () => setServiciosParams((p) => ({ ...p, sfeat: "" })) });
+    }
+    return chips;
+  }, [isServicios, serviciosParams.savail, serviciosParams.svisit, serviciosParams.sfeat, serviciosParams.stype, lang]);
+
 const visible = useMemo(() => {
   const topIds = new Set(businessTop.map((x) => x.id));
   const main = topIds.size ? filtered.filter((x) => !topIds.has(x.id)) : filtered;
@@ -4648,10 +4662,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 <div className="md:col-start-2 md:mt-0 min-w-0">
 
         {/* TOP QUICK FILTERS (compact) */}
-        <section className={isServicios ? "mt-1" : "mt-3"}>
+        <section className={isServicios ? "mt-0" : "mt-3"}>
           <div className={cx(
             "rounded-2xl border border-black/10 bg-[#F5F5F5] px-3 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm",
-            isServicios ? "py-2" : "py-2.5"
+            isServicios ? "py-1.5" : "py-2.5"
           )}>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
@@ -4659,7 +4673,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <div ref={serviciosTypeRef} className="xl:col-span-8">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
-                  <div className="relative mt-1.5">
+                  <div className="relative mt-1">
                     <div className="flex overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
                       <div className="flex-1 px-3 py-3">
                         <input
@@ -4727,7 +4741,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
 
                   {/* Yelp-style hover buckets + All drawer trigger */}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setServiciosAllOpen(true)}
@@ -4755,9 +4769,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         >
                           {SERVICIOS_GROUP_LABEL[grp][lang]} ▾
                         </button>
-
+                        {/* Invisible bridge so mouse can reach popover without leaving parent (fixes clickability) */}
                         {serviciosHover === grp ? (
-                          <div className="absolute left-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl">
+                          <div className="absolute left-0 right-0 top-full h-2" aria-hidden="true" />
+                        ) : null}
+                        {serviciosHover === grp ? (
+                          <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[320px] overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl">
                             <div className="grid grid-cols-2 gap-1 p-2">
                               {SERVICIOS_TAXONOMY[grp].map((it) => (
                                 <button
@@ -4782,9 +4799,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     ))}
                   </div>
 
-                  {/* Breadcrumb (SEO + clarity) */}
-                  <div className="mt-1.5 text-[12px] text-[#111111]">
-                    {serviciosBreadcrumb}
+                  {/* Breadcrumb path + deep filter chips (Servicios only) */}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#111111]">
+                    <span className="font-medium">{serviciosBreadcrumb.replace(/ › /g, " > ")}</span>
+                    {serviciosDeepChips.length > 0 && (
+                      <>
+                        <span className="text-black/40">|</span>
+                        {serviciosDeepChips.map((c) => (
+                          <button
+                            key={c.key}
+                            type="button"
+                            onClick={c.clear}
+                            className="rounded-full border border-black/15 bg-black/[0.06] px-2 py-0.5 text-[11px] text-[#111111] hover:bg-black/10 focus:outline-none focus:ring-1 focus:ring-[#A98C2A]/40"
+                            aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
+                          >
+                            {c.text} ×
+                          </button>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (
