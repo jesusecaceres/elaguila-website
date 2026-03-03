@@ -572,7 +572,7 @@ export default function ListaPage() {
   const [isMobileUI, setIsMobileUI] = useState(false);
   const [showTop, setShowTop] = useState(false);
 
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(true);
 
 // Category switching polish (A4.19)
 
@@ -2185,6 +2185,9 @@ const businessTop = useMemo(() => {
   const biz = filtered.filter((x) => x.sellerType === "business");
   return biz.slice(0, isMobileUI ? 2 : 4);
 }, [filtered, pageClamped, sellerType]);
+
+  // Category-level flag used across layout + filters
+  const isServicios = category === "servicios";
 
 const visible = useMemo(() => {
   const topIds = new Set(businessTop.map((x) => x.id));
@@ -3841,7 +3844,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className={cx(
             "mt-6 transition-opacity duration-200",
             "md:grid md:items-start md:gap-6",
-            filtersCollapsed ? "md:grid-cols-[52px,minmax(0,1fr)]" : "md:grid-cols-[minmax(140px,168px),minmax(0,1fr)]",
+            isServicios ? "md:grid-cols-[minmax(0,1fr)]" : (filtersCollapsed ? "md:grid-cols-[52px,minmax(0,1fr)]" : "md:grid-cols-[minmax(140px,168px),minmax(0,1fr)]"),
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
@@ -4441,35 +4444,39 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </button>
                 </div>
               </div>
+              {/* Radius (hidden for Servicios) */}
+              {!isServicios && (
+                <div className="xl:col-span-2">
+                  <label className="block text-xs font-semibold text-[#111111]">{UI.radius[lang]}</label>
+                  <select
+                    value={String(radiusMi)}
+                    onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
+                    className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
+                  >
+                    {[10, 25, 40, 50].map((m) => (
+                      <option key={m} value={String(m)}>{m} mi</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-              {/* Radius */}
-              <div className="xl:col-span-2">
-                <label className="block text-xs font-semibold text-[#111111]">{UI.radius[lang]}</label>
-                <select
-                  value={String(radiusMi)}
-                  onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
-                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                >
-                  {[10, 25, 40, 50].map((m) => (
-                    <option key={m} value={String(m)}>{m} mi</option>
-                  ))}
-                </select>
-              </div>
+              {/* Category (hidden for Servicios) */}
+              {!isServicios && (
+                <div className="xl:col-span-2">
+                  <label className="block text-xs font-semibold text-[#111111]">{UI.category[lang]}</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as CategoryKey)}
+                    className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
+                  >
+                    {CATEGORY_ORDER.map((k) => (
+                      <option key={k} value={k}>{CATEGORY_LABELS[k][lang]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-              {/* Category */}
-              <div className="xl:col-span-2">
-                <label className="block text-xs font-semibold text-[#111111]">{UI.category[lang]}</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                >
-                  {CATEGORY_ORDER.map((k) => (
-                    <option key={k} value={k}>{CATEGORY_LABELS[k][lang]}</option>
-                  ))}
-                </select>
-                    </div>
-                    <div>
+<div>
                       <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Anunciante" : "Posted by"}</label>
                       <select
                         value={rentasParams.rseller || ""}
@@ -4516,10 +4523,16 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                 <button
                   type="button"
-                  onClick={() => setMoreOpen(true)}
-                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30 md:hidden"
+                  onClick={() => {
+                    setMobilePanelTab("filters");
+                    setMobilePanelOpen(true);
+                  }}
+                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                 >
-                  {UI.moreFilters[lang]}
+                  {lang === "es" ? "Filtros" : "Filters"}
+                  {activeChips.length ? (
+                    <span className="ml-2 text-xs font-medium text-[#111111]">({activeChips.length})</span>
+                  ) : null}
                 </button>
               </div>
 
