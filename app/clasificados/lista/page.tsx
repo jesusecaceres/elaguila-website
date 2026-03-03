@@ -53,31 +53,56 @@ type ServicioKey =
   | "roofing"
   | "flooring"
   | "appliance"
+  | "locksmith"
   | "mechanic"
   | "tires"
   | "smog"
   | "carwash"
   | "bodyshop"
   | "tow"
-  | "locksmith"
+  | "oilchange"
+  | "detail"
+  | "glass"
+  | "battery"
+  | "alignment"
   | "barber"
   | "nails"
   | "massage"
   | "doctor"
   | "dentist"
   | "therapy"
+  | "chiropractor"
+  | "physicaltherapy"
+  | "optometry"
+  | "dermatology"
+  | "spa"
+  | "hair"
   | "pet"
   | "computer"
   | "cell"
   | "legal"
   | "financial"
+  | "photography"
+  | "tutoring"
+  | "accounting"
+  | "insurance"
+  | "notary"
+  | "translation"
+  | "childcare"
+  | "seniorcare"
+  | "drycleaning"
+  | "laundry"
+  | "tailoring"
+  | "realestate"
+  | "banking"
+  | "gym"
   | "other";
 
 const SERVICIOS_GROUP_LABEL: Record<ServiciosGroupKey, { es: string; en: string }> = {
-  "home-garden": { es: "Casa y Jardín", en: "Home & Garden" },
-  autos: { es: "Autos y Transporte", en: "Auto Services" },
-  "health-beauty": { es: "Salud y Belleza", en: "Health & Beauty" },
-  more: { es: "Más", en: "More" },
+  "home-garden": { es: "Hogar y Jardín", en: "Home & Garden" },
+  autos: { es: "Servicios Automotrices", en: "Auto Services" },
+  "health-beauty": { es: "Salud y Bienestar", en: "Health & Wellness" },
+  more: { es: "Más servicios", en: "More services" },
 };
 
 type ServicioItem = {
@@ -89,43 +114,68 @@ type ServicioItem = {
 
 const SERVICIOS_TAXONOMY: Record<ServiciosGroupKey, ServicioItem[]> = {
   "home-garden": [
-    { key: "handyman", label: { es: "Contratistas y Handyman", en: "Contractors & Handyman" }, kw: ["handyman", "manitas", "contratista", "contractor", "repair", "arreglo", "fix"] },
+    { key: "handyman", label: { es: "Contratistas y handyman", en: "Contractors & Handyman" }, kw: ["handyman", "manitas", "contratista", "contractor", "repair", "arreglo", "fix"] },
     { key: "plumbing", label: { es: "Plomería", en: "Plumbing" }, kw: ["plomero", "plomeria", "plumbing", "tuberia", "drain", "baño", "toilet", "fuga"] },
     { key: "electrician", label: { es: "Electricista", en: "Electrician" }, kw: ["electricista", "electric", "breaker", "panel", "wiring", "luz"] },
     { key: "painting", label: { es: "Pintura", en: "Painters" }, kw: ["pintor", "pintura", "paint", "painter"] },
     { key: "remodeling", label: { es: "Remodelación", en: "Remodeling" }, kw: ["remodel", "tile", "drywall", "cocina", "baño", "kitchen", "bath"] },
     { key: "landscaping", label: { es: "Jardinería", en: "Landscaping" }, kw: ["jardin", "jardineria", "landscap", "lawn", "cesped", "yard"] },
-    { key: "cleaning", label: { es: "Limpieza", en: "Home Cleaning" }, kw: ["limpieza", "cleaning", "deep clean", "maid", "houseclean"] },
+    { key: "cleaning", label: { es: "Limpieza del hogar", en: "Home Cleaning" }, kw: ["limpieza", "cleaning", "deep clean", "maid", "houseclean"] },
     { key: "moving", label: { es: "Mudanzas", en: "Movers" }, kw: ["mudanza", "moving", "movers", "haul", "junk"] },
-    { key: "hvac", label: { es: "Calefacción / A/C", en: "Heating & A/C" }, kw: ["hvac", "ac", "a/c", "air conditioning", "calefaccion", "heater"] },
+    { key: "hvac", label: { es: "Calefacción y A/C", en: "Heating & A/C" }, kw: ["hvac", "ac", "a/c", "air conditioning", "calefaccion", "heater"] },
     { key: "roofing", label: { es: "Techos", en: "Roofing" }, kw: ["techo", "roof", "roofing", "shingle"] },
     { key: "flooring", label: { es: "Pisos", en: "Flooring" }, kw: ["piso", "pisos", "floor", "flooring", "laminate", "tile"] },
-    { key: "appliance", label: { es: "Reparación de Electrodomésticos", en: "Appliance Repair" }, kw: ["appliance", "electrodomestico", "refrigerador", "washer", "dryer"] },
+    { key: "appliance", label: { es: "Reparación de electrodomésticos", en: "Appliance Repair" }, kw: ["appliance", "electrodomestico", "refrigerador", "washer", "dryer"] },
+    { key: "locksmith", label: { es: "Cerrajería", en: "Locksmiths" }, kw: ["cerrajero", "locksmith", "keys", "llaves"] },
   ],
   autos: [
     { key: "mechanic", label: { es: "Mecánico", en: "Auto Repair" }, kw: ["mecanico", "mechanic", "auto repair", "brakes", "frenos", "engine"] },
+    { key: "bodyshop", label: { es: "Taller de carrocería", en: "Body Shops" }, kw: ["body shop", "carroceria", "paint", "collision", "choque"] },
     { key: "tires", label: { es: "Llantas", en: "Tires" }, kw: ["llantas", "tires", "tire", "alignment", "alineacion", "balance"] },
-    { key: "smog", label: { es: "Smog / Emisiones", en: "Smog Check" }, kw: ["smog", "emisiones", "inspection", "inspeccion"] },
-    { key: "carwash", label: { es: "Car Wash", en: "Car Wash" }, kw: ["car wash", "lavado", "lavado de auto", "detail", "detailing"] },
-    { key: "bodyshop", label: { es: "Carrocería", en: "Body Shops" }, kw: ["body shop", "carroceria", "paint", "collision", "choque"] },
+    { key: "oilchange", label: { es: "Cambio de aceite", en: "Oil Change" }, kw: ["oil", "aceite", "cambio", "lube"] },
+    { key: "carwash", label: { es: "Lavado de autos", en: "Car Wash" }, kw: ["car wash", "lavado", "lavado de auto"] },
+    { key: "detail", label: { es: "Detallado", en: "Auto Detailing" }, kw: ["detail", "detallado", "detailing", "pulido"] },
+    { key: "smog", label: { es: "Smog y emisiones", en: "Smog Check" }, kw: ["smog", "emisiones", "inspection", "inspeccion"] },
     { key: "tow", label: { es: "Grúa", en: "Towing" }, kw: ["tow", "towing", "grua", "grúa", "remolque"] },
+    { key: "glass", label: { es: "Vidrios y parabrisas", en: "Auto Glass" }, kw: ["glass", "vidrio", "parabrisas", "windshield"] },
+    { key: "battery", label: { es: "Baterías", en: "Batteries" }, kw: ["battery", "bateria", "baterías"] },
+    { key: "alignment", label: { es: "Alineación y balanceo", en: "Alignment & Balancing" }, kw: ["alignment", "alineacion", "balance", "balanceo"] },
   ],
   "health-beauty": [
-    { key: "barber", label: { es: "Barbería", en: "Barbers" }, kw: ["barber", "barberia", "corte", "haircut"] },
-    { key: "nails", label: { es: "Uñas", en: "Nail Salons" }, kw: ["unas", "uñas", "nails", "manicure", "pedicure"] },
-    { key: "massage", label: { es: "Masaje", en: "Massage" }, kw: ["massage", "masaje", "spa"] },
-    { key: "doctor", label: { es: "Doctores", en: "Doctors" }, kw: ["doctor", "doctores", "clinic", "clinica"] },
+    { key: "chiropractor", label: { es: "Quiroprácticos", en: "Chiropractors" }, kw: ["quiropráctico", "chiropractor", "columna"] },
+    { key: "physicaltherapy", label: { es: "Fisioterapia", en: "Physical Therapy" }, kw: ["fisioterapia", "physical therapy", "rehabilitación"] },
     { key: "dentist", label: { es: "Dentistas", en: "Dentists" }, kw: ["dentista", "dentists", "dental"] },
-    { key: "therapy", label: { es: "Terapia", en: "Therapy" }, kw: ["therapy", "terapia", "physical", "fisioterapia"] },
+    { key: "doctor", label: { es: "Doctores y clínicas", en: "Doctors & Clinics" }, kw: ["doctor", "doctores", "clinic", "clinica"] },
+    { key: "therapy", label: { es: "Terapia", en: "Therapy" }, kw: ["therapy", "terapia", "psychological", "psicólogo"] },
+    { key: "optometry", label: { es: "Optometría", en: "Optometry" }, kw: ["optometría", "optometry", "lentes", "gafas", "eyes"] },
+    { key: "dermatology", label: { es: "Dermatología", en: "Dermatology" }, kw: ["dermatología", "dermatology", "piel", "skin"] },
+    { key: "barber", label: { es: "Barberías", en: "Barbers" }, kw: ["barber", "barberia", "corte", "haircut"] },
+    { key: "hair", label: { es: "Salones de cabello", en: "Hair Salons" }, kw: ["salon", "cabello", "hair", "peluquería"] },
+    { key: "nails", label: { es: "Uñas", en: "Nail Salons" }, kw: ["unas", "uñas", "nails", "manicure", "pedicure"] },
+    { key: "massage", label: { es: "Masajes", en: "Massage" }, kw: ["massage", "masaje"] },
+    { key: "spa", label: { es: "Spa", en: "Spa" }, kw: ["spa", "relajación", "relax"] },
   ],
   more: [
-    { key: "locksmith", label: { es: "Cerrajero", en: "Locksmiths" }, kw: ["cerrajero", "locksmith", "keys", "llaves"] },
-    { key: "pet", label: { es: "Mascotas", en: "Pet Services" }, kw: ["pet", "mascota", "groom", "baño", "veterinario"] },
-    { key: "computer", label: { es: "Computadoras", en: "Computer Repair" }, kw: ["computer", "computadora", "pc", "laptop", "repair"] },
-    { key: "cell", label: { es: "Celulares", en: "Cell/Mobile" }, kw: ["cell", "celular", "iphone", "android", "screen", "pantalla"] },
-    { key: "legal", label: { es: "Legal", en: "Legal" }, kw: ["legal", "abogado", "lawyer", "notary", "notario"] },
-    { key: "financial", label: { es: "Financiero", en: "Financial" }, kw: ["financial", "finanzas", "tax", "impuestos", "insurance", "seguro"] },
-    { key: "other", label: { es: "Otros", en: "Other" }, kw: ["other", "otros", "misc"] },
+    { key: "photography", label: { es: "Fotografía y video", en: "Photography & Video" }, kw: ["fotografía", "photography", "video", "fotos"] },
+    { key: "tutoring", label: { es: "Clases particulares", en: "Tutoring" }, kw: ["clases", "tutoring", "particular", "tutor"] },
+    { key: "legal", label: { es: "Servicios legales", en: "Legal" }, kw: ["legal", "abogado", "lawyer"] },
+    { key: "accounting", label: { es: "Contabilidad e impuestos", en: "Accounting & Taxes" }, kw: ["contabilidad", "accounting", "tax", "impuestos"] },
+    { key: "insurance", label: { es: "Seguros", en: "Insurance" }, kw: ["seguro", "insurance"] },
+    { key: "notary", label: { es: "Notaría", en: "Notary" }, kw: ["notaría", "notary", "notario"] },
+    { key: "translation", label: { es: "Traducciones", en: "Translation" }, kw: ["traducción", "translation", "intérprete"] },
+    { key: "childcare", label: { es: "Cuidado de niños", en: "Childcare" }, kw: ["niños", "childcare", "guardería", "niñera"] },
+    { key: "seniorcare", label: { es: "Cuidado de adultos mayores", en: "Senior Care" }, kw: ["adultos mayores", "senior", "cuidado", "care"] },
+    { key: "pet", label: { es: "Mascotas", en: "Pet Services" }, kw: ["pet", "mascota", "groom", "veterinario"] },
+    { key: "drycleaning", label: { es: "Limpieza en seco", en: "Dry Cleaning" }, kw: ["limpieza en seco", "dry cleaning", "tintorería"] },
+    { key: "laundry", label: { es: "Lavanderías", en: "Laundromats" }, kw: ["lavandería", "laundry", "lavado"] },
+    { key: "tailoring", label: { es: "Sastrería y alteraciones", en: "Tailoring & Alterations" }, kw: ["sastrería", "tailoring", "alteraciones", "costura"] },
+    { key: "realestate", label: { es: "Bienes raíces (agentes)", en: "Real Estate" }, kw: ["bienes raíces", "real estate", "agente", "inmobiliaria"] },
+    { key: "banking", label: { es: "Bancos y uniones de crédito", en: "Banking & Credit Unions" }, kw: ["banco", "banking", "unión de crédito", "credit union"] },
+    { key: "gym", label: { es: "Gimnasios y yoga", en: "Gyms & Yoga" }, kw: ["gimnasio", "gym", "yoga", "fitness"] },
+    { key: "computer", label: { es: "Reparación de computadoras", en: "Computer Repair" }, kw: ["computer", "computadora", "pc", "laptop", "repair"] },
+    { key: "cell", label: { es: "Celulares y móviles", en: "Cell/Mobile" }, kw: ["cell", "celular", "iphone", "android", "screen", "pantalla"] },
+    { key: "financial", label: { es: "Servicios financieros", en: "Financial" }, kw: ["financial", "finanzas", "asesor"] },
+    { key: "other", label: { es: "Otros servicios", en: "Other" }, kw: ["other", "otros", "misc"] },
   ],
 };
 
@@ -4670,12 +4720,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
               {isServicios ? (
-                <div ref={serviciosTypeRef} className="xl:col-span-8">
+                <div ref={serviciosTypeRef} className="xl:col-span-8 min-w-0">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
                   <div className="relative mt-1">
-                    <div className="flex overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
-                      <div className="flex-1 px-3 py-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_1px_minmax(180px,240px)_auto] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                      <div className="min-w-0 px-3 py-3">
                         <input
                           value={q}
                           onChange={(e) => {
@@ -4684,17 +4734,17 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           }}
                           onFocus={() => setServiciosTypeOpen(true)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#111111]"
+                          className="min-w-0 w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#111111]"
                           aria-label={lang === "es" ? "Buscar servicio" : "Search service"}
                         />
                       </div>
 
-                      <div className="w-px bg-black/10" />
+                      <div className="bg-black/10" />
 
                       <button
                         type="button"
                         onClick={() => setLocationOpen(true)}
-                        className="min-w-[180px] max-w-[240px] truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                        className="truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                         aria-label={UI.location[lang]}
                       >
                         {locationLabel}
@@ -4703,7 +4753,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       <button
                         type="button"
                         onClick={() => setLocationOpen(true)}
-                        className="px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                        className="shrink-0 px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                         aria-label={UI.edit[lang]}
                         title={UI.edit[lang]}
                       >
