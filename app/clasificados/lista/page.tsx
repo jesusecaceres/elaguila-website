@@ -32,6 +32,154 @@ function getListingHref(x: any, lang: Lang) {
 }
 const RADIUS_OPTIONS = [10, 25, 40, 50] as const;
 
+// ------------------------------------------------------------
+// Servicios — Yelp-style taxonomy (UI + SEO params)
+// NOTE: We keep a single /clasificados/lista engine.
+// SEO is expressed via URL params (cat=servicios&stype=...).
+// ------------------------------------------------------------
+
+type ServiciosGroupKey = "home-garden" | "autos" | "health-beauty" | "more";
+
+type ServicioKey =
+  | "handyman"
+  | "plumbing"
+  | "electrician"
+  | "painting"
+  | "remodeling"
+  | "landscaping"
+  | "cleaning"
+  | "moving"
+  | "hvac"
+  | "roofing"
+  | "flooring"
+  | "appliance"
+  | "mechanic"
+  | "tires"
+  | "smog"
+  | "carwash"
+  | "bodyshop"
+  | "tow"
+  | "locksmith"
+  | "barber"
+  | "nails"
+  | "massage"
+  | "doctor"
+  | "dentist"
+  | "therapy"
+  | "pet"
+  | "computer"
+  | "cell"
+  | "legal"
+  | "financial"
+  | "other";
+
+const SERVICIOS_GROUP_LABEL: Record<ServiciosGroupKey, { es: string; en: string }> = {
+  "home-garden": { es: "Casa y Jardín", en: "Home & Garden" },
+  autos: { es: "Autos y Transporte", en: "Auto Services" },
+  "health-beauty": { es: "Salud y Belleza", en: "Health & Beauty" },
+  more: { es: "Más", en: "More" },
+};
+
+type ServicioItem = {
+  key: ServicioKey;
+  label: { es: string; en: string };
+  // Keywords used for fuzzy typeahead.
+  kw: string[];
+};
+
+const SERVICIOS_TAXONOMY: Record<ServiciosGroupKey, ServicioItem[]> = {
+  "home-garden": [
+    { key: "handyman", label: { es: "Contratistas y Manitas", en: "Contractors & Handyman" }, kw: ["handyman", "manitas", "contratista", "contractor", "repair", "arreglo", "fix"] },
+    { key: "plumbing", label: { es: "Plomería", en: "Plumbing" }, kw: ["plomero", "plomeria", "plumbing", "tuberia", "drain", "baño", "toilet", "fuga"] },
+    { key: "electrician", label: { es: "Electricista", en: "Electrician" }, kw: ["electricista", "electric", "breaker", "panel", "wiring", "luz"] },
+    { key: "painting", label: { es: "Pintura", en: "Painters" }, kw: ["pintor", "pintura", "paint", "painter"] },
+    { key: "remodeling", label: { es: "Remodelación", en: "Remodeling" }, kw: ["remodel", "tile", "drywall", "cocina", "baño", "kitchen", "bath"] },
+    { key: "landscaping", label: { es: "Jardinería", en: "Landscaping" }, kw: ["jardin", "jardineria", "landscap", "lawn", "cesped", "yard"] },
+    { key: "cleaning", label: { es: "Limpieza", en: "Home Cleaning" }, kw: ["limpieza", "cleaning", "deep clean", "maid", "houseclean"] },
+    { key: "moving", label: { es: "Mudanzas", en: "Movers" }, kw: ["mudanza", "moving", "movers", "haul", "junk"] },
+    { key: "hvac", label: { es: "Calefacción / A/C", en: "Heating & A/C" }, kw: ["hvac", "ac", "a/c", "air conditioning", "calefaccion", "heater"] },
+    { key: "roofing", label: { es: "Techos", en: "Roofing" }, kw: ["techo", "roof", "roofing", "shingle"] },
+    { key: "flooring", label: { es: "Pisos", en: "Flooring" }, kw: ["piso", "pisos", "floor", "flooring", "laminate", "tile"] },
+    { key: "appliance", label: { es: "Reparación de Electrodomésticos", en: "Appliance Repair" }, kw: ["appliance", "electrodomestico", "refrigerador", "washer", "dryer"] },
+  ],
+  autos: [
+    { key: "mechanic", label: { es: "Mecánico", en: "Auto Repair" }, kw: ["mecanico", "mechanic", "auto repair", "brakes", "frenos", "engine"] },
+    { key: "tires", label: { es: "Llantas", en: "Tires" }, kw: ["llantas", "tires", "tire", "alignment", "alineacion", "balance"] },
+    { key: "smog", label: { es: "Smog / Emisiones", en: "Smog Check" }, kw: ["smog", "emisiones", "inspection", "inspeccion"] },
+    { key: "carwash", label: { es: "Car Wash", en: "Car Wash" }, kw: ["car wash", "lavado", "lavado de auto", "detail", "detailing"] },
+    { key: "bodyshop", label: { es: "Carrocería", en: "Body Shops" }, kw: ["body shop", "carroceria", "paint", "collision", "choque"] },
+    { key: "tow", label: { es: "Remolque", en: "Towing" }, kw: ["tow", "towing", "grua", "grúa", "remolque"] },
+  ],
+  "health-beauty": [
+    { key: "barber", label: { es: "Barbería", en: "Barbers" }, kw: ["barber", "barberia", "corte", "haircut"] },
+    { key: "nails", label: { es: "Uñas", en: "Nail Salons" }, kw: ["unas", "uñas", "nails", "manicure", "pedicure"] },
+    { key: "massage", label: { es: "Masaje", en: "Massage" }, kw: ["massage", "masaje", "spa"] },
+    { key: "doctor", label: { es: "Doctores", en: "Doctors" }, kw: ["doctor", "doctores", "clinic", "clinica"] },
+    { key: "dentist", label: { es: "Dentistas", en: "Dentists" }, kw: ["dentista", "dentists", "dental"] },
+    { key: "therapy", label: { es: "Terapia", en: "Therapy" }, kw: ["therapy", "terapia", "physical", "fisioterapia"] },
+  ],
+  more: [
+    { key: "locksmith", label: { es: "Cerrajero", en: "Locksmiths" }, kw: ["cerrajero", "locksmith", "keys", "llaves"] },
+    { key: "pet", label: { es: "Mascotas", en: "Pet Services" }, kw: ["pet", "mascota", "groom", "baño", "veterinario"] },
+    { key: "computer", label: { es: "Computadoras", en: "Computer Repair" }, kw: ["computer", "computadora", "pc", "laptop", "repair"] },
+    { key: "cell", label: { es: "Celulares", en: "Cell/Mobile" }, kw: ["cell", "celular", "iphone", "android", "screen", "pantalla"] },
+    { key: "legal", label: { es: "Legal", en: "Legal" }, kw: ["legal", "abogado", "lawyer", "notary", "notario"] },
+    { key: "financial", label: { es: "Financiero", en: "Financial" }, kw: ["financial", "finanzas", "tax", "impuestos", "insurance", "seguro"] },
+    { key: "other", label: { es: "Otros", en: "Other" }, kw: ["other", "otros", "misc"] },
+  ],
+};
+
+function servicioLabel(k: string, lang: Lang) {
+  const key = (k || "").trim().toLowerCase() as ServicioKey;
+  for (const grp of Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]) {
+    const found = SERVICIOS_TAXONOMY[grp].find((x) => x.key === key);
+    if (found) return found.label[lang];
+  }
+  return "";
+}
+
+function servicioGroupForKey(k: string): ServiciosGroupKey | null {
+  const key = (k || "").trim().toLowerCase() as ServicioKey;
+  for (const grp of Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]) {
+    if (SERVICIOS_TAXONOMY[grp].some((x) => x.key === key)) return grp;
+  }
+  return null;
+}
+
+function scoreServicioSuggestion(queryNorm: string, item: ServicioItem) {
+  if (!queryNorm) return -1;
+  const label = normalize(`${item.label.es} ${item.label.en}`);
+  const kws = item.kw.map((k) => normalize(k));
+
+  if (label.includes(queryNorm)) return 100;
+  if (kws.some((k) => k.includes(queryNorm))) return 95;
+
+  // Levenshtein distance against keywords (typo tolerance)
+  let best = 0;
+  for (const k of [label, ...kws]) {
+    const d = levenshtein(queryNorm, k.slice(0, Math.max(queryNorm.length, 12)));
+    const s = Math.max(0, 60 - d * 8);
+    if (s > best) best = s;
+  }
+  return best;
+}
+
+function getServicioSuggestions(queryRaw: string, lang: Lang) {
+  const qn = normalize(queryRaw);
+  if (!qn) return [] as Array<{ key: ServicioKey; label: string; group: ServiciosGroupKey }>;
+
+  const all: Array<{ key: ServicioKey; label: string; group: ServiciosGroupKey; score: number }> = [];
+  for (const grp of Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]) {
+    for (const it of SERVICIOS_TAXONOMY[grp]) {
+      const sc = scoreServicioSuggestion(qn, it);
+      if (sc > 0) all.push({ key: it.key, label: it.label[lang], group: grp, score: sc });
+    }
+  }
+
+  all.sort((a, b) => b.score - a.score);
+  return all.slice(0, 8).map(({ key, label, group }) => ({ key, label, group }));
+}
+
 function clampRadiusMi(n: number) {
   if (!Number.isFinite(n)) return DEFAULT_RADIUS_MI;
   const v = Math.max(1, Math.round(n));
@@ -1079,6 +1227,27 @@ const inferServicioType = (title: string, blurb: string, explicit?: string) => {
   const t = `${title} ${blurb}`.toLowerCase();
 
   const src = `${base} ${t}`;
+  if (/(hvac|a\/c|ac repair|air conditioning|calefacci[oó]n|heater)/i.test(src)) return "hvac" as const;
+  if (/(roof|roofing|techo|shingle)/i.test(src)) return "roofing" as const;
+  if (/(floor|flooring|pisos?|laminate|tile)/i.test(src)) return "flooring" as const;
+  if (/(appliance|electrodom[eé]stic|refrigerador|washer|dryer|lavadora|secadora)/i.test(src)) return "appliance" as const;
+  if (/(locksmith|cerrajer|llaves|key fob)/i.test(src)) return "locksmith" as const;
+  if (/(tire|tires|llantas|alineaci[oó]n|alignment|balanceo)/i.test(src)) return "tires" as const;
+  if (/(smog|emisiones|emission)/i.test(src)) return "smog" as const;
+  if (/(car wash|lavado de auto|lavado|detailing|detail)/i.test(src)) return "carwash" as const;
+  if (/(body shop|carrocer[ií]a|collision|choque)/i.test(src)) return "bodyshop" as const;
+  if (/(tow|towing|gr[uú]a|remolque)/i.test(src)) return "tow" as const;
+  if (/(barber|barber[ií]a|haircut|corte de pelo)/i.test(src)) return "barber" as const;
+  if (/(nails|u[nñ]as|manicure|pedicure)/i.test(src)) return "nails" as const;
+  if (/(massage|masaje|spa)/i.test(src)) return "massage" as const;
+  if (/(dentist|dentista|dental)/i.test(src)) return "dentist" as const;
+  if (/(doctor|clinic|cl[ií]nica)/i.test(src)) return "doctor" as const;
+  if (/(therapy|terapia|fisioterapia|physical therapy)/i.test(src)) return "therapy" as const;
+  if (/(computer|computadora|pc|laptop)/i.test(src)) return "computer" as const;
+  if (/(cell|celular|iphone|android|pantalla|screen repair)/i.test(src)) return "cell" as const;
+  if (/(legal|abogado|lawyer|notar)/i.test(src)) return "legal" as const;
+  if (/(tax|impuestos|insurance|seguro|financial|finanzas)/i.test(src)) return "financial" as const;
+  if (/(pet|mascota|groom|veterin)/i.test(src)) return "pet" as const;
   if (/(cleaning|limpieza|houseclean|deep clean|maid|janitor)/i.test(src)) return "cleaning" as const;
   if (/(landscap|jardin|yard|lawn|cesped|césped)/i.test(src)) return "landscaping" as const;
   if (/(mechanic|mec[aá]nic|auto repair|brakes|oil change|tire)/i.test(src)) return "mechanic" as const;
@@ -1278,6 +1447,18 @@ useEffect(() => {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<Exclude<CategoryKey, "all">>>([]);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // Servicios: Yelp-style typeahead + hover menu + "All" drawer
+  const isServiciosCat = category === "servicios";
+  const [serviciosTypeOpen, setServiciosTypeOpen] = useState(false);
+  const serviciosTypeRef = useRef<HTMLDivElement | null>(null);
+  const serviciosTypeSuggestions = useMemo(
+    () => (isServiciosCat ? getServicioSuggestions(q, lang) : []),
+    [q, lang, isServiciosCat]
+  );
+
+  const [serviciosHover, setServiciosHover] = useState<ServiciosGroupKey | null>(null);
+  const [serviciosAllOpen, setServiciosAllOpen] = useState(false);
 
   // ✓ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
@@ -1493,7 +1674,10 @@ useEffect(() => {
       const t = e.target as Node | null;
       if (!t) return;
       if (searchBoxRef.current && searchBoxRef.current.contains(t)) return;
+      if (serviciosTypeRef.current && serviciosTypeRef.current.contains(t)) return;
       setSuggestionsOpen(false);
+      setServiciosTypeOpen(false);
+      setServiciosHover(null);
     }
     document.addEventListener("pointerdown", onDocPointerDown, true);
     return () =>
@@ -2188,6 +2372,22 @@ const businessTop = useMemo(() => {
 
   // Category-level flag used across layout + filters
   const isServicios = category === "servicios";
+
+  const serviciosGroup = useMemo(() => {
+    if (!isServicios) return null;
+    return servicioGroupForKey(serviciosParams.stype);
+  }, [isServicios, serviciosParams.stype]);
+
+  const serviciosBreadcrumb = useMemo(() => {
+    if (!isServicios) return "";
+    const g = serviciosGroup;
+    const typeLbl = serviciosParams.stype ? servicioLabel(serviciosParams.stype, lang) : "";
+    const gLbl = g ? SERVICIOS_GROUP_LABEL[g][lang] : "";
+    if (!gLbl && !typeLbl) return CATEGORY_LABELS.servicios[lang];
+    if (gLbl && !typeLbl) return `${CATEGORY_LABELS.servicios[lang]} › ${gLbl}`;
+    if (!gLbl && typeLbl) return `${CATEGORY_LABELS.servicios[lang]} › ${typeLbl}`;
+    return `${CATEGORY_LABELS.servicios[lang]} › ${gLbl} › ${typeLbl}`;
+  }, [isServicios, serviciosGroup, serviciosParams.stype, lang]);
 
 const visible = useMemo(() => {
   const topIds = new Set(businessTop.map((x) => x.id));
@@ -4400,37 +4600,169 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <section className="mt-3">
           <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
-              {/* Search */}
-              <div ref={searchBoxRef} className="xl:col-span-5">
-                <label className="block text-xs font-semibold text-[#111111]">{UI.search[lang]}</label>
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder={getSearchPlaceholder(category, lang)}
-                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                />
-              </div>
+              {/* Search + Location (Servicios = Yelp-style combined bar) */}
+              {isServicios ? (
+                <div ref={serviciosTypeRef} className="xl:col-span-8">
+                  <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
-              {/* Location */}
-              <div className="xl:col-span-3">
-                <label className="block text-xs font-semibold text-[#111111]">{UI.location[lang]}</label>
-                <div className="mt-2 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLocationOpen(true)}
-                    className="flex-1 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                  >
-                    {locationLabel}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocationOpen(true)}
-                    className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                  >
-                    {UI.edit[lang]}
-                  </button>
+                  <div className="relative mt-2">
+                    <div className="flex overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                      <div className="flex-1 px-3 py-3">
+                        <input
+                          value={q}
+                          onChange={(e) => {
+                            setQ(e.target.value);
+                            setServiciosTypeOpen(true);
+                          }}
+                          onFocus={() => setServiciosTypeOpen(true)}
+                          placeholder={getSearchPlaceholder(category, lang)}
+                          className="w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#111111]"
+                          aria-label={lang === "es" ? "Buscar servicio" : "Search service"}
+                        />
+                      </div>
+
+                      <div className="w-px bg-black/10" />
+
+                      <button
+                        type="button"
+                        onClick={() => setLocationOpen(true)}
+                        className="min-w-[180px] max-w-[240px] truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                        aria-label={UI.location[lang]}
+                      >
+                        {locationLabel}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setLocationOpen(true)}
+                        className="px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                        aria-label={UI.edit[lang]}
+                        title={UI.edit[lang]}
+                      >
+                        ✎
+                      </button>
+                    </div>
+
+                    {/* Typeahead suggestions (typo-tolerant) */}
+                    {serviciosTypeOpen && serviciosTypeSuggestions.length ? (
+                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl">
+                        <div className="px-3 py-2 text-[11px] text-[#111111]">
+                          {lang === "es" ? "Sugerencias" : "Suggestions"}
+                        </div>
+                        {serviciosTypeSuggestions.map((s) => (
+                          <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => {
+                              setServiciosParams((p) => ({ ...p, stype: s.key }));
+                              setQ(s.label);
+                              setServiciosTypeOpen(false);
+                              setServiciosHover(null);
+                              setPage(1);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          >
+                            <span className="truncate">{s.label}</span>
+                            <span className="ml-3 shrink-0 text-xs text-[#111111]">
+                              {SERVICIOS_GROUP_LABEL[s.group][lang]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Yelp-style hover buckets + All drawer trigger */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setServiciosAllOpen(true)}
+                      className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                    >
+                      ☰ {lang === "es" ? "Todo" : "All"}
+                    </button>
+
+                    {(Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]).map((grp) => (
+                      <div
+                        key={grp}
+                        className="relative"
+                        onMouseEnter={() => setServiciosHover(grp)}
+                        onMouseLeave={() => setServiciosHover((cur) => (cur === grp ? null : cur))}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setServiciosHover((cur) => (cur === grp ? null : grp))}
+                          className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                        >
+                          {SERVICIOS_GROUP_LABEL[grp][lang]} ▾
+                        </button>
+
+                        {serviciosHover === grp ? (
+                          <div className="absolute left-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl">
+                            <div className="grid grid-cols-2 gap-1 p-2">
+                              {SERVICIOS_TAXONOMY[grp].map((it) => (
+                                <button
+                                  key={it.key}
+                                  type="button"
+                                  onClick={() => {
+                                    setServiciosParams((p) => ({ ...p, stype: it.key }));
+                                    setQ(it.label[lang]);
+                                    setServiciosHover(null);
+                                    setServiciosTypeOpen(false);
+                                    setPage(1);
+                                  }}
+                                  className="rounded-xl px-3 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                                >
+                                  {it.label[lang]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Breadcrumb (SEO + clarity) */}
+                  <div className="mt-2 text-[12px] text-[#111111]">
+                    {serviciosBreadcrumb}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Search */}
+                  <div ref={searchBoxRef} className="xl:col-span-5">
+                    <label className="block text-xs font-semibold text-[#111111]">{UI.search[lang]}</label>
+                    <input
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder={getSearchPlaceholder(category, lang)}
+                      className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div className="xl:col-span-3">
+                    <label className="block text-xs font-semibold text-[#111111]">{UI.location[lang]}</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setLocationOpen(true)}
+                        className="flex-1 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                      >
+                        {locationLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLocationOpen(true)}
+                        className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                      >
+                        {UI.edit[lang]}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
               {/* Radius (hidden for Servicios) */}
               {!isServicios && (
                 <div className="xl:col-span-2">
@@ -5535,6 +5867,129 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </div>
               </div>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Servicios "All" deep-search drawer (Yelp-style) */}
+      {isServicios && serviciosAllOpen ? (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/25"
+            onClick={() => setServiciosAllOpen(false)}
+          />
+
+          <div className="absolute inset-y-0 left-0 w-[92vw] max-w-[420px] overflow-hidden rounded-r-2xl border border-black/10 bg-[#F5F5F5] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
+              <div className="text-sm font-semibold text-[#111111]">
+                {lang === "es" ? "Filtros" : "Filters"}
+              </div>
+              <button
+                type="button"
+                onClick={() => setServiciosAllOpen(false)}
+                className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+              >
+                {lang === "es" ? "Cerrar" : "Close"}
+              </button>
+            </div>
+
+            <div className="h-full overflow-y-auto px-4 pb-6 pt-4">
+              {/* Suggested */}
+              <div className="text-xs font-semibold text-[#111111]">
+                {lang === "es" ? "Sugerido" : "Suggested"}
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
+                  <input
+                    type="checkbox"
+                    checked={serviciosParams.svisit === "comes"}
+                    onChange={(e) =>
+                      setServiciosParams((p) => ({ ...p, svisit: e.target.checked ? "comes" : "" }))
+                    }
+                  />
+                  {lang === "es" ? "A domicilio" : "Comes to you"}
+                </label>
+
+                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
+                  <input
+                    type="checkbox"
+                    checked={serviciosParams.svisit === "shop"}
+                    onChange={(e) =>
+                      setServiciosParams((p) => ({ ...p, svisit: e.target.checked ? "shop" : "" }))
+                    }
+                  />
+                  {lang === "es" ? "En local" : "At shop"}
+                </label>
+
+                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
+                  <input
+                    type="checkbox"
+                    checked={serviciosParams.savail === "anytime"}
+                    onChange={(e) =>
+                      setServiciosParams((p) => ({ ...p, savail: e.target.checked ? "anytime" : "" }))
+                    }
+                  />
+                  {lang === "es" ? "Urgente / 24-7" : "Emergency / 24-7"}
+                </label>
+              </div>
+
+              {/* Category chips (service types) */}
+              <div className="mt-6 text-xs font-semibold text-[#111111]">
+                {lang === "es" ? "Categoría" : "Category"}
+              </div>
+              <div className="mt-3 grid gap-3">
+                {(Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]).map((grp) => (
+                  <div key={grp}>
+                    <div className="text-[11px] text-[#111111]">{SERVICIOS_GROUP_LABEL[grp][lang]}</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {SERVICIOS_TAXONOMY[grp].map((it) => {
+                        const active = (serviciosParams.stype || "") === it.key;
+                        return (
+                          <button
+                            key={it.key}
+                            type="button"
+                            onClick={() => {
+                              setServiciosParams((p) => ({ ...p, stype: active ? "" : it.key }));
+                              setQ(active ? "" : it.label[lang]);
+                              setPage(1);
+                            }}
+                            className={cx(
+                              "rounded-full border px-3 py-2 text-sm",
+                              active
+                                ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
+                                : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                            )}
+                          >
+                            {it.label[lang]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setServiciosParams(EMPTY_SERVICIOS_PARAMS);
+                    setQ("");
+                  }}
+                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                >
+                  {lang === "es" ? "Limpiar" : "Clear"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiciosAllOpen(false)}
+                  className="rounded-xl bg-[#111111] px-4 py-2 text-sm text-[#F5F5F5] hover:bg-black focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                >
+                  {lang === "es" ? "Aplicar" : "Apply"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
