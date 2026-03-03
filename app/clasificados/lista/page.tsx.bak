@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,20 +16,6 @@ import {
 } from "../../data/locations/norcal";
 import { SAMPLE_LISTINGS } from "../../data/classifieds/sampleListings";
 
-type ServicesTier = "standard" | "plus" | "premium";
-
-function inferServicesTier(x: any): ServicesTier {
-  const v = (typeof x?.servicesTier === "string" ? x.servicesTier : "").toLowerCase().trim();
-  if (v === "premium" || v === "plus" || v === "standard") return v as ServicesTier;
-  // Print advertisers or legacy fields can map here later.
-  return "standard";
-}
-
-function getListingHref(x: any, lang: Lang) {
-  return x?.category === "servicios"
-    ? `/clasificados/servicios/${x.id}?lang=${lang}`
-    : `/clasificados/anuncio/${x.id}?lang=${lang}`;
-}
 const RADIUS_OPTIONS = [10, 25, 40, 50] as const;
 
 function clampRadiusMi(n: number) {
@@ -94,7 +80,7 @@ type Listing = {
   make?: string;
   model?: string;
 
-  // âœ… Rentas fields (optional; safe with existing sample data)
+  // ✅ Rentas fields (optional; safe with existing sample data)
   rentMonthly?: number;
   beds?: number; // 0=studio, 1=1br (room can map to 1 in data later)
   baths?: number;
@@ -108,7 +94,7 @@ type Listing = {
   availableInDays?: number;
   leaseTerm?: string; // "month-to-month" | "6" | "12" | etc.
 
-  // âœ… Contact / close-the-sale fields (optional; safe)
+  // ✅ Contact / close-the-sale fields (optional; safe)
   phone?: string;
   email?: string;
   website?: string;
@@ -144,9 +130,9 @@ const CATEGORY_ORDER: CategoryKey[] = [
 ];
 
 const SORT_LABELS: Record<SortKey, { es: string; en: string }> = {
-  newest: { es: "MÃ¡s nuevos", en: "Newest" },
-  "price-asc": { es: "Precio â†‘", en: "Price â†‘" },
-  "price-desc": { es: "Precio â†“", en: "Price â†“" },
+  newest: { es: "Más nuevos", en: "Newest" },
+  "price-asc": { es: "Precio ↑", en: "Price ↑" },
+  "price-desc": { es: "Precio ↓", en: "Price ↓" },
 };
 
 const SELLER_LABELS: Record<SellerType, { es: string; en: string }> = {
@@ -156,16 +142,16 @@ const SELLER_LABELS: Record<SellerType, { es: string; en: string }> = {
 
 const UI = {
   search: { es: "Buscar", en: "Search" },
-  location: { es: "UbicaciÃ³n", en: "Location" },
+  location: { es: "Ubicación", en: "Location" },
   radius: { es: "Radio", en: "Radius" },
-  category: { es: "CategorÃ­a", en: "Category" },
+  category: { es: "Categoría", en: "Category" },
   sort: { es: "Ordenar", en: "Sort" },
   view: { es: "Vista", en: "View" },
-  moreFilters: { es: "MÃ¡s filtros", en: "More filters" },
+  moreFilters: { es: "Más filtros", en: "More filters" },
   reset: { es: "Restablecer", en: "Reset" },
-  useMyLocation: { es: "Usar mi ubicaciÃ³n", en: "Use my location" },
+  useMyLocation: { es: "Usar mi ubicación", en: "Use my location" },
   edit: { es: "Editar", en: "Edit" },
-  zip: { es: "CÃ³digo ZIP", en: "ZIP code" },
+  zip: { es: "Código ZIP", en: "ZIP code" },
   seller: { es: "Vendedor", en: "Seller" },
   hasImage: { es: "Con foto", en: "Has image" },
   results: { es: "Resultados", en: "Results" },
@@ -183,26 +169,26 @@ function getSearchPlaceholder(category: CategoryKey, lang: Lang) {
   const es = lang === "es";
   switch (category) {
     case "rentas":
-      return es ? "Buscar: apartamento, cuarto, zonaâ€¦" : "Search: apartment, room, areaâ€¦";
+      return es ? "Buscar: apartamento, cuarto, zona…" : "Search: apartment, room, area…";
     case "autos":
-      return es ? "Buscar: Toyota, 2016, camionetaâ€¦" : "Search: Toyota, 2016, truckâ€¦";
+      return es ? "Buscar: Toyota, 2016, camioneta…" : "Search: Toyota, 2016, truck…";
     case "empleos":
-      return es ? "Buscar: trabajo, empresa, jornadaâ€¦" : "Search: job, company, shiftâ€¦";
+      return es ? "Buscar: trabajo, empresa, jornada…" : "Search: job, company, shift…";
     case "servicios":
-      return es ? "Buscar: plomero, jardinerÃ­a, limpiezaâ€¦" : "Search: plumber, landscaping, cleaningâ€¦";
+      return es ? "Buscar: plomero, jardinería, limpieza…" : "Search: plumber, landscaping, cleaning…";
     case "en-venta":
-      return es ? "Buscar: sofÃ¡, celular, herramientasâ€¦" : "Search: sofa, phone, toolsâ€¦";
+      return es ? "Buscar: sofá, celular, herramientas…" : "Search: sofa, phone, tools…";
     case "restaurantes":
-      return es ? "Buscar: tacos, pupusas, mariscosâ€¦" : "Search: tacos, pupusas, seafoodâ€¦";
+      return es ? "Buscar: tacos, pupusas, mariscos…" : "Search: tacos, pupusas, seafood…";
     case "travel":
-      return es ? "Buscar: vuelos, hotel, agenteâ€¦" : "Search: flights, hotel, agentâ€¦";
+      return es ? "Buscar: vuelos, hotel, agente…" : "Search: flights, hotel, agent…";
     case "clases":
-      return es ? "Buscar: inglÃ©s, guitarra, tutorÃ­aâ€¦" : "Search: English, guitar, tutoringâ€¦";
+      return es ? "Buscar: inglés, guitarra, tutoría…" : "Search: English, guitar, tutoring…";
     case "comunidad":
-      return es ? "Buscar: evento, ayuda, anuncioâ€¦" : "Search: event, help, noticeâ€¦";
+      return es ? "Buscar: evento, ayuda, anuncio…" : "Search: event, help, notice…";
     case "all":
     default:
-      return es ? "Buscar en clasificadosâ€¦" : "Search classifiedsâ€¦";
+      return es ? "Buscar en clasificados…" : "Search classifieds…";
   }
 }
 
@@ -314,7 +300,7 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
 }
 
 
-/** âœ… Autos param helpers (internal only; no exports) */
+/** ✅ Autos param helpers (internal only; no exports) */
 type AutosParams = {
   aymin: string;
   aymax: string;
@@ -379,7 +365,7 @@ function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
   });
 }
 
-/** âœ… Rentas param helpers (internal only; no exports) */
+/** ✅ Rentas param helpers (internal only; no exports) */
 type RentasParams = {
   rpmin: string;
   rpmax: string;
@@ -576,7 +562,7 @@ export default function ListaPage() {
 
 // Category switching polish (A4.19)
 
-/** âœ… Empleos param helpers (internal only; no exports) */
+/** ✅ Empleos param helpers (internal only; no exports) */
 type EmpleosParams = {
   ejob: string;      // "full" | "part" | "contract" | "temp" | ""
   eremote: string;   // "remote" | "onsite" | ""
@@ -607,7 +593,7 @@ type EmpleoIndustry =
 
 const empleoIndustryLabel = (k: EmpleoIndustry, lang: Lang) => {
   const es: Record<EmpleoIndustry, string> = {
-    construction: "ConstrucciÃ³n",
+    construction: "Construcción",
     restaurant: "Restaurante",
     cleaning: "Limpieza",
     office: "Oficina",
@@ -615,7 +601,7 @@ const empleoIndustryLabel = (k: EmpleoIndustry, lang: Lang) => {
     driving: "Manejo / Delivery",
     sales: "Ventas",
     warehouse: "Bodega",
-    childcare: "Cuidado de niÃ±os",
+    childcare: "Cuidado de niños",
     other: "Otro",
   };
   const en: Record<EmpleoIndustry, string> = {
@@ -636,15 +622,15 @@ const empleoIndustryLabel = (k: EmpleoIndustry, lang: Lang) => {
 const inferEmpleoIndustry = (title: string, blurb: string) => {
   const t = `${title} ${blurb}`.toLowerCase();
 
-  if (/(construction|construcci[oÃ³]n|framing|roof|roofer|concrete|drywall|painter|pintor|remodel)/i.test(t)) return "construction" as const;
+  if (/(construction|construcci[oó]n|framing|roof|roofer|concrete|drywall|painter|pintor|remodel)/i.test(t)) return "construction" as const;
   if (/(restaurant|restaurante|cocina|cook|cocinero|dishwasher|meser|mesero|server|bartender|barista|taquer|food)/i.test(t)) return "restaurant" as const;
   if (/(cleaning|limpieza|housekeeper|janitor|maid)/i.test(t)) return "cleaning" as const;
   if (/(office|oficina|admin|administrativ|reception|recepcion|assistant|asistente|clerical|data entry)/i.test(t)) return "office" as const;
-  if (/(medical|clinic|clinica|hospital|caregiver|cuid[aÃ¡]dor|nurse|enfermer)/i.test(t)) return "medical" as const;
-  if (/(driver|driving|delivery|uber|lyft|doordash|instacart|truck|trucking|camion|chofer|ch[oÃ³]fer)/i.test(t)) return "driving" as const;
+  if (/(medical|clinic|clinica|hospital|caregiver|cuid[aá]dor|nurse|enfermer)/i.test(t)) return "medical" as const;
+  if (/(driver|driving|delivery|uber|lyft|doordash|instacart|truck|trucking|camion|chofer|ch[oó]fer)/i.test(t)) return "driving" as const;
   if (/(sales|ventas|sell|vendedor|vendedora|closer|retail|store)/i.test(t)) return "sales" as const;
   if (/(warehouse|bodega|forklift|montacargas|picker|packer|fulfillment)/i.test(t)) return "warehouse" as const;
-  if (/(childcare|ni[nÃ±]os|daycare|guarder[iÃ­]a|babysit|nanny)/i.test(t)) return "childcare" as const;
+  if (/(childcare|ni[nñ]os|daycare|guarder[ií]a|babysit|nanny)/i.test(t)) return "childcare" as const;
 
   return "other" as const;
 };
@@ -699,7 +685,7 @@ function applyEmpleosParams(list: Listing[], ep: EmpleosParams): Listing[] {
   });
 }
 
-/** âœ… Servicios param helpers (internal only; no exports) */
+/** ✅ Servicios param helpers (internal only; no exports) */
 type ServiciosParams = {
   stype: string;   // service type key or ""
   savail: string;  // availability key or ""
@@ -713,7 +699,7 @@ const EMPTY_SERVICIOS_PARAMS: ServiciosParams = {
 };
 
 
-/** âœ… En Venta param helpers (internal only; no exports) */
+/** ✅ En Venta param helpers (internal only; no exports) */
 type VentaParams = {
   vpmin: string;   // number string
   vpmax: string;   // number string
@@ -762,13 +748,13 @@ const ventaConditionLabel = (k: VentaCondition, lang: Lang) => {
 
 const ventaItemTypeLabel = (k: VentaItemType, lang: Lang) => {
   const es: Record<VentaItemType, string> = {
-    phone: "TelÃ©fono",
+    phone: "Teléfono",
     computer: "Computadora",
-    electronics: "ElectrÃ³nica",
+    electronics: "Electrónica",
     furniture: "Muebles",
-    appliances: "ElectrodomÃ©sticos",
+    appliances: "Electrodomésticos",
     tools: "Herramientas",
-    "baby-kids": "BebÃ©s / NiÃ±os",
+    "baby-kids": "Bebés / Niños",
     clothing: "Ropa",
     sports: "Deportes",
     "auto-parts": "Partes de auto",
@@ -793,16 +779,16 @@ const ventaItemTypeLabel = (k: VentaItemType, lang: Lang) => {
 const inferVentaType = (title: string, blurb: string): VentaItemType => {
   const t = `${title} ${blurb}`.toLowerCase();
 
-  if (/(iphone|android|galaxy|pixel|telefono|tel[eÃ©]fono|celular|cell phone)/i.test(t)) return "phone";
+  if (/(iphone|android|galaxy|pixel|telefono|tel[eé]fono|celular|cell phone)/i.test(t)) return "phone";
   if (/(laptop|macbook|pc|computer|computadora|desktop|monitor|tablet|ipad)/i.test(t)) return "computer";
-  if (/(tv|televisi[oÃ³]n|camera|c[aÃ¡]mara|headphones|aud[iÃ­]fonos|speaker|bocina|gaming|console|playstation|xbox|nintendo)/i.test(t)) return "electronics";
-  if (/(sofa|couch|bed|mattress|colch[oÃ³]n|dresser|mesa|table|chair|silla|mueble)/i.test(t)) return "furniture";
+  if (/(tv|televisi[oó]n|camera|c[aá]mara|headphones|aud[ií]fonos|speaker|bocina|gaming|console|playstation|xbox|nintendo)/i.test(t)) return "electronics";
+  if (/(sofa|couch|bed|mattress|colch[oó]n|dresser|mesa|table|chair|silla|mueble)/i.test(t)) return "furniture";
   if (/(refrigerator|fridge|refri|refrigerador|washer|dryer|lavadora|secadora|microwave|microondas|stove|estufa|oven|horno)/i.test(t)) return "appliances";
   if (/(tools?|herramientas?|drill|taladro|saw|sierra|wrench|llave|compressor|compresor)/i.test(t)) return "tools";
-  if (/(baby|bebe|beb[eÃ©]|stroller|car seat|cuna|crib|kids|ni[nÃ±]os?|toys?|juguetes?)/i.test(t)) return "baby-kids";
+  if (/(baby|bebe|beb[eé]|stroller|car seat|cuna|crib|kids|ni[nñ]os?|toys?|juguetes?)/i.test(t)) return "baby-kids";
   if (/(clothes|ropa|shoes|zapatos?|jack(et)?|chaqueta|pants|pantalones|dress|vestido)/i.test(t)) return "clothing";
-  if (/(bike|bici|bicycle|gym|pesas|soccer|f[uÃº]tbol|ball|pelota|skate|surf)/i.test(t)) return "sports";
-  if (/(auto parts|partes|llantas?|tires?|rims?|rin(es)?|battery|bater[iÃ­]a|brakes?|frenos?)/i.test(t)) return "auto-parts";
+  if (/(bike|bici|bicycle|gym|pesas|soccer|f[uú]tbol|ball|pelota|skate|surf)/i.test(t)) return "sports";
+  if (/(auto parts|partes|llantas?|tires?|rims?|rin(es)?|battery|bater[ií]a|brakes?|frenos?)/i.test(t)) return "auto-parts";
 
   return "other";
 };
@@ -817,12 +803,12 @@ const inferVentaCondition = (title: string, blurb: string, explicit?: string): V
   const t = `${title} ${blurb}`.toLowerCase();
   if (/(brand new|nuevo|sin usar|unopened|sellado)/i.test(t)) return "new";
   if (/(like new|como nuevo|casi nuevo|mint)/i.test(t)) return "like-new";
-  if (/(good condition|buena condici[oÃ³]n|excellent|excelente|great)/i.test(t)) return "good";
+  if (/(good condition|buena condici[oó]n|excellent|excelente|great)/i.test(t)) return "good";
   if (/(fair|regular|needs work|para reparar|as[- ]?is)/i.test(t)) return "fair";
   return null;
 };
 
-/** âœ… Clases param helpers (internal only; no exports) */
+/** ✅ Clases param helpers (internal only; no exports) */
 type ClasesParams = {
   csub: string;    // subject key or ""
   clevel: string;  // level key or ""
@@ -841,14 +827,14 @@ type ClaseMode = "inperson" | "online" | "hybrid";
 
 const claseSubjectLabel = (k: ClaseSubject, lang: Lang) => {
   const es: Record<ClaseSubject, string> = {
-    music: "MÃºsica",
-    tutoring: "TutorÃ­a",
+    music: "Música",
+    tutoring: "Tutoría",
     sports: "Deportes",
     dance: "Baile",
     martial: "Artes marciales",
-    coding: "ProgramaciÃ³n",
-    english: "InglÃ©s",
-    math: "MatemÃ¡ticas",
+    coding: "Programación",
+    english: "Inglés",
+    math: "Matemáticas",
     other: "Otro",
   };
   const en: Record<ClaseSubject, string> = {
@@ -867,8 +853,8 @@ const claseSubjectLabel = (k: ClaseSubject, lang: Lang) => {
 
 const claseLevelLabel = (k: ClaseLevel, lang: Lang) => {
   const es: Record<ClaseLevel, string> = {
-    kids: "NiÃ±os",
-    teen: "JÃ³venes",
+    kids: "Niños",
+    teen: "Jóvenes",
     adult: "Adultos",
     beginner: "Principiante",
     intermediate: "Intermedio",
@@ -889,7 +875,7 @@ const claseModeLabel = (k: ClaseMode, lang: Lang) => {
   const es: Record<ClaseMode, string> = {
     inperson: "En persona",
     online: "Online",
-    hybrid: "HÃ­brido",
+    hybrid: "Híbrido",
   };
   const en: Record<ClaseMode, string> = {
     inperson: "In-person",
@@ -901,14 +887,14 @@ const claseModeLabel = (k: ClaseMode, lang: Lang) => {
 
 const inferClaseSubject = (title: string, blurb: string): ClaseSubject => {
   const t = `${title} ${blurb}`.toLowerCase();
-  if (/(guitarra|guitar|piano|violin|viol[iÃ­]n|drums|bater[iÃ­]a|music|m[uÃº]sica|canto|singing)/i.test(t)) return "music";
-  if (/(tutor|tutor[iÃ­]a|tutoring|clases particulares|homework|tarea)/i.test(t)) return "tutoring";
-  if (/(soccer|f[uÃº]tbol|basket|baseball|tennis|gym|fitness|pesas|training)/i.test(t)) return "sports";
-  if (/(dance|baile|ballet|salsa|hip hop|folkl[oÃ³]rico)/i.test(t)) return "dance";
+  if (/(guitarra|guitar|piano|violin|viol[ií]n|drums|bater[ií]a|music|m[uú]sica|canto|singing)/i.test(t)) return "music";
+  if (/(tutor|tutor[ií]a|tutoring|clases particulares|homework|tarea)/i.test(t)) return "tutoring";
+  if (/(soccer|f[uú]tbol|basket|baseball|tennis|gym|fitness|pesas|training)/i.test(t)) return "sports";
+  if (/(dance|baile|ballet|salsa|hip hop|folkl[oó]rico)/i.test(t)) return "dance";
   if (/(karate|boxing|boxeo|mma|jiu[- ]?jitsu|taekwondo|martial)/i.test(t)) return "martial";
-  if (/(coding|programaci[oÃ³]n|programming|python|javascript|web dev|desarrollo web)/i.test(t)) return "coding";
-  if (/(english|ingl[eÃ©]s|esl)/i.test(t)) return "english";
-  if (/(math|matem[aÃ¡]ticas|algebra|c[aÃ¡]lculo|geometry|geometr[iÃ­]a)/i.test(t)) return "math";
+  if (/(coding|programaci[oó]n|programming|python|javascript|web dev|desarrollo web)/i.test(t)) return "coding";
+  if (/(english|ingl[eé]s|esl)/i.test(t)) return "english";
+  if (/(math|matem[aá]ticas|algebra|c[aá]lculo|geometry|geometr[ií]a)/i.test(t)) return "math";
   return "other";
 };
 
@@ -924,8 +910,8 @@ const inferClaseMode = (title: string, blurb: string): ClaseMode | null => {
 
 const inferClaseLevel = (title: string, blurb: string): ClaseLevel | null => {
   const t = `${title} ${blurb}`.toLowerCase();
-  if (/(kids|ni[nÃ±]os|infantil)/i.test(t)) return "kids";
-  if (/(teen|j[oÃ³]venes|adolesc)/i.test(t)) return "teen";
+  if (/(kids|ni[nñ]os|infantil)/i.test(t)) return "kids";
+  if (/(teen|j[oó]venes|adolesc)/i.test(t)) return "teen";
   if (/(adult|adultos)/i.test(t)) return "adult";
   if (/(beginner|principiante)/i.test(t)) return "beginner";
   if (/(intermediate|intermedio)/i.test(t)) return "intermediate";
@@ -933,7 +919,7 @@ const inferClaseLevel = (title: string, blurb: string): ClaseLevel | null => {
   return null;
 };
 
-/** âœ… Comunidad param helpers (internal only; no exports) */
+/** ✅ Comunidad param helpers (internal only; no exports) */
 type ComunidadParams = {
   gtype: string; // community type key or ""
 };
@@ -980,10 +966,10 @@ type ComunidadType = "donation" | "help" | "church" | "youth" | "lostfound" | "a
 
 const comunidadTypeLabel = (k: ComunidadType, lang: Lang) => {
   const es: Record<ComunidadType, string> = {
-    donation: "DonaciÃ³n",
+    donation: "Donación",
     help: "Ayuda / Recursos",
     church: "Iglesia",
-    youth: "JÃ³venes",
+    youth: "Jóvenes",
     lostfound: "Perdido y encontrado",
     announcement: "Anuncio",
     event: "Evento",
@@ -1005,13 +991,13 @@ const comunidadTypeLabel = (k: ComunidadType, lang: Lang) => {
 const inferComunidadType = (title: string, blurb: string): ComunidadType => {
   const t = `${title} ${blurb}`.toLowerCase();
 
-  if (/(donat|donaci[oÃ³]n|gratis|free|regalo)/i.test(t)) return "donation";
-  if (/(resource|recursos|ayuda|support|apoyo|food bank|banco de comida|clinic|cl[iÃ­]nica)/i.test(t)) return "help";
-  if (/(church|iglesia|misa|culto|worship|oraci[oÃ³]n)/i.test(t)) return "church";
-  if (/(youth|j[oÃ³]venes|teen|adolesc)/i.test(t)) return "youth";
+  if (/(donat|donaci[oó]n|gratis|free|regalo)/i.test(t)) return "donation";
+  if (/(resource|recursos|ayuda|support|apoyo|food bank|banco de comida|clinic|cl[ií]nica)/i.test(t)) return "help";
+  if (/(church|iglesia|misa|culto|worship|oraci[oó]n)/i.test(t)) return "church";
+  if (/(youth|j[oó]venes|teen|adolesc)/i.test(t)) return "youth";
   if (/(lost|found|perdid|encontr|missing)/i.test(t)) return "lostfound";
   if (/(announce|anuncio|notice|aviso)/i.test(t)) return "announcement";
-  if (/(event|evento|festival|feria|meetup|reuni[oÃ³]n)/i.test(t)) return "event";
+  if (/(event|evento|festival|feria|meetup|reuni[oó]n)/i.test(t)) return "event";
 
   return "other";
 };
@@ -1031,12 +1017,12 @@ type ServicioType =
 const servicioTypeLabel = (k: ServicioType, lang: Lang) => {
   const es: Record<ServicioType, string> = {
     cleaning: "Limpieza",
-    landscaping: "JardinerÃ­a",
-    mechanic: "MecÃ¡nico",
+    landscaping: "Jardinería",
+    mechanic: "Mecánico",
     plumbing: "Plomero",
     electrician: "Electricista",
     painting: "Pintura",
-    remodeling: "RemodelaciÃ³n",
+    remodeling: "Remodelación",
     moving: "Mudanza",
     handyman: "Handyman",
     other: "Otro",
@@ -1080,12 +1066,12 @@ const inferServicioType = (title: string, blurb: string, explicit?: string) => {
 
   const src = `${base} ${t}`;
   if (/(cleaning|limpieza|houseclean|deep clean|maid|janitor)/i.test(src)) return "cleaning" as const;
-  if (/(landscap|jardin|yard|lawn|cesped|cÃ©sped)/i.test(src)) return "landscaping" as const;
-  if (/(mechanic|mec[aÃ¡]nic|auto repair|brakes|oil change|tire)/i.test(src)) return "mechanic" as const;
-  if (/(plumb|plomer|drain|toilet|sink|tuber[iÃ­]a)/i.test(src)) return "plumbing" as const;
+  if (/(landscap|jardin|yard|lawn|cesped|césped)/i.test(src)) return "landscaping" as const;
+  if (/(mechanic|mec[aá]nic|auto repair|brakes|oil change|tire)/i.test(src)) return "mechanic" as const;
+  if (/(plumb|plomer|drain|toilet|sink|tuber[ií]a)/i.test(src)) return "plumbing" as const;
   if (/(electric|electricista|wiring|panel|breaker)/i.test(src)) return "electrician" as const;
   if (/(paint|pintur|painter|pintor)/i.test(src)) return "painting" as const;
-  if (/(remodel|remodelaci[oÃ³]n|kitchen|bath|tile|drywall)/i.test(src)) return "remodeling" as const;
+  if (/(remodel|remodelaci[oó]n|kitchen|bath|tile|drywall)/i.test(src)) return "remodeling" as const;
   if (/(moving|mudanza|movers|haul|junk)/i.test(src)) return "moving" as const;
   if (/(handyman|manitas|fix|repair|arreglo)/i.test(src)) return "handyman" as const;
 
@@ -1095,9 +1081,9 @@ const inferServicioType = (title: string, blurb: string, explicit?: string) => {
 const inferServicioAvail = (title: string, blurb: string) => {
   const t = `${title} ${blurb}`.toLowerCase();
 
-  if (/(24\/7|emergency|urgente|same day|mismo d[iÃ­]a|hoy mismo)/i.test(t)) return "anytime" as const;
-  if (/(weekend|fines de semana|s[aÃ¡]bado|domingo)/i.test(t)) return "weekends" as const;
-  if (/(evening|noche|tarde|after 5|despu[eÃ©]s de las 5)/i.test(t)) return "evenings" as const;
+  if (/(24\/7|emergency|urgente|same day|mismo d[ií]a|hoy mismo)/i.test(t)) return "anytime" as const;
+  if (/(weekend|fines de semana|s[aá]bado|domingo)/i.test(t)) return "weekends" as const;
+  if (/(evening|noche|tarde|after 5|despu[eé]s de las 5)/i.test(t)) return "evenings" as const;
 
   return "appointment" as const;
 };
@@ -1106,8 +1092,8 @@ const inferServicioAvail = (title: string, blurb: string) => {
 const inferServicioVisit = (title: string, blurb: string) => {
   const t = `${title} ${blurb}`.toLowerCase();
 
-  if (/(a domicilio|domicilio|house call|we come|mobile|m[oÃ³]vil|servicio m[oÃ³]vil|voy a tu casa)/i.test(t)) return "comes" as const;
-  if (/(en local|en tienda|visit us|shop|oficina|local (abierto|f[iÃ­]sico))/i.test(t)) return "shop" as const;
+  if (/(a domicilio|domicilio|house call|we come|mobile|m[oó]vil|servicio m[oó]vil|voy a tu casa)/i.test(t)) return "comes" as const;
+  if (/(en local|en tienda|visit us|shop|oficina|local (abierto|f[ií]sico))/i.test(t)) return "shop" as const;
 
   return "" as const;
 };
@@ -1248,7 +1234,7 @@ useEffect(() => {
   };
 }, []);
 
-// âœ… Mobile full-screen Filters/Sort panel (A3)
+// ✅ Mobile full-screen Filters/Sort panel (A3)
 const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 const [mobilePanelTab, setMobilePanelTab] = useState<"filters" | "sort">("filters");
 
@@ -1279,33 +1265,33 @@ useEffect(() => {
   const [suggestions, setSuggestions] = useState<Array<Exclude<CategoryKey, "all">>>([]);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
-  // âœ… Rentas param state (only used when cat=rentas)
+  // ✅ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
 
-  // âœ… Autos param state (only used when cat=autos)
+  // ✅ Autos param state (only used when cat=autos)
   const [autosParams, setAutosParams] = useState<AutosParams>(EMPTY_AUTOS_PARAMS);
 
 
-  // âœ… Empleos param state (only used when cat=empleos)
+  // ✅ Empleos param state (only used when cat=empleos)
   const [empleosParams, setEmpleosParams] = useState<EmpleosParams>(EMPTY_EMPLEOS_PARAMS);
 
-  // âœ… Servicios param state (only used when cat=servicios)
+  // ✅ Servicios param state (only used when cat=servicios)
   const [serviciosParams, setServiciosParams] = useState<ServiciosParams>(EMPTY_SERVICIOS_PARAMS);
 
-  // âœ… En Venta param state (only used when cat=en-venta)
+  // ✅ En Venta param state (only used when cat=en-venta)
   const [ventaParams, setVentaParams] = useState<VentaParams>(EMPTY_VENTA_PARAMS);
 
-  // âœ… Clases param state (only used when cat=clases)
+  // ✅ Clases param state (only used when cat=clases)
   const [clasesParams, setClasesParams] = useState<ClasesParams>(EMPTY_CLASES_PARAMS);
 
-  // âœ… Comunidad param state (only used when cat=comunidad)
+  // ✅ Comunidad param state (only used when cat=comunidad)
   const [comunidadParams, setComunidadParams] = useState<ComunidadParams>(EMPTY_COMUNIDAD_PARAMS);
 
-  // âœ… Travel param state (only used when cat=travel)
+  // ✅ Travel param state (only used when cat=travel)
   const [travelParams, setTravelParams] = useState<TravelParams>(EMPTY_TRAVEL_PARAMS);
 
 
-  // âœ… Hydrate state from URL params (deep-links + refresh + back/forward)
+  // ✅ Hydrate state from URL params (deep-links + refresh + back/forward)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -1523,7 +1509,7 @@ useEffect(() => {
     const viewOk: ViewMode[] = ["grid", "list", "list-img"];
     if (pView && viewOk.includes(pView as ViewMode)) setView(pView as ViewMode);
 
-    // âœ… Rentas params: only track them if cat=rentas
+    // ✅ Rentas params: only track them if cat=rentas
     const catIsRentas = pCat === "rentas";
     if (catIsRentas) {
       setRentasParams({
@@ -1546,7 +1532,7 @@ useEffect(() => {
       setRentasParams(EMPTY_RENTAS_PARAMS);
     }
 
-    // âœ… Autos params: only track them if cat=autos
+    // ✅ Autos params: only track them if cat=autos
     const catIsAutos = pCat === "autos";
     if (catIsAutos) {
       setAutosParams({
@@ -1562,7 +1548,7 @@ useEffect(() => {
       setAutosParams(EMPTY_AUTOS_PARAMS);
     }
 
-    // âœ… En Venta params: only track them if cat=en-venta
+    // ✅ En Venta params: only track them if cat=en-venta
     const catIsVenta = pCat === "en-venta";
     if (catIsVenta) {
       setVentaParams({
@@ -1576,7 +1562,7 @@ useEffect(() => {
       setVentaParams(EMPTY_VENTA_PARAMS);
     }
 
-    // âœ… Clases params: only track them if cat=clases
+    // ✅ Clases params: only track them if cat=clases
     const catIsClases = pCat === "clases";
     if (catIsClases) {
       setClasesParams({
@@ -1588,7 +1574,7 @@ useEffect(() => {
       setClasesParams(EMPTY_CLASES_PARAMS);
     }
 
-    // âœ… Comunidad params: only track them if cat=comunidad
+    // ✅ Comunidad params: only track them if cat=comunidad
     const catIsComunidad = pCat === "comunidad";
     if (catIsComunidad) {
       setComunidadParams({
@@ -1675,8 +1661,8 @@ useEffect(() => {
     if (zipModeRaw && !zipAnchor.known) {
       setLocMsg(
         lang === "es"
-          ? "ZIP no encontrado â€” no se aplicÃ³ ubicaciÃ³n."
-          : "ZIP not found â€” location not applied."
+          ? "ZIP no encontrado — no se aplicó ubicación."
+          : "ZIP not found — location not applied."
       );
       return;
     }
@@ -1691,7 +1677,7 @@ useEffect(() => {
       return;
     }
     if (usingMyLocation) {
-      setLocMsg(lang === "es" ? "Usando tu ubicaciÃ³n actual" : "Using your current location");
+      setLocMsg(lang === "es" ? "Usando tu ubicación actual" : "Using your current location");
       return;
     }
     if (resolvedCity.from === "fuzzy") {
@@ -1758,7 +1744,7 @@ useEffect(() => {
           "pick up",
           "pick-up",
           "camion",
-          "camiÃ³n",
+          "camión",
           "van",
           "suv",
           "car",
@@ -1780,7 +1766,7 @@ useEffect(() => {
           "casa",
           "cuarto",
           "habitacion",
-          "habitaciÃ³n",
+          "habitación",
           "roomie",
           "rent",
           "rental",
@@ -1819,15 +1805,15 @@ useEffect(() => {
           "servicio",
           "servicios",
           "mecanico",
-          "mecÃ¡nico",
+          "mecánico",
           "plomero",
           "electricista",
           "limpieza",
           "jardineria",
-          "jardinerÃ­a",
+          "jardinería",
           "pintor",
           "remodelacion",
-          "remodelaciÃ³n",
+          "remodelación",
           "mudanza",
           "service",
           "services",
@@ -1870,7 +1856,7 @@ useEffect(() => {
           "cursos",
           "tutor",
           "tutoria",
-          "tutorÃ­a",
+          "tutoría",
           "lecciones",
           "class",
           "classes",
@@ -1890,7 +1876,7 @@ useEffect(() => {
           "iglesia",
           "ayuda",
           "donacion",
-          "donaciÃ³n",
+          "donación",
           "voluntario",
           "community",
           "event",
@@ -1907,13 +1893,13 @@ useEffect(() => {
           "viaje",
           "viajes",
           "vacacion",
-          "vacaciÃ³n",
+          "vacación",
           "vacaciones",
           "turismo",
           "tour",
           "tours",
           "excursion",
-          "excursiÃ³n",
+          "excursión",
           "excursiones",
           "crucero",
           "cruceros",
@@ -2102,7 +2088,7 @@ useEffect(() => {
 
   
   // ------------------------------------------------------------
-  // E2 â€” Fair visibility mix (guarantee Free listings appear early)
+  // E2 — Fair visibility mix (guarantee Free listings appear early)
   // Rule: treat paid tiers as:
   //   - Business (Corona / Corona de Oro) => paid
   //   - Personal with handle (Joya)       => paid
@@ -2146,37 +2132,6 @@ useEffect(() => {
   };
 
 
-  const mixServicios = (items: Listing[]) => {
-    // Servicios is business-first: Premium (print-only) gets featured cards,
-    // then we interleave Standard/Plus.
-    const premium: Listing[] = [];
-    const rest: Listing[] = [];
-    for (const it of items) {
-      if (it.category === "servicios" && inferServicesTier(it) === "premium") premium.push(it);
-      else rest.push(it);
-    }
-    if (!premium.length) return items;
-
-    const out: Listing[] = [];
-    let p = 0;
-    let r = 0;
-
-    // Repeat [3 Premium, 5 Rest]
-    while (p < premium.length || r < rest.length) {
-      for (let i = 0; i < 3 && p < premium.length; i++) out.push(premium[p++]);
-      for (let i = 0; i < 5 && r < rest.length; i++) out.push(rest[r++]);
-
-      if (p >= premium.length) {
-        while (r < rest.length) out.push(rest[r++]);
-        break;
-      }
-      if (r >= rest.length) {
-        while (p < premium.length) out.push(premium[p++]);
-        break;
-      }
-    }
-    return out;
-  };
 const businessTop = useMemo(() => {
   // Show a small "Profesionales / Businesses" strip only on page 1,
   // and only when user isn't already filtering to business-only.
@@ -2189,7 +2144,7 @@ const businessTop = useMemo(() => {
 const visible = useMemo(() => {
   const topIds = new Set(businessTop.map((x) => x.id));
   const main = topIds.size ? filtered.filter((x) => !topIds.has(x.id)) : filtered;
-  const mixed = category === "servicios" ? mixServicios(main) : mixFair(main);
+  const mixed = mixFair(main);
   const start = (pageClamped - 1) * perPage;
   return mixed.slice(start, start + perPage);
 }, [filtered, pageClamped, perPage, businessTop]);
@@ -2240,12 +2195,12 @@ const visible = useMemo(() => {
       });
     }
 
-    // âœ… Rentas chips (only show when in rentas + has params)
+    // ✅ Rentas chips (only show when in rentas + has params)
     if (category === "rentas") {
       if (rentasParams.rpmin) chips.push({ key: "rpmin", text: `Min: $${rentasParams.rpmin}`, clear: () => setRentasParams((p) => ({ ...p, rpmin: "" })) });
       if (rentasParams.rpmax) chips.push({ key: "rpmax", text: `Max: $${rentasParams.rpmax}`, clear: () => setRentasParams((p) => ({ ...p, rpmax: "" })) });
-      if (rentasParams.rbeds) chips.push({ key: "rbeds", text: `${lang === "es" ? "RecÃ¡maras" : "Beds"}: ${rentasParams.rbeds}`, clear: () => setRentasParams((p) => ({ ...p, rbeds: "" })) });
-      if (rentasParams.rbaths) chips.push({ key: "rbaths", text: `${lang === "es" ? "BaÃ±os" : "Baths"}: ${rentasParams.rbaths}`, clear: () => setRentasParams((p) => ({ ...p, rbaths: "" })) });
+      if (rentasParams.rbeds) chips.push({ key: "rbeds", text: `${lang === "es" ? "Recámaras" : "Beds"}: ${rentasParams.rbeds}`, clear: () => setRentasParams((p) => ({ ...p, rbeds: "" })) });
+      if (rentasParams.rbaths) chips.push({ key: "rbaths", text: `${lang === "es" ? "Baños" : "Baths"}: ${rentasParams.rbaths}`, clear: () => setRentasParams((p) => ({ ...p, rbaths: "" })) });
       if (rentasParams.rtype) chips.push({ key: "rtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${rentasParams.rtype}`, clear: () => setRentasParams((p) => ({ ...p, rtype: "" })) });
       if (rentasParams.rpets) chips.push({ key: "rpets", text: `${lang === "es" ? "Mascotas" : "Pets"}: ${rentasParams.rpets}`, clear: () => setRentasParams((p) => ({ ...p, rpets: "" })) });
       if (rentasParams.rparking) chips.push({ key: "rparking", text: `${lang === "es" ? "Estacion." : "Parking"}: ${rentasParams.rparking}`, clear: () => setRentasParams((p) => ({ ...p, rparking: "" })) });
@@ -2259,50 +2214,50 @@ const visible = useMemo(() => {
     }
 
 
-    // âœ… Autos chips (only show when in autos + has params)
+    // ✅ Autos chips (only show when in autos + has params)
     if (category === "autos") {
-      if (autosParams.aymin) chips.push({ key: "aymin", text: `${lang === "es" ? "AÃ±o min" : "Year min"}: ${autosParams.aymin}`, clear: () => setAutosParams((p) => ({ ...p, aymin: "" })) });
-      if (autosParams.aymax) chips.push({ key: "aymax", text: `${lang === "es" ? "AÃ±o max" : "Year max"}: ${autosParams.aymax}`, clear: () => setAutosParams((p) => ({ ...p, aymax: "" })) });
+      if (autosParams.aymin) chips.push({ key: "aymin", text: `${lang === "es" ? "Año min" : "Year min"}: ${autosParams.aymin}`, clear: () => setAutosParams((p) => ({ ...p, aymin: "" })) });
+      if (autosParams.aymax) chips.push({ key: "aymax", text: `${lang === "es" ? "Año max" : "Year max"}: ${autosParams.aymax}`, clear: () => setAutosParams((p) => ({ ...p, aymax: "" })) });
       if (autosParams.amake) chips.push({ key: "amake", text: `${lang === "es" ? "Marca" : "Make"}: ${autosParams.amake}`, clear: () => setAutosParams((p) => ({ ...p, amake: "" })) });
       if (autosParams.amodel) chips.push({ key: "amodel", text: `${lang === "es" ? "Modelo" : "Model"}: ${autosParams.amodel}`, clear: () => setAutosParams((p) => ({ ...p, amodel: "" })) });
       if (autosParams.aseller) chips.push({ key: "aseller", text: `${lang === "es" ? "Vendedor" : "Seller"}: ${autosParams.aseller === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}`, clear: () => setAutosParams((p) => ({ ...p, aseller: "" })) });
-      if (autosParams.amilesmax) chips.push({ key: "amilesmax", text: `${lang === "es" ? "Millas mÃ¡x" : "Miles max"}: ${autosParams.amilesmax}`, clear: () => setAutosParams((p) => ({ ...p, amilesmax: "" })) });
+      if (autosParams.amilesmax) chips.push({ key: "amilesmax", text: `${lang === "es" ? "Millas máx" : "Miles max"}: ${autosParams.amilesmax}`, clear: () => setAutosParams((p) => ({ ...p, amilesmax: "" })) });
       if (autosParams.aseller) chips.push({ key: "aseller", text: `${lang === "es" ? "Vendedor" : "Seller"}: ${autosParams.aseller === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Personal" : "Personal")}`, clear: () => setAutosParams((p) => ({ ...p, aseller: "" })) });
-      if (autosParams.acond) chips.push({ key: "acond", text: `${lang === "es" ? "CondiciÃ³n" : "Condition"}: ${autosParams.acond}`, clear: () => setAutosParams((p) => ({ ...p, acond: "" })) });
+      if (autosParams.acond) chips.push({ key: "acond", text: `${lang === "es" ? "Condición" : "Condition"}: ${autosParams.acond}`, clear: () => setAutosParams((p) => ({ ...p, acond: "" })) });
     }
 
     
-    // âœ… Empleos chips (only show when in empleos + has params)
+    // ✅ Empleos chips (only show when in empleos + has params)
     if (category === "empleos") {
       if (empleosParams.ejob) chips.push({ key: "ejob", text: `${lang === "es" ? "Tipo" : "Type"}: ${empleoJobTypeLabel(empleosParams.ejob as any, lang) ?? empleosParams.ejob}`, clear: () => setEmpleosParams((p) => ({ ...p, ejob: "" })) });
       if (empleosParams.eremote) chips.push({ key: "eremote", text: `${lang === "es" ? "Modalidad" : "Mode"}: ${empleosParams.eremote === "remote" ? (lang === "es" ? "Remoto" : "Remote") : (lang === "es" ? "Presencial" : "On-site")}`, clear: () => setEmpleosParams((p) => ({ ...p, eremote: "" })) });
-      if (empleosParams.epaymin) chips.push({ key: "epaymin", text: `${lang === "es" ? "Pago mÃ­n" : "Pay min"}: $${empleosParams.epaymin}`, clear: () => setEmpleosParams((p) => ({ ...p, epaymin: "" })) });
-      if (empleosParams.epaymax) chips.push({ key: "epaymax", text: `${lang === "es" ? "Pago mÃ¡x" : "Pay max"}: $${empleosParams.epaymax}`, clear: () => setEmpleosParams((p) => ({ ...p, epaymax: "" })) });
+      if (empleosParams.epaymin) chips.push({ key: "epaymin", text: `${lang === "es" ? "Pago mín" : "Pay min"}: $${empleosParams.epaymin}`, clear: () => setEmpleosParams((p) => ({ ...p, epaymin: "" })) });
+      if (empleosParams.epaymax) chips.push({ key: "epaymax", text: `${lang === "es" ? "Pago máx" : "Pay max"}: $${empleosParams.epaymax}`, clear: () => setEmpleosParams((p) => ({ ...p, epaymax: "" })) });
       if (empleosParams.eindustry) chips.push({ key: "eindustry", text: `${lang === "es" ? "Industria" : "Industry"}: ${empleoIndustryLabel(empleosParams.eindustry as any, lang)}`, clear: () => setEmpleosParams((p) => ({ ...p, eindustry: "" })) });
     }
 
-    // âœ… Servicios chips (only show when in servicios + has params)
+    // ✅ Servicios chips (only show when in servicios + has params)
     if (category === "servicios") {
       if (serviciosParams.stype) chips.push({ key: "stype", text: `${lang === "es" ? "Tipo" : "Type"}: ${servicioTypeLabel(serviciosParams.stype as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, stype: "" })) });
       if (serviciosParams.savail) chips.push({ key: "savail", text: `${lang === "es" ? "Horario" : "Availability"}: ${servicioAvailLabel(serviciosParams.savail as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, savail: "" })) });
     }
 
-    // âœ… En Venta chips (only show when in en-venta + has params)
+    // ✅ En Venta chips (only show when in en-venta + has params)
     if (category === "en-venta") {
-      if (ventaParams.vpmin) chips.push({ key: "vpmin", text: `${lang === "es" ? "Precio mÃ­n" : "Price min"}: $${ventaParams.vpmin}`, clear: () => setVentaParams((p) => ({ ...p, vpmin: "" })) });
-      if (ventaParams.vpmax) chips.push({ key: "vpmax", text: `${lang === "es" ? "Precio mÃ¡x" : "Price max"}: $${ventaParams.vpmax}`, clear: () => setVentaParams((p) => ({ ...p, vpmax: "" })) });
-      if (ventaParams.vcond) chips.push({ key: "vcond", text: `${lang === "es" ? "CondiciÃ³n" : "Condition"}: ${ventaConditionLabel(ventaParams.vcond as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vcond: "" })) });
+      if (ventaParams.vpmin) chips.push({ key: "vpmin", text: `${lang === "es" ? "Precio mín" : "Price min"}: $${ventaParams.vpmin}`, clear: () => setVentaParams((p) => ({ ...p, vpmin: "" })) });
+      if (ventaParams.vpmax) chips.push({ key: "vpmax", text: `${lang === "es" ? "Precio máx" : "Price max"}: $${ventaParams.vpmax}`, clear: () => setVentaParams((p) => ({ ...p, vpmax: "" })) });
+      if (ventaParams.vcond) chips.push({ key: "vcond", text: `${lang === "es" ? "Condición" : "Condition"}: ${ventaConditionLabel(ventaParams.vcond as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vcond: "" })) });
       if (ventaParams.vtype) chips.push({ key: "vtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${ventaItemTypeLabel(ventaParams.vtype as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vtype: "" })) });
     }
 
-    // âœ… Clases chips (only show when in clases + has params)
+    // ✅ Clases chips (only show when in clases + has params)
     if (category === "clases") {
       if (clasesParams.csub) chips.push({ key: "csub", text: `${lang === "es" ? "Materia" : "Subject"}: ${claseSubjectLabel(clasesParams.csub as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, csub: "" })) });
       if (clasesParams.clevel) chips.push({ key: "clevel", text: `${lang === "es" ? "Nivel" : "Level"}: ${claseLevelLabel(clasesParams.clevel as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, clevel: "" })) });
       if (clasesParams.cmode) chips.push({ key: "cmode", text: `${lang === "es" ? "Modalidad" : "Mode"}: ${claseModeLabel(clasesParams.cmode as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, cmode: "" })) });
     }
 
-    // âœ… Comunidad chips (only show when in comunidad + has params)
+    // ✅ Comunidad chips (only show when in comunidad + has params)
     if (category === "comunidad") {
       if (comunidadParams.gtype) chips.push({ key: "gtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${comunidadTypeLabel(comunidadParams.gtype as any, lang)}`, clear: () => setComunidadParams((p) => ({ ...p, gtype: "" })) });
     }
@@ -2349,7 +2304,7 @@ const visible = useMemo(() => {
           ? resolvedCity.name
           : null,
 
-      // âœ… Rentas params are preserved in URL only when cat=rentas
+      // ✅ Rentas params are preserved in URL only when cat=rentas
       rpmin: category === "rentas" && rentasParams.rpmin ? rentasParams.rpmin : null,
       rpmax: category === "rentas" && rentasParams.rpmax ? rentasParams.rpmax : null,
       rbeds: category === "rentas" && rentasParams.rbeds ? rentasParams.rbeds : null,
@@ -2365,7 +2320,7 @@ const visible = useMemo(() => {
       rleaseterm: category === "rentas" && rentasParams.rleaseterm ? rentasParams.rleaseterm : null,
       rseller: category === "rentas" && rentasParams.rseller ? rentasParams.rseller : null,
 
-      // âœ… Autos params are preserved in URL only when cat=autos
+      // ✅ Autos params are preserved in URL only when cat=autos
       aymin: category === "autos" && autosParams.aymin ? autosParams.aymin : null,
       aymax: category === "autos" && autosParams.aymax ? autosParams.aymax : null,
       amake: category === "autos" && autosParams.amake ? autosParams.amake : null,
@@ -2375,31 +2330,31 @@ const visible = useMemo(() => {
       aseller: category === "autos" && autosParams.aseller ? autosParams.aseller : null,
 
       
-      // âœ… Empleos params are preserved in URL only when cat=empleos
+      // ✅ Empleos params are preserved in URL only when cat=empleos
       ejob: category === "empleos" && empleosParams.ejob ? empleosParams.ejob : null,
       eremote: category === "empleos" && empleosParams.eremote ? empleosParams.eremote : null,
       epaymin: category === "empleos" && empleosParams.epaymin ? empleosParams.epaymin : null,
       epaymax: category === "empleos" && empleosParams.epaymax ? empleosParams.epaymax : null,
       eindustry: category === "empleos" && empleosParams.eindustry ? empleosParams.eindustry : null,
 
-      // âœ… Servicios params are preserved in URL only when cat=servicios
+      // ✅ Servicios params are preserved in URL only when cat=servicios
       stype: category === "servicios" && serviciosParams.stype ? serviciosParams.stype : null,
       savail: category === "servicios" && serviciosParams.savail ? serviciosParams.savail : null,
       svisit: category === "servicios" && serviciosParams.svisit ? serviciosParams.svisit : null,
 
-// âœ… En Venta params are preserved in URL only when cat=en-venta
+// ✅ En Venta params are preserved in URL only when cat=en-venta
       vpmin: category === "en-venta" && ventaParams.vpmin ? ventaParams.vpmin : null,
       vpmax: category === "en-venta" && ventaParams.vpmax ? ventaParams.vpmax : null,
       vcond: category === "en-venta" && ventaParams.vcond ? ventaParams.vcond : null,
       vtype: category === "en-venta" && ventaParams.vtype ? ventaParams.vtype : null,
       vneg: category === "en-venta" && ventaParams.vneg ? ventaParams.vneg : null,
 
-      // âœ… Clases params are preserved in URL only when cat=clases
+      // ✅ Clases params are preserved in URL only when cat=clases
       csub: category === "clases" && clasesParams.csub ? clasesParams.csub : null,
       clevel: category === "clases" && clasesParams.clevel ? clasesParams.clevel : null,
       cmode: category === "clases" && clasesParams.cmode ? clasesParams.cmode : null,
 
-      // âœ… Comunidad params are preserved in URL only when cat=comunidad
+      // ✅ Comunidad params are preserved in URL only when cat=comunidad
       gtype: category === "comunidad" && comunidadParams.gtype ? comunidadParams.gtype : null,
     });
   }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
@@ -2430,10 +2385,10 @@ const visible = useMemo(() => {
   const onUseMyLocation = async () => {
     try {
       setUsingMyLocation(true);
-      setLocMsg(lang === "es" ? "Detectando ubicaciÃ³nâ€¦" : "Detecting locationâ€¦");
+      setLocMsg(lang === "es" ? "Detectando ubicación…" : "Detecting location…");
 
       if (!navigator.geolocation) {
-        setLocMsg(lang === "es" ? "GeolocalizaciÃ³n no disponible." : "Geolocation not available.");
+        setLocMsg(lang === "es" ? "Geolocalización no disponible." : "Geolocation not available.");
         setUsingMyLocation(false);
         return;
       }
@@ -2459,19 +2414,19 @@ const visible = useMemo(() => {
 
           setLocMsg(
             lang === "es"
-              ? `UbicaciÃ³n detectada cerca de ${bestCity}.`
+              ? `Ubicación detectada cerca de ${bestCity}.`
               : `Location detected near ${bestCity}.`
           );
           setUsingMyLocation(false);
         },
         () => {
-          setLocMsg(lang === "es" ? "No se pudo obtener ubicaciÃ³n." : "Could not get location.");
+          setLocMsg(lang === "es" ? "No se pudo obtener ubicación." : "Could not get location.");
           setUsingMyLocation(false);
         },
         { enableHighAccuracy: false, timeout: 8000 }
       );
     } catch {
-      setLocMsg(lang === "es" ? "Error de ubicaciÃ³n." : "Location error.");
+      setLocMsg(lang === "es" ? "Error de ubicación." : "Location error.");
       setUsingMyLocation(false);
     }
   };
@@ -2494,8 +2449,8 @@ function applyTravelParams(list: Listing[], p: TravelParams): Listing[] {
     package: ["paquete", "packages", "package", "resort", "all inclusive", "todo incluido"],
     cruise: ["crucero", "cruise", "naviera"],
     hotel: ["hotel", "resort", "hospedaje", "stay"],
-    flight: ["vuelo", "flight", "air", "aereo", "aÃ©reo"],
-    tour: ["tour", "excursion", "excursiÃ³n", "paseo"],
+    flight: ["vuelo", "flight", "air", "aereo", "aéreo"],
+    tour: ["tour", "excursion", "excursión", "paseo"],
     other: [],
   };
 
@@ -2551,10 +2506,10 @@ const parseAutoFromTitle = (title: string) => {
     // Remove year, remove mileage chunk, split remaining by separators
     const withoutMileage = mileageMatch ? t.replace(mileageMatch[0], "").trim() : t;
     const afterYear = normalizeSpace(withoutMileage.replace(new RegExp("^" + year + "\\b"), "").trim());
-    const cleaned = afterYear.replace(/^[\-â€“â€”:\s]+/, "").trim();
+    const cleaned = afterYear.replace(/^[\-–—:\s]+/, "").trim();
     const tokens = cleaned.split(" ").filter(Boolean);
-    const mm = tokens.slice(0, 3).join(" ").trim(); // allow 2â€“3 word models (e.g., "F-150 XLT")
-    if (mm) specLabel = `${year} â€¢ ${mm}`;
+    const mm = tokens.slice(0, 3).join(" ").trim(); // allow 2–3 word models (e.g., "F-150 XLT")
+    if (mm) specLabel = `${year} • ${mm}`;
   }
 
   return { year, specLabel, mileageLabel };
@@ -2562,7 +2517,7 @@ const parseAutoFromTitle = (title: string) => {
 
 const inferRentasFromTitle = (title: string) => {
   const t = title.toLowerCase();
-  if (/(\bcuarto\b|\bhabitaci[oÃ³]n\b|\broom\b)/i.test(t)) return "room";
+  if (/(\bcuarto\b|\bhabitaci[oó]n\b|\broom\b)/i.test(t)) return "room";
   if (/(\bstudio\b)/i.test(t)) return "studio";
   return null;
 };
@@ -2571,7 +2526,7 @@ const inferRentasFromTitle = (title: string) => {
 function parseEmpleoFromText(title: string, blurb: string, payLabel: string) {
   const t = `${title} ${blurb}`.toLowerCase();
 
-  const isRemote = /(\bremoto\b|\bremote\b|\bhybrid\b|\bh[iÃ­]brido\b|\bdesde casa\b|\bwork from home\b)/i.test(t);
+  const isRemote = /(\bremoto\b|\bremote\b|\bhybrid\b|\bh[ií]brido\b|\bdesde casa\b|\bwork from home\b)/i.test(t);
 
   let jobType: "full" | "part" | "contract" | "temp" | null = null;
   if (/(tiempo completo|full[-\s]?time)/i.test(t)) jobType = "full";
@@ -2605,29 +2560,29 @@ const serviceTagsFromText = (title: string, blurb: string) => {
     if (!tags.includes(tag)) tags.push(tag);
   };
 
-  if (/(plomer[iÃ­]a|plumbing)/i.test(t)) add("PlomerÃ­a");
-  if (/(jardin|yard|mowing|pasto)/i.test(t)) add("JardinerÃ­a");
+  if (/(plomer[ií]a|plumbing)/i.test(t)) add("Plomería");
+  if (/(jardin|yard|mowing|pasto)/i.test(t)) add("Jardinería");
   if (/(limpieza|cleaning|cleanup)/i.test(t)) add("Limpieza");
   if (/(electric|electricidad|electricista)/i.test(t)) add("Electricidad");
   if (/(pintura|painting)/i.test(t)) add("Pintura");
   if (/(mudanza|moving)/i.test(t)) add("Mudanzas");
-  if (/(tech|computadora|computer|wifi|internet)/i.test(t)) add("TecnologÃ­a");
+  if (/(tech|computadora|computer|wifi|internet)/i.test(t)) add("Tecnología");
   if (/(tutor|clase|lessons|classes)/i.test(t)) add("Clases");
-  if (/(reparaci[oÃ³]n|repair)/i.test(t)) add("ReparaciÃ³n");
+  if (/(reparaci[oó]n|repair)/i.test(t)) add("Reparación");
 
   return tags.slice(0, 3);
 };
 
 const extractDepositFromText = (text: string): string | null => {
   const t = text.toLowerCase();
-  // Look for "deposit"/"depÃ³sito"/"depos" plus a dollar amount nearby
+  // Look for "deposit"/"depósito"/"depos" plus a dollar amount nearby
   const m =
-    t.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})(?:\s*(?:deposit|dep[oÃ³]sito|depos))?/) ||
-    t.match(/(?:deposit|dep[oÃ³]sito|depos)\s*[:\-]?\s*\$\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})/);
+    t.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})(?:\s*(?:deposit|dep[oó]sito|depos))?/) ||
+    t.match(/(?:deposit|dep[oó]sito|depos)\s*[:\-]?\s*\$\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})/);
   if (!m) return null;
   const amt = m[1];
   // Avoid showing rent price as "deposit" by requiring the keyword somewhere in the text
-  if (!/(deposit|dep[oÃ³]sito|depos)/.test(t)) return null;
+  if (!/(deposit|dep[oó]sito|depos)/.test(t)) return null;
   return `$${amt}`;
 };
 
@@ -2635,7 +2590,7 @@ const rentasAvailabilityLabel = (x: Listing, lang: Lang): string | null => {
   if (x.availableNow) return lang === "es" ? "Disponible ahora" : "Available now";
   if (typeof x.availableInDays === "number") {
     return lang === "es"
-      ? `Disponible en ${x.availableInDays} dÃ­as`
+      ? `Disponible en ${x.availableInDays} días`
       : `Available in ${x.availableInDays} days`;
   }
   return null;
@@ -2662,11 +2617,11 @@ const microLine = (x: Listing) => {
       typeof x.baths === "number" ? `${x.baths} ba` : null,
       x.propertyType ? String(x.propertyType) : null,
       x.furnished ? (lang === "es" ? "Amueblado" : "Furnished") : null,
-      deposit ? `${lang === "es" ? "DepÃ³sito" : "Deposit"} ${deposit}` : null,
+      deposit ? `${lang === "es" ? "Depósito" : "Deposit"} ${deposit}` : null,
       avail,
       x.leaseTerm ? `${lang === "es" ? "Contrato" : "Lease"} ${x.leaseTerm}` : null,
     ].filter(Boolean);
-    return bits.length ? bits.join(" â€¢ ") : null;
+    return bits.length ? bits.join(" • ") : null;
   }
   if (x.category === "empleos") {
     const bits = [
@@ -2674,21 +2629,21 @@ const microLine = (x: Listing) => {
       (x as any).pay ? String((x as any).pay) : null,
       (x as any).remote ? (lang === "es" ? "Remoto" : "Remote") : null,
     ].filter(Boolean);
-    return bits.length ? bits.join(" â€¢ ") : null;
+    return bits.length ? bits.join(" • ") : null;
   }
   if (x.category === "servicios") {
     const bits = [
       (x as any).serviceType ? String((x as any).serviceType) : null,
       (x as any).pricing ? String((x as any).pricing) : null,
     ].filter(Boolean);
-    return bits.length ? bits.join(" â€¢ ") : null;
+    return bits.length ? bits.join(" • ") : null;
   }
   if (x.category === "en-venta") {
     const bits = [
       (x as any).condition ? String((x as any).condition) : null,
       (x as any).itemType ? String((x as any).itemType) : null,
     ].filter(Boolean);
-    return bits.length ? bits.join(" â€¢ ") : null;
+    return bits.length ? bits.join(" • ") : null;
   }
   if (x.category === "clases") {
     const bits = [
@@ -2696,13 +2651,13 @@ const microLine = (x: Listing) => {
       (x as any).level ? String((x as any).level) : null,
       (x as any).mode ? String((x as any).mode) : null,
     ].filter(Boolean);
-    return bits.length ? bits.join(" â€¢ ") : null;
+    return bits.length ? bits.join(" • ") : null;
   }
   if (x.category === "comunidad") {
     const bits = [
       (x as any).ctype ? String((x as any).ctype) : null,
     ].filter(Boolean);
-    return bits.length ? bits.join(" â€¢ ") : null;
+    return bits.length ? bits.join(" • ") : null;
   }
   return null;
 };
@@ -2725,8 +2680,8 @@ const ActionPills = (x: Listing) => {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebPage",
-            name: "Buscar anuncios â€” LEONIX Clasificados",
-            description: "Busca anuncios por categorÃ­a, ciudad y filtros en LEONIX Clasificados.",
+            name: "Buscar anuncios — LEONIX Clasificados",
+            description: "Busca anuncios por categoría, ciudad y filtros en LEONIX Clasificados.",
             url: "/clasificados/lista",
             potentialAction: {
               "@type": "SearchAction",
@@ -2753,7 +2708,7 @@ const ActionPills = (x: Listing) => {
 };
 
 // ------------------------------------------------------------
-// A4.13 â€” Visual hierarchy (NO ranking impact; UI only)
+// A4.13 — Visual hierarchy (NO ranking impact; UI only)
 // ------------------------------------------------------------
 type VisualTier = "joya" | "corona" | "corona-oro" | null;
 
@@ -2786,7 +2741,7 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
           ? "Corona de Oro"
           : "Golden Crown";
 
-  const icon = tier === "joya" ? "ðŸ’Ž" : tier === "corona" ? "ðŸ‘‘" : "ðŸ‘‘âœ¨";
+  const icon = tier === "joya" ? "💎" : tier === "corona" ? "👑" : "👑✨";
 
   const cls =
     tier === "joya"
@@ -2813,28 +2768,28 @@ const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
 
 const BadgeLegend = ({ lang }: { lang: Lang }) => {
   const summary =
-    lang === "es" ? "Â¿QuÃ© significan las insignias?" : "What do the badges mean?";
+    lang === "es" ? "¿Qué significan las insignias?" : "What do the badges mean?";
 
   const items: Array<{ tier: VisualTier; text: { es: string; en: string } }> = [
     {
       tier: "corona-oro",
       text: {
-        es: "Corona de Oro â€” negocios con perfil completo y contacto directo.",
-        en: "Gold Crown â€” businesses with a complete profile and direct contact.",
+        es: "Corona de Oro — negocios con perfil completo y contacto directo.",
+        en: "Gold Crown — businesses with a complete profile and direct contact.",
       },
     },
     {
       tier: "corona",
       text: {
-        es: "Corona â€” negocio verificado (presencia profesional).",
-        en: "Crown â€” verified business presence.",
+        es: "Corona — negocio verificado (presencia profesional).",
+        en: "Crown — verified business presence.",
       },
     },
     {
       tier: "joya",
       text: {
-        es: "Joya â€” vendedor personal con perfil mejorado.",
-        en: "Jewel â€” personal seller with an upgraded profile.",
+        es: "Joya — vendedor personal con perfil mejorado.",
+        en: "Jewel — personal seller with an upgraded profile.",
       },
     },
   ];
@@ -2855,7 +2810,7 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
             className="text-[#111111] group-open:rotate-180 transition-transform"
             aria-hidden="true"
           >
-            â–¾
+            ▾
           </span>
         </span>
       </summary>
@@ -2876,8 +2831,8 @@ const BadgeLegend = ({ lang }: { lang: Lang }) => {
 
         <div className="mt-2 text-[11px] text-[#111111]">
           {lang === "es"
-            ? "Las insignias son una seÃ±al visual. No reemplazan los filtros."
-            : "Badges are a visual signal. They donâ€™t replace filters."}
+            ? "Las insignias son una señal visual. No reemplazan los filtros."
+            : "Badges are a visual signal. They don’t replace filters."}
         </div>
       </div>
     </details>
@@ -2896,7 +2851,7 @@ const ListingCardGrid = (x: Listing) => {
   const autosParsed = isAutos ? parseAutoFromTitle(x.title[lang]) : null;
 
   const autosSpec = isAutos
-    ? ([x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" â€¢ ") ||
+    ? ([x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" • ") ||
         autosParsed?.specLabel ||
         null)
     : null;
@@ -2988,7 +2943,7 @@ const isComunidadLite = isComunidad;
               </>
             ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
               <>
-                <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "AcciÃ³n:" : "Action:"}</span>
+                <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
                 <span>{x.priceLabel[lang]}</span>
               </>
             ) : (
@@ -3054,7 +3009,7 @@ const isComunidadLite = isComunidad;
                     : isServicios
                       ? (lang === "es" ? "Negocio" : "Business")
                       : (lang === "es" ? "Perfil" : "Profile")}
-                {" Â· "}
+                {" · "}
               </span>
               {x.businessName}
             </div>
@@ -3069,7 +3024,7 @@ const isComunidadLite = isComunidad;
           {/* Location + time (Autos pushed lower for scan hierarchy) */}
           <div className={cx("text-[#111111]", isAutos ? "mt-1 text-xs sm:text-sm" : "mt-1 text-xs sm:text-sm")}>
             <span className="text-[#111111]">{x.city}</span>{" "}
-            <span className="text-yellow-400/80">â€¢</span>{" "}
+            <span className="text-yellow-400/80">•</span>{" "}
             <span className="text-[#111111]">{x.postedAgo[lang]}</span>
           </div>
 
@@ -3094,7 +3049,7 @@ const isComunidadLite = isComunidad;
             ) : null}
             {x.hasImage ? (
               <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[11px] text-[#111111]">
-                ðŸ“·
+                📷
               </span>
             ) : null}
           </div>
@@ -3131,7 +3086,7 @@ const isComunidadLite = isComunidad;
                   : "Save favorite"
             }
           >
-            {isFav ? "â˜…" : "â˜†"}
+            {isFav ? "★" : "☆"}
           </button>
         </div>
       </div>
@@ -3143,7 +3098,7 @@ const isComunidadLite = isComunidad;
       {ActionPills(x)}
 
       <a
-        href={getListingHref(x, lang)}
+        href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
         className="mt-2.5 block rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-center text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
       >
         {lang === "es" ? "Ver detalle" : "View details"}
@@ -3163,7 +3118,7 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   const tier = inferVisualTier(x);
 
   const autosSpec = isAutos
-    ? [x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" â€¢ ")
+    ? [x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" • ")
     : null;
 
   const autosMileage =
@@ -3225,7 +3180,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <a
-            href={getListingHref(x, lang)}
+            href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
             className="min-w-0"
           >
             <div className="flex flex-wrap items-center gap-2">
@@ -3258,7 +3213,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
     </>
   ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
     <>
-      <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "AcciÃ³n:" : "Action:"}</span>
+      <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
       <span>{x.priceLabel[lang]}</span>
     </>
   ) : (
@@ -3357,7 +3312,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
             <div className="mt-0.5 text-xs text-[#111111]">
               <span className="text-[#111111]">{x.city}</span>{" "}
-              <span className="text-yellow-400/80">â€¢</span>{" "}
+              <span className="text-yellow-400/80">•</span>{" "}
               <span className="text-[#111111]">{x.postedAgo[lang]}</span>
             </div>
 
@@ -3386,7 +3341,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     : "Save favorite"
               }
             >
-              {isFav ? "â˜…" : "â˜†"}
+              {isFav ? "★" : "☆"}
             </button>
           </div>
         </div>
@@ -3404,7 +3359,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           ) : null}
           {x.hasImage ? (
             <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[11px] text-[#111111]">
-              ðŸ“·
+              📷
             </span>
           ) : null}
         </div>
@@ -3441,7 +3396,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             href={`/clasificados/membresias?lang=${lang}`}
             className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#F5F5F5] transition sm:px-4 sm:py-2 sm:text-sm"
           >
-            {lang === "es" ? "MembresÃ­as" : "Memberships"}
+            {lang === "es" ? "Membresías" : "Memberships"}
           </a>
         </div>
       </div>
@@ -3480,12 +3435,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-4 py-4 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-[#111111]">
-                {lang === "es" ? "Explorar por categorÃ­a" : "Browse by category"}
+                {lang === "es" ? "Explorar por categoría" : "Browse by category"}
               </div>
 
               <div className="hidden md:flex items-center gap-1 text-[11px] text-[#111111]">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#111111]/60" />
-                <span>{lang === "es" ? "Cambio rÃ¡pido" : "Quick switch"}</span>
+                <span>{lang === "es" ? "Cambio rápido" : "Quick switch"}</span>
               </div>
             </div>
 
@@ -3529,14 +3484,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="mt-2 text-xs text-[#111111]/85">
               {category === "servicios"
                 ? (lang === "es"
-                    ? "Tip: empieza por el tipo de servicio; despuÃ©s afina por horario y si viene a domicilio."
+                    ? "Tip: empieza por el tipo de servicio; después afina por horario y si viene a domicilio."
                     : "Tip: start with service type, then refine by availability and whether they come to you.")
                 : category === "en-venta"
                   ? (lang === "es"
-                      ? "Tip: usa precio + tipo + condiciÃ³n. â€œNegociableâ€ se detecta por palabras como OBO/negociable."
-                      : "Tip: use price + type + condition. â€œNegotiableâ€ is inferred from OBO/negotiable keywords.")
+                      ? "Tip: usa precio + tipo + condición. “Negociable” se detecta por palabras como OBO/negociable."
+                      : "Tip: use price + type + condition. “Negotiable” is inferred from OBO/negotiable keywords.")
                   : (lang === "es"
-                      ? "Tip: elige una categorÃ­a y usa filtros para afinar resultados."
+                      ? "Tip: elige una categoría y usa filtros para afinar resultados."
                       : "Tip: pick a category and use filters to refine results.")}
             </div>
 
@@ -3572,7 +3527,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 aria-label={lang === "es" ? "Mostrar filtros" : "Show filters"}
                 title={lang === "es" ? "Mostrar filtros" : "Show filters"}
               >
-                â‰¡
+                ≡
               </button>
             </div>
           ) : (
@@ -3604,7 +3559,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Precio mÃ­n." : "Min price"}
+                        {lang === "es" ? "Precio mín." : "Min price"}
                       </label>
                       <input
                         value={rentasParams.rpmin}
@@ -3618,7 +3573,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Precio mÃ¡x." : "Max price"}
+                        {lang === "es" ? "Precio máx." : "Max price"}
                       </label>
                       <input
                         value={rentasParams.rpmax}
@@ -3635,7 +3590,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "RecÃ¡maras" : "Beds"}
+                        {lang === "es" ? "Recámaras" : "Beds"}
                       </label>
                       <select
                         value={rentasParams.rbeds}
@@ -3654,7 +3609,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "BaÃ±os" : "Baths"}
+                        {lang === "es" ? "Baños" : "Baths"}
                       </label>
                       <select
                         value={rentasParams.rbaths}
@@ -3709,7 +3664,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Pago mÃ­n." : "Pay min"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Pago mín." : "Pay min"}</label>
                       <input
                         value={empleosParams.epaymin}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymin: e.target.value }))}
@@ -3720,7 +3675,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Pago mÃ¡x." : "Pay max"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Pago máx." : "Pay max"}</label>
                       <input
                         value={empleosParams.epaymax}
                         onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymax: e.target.value }))}
@@ -3809,8 +3764,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       </select>
                       <div className="mt-2 text-xs text-[#111111]/80">
                         {lang === "es"
-                          ? "Tip: se infiere por palabras como â€œa domicilioâ€, â€œmÃ³vilâ€, â€œen tiendaâ€."
-                          : "Tip: inferred from keywords like â€œmobile/house callsâ€ or â€œshop/officeâ€."}
+                          ? "Tip: se infiere por palabras como “a domicilio”, “móvil”, “en tienda”."
+                          : "Tip: inferred from keywords like “mobile/house calls” or “shop/office”."}
                       </div>
                     </div>
 
@@ -3867,7 +3822,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "CondiciÃ³n" : "Condition"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Condición" : "Condition"}</label>
                       <select
                         value={ventaParams.vcond || ""}
                         onChange={(e) => setVentaParams((p) => ({ ...p, vcond: e.target.value }))}
@@ -3890,12 +3845,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="yes">{lang === "es" ? "SÃ­ (negociable/OB O)" : "Yes (negotiable/OB O)"}</option>
+                        <option value="yes">{lang === "es" ? "Sí (negociable/OB O)" : "Yes (negotiable/OB O)"}</option>
                       </select>
                       <div className="mt-2 text-xs text-[#111111]/80">
                         {lang === "es"
-                          ? "Tip: se infiere por palabras como â€œnegociableâ€, â€œmejor ofertaâ€, â€œOBOâ€."
-                          : "Tip: inferred from â€œnegotiableâ€, â€œbest offerâ€, â€œOBOâ€."}
+                          ? "Tip: se infiere por palabras como “negociable”, “mejor oferta”, “OBO”."
+                          : "Tip: inferred from “negotiable”, “best offer”, “OBO”."}
                       </div>
                     </div>
 
@@ -3991,14 +3946,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           value={travelParams.tbmin}
                           onChange={(e) => setTravelParams((p) => ({ ...p, tbmin: e.target.value }))}
                           inputMode="numeric"
-                          placeholder={lang === "es" ? "mÃ­n." : "min"}
+                          placeholder={lang === "es" ? "mín." : "min"}
                           className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
                         />
                         <input
                           value={travelParams.tbmax}
                           onChange={(e) => setTravelParams((p) => ({ ...p, tbmax: e.target.value }))}
                           inputMode="numeric"
-                          placeholder={lang === "es" ? "mÃ¡x." : "max"}
+                          placeholder={lang === "es" ? "máx." : "max"}
                           className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
                         />
                       </div>
@@ -4007,8 +3962,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                   <div className="mt-3 rounded-xl border border-black/10 bg-[#EFEFEF] p-3 text-xs text-[#111111]">
                     {lang === "es"
-                      ? "Tip: Usa presupuesto cuando el anuncio tenga precio numÃ©rico. Si dice â€œOfertasâ€, se mantiene visible."
-                      : "Tip: Budget applies when a numeric price exists. â€œDealsâ€ stays visible."}
+                      ? "Tip: Usa presupuesto cuando el anuncio tenga precio numérico. Si dice “Ofertas”, se mantiene visible."
+                      : "Tip: Budget applies when a numeric price exists. “Deals” stays visible."}
                   </div>
                 </div>
               ) : null}
@@ -4104,8 +4059,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                 <div className="text-[11px] text-[#111111]">
                   {lang === "es"
-                    ? "Consejo: en mÃ³vil usa â€œMÃ¡s filtrosâ€."
-                    : "Tip: on mobile use â€œMore filtersâ€."}
+                    ? "Consejo: en móvil usa “Más filtros”."
+                    : "Tip: on mobile use “More filters”."}
                 </div>
               </div>
             </div>
@@ -4217,7 +4172,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       aria-label={m}
                       title={m}
                     >
-                      {m === "grid" ? "â–¦" : m === "list" ? "â‰¡" : "â–¤"}
+                      {m === "grid" ? "▦" : m === "list" ? "≡" : "▤"}
                     </button>
                   ))}
                 </div>
@@ -4250,7 +4205,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     className="whitespace-nowrap rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs sm:py-1 text-[#111111] hover:bg-[#EFEFEF] transition"
                     aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                   >
-                    {c.text} <span className="ml-1 opacity-80">Ã—</span>
+                    {c.text} <span className="ml-1 opacity-80">×</span>
                   </button>
                 ))}
               </div>
@@ -4271,7 +4226,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[#111111]">
                   <span className={cx("inline-flex h-1.5 w-1.5 rounded-full bg-white/20 transition-opacity", isSwitchingCategory ? "opacity-100 bg-[#111111]/60 animate-pulse" : "opacity-0")} aria-hidden="true" />
                   <span className={cx("transition-opacity", isSwitchingCategory ? "opacity-100" : "opacity-0")} aria-live="polite">
-                    {lang === "es" ? "Cambiando categorÃ­aâ€¦" : "Switching categoryâ€¦"}
+                    {lang === "es" ? "Cambiando categoría…" : "Switching category…"}
                   </span>
                 </div>
                 {category !== "all" ? (
@@ -4285,7 +4240,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         : `View ${CATEGORY_LABELS[category].en} listings`}
                     </a>
 
-                    <span className="text-yellow-400/80">â€¢</span>
+                    <span className="text-yellow-400/80">•</span>
 
                     <a
                       href={`/clasificados/lista?lang=${lang}&cat=all${qSmart ? `&q=${encodeURIComponent(qSmart)}` : ""}${zipMode && zipClean ? `&zip=${encodeURIComponent(zipClean)}` : ""}${!zipMode && city ? `&city=${encodeURIComponent(city)}` : ""}${radiusMi ? `&r=${encodeURIComponent(String(radiusMi))}` : ""}`}
@@ -4301,7 +4256,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   {filtered.length === 0
                     ? 0
                     : (pageClamped - 1) * perPage + 1}
-                  {"â€“"}
+                  {"–"}
                   {filtered.length === 0
                     ? 0
                     : Math.min(
@@ -4313,22 +4268,22 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 
                 <div className="mt-1 text-[11px] text-[#111111]">
                   {lang === "es"
-                    ? "Sin trucos: lo gratis tambiÃ©n aparece. Antiâ€‘spam automÃ¡tico."
+                    ? "Sin trucos: lo gratis también aparece. Anti‑spam automático."
                     : "No tricks: free listings still show. Automatic anti-spam."}
                 </div>
 </div>
 
                 <div className="mt-1 text-xs text-[#111111]">
                   <span className="font-medium text-[#111111]">{CATEGORY_LABELS[category][lang]}</span>
-                  <span className="mx-2 text-yellow-400/80">â€¢</span>
+                  <span className="mx-2 text-yellow-400/80">•</span>
                   <span>{lang === "es" ? "en" : "in"} {city}</span>
-                  <span className="mx-2 text-yellow-400/80">â€¢</span>
+                  <span className="mx-2 text-yellow-400/80">•</span>
                   <span>{radiusMi} mi</span>
                 </div>
 
                                 <div className="mt-2 text-[11px] text-[#111111]/90">
                   {lang === "es"
-                    ? "Tip: en mÃ³vil, la vista en cuadrÃ­cula muestra mÃ¡s anuncios a la vez."
+                    ? "Tip: en móvil, la vista en cuadrícula muestra más anuncios a la vez."
                     : "Tip: on mobile, grid view shows more listings at once."}
                 </div>
 
@@ -4348,7 +4303,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     )}
                     aria-label={lang === "es" ? "Vista de lista" : "List view"}
                   >
-                    â‰¡
+                    ≡
                   </button>
                   <button
                     type="button"
@@ -4361,7 +4316,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     )}
                     aria-label={lang === "es" ? "Lista con imagen" : "List with images"}
                   >
-                    â˜°
+                    ☰
                   </button>
                   <button
                     type="button"
@@ -4372,9 +4327,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
                         : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                     )}
-                    aria-label={lang === "es" ? "Vista de cuadrÃ­cula" : "Grid view"}
+                    aria-label={lang === "es" ? "Vista de cuadrícula" : "Grid view"}
                   >
-                    â–¦
+                    ▦
                   </button>
                 </div>
 
@@ -4440,7 +4395,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             aria-label={lang === "es" ? "Cerrar" : "Close"}
           >
-            âœ•
+            ✕
           </button>
         </div>
       </div>
@@ -4463,8 +4418,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     }}
                     placeholder={
                       lang === "es"
-                        ? "Buscar: trabajo, troca, cuartoâ€¦"
-                        : "Search: jobs, truck, roomâ€¦"
+                        ? "Buscar: trabajo, troca, cuarto…"
+                        : "Search: jobs, truck, room…"
                     }
                     className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2.5 text-sm text-[#111111] outline-none placeholder:text-[#111111] focus:border-[#A98C2A]/60"
                     aria-label={UI.search[lang]}
@@ -4487,7 +4442,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         >
                           <span>{CATEGORY_LABELS[c][lang]}</span>
                           <span className="text-xs text-[#111111]">
-                            {lang === "es" ? "CategorÃ­a" : "Category"}
+                            {lang === "es" ? "Categoría" : "Category"}
                           </span>
                         </button>
                       ))}
@@ -4574,7 +4529,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       className="whitespace-nowrap rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs sm:py-1 text-[#111111] hover:bg-[#EFEFEF] transition"
                       aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                     >
-                      {c.text} <span className="ml-1 opacity-80">Ã—</span>
+                      {c.text} <span className="ml-1 opacity-80">×</span>
                     </button>
                   ))}
                 </div>
@@ -4621,7 +4576,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                     )}
                   >
-                    {lang === "es" ? "CuadrÃ­cula" : "Grid"}
+                    {lang === "es" ? "Cuadrícula" : "Grid"}
                   </button>
                 </div>
               </div>
@@ -4735,7 +4690,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 {x.businessName ?? x.title[lang]}
               </div>
               <div className="mt-0.5 text-xs text-[#111111]">
-                {x.city} â€¢ {x.postedAgo[lang]}
+                {x.city} • {x.postedAgo[lang]}
               </div>
             </div>
             <button
@@ -4749,14 +4704,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               )}
               aria-label={favIds.has(x.id) ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
             >
-              {favIds.has(x.id) ? "â˜…" : "â˜†"}
+              {favIds.has(x.id) ? "★" : "☆"}
             </button>
           </div>
 
           <div className="mt-2 text-sm font-bold text-yellow-200 tracking-tight">{x.priceLabel[lang]}</div>
 
           <a
-            href={getListingHref(x, lang)}
+            href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
             className="mt-3 block rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-center text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
           >
             {lang === "es" ? "Ver detalle" : "View details"}
@@ -4864,7 +4819,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Autos" : "Autos"}</div>
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "AÃ±o min" : "Year min"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Año min" : "Year min"}</label>
                       <input
                         value={autosParams.aymin}
                         onChange={(e) => setAutosParams((p) => ({ ...p, aymin: e.target.value }))}
@@ -4874,7 +4829,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "AÃ±o max" : "Year max"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Año max" : "Year max"}</label>
                       <input
                         value={autosParams.aymax}
                         onChange={(e) => setAutosParams((p) => ({ ...p, aymax: e.target.value }))}
@@ -4902,7 +4857,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Millas mÃ¡x" : "Miles max"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Millas máx" : "Miles max"}</label>
                       <input
                         value={autosParams.amilesmax}
                         onChange={(e) => setAutosParams((p) => ({ ...p, amilesmax: e.target.value }))}
@@ -4912,7 +4867,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "CondiciÃ³n" : "Condition"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Condición" : "Condition"}</label>
                       <select
                         value={autosParams.acond || ""}
                         onChange={(e) => setAutosParams((p) => ({ ...p, acond: e.target.value }))}
@@ -4967,7 +4922,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "RecÃ¡maras" : "Beds"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Recámaras" : "Beds"}</label>
                       <select
                         value={rentasParams.rbeds}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rbeds: e.target.value }))}
@@ -4984,7 +4939,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "BaÃ±os" : "Baths"}</label>
+                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Baños" : "Baths"}</label>
                       <select
                         value={rentasParams.rbaths}
                         onChange={(e) => setRentasParams((p) => ({ ...p, rbaths: e.target.value }))}
@@ -5053,7 +5008,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="yes">{lang === "es" ? "SÃ­" : "Yes"}</option>
+                        <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
                         <option value="no">{lang === "es" ? "No" : "No"}</option>
                       </select>
                     </div>
@@ -5066,7 +5021,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="yes">{lang === "es" ? "SÃ­" : "Yes"}</option>
+                        <option value="yes">{lang === "es" ? "Sí" : "Yes"}</option>
                         <option value="no">{lang === "es" ? "No" : "No"}</option>
                       </select>
                     </div>
@@ -5080,8 +5035,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       >
                         <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
                         <option value="now">{lang === "es" ? "Ahora" : "Now"}</option>
-                        <option value="30">{lang === "es" ? "En 30 dÃ­as" : "In 30 days"}</option>
-                        <option value="60">{lang === "es" ? "En 60 dÃ­as" : "In 60 days"}</option>
+                        <option value="30">{lang === "es" ? "En 30 días" : "In 30 days"}</option>
+                        <option value="60">{lang === "es" ? "En 60 días" : "In 60 days"}</option>
                       </select>
                     </div>
 
@@ -5180,7 +5135,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     setCitySuggestOpen(true);
                   }}
                   onFocus={() => setCitySuggestOpen(true)}
-                  placeholder={lang === "es" ? "Ej: San JosÃ©" : "e.g. San Jose"}
+                  placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
                   className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3 text-sm text-[#111111] outline-none placeholder:text-[#111111] focus:border-[#A98C2A]/60"
                 />
 
@@ -5207,7 +5162,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                 <div className="mt-1 text-[11px] text-[#111111]">
                   {lang === "es"
-                    ? "Si eliges ciudad, el ZIP se limpia automÃ¡ticamente."
+                    ? "Si eliges ciudad, el ZIP se limpia automáticamente."
                     : "If you pick a city, ZIP is cleared automatically."}
                 </div>
               </div>
@@ -5239,8 +5194,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                 <div className="mt-1 text-[11px] text-[#111111]">
                   {lang === "es"
-                    ? "ZIP solo aplica si existe (5 dÃ­gitos). Si no existe, no se aplica ubicaciÃ³n."
-                    : "ZIP only applies if it exists (5 digits). If not found, location wonâ€™t apply."}
+                    ? "ZIP solo aplica si existe (5 dígitos). Si no existe, no se aplica ubicación."
+                    : "ZIP only applies if it exists (5 digits). If not found, location won’t apply."}
                 </div>
 
                 {zipModeRaw && !zipAnchor.known ? (
@@ -5335,7 +5290,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className="fixed bottom-6 right-6 z-50 rounded-full bg-[#111111] p-3 text-[#F5F5F5] shadow-lg hover:bg-[#111111] md:hidden"
           aria-label="Back to top"
         >
-          â†‘
+          ↑
         </button>
       )}
     </div>
