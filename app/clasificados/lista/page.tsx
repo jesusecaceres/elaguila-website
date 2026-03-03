@@ -2978,6 +2978,119 @@ function ServiciosStandardCard(x: Listing, lang: Lang) {
       </div>
     </a>
   );
+
+}
+
+function ServiciosStandardMiniCard(x: Listing, lang: Lang) {
+  const href = getListingHref(x, lang);
+  const tags = (Array.isArray((x as any).servicesTags)
+    ? (x as any).servicesTags
+    : (serviceTagsFromText(x.title[lang], x.blurb[lang]) ?? [])) as string[];
+  const verified = Boolean((x as any).verifiedLicense);
+  const response = (x as any).responseTime?.[lang] as string | undefined;
+  const img =
+    (Array.isArray((x as any).photos) && (x as any).photos[0])
+      ? (x as any).photos[0]
+      : "/classifieds-placeholder-bilingual.png";
+
+  return (
+    <a
+      href={href}
+      className="group block w-[230px] shrink-0 rounded-2xl border border-black/10 bg-white p-3 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md"
+    >
+      <div className="aspect-[4/3] overflow-hidden rounded-xl border border-black/10 bg-[#F3F3F3]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={img} alt="" className="h-full w-full object-cover" />
+      </div>
+
+      <div className="mt-3">
+        <div className="text-[15px] font-extrabold leading-snug text-[#111111] line-clamp-2">
+          {x.title[lang]}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {verified ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#F2EFE8] px-2.5 py-1 text-[11px] font-semibold text-[#111111]">
+              ✓ {lang === "es" ? "Licencia verificada" : "Verified license"}
+            </span>
+          ) : null}
+
+          {response ? (
+            <span className="inline-flex items-center rounded-full bg-[#EAF6EE] px-2.5 py-1 text-[11px] font-semibold text-[#1F7A3A]">
+              {lang === "es" ? "Responde" : "Responds"} {response}
+            </span>
+          ) : null}
+        </div>
+
+        {tags?.length ? (
+          <div className="mt-2">
+            <span className="inline-flex items-center rounded-full border border-black/10 bg-[#F7F7F7] px-3 py-1 text-[12px] font-semibold text-[#111111]">
+              {tags[0]}
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </a>
+  );
+}
+
+function ServiciosStandardCarouselRow({
+  items,
+  lang,
+  title,
+}: {
+  items: Listing[];
+  lang: Lang;
+  title?: string;
+}) {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollBy = (dir: "left" | "right") => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const delta = dir === "left" ? -720 : 720;
+    el.scrollBy({ left: delta, behavior: "smooth" });
+  };
+
+  const label = title ?? (lang === "es" ? "Más opciones" : "More options");
+
+  return (
+    <section className="max-w-5xl mx-auto rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-[#111111]">{label}</div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => scrollBy("left")}
+            className="h-9 w-9 rounded-xl border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF]"
+            aria-label={lang === "es" ? "Anterior" : "Previous"}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollBy("right")}
+            className="h-9 w-9 rounded-xl border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF]"
+            aria-label={lang === "es" ? "Siguiente" : "Next"}
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollerRef}
+        className="mt-4 flex gap-3 overflow-x-auto pb-2"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {items.map((x) => (
+          <div key={x.id} style={{ scrollSnapAlign: "start" }}>
+            {ServiciosStandardMiniCard(x, lang)}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function ServiciosPlusOrPremiumRow(x: Listing, lang: Lang) {
@@ -2993,7 +3106,7 @@ function ServiciosPlusOrPremiumRow(x: Listing, lang: Lang) {
     <a
       href={href}
       className={cx(
-        "group block rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md",
+        "group block max-w-4xl mx-auto rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md",
         tierS === "premium" ? "border-[#A98C2A]/55 ring-1 ring-[#A98C2A]/15" : "border-black/10"
       )}
     >
@@ -3736,6 +3849,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <aside
           className={cx(
             "hidden md:block",
+            "w-[240px] lg:w-[260px]",
             "sticky top-[calc(56px+12px)] z-30",
             "rounded-2xl border border-black/10 bg-white shadow-sm",
             compact ? "shadow-lg" : ""
@@ -4945,10 +5059,52 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   </section>
 ) : null}        <section className="mt-6">
           {category === "servicios" ? (
-            <div className="flex flex-col gap-3">
-              {visible.map((x) => (
-                <div key={x.id}>{ServiciosResult(x, lang)}</div>
-              ))}
+            <div className="flex flex-col gap-5">
+              {(() => {
+                const out: JSX.Element[] = [];
+                let i = 0;
+                let carouselCount = 0;
+
+                while (i < visible.length) {
+                  const x = visible[i];
+                  const tierS = inferServicesTier(x);
+
+                  if (tierS !== "standard") {
+                    out.push(<div key={x.id}>{ServiciosPlusOrPremiumRow(x, lang)}</div>);
+                    i += 1;
+                    continue;
+                  }
+
+                  if (carouselCount >= 8) {
+                    out.push(<div key={x.id}>{ServiciosStandardCard(x, lang)}</div>);
+                    i += 1;
+                    continue;
+                  }
+
+                  const items: Listing[] = [];
+                  let j = i;
+                  while (j < visible.length && inferServicesTier(visible[j]) === "standard" && items.length < 8) {
+                    items.push(visible[j]);
+                    j += 1;
+                  }
+
+                  carouselCount += 1;
+                  const key = "std-carousel-" + items.map((t) => t.id).join("-");
+                  out.push(
+                    <div key={key}>
+                      <ServiciosStandardCarouselRow
+                        items={items}
+                        lang={lang}
+                        title={lang === "es" ? "Opciones estándar" : "Standard options"}
+                      />
+                    </div>
+                  );
+
+                  i = j;
+                }
+
+                return out;
+              })()}
             </div>
           ) : view === "grid" ? (
             <div
