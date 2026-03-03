@@ -89,7 +89,7 @@ type ServicioItem = {
 
 const SERVICIOS_TAXONOMY: Record<ServiciosGroupKey, ServicioItem[]> = {
   "home-garden": [
-    { key: "handyman", label: { es: "Contratistas y Manitas", en: "Contractors & Handyman" }, kw: ["handyman", "manitas", "contratista", "contractor", "repair", "arreglo", "fix"] },
+    { key: "handyman", label: { es: "Contratistas y Handyman", en: "Contractors & Handyman" }, kw: ["handyman", "manitas", "contratista", "contractor", "repair", "arreglo", "fix"] },
     { key: "plumbing", label: { es: "Plomería", en: "Plumbing" }, kw: ["plomero", "plomeria", "plumbing", "tuberia", "drain", "baño", "toilet", "fuga"] },
     { key: "electrician", label: { es: "Electricista", en: "Electrician" }, kw: ["electricista", "electric", "breaker", "panel", "wiring", "luz"] },
     { key: "painting", label: { es: "Pintura", en: "Painters" }, kw: ["pintor", "pintura", "paint", "painter"] },
@@ -108,7 +108,7 @@ const SERVICIOS_TAXONOMY: Record<ServiciosGroupKey, ServicioItem[]> = {
     { key: "smog", label: { es: "Smog / Emisiones", en: "Smog Check" }, kw: ["smog", "emisiones", "inspection", "inspeccion"] },
     { key: "carwash", label: { es: "Car Wash", en: "Car Wash" }, kw: ["car wash", "lavado", "lavado de auto", "detail", "detailing"] },
     { key: "bodyshop", label: { es: "Carrocería", en: "Body Shops" }, kw: ["body shop", "carroceria", "paint", "collision", "choque"] },
-    { key: "tow", label: { es: "Remolque", en: "Towing" }, kw: ["tow", "towing", "grua", "grúa", "remolque"] },
+    { key: "tow", label: { es: "Grúa", en: "Towing" }, kw: ["tow", "towing", "grua", "grúa", "remolque"] },
   ],
   "health-beauty": [
     { key: "barber", label: { es: "Barbería", en: "Barbers" }, kw: ["barber", "barberia", "corte", "haircut"] },
@@ -852,12 +852,14 @@ type ServiciosParams = {
   stype: string;   // service type key or ""
   savail: string;  // availability key or ""
   svisit: string;  // "comes" | "shop" | ""
+  sfeat: string;   // comma-separated feature keys for deep filters
 };
 
 const EMPTY_SERVICIOS_PARAMS: ServiciosParams = {
   stype: "",
   savail: "",
   svisit: "",
+  sfeat: "",
 };
 
 
@@ -1281,10 +1283,70 @@ const inferServicioVisit = (title: string, blurb: string) => {
   return "" as const;
 };
 
+type ServicioFeatureDef = { key: string; label: { es: string; en: string }; kw: string[] };
+
+function parseCsvSet(v: string) {
+  const s = (v || "").split(",").map((x) => x.trim()).filter(Boolean);
+  return new Set(s);
+}
+
+function setToCsv(set: Set<string>) {
+  return Array.from(set).sort().join(",");
+}
+
+function getServiciosFeatureDefs(stype: string): ServicioFeatureDef[] {
+  const k = (stype || "").trim().toLowerCase() as ServicioKey;
+  switch (k) {
+    case "landscaping":
+      return [
+        { key: "lawn", label: { es: "Corte de pasto", en: "Lawn mowing" }, kw: ["pasto", "césped", "lawn", "mowing", "corte"] },
+        { key: "trees", label: { es: "Poda de árboles", en: "Tree trimming" }, kw: ["poda", "árbol", "arbol", "trees", "trimming", "podar"] },
+        { key: "irrigation", label: { es: "Riego", en: "Irrigation" }, kw: ["riego", "irrigation", "sprinkler", "aspersor"] },
+      ];
+    case "plumbing":
+      return [
+        { key: "leak", label: { es: "Fugas", en: "Leaks" }, kw: ["fuga", "leak", "gotera"] },
+        { key: "drain", label: { es: "Drenaje", en: "Drains" }, kw: ["dren", "drain", "clog", "tapado"] },
+        { key: "water-heater", label: { es: "Calentador de agua", en: "Water heater" }, kw: ["calentador", "boiler", "water heater"] },
+      ];
+    case "electrician":
+      return [
+        { key: "panel", label: { es: "Panel eléctrico", en: "Electrical panel" }, kw: ["panel", "breaker", "tablero"] },
+        { key: "lighting", label: { es: "Iluminación", en: "Lighting" }, kw: ["luz", "luces", "lighting", "lámpara", "lampara"] },
+        { key: "outlet", label: { es: "Contactos", en: "Outlets" }, kw: ["contacto", "enchufe", "outlet"] },
+      ];
+    case "mechanic":
+      return [
+        { key: "oil", label: { es: "Cambio de aceite", en: "Oil change" }, kw: ["aceite", "oil change", "cambio de aceite"] },
+        { key: "brakes", label: { es: "Frenos", en: "Brakes" }, kw: ["freno", "frenos", "brake", "pads"] },
+        { key: "diagnostic", label: { es: "Diagnóstico", en: "Diagnostics" }, kw: ["diagn", "scanner", "check engine"] },
+      ];
+    case "tow":
+      return [
+        { key: "24-7", label: { es: "Servicio 24/7", en: "24/7 service" }, kw: ["24/7", "24-7", "urgente", "emergency"] },
+        { key: "flatbed", label: { es: "Plataforma", en: "Flatbed" }, kw: ["plataforma", "flatbed"] },
+      ];
+    case "cleaning":
+      return [
+        { key: "deep", label: { es: "Limpieza profunda", en: "Deep clean" }, kw: ["profunda", "deep"] },
+        { key: "moveout", label: { es: "Move-out", en: "Move-out" }, kw: ["move out", "move-out", "mudanza"] },
+      ];
+    default:
+      return [];
+  }
+}
+
+function hasAnyKw(text: string, kws: string[]) {
+  const t = (text || "").toLowerCase();
+  return kws.some((k) => t.includes(String(k).toLowerCase()));
+}
+
+
 function applyServiciosParams(list: Listing[], sp: ServiciosParams): Listing[] {
   const st = (sp.stype || "").trim().toLowerCase();
   const av = (sp.savail || "").trim().toLowerCase();
   const sv = (sp.svisit || "").trim().toLowerCase();
+  const feat = parseCsvSet(sp.sfeat);
 
   return list.filter((x) => {
     if (x.category !== "servicios") return true;
@@ -1300,6 +1362,21 @@ function applyServiciosParams(list: Listing[], sp: ServiciosParams): Listing[] {
     if (st && String(inferredType) !== st) return false;
     if (av && String(inferredAvail) !== av) return false;
     if (sv && String(inferredVisit) !== sv) return false;
+
+    if (feat.size) {
+      const explicitFeatures = Array.isArray((x as any).serviceFeatures) ? ((x as any).serviceFeatures as any[]).map(String) : [];
+      const txt = `${title} ${blurb}`;
+      const defs = getServiciosFeatureDefs(String(inferredType));
+      for (const f of Array.from(feat)) {
+        // If listing has structured features, use them; otherwise fall back to keyword match.
+        if (explicitFeatures.length) {
+          if (!explicitFeatures.includes(f)) return false;
+        } else {
+          const def = defs.find((d) => d.key === f);
+          if (def && !hasAnyKw(txt, def.kw)) return false;
+        }
+      }
+    }
 
     return true;
   });
@@ -1459,6 +1536,10 @@ useEffect(() => {
 
   const [serviciosHover, setServiciosHover] = useState<ServiciosGroupKey | null>(null);
   const [serviciosAllOpen, setServiciosAllOpen] = useState(false);
+  useEffect(() => {
+    if (!serviciosAllOpen) return;
+    setServiciosDraft(serviciosParams);
+  }, [serviciosAllOpen]);
 
   // ✓ Rentas param state (only used when cat=rentas)
   const [rentasParams, setRentasParams] = useState<RentasParams>(EMPTY_RENTAS_PARAMS);
@@ -1472,6 +1553,20 @@ useEffect(() => {
 
   // ✓ Servicios param state (only used when cat=servicios)
   const [serviciosParams, setServiciosParams] = useState<ServiciosParams>(EMPTY_SERVICIOS_PARAMS);
+  const [serviciosDraft, setServiciosDraft] = useState<ServiciosParams>(EMPTY_SERVICIOS_PARAMS);
+
+
+  // ✓ Keep Servicios deep-link params in sync (SEO + shareable URLs)
+  useEffect(() => {
+    if (category !== "servicios") return;
+    setUrlParams({
+      cat: "servicios",
+      stype: serviciosParams.stype || null,
+      savail: serviciosParams.savail || null,
+      svisit: serviciosParams.svisit || null,
+      sfeat: serviciosParams.sfeat || null,
+    });
+  }, [category, serviciosParams]);
 
   // ✓ En Venta param state (only used when cat=en-venta)
   const [ventaParams, setVentaParams] = useState<VentaParams>(EMPTY_VENTA_PARAMS);
@@ -1581,9 +1676,11 @@ useEffect(() => {
           stype: get("stype"),
           savail: get("savail"),
           svisit: get("svisit"),
+          sfeat: get("sfeat"),
         });
       } else {
         setServiciosParams(EMPTY_SERVICIOS_PARAMS);
+        setServiciosDraft(EMPTY_SERVICIOS_PARAMS);
       }
 
       if (cat0 === "en-venta") {
@@ -2486,8 +2583,18 @@ const visible = useMemo(() => {
 
     // ✓ Servicios chips (only show when in servicios + has params)
     if (category === "servicios") {
-      if (serviciosParams.stype) chips.push({ key: "stype", text: `${lang === "es" ? "Tipo" : "Type"}: ${servicioTypeLabel(serviciosParams.stype as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, stype: "" })) });
+      if (serviciosParams.stype) {
+        const lbl = servicioLabel(serviciosParams.stype, lang);
+        if (lbl) chips.push({ key: "stype", text: `${lang === "es" ? "Tipo" : "Type"}: ${lbl}`, clear: () => setServiciosParams((p) => ({ ...p, stype: "" })) });
+      }
       if (serviciosParams.savail) chips.push({ key: "savail", text: `${lang === "es" ? "Horario" : "Availability"}: ${servicioAvailLabel(serviciosParams.savail as any, lang)}`, clear: () => setServiciosParams((p) => ({ ...p, savail: "" })) });
+      if (serviciosParams.svisit) chips.push({ key: "svisit", text: `${lang === "es" ? "Modalidad" : "Visit"}: ${serviciosParams.svisit === "comes" ? (lang === "es" ? "A domicilio" : "Comes to you") : (lang === "es" ? "En local" : "At shop")}`, clear: () => setServiciosParams((p) => ({ ...p, svisit: "" })) });
+      if (serviciosParams.sfeat) {
+        const defs = getServiciosFeatureDefs(serviciosParams.stype);
+        const set = parseCsvSet(serviciosParams.sfeat);
+        const names = Array.from(set).map((k) => defs.find((d) => d.key === k)?.label[lang] || k);
+        if (names.length) chips.push({ key: "sfeat", text: `${lang === "es" ? "Más" : "More"}: ${names.join(", ")}`, clear: () => setServiciosParams((p) => ({ ...p, sfeat: "" })) });
+      }
     }
 
     // ✓ En Venta chips (only show when in en-venta + has params)
@@ -2624,7 +2731,7 @@ const visible = useMemo(() => {
     setRentasParams(EMPTY_RENTAS_PARAMS);
     setAutosParams(EMPTY_AUTOS_PARAMS);
     setEmpleosParams(EMPTY_EMPLEOS_PARAMS);
-    setServiciosParams(EMPTY_SERVICIOS_PARAMS);
+    setServiciosDraft(EMPTY_SERVICIOS_PARAMS);
     setVentaParams(EMPTY_VENTA_PARAMS);
     setClasesParams(EMPTY_CLASES_PARAMS);
     setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
@@ -4682,7 +4789,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       ☰ {lang === "es" ? "Todo" : "All"}
                     </button>
 
-                    {(Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]).map((grp) => (
+					{(Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[])
+						.filter((g) => {
+							const only = servicioGroupForKey(serviciosDraft.stype);
+							return !only || g === only;
+						})
+						.map((grp) => (
                       <div
                         key={grp}
                         className="relative"
@@ -4715,7 +4827,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                                 >
                                   {it.label[lang]}
                                 </button>
-                              ))}
+	                    ))}
                             </div>
                           </div>
                         ) : null}
@@ -4876,7 +4988,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   >
                     {c.text} <span className="ml-1 opacity-80">×</span>
                   </button>
-                ))}
+	                ))}
               </div>
             ) : null}
           </div>
@@ -5876,7 +5988,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-black/25"
-            onClick={() => setServiciosAllOpen(false)}
+            onClick={() => {
+                    setServiciosParams(serviciosDraft);
+                    setServiciosAllOpen(false);
+                  }}
           />
 
           <div className="absolute inset-y-0 left-0 w-[92vw] max-w-[420px] overflow-hidden rounded-r-2xl border border-black/10 bg-[#F5F5F5] shadow-2xl">
@@ -5903,9 +6018,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
                   <input
                     type="checkbox"
-                    checked={serviciosParams.svisit === "comes"}
+                    checked={serviciosDraft.svisit === "comes"}
                     onChange={(e) =>
-                      setServiciosParams((p) => ({ ...p, svisit: e.target.checked ? "comes" : "" }))
+                      setServiciosDraft((p) => ({ ...p, svisit: e.target.checked ? "comes" : "" }))
                     }
                   />
                   {lang === "es" ? "A domicilio" : "Comes to you"}
@@ -5914,9 +6029,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
                   <input
                     type="checkbox"
-                    checked={serviciosParams.svisit === "shop"}
+                    checked={serviciosDraft.svisit === "shop"}
                     onChange={(e) =>
-                      setServiciosParams((p) => ({ ...p, svisit: e.target.checked ? "shop" : "" }))
+                      setServiciosDraft((p) => ({ ...p, svisit: e.target.checked ? "shop" : "" }))
                     }
                   />
                   {lang === "es" ? "En local" : "At shop"}
@@ -5925,9 +6040,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
                   <input
                     type="checkbox"
-                    checked={serviciosParams.savail === "anytime"}
+                    checked={serviciosDraft.savail === "anytime"}
                     onChange={(e) =>
-                      setServiciosParams((p) => ({ ...p, savail: e.target.checked ? "anytime" : "" }))
+                      setServiciosDraft((p) => ({ ...p, savail: e.target.checked ? "anytime" : "" }))
                     }
                   />
                   {lang === "es" ? "Urgente / 24-7" : "Emergency / 24-7"}
@@ -5944,13 +6059,13 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     <div className="text-[11px] text-[#111111]">{SERVICIOS_GROUP_LABEL[grp][lang]}</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {SERVICIOS_TAXONOMY[grp].map((it) => {
-                        const active = (serviciosParams.stype || "") === it.key;
+                        const active = (serviciosDraft.stype || "") === it.key;
                         return (
                           <button
                             key={it.key}
                             type="button"
                             onClick={() => {
-                              setServiciosParams((p) => ({ ...p, stype: active ? "" : it.key }));
+                              setServiciosDraft((p) => ({ ...p, stype: active ? "" : it.key }));
                               setQ(active ? "" : it.label[lang]);
                               setPage(1);
                             }}
@@ -5968,13 +6083,52 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
                   </div>
                 ))}
+              {(() => {
+                const defs = getServiciosFeatureDefs(serviciosDraft.stype);
+                if (!defs.length) return null;
+                const set = parseCsvSet(serviciosDraft.sfeat);
+                return (
+                  <>
+                    <div className="mt-6 text-xs font-semibold text-[#111111]">
+                      {lang === "es" ? "Más filtros" : "More filters"}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {defs.map((d) => {
+                        const active = set.has(d.key);
+                        return (
+                          <button
+                            key={d.key}
+                            type="button"
+                            onClick={() => {
+                              const next = new Set(set);
+                              if (active) next.delete(d.key);
+                              else next.add(d.key);
+                              setServiciosDraft((p) => ({ ...p, sfeat: setToCsv(next) }));
+                              setPage(1);
+                            }}
+                            className={cx(
+                              "rounded-full border px-3 py-2 text-sm",
+                              active
+                                ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
+                                : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                            )}
+                          >
+                            {d.label[lang]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+
               </div>
 
               <div className="mt-6 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => {
-                    setServiciosParams(EMPTY_SERVICIOS_PARAMS);
+                    setServiciosDraft(EMPTY_SERVICIOS_PARAMS);
                     setQ("");
                   }}
                   className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
