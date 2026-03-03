@@ -1,4 +1,4 @@
-﻿export const SAMPLE_LISTINGS = [
+export const SAMPLE_LISTINGS = [
       // EN VENTA
       {
         id: "enventa-personal-1",
@@ -121,141 +121,23 @@ hasImage: true,
         condition: "any",
         sellerType: "personal",
       },
-
-      // Business Standard (digital-only)
       {
-        id: "servicios-std-1",
+        id: "servicios-biz-1",
         category: "servicios",
-        servicesTier: "standard",
-        title: { es: "Electricista (instalaciones y reparaciones)", en: "Electrician (installs & repairs)" },
-        priceLabel: { es: "Desde $99", en: "From $99" },
-        city: "San José",
-        postedAgo: { es: "hace 3 horas", en: "3 hours ago" },
-        blurb: {
-          es: "Servicio confiable. Residencial y comercial.",
-          en: "Reliable service. Residential & commercial.",
-        },
-        hasImage: true,
-        condition: "any",
-        sellerType: "business",
-        phone: "(408) 555-0144",
-        text: "(408) 555-0144",
-        email: "servicios@leonixmedia.com",
-        website: "https://leonixmedia.com",
-        servicesTags: ["Electricidad", "Paneles", "Emergencia"],
-        hours: {
-          mon: "8:00 AM - 6:00 PM",
-          tue: "8:00 AM - 6:00 PM",
-          wed: "8:00 AM - 6:00 PM",
-          thu: "8:00 AM - 6:00 PM",
-          fri: "8:00 AM - 6:00 PM",
-          sat: "9:00 AM - 2:00 PM",
-          sun: "Cerrado",
-        },
-        photos: ["/classifieds-placeholder-bilingual.png"],
-      },
-
-      // Business Plus (digital-only)
-      {
-        id: "servicios-plus-1",
-        category: "servicios",
-        servicesTier: "plus",
-        title: { es: "Limpieza profesional (casas y oficinas)", en: "Professional cleaning (home & office)" },
-        priceLabel: { es: "Cotización gratis", en: "Free quote" },
-        city: "San José",
-        postedAgo: { es: "hace 1 hora", en: "1 hour ago" },
-        blurb: {
-          es: "Equipo puntual. Servicio detallado. Se habla español.",
-          en: "On-time team. Detailed service. Spanish spoken.",
-        },
-        hasImage: true,
-        condition: "any",
-        sellerType: "business",
-        phone: "(408) 555-0177",
-        text: "(408) 555-0177",
-        email: "clean@leonixmedia.com",
-        website: "https://leonixmedia.com",
-        servicesTags: ["Limpieza", "Oficinas", "Deep clean"],
-        highlights: ["Cotización gratis", "Descuentos", "Se habla español", "Mismo día"],
-        serviceArea: { city: "San José", radiusMi: 25 },
-        hours: {
-          mon: "7:00 AM - 7:00 PM",
-          tue: "7:00 AM - 7:00 PM",
-          wed: "7:00 AM - 7:00 PM",
-          thu: "7:00 AM - 7:00 PM",
-          fri: "7:00 AM - 7:00 PM",
-          sat: "8:00 AM - 4:00 PM",
-          sun: "Cerrado",
-        },
-        photos: [
-          "/classifieds-placeholder-bilingual.png",
-          "/classifieds-placeholder-bilingual.png",
-          "/classifieds-placeholder-bilingual.png",
-        ],
-        servicesOffered: [
-          { group: "Limpieza", items: ["Casas", "Oficinas", "Mudanzas"] },
-          { group: "Extras", items: ["Alfombras", "Ventanas", "Desinfección"] },
-        ],
-      },
-
-      // Business Premium (print-only)
-      {
-        id: "servicios-prem-1",
-        category: "servicios",
-        servicesTier: "premium",
         title: { es: "Plomería 24/7 (negocio local)", en: "Plumbing 24/7 (local business)" },
         priceLabel: { es: "Llama hoy", en: "Call today" },
         city: "San José",
-        postedAgo: { es: "hace 20 min", en: "20 min ago" },
+        postedAgo: { es: "hace 2 horas", en: "2 hours ago" },
         blurb: {
-          es: "Urgencias, instalaciones, reparaciones. Respuesta rápida.",
-          en: "Emergencies, installs, repairs. Fast response.",
+          es: "Urgencias, instalaciones, reparaciones.",
+          en: "Emergencies, installs, repairs.",
         },
         hasImage: true,
         condition: "any",
         sellerType: "business",
-        phone: "(408) 555-0111",
-        text: "(408) 555-0111",
-        email: "plomeria@leonixmedia.com",
-        website: "https://leonixmedia.com",
-        servicesTags: ["Plomería", "Hydro-jetting", "Water heater"],
-        verifiedLicense: true,
-        responseTime: { es: "Responde en ~10 min", en: "Responds in ~10 min" },
-        highlights: ["Cotización gratis", "Descuentos", "Familiar", "Emergencia 24/7", "Se habla español"],
-        serviceArea: { city: "San José", radiusMi: 25 },
-        hours: {
-          mon: "6:00 AM - 8:00 PM",
-          tue: "6:00 AM - 8:00 PM",
-          wed: "6:00 AM - 8:00 PM",
-          thu: "6:00 AM - 8:00 PM",
-          fri: "6:00 AM - 8:00 PM",
-          sat: "6:00 AM - 4:30 PM",
-          sun: "Cerrado",
-        },
-        photos: [
-          "/classifieds-placeholder-bilingual.png",
-          "/classifieds-placeholder-bilingual.png",
-          "/classifieds-placeholder-bilingual.png",
-          "/classifieds-placeholder-bilingual.png",
-        ],
-        portfolio: [
-          { title: { es: "$150 OFF Water Heater", en: "$150 OFF Water Heater" }, image: "/classifieds-placeholder-bilingual.png" },
-          { title: { es: "$200 OFF Cleanout", en: "$200 OFF Cleanout" }, image: "/classifieds-placeholder-bilingual.png" },
-              { title: { es: "Up to $1,500 OFF", en: "Up to $1,500 OFF" }, image: "/classifieds-placeholder-bilingual.png" },
-  ],
-  servicesOffered: [
-    { group: "Inspección", items: ["Backflow", "Drain", "Sink", "Toilet", "Water pipe"] },
-    { group: "Instalación / reemplazo", items: ["Water heater", "Faucet", "Shower", "Sump pump"] },
-    { group: "Reparación", items: ["Leaks", "Clogs", "Sewer line"] },
-  ],
-  amenities: ["Acepta tarjetas", "Acepta Zelle", "Acepta Venmo"],
-  faq: [
-    { q: { es: "¿Están licenciados?", en: "Are you licensed?" }, a: { es: "Sí, licencia verificada.", en: "Yes, verified license." } },
-    { q: { es: "¿Atienden emergencias?", en: "Emergency service?" }, a: { es: "Sí, 24/7.", en: "Yes, 24/7." } },
-  ],
-},
+      },
 
-// EMPLEOS
+      // EMPLEOS
       {
         id: "empleos-personal-1",
         category: "empleos",
@@ -408,4 +290,3 @@ hasImage: false,
   phone: "(408) 555-0107",
 },
     ] as const;
-
