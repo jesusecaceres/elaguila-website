@@ -91,13 +91,13 @@ type DetailField = {
 
 const DETAIL_FIELDS: Record<string, DetailField[]> = {
   autos: [
-    { key: "year", label: { es: "AÃ±o", en: "Year" }, type: "number", placeholder: { es: "Ej: 2018", en: "e.g. 2018" } },
+    { key: "year", label: { es: "Año", en: "Year" }, type: "number", placeholder: { es: "Ej: 2018", en: "e.g. 2018" } },
     { key: "make", label: { es: "Marca", en: "Make" }, type: "text", placeholder: { es: "Ej: Toyota", en: "e.g. Toyota" } },
     { key: "model", label: { es: "Modelo", en: "Model" }, type: "text", placeholder: { es: "Ej: Camry", en: "e.g. Camry" } },
     { key: "mileage", label: { es: "Millas", en: "Mileage" }, type: "number", placeholder: { es: "Ej: 85000", en: "e.g. 85000" } },
     {
       key: "condition",
-      label: { es: "CondiciÃ³n", en: "Condition" },
+      label: { es: "Condición", en: "Condition" },
       type: "select",
       options: [
         { value: "new", label: { es: "Nuevo", en: "New" } },
@@ -107,10 +107,10 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
     },
     {
       key: "transmission",
-      label: { es: "TransmisiÃ³n", en: "Transmission" },
+      label: { es: "Transmisión", en: "Transmission" },
       type: "select",
       options: [
-        { value: "auto", label: { es: "AutomÃ¡tica", en: "Automatic" } },
+        { value: "auto", label: { es: "Automática", en: "Automatic" } },
         { value: "manual", label: { es: "Manual", en: "Manual" } },
       ],
     },
@@ -118,7 +118,7 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   rentas: [
     {
       key: "beds",
-      label: { es: "RecÃ¡maras", en: "Bedrooms" },
+      label: { es: "Recámaras", en: "Bedrooms" },
       type: "select",
       options: [
         { value: "studio", label: { es: "Estudio", en: "Studio" } },
@@ -131,7 +131,7 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
     },
     {
       key: "baths",
-      label: { es: "BaÃ±os", en: "Bathrooms" },
+      label: { es: "Baños", en: "Bathrooms" },
       type: "select",
       options: [
         { value: "1", label: { es: "1", en: "1" } },
@@ -141,14 +141,14 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
         { value: "3+", label: { es: "3+", en: "3+" } },
       ],
     },
-    { key: "deposit", label: { es: "DepÃ³sito", en: "Deposit" }, type: "text", placeholder: { es: "Ej: $1500 / 1 mes", en: "e.g. $1500 / 1 month" } },
+    { key: "deposit", label: { es: "Depósito", en: "Deposit" }, type: "text", placeholder: { es: "Ej: $1500 / 1 mes", en: "e.g. $1500 / 1 month" } },
     { key: "available", label: { es: "Disponible", en: "Available" }, type: "text", placeholder: { es: "Ej: Inmediato / 1 de Marzo", en: "e.g. Now / Mar 1" } },
     {
       key: "furnished",
       label: { es: "Amueblado", en: "Furnished" },
       type: "select",
       options: [
-        { value: "yes", label: { es: "SÃ­", en: "Yes" } },
+        { value: "yes", label: { es: "Sí", en: "Yes" } },
         { value: "no", label: { es: "No", en: "No" } },
       ],
     },
@@ -184,21 +184,21 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
       options: [
         { value: "onsite", label: { es: "Presencial", en: "On-site" } },
         { value: "remote", label: { es: "Remoto", en: "Remote" } },
-        { value: "hybrid", label: { es: "HÃ­brido", en: "Hybrid" } },
+        { value: "hybrid", label: { es: "Híbrido", en: "Hybrid" } },
       ],
     },
     { key: "pay", label: { es: "Pago", en: "Pay" }, type: "text", placeholder: { es: "Ej: $22/hr o $900/sem", en: "e.g. $22/hr or $900/wk" } },
   ],
   servicios: [
-    { key: "serviceType", label: { es: "Tipo de servicio", en: "Service type" }, type: "text", placeholder: { es: "Ej: JardinerÃ­a, PlomerÃ­a", en: "e.g. Landscaping, Plumbing" } },
-    { key: "area", label: { es: "Zona", en: "Service area" }, type: "text", placeholder: { es: "Ej: San JosÃ© + 15 mi", en: "e.g. San Jose + 15 mi" } },
-    { key: "availability", label: { es: "Disponibilidad", en: "Availability" }, type: "text", placeholder: { es: "Ej: Lunâ€“SÃ¡b", en: "e.g. Monâ€“Sat" } },
+    { key: "serviceType", label: { es: "Tipo de servicio", en: "Service type" }, type: "text", placeholder: { es: "Ej: Jardinería, Plomería", en: "e.g. Landscaping, Plumbing" } },
+    { key: "area", label: { es: "Zona", en: "Service area" }, type: "text", placeholder: { es: "Ej: San José + 15 mi", en: "e.g. San Jose + 15 mi" } },
+    { key: "availability", label: { es: "Disponibilidad", en: "Availability" }, type: "text", placeholder: { es: "Ej: Lun–Sáb", en: "e.g. Mon–Sat" } },
   ],
   "en-venta": [
-    { key: "itemType", label: { es: "Tipo de artÃ­culo", en: "Item type" }, type: "text", placeholder: { es: "Ej: Muebles, ElectrÃ³nica", en: "e.g. Furniture, Electronics" } },
+    { key: "itemType", label: { es: "Tipo de artículo", en: "Item type" }, type: "text", placeholder: { es: "Ej: Muebles, Electrónica", en: "e.g. Furniture, Electronics" } },
     {
       key: "condition",
-      label: { es: "CondiciÃ³n", en: "Condition" },
+      label: { es: "Condición", en: "Condition" },
       type: "select",
       options: [
         { value: "new", label: { es: "Nuevo", en: "New" } },
@@ -214,17 +214,17 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
       label: { es: "Tipo de negocio", en: "Business type" },
       type: "select",
       options: [
-        { value: "brick", label: { es: "Local (restaurante / cafÃ©)", en: "Brick & mortar (restaurant / cafÃ©)" } },
+        { value: "brick", label: { es: "Local (restaurante / café)", en: "Brick & mortar (restaurant / café)" } },
         { value: "truck", label: { es: "Food truck", en: "Food truck" } },
         { value: "popup", label: { es: "Pop-up / puesto temporal", en: "Pop-up / temporary stand" } },
       ],
     },
     { key: "cuisine", label: { es: "Cocina", en: "Cuisine" }, type: "text", placeholder: { es: "Ej: Mexicana, Pupusas", en: "e.g. Mexican, Pupusas" } },
-    { key: "address", label: { es: "DirecciÃ³n (opcional)", en: "Address (optional)" }, type: "text", placeholder: { es: "Ej: 123 Main St", en: "e.g. 123 Main St" } },
+    { key: "address", label: { es: "Dirección (opcional)", en: "Address (optional)" }, type: "text", placeholder: { es: "Ej: 123 Main St", en: "e.g. 123 Main St" } },
     { key: "zip", label: { es: "ZIP (opcional)", en: "ZIP (optional)" }, type: "text", placeholder: { es: "Ej: 95112", en: "e.g. 95112" } },
-    { key: "hours", label: { es: "Horario (opcional)", en: "Hours (optional)" }, type: "text", placeholder: { es: "Ej: Lunâ€“Sab 10amâ€“9pm", en: "e.g. Monâ€“Sat 10amâ€“9pm" } },
+    { key: "hours", label: { es: "Horario (opcional)", en: "Hours (optional)" }, type: "text", placeholder: { es: "Ej: Lun–Sáb 10am–9pm", en: "e.g. Mon–Sat 10am–9pm" } },
     { key: "website", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, type: "text", placeholder: { es: "https://", en: "https://" } },
-    { key: "notes", label: { es: "Notas (opcional)", en: "Notes (optional)" }, type: "text", placeholder: { es: "Pedidos por telÃ©fono, especialidadesâ€¦", en: "Phone orders, specialtiesâ€¦" } },
+    { key: "notes", label: { es: "Notas (opcional)", en: "Notes (optional)" }, type: "text", placeholder: { es: "Pedidos por teléfono, especialidades…", en: "Phone orders, specialties…" } },
   ],
 
 };
@@ -256,7 +256,7 @@ function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, s
   if (!pairs.length) return "";
   const header = lang === "es" ? "Detalles" : "Details";
   const lines = pairs.map((p) => `${p.label}: ${p.value}`).join("\n");
-  return `\n\nâ€”\n${header}:\n${lines}`.trim();
+  return `\n\n—\n${header}:\n${lines}`.trim();
 }
 
 
@@ -294,7 +294,7 @@ export default function PublicarPage() {
   const [authError, setAuthError] = useState<string>("");
   const [isPro, setIsPro] = useState(false);
 
-  // Garage Mode (Free-only, En Venta only) â€” +4 temporary listings for 7 days, once per 30 days.
+  // Garage Mode (Free-only, En Venta only) — +4 temporary listings for 7 days, once per 30 days.
   const FREE_EN_VENTA_LIMIT = 2;
   const GARAGE_EXTRA = 4;
   const GARAGE_WINDOW_DAYS = 7;
@@ -481,47 +481,47 @@ setIsPro(plan.includes("pro"));
     () => ({
       es: {
         title: "Publicar tu anuncio",
-        subtitle: "Publica con claridad. Mientras mÃ¡s completo, mÃ¡s confianza y mejores resultados.",
-        steps: { category: "CategorÃ­a", basics: "BÃ¡sicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
+        subtitle: "Publica con claridad. Mientras más completo, más confianza y mejores resultados.",
+        steps: { category: "Categoría", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
         deleteDraft: "Eliminar borrador",
-        basicsTitle: "BÃ¡sicos",
-        categoryTitle: "Elige la categorÃ­a",
+        basicsTitle: "Básicos",
+        categoryTitle: "Elige la categoría",
         categoryNote: "Esto asegura que tu anuncio salga en el lugar correcto y muestre los campos adecuados.",
-        fieldTitle: "TÃ­tulo",
-        fieldDesc: "DescripciÃ³n",
+        fieldTitle: "Título",
+        fieldDesc: "Descripción",
         fieldPrice: "Precio",
         freeToggle: "Gratis",
         fieldCity: "Ciudad",
         next: "Siguiente",
-        back: "AtrÃ¡s",
-        detailsTitle: "Detalles (por categorÃ­a)",
+        back: "Atrás",
+        detailsTitle: "Detalles (por categoría)",
         detailsNote:
-          "Agrega solo lo que aplica. Estos detalles ayudan a que tu anuncio se vea mÃ¡s profesional.",
+          "Agrega solo lo que aplica. Estos detalles ayudan a que tu anuncio se vea más profesional.",
         mediaTitle: "Media + Contacto",
-        images: "Fotos (mÃ­nimo 1)",
+        images: "Fotos (mínimo 1)",
         addImages: "Agregar fotos",
         video: "Video (solo Pro, 1 por anuncio)",
         addVideo: "Agregar video",
-        videoHint: "MÃ¡x 20s, 720p. Sin autoplay en la lista.",
+        videoHint: "Máx 20s, 720p. Sin autoplay en la lista.",
         videoLocked: "Desbloquea video con LEONIX Pro.",
-        contact: "MÃ©todo de contacto",
-        phone: "TelÃ©fono",
+        contact: "Método de contacto",
+        phone: "Teléfono",
         email: "Email",
         both: "Ambos",
         publish: "Publicar",
-        publishing: "Publicandoâ€¦",
+        publishing: "Publicando…",
         preview: "Vista previa",
         cardPreview: "Tarjeta (grid)",
         detailPreview: "Detalle",
-        requiredHint: "Requisitos: CategorÃ­a + TÃ­tulo + DescripciÃ³n + Precio/Gratis + Ciudad + 1 foto + Contacto.",
-        published: "Â¡Listo! Tu anuncio fue publicado.",
+        requiredHint: "Requisitos: Categoría + Título + Descripción + Precio/Gratis + Ciudad + 1 foto + Contacto.",
+        published: "¡Listo! Tu anuncio fue publicado.",
         viewListing: "Ver anuncio",
         needReqs: "Revisa los requisitos antes de publicar.",
-        checking: "Verificando sesiÃ³nâ€¦",
+        checking: "Verificando sesión…",
       },
       en: {
         title: "Post your ad",
-        subtitle: "Post with clarity. The more complete it is, the more trustâ€”and better results.",
+        subtitle: "Post with clarity. The more complete it is, the more trust—and better results.",
         steps: { category: "Category", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
         deleteDraft: "Delete draft",
         basicsTitle: "Basics",
@@ -536,7 +536,7 @@ setIsPro(plan.includes("pro"));
         back: "Back",
         detailsTitle: "Details (per category)",
         detailsNote:
-          "Weâ€™ll add structured category fields in the next batch. For now, we keep the experience clean and safe.",
+          "We’ll add structured category fields in the next batch. For now, we keep the experience clean and safe.",
         mediaTitle: "Media + Contact",
         images: "Photos (min 1)",
         addImages: "Add photos",
@@ -549,7 +549,7 @@ setIsPro(plan.includes("pro"));
         email: "Email",
         both: "Both",
         publish: "Publish",
-        publishing: "Publishingâ€¦",
+        publishing: "Publishing…",
         preview: "Preview",
         cardPreview: "Card (grid)",
         detailPreview: "Detail",
@@ -557,7 +557,7 @@ setIsPro(plan.includes("pro"));
         published: "Done! Your listing is live.",
         viewListing: "View listing",
         needReqs: "Please meet the requirements before publishing.",
-        checking: "Checking sessionâ€¦",
+        checking: "Checking session…",
       },
     }),
     []
@@ -709,19 +709,19 @@ setIsPro(plan.includes("pro"));
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
       {
         key: "category",
-        label: lang === "es" ? "CategorÃ­a" : "Category",
+        label: lang === "es" ? "Categoría" : "Category",
         ok: requirements.categoryOk,
         step: "category",
       },
       {
         key: "title",
-        label: lang === "es" ? "TÃ­tulo" : "Title",
+        label: lang === "es" ? "Título" : "Title",
         ok: requirements.titleOk,
         step: "basics",
       },
       {
         key: "desc",
-        label: lang === "es" ? "DescripciÃ³n" : "Description",
+        label: lang === "es" ? "Descripción" : "Description",
         ok: requirements.descOk,
         step: "basics",
       },
@@ -750,7 +750,7 @@ setIsPro(plan.includes("pro"));
             ? contactMethod === "email"
               ? "Email"
               : contactMethod === "phone"
-                ? "TelÃ©fono"
+                ? "Teléfono"
                 : "Contacto"
             : contactMethod === "email"
               ? "Email"
@@ -768,7 +768,7 @@ setIsPro(plan.includes("pro"));
     const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
     if (missing.length === 0) return "";
     const prefix = lang === "es" ? "Falta:" : "Missing:";
-    return `${prefix} ${missing.join(" Â· ")}`;
+    return `${prefix} ${missing.join(" · ")}`;
   }, [requirementItems, lang]);
 
   const garage = useMemo(() => {
@@ -847,7 +847,7 @@ async function inspectAndThumbVideo(file: File) {
   if (file.size > maxBytes) {
     setVideoError(
       lang === "es"
-        ? "El video es muy grande. Usa un clip mÃ¡s corto o comprimido (mÃ¡x ~25MB)."
+        ? "El video es muy grande. Usa un clip más corto o comprimido (máx ~25MB)."
         : "Video file is too large. Please use a shorter/compressed clip (max ~25MB)."
     );
     return;
@@ -886,8 +886,8 @@ async function inspectAndThumbVideo(file: File) {
     if (info.width > 1280 || info.height > 720) {
       setVideoError(
         lang === "es"
-          ? "El video debe ser 720p o menos (1280Ã—720)."
-          : "Video must be 720p or less (1280Ã—720)."
+          ? "El video debe ser 720p o menos (1280×720)."
+          : "Video must be 720p or less (1280×720)."
       );
       return;
     }
@@ -978,11 +978,11 @@ async function publish() {
           const msg =
             lang === "es"
               ? garageIsActive
-                ? `Has alcanzado tu lÃ­mite actual de En Venta (${effectiveLimit}). Tu Modo Garaje estÃ¡ activo hasta ${expText}. Marca anuncios como vendidos o espera, o mejora a LEONIX Pro.`
-                : `Has alcanzado tu lÃ­mite de En Venta (${FREE_EN_VENTA_LIMIT}). Para publicar mÃ¡s, mejora a LEONIX Pro.`
+                ? `Has alcanzado tu límite actual de En Venta (${effectiveLimit}). Tu Modo Garaje está activo hasta ${expText}. Marca anuncios como vendidos o espera, o mejora a LEONIX Pro.`
+                : `Has alcanzado tu límite de En Venta (${FREE_EN_VENTA_LIMIT}). Para publicar más, mejora a LEONIX Pro.`
               : garageIsActive
-                ? `Youâ€™ve reached your current For Sale limit (${effectiveLimit}). Garage Mode is active until ${expText}. Mark items sold or wait, or upgrade to LEONIX Pro.`
-                : `Youâ€™ve reached your For Sale limit (${FREE_EN_VENTA_LIMIT}). To post more, upgrade to LEONIX Pro.`;
+                ? `You’ve reached your current For Sale limit (${effectiveLimit}). Garage Mode is active until ${expText}. Mark items sold or wait, or upgrade to LEONIX Pro.`
+                : `You’ve reached your For Sale limit (${FREE_EN_VENTA_LIMIT}). To post more, upgrade to LEONIX Pro.`;
           setPublishError(msg);
           return;
         }
@@ -992,8 +992,8 @@ async function publish() {
           if (cooldownLeft > 0) {
             const msg =
               lang === "es"
-                ? `Ya usaste el Modo Garaje recientemente. PodrÃ¡s usarlo de nuevo en ${cooldownLeft} dÃ­a(s). Mientras tanto, mejora a LEONIX Pro para publicar sin lÃ­mites de Free.`
-                : `Youâ€™ve used Garage Mode recently. You can use it again in ${cooldownLeft} day(s). Meanwhile, upgrade to LEONIX Pro to post beyond Free limits.`;
+                ? `Ya usaste el Modo Garaje recientemente. Podrás usarlo de nuevo en ${cooldownLeft} día(s). Mientras tanto, mejora a LEONIX Pro para publicar sin límites de Free.`
+                : `You’ve used Garage Mode recently. You can use it again in ${cooldownLeft} day(s). Meanwhile, upgrade to LEONIX Pro to post beyond Free limits.`;
             setPublishError(msg);
             return;
           }
@@ -1046,7 +1046,7 @@ async function publish() {
 
       const id = (data as any)?.id as string | undefined;
       if (!id) {
-        setPublishError(lang === "es" ? "Publicado, pero no se recibiÃ³ ID." : "Published, but no ID returned.");
+        setPublishError(lang === "es" ? "Publicado, pero no se recibió ID." : "Published, but no ID returned.");
         return;
       }
 
@@ -1080,8 +1080,8 @@ async function publish() {
 
           const photosAppendix =
             lang === "es"
-              ? `\n\nâ€” Fotos â€”\n${photoUrls.join("\n")}\n${marker}\n`
-              : `\n\nâ€” Photos â€”\n${photoUrls.join("\n")}\n${marker}\n`;
+              ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
+              : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
 
           descriptionForUpdate = (descriptionForUpdate + photosAppendix).trim();
 
@@ -1133,8 +1133,8 @@ if (isPro && videoFile && !videoError) {
 
       const videoAppendix =
         lang === "es"
-          ? `\n\nâ€” Video (Pro) â€”\nVideo: ${videoUrl}${thumbUrl ? `\nMiniatura: ${thumbUrl}` : ""}\n${marker}\n`
-          : `\n\nâ€” Video (Pro) â€”\nVideo: ${videoUrl}${thumbUrl ? `\nThumbnail: ${thumbUrl}` : ""}\n${marker}\n`;
+          ? `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nMiniatura: ${thumbUrl}` : ""}\n${marker}\n`
+          : `\n\n— Video (Pro) —\nVideo: ${videoUrl}${thumbUrl ? `\nThumbnail: ${thumbUrl}` : ""}\n${marker}\n`;
 
       await supabase
         .from("listings")
@@ -1204,7 +1204,7 @@ if (isPro && videoFile && !videoError) {
                   >
                     {copy.steps.category}
                   </span>
-                  <span className="text-[#111111]/30">â†’</span>
+                  <span className="text-[#111111]/30">→</span>
                   <span
                     className={cx(
                       "px-2 py-1 rounded-lg border",
@@ -1215,7 +1215,7 @@ if (isPro && videoFile && !videoError) {
                   >
                     {copy.steps.basics}
                   </span>
-                  <span className="text-[#111111]/30">â†’</span>
+                  <span className="text-[#111111]/30">→</span>
                   <span
                     className={cx(
                       "px-2 py-1 rounded-lg border",
@@ -1226,7 +1226,7 @@ if (isPro && videoFile && !videoError) {
                   >
                     {copy.steps.details}
                   </span>
-                  <span className="text-[#111111]/30">â†’</span>
+                  <span className="text-[#111111]/30">→</span>
                   <span
                     className={cx(
                       "px-2 py-1 rounded-lg border",
@@ -1264,7 +1264,7 @@ if (isPro && videoFile && !videoError) {
                     <p className="mt-1 text-xs text-[#111111]">
                       {lang === "es"
                         ? "Completa esto para que tu anuncio salga bien en la lista. Te guiamos paso a paso."
-                        : "Complete these so your listing shows up cleanly in search. Weâ€™ll guide you step by step."}
+                        : "Complete these so your listing shows up cleanly in search. We’ll guide you step by step."}
                     </p>
                   </div>
 
@@ -1341,7 +1341,7 @@ if (isPro && videoFile && !videoError) {
 
                     {!requirements.categoryOk && (
                       <div className="mt-4 rounded-xl border border-yellow-400/20 bg-[#F2EFE8] p-3 text-xs text-[#111111]">
-                        {lang === "es" ? "Selecciona una categorÃ­a para continuar." : "Choose a category to continue."}
+                        {lang === "es" ? "Selecciona una categoría para continuar." : "Choose a category to continue."}
                       </div>
                     )}
 
@@ -1376,19 +1376,19 @@ if (isPro && videoFile && !videoError) {
                             </div>
                             <p className="mt-1 text-xs text-[#111111] max-w-xl">
                               {lang === "es"
-                                ? "Solo para usuarios Free en En Venta. Cuando llegas al lÃ­mite, puedes desbloquear +4 anuncios por 7 dÃ­as (1 vez cada 30 dÃ­as)."
+                                ? "Solo para usuarios Free en En Venta. Cuando llegas al límite, puedes desbloquear +4 anuncios por 7 días (1 vez cada 30 días)."
                                 : "Free users in For Sale only. When you hit the limit, unlock +4 listings for 7 days (once every 30 days)."}
                             </p>
                           </div>
 
                           <div className="text-xs text-[#111111]">
                             {garageLoading
-                              ? (lang === "es" ? "Calculandoâ€¦" : "Calculatingâ€¦")
+                              ? (lang === "es" ? "Calculando…" : "Calculating…")
                               : typeof enVentaActiveCount === "number"
                                 ? (lang === "es"
                                     ? `Activos: ${enVentaActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`
                                     : `Active: ${enVentaActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`)
-                                : (lang === "es" ? "Activos: â€”" : "Active: â€”")}
+                                : (lang === "es" ? "Activos: —" : "Active: —")}
                           </div>
                         </div>
 
@@ -1403,7 +1403,7 @@ if (isPro && videoFile && !videoError) {
                         {!garage.active && typeof garage.cooldownDaysLeft === "number" && garage.cooldownDaysLeft > 0 && (
                           <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3 text-xs text-[#111111]">
                             {lang === "es"
-                              ? `Disponible de nuevo en ${garage.cooldownDaysLeft} dÃ­a(s).`
+                              ? `Disponible de nuevo en ${garage.cooldownDaysLeft} día(s).`
                               : `Available again in ${garage.cooldownDaysLeft} day(s).`}
                           </div>
                         )}
@@ -1411,8 +1411,8 @@ if (isPro && videoFile && !videoError) {
                         {!garage.active && garage.eligibleToActivate && (
                           <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-xs text-emerald-100">
                             {lang === "es"
-                              ? "EstÃ¡s en el lÃ­mite. Al publicar, activaremos Modo Garaje automÃ¡ticamente para darte +4 anuncios por 7 dÃ­as."
-                              : "Youâ€™re at the limit. When you publish, weâ€™ll automatically activate Garage Mode to give you +4 listings for 7 days."}
+                              ? "Estás en el límite. Al publicar, activaremos Modo Garaje automáticamente para darte +4 anuncios por 7 días."
+                              : "You’re at the limit. When you publish, we’ll automatically activate Garage Mode to give you +4 listings for 7 days."}
                           </div>
                         )}
                       </div>
@@ -1425,12 +1425,12 @@ if (isPro && videoFile && !videoError) {
                         <input
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          placeholder={lang === "es" ? "Ej: SofÃ¡ en excelente condiciÃ³n" : "Ex: Great-condition sofa"}
+                          placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "Ex: Great-condition sofa"}
                           className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                         />
                         {!requirements.titleOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">
-                            {lang === "es" ? "MÃ­nimo 5 caracteres." : "Min 5 characters."}
+                            {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                           </div>
                         )}
                       </div>
@@ -1450,7 +1450,7 @@ if (isPro && videoFile && !videoError) {
                         />
                         {!requirements.descOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">
-                            {lang === "es" ? "MÃ­nimo 20 caracteres." : "Min 20 characters."}
+                            {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
                           </div>
                         )}
                       </div>
@@ -1492,7 +1492,7 @@ if (isPro && videoFile && !videoError) {
                                 : "border-black/10 bg-white/9 text-[#111111] hover:bg-white/12"
                             )}
                           >
-                            {isFree ? (lang === "es" ? "SÃ­, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
+                            {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
                           </button>
                         </div>
                       </div>
@@ -1502,7 +1502,7 @@ if (isPro && videoFile && !videoError) {
                         <input
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
-                          placeholder={lang === "es" ? "Ej: San JosÃ©" : "Ex: San Jose"}
+                          placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
                           className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                         />
                         {!requirements.cityOk && (
@@ -1545,14 +1545,14 @@ if (isPro && videoFile && !videoError) {
 
                     <div className="mt-4 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
                       <div className="text-sm text-[#111111]">
-                        {lang === "es" ? "CategorÃ­a:" : "Category:"}{" "}
+                        {lang === "es" ? "Categoría:" : "Category:"}{" "}
                         <span className="text-[#111111]/90 font-semibold">{category}</span>
                       </div>
 
                       {getCategoryFields(category).length === 0 ? (
                         <div className="mt-3 text-sm text-[#111111]/55">
                           {lang === "es"
-                            ? "Por ahora no hay campos extra para esta categorÃ­a."
+                            ? "Por ahora no hay campos extra para esta categoría."
                             : "No extra fields for this category yet."}
                         </div>
                       ) : (
@@ -1573,7 +1573,7 @@ if (isPro && videoFile && !videoError) {
                                     }
                                     className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] outline-none focus:border-white/20"
                                   >
-                                    <option value="">{lang === "es" ? "Seleccionaâ€¦" : "Selectâ€¦"}</option>
+                                    <option value="">{lang === "es" ? "Selecciona…" : "Select…"}</option>
                                     {f.options.map((o) => (
                                       <option key={o.value} value={o.value}>
                                         {o.label[lang]}
@@ -1649,7 +1649,7 @@ if (isPro && videoFile && !videoError) {
                             {copy.images}
                             <span className="ml-2 text-xs text-[#111111]">
                               {lang === "es"
-                                ? `(MÃ¡x ${maxImages}. ${isPro ? "Puedes reordenar." : "Pro: 12 + reordenar."})`
+                                ? `(Máx ${maxImages}. ${isPro ? "Puedes reordenar." : "Pro: 12 + reordenar."})`
                                 : `(Max ${maxImages}. ${isPro ? "You can reorder." : "Pro: 12 + reorder."})`}
                             </span>
                           </div>
@@ -1710,7 +1710,7 @@ if (isPro && videoFile && !videoError) {
                                     aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
                                     title={lang === "es" ? "Quitar" : "Remove"}
                                   >
-                                    âœ•
+                                    ✖
                                   </button>
                                 </div>
 
@@ -1741,7 +1741,7 @@ if (isPro && videoFile && !videoError) {
                                       )}
                                       title={lang === "es" ? "Mover izquierda" : "Move left"}
                                     >
-                                      â—€
+                                      ◀
                                     </button>
 
                                     <button
@@ -1754,7 +1754,7 @@ if (isPro && videoFile && !videoError) {
                                       )}
                                       title={lang === "es" ? "Mover derecha" : "Move right"}
                                     >
-                                      â–¶
+                                      ▶
                                     </button>
                                   </div>
                                 )}
@@ -1765,7 +1765,7 @@ if (isPro && videoFile && !videoError) {
 
                         {!requirements.imagesOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">
-                            {lang === "es" ? "Requerido: mÃ­nimo 1 foto." : "Required: at least 1 photo."}
+                            {lang === "es" ? "Requerido: mínimo 1 foto." : "Required: at least 1 photo."}
                           </div>
                         )}
                       </div>
@@ -1838,7 +1838,7 @@ if (isPro && videoFile && !videoError) {
 
       {videoInfo && (
         <div className="mt-2 text-xs text-[#111111]/45">
-          {Math.round(videoInfo.duration * 10) / 10}s â€¢ {videoInfo.width}Ã—{videoInfo.height}
+          {Math.round(videoInfo.duration * 10) / 10}s ¢ {videoInfo.width}×{videoInfo.height}
         </div>
       )}
 
@@ -1895,7 +1895,7 @@ if (isPro && videoFile && !videoError) {
                               />
                               {!requirements.phoneOk && (
                                 <div className="mt-1 text-xs text-[#111111]/40">
-                                  {lang === "es" ? "Agrega un telÃ©fono vÃ¡lido." : "Add a valid phone."}
+                                  {lang === "es" ? "Agrega un teléfono válido." : "Add a valid phone."}
                                 </div>
                               )}
                             </div>
@@ -1912,7 +1912,7 @@ if (isPro && videoFile && !videoError) {
                               />
                               {!requirements.emailOk && (
                                 <div className="mt-1 text-xs text-[#111111]/40">
-                                  {lang === "es" ? "Agrega un email vÃ¡lido." : "Add a valid email."}
+                                  {lang === "es" ? "Agrega un email válido." : "Add a valid email."}
                                 </div>
                               )}
                             </div>
@@ -1925,7 +1925,7 @@ if (isPro && videoFile && !videoError) {
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-semibold text-[#111111]">{copy.preview}</div>
                           <div className="text-xs text-[#111111]/40">
-                            {lang === "es" ? "AsÃ­ se verÃ¡ tu anuncio" : "This is how your listing will look"}
+                            {lang === "es" ? "Así se verá tu anuncio" : "This is how your listing will look"}
                           </div>
                         </div>
 
@@ -1935,9 +1935,9 @@ if (isPro && videoFile && !videoError) {
                             {ListingCard ? (
                               (() => {
                                 const item: any = {
-                                  title: title.trim() || (lang === "es" ? "(Sin tÃ­tulo)" : "(No title)"),
+                                  title: title.trim() || (lang === "es" ? "(Sin título)" : "(No title)"),
                                   description:
-                                    description.trim() || (lang === "es" ? "(Sin descripciÃ³n)" : "(No description)"),
+                                    description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)"),
                                   createdAt: lang === "es" ? "hoy" : "today",
                                 };
                                 return <ListingCard item={item} />;
@@ -1952,7 +1952,7 @@ if (isPro && videoFile && !videoError) {
                           <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
                             <div className="text-xs text-[#111111] mb-2">{copy.detailPreview}</div>
                             <div className="text-lg font-semibold text-[#111111] leading-snug">
-                              {title.trim() || (lang === "es" ? "(Sin tÃ­tulo)" : "(No title)")}
+                              {title.trim() || (lang === "es" ? "(Sin título)" : "(No title)")}
                             </div>
                             <div className="mt-1 text-sm text-[#111111]">
                               {isFree
@@ -1960,7 +1960,7 @@ if (isPro && videoFile && !videoError) {
                                   ? "Gratis"
                                   : "Free"
                                 : formatMoneyMaybe(price, lang) || (lang === "es" ? "(Sin precio)" : "(No price)")}
-                              <span className="text-[#111111]/30"> Â· </span>
+                              <span className="text-[#111111]/30"> · </span>
                               {city.trim() || (lang === "es" ? "(Ciudad)" : "(City)")}
                             </div>
                             {filePreviews.length > 0 && (
@@ -1984,7 +1984,7 @@ if (isPro && videoFile && !videoError) {
                                     </div>
                                     <div className="mt-1 text-xs text-[#111111]">
                                       {lang === "es"
-                                        ? "Toque la miniatura para reproducir. No se reproduce automÃ¡ticamente."
+                                        ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
                                         : "Tap the thumbnail to play. No autoplay."}
                                     </div>
                                   </div>
@@ -2017,14 +2017,14 @@ if (isPro && videoFile && !videoError) {
                                         />
                                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                                           <div className="rounded-full border border-white/20 bg-white/14 px-4 py-2 text-sm font-semibold text-[#111111]">
-                                            {lang === "es" ? "â–¶ Reproducir" : "â–¶ Play"}
+                                            {lang === "es" ? "▶ Reproducir" : "▶ Play"}
                                           </div>
                                         </div>
                                       </button>
                                     ) : (
                                       <div className="rounded-xl border border-black/10 bg-[#F5F5F5] p-4 text-sm text-[#111111]">
                                         {lang === "es"
-                                          ? "Este anuncio incluirÃ¡ un video Pro al publicarse."
+                                          ? "Este anuncio incluirá un video Pro al publicarse."
                                           : "This listing will include a Pro video when published."}
                                       </div>
                                     )
@@ -2058,7 +2058,7 @@ if (isPro && videoFile && !videoError) {
                               </div>
                             )}
 <div className="mt-3 text-sm text-[#111111] whitespace-pre-wrap">
-                              {description.trim() || (lang === "es" ? "(Sin descripciÃ³n)" : "(No description)")}
+                              {description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)")}
                             </div>
                           </div>
                         </div>
@@ -2117,8 +2117,8 @@ if (isPro && videoFile && !videoError) {
 
               <div className="mt-6 text-xs text-[#111111]/40 text-center">
                 {lang === "es"
-                  ? `SesiÃ³n: ${userId ? userId.slice(0, 8) + "â€¦" : ""} Â· Borrador: autosave`
-                  : `Session: ${userId ? userId.slice(0, 8) + "â€¦" : ""} Â· Draft: autosave`}
+                  ? `Sesión: ${userId ? userId.slice(0, 8) + "…" : ""} · Borrador: autosave`
+                  : `Session: ${userId ? userId.slice(0, 8) + "…" : ""} · Draft: autosave`}
               </div>
             </>
           )}
@@ -2150,9 +2150,9 @@ if (isPro && videoFile && !videoError) {
                   <div className="text-sm font-semibold text-[#111111]">Business Standard</div>
                   <div className="mt-0.5 text-xs text-[#5A5A5A]">$200 / {lang === "es" ? "mes" : "month"}</div>
                   <ul className="mt-3 space-y-1 text-xs text-[#2B2B2B]">
-                    <li>• {lang === "es" ? "Tarjeta profesional en resultados" : "Professional card in results"}</li>
-                    <li>• {lang === "es" ? "Perfil básico con contacto" : "Basic profile with contact"}</li>
-                    <li>• {lang === "es" ? "Apareces en búsquedas y filtros" : "Shows in search & filters"}</li>
+                    <li>• {lang === "es" ? "Logo de su negocio" : "Business logo"}</li>
+                    <li>• {lang === "es" ? "Perfil básico" : "Basic profile"}</li>
+                    <li>• {lang === "es" ? "Aparece en búsquedas y filtros" : "Shows in search & filters"}</li>
                   </ul>
                 </button>
 
@@ -2174,8 +2174,9 @@ if (isPro && videoFile && !videoError) {
                   <div className="mt-0.5 text-xs text-[#5A5A5A]">$349 / {lang === "es" ? "mes" : "month"}</div>
                   <ul className="mt-3 space-y-1 text-xs text-[#2B2B2B]">
                     <li>• {lang === "es" ? "Más fotos + más detalles" : "More photos + more detail"}</li>
-                    <li>• {lang === "es" ? "Se destaca mejor en resultados" : "Stands out more in results"}</li>
-                    <li>• {lang === "es" ? "Mejor para cerrar clientes" : "Better for closing leads"}</li>
+                    <li>• {lang === "es" ? "Su negocio más visible" : "More visibility"}</li>
+                    <li>• {lang === "es" ? "Oportunidades mayores para obtener más clientes" : "More chances to win customers"}</li>
+                    <li>• {lang === "es" ? "Posibilidad de poner videos también" : "Option to add videos"}</li>
                   </ul>
                 </button>
               </div>
