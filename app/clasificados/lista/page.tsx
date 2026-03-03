@@ -4720,12 +4720,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
               {isServicios ? (
-                <div ref={serviciosTypeRef} className="xl:col-span-8 min-w-0">
+                <div ref={serviciosTypeRef} className="xl:col-span-8 min-w-0 w-full">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
-                  <div className="relative mt-1">
-                    <div className="grid grid-cols-[minmax(0,1fr)_1px_minmax(180px,240px)_auto] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
-                      <div className="min-w-0 px-3 py-3">
+                  <div className="relative mt-1 w-full min-w-0">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_1px_minmax(180px,240px)_auto] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                      <div className="min-w-0 w-full px-3 py-3">
                         <input
                           value={q}
                           onChange={(e) => {
@@ -4849,9 +4849,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     ))}
                   </div>
 
-                  {/* Breadcrumb path + deep filter chips (Servicios only) */}
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#111111]">
-                    <span className="font-medium">{serviciosBreadcrumb.replace(/ › /g, " > ")}</span>
+                  {/* Breadcrumb path + deep filter chips (Servicios only); fixed min-height to avoid reflow when subtype selected */}
+                  <div className="mt-0.5 flex min-h-[1.75rem] flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden text-[12px] text-[#111111]">
+                    <span className="min-w-0 truncate font-medium" title={serviciosBreadcrumb.replace(/ › /g, " > ")}>{serviciosBreadcrumb.replace(/ › /g, " > ")}</span>
                     {serviciosDeepChips.length > 0 && (
                       <>
                         <span className="text-black/40">|</span>
