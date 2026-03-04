@@ -26,12 +26,16 @@ function inferServicesTier(x: any): ServicesTier {
   return "standard";
 }
 
-/** Sort a tier bucket for Servicios: boostUntil desc, then createdAtISO desc. Safe if fields missing. */
+/** Sort a tier bucket: boosted (boostUntil > now) first by boostUntil desc, then rest by createdAtISO desc. */
 function sortServiciosTierBucket(items: Listing[]): Listing[] {
+  const now = Date.now();
   return [...items].sort((a, b) => {
-    const boostA = (a as any).boostUntil != null ? new Date((a as any).boostUntil).getTime() : 0;
-    const boostB = (b as any).boostUntil != null ? new Date((b as any).boostUntil).getTime() : 0;
-    if (boostB !== boostA) return boostB - boostA;
+    const untilA = (a as any).boostUntil != null ? new Date((a as any).boostUntil).getTime() : 0;
+    const untilB = (b as any).boostUntil != null ? new Date((b as any).boostUntil).getTime() : 0;
+    const activeA = untilA > now ? 1 : 0;
+    const activeB = untilB > now ? 1 : 0;
+    if (activeB !== activeA) return activeB - activeA; // active (boosted) first
+    if (activeA && activeB && untilB !== untilA) return untilB - untilA; // then boostUntil desc
     const createdA = a.createdAtISO ? new Date(a.createdAtISO).getTime() : 0;
     const createdB = b.createdAtISO ? new Date(b.createdAtISO).getTime() : 0;
     return createdB - createdA;
@@ -2405,6 +2409,8 @@ useEffect(() => {
       if (!raw) return;
       const arr = JSON.parse(raw) as Array<{
         id: string;
+        listingId?: string;
+        businessId?: string;
         category: string;
         stype: string;
         title: string;
@@ -2418,13 +2424,15 @@ useEffect(() => {
         mobile?: boolean;
         shop?: boolean;
         urgent247?: boolean;
+        boostUntil?: string;
       }>;
       if (!Array.isArray(arr)) return;
       const active = arr.filter((x) => x.status === "active");
       const mapped: Listing[] = active.map((a) => {
         const created = a.createdAt ? new Date(a.createdAt).toISOString() : "1970-01-01T00:00:00.000Z";
+        const listingId = a.listingId ?? a.id;
         return {
-          id: a.id,
+          id: listingId,
           category: "servicios" as const,
           title: { es: a.title, en: a.title },
           priceLabel: { es: "Cotización", en: "Quote" },
@@ -2439,6 +2447,7 @@ useEffect(() => {
           website: a.website,
           serviceType: a.stype,
           servicesTier: a.tier,
+          boostUntil: a.boostUntil,
         } as Listing;
       });
       setAdminServiciosListings(mapped);
