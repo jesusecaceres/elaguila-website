@@ -38,6 +38,7 @@ export default function FilterBar({
   category: CategoryKey;
   lang: Lang;
 }) {
+  // When category is "all" (Todos), drawer shows only global filters; no Servicios-specific options.
   const cfg = categoryConfig[category];
   const params = useSearchParams();
   const router = useRouter();

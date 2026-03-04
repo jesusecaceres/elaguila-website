@@ -1,4 +1,5 @@
 export type CategoryKey =
+  | "all"
   | "servicios"
   | "empleos"
   | "rentas"
@@ -14,7 +15,14 @@ type CategoryConfig = {
   futureFilters: string[];
 };
 
+/** Global filters for Todos (cat=all). Use only this for the filters drawer when category is "all"; do not show Servicios-specific options. */
+export const globalFiltersForTodos: never[] = [];
+
 export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
+  all: {
+    label: { es: "Todos", en: "All" },
+    futureFilters: [],
+  },
   servicios: {
     label: { es: "Servicios", en: "Services" },
     futureFilters: ["location", "type"],
@@ -55,7 +63,7 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
   },
 };
 
-/** Servicios drawer filters: universal options + by-subtype (e.g. mechanic). Used when cat=servicios. */
+/** Servicios drawer filters: options shown only when cat=servicios. Do NOT use for Todos (cat=all). */
 export type ServiciosDrawerOption = {
   key: string;
   label: { es: string; en: string };
@@ -63,6 +71,7 @@ export type ServiciosDrawerOption = {
 };
 
 export type ServiciosDrawerFiltersConfig = {
+  /** Servicios-only (A domicilio, En local, Urgente). For cat=servicios only; never for Todos. */
   universal: ServiciosDrawerOption[];
   byStype: Record<
     string,

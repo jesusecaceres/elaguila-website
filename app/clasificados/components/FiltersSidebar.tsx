@@ -33,6 +33,7 @@ export default function FiltersSidebar({
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
+  // When category is "all" (Todos), show only global filters; do not include Servicios-specific filters.
   const cfg = categoryConfig[category];
   const params = useSearchParams();
 
