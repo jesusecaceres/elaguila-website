@@ -418,23 +418,24 @@ try {
           <div
             className="
               absolute top-0 right-0
-              min-h-[70vh] w-72 max-w-[85vw]
+              h-[100dvh] max-h-[100dvh] w-72 max-w-[85vw]
               bg-black/90 backdrop-blur-xl
               rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)]
-              p-6 pt-10 flex flex-col gap-6
-              border-l border-white/10
+              flex flex-col border-l border-white/10
             "
             role="dialog"
             aria-modal="true"
           >
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="text-white text-3xl self-end"
-              aria-label="Close menu"
-            >
-              ×
-            </button>
-
+            <div className="flex-shrink-0 p-6 pt-10">
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="text-white text-3xl self-end"
+                aria-label="Close menu"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-24 flex flex-col gap-6">
             {/* NAV LINKS */}
 {navLinks.map((item, i) => (
   <Link
@@ -549,6 +550,7 @@ try {
               >
                 EN
               </button>
+            </div>
             </div>
           </div>
         </div>
