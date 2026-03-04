@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Lang = "es" | "en";
 
@@ -11,20 +11,21 @@ const CATEGORY = "rentas";
 const COPY = {
   es: {
     title: "Rentas",
-    line1: "Te estamos llevando a los anuncios de esta categoría.",
-    line2: "Si no te redirige automáticamente, usa el botón:",
-    button: "Ver anuncios",
+    subtitle: "Apartamentos, cuartos y propiedades en renta.",
+    searchPlaceholder: "Buscar: apartamento, cuarto, zona…",
+    buttonView: "Ver anuncios",
+    buttonPost: "Publicar anuncio",
   },
   en: {
     title: "Rentals",
-    line1: "Taking you to listings in this category.",
-    line2: "If you aren’t redirected automatically, use this button:",
-    button: "View listings",
+    subtitle: "Apartments, rooms and properties for rent.",
+    searchPlaceholder: "Search: apartment, room, area…",
+    buttonView: "View listings",
+    buttonPost: "Post listing",
   },
 } as const;
 
 export default function Page() {
-  const router = useRouter();
   const sp = useSearchParams();
 
   const lang = useMemo<Lang>(() => {
@@ -32,65 +33,52 @@ export default function Page() {
     return v === "en" ? "en" : "es";
   }, [sp]);
 
-  const href = useMemo(() => {
-    const params = new URLSearchParams(sp?.toString() ?? "");
-    // Force category to unified engine (canonical results)
-    params.set("cat", CATEGORY);
-    // Backward-compatible: also set "category" if something else still reads it
-    params.set("category", CATEGORY);
-    return "/clasificados/lista?" + params.toString();
-  }, [sp]);
-
-  const postHref = useMemo(() => {
-    const params = new URLSearchParams(sp?.toString() ?? "");
-    params.set("lang", lang);
-    params.set("cat", CATEGORY);
-    params.set("category", CATEGORY);
-    return "/clasificados/publicar?" + params.toString();
-  }, [sp, lang]);
-
-  const membershipsHref = useMemo(() => {
-    return `/clasificados/membresias?lang=${lang}`;
-  }, [lang]);
-
-useEffect(() => {
-    router.replace(href);
-  }, [router, href]);
+  const listaHref = useMemo(() => `/clasificados/lista?cat=${CATEGORY}&lang=${lang}`, [lang]);
+  const postHref = useMemo(() => `/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`, [lang]);
 
   const t = COPY[lang];
 
   return (
-    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] flex items-center justify-center px-6">
-      <div className="w-full max-w-md text-center">
-        <div className="mx-auto mb-4 h-10 w-10 rounded-full border border-yellow-600/30 bg-black/40 flex items-center justify-center">
-          <span className="text-yellow-400 text-lg">↗</span>
-        </div>
-
-        <h1 className="text-2xl font-semibold text-yellow-400">{t.title}</h1>
-        <p className="mt-3 text-sm text-[#111111] leading-relaxed">{t.line1}</p>
-        <p className="mt-2 text-sm text-[#111111] leading-relaxed">{t.line2}</p>
-
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <Link
-            href={href}
-            className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-300 transition"
-          >
-            {t.button}
-          </Link>
-
-          <Link
-            href={"/clasificados?lang=" + lang}
-            className="inline-flex items-center justify-center rounded-xl border border-yellow-600/30 bg-black/40 px-4 py-2 text-sm font-medium text-[#111111] hover:bg-black/60 transition"
-          >
-            {lang === "es" ? "Volver" : "Back"}
-          </Link>
-        </div>
-
-        <p className="mt-6 text-xs text-gray-500">
-          {lang === "es"
-            ? "LEONIX mantiene una sola lista canónica para SEO y consistencia."
-            : "LEONIX keeps one canonical results engine for SEO and consistency."}
+    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] px-4 pt-24 pb-12">
+      <div className="mx-auto max-w-xl">
+        <h1 className="text-3xl md:text-4xl font-bold text-yellow-400 tracking-tight">
+          {t.title}
+        </h1>
+        <p className="mt-2 text-[#111111] text-base">
+          {t.subtitle}
         </p>
+
+        <section className="mt-6 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#111111]/50 text-lg" aria-hidden="true">⌕</span>
+            <input
+              type="text"
+              placeholder={t.searchPlaceholder}
+              className="w-full rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] py-3 pl-10 pr-4 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20"
+              aria-label={t.searchPlaceholder}
+              readOnly
+              onFocus={(e) => e.target.blur()}
+            />
+          </div>
+          <p className="mt-2 text-xs text-[#111111]/70">
+            {lang === "es" ? "Usa el botón para ver resultados con filtros." : "Use the button below to see results with filters."}
+          </p>
+        </section>
+
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <Link
+            href={listaHref}
+            className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black hover:bg-yellow-300 transition"
+          >
+            {t.buttonView}
+          </Link>
+          <Link
+            href={postHref}
+            className="inline-flex items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-5 py-3 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+          >
+            {t.buttonPost}
+          </Link>
+        </div>
       </div>
     </div>
   );
