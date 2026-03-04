@@ -1,30 +1,14 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-async function loginAction(formData: FormData) {
-  "use server";
-  const password = (formData.get("password") as string) ?? "";
-  const expected = process.env.ADMIN_PASSWORD ?? "";
-  if (!expected || password !== expected) {
-    redirect("/admin/login?error=1");
-  }
-  const c = await cookies();
-  c.set("leonix_admin", "1", {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
-  redirect("/admin/clasificados/servicios");
-}
+export default function AdminLoginPage() {
+  const searchParams = useSearchParams();
+  const error = searchParams?.get("error") ?? undefined;
+  const [showPassword, setShowPassword] = useState(false);
 
-export default async function AdminLoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-[#111111] text-white p-4">
       <div className="w-full max-w-sm rounded-2xl border border-black/20 bg-[#1a1a1a] p-6 shadow-xl">
@@ -35,14 +19,24 @@ export default async function AdminLoginPage({
             Invalid password. Try again.
           </p>
         ) : null}
-        <form action={loginAction} className="flex flex-col gap-3">
+        <form action="/admin/login/submit" method="POST" className="flex flex-col gap-3">
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             name="password"
             placeholder="Password"
             autoFocus
             className="w-full rounded-xl border border-black/20 bg-[#2a2a2a] px-4 py-3 text-[#F5F5F5] placeholder:text-[#666] outline-none focus:ring-2 focus:ring-[#A98C2A]/50"
           />
+          <label className="flex items-center gap-2 text-sm text-[#999] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showPassword}
+              onChange={(e) => setShowPassword(e.target.checked)}
+              className="rounded border-black/20 bg-[#2a2a2a] text-[#A98C2A] focus:ring-[#A98C2A]/50"
+              aria-label="Show password"
+            />
+            Show password
+          </label>
           <button
             type="submit"
             className="w-full rounded-xl bg-[#A98C2A] px-4 py-3 font-semibold text-[#111111] hover:bg-[#C9B46A] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/50"
