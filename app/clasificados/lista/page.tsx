@@ -3588,7 +3588,7 @@ function ServiciosStandardCarouselRow({
   const label = title ?? (lang === "es" ? "Más opciones" : "More options");
 
   return (
-    <section className="max-w-5xl mx-auto rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+    <section className="w-full rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-semibold text-[#111111]">{label}</div>
         <div className="flex items-center gap-2">
@@ -3639,7 +3639,7 @@ function ServiciosPlusOrPremiumRow(x: Listing, lang: Lang) {
     <a
       href={href}
       className={cx(
-        "group block max-w-4xl mx-auto rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md",
+        "group block w-full rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md",
         tierS === "premium" ? "border-[#A98C2A]/55 ring-1 ring-[#A98C2A]/15" : "border-black/10"
       )}
     >
@@ -4853,7 +4853,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </aside>
         )}
 
-<div className="md:col-start-2 md:mt-0 min-w-0">
+<div className={cx("md:mt-0 min-w-0", isServicios ? "md:col-start-1" : "md:col-start-2")}>
+          <div className={isServicios ? "mx-auto w-full max-w-6xl" : ""}>
 
         {/* TOP QUICK FILTERS (compact) */}
         <section className={isServicios ? "mt-0" : "mt-3"}>
@@ -4864,12 +4865,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
               {isServicios ? (
-                <div ref={serviciosTypeRef} className="w-full max-w-none min-w-0 xl:col-span-12 xl:self-start">
+                <div ref={serviciosTypeRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
                   {/* What + Where row: fixed 2-column grid so left input never shrinks or shifts */}
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full max-w-none grid-cols-[minmax(0,1fr)_260px] gap-3 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_260px] gap-3 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
                         <input
                           value={q}
@@ -5637,6 +5638,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </section>
         ) : null}
 
+          </div>
         </div>
         </div>
       </main>
