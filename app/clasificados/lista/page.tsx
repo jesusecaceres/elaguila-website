@@ -6050,8 +6050,17 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             </div>
 
             <div className="h-full overflow-y-auto px-4 pb-6 pt-4">
-              {/* Suggested */}
-              <div className="text-xs font-semibold text-[#111111]">
+              {/* Servicios-only header: subcategory context or hint to choose above */}
+              <div className="text-xs text-[#111111]">
+                {serviciosDraft.stype
+                  ? (lang === "es" ? "Filtros para: " : "Filters for: ") + servicioLabel(serviciosDraft.stype, lang)
+                  : lang === "es"
+                    ? "Elige una subcategoría arriba para ver filtros específicos."
+                    : "Choose a subcategory above to see specific filters."}
+              </div>
+
+              {/* Attribute filters only (no Categoría / taxonomy chips in drawer) */}
+              <div className="mt-4 text-xs font-semibold text-[#111111]">
                 {lang === "es" ? "Sugerido" : "Suggested"}
               </div>
 
@@ -6090,40 +6099,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </label>
               </div>
 
-              {/* Category chips (service types) */}
-              <div className="mt-6 text-xs font-semibold text-[#111111]">
-                {lang === "es" ? "Categoría" : "Category"}
-              </div>
-              <div className="mt-3 grid gap-3">
-                {(Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[]).map((grp) => (
-                  <div key={grp}>
-                    <div className="text-[11px] text-[#111111]">{SERVICIOS_GROUP_LABEL[grp][lang]}</div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {SERVICIOS_TAXONOMY[grp].map((it) => {
-                        const active = (serviciosDraft.stype || "") === it.key;
-                        return (
-                          <button
-                            key={it.key}
-                            type="button"
-                            onClick={() => {
-                              setServiciosDraft((p) => ({ ...p, stype: active ? "" : it.key }));
-                              setQ(active ? "" : it.label[lang]);
-                              setPage(1);
-                            }}
-                            className={cx(
-                              "rounded-full border px-3 py-2 text-sm",
-                              active
-                                ? "border-yellow-500/40 bg-[#111111]/15 text-[#111111]"
-                                : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                            )}
-                          >
-                            {it.label[lang]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+              {/* No Categoría section in drawer — subcategory chosen via pills above */}
               {(() => {
                 const defs = getServiciosFeatureDefs(serviciosDraft.stype);
                 if (!defs.length) return null;
@@ -6162,8 +6138,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </>
                 );
               })()}
-
-              </div>
 
               <div className="mt-6 flex items-center justify-between gap-3">
                 <button
