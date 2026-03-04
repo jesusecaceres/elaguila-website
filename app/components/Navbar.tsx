@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
-import { createSupabaseBrowserClient } from "../lib/supabase/browser";
+import { supabase } from "../lib/supabaseClient";
 
 type Lang = "es" | "en";
 
@@ -182,59 +182,50 @@ function NavbarContent() {
     router.push(`/login?redirect=${redirect}`);
   }, [currentPathWithQuery, lang, router]);
 
-  // Load + subscribe to auth state
+  // Rehydrate from session first (persist after refresh), then subscribe to auth changes
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-
     let mounted = true;
 
-    async function load() {
+    async function loadSession() {
       try {
-        const { data } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
-
-        const u = data.user;
+        const u = session?.user;
         if (!u) {
           setUser(null);
           setPlan("free");
           setAuthLoading(false);
           return;
         }
-
         const fullName =
           (u.user_metadata?.full_name as string | undefined) ||
           (u.user_metadata?.name as string | undefined) ||
           null;
-
         const avatarUrl =
           (u.user_metadata?.avatar_url as string | undefined) ||
           (u.user_metadata?.picture as string | undefined) ||
           null;
-
         setUser({
           id: u.id,
           email: u.email,
           fullName,
           avatarUrl,
         });
+        try {
+          const { data: pData, error: pErr } = await supabase
+            .from("profiles")
+            .select("plan, role")
+            .eq("id", u.id)
+            .maybeSingle();
+          if (!pErr && pData) {
+            setPlan(normalizePlan((pData as any).plan ?? (pData as any).role));
+          } else {
+            setPlan("free");
+          }
+        } catch {
+          setPlan("free");
+        }
         setAuthLoading(false);
-// Plan badge (role-ready). We try profiles.plan / profiles.role if table exists.
-try {
-  const { data: pData, error: pErr } = await supabase
-    .from("profiles")
-    .select("plan, role")
-    .eq("id", u.id)
-    .maybeSingle();
-
-  if (!pErr && pData) {
-    setPlan(normalizePlan((pData as any).plan ?? (pData as any).role));
-  } else {
-    setPlan("free");
-  }
-} catch {
-  setPlan("free");
-}
-
       } catch {
         if (!mounted) return;
         setUser(null);
@@ -243,10 +234,10 @@ try {
       }
     }
 
-    load();
+    loadSession();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      load();
+      void loadSession();
     });
 
     return () => {
@@ -256,7 +247,6 @@ try {
   }, []);
 
   const signOut = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
     setAccountOpen(false);
     setUser(null);

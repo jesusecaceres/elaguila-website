@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../components/Navbar";
 import ProBadge from "../clasificados/components/ProBadge";
-import { createSupabaseBrowserClient } from "../lib/supabase/browser";
+import { supabase } from "../lib/supabaseClient";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -140,6 +140,7 @@ export default function DashboardPage() {
   const L = t[lang];
 
   const [loading, setLoading] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
@@ -161,20 +162,20 @@ export default function DashboardPage() {
   const [verifiedSeller, setVerifiedSeller] = useState(false);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
     let mounted = true;
 
     async function load() {
-      const { data } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
 
-      if (!data.user) {
-        const redirect = encodeURIComponent(`${pathname}${window.location.search || ""}`);
-        router.replace(`/login?redirect=${redirect}`);
+      if (!session?.user) {
+        setHasSession(false);
+        setLoading(false);
         return;
       }
 
-      const u = data.user;
+      setHasSession(true);
+      const u = session.user;
 
       const inferred =
         u.user_metadata?.plan ?? u.app_metadata?.plan ?? u.user_metadata?.role;
@@ -382,6 +383,18 @@ export default function DashboardPage() {
           <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
             {loading ? (
               <div className="text-white/70">Loading…</div>
+            ) : !hasSession ? (
+              <div className="text-center py-8">
+                <p className="text-white/80">
+                  {lang === "es" ? "Inicia sesión para ver tu panel." : "Sign in to view your dashboard."}
+                </p>
+                <Link
+                  href={`/login?redirect=${encodeURIComponent(pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : ""))}`}
+                  className="mt-4 inline-flex items-center justify-center rounded-full bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                >
+                  {lang === "es" ? "Iniciar sesión" : "Sign in"}
+                </Link>
+              </div>
             ) : (
               <>
                 <div className="flex items-center justify-between gap-4 flex-wrap">
