@@ -44,7 +44,7 @@ function sortServiciosTierBucket(items: Listing[]): Listing[] {
 
 function getListingHref(x: any, lang: Lang) {
   return x?.category === "servicios"
-    ? `/clasificados/servicios/${x.id}?lang=${lang}`
+    ? `/clasificados/servicios/${x.businessId || x.id}?lang=${lang}`
     : `/clasificados/anuncio/${x.id}?lang=${lang}`;
 }
 const RADIUS_OPTIONS = [10, 25, 40, 50] as const;
@@ -2448,6 +2448,7 @@ useEffect(() => {
           serviceType: a.stype,
           servicesTier: a.tier,
           boostUntil: a.boostUntil,
+          ...(a.businessId != null && { businessId: a.businessId }),
         } as Listing;
       });
       setAdminServiciosListings(mapped);
@@ -3665,7 +3666,7 @@ function ServiciosPlusOrPremiumRow(x: Listing, lang: Lang) {
 
             <div className="shrink-0">
               <div className="inline-flex items-center rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-white">
-                {tierS === "premium" ? (lang === "es" ? "Cotizar" : "Get quote") : (lang === "es" ? "Ver negocio" : "View business")}
+                {lang === "es" ? "Ver negocio" : "View business"}
               </div>
             </div>
           </div>
