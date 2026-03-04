@@ -442,6 +442,35 @@ function NavbarContent() {
   </Link>
 ))}
 
+{/* Cuenta — always visible; goes to dashboard (logged in) or login (logged out) */}
+{authLoading ? (
+  <span
+    className="text-base font-semibold text-white/50 cursor-not-allowed"
+    aria-disabled="true"
+  >
+    {lang === "es" ? "Cuenta" : "Account"}
+  </span>
+) : user ? (
+  <Link
+    href={`/dashboard?lang=${lang}`}
+    onClick={() => setMobileOpen(false)}
+    className={cx(
+      "text-base font-semibold",
+      pathname.startsWith("/dashboard") ? "text-yellow-200" : "text-white"
+    )}
+  >
+    {lang === "es" ? "Cuenta" : "Account"}
+  </Link>
+) : (
+  <Link
+    href={`/login?lang=${lang}&redirect=${encodeURIComponent(currentPathWithQuery || pathname || "/dashboard")}`}
+    onClick={() => setMobileOpen(false)}
+    className="text-base font-semibold text-white"
+  >
+    {lang === "es" ? "Cuenta" : "Account"}
+  </Link>
+)}
+
 {/* ACCOUNT (MOBILE) — collapsible so it never pushes nav down */}
 <div className="mt-2 rounded-2xl border border-white/10 bg-white/6 overflow-hidden">
   <button
@@ -451,7 +480,7 @@ function NavbarContent() {
     aria-expanded={mobileAccountOpen}
   >
     <div className="text-white/90 font-semibold">
-      {lang === "es" ? "Cuenta" : "Account"}
+      {user ? (lang === "es" ? "Mi cuenta" : "My account") : (lang === "es" ? "Cuenta" : "Account")}
     </div>
     <div className="text-white text-lg">{mobileAccountOpen ? "−" : "+"}</div>
   </button>

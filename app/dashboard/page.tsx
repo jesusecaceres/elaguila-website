@@ -177,16 +177,77 @@ export default function DashboardPage() {
       setHasSession(true);
       const u = session.user;
 
+      const inferredName =
+        (u.user_metadata?.full_name as string | undefined) ||
+        (u.user_metadata?.name as string | undefined) ||
+        null;
+
+      // Ensure a profile row exists (upsert by user_id to avoid "new account" loop)
+      try {
+        const payload = {
+          user_id: u.id,
+          email: u.email ?? null,
+          name: inferredName,
+          updated_at: new Date().toISOString(),
+        };
+        const { error: upsertErr } = await supabase
+          .from("profiles")
+          .upsert(payload, { onConflict: "user_id" })
+          .select()
+          .single();
+
+        if (upsertErr) {
+          const { data: existingByUserId } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", u.id)
+            .maybeSingle();
+          if (!existingByUserId) {
+            const { error: insertErr } = await supabase.from("profiles").insert({ user_id: u.id });
+            if (insertErr) {
+              const { data: existingById } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", u.id)
+                .maybeSingle();
+              if (!existingById) {
+                await supabase.from("profiles").upsert({
+                  id: u.id,
+                  email: u.email ?? null,
+                  full_name: inferredName,
+                } as Record<string, unknown>);
+              }
+            }
+          }
+        }
+      } catch {
+        try {
+          const { data: existing } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", u.id)
+            .maybeSingle();
+          if (!existing) {
+            await supabase.from("profiles").insert({ user_id: u.id }).then(() => {});
+          }
+        } catch {
+          try {
+            const { data: byId } = await supabase.from("profiles").select("id").eq("id", u.id).maybeSingle();
+            if (!byId) {
+              await supabase.from("profiles").upsert({ id: u.id } as Record<string, unknown>);
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
       const inferred =
         u.user_metadata?.plan ?? u.app_metadata?.plan ?? u.user_metadata?.role;
       const inferredPlan = normalizePlan(inferred);
 
       setEmail(u.email ?? null);
-      setName(
-        (u.user_metadata?.full_name as string | undefined) ||
-          (u.user_metadata?.name as string | undefined) ||
-          null
-      );
+      setName(inferredName);
       setHasPhone(Boolean(u.user_metadata?.phone));
       setHasCity(Boolean(u.user_metadata?.city || u.user_metadata?.location));
       setPlan(inferredPlan);
