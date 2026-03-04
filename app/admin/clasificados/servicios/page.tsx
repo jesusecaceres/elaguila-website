@@ -40,22 +40,115 @@ export type AdminServiciosListing = {
   boostUsedThisCycle?: number;
   boostUntil?: string;
   boostCycleKey?: string;
+  stypeLabelEs?: string;
 };
 
-const STYPE_OPTIONS = [
-  "plumbing",
-  "electrician",
-  "landscaping",
-  "cleaning",
-  "mechanic",
-  "handyman",
-  "painting",
-  "hvac",
-  "moving",
-  "smog",
-  "tow",
-  "other",
+/** Normalize website input: empty allowed; add https if missing; special cases for leonixmedia. */
+function normalizeWebsite(val: string): string {
+  const v = (val ?? "").trim();
+  if (!v) return "";
+  const lower = v.toLowerCase();
+  if (lower === "leonixmedia.com" || lower === "www.leonixmedia.com") return "https://leonixmedia.com";
+  if (v.startsWith("http://") || v.startsWith("https://")) return v;
+  return "https://" + v;
+}
+
+type StypeOption = { key: string; labelEs: string; labelEn: string };
+type StypeGroup = { id: string; labelEs: string; labelEn: string; options: StypeOption[] };
+
+const STYPE_GROUPS: StypeGroup[] = [
+  {
+    id: "home-garden",
+    labelEs: "Hogar y Jardín",
+    labelEn: "Home & Garden",
+    options: [
+      { key: "handyman", labelEs: "Contratistas y handyman", labelEn: "Contractors & Handyman" },
+      { key: "plumbing", labelEs: "Plomería", labelEn: "Plumbing" },
+      { key: "electrician", labelEs: "Electricista", labelEn: "Electrician" },
+      { key: "painting", labelEs: "Pintura", labelEn: "Painters" },
+      { key: "remodeling", labelEs: "Remodelación", labelEn: "Remodeling" },
+      { key: "landscaping", labelEs: "Jardinería", labelEn: "Landscaping" },
+      { key: "cleaning", labelEs: "Limpieza del hogar", labelEn: "Home Cleaning" },
+      { key: "moving", labelEs: "Mudanzas", labelEn: "Movers" },
+      { key: "hvac", labelEs: "Calefacción y A/C", labelEn: "Heating & A/C" },
+      { key: "roofing", labelEs: "Techos", labelEn: "Roofing" },
+      { key: "flooring", labelEs: "Pisos", labelEn: "Flooring" },
+      { key: "appliance", labelEs: "Reparación de electrodomésticos", labelEn: "Appliance Repair" },
+      { key: "locksmith", labelEs: "Cerrajería", labelEn: "Locksmiths" },
+    ],
+  },
+  {
+    id: "autos",
+    labelEs: "Servicios Automotrices",
+    labelEn: "Auto Services",
+    options: [
+      { key: "mechanic", labelEs: "Mecánico", labelEn: "Auto Repair" },
+      { key: "bodyshop", labelEs: "Taller de carrocería", labelEn: "Body Shops" },
+      { key: "tires", labelEs: "Llantas", labelEn: "Tires" },
+      { key: "oilchange", labelEs: "Cambio de aceite", labelEn: "Oil Change" },
+      { key: "carwash", labelEs: "Lavado de autos", labelEn: "Car Wash" },
+      { key: "detail", labelEs: "Detallado", labelEn: "Auto Detailing" },
+      { key: "smog", labelEs: "Smog y emisiones", labelEn: "Smog Check" },
+      { key: "tow", labelEs: "Grúa", labelEn: "Towing" },
+      { key: "glass", labelEs: "Vidrios y parabrisas", labelEn: "Auto Glass" },
+      { key: "battery", labelEs: "Baterías", labelEn: "Batteries" },
+      { key: "alignment", labelEs: "Alineación y balanceo", labelEn: "Alignment & Balancing" },
+    ],
+  },
+  {
+    id: "health-beauty",
+    labelEs: "Salud y Bienestar",
+    labelEn: "Health & Wellness",
+    options: [
+      { key: "chiropractor", labelEs: "Quiroprácticos", labelEn: "Chiropractors" },
+      { key: "physicaltherapy", labelEs: "Fisioterapia", labelEn: "Physical Therapy" },
+      { key: "dentist", labelEs: "Dentistas", labelEn: "Dentists" },
+      { key: "doctor", labelEs: "Doctores y clínicas", labelEn: "Doctors & Clinics" },
+      { key: "therapy", labelEs: "Terapia", labelEn: "Therapy" },
+      { key: "optometry", labelEs: "Optometría", labelEn: "Optometry" },
+      { key: "dermatology", labelEs: "Dermatología", labelEn: "Dermatology" },
+      { key: "barber", labelEs: "Barberías", labelEn: "Barbers" },
+      { key: "hair", labelEs: "Salones de cabello", labelEn: "Hair Salons" },
+      { key: "nails", labelEs: "Uñas", labelEn: "Nail Salons" },
+      { key: "massage", labelEs: "Masajes", labelEn: "Massage" },
+      { key: "spa", labelEs: "Spa", labelEn: "Spa" },
+    ],
+  },
+  {
+    id: "more",
+    labelEs: "Más servicios",
+    labelEn: "More Services",
+    options: [
+      { key: "photography", labelEs: "Fotografía y video", labelEn: "Photography & Video" },
+      { key: "tutoring", labelEs: "Clases particulares", labelEn: "Tutoring" },
+      { key: "legal", labelEs: "Servicios legales", labelEn: "Legal" },
+      { key: "accounting", labelEs: "Contabilidad e impuestos", labelEn: "Accounting & Taxes" },
+      { key: "insurance", labelEs: "Seguros", labelEn: "Insurance" },
+      { key: "notary", labelEs: "Notaría", labelEn: "Notary" },
+      { key: "translation", labelEs: "Traducciones", labelEn: "Translation" },
+      { key: "childcare", labelEs: "Cuidado de niños", labelEn: "Childcare" },
+      { key: "seniorcare", labelEs: "Cuidado de adultos mayores", labelEn: "Senior Care" },
+      { key: "pet", labelEs: "Mascotas", labelEn: "Pet Services" },
+      { key: "drycleaning", labelEs: "Limpieza en seco", labelEn: "Dry Cleaning" },
+      { key: "laundry", labelEs: "Lavanderías", labelEn: "Laundromats" },
+      { key: "tailoring", labelEs: "Sastrería y alteraciones", labelEn: "Tailoring & Alterations" },
+      { key: "realestate", labelEs: "Bienes raíces (agentes)", labelEn: "Real Estate" },
+      { key: "banking", labelEs: "Bancos y uniones de crédito", labelEn: "Banking & Credit Unions" },
+      { key: "gym", labelEs: "Gimnasios y yoga", labelEn: "Gyms & Yoga" },
+      { key: "computer", labelEs: "Reparación de computadoras", labelEn: "Computer Repair" },
+      { key: "cell", labelEs: "Celulares y móviles", labelEn: "Cell/Mobile" },
+      { key: "financial", labelEs: "Servicios financieros", labelEn: "Financial" },
+      { key: "other", labelEs: "Otros servicios", labelEn: "Other" },
+    ],
+  },
 ];
+
+function findStypeGroup(stypeKey: string): StypeGroup {
+  for (const g of STYPE_GROUPS) {
+    if (g.options.some((o) => o.key === stypeKey)) return g;
+  }
+  return STYPE_GROUPS[0];
+}
 
 function nextBusinessIdNumber(listings: AdminServiciosListing[]): number {
   let max = 0;
@@ -139,6 +232,7 @@ export default function AdminServiciosPage() {
   }, [listings, searchQuery]);
 
   const [title, setTitle] = useState("");
+  const [stypeGroupId, setStypeGroupId] = useState("home-garden");
   const [stype, setStype] = useState("plumbing");
   const [city, setCity] = useState("");
   const [tier, setTier] = useState<"premium" | "plus" | "standard">("standard");
@@ -151,6 +245,9 @@ export default function AdminServiciosPage() {
   const [quoteEnabled, setQuoteEnabled] = useState(false);
   const [videoCallEnabled, setVideoCallEnabled] = useState(false);
   const [videoCallUrl, setVideoCallUrl] = useState("");
+
+  const currentGroup = STYPE_GROUPS.find((g) => g.id === stypeGroupId) ?? STYPE_GROUPS[0];
+  const currentStypeOption = currentGroup.options.find((o) => o.key === stype) ?? currentGroup.options[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,6 +262,7 @@ export default function AdminServiciosPage() {
       businessId,
       category: "servicios",
       stype: stype.trim() || "other",
+      stypeLabelEs: currentStypeOption?.labelEs,
       title: title.trim(),
       city: city.trim(),
       zip: zip.trim() || undefined,
@@ -172,7 +270,7 @@ export default function AdminServiciosPage() {
       status: "active",
       createdAt: new Date().toISOString(),
       phone: phone.trim() || undefined,
-      website: website.trim() || undefined,
+      website: normalizeWebsite(website),
       quoteEnabled: quoteEnabled || undefined,
       videoCallEnabled: videoCallEnabled || undefined,
       videoCallUrl: videoCallUrl.trim() || undefined,
@@ -249,33 +347,50 @@ export default function AdminServiciosPage() {
       <h1 className="text-xl font-bold text-[#111111]">Servicios – Create listing</h1>
 
       <form onSubmit={handleSubmit} className="rounded-xl border border-black/10 bg-white p-6 space-y-4 max-w-2xl">
+        <div>
+          <label className="block text-xs font-semibold text-[#111111] mb-1">Nombre del negocio / Business name *</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111]"
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
+            <label className="block text-xs font-semibold text-[#111111] mb-1">Grupo / Group *</label>
+            <select
+              value={stypeGroupId}
+              onChange={(e) => {
+                const gid = e.target.value;
+                setStypeGroupId(gid);
+                const g = STYPE_GROUPS.find((x) => x.id === gid);
+                if (g) setStype(g.options[0].key);
+              }}
               className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111]"
-            />
+            >
+              {STYPE_GROUPS.map((g) => (
+                <option key={g.id} value={g.id}>{g.labelEs} / {g.labelEn}</option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">stype *</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">Subcategoría / Subcategory *</label>
             <select
               value={stype}
               onChange={(e) => setStype(e.target.value)}
               className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111]"
             >
-              {STYPE_OPTIONS.map((k) => (
-                <option key={k} value={k}>{k}</option>
+              {currentGroup.options.map((o) => (
+                <option key={o.key} value={o.key}>{o.labelEs} / {o.labelEn}</option>
               ))}
             </select>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">City *</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">Ciudad / City *</label>
             <input
               type="text"
               value={city}
@@ -285,7 +400,7 @@ export default function AdminServiciosPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">Tier *</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">Nivel / Tier *</label>
             <select
               value={tier}
               onChange={(e) => setTier(e.target.value as "premium" | "plus" | "standard")}
@@ -299,7 +414,7 @@ export default function AdminServiciosPage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">ZIP (optional)</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">ZIP (opcional)</label>
             <input
               type="text"
               value={zip}
@@ -308,7 +423,7 @@ export default function AdminServiciosPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">Phone (optional)</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">Teléfono / Phone</label>
             <input
               type="text"
               value={phone}
@@ -318,44 +433,46 @@ export default function AdminServiciosPage() {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-[#111111] mb-1">Website (optional)</label>
+          <label className="block text-xs font-semibold text-[#111111] mb-1">Sitio web / Website</label>
           <input
-            type="url"
+            type="text"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111]"
+            placeholder="leonixmedia.com o https://..."
+            className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] placeholder:text-[#666]"
           />
         </div>
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2 text-sm text-[#111111]">
             <input type="checkbox" checked={mobile} onChange={(e) => setMobile(e.target.checked)} />
-            A domicilio (mobile)
+            A domicilio (móvil) / Mobile
           </label>
           <label className="flex items-center gap-2 text-sm text-[#111111]">
             <input type="checkbox" checked={shop} onChange={(e) => setShop(e.target.checked)} />
-            En local (shop)
+            En local (tienda) / Shop
           </label>
           <label className="flex items-center gap-2 text-sm text-[#111111]">
             <input type="checkbox" checked={urgent247} onChange={(e) => setUrgent247(e.target.checked)} />
-            Urgente / 24-7
+            Urgente 24/7 / Urgent 24/7
           </label>
           <label className="flex items-center gap-2 text-sm text-[#111111]">
             <input type="checkbox" checked={quoteEnabled} onChange={(e) => setQuoteEnabled(e.target.checked)} />
-            Quote enabled
+            Cotización / Quote enabled
           </label>
           <label className="flex items-center gap-2 text-sm text-[#111111]">
             <input type="checkbox" checked={videoCallEnabled} onChange={(e) => setVideoCallEnabled(e.target.checked)} />
-            Video call enabled
+            Video llamada / Video call
           </label>
         </div>
         {videoCallEnabled ? (
           <div>
             <label className="block text-xs font-semibold text-[#111111] mb-1">Video call URL</label>
             <input
-              type="url"
+              type="text"
               value={videoCallUrl}
               onChange={(e) => setVideoCallUrl(e.target.value)}
-              className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111]"
+              placeholder="https://..."
+              className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] placeholder:text-[#666]"
             />
           </div>
         ) : null}
