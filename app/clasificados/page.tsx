@@ -488,69 +488,6 @@ out[cat] = mixed.slice(0, limit);
         </div>
       </section>
 
-      {/* FEATURED BY CATEGORY */}
-      <section className="max-w-screen-2xl mx-auto px-6 mt-14">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
-              {t.sectionFeatured}
-            </h2>
-            <p className="mt-2 text-sm text-[#111111] max-w-3xl">
-              {t.sectionFeaturedHint}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 space-y-10">
-          {CATEGORY_ORDER.map((cat) => {
-            const meta = (t.cat as any)[cat] as { label: string; hint: string };
-            const items = featuredByCategory[cat] || [];
-            if (!items.length) return null;
-
-            return (
-              <div
-                key={cat}
-                className="border border-[#C9B46A]/70 bg-[#F5F5F5] rounded-2xl p-6"
-              >
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <div>
-                    <div className="text-xl font-bold text-[#111111]">
-                      {meta.label}
-                    </div>
-                    <div className="mt-1 text-sm text-[#111111]">{meta.hint}</div>
-                  </div>
-
-                  <a
-                    // ✅ CHANGED: from lista params to dedicated category page route
-                    href={withCategoryRoute(cat)}
-                    className="px-4 py-2 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
-                  >
-                    {t.viewMore} →
-                  </a>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {items.map((item, idx) => (
-                    <div
-                      key={item.id}
-                      className={cx(
-                        idx % 3 === 1
-                          ? "lg:translate-y-2"
-                          : idx % 3 === 2
-                          ? "lg:translate-y-1"
-                          : ""
-                      )}
-                    >
-                      <ListingCardCompact item={item} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* MEMBERSHIPS (benefits only, no prices) */}
       <section id="memberships" className="max-w-screen-2xl mx-auto px-6 mt-16">
         <div className="border border-[#C9B46A]/70 rounded-2xl p-8 bg-[#EFEFEF]">
