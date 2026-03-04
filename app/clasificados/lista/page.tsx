@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import ActiveFilterChips from "../components/ActiveFilterChips";
+import { serviciosDrawerFilters } from "../config/categoryConfig";
 import newLogo from "../../../public/logo.png";
 
 import {
@@ -721,6 +722,8 @@ function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
 
 export default function ListaPage() {
   const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const lang: Lang = (params?.get("lang") as Lang) === "en" ? "en" : "es";
 
   const [q, setQ] = useState("");
@@ -1372,6 +1375,16 @@ function getServiciosFeatureDefs(stype: string): ServicioFeatureDef[] {
       ];
     case "mechanic":
       return [
+        { key: "smog", label: { es: "Smog", en: "Smog" }, kw: ["smog", "emisiones", "inspection", "inspeccion"] },
+        { key: "grua", label: { es: "Grúa", en: "Towing" }, kw: ["tow", "towing", "grua", "grúa", "remolque"] },
+        { key: "llantas", label: { es: "Llantas", en: "Tires" }, kw: ["llanta", "tire", "tires", "neumatico"] },
+        { key: "cambio-aceite", label: { es: "Cambio de aceite", en: "Oil change" }, kw: ["aceite", "oil change", "cambio de aceite"] },
+        { key: "lavado-autos", label: { es: "Lavado de autos", en: "Car wash" }, kw: ["lavado", "car wash", "autos", "auto"] },
+        { key: "detallado", label: { es: "Detallado", en: "Detailing" }, kw: ["detall", "detail", "detailing", "pulido"] },
+        { key: "carroceria", label: { es: "Carrocería", en: "Body work" }, kw: ["carroceria", "body", "hail", "collision", "golpe"] },
+        { key: "vidrios-parabrisas", label: { es: "Vidrios y parabrisas", en: "Glass & windshield" }, kw: ["vidrio", "parabrisas", "windshield", "glass"] },
+        { key: "baterias", label: { es: "Baterías", en: "Batteries" }, kw: ["bateria", "battery", "baterías"] },
+        { key: "alineacion", label: { es: "Alineación", en: "Alignment" }, kw: ["alineacion", "alignment", "balanceo"] },
         { key: "oil", label: { es: "Cambio de aceite", en: "Oil change" }, kw: ["aceite", "oil change", "cambio de aceite"] },
         { key: "brakes", label: { es: "Frenos", en: "Brakes" }, kw: ["freno", "frenos", "brake", "pads"] },
         { key: "diagnostic", label: { es: "Diagnóstico", en: "Diagnostics" }, kw: ["diagn", "scanner", "check engine"] },
@@ -1622,6 +1635,22 @@ useEffect(() => {
       sfeat: serviciosParams.sfeat || null,
     });
   }, [category, serviciosParams]);
+
+  // ✓ Servicios: merge drawer URL params (sv_mobile, sv_shop, sv_247, sv_mech_*) into effective filter state
+  const effectiveServiciosParams = useMemo(() => {
+    if (category !== "servicios") return serviciosParams;
+    const p = params;
+    const svisit = p?.get("sv_mobile") === "1" ? "comes" : p?.get("sv_shop") === "1" ? "shop" : serviciosParams.svisit || "";
+    const savail = p?.get("sv_247") === "1" ? "anytime" : serviciosParams.savail || "";
+    let sfeat = serviciosParams.sfeat || "";
+    const stype = (serviciosParams.stype || "").trim().toLowerCase();
+    if (stype === "mechanic") {
+      const mechOpts = serviciosDrawerFilters.byStype.mechanic?.options ?? [];
+      const mechKeys = mechOpts.filter((o) => p?.get(o.paramKey) === "1").map((o) => o.key);
+      if (mechKeys.length) sfeat = setToCsv(new Set([...parseCsvSet(sfeat), ...mechKeys]));
+    }
+    return { ...serviciosParams, svisit, savail, sfeat };
+  }, [category, serviciosParams, params]);
 
   // ✓ En Venta param state (only used when cat=en-venta)
   const [ventaParams, setVentaParams] = useState<VentaParams>(EMPTY_VENTA_PARAMS);
@@ -2408,7 +2437,7 @@ useEffect(() => {
     if (category === "autos") catApplied = applyAutosParams(base, autosParams);
     if (category === "rentas") catApplied = applyRentasParams(base, rentasParams);
     if (category === "empleos") catApplied = applyEmpleosParams(base, empleosParams);
-    if (category === "servicios") catApplied = applyServiciosParams(base, serviciosParams);
+    if (category === "servicios") catApplied = applyServiciosParams(base, effectiveServiciosParams);
     if (category === "en-venta") catApplied = applyVentaParams(base, ventaParams);
     if (category === "clases") catApplied = applyClasesParams(base, clasesParams);
     if (category === "comunidad") catApplied = applyComunidadParams(base, comunidadParams);
@@ -2427,7 +2456,7 @@ useEffect(() => {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams, travelParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, effectiveServiciosParams, ventaParams, clasesParams, comunidadParams, travelParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
@@ -6059,48 +6088,56 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     : "Choose a subcategory above to see specific filters."}
               </div>
 
-              {/* Attribute filters only (no Categoría / taxonomy chips in drawer) */}
+              {/* Universal Servicios filters (URL params: sv_mobile, sv_shop, sv_247) */}
               <div className="mt-4 text-xs font-semibold text-[#111111]">
                 {lang === "es" ? "Sugerido" : "Suggested"}
               </div>
-
               <div className="mt-3 grid gap-2">
-                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
-                  <input
-                    type="checkbox"
-                    checked={serviciosDraft.svisit === "comes"}
-                    onChange={(e) =>
-                      setServiciosDraft((p) => ({ ...p, svisit: e.target.checked ? "comes" : "" }))
-                    }
-                  />
-                  {lang === "es" ? "A domicilio" : "Comes to you"}
-                </label>
-
-                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
-                  <input
-                    type="checkbox"
-                    checked={serviciosDraft.svisit === "shop"}
-                    onChange={(e) =>
-                      setServiciosDraft((p) => ({ ...p, svisit: e.target.checked ? "shop" : "" }))
-                    }
-                  />
-                  {lang === "es" ? "En local" : "At shop"}
-                </label>
-
-                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
-                  <input
-                    type="checkbox"
-                    checked={serviciosDraft.savail === "anytime"}
-                    onChange={(e) =>
-                      setServiciosDraft((p) => ({ ...p, savail: e.target.checked ? "anytime" : "" }))
-                    }
-                  />
-                  {lang === "es" ? "Urgente / 24-7" : "Emergency / 24-7"}
-                </label>
+                {serviciosDrawerFilters.universal.map((opt) => {
+                  const checked = params?.get(opt.paramKey) === "1";
+                  const toggle = () => {
+                    const next = new URLSearchParams(params?.toString() ?? "");
+                    if (next.get(opt.paramKey) === "1") next.delete(opt.paramKey);
+                    else next.set(opt.paramKey, "1");
+                    router.replace(pathname + (next.toString() ? "?" + next.toString() : ""));
+                  };
+                  return (
+                    <label key={opt.paramKey} className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
+                      <input type="checkbox" checked={checked} onChange={toggle} />
+                      {opt.label[lang]}
+                    </label>
+                  );
+                })}
               </div>
 
-              {/* No Categoría section in drawer — subcategory chosen via pills above */}
-              {(() => {
+              {/* Subtype-specific: mechanic (URL params sv_mech_*) */}
+              {serviciosDraft.stype === "mechanic" && serviciosDrawerFilters.byStype.mechanic ? (
+                <>
+                  <div className="mt-6 text-xs font-semibold text-[#111111]">
+                    {serviciosDrawerFilters.byStype.mechanic.sectionLabel[lang]}
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {serviciosDrawerFilters.byStype.mechanic.options.map((opt) => {
+                      const checked = params?.get(opt.paramKey) === "1";
+                      const toggle = () => {
+                        const next = new URLSearchParams(params?.toString() ?? "");
+                        if (next.get(opt.paramKey) === "1") next.delete(opt.paramKey);
+                        else next.set(opt.paramKey, "1");
+                        router.replace(pathname + (next.toString() ? "?" + next.toString() : ""));
+                      };
+                      return (
+                        <label key={opt.paramKey} className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111]">
+                          <input type="checkbox" checked={checked} onChange={toggle} />
+                          {opt.label[lang]}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
+
+              {/* Más filtros (non-mechanic subtypes only) */}
+              {serviciosDraft.stype && serviciosDraft.stype !== "mechanic" ? (() => {
                 const defs = getServiciosFeatureDefs(serviciosDraft.stype);
                 if (!defs.length) return null;
                 const set = parseCsvSet(serviciosDraft.sfeat);
@@ -6137,14 +6174,18 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     </div>
                   </>
                 );
-              })()}
+              })() : null}
 
               <div className="mt-6 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setServiciosDraft(EMPTY_SERVICIOS_PARAMS);
+                    setServiciosParams(EMPTY_SERVICIOS_PARAMS);
                     setQ("");
+                    const next = new URLSearchParams(params?.toString() ?? "");
+                    Array.from(next.keys()).forEach((k) => { if (k.startsWith("sv_")) next.delete(k); });
+                    router.replace(pathname + (next.toString() ? "?" + next.toString() : ""));
                   }}
                   className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                 >
