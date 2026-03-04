@@ -4864,12 +4864,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
               {isServicios ? (
-                <div ref={serviciosTypeRef} className="xl:col-span-8 min-w-0 w-full">
+                <div ref={serviciosTypeRef} className="w-full max-w-none min-w-0 xl:col-span-12 xl:self-start">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
                   {/* What + Where row: fixed 2-column grid so left input never shrinks or shifts */}
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_260px] gap-0 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                    <div className="grid w-full max-w-none grid-cols-[minmax(0,1fr)_260px] gap-3 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
                         <input
                           value={q}
@@ -4879,12 +4879,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           }}
                           onFocus={() => setServiciosTypeOpen(true)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="min-w-0 w-full bg-transparent px-3 py-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]"
+                          className="w-full min-w-0 bg-transparent px-3 py-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]"
                           aria-label={lang === "es" ? "Buscar servicio" : "Search service"}
                         />
                       </div>
 
-                      <div className="flex min-w-0 shrink-0 items-stretch">
+                      <div className="flex min-w-[260px] shrink-0 items-stretch">
                         <div className="w-px shrink-0 bg-black/10" aria-hidden="true" />
                         <button
                           type="button"
