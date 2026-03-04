@@ -2397,15 +2397,69 @@ useEffect(() => {
     setSuggestionsOpen(next.length > 0);
   }, [q, synonymIndex]);
 
+  const [adminServiciosListings, setAdminServiciosListings] = useState<Listing[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("leonix_admin_servicios_listings_v1");
+      if (!raw) return;
+      const arr = JSON.parse(raw) as Array<{
+        id: string;
+        category: string;
+        stype: string;
+        title: string;
+        city: string;
+        zip?: string;
+        tier: "premium" | "plus" | "standard";
+        status: string;
+        createdAt: string;
+        phone?: string;
+        website?: string;
+        mobile?: boolean;
+        shop?: boolean;
+        urgent247?: boolean;
+      }>;
+      if (!Array.isArray(arr)) return;
+      const active = arr.filter((x) => x.status === "active");
+      const mapped: Listing[] = active.map((a) => {
+        const created = a.createdAt ? new Date(a.createdAt).toISOString() : "1970-01-01T00:00:00.000Z";
+        return {
+          id: a.id,
+          category: "servicios" as const,
+          title: { es: a.title, en: a.title },
+          priceLabel: { es: "Cotización", en: "Quote" },
+          city: a.city,
+          zip: a.zip,
+          postedAgo: { es: "hace 1 día", en: "1 day ago" },
+          createdAtISO: created,
+          hasImage: false,
+          sellerType: "business" as const,
+          blurb: { es: "", en: "" },
+          phone: a.phone,
+          website: a.website,
+          serviceType: a.stype,
+          servicesTier: a.tier,
+        } as Listing;
+      });
+      setAdminServiciosListings(mapped);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const listings = useMemo<Listing[]>(() => {
     const raw = (SAMPLE_LISTINGS as unknown as Listing[]) ?? [];
-    return raw.map((x) => ({
+    const sample = raw.map((x) => ({
       ...x,
       createdAtISO: safeISO(x.createdAtISO),
       hasImage: Boolean(x.hasImage),
       sellerType: x.sellerType ?? "personal",
     }));
-  }, []);
+    if (typeof window !== "undefined" && adminServiciosListings.length > 0) {
+      return [...sample, ...adminServiciosListings];
+    }
+    return sample;
+  }, [adminServiciosListings]);
 
   const qSmart = useMemo(() => {
     const nq = normalize(q);
