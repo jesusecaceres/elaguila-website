@@ -26,6 +26,18 @@ function inferServicesTier(x: any): ServicesTier {
   return "standard";
 }
 
+/** Sort a tier bucket for Servicios: boostUntil desc, then createdAtISO desc. Safe if fields missing. */
+function sortServiciosTierBucket(items: Listing[]): Listing[] {
+  return [...items].sort((a, b) => {
+    const boostA = (a as any).boostUntil != null ? new Date((a as any).boostUntil).getTime() : 0;
+    const boostB = (b as any).boostUntil != null ? new Date((b as any).boostUntil).getTime() : 0;
+    if (boostB !== boostA) return boostB - boostA;
+    const createdA = a.createdAtISO ? new Date(a.createdAtISO).getTime() : 0;
+    const createdB = b.createdAtISO ? new Date(b.createdAtISO).getTime() : 0;
+    return createdB - createdA;
+  });
+}
+
 function getListingHref(x: any, lang: Lang) {
   return x?.category === "servicios"
     ? `/clasificados/servicios/${x.id}?lang=${lang}`
@@ -2591,6 +2603,40 @@ const visible = useMemo(() => {
   const start = (pageClamped - 1) * perPage;
   return mixed.slice(start, start + perPage);
 }, [filtered, pageClamped, perPage, businessTop]);
+
+  /** Servicios-only: featured stream (2:1 Premium:Plus), top 3 = Top Pros, rest in carousel chunks of 4 */
+  const serviciosSectioned = useMemo(() => {
+    if (category !== "servicios") return null;
+    const premium: Listing[] = [];
+    const plus: Listing[] = [];
+    const standard: Listing[] = [];
+    for (const x of filtered) {
+      if (x.category !== "servicios") continue;
+      const t = inferServicesTier(x);
+      if (t === "premium") premium.push(x);
+      else if (t === "plus") plus.push(x);
+      else standard.push(x);
+    }
+    const sortedPremium = sortServiciosTierBucket(premium);
+    const sortedPlus = sortServiciosTierBucket(plus);
+    const sortedStandard = sortServiciosTierBucket(standard);
+
+    const featured: Listing[] = [];
+    let pi = 0;
+    let pl = 0;
+    for (;;) {
+      let added = 0;
+      if (pi < sortedPremium.length) { featured.push(sortedPremium[pi++]); added++; }
+      if (pi < sortedPremium.length) { featured.push(sortedPremium[pi++]); added++; }
+      if (pl < sortedPlus.length) { featured.push(sortedPlus[pl++]); added++; }
+      if (added === 0) break;
+    }
+    const topPros = featured.slice(0, 3);
+    const rest = featured.slice(3).concat(sortedStandard);
+    const carouselChunks: Listing[][] = [];
+    for (let i = 0; i < rest.length; i += 4) carouselChunks.push(rest.slice(i, i + 4));
+    return { topPros, carouselChunks };
+  }, [category, filtered]);
 
   const locationLabel = useMemo(() => {
     if (zipMode) return `ZIP ${zipClean}`;
@@ -5444,53 +5490,30 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
     </div>
   </section>
 ) : null}        <section className="mt-6">
-          {category === "servicios" ? (
-            <div className="flex flex-col gap-5">
-              {(() => {
-                const out: JSX.Element[] = [];
-                let i = 0;
-                let carouselCount = 0;
-
-                while (i < visible.length) {
-                  const x = visible[i];
-                  const tierS = inferServicesTier(x);
-
-                  if (tierS !== "standard") {
-                    out.push(<div key={x.id}>{ServiciosPlusOrPremiumRow(x, lang)}</div>);
-                    i += 1;
-                    continue;
-                  }
-
-                  if (carouselCount >= 8) {
-                    out.push(<div key={x.id}>{ServiciosStandardCard(x, lang)}</div>);
-                    i += 1;
-                    continue;
-                  }
-
-                  const items: Listing[] = [];
-                  let j = i;
-                  while (j < visible.length && inferServicesTier(visible[j]) === "standard" && items.length < 8) {
-                    items.push(visible[j]);
-                    j += 1;
-                  }
-
-                  carouselCount += 1;
-                  const key = "std-carousel-" + items.map((t) => t.id).join("-");
-                  out.push(
-                    <div key={key}>
-                      <ServiciosStandardCarouselRow
-                        items={items}
-                        lang={lang}
-                        title={lang === "es" ? "Opciones estándar" : "Standard options"}
-                      />
-                    </div>
-                  );
-
-                  i = j;
-                }
-
-                return out;
-              })()}
+          {category === "servicios" && serviciosSectioned ? (
+            <div className="flex flex-col gap-6">
+              {serviciosSectioned.topPros.length > 0 ? (
+                <div>
+                  <h2 className="mb-3 text-sm font-semibold text-[#111111]">
+                    {lang === "es" ? "Top Pros" : "Top Pros"}
+                  </h2>
+                  <div className="flex flex-col gap-4">
+                    {serviciosSectioned.topPros.map((x) => (
+                      <div key={x.id}>{ServiciosPlusOrPremiumRow(x, lang)}</div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {serviciosSectioned.carouselChunks.map((chunk, idx) => (
+                <ServiciosStandardCarouselRow
+                  key={"carousel-" + idx + "-" + chunk.map((c) => c.id).join("-")}
+                  items={chunk}
+                  lang={lang}
+                  title={idx === 0 && serviciosSectioned.topPros.length > 0
+                    ? (lang === "es" ? "Más opciones" : "More options")
+                    : (lang === "es" ? "Opciones" : "Options")}
+                />
+              ))}
             </div>
           ) : view === "grid" ? (
             <div
@@ -5508,6 +5531,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           )}
         </section>
 
+        {category !== "servicios" ? (
         <section className="mt-6 flex items-center justify-center gap-3 pb-14">
           <button
             type="button"
@@ -5541,6 +5565,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             {UI.next[lang]}
           </button>
         </section>
+        ) : null}
 
         </div>
         </div>
