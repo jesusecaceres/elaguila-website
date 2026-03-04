@@ -2668,7 +2668,7 @@ const visible = useMemo(() => {
   return mixed.slice(start, start + perPage);
 }, [filtered, pageClamped, perPage, businessTop]);
 
-  /** Servicios-only: featured stream (2:1 Premium:Plus), top 3 = Top Pros, rest in carousel chunks of 4 */
+  /** Servicios-only: Featured(3) -> Standard(4) -> Featured(3) -> Standard(4) -> ... */
   const serviciosSectioned = useMemo(() => {
     if (category !== "servicios") return null;
     const premium: Listing[] = [];
@@ -2685,21 +2685,36 @@ const visible = useMemo(() => {
     const sortedPlus = sortServiciosTierBucket(plus);
     const sortedStandard = sortServiciosTierBucket(standard);
 
-    const featured: Listing[] = [];
+    const featuredStream: Listing[] = [];
     let pi = 0;
     let pl = 0;
     for (;;) {
       let added = 0;
-      if (pi < sortedPremium.length) { featured.push(sortedPremium[pi++]); added++; }
-      if (pi < sortedPremium.length) { featured.push(sortedPremium[pi++]); added++; }
-      if (pl < sortedPlus.length) { featured.push(sortedPlus[pl++]); added++; }
+      if (pi < sortedPremium.length) { featuredStream.push(sortedPremium[pi++]); added++; }
+      if (pi < sortedPremium.length) { featuredStream.push(sortedPremium[pi++]); added++; }
+      if (pl < sortedPlus.length) { featuredStream.push(sortedPlus[pl++]); added++; }
       if (added === 0) break;
     }
-    const topPros = featured.slice(0, 3);
-    const rest = featured.slice(3).concat(sortedStandard);
-    const carouselChunks: Listing[][] = [];
-    for (let i = 0; i < rest.length; i += 4) carouselChunks.push(rest.slice(i, i + 4));
-    return { topPros, carouselChunks };
+    const standardStream = sortedStandard;
+
+    type Block = { type: "featured"; items: Listing[] } | { type: "standard"; items: Listing[] };
+    const renderBlocks: Block[] = [];
+    let fi = 0;
+    let si = 0;
+    let turn = 0;
+    while (fi < featuredStream.length || si < standardStream.length) {
+      if (turn % 2 === 0) {
+        const items = featuredStream.slice(fi, fi + 3);
+        fi += items.length;
+        if (items.length) renderBlocks.push({ type: "featured", items });
+      } else {
+        const items = standardStream.slice(si, si + 4);
+        si += items.length;
+        if (items.length) renderBlocks.push({ type: "standard", items });
+      }
+      turn++;
+    }
+    return { renderBlocks };
   }, [category, filtered]);
 
   const locationLabel = useMemo(() => {
@@ -3795,12 +3810,7 @@ const isComunidadLite = isComunidad;
                 <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
                 <span>{x.priceLabel[lang]}</span>
               </>
-            ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
-              <>
-                <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
-                <span>{x.priceLabel[lang]}</span>
-              </>
-            ) : (
+            ) : isServicios ? null : (
               x.priceLabel[lang]
             )}
           </div>
@@ -3955,7 +3965,7 @@ const isComunidadLite = isComunidad;
         href={getListingHref(x, lang)}
         className="mt-2.5 block rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-center text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
       >
-        {lang === "es" ? "Ver detalle" : "View details"}
+        {isServicios ? (lang === "es" ? "Ver negocio" : "View business") : (lang === "es" ? "Ver detalle" : "View details")}
       </a>
     </div>
   );
@@ -4065,12 +4075,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
       <span>{x.priceLabel[lang]}</span>
     </>
-  ) : isServicios && !/\$/.test(x.priceLabel[lang]) && x.priceLabel[lang] !== "Gratis" && x.priceLabel[lang] !== "Free" ? (
-    <>
-      <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Acción:" : "Action:"}</span>
-      <span>{x.priceLabel[lang]}</span>
-    </>
-  ) : (
+  ) : isServicios ? null : (
     x.priceLabel[lang]
   )}
 </div>
@@ -5541,13 +5546,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             </button>
           </div>
 
-          <div className="mt-2 text-sm font-bold text-yellow-200 tracking-tight">{x.priceLabel[lang]}</div>
+          {x.category !== "servicios" || (x.priceLabel[lang] !== "Cotización" && x.priceLabel[lang] !== "Quote") ? (
+            <div className="mt-2 text-sm font-bold text-yellow-200 tracking-tight">{x.priceLabel[lang]}</div>
+          ) : null}
 
           <a
             href={getListingHref(x, lang)}
             className="mt-3 block rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-center text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
           >
-            {lang === "es" ? "Ver detalle" : "View details"}
+            {x.category === "servicios" ? (lang === "es" ? "Ver negocio" : "View business") : (lang === "es" ? "Ver detalle" : "View details")}
           </a>
         </div>
       ))}
@@ -5556,28 +5563,27 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 ) : null}        <section className="mt-6">
           {category === "servicios" && serviciosSectioned ? (
             <div className="flex flex-col gap-6">
-              {serviciosSectioned.topPros.length > 0 ? (
-                <div>
-                  <h2 className="mb-3 text-sm font-semibold text-[#111111]">
-                    {lang === "es" ? "Top Pros" : "Top Pros"}
-                  </h2>
-                  <div className="flex flex-col gap-4">
-                    {serviciosSectioned.topPros.map((x) => (
-                      <div key={x.id}>{ServiciosPlusOrPremiumRow(x, lang)}</div>
-                    ))}
+              {serviciosSectioned.renderBlocks.map((block, idx) =>
+                block.type === "featured" ? (
+                  <div key={"feat-" + idx}>
+                    <h2 className="mb-3 text-sm font-semibold text-[#111111]">
+                      {lang === "es" ? "Top Pros" : "Top Pros"}
+                    </h2>
+                    <div className="flex flex-col gap-4">
+                      {block.items.map((x) => (
+                        <div key={x.id}>{ServiciosPlusOrPremiumRow(x, lang)}</div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-              {serviciosSectioned.carouselChunks.map((chunk, idx) => (
-                <ServiciosStandardCarouselRow
-                  key={"carousel-" + idx + "-" + chunk.map((c) => c.id).join("-")}
-                  items={chunk}
-                  lang={lang}
-                  title={idx === 0 && serviciosSectioned.topPros.length > 0
-                    ? (lang === "es" ? "Más opciones" : "More options")
-                    : (lang === "es" ? "Opciones" : "Options")}
-                />
-              ))}
+                ) : (
+                  <ServiciosStandardCarouselRow
+                    key={"std-" + idx + "-" + block.items.map((c) => c.id).join("-")}
+                    items={block.items}
+                    lang={lang}
+                    title={lang === "es" ? "Opciones" : "Options"}
+                  />
+                )
+              )}
             </div>
           ) : view === "grid" ? (
             <div
