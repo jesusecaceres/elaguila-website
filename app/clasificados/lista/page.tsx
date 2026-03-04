@@ -4752,9 +4752,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 <div ref={serviciosTypeRef} className="xl:col-span-8 min-w-0 w-full">
                   <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
+                  {/* What + Where row: fixed 2-column grid so left input never shrinks or shifts */}
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_1px_minmax(180px,240px)_auto] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
-                      <div className="min-w-0 w-full px-3 py-3">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_260px] gap-0 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                      <div className="min-w-0 w-full">
                         <input
                           value={q}
                           onChange={(e) => {
@@ -4763,31 +4764,31 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           }}
                           onFocus={() => setServiciosTypeOpen(true)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="min-w-0 w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#111111]"
+                          className="min-w-0 w-full bg-transparent px-3 py-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]"
                           aria-label={lang === "es" ? "Buscar servicio" : "Search service"}
                         />
                       </div>
 
-                      <div className="bg-black/10" />
-
-                      <button
-                        type="button"
-                        onClick={() => setLocationOpen(true)}
-                        className="truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                        aria-label={UI.location[lang]}
-                      >
-                        {locationLabel}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setLocationOpen(true)}
-                        className="shrink-0 px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                        aria-label={UI.edit[lang]}
-                        title={UI.edit[lang]}
-                      >
-                        ✎
-                      </button>
+                      <div className="flex min-w-0 shrink-0 items-stretch">
+                        <div className="w-px shrink-0 bg-black/10" aria-hidden="true" />
+                        <button
+                          type="button"
+                          onClick={() => setLocationOpen(true)}
+                          className="min-w-0 flex-1 truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          aria-label={UI.location[lang]}
+                        >
+                          {locationLabel}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLocationOpen(true)}
+                          className="shrink-0 px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          aria-label={UI.edit[lang]}
+                          title={UI.edit[lang]}
+                        >
+                          ✎
+                        </button>
+                      </div>
                     </div>
 
                     {/* Typeahead suggestions (typo-tolerant) */}
