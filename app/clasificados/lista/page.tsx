@@ -358,6 +358,21 @@ const CATEGORY_ORDER: CategoryKey[] = [
   "travel",
 ];
 
+/** Quick pick tiles for mobile Search Panel (icon + label). "more" opens Más filtros drawer. */
+const QUICK_PICKS: Array<{ key: CategoryKey | "more"; icon: string; labelEs: string; labelEn: string }> = [
+  { key: "all", icon: "📋", labelEs: "Todos", labelEn: "All" },
+  { key: "servicios", icon: "🔧", labelEs: CATEGORY_LABELS.servicios.es, labelEn: CATEGORY_LABELS.servicios.en },
+  { key: "rentas", icon: "🏠", labelEs: CATEGORY_LABELS.rentas.es, labelEn: CATEGORY_LABELS.rentas.en },
+  { key: "empleos", icon: "💼", labelEs: CATEGORY_LABELS.empleos.es, labelEn: CATEGORY_LABELS.empleos.en },
+  { key: "autos", icon: "🚗", labelEs: CATEGORY_LABELS.autos.es, labelEn: CATEGORY_LABELS.autos.en },
+  { key: "en-venta", icon: "🛒", labelEs: CATEGORY_LABELS["en-venta"].es, labelEn: CATEGORY_LABELS["en-venta"].en },
+  { key: "restaurantes", icon: "🍽️", labelEs: CATEGORY_LABELS.restaurantes.es, labelEn: CATEGORY_LABELS.restaurantes.en },
+  { key: "clases", icon: "📚", labelEs: CATEGORY_LABELS.clases.es, labelEn: CATEGORY_LABELS.clases.en },
+  { key: "comunidad", icon: "👥", labelEs: CATEGORY_LABELS.comunidad.es, labelEn: CATEGORY_LABELS.comunidad.en },
+  { key: "travel", icon: "✈️", labelEs: CATEGORY_LABELS.travel.es, labelEn: CATEGORY_LABELS.travel.en },
+  { key: "more", icon: "⋯", labelEs: "Más", labelEn: "More" },
+];
+
 const SORT_LABELS: Record<SortKey, { es: string; en: string }> = {
   newest: { es: "Más nuevos", en: "Newest" },
   "price-asc": { es: "Precio ↑", en: "Price ↑" },
@@ -5240,130 +5255,125 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <div className="mx-auto w-full max-w-screen-2xl flex-1 px-4 pb-6 pt-3">
         <div className="h-full overflow-y-auto rounded-2xl border border-black/10 bg-[#F5F5F5] backdrop-blur p-4">
           {mobilePanelTab === "filters" && !isServicios ? (
-            <div className="grid grid-cols-1 gap-3">
-              {/* Search */}
-              <div>
-                <label className="block text-xs font-semibold text-[#111111]">
-                  {UI.search[lang]}
-                </label>
-                <div className="relative mt-1.5">
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    onFocus={() => {
-                      if (suggestions.length) setSuggestionsOpen(true);
-                    }}
-                    placeholder={
-                      lang === "es"
-                        ? "Buscar: trabajo, troca, cuarto…"
-                        : "Search: jobs, truck, room…"
-                    }
-                    className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2.5 text-sm text-[#111111] outline-none placeholder:text-[#111111] focus:border-[#A98C2A]/60"
-                    aria-label={UI.search[lang]}
-                  />
-
-                  {suggestionsOpen && suggestions.length ? (
-                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl">
-                      <div className="px-3 py-2 text-[11px] text-[#111111]">
-                        {lang === "es" ? "Sugerencias" : "Suggestions"}
-                      </div>
-                      {suggestions.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => {
-                            setCategory(c);
-                            setSuggestionsOpen(false);
-                          }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                        >
-                          <span>{CATEGORY_LABELS[c][lang]}</span>
-                          <span className="text-xs text-[#111111]">
-                            {lang === "es" ? "Categoría" : "Category"}
-                          </span>
-                        </button>
-                      ))}
+            <div className="space-y-4">
+              {/* Row 1: Single large search (icon + placeholder only) */}
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#111111]/50 text-lg" aria-hidden="true">⌕</span>
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onFocus={() => {
+                    if (suggestions.length) setSuggestionsOpen(true);
+                  }}
+                  placeholder={getSearchPlaceholder(category, lang)}
+                  className="w-full rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] py-3 pl-10 pr-4 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20"
+                  aria-label={UI.search[lang]}
+                />
+                {suggestionsOpen && suggestions.length ? (
+                  <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl">
+                    <div className="px-3 py-2 text-[11px] text-[#111111]">
+                      {lang === "es" ? "Sugerencias" : "Suggestions"}
                     </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="block text-xs font-semibold text-[#111111]">
-                  {UI.location[lang]}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setLocationOpen(true)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                >
-                  <span className="truncate">{locationLabel}</span>
-                  <span className="ml-3 shrink-0 text-xs text-[#111111]">
-                    {UI.edit[lang]}
-                  </span>
-                </button>
-                {locMsg ? (
-                  <div className="mt-1 text-[11px] text-[#111111]">{locMsg}</div>
+                    {suggestions.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setCategory(c);
+                          setSuggestionsOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                      >
+                        <span>{CATEGORY_LABELS[c][lang]}</span>
+                        <span className="text-xs text-[#111111]">
+                          {lang === "es" ? "Categoría" : "Category"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 ) : null}
               </div>
 
-              {/* Radius */}
-              <div>
-                <label className="block text-xs font-semibold text-[#111111]">
-                  {UI.radius[lang]}
-                </label>
-                <select
-                  value={radiusMi}
-                  onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
-                  className="mt-1.5 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/60"
+              {/* Row 2: Location pill + edit */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLocationOpen(true)}
+                  className="flex flex-1 items-center gap-2 rounded-full border border-[#C9B46A]/25 bg-[#F5F5F5] px-4 py-2.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                  aria-label={UI.location[lang]}
                 >
-                  {[5, 10, 25, 40, 50].map((r) => (
-                    <option key={r} value={r}>
-                      {r} mi
-                    </option>
-                  ))}
-                </select>
+                  <span className="text-[#111111]/60" aria-hidden="true">📍</span>
+                  <span className="truncate flex-1">{locationLabel}</span>
+                  <span className="shrink-0 text-xs text-[#111111]/70">{UI.edit[lang]}</span>
+                </button>
+              </div>
+              {locMsg ? (
+                <div className="text-[11px] text-[#111111]/80">{locMsg}</div>
+              ) : null}
+
+              {/* Row 3: Category Quick Picks (icon tiles) */}
+              <div>
+                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {QUICK_PICKS.map((item) => {
+                    const label = lang === "es" ? item.labelEs : item.labelEn;
+                    const isMore = item.key === "more";
+                    const isActive = !isMore && category === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => {
+                          if (isMore) {
+                            setMoreOpen(true);
+                          } else {
+                            setCategory(item.key as CategoryKey);
+                          }
+                        }}
+                        className={cx(
+                          "shrink-0 snap-start rounded-xl border px-3 py-2.5 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
+                          isActive
+                            ? "border-[#C9B46A]/50 bg-[#111111]/10 text-[#111111]"
+                            : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] hover:border-[#C9B46A]/20"
+                        )}
+                        aria-label={label}
+                        aria-current={isActive && !isMore ? "true" : undefined}
+                      >
+                        <span className="block text-lg leading-none" aria-hidden="true">{item.icon}</span>
+                        <span className="mt-1 block text-[11px] font-medium leading-tight">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-semibold text-[#111111]">
-                  {UI.category[lang]}
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                  className="mt-1.5 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/60"
+              {/* Row 4: Más filtros + small Limpiar */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(true)}
+                  className="flex-1 rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                  aria-label={UI.moreFilters[lang]}
                 >
-                  <option value="all">{CATEGORY_LABELS.all[lang]}</option>
-                  <option value="en-venta">{CATEGORY_LABELS["en-venta"][lang]}</option>
-                  <option value="rentas">{CATEGORY_LABELS.rentas[lang]}</option>
-                  <option value="autos">{CATEGORY_LABELS.autos[lang]}</option>
-                  <option value="servicios">{CATEGORY_LABELS.servicios[lang]}</option>
-                  <option value="empleos">{CATEGORY_LABELS.empleos[lang]}</option>
-                  <option value="clases">{CATEGORY_LABELS.clases[lang]}</option>
-                  <option value="comunidad">{CATEGORY_LABELS.comunidad[lang]}</option>
-                  <option value="travel">{CATEGORY_LABELS.travel[lang]}</option>
-                </select>
+                  {UI.moreFilters[lang]}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => resetAllFilters()}
+                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                  aria-label={UI.clear[lang]}
+                >
+                  {UI.clear[lang]}
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setMoreOpen(true)}
-                className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-              >
-                {UI.moreFilters[lang]}
-              </button>
 
               {activeChips.length ? (
-                <div className="flex flex-wrap items-center gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
                   {activeChips.map((c) => (
                     <button
                       key={c.key}
                       type="button"
                       onClick={c.clear}
-                      className="whitespace-nowrap rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs sm:py-1 text-[#111111] hover:bg-[#EFEFEF] transition"
+                      className="whitespace-nowrap rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] transition"
                       aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                     >
                       {c.text} <span className="ml-1 opacity-80">×</span>
@@ -5437,20 +5447,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           )}
         </div>
 
-        <div className="mt-4 flex gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              resetAllFilters();
-            }}
-            className="flex-1 rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-          >
-            {UI.reset[lang]}
-          </button>
+        <div className="mt-4 flex justify-end">
           <button
             type="button"
             onClick={() => setMobilePanelOpen(false)}
-            className="flex-1 rounded-xl border border-[#C9B46A]/70 bg-[#111111]/15 px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#111111]/20"
+            className="rounded-xl border border-[#C9B46A]/70 bg-[#111111]/15 px-5 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#111111]/20 focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+            aria-label={UI.done[lang]}
           >
             {UI.done[lang]}
           </button>
@@ -5660,6 +5662,23 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             </div>
 
             <div className="mt-4 grid gap-4">
+              {/* Radius (advanced — moved from main panel) */}
+              <div>
+                <label className="block text-xs font-semibold text-[#111111]">{UI.radius[lang]}</label>
+                <select
+                  value={radiusMi}
+                  onChange={(e) => setRadiusMi(parseInt(e.target.value, 10))}
+                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/60"
+                  aria-label={UI.radius[lang]}
+                >
+                  {[5, 10, 25, 40, 50].map((r) => (
+                    <option key={r} value={r}>
+                      {r} mi
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#111111]">{UI.seller[lang]}</label>
                 <select
@@ -5952,13 +5971,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    setSellerType(null);
-                    setOnlyWithImage(false);
-                    setRentasParams(EMPTY_RENTAS_PARAMS);
-                    setAutosParams(EMPTY_AUTOS_PARAMS);
-                  }}
-                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                  onClick={() => resetAllFilters()}
+                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                  aria-label={UI.clear[lang]}
                 >
                   {UI.clear[lang]}
                 </button>
