@@ -54,9 +54,11 @@ export default function CategoryTabs() {
 }
 
 function CategoryButton({ slug, label, lang }: { slug: string; label: string; lang: Lang }) {
+  const isTodos = slug === 'all' || slug === 'todos';
+  const href = isTodos ? '/clasificados/lista' : `/clasificados/${slug}`;
   return (
     <Link
-      href={withLang(`/clasificados/lista?cat=${slug}`, lang)}
+      href={withLang(href, lang)}
       className="rounded-xl border border-[#C9B46A]/70 bg-[#F5F5F5] hover:bg-[#EFEFEF] hover:border-[#A98C2A] transition p-6 text-center font-semibold text-[#111111] shadow-sm"
     >
       {label}
