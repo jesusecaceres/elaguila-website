@@ -5498,7 +5498,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 </section>
 
         
-{businessTop.length ? (
+{businessTop.length && category !== "servicios" ? (
   <section className="mt-6">
     <div className="mb-3 flex items-end justify-between">
       <div>
