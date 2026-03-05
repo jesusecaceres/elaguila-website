@@ -59,7 +59,7 @@ export default function LoginPage() {
 
   const redirectTo = useMemo(() => {
     const safe = safeInternalRedirect(redirectParam);
-    return safe || `/clasificados?lang=${defaultLang}`;
+    return safe || `/dashboard?lang=${defaultLang}`;
   }, [redirectParam, defaultLang]);
 
   const lang = useMemo(

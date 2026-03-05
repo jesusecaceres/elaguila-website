@@ -41,7 +41,7 @@ export default function AuthCallbackPage() {
   const redirectParam = searchParams?.get("redirect");
   const redirectTo = useMemo(() => {
     const safe = safeInternalRedirect(redirectParam);
-    return safe || "/home?lang=es";
+    return safe || "/dashboard?lang=es";
   }, [redirectParam]);
 
   const lang = useMemo(() => detectLangFromRedirect(redirectTo), [redirectTo]);
