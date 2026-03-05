@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { CA_CITIES, CITY_ALIASES } from "../../data/locations/norcal";
 
 type Lang = "es" | "en";
 
@@ -13,6 +14,46 @@ function safeInternalRedirect(raw: string | null | undefined) {
   if (!v) return "";
   if (v.startsWith("/")) return v;
   return "";
+}
+
+/** Normalize string for city lookup: trim, lower, remove accents, remove punctuation, collapse spaces */
+function toCityKey(s: string): string {
+  return (s || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Returns canonical city string or "" if invalid. Uses CA_CITIES + CITY_ALIASES. */
+function normalizeCity(raw: string): string {
+  const key = toCityKey(raw);
+  if (!key) return "";
+
+  const fromAlias = CITY_ALIASES[key];
+  if (fromAlias) return fromAlias;
+
+  for (const record of CA_CITIES) {
+    if (toCityKey(record.city) === key) return record.city;
+    if (record.aliases?.some((a) => toCityKey(a) === key)) return record.city;
+  }
+  return "";
+}
+
+/** Digits only from raw input */
+function phoneDigits(raw: string): string {
+  return (raw || "").replace(/\D/g, "");
+}
+
+/** Format as (###) ###-####, max 10 digits */
+function formatPhoneInput(raw: string): string {
+  const d = phoneDigits(raw).slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
 export default function ProfilePage() {
@@ -51,6 +92,11 @@ export default function ProfilePage() {
         save: "Guardar y continuar",
         saving: "Guardando…",
         close: "Cerrar",
+        errName: "Escribe tu nombre.",
+        errPhoneRequired: "El teléfono debe tener 10 dígitos.",
+        errPhoneOptional: "Si escribes teléfono, debe tener 10 dígitos.",
+        errCityRequired: "Elige una ciudad de la lista (California).",
+        errCityOptional: "Si escribes ciudad, debe ser una de la lista (California).",
       },
       en: {
         titlePost: "Complete your profile to post",
@@ -68,6 +114,11 @@ export default function ProfilePage() {
         save: "Save and continue",
         saving: "Saving…",
         close: "Close",
+        errName: "Enter your name.",
+        errPhoneRequired: "Phone must have 10 digits.",
+        errPhoneOptional: "If you enter a phone, it must have 10 digits.",
+        errCityRequired: "Select a city from the list (California).",
+        errCityOptional: "If you enter a city, it must be from the list (California).",
       },
     }),
     []
@@ -114,7 +165,7 @@ export default function ProfilePage() {
         (u.user_metadata?.phone as string | undefined) ||
         (u.user_metadata?.contact_phone as string | undefined) ||
         "";
-      setPhone(String(existingPhone ?? "").trim());
+      setPhone(formatPhoneInput(existingPhone));
 
       const existingCity =
         (u.user_metadata?.city as string | undefined) ||
@@ -143,6 +194,11 @@ export default function ProfilePage() {
     router.replace(`/dashboard?lang=${lang}`);
   }
 
+  function handleCityBlur() {
+    const canonical = normalizeCity(city);
+    if (canonical) setCity(canonical);
+  }
+
   async function saveAndContinue() {
     setMsg(null);
     setSaving(true);
@@ -161,35 +217,33 @@ export default function ProfilePage() {
 
       const trimmedName = name.trim();
       if (!trimmedName) {
-        setMsg(lang === "es" ? "Escribe tu nombre." : "Enter your name.");
+        setMsg(L.errName);
+        setSaving(false);
         return;
       }
 
+      const digits = phoneDigits(phone);
+      const canonicalCity = normalizeCity(city);
+
       if (requirePost) {
-        const trimmedPhone = phone.trim();
-        const trimmedCity = city.trim();
-        if (trimmedPhone.length < 7) {
-          setMsg(
-            lang === "es"
-              ? "El teléfono debe tener al menos 7 caracteres."
-              : "Phone must be at least 7 characters."
-          );
+        if (digits.length !== 10) {
+          setMsg(L.errPhoneRequired);
+          setSaving(false);
           return;
         }
-        if (trimmedCity.length < 2) {
-          setMsg(
-            lang === "es"
-              ? "Escribe tu ciudad."
-              : "Enter your city."
-          );
+        if (!canonicalCity) {
+          setMsg(L.errCityRequired);
+          setSaving(false);
           return;
         }
+
+        const formattedPhone = formatPhoneInput(phone);
 
         const { error: updErr } = await supabase.auth.updateUser({
           data: {
             full_name: trimmedName,
-            phone: trimmedPhone,
-            city: trimmedCity,
+            phone: formattedPhone,
+            city: canonicalCity,
           },
         });
         if (updErr) throw updErr;
@@ -199,8 +253,8 @@ export default function ProfilePage() {
             id: u.id,
             email: u.email ?? null,
             display_name: trimmedName,
-            phone: trimmedPhone || null,
-            home_city: trimmedCity || null,
+            phone: formattedPhone,
+            home_city: canonicalCity,
             account_type: "personal",
             membership_tier: "gratis",
           });
@@ -213,11 +267,22 @@ export default function ProfilePage() {
         return;
       }
 
-      const trimmedPhone = phone.trim();
-      const trimmedCity = city.trim();
+      // Not requirePost: phone and city optional, but if provided must be valid
+      if (digits.length > 0 && digits.length !== 10) {
+        setMsg(L.errPhoneOptional);
+        setSaving(false);
+        return;
+      }
+      if (city.trim().length > 0 && !canonicalCity) {
+        setMsg(L.errCityOptional);
+        setSaving(false);
+        return;
+      }
+
+      const formattedPhone = digits.length === 10 ? formatPhoneInput(phone) : "";
       const updateData: Record<string, string> = { full_name: trimmedName };
-      if (trimmedPhone) updateData.phone = trimmedPhone;
-      if (trimmedCity) updateData.city = trimmedCity;
+      if (formattedPhone) updateData.phone = formattedPhone;
+      if (canonicalCity) updateData.city = canonicalCity;
 
       const { error: updErr } = await supabase.auth.updateUser({
         data: updateData,
@@ -229,8 +294,8 @@ export default function ProfilePage() {
           id: u.id,
           email: u.email ?? null,
           display_name: trimmedName,
-          phone: trimmedPhone || null,
-          home_city: trimmedCity || null,
+          phone: formattedPhone || null,
+          home_city: canonicalCity || null,
           account_type: "personal",
           membership_tier: "gratis",
         });
@@ -288,21 +353,12 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <div className="text-xs text-white/60">{L.name}</div>
-                  {(onboarding || requirePost) ? (
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={lang === "es" ? "Tu nombre" : "Your name"}
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
-                    />
-                  ) : (
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={lang === "es" ? "Tu nombre" : "Your name"}
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
-                    />
-                  )}
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={lang === "es" ? "Tu nombre" : "Your name"}
+                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
+                  />
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -321,10 +377,12 @@ export default function ProfilePage() {
                       </div>
                       <input
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder={lang === "es" ? "Ej: 555 123 4567" : "e.g. 555 123 4567"}
+                        onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                        placeholder="(555) 123-4567"
                         className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={14}
                       />
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -333,11 +391,19 @@ export default function ProfilePage() {
                         {requirePost && <span className="text-yellow-400/90"> *</span>}
                       </div>
                       <input
+                        list="norcal-city-list"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
+                        onBlur={handleCityBlur}
                         placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
                         className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
+                        autoComplete="off"
                       />
+                      <datalist id="norcal-city-list">
+                        {CA_CITIES.map((record) => (
+                          <option key={record.city} value={record.city} />
+                        ))}
+                      </datalist>
                     </div>
                   </>
                 )}
