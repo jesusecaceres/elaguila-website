@@ -1,8 +1,14 @@
-"use client";
-
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { requireAdminCookie } from "@/app/lib/supabase/server";
 
-export default function AdminHome() {
+export default async function AdminHome() {
+  const cookieStore = await cookies();
+  if (!requireAdminCookie(cookieStore)) {
+    redirect("/admin/login");
+  }
+
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
@@ -22,9 +28,9 @@ export default function AdminHome() {
             href="/admin/usuarios"
             className="block rounded-2xl border border-yellow-600/20 bg-white/5 p-6 hover:bg-white/10 hover:border-yellow-500/30 transition text-left"
           >
-            <h2 className="text-lg font-semibold text-yellow-400">Usuarios</h2>
+            <h2 className="text-lg font-semibold text-yellow-400">Clientes</h2>
             <p className="mt-1 text-sm text-white/60">
-              Ver cuentas creadas y preparar gestión de usuarios.
+              Ver cuentas creadas y administrar clientes.
             </p>
           </Link>
 
