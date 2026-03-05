@@ -447,6 +447,16 @@ export default function PublicarPage() {
         return;
       }
 
+      const meta = data.user.user_metadata || {};
+      const profilePhone = (meta.phone || meta.contact_phone || "").toString().trim();
+      const profileCity = (meta.city || meta.location || "").toString().trim();
+      const profileCompleteForPost = profilePhone.length >= 7 && profileCity.length >= 2;
+      if (!profileCompleteForPost) {
+        const perfilUrl = `/dashboard/perfil?lang=${lang}&require=post&redirect=${encodeURIComponent(redirectForLogin)}`;
+        router.replace(perfilUrl);
+        return;
+      }
+
       setUserId(data.user.id);
       setSignedIn(true);
 
