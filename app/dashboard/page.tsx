@@ -14,10 +14,8 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function normalizePlan(raw: unknown): Plan {
+function normalizePlanFromMembershipTier(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
-  // LOCKED: Plans are Free + LEONIX Pro only.
-  // If legacy metadata contains other tiers, we treat them as Pro to avoid confusing users.
   if (v.includes("pro") || v.includes("business") || v.includes("lite") || v.includes("premium")) return "pro";
   return "free";
 }
@@ -123,7 +121,7 @@ export default function DashboardPage() {
         saves: "Saves",
         verifiedTitle: "Verified seller",
         verifiedSubtitle: "Earn a trust badge (not for sale).",
-        verifiedDisclaimer: "Verification helps reduce fraud, but it doesn’t guarantee outcomes.",
+        verifiedDisclaimer: "Verification helps reduce fraud, but it doesn't guarantee outcomes.",
         verifiedEligible: "Eligible",
         verifiedActive: "Verified",
         checkEmail: "Email confirmed",
@@ -146,13 +144,11 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<Plan>("free");
   const [listingsCount, setListingsCount] = useState<number | null>(null);
 
-  // Garage Mode (Free-only, En Venta only) status for dashboard guidance.
   const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
   const [garageActive, setGarageActive] = useState(false);
   const [garageExpiresAt, setGarageExpiresAt] = useState<string>("");
   const [garageCooldownDaysLeft, setGarageCooldownDaysLeft] = useState<number | null>(null);
 
-  // lightweight profile completion based on known, safe fields
   const [hasPhone, setHasPhone] = useState(false);
   const [hasCity, setHasCity] = useState(false);
 
@@ -182,80 +178,29 @@ export default function DashboardPage() {
         (u.user_metadata?.name as string | undefined) ||
         null;
 
-      // Ensure a profile row exists (upsert by user_id to avoid "new account" loop)
+      // Ensure a profile row exists (one upsert by id, real schema)
       try {
-        const payload = {
-          user_id: u.id,
+        await supabase.from("profiles").upsert({
+          id: u.id,
           email: u.email ?? null,
-          name: inferredName,
-          updated_at: new Date().toISOString(),
-        };
-        const { error: upsertErr } = await supabase
-          .from("profiles")
-          .upsert(payload, { onConflict: "user_id" })
-          .select()
-          .single();
-
-        if (upsertErr) {
-          const { data: existingByUserId } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("user_id", u.id)
-            .maybeSingle();
-          if (!existingByUserId) {
-            const { error: insertErr } = await supabase.from("profiles").insert({ user_id: u.id });
-            if (insertErr) {
-              const { data: existingById } = await supabase
-                .from("profiles")
-                .select("*")
-                .eq("id", u.id)
-                .maybeSingle();
-              if (!existingById) {
-                await supabase.from("profiles").upsert({
-                  id: u.id,
-                  email: u.email ?? null,
-                  full_name: inferredName,
-                } as Record<string, unknown>);
-              }
-            }
-          }
-        }
+          display_name: inferredName ?? null,
+          account_type: "personal",
+          membership_tier: "gratis",
+        }, { onConflict: "id" });
       } catch {
-        try {
-          const { data: existing } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("user_id", u.id)
-            .maybeSingle();
-          if (!existing) {
-            await supabase.from("profiles").insert({ user_id: u.id }).then(() => {});
-          }
-        } catch {
-          try {
-            const { data: byId } = await supabase.from("profiles").select("id").eq("id", u.id).maybeSingle();
-            if (!byId) {
-              await supabase.from("profiles").upsert({ id: u.id } as Record<string, unknown>);
-            }
-          } catch {
-            // ignore
-          }
-        }
+        // ignore
       }
-
-      const inferred =
-        u.user_metadata?.plan ?? u.app_metadata?.plan ?? u.user_metadata?.role;
-      const inferredPlan = normalizePlan(inferred);
 
       setEmail(u.email ?? null);
       setName(inferredName);
       setHasPhone(Boolean(u.user_metadata?.phone));
       setHasCity(Boolean(u.user_metadata?.city || u.user_metadata?.location));
-      setPlan(inferredPlan);
+      setPlan("free");
 
-      // Garage Mode status (stored in user_metadata.garage_mode_en_venta)
-      const gm = (u.user_metadata as any)?.garage_mode_en_venta || null;
-      const lastUsed = gm && (gm.lastUsedAt || gm.last_used_at || gm.last_used) ? String(gm.lastUsedAt || gm.last_used_at || gm.last_used) : "";
-      const expires = gm && (gm.expiresAt || gm.expires_at || gm.expires) ? String(gm.expiresAt || gm.expires_at || gm.expires) : "";
+      const gm = (u.user_metadata as Record<string, unknown>)?.garage_mode_en_venta || null;
+      const gmObj = gm && typeof gm === "object" ? gm as Record<string, unknown> : null;
+      const lastUsed = gmObj && (gmObj.lastUsedAt ?? gmObj.last_used_at ?? gmObj.last_used) ? String(gmObj.lastUsedAt ?? gmObj.last_used_at ?? gmObj.last_used) : "";
+      const expires = gmObj && (gmObj.expiresAt ?? gmObj.expires_at ?? gmObj.expires) ? String(gmObj.expiresAt ?? gmObj.expires_at ?? gmObj.expires) : "";
       setGarageExpiresAt(expires);
       const expD = parseIsoMaybe(expires);
       setGarageActive(Boolean(expD && expD.getTime() > Date.now()));
@@ -269,29 +214,32 @@ export default function DashboardPage() {
         setGarageCooldownDaysLeft(null);
       }
 
-      setEmailConfirmed(Boolean((u as any).email_confirmed_at));
-      setPhoneConfirmed(Boolean((u as any).phone_confirmed_at));
+      setEmailConfirmed(Boolean((u as { email_confirmed_at?: string }).email_confirmed_at));
+      setPhoneConfirmed(Boolean((u as { phone_confirmed_at?: string }).phone_confirmed_at));
       setAccountAgeDays(u.created_at ? Math.max(0, Math.floor((Date.now() - new Date(u.created_at).getTime()) / 86400000)) : null);
-      setVerifiedSeller(Boolean((u.user_metadata as any)?.verified_seller || (u.user_metadata as any)?.verifiedSeller || (u.user_metadata as any)?.verified === true));
+      const meta = u.user_metadata as Record<string, unknown> | undefined;
+      setVerifiedSeller(Boolean(meta?.verified_seller ?? meta?.verifiedSeller ?? meta?.verified === true));
 
-      // Try profiles table (role-ready). If missing, keep inferred plan.
+      // Read from profiles (real columns only)
       try {
         const { data: pData, error: pErr } = await supabase
           .from("profiles")
-          .select("plan, role, phone, city")
+          .select("display_name, email, phone, home_city, membership_tier, account_type")
           .eq("id", u.id)
           .maybeSingle();
 
         if (!pErr && pData) {
-          setPlan(normalizePlan((pData as any).plan ?? (pData as any).role ?? inferred));
-          setHasPhone(Boolean((pData as any).phone) || Boolean(u.user_metadata?.phone));
-          setHasCity(Boolean((pData as any).city) || Boolean(u.user_metadata?.city || u.user_metadata?.location));
+          const row = pData as { display_name?: string | null; email?: string | null; phone?: string | null; home_city?: string | null; membership_tier?: string | null; account_type?: string | null };
+          setName(row.display_name ?? inferredName);
+          setEmail(row.email ?? u.email ?? null);
+          setHasPhone(Boolean(row.phone || u.user_metadata?.phone));
+          setHasCity(Boolean(row.home_city || u.user_metadata?.city || u.user_metadata?.location));
+          setPlan(normalizePlanFromMembershipTier(row.membership_tier));
         }
       } catch {
         // ignore
       }
 
-      // Count listings (safe, used for dashboard summary)
       try {
         const { count } = await supabase
           .from("listings")
@@ -303,7 +251,6 @@ export default function DashboardPage() {
         if (mounted) setListingsCount(null);
       }
 
-      // En Venta active count (used for Garage Mode guidance). Safe fallbacks if schema differs.
       try {
         const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
         let r = await base.eq("user_id", u.id).eq("status", "active");
@@ -348,7 +295,6 @@ export default function DashboardPage() {
   const checkPhoneOk = phoneConfirmed;
   const checkAgeOk = typeof accountAgeDays === "number" ? accountAgeDays >= minAgeDays : false;
   const checkProfileOk = completionPct >= 75;
-  // Violations system is Phase 2. We don't auto-verify based on unknown data.
   const checkViolationsOk = false;
 
   const eligible =

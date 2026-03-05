@@ -197,13 +197,13 @@ export default function ProfilePage() {
         try {
           await supabase.from("profiles").upsert({
             id: u.id,
-            email: u.email,
-            full_name: trimmedName,
-            phone: trimmedPhone,
-            city: trimmedCity,
-            plan: "free",
-            role: "free",
-          } as Record<string, unknown>);
+            email: u.email ?? null,
+            display_name: trimmedName,
+            phone: trimmedPhone || null,
+            home_city: trimmedCity || null,
+            account_type: "personal",
+            membership_tier: "gratis",
+          });
         } catch {
           // ignore
         }
@@ -227,13 +227,13 @@ export default function ProfilePage() {
       try {
         await supabase.from("profiles").upsert({
           id: u.id,
-          email: u.email,
-          full_name: trimmedName,
-          ...(trimmedPhone && { phone: trimmedPhone }),
-          ...(trimmedCity && { city: trimmedCity }),
-          plan: "free",
-          role: "free",
-        } as Record<string, unknown>);
+          email: u.email ?? null,
+          display_name: trimmedName,
+          phone: trimmedPhone || null,
+          home_city: trimmedCity || null,
+          account_type: "personal",
+          membership_tier: "gratis",
+        });
       } catch {
         // ignore
       }
