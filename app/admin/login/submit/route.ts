@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   if (!expected || password !== expected) {
     return NextResponse.redirect(new URL("/admin/login?error=1", request.url));
   }
-  const res = NextResponse.redirect(new URL("/admin/clasificados/servicios", request.url));
+  const res = NextResponse.redirect(new URL("/admin", request.url));
   res.cookies.set("leonix_admin", "1", {
     path: "/",
     httpOnly: true,

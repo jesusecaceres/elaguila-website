@@ -1,20 +1,53 @@
 "use client";
 
-import Navbar from "@/app/components/Navbar";
+import Link from "next/link";
 
 export default function AdminHome() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
-      <Navbar />
+    <main className="min-h-screen bg-black text-white">
+      <header className="border-b border-white/10 py-6 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400">
+            Panel de administración
+          </h1>
+          <p className="mt-1 text-sm text-white/70">
+            Acceso interno para gestionar cuentas, clasificados y servicios.
+          </p>
+        </div>
+      </header>
 
-      <div className="mt-20 p-10 bg-gray-900 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-4 text-yellow-400">
-          Admin Dashboard Placeholder
-        </h1>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link
+            href="/admin/usuarios"
+            className="block rounded-2xl border border-yellow-600/20 bg-white/5 p-6 hover:bg-white/10 hover:border-yellow-500/30 transition text-left"
+          >
+            <h2 className="text-lg font-semibold text-yellow-400">Usuarios</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Ver cuentas creadas y preparar gestión de usuarios.
+            </p>
+          </Link>
 
-        <p className="text-gray-300">
-          This is the admin homepage. Full functionality coming soon.
-        </p>
+          <Link
+            href="/admin/clasificados"
+            className="block rounded-2xl border border-yellow-600/20 bg-white/5 p-6 hover:bg-white/10 hover:border-yellow-500/30 transition text-left"
+          >
+            <h2 className="text-lg font-semibold text-yellow-400">Clasificados</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Administrar flujos y herramientas de clasificados.
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/clasificados/servicios"
+            className="block rounded-2xl border border-yellow-600/20 bg-white/5 p-6 hover:bg-white/10 hover:border-yellow-500/30 transition text-left"
+          >
+            <h2 className="text-lg font-semibold text-yellow-400">Servicios</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Continuar con la administración de servicios.
+            </p>
+          </Link>
+        </div>
       </div>
     </main>
   );
