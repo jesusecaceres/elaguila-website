@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { categoryConfig, type CategoryKey } from "../config/categoryConfig";
+import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 
 type Lang = "es" | "en";
 type PublishStep = "category" | "basics" | "details" | "media";
@@ -77,6 +78,30 @@ function daysBetween(a: Date, b: Date) {
   const ms = b.getTime() - a.getTime();
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
+
+function stripDiacritics(s: string): string {
+  return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function toCityKey(raw: string): string {
+  return stripDiacritics((raw || "").trim().toLowerCase())
+    .replace(/[.,']/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeCity(raw: string): string {
+  const key = toCityKey(raw);
+  if (!key) return "";
+  const fromAlias = CITY_ALIASES[key];
+  if (fromAlias) return fromAlias;
+  for (const record of CA_CITIES) {
+    if (toCityKey(record.city) === key) return record.city;
+    if (record.aliases?.some((a) => toCityKey(a) === key)) return record.city;
+  }
+  return "";
+}
+
 const DRAFT_KEY = "leonix_clasificados_post_draft_v1";
 
 
@@ -272,11 +297,11 @@ export default function PublicarPage() {
     const bizName = get("bizName") || get("name");
     const placeType = get("placeType");
     const cuisine = get("cuisine");
-    const city = get("city");
+    const prefillCity = normalizeCity(get("city"));
     const phone = get("phone");
     const website = get("website");
     const notes = get("notes");
-    return { bizName, placeType, cuisine, city, phone, website, notes };
+    return { bizName, placeType, cuisine, city: prefillCity, phone, website, notes };
   }, [searchParams]);
 
   const redirectForLogin = useMemo(() => {
@@ -448,9 +473,9 @@ export default function PublicarPage() {
       }
 
       const meta = data.user.user_metadata || {};
-      const profilePhone = (meta.phone || meta.contact_phone || "").toString().trim();
-      const profileCity = (meta.city || meta.location || "").toString().trim();
-      const profileCompleteForPost = profilePhone.length >= 7 && profileCity.length >= 2;
+      const profilePhoneDigits = (meta.phone || meta.contact_phone || "").toString().replace(/\D/g, "");
+      const profileCityCanonical = normalizeCity((meta.city || meta.location || "").toString().trim());
+      const profileCompleteForPost = profilePhoneDigits.length === 10 && Boolean(profileCityCanonical);
       if (!profileCompleteForPost) {
         const perfilUrl = `/dashboard/perfil?lang=${lang}&require=post&redirect=${encodeURIComponent(redirectForLogin)}`;
         router.replace(perfilUrl);
@@ -589,7 +614,8 @@ setIsPro(plan.includes("pro"));
       setDescription(typeof parsed.description === "string" ? parsed.description : "");
       setIsFree(Boolean(parsed.isFree));
       setPrice(typeof parsed.price === "string" ? parsed.price : "");
-      setCity(typeof parsed.city === "string" ? parsed.city : "");
+      const loadedCity = typeof parsed.city === "string" ? parsed.city : "";
+      setCity(loadedCity ? (normalizeCity(loadedCity) || loadedCity.trim()) : "");
       const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
       setCategory(draftCat || category);
       setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
@@ -662,7 +688,7 @@ setIsPro(plan.includes("pro"));
         description,
         isFree,
         price,
-        city,
+        city: normalizeCity(city) || city.trim(),
         category,
         details,
         contactMethod,
@@ -695,7 +721,7 @@ setIsPro(plan.includes("pro"));
     const categoryOk = !!normalizeCategory(category);
     const titleOk = title.trim().length >= 5;
     const descOk = description.trim().length >= 20;
-    const cityOk = city.trim().length >= 2;
+    const cityOk = Boolean(normalizeCity(city));
     const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
     const imagesOk = files.length >= 1;
     const phoneOk = contactMethod === "email" ? true : contactPhone.trim().length >= 7;
@@ -957,6 +983,12 @@ async function publish() {
       return;
     }
 
+    const canonicalCity = normalizeCity(city);
+    if (!canonicalCity) {
+      setPublishError("Selecciona una ciudad válida del Norte de California.");
+      return;
+    }
+
     let supabase: ReturnType<typeof createSupabaseBrowserClient>;
     try {
       supabase = createSupabaseBrowserClient();
@@ -1034,7 +1066,7 @@ async function publish() {
       const insertPayload: any = {
         title: title.trim(),
         description: finalDescription,
-        city: city.trim(),
+        city: canonicalCity,
         category: category.trim(),
         price: isFree ? 0 : Number((price ?? "").replace(/[^0-9.]/g, "")) || 0,
         is_free: isFree,
@@ -1507,11 +1539,22 @@ if (isPro && videoFile && !videoError) {
                       <div>
                         <label className="text-sm text-[#111111]">{copy.fieldCity}</label>
                         <input
+                          list="norcal-city-list"
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
+                          onBlur={() => {
+                            const canon = normalizeCity(city);
+                            if (canon) setCity(canon);
+                          }}
                           placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
                           className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                          autoComplete="off"
                         />
+                        <datalist id="norcal-city-list">
+                          {CA_CITIES.map((c) => (
+                            <option key={c.city} value={c.city} />
+                          ))}
+                        </datalist>
                         {!requirements.cityOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">
                             {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
