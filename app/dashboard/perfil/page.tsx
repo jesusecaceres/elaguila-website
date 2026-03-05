@@ -33,10 +33,11 @@ export default function ProfilePage() {
   const t = useMemo(
     () => ({
       es: {
-        title: onboarding ? "Crear cuenta" : "Perfil",
+        title: onboarding ? "Completa tu perfil" : "Perfil",
         subtitle: onboarding
-          ? "Solo un paso más. Completa tu nombre para terminar tu cuenta."
+          ? "Tu cuenta ya está lista. Solo falta completar tu perfil para continuar."
           : "Información básica de tu cuenta.",
+        signedInNote: "Ya iniciaste sesión correctamente.",
         back: "Volver a mi cuenta",
         name: "Nombre",
         email: "Correo",
@@ -46,14 +47,15 @@ export default function ProfilePage() {
         signInAgain: "Iniciar sesión",
       },
       en: {
-        title: onboarding ? "Create account" : "Profile",
+        title: onboarding ? "Complete your profile" : "Profile",
         subtitle: onboarding
-          ? "One more step. Add your name to finish your account."
+          ? "Your account is already ready. Just complete your profile to continue."
           : "Basic account information.",
+        signedInNote: "You've already signed in successfully.",
         back: "Back to my account",
         name: "Name",
         email: "Email",
-        save: "Save & continue",
+        save: "Save and continue",
         saving: "Saving…",
         skip: "Skip for now",
         signInAgain: "Sign in",
@@ -125,13 +127,11 @@ export default function ProfilePage() {
         return;
       }
 
-      // 1) Store name in user metadata (always safe)
       const { error: updErr } = await supabase.auth.updateUser({
         data: { full_name: trimmed },
       });
       if (updErr) throw updErr;
 
-      // 2) Best-effort profile row upsert (schema-safe via try/catch)
       try {
         await supabase.from("profiles").upsert({
           id: u.id,
@@ -139,16 +139,15 @@ export default function ProfilePage() {
           full_name: trimmed,
           plan: "free",
           role: "free",
-        } as any);
+        } as Record<string, unknown>);
       } catch {
         // ignore if profiles table/columns aren't ready yet
       }
 
-      // Go back to intended destination
       if (redirectTo) router.replace(redirectTo);
       else router.replace(`/dashboard?lang=${lang}`);
-    } catch (e: any) {
-      setMsg(e?.message ?? "Unknown error");
+    } catch (e: unknown) {
+      setMsg((e as { message?: string })?.message ?? "Unknown error");
     } finally {
       setSaving(false);
     }
@@ -167,6 +166,10 @@ export default function ProfilePage() {
           {L.title}
         </h1>
         <p className="mt-2 text-gray-300">{L.subtitle}</p>
+
+        {onboarding && (
+          <p className="mt-2 text-sm text-white/60">{L.signedInNote}</p>
+        )}
 
         <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/40 p-6">
           {loading ? (
