@@ -161,11 +161,13 @@ function NavbarContent() {
   }, [pathname, searchParams]);
 
   const goToLogin = useCallback(() => {
-    const safePath = currentPathWithQuery?.startsWith("/clasificados/publicar")
-      ? `/clasificados?lang=${lang}`
-      : (currentPathWithQuery || `/home?lang=${lang}`);
-    const redirect = encodeURIComponent(safePath);
-    router.push(`/login?redirect=${redirect}`);
+    const onPublicar = currentPathWithQuery?.startsWith("/clasificados/publicar");
+    if (onPublicar) {
+      const redirect = encodeURIComponent(currentPathWithQuery || `/clasificados/publicar?lang=${lang}`);
+      router.push(`/login?mode=post&lang=${lang}&redirect=${redirect}`);
+    } else {
+      router.push(`/login?mode=login&lang=${lang}`);
+    }
   }, [currentPathWithQuery, lang, router]);
 
   useEffect(() => {
@@ -525,7 +527,7 @@ function NavbarContent() {
                         {L.signIn}
                       </button>
                       <Link
-                        href={`/login?lang=${lang}&redirect=${encodeURIComponent(currentPathWithQuery || pathname || "/home")}`}
+                        href={`/login?mode=signup&lang=${lang}`}
                         onClick={() => setMobileOpen(false)}
                         className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition text-center"
                       >

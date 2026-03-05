@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
 import { createSupabaseBrowserClient } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
+type LoginMode = "login" | "signup" | "post";
 
 function safeInternalRedirect(raw: string | null | undefined) {
   const v = (raw ?? "").trim();
@@ -53,14 +55,26 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
 
   const redirectParam = searchParams?.get("redirect");
+  const modeParam = searchParams?.get("mode");
   const urlLang = searchParams?.get("lang") as Lang | null;
 
   const defaultLang: Lang = urlLang === "en" ? "en" : "es";
 
+  const mode: LoginMode = useMemo(() => {
+    const m = (modeParam ?? "login").toLowerCase();
+    if (m === "signup" || m === "post") return m;
+    return "login";
+  }, [modeParam]);
+
   const redirectTo = useMemo(() => {
     const safe = safeInternalRedirect(redirectParam);
-    return safe || `/dashboard?lang=${defaultLang}`;
-  }, [redirectParam, defaultLang]);
+    if (safe) return safe;
+    if (mode === "signup")
+      return `/dashboard/perfil?onboarding=1&lang=${defaultLang}`;
+    if (mode === "post")
+      return `/dashboard/perfil?require=post&lang=${defaultLang}`;
+    return `/clasificados?lang=${defaultLang}`;
+  }, [redirectParam, defaultLang, mode]);
 
   const lang = useMemo(
     () => detectLangFromRedirect(redirectTo, defaultLang),
@@ -87,6 +101,24 @@ export default function LoginPage() {
     q.set("redirect", redirectTo);
     return `${base}?${q.toString()}`;
   }, [redirectTo]);
+
+  function buildLoginUrl(nextMode: LoginMode) {
+    const params = new URLSearchParams();
+    params.set("mode", nextMode);
+    params.set("lang", lang);
+    if (redirectParam && safeInternalRedirect(redirectParam))
+      params.set("redirect", redirectParam);
+    return `/login?${params.toString()}`;
+  }
+
+  function handleClose() {
+    if (mode === "post") {
+      router.replace(`/clasificados?lang=${lang}`);
+      return;
+    }
+    const target = safeInternalRedirect(redirectParam) || `/clasificados?lang=${lang}`;
+    router.replace(target);
+  }
 
   async function continueWithGoogle() {
     setMsg(null);
@@ -142,11 +174,19 @@ export default function LoginPage() {
         return;
       }
 
-      setMsg(
-        lang === "es"
-          ? "Listo ✅ Revisa tu email para el link."
-          : "Done ✅ Check your email for the link."
-      );
+      const successMsg =
+        mode === "post"
+          ? lang === "es"
+            ? "Te enviamos un link para continuar con tu anuncio."
+            : "We sent you a link to continue with your listing."
+          : mode === "signup"
+            ? lang === "es"
+              ? "Te enviamos un link para crear tu cuenta."
+              : "We sent you a link to create your account."
+            : lang === "es"
+              ? "Te enviamos un link para iniciar sesión."
+              : "We sent you a link to sign in.";
+      setMsg(`✅ ${successMsg}`);
       setCooldownSeconds(60);
     } finally {
       setLoading(null);
@@ -155,37 +195,74 @@ export default function LoginPage() {
 
   const copy = useMemo(
     () => ({
-      es: {
-        title: "Iniciar sesión",
-        subtitle:
-          "Continuá con Google (recomendado) o usa un link por email. Regresarás a LEONIX automáticamente.",
-        google: "Continuar con Google",
-        emailTitle: "Link por email",
-        emailPlaceholder: "tu@email.com",
-        emailButton: "Enviar link",
-        emailCooldown: (s: number) => `Reintentar en ${s}s`,
-        back: "Regresar",
-        connecting: "Conectando…",
-        sending: "Enviando…",
-        tip: "Tip: Si no ves el email, revisa Spam/Promociones.",
+      login: {
+        es: {
+          title: "Iniciar sesión",
+          subtitle: "Entrá con Google o recibe un link por email para continuar.",
+        },
+        en: {
+          title: "Sign in",
+          subtitle: "Continue with Google or get a link by email.",
+        },
       },
-      en: {
-        title: "Sign in",
-        subtitle:
-          "Continue with Google (recommended) or use an email link. You'll return to LEONIX automatically.",
-        google: "Continue with Google",
-        emailTitle: "Email link",
-        emailPlaceholder: "you@email.com",
-        emailButton: "Send link",
-        emailCooldown: (s: number) => `Try again in ${s}s`,
-        back: "Back",
-        connecting: "Connecting…",
-        sending: "Sending…",
-        tip: "Tip: If you don't see the email, check Spam/Promotions.",
+      signup: {
+        es: {
+          title: "Crear cuenta",
+          subtitle: "Usa Google o tu email para crear tu cuenta en LEONIX.",
+        },
+        en: {
+          title: "Create account",
+          subtitle: "Use Google or your email to create your LEONIX account.",
+        },
+      },
+      post: {
+        es: {
+          title: "Accede para publicar",
+          subtitle: "Inicia sesión o crea tu cuenta para continuar con tu anuncio.",
+        },
+        en: {
+          title: "Sign in to post",
+          subtitle: "Sign in or create an account to continue with your listing.",
+        },
+      },
+      common: {
+        es: {
+          google: "Continuar con Google",
+          emailTitle: "Link por email",
+          emailPlaceholder: "tu@email.com",
+          emailButton: "Enviar link",
+          emailCooldown: (s: number) => `Reintentar en ${s}s`,
+          connecting: "Conectando…",
+          sending: "Enviando…",
+          tip: "Tip: Si no ves el email, revisa Spam/Promociones.",
+          noAccount: "¿No tienes cuenta?",
+          createAccount: "Crear cuenta",
+          haveAccount: "¿Ya tienes cuenta?",
+          signIn: "Iniciar sesión",
+          close: "Cerrar",
+        },
+        en: {
+          google: "Continue with Google",
+          emailTitle: "Email link",
+          emailPlaceholder: "you@email.com",
+          emailButton: "Send link",
+          emailCooldown: (s: number) => `Try again in ${s}s`,
+          connecting: "Connecting…",
+          sending: "Sending…",
+          tip: "Tip: If you don't see the email, check Spam/Promotions.",
+          noAccount: "Don't have an account?",
+          createAccount: "Create account",
+          haveAccount: "Already have an account?",
+          signIn: "Sign in",
+          close: "Close",
+        },
       },
     }),
     []
-  )[lang];
+  );
+
+  const modeCopy = copy[mode][lang];
+  const common = copy.common[lang];
 
   const isLoading = loading !== null;
 
@@ -198,30 +275,29 @@ export default function LoginPage() {
       <Navbar />
 
       <div className="relative max-w-md mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
-        <div className="rounded-3xl border border-white/10 bg-[#141414]/95 shadow-2xl p-6 sm:p-8">
-          {/* Header: back pill right, title below on small screens for clarity */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400">
-                {copy.title}
-              </h1>
-              <p className="mt-2 text-sm sm:text-base text-white/80 leading-relaxed">
-                {copy.subtitle}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="shrink-0 self-start sm:self-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
-            >
-              {copy.back}
-            </button>
+        <div className="rounded-3xl border border-white/10 bg-[#141414]/95 shadow-2xl p-6 sm:p-8 relative">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition"
+            aria-label={common.close}
+          >
+            ×
+          </button>
+
+          <div className="flex flex-col gap-4 pr-12">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400">
+              {modeCopy.title}
+            </h1>
+            <p className="text-sm sm:text-base text-white/80 leading-relaxed">
+              {modeCopy.subtitle}
+            </p>
           </div>
 
           {msg ? (
             <div
               className={`mt-6 rounded-xl border p-4 text-sm ${
-                msg.startsWith("Listo") || msg.startsWith("Done")
+                msg.startsWith("✅")
                   ? "border-green-500/30 bg-green-500/10 text-green-200"
                   : "border-white/10 bg-white/5 text-gray-200"
               }`}
@@ -230,7 +306,6 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          {/* Google CTA — full width, gold, icon left */}
           <div className="mt-6">
             <button
               type="button"
@@ -239,26 +314,25 @@ export default function LoginPage() {
               className="w-full min-w-0 flex items-center justify-center gap-3 rounded-xl bg-[#e6b800] hover:bg-[#f0c800] text-black font-semibold py-4 px-4 disabled:opacity-60 disabled:pointer-events-none transition"
             >
               {loading === "google" ? (
-                <span>{copy.connecting}</span>
+                <span>{common.connecting}</span>
               ) : (
                 <>
                   <GoogleIcon className="h-5 w-5 shrink-0" />
-                  <span>{copy.google}</span>
+                  <span>{common.google}</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* Email magic link */}
           <div className="mt-8 border-t border-white/10 pt-6">
             <h2 className="text-sm font-semibold text-white">
-              {copy.emailTitle}
+              {common.emailTitle}
             </h2>
             <form onSubmit={sendMagicLink} className="mt-4 space-y-4">
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={copy.emailPlaceholder}
+                placeholder={common.emailPlaceholder}
                 className="w-full min-w-0 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/30 transition"
                 type="email"
                 autoComplete="email"
@@ -270,15 +344,38 @@ export default function LoginPage() {
                 className="w-full min-w-0 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold py-4 px-4 disabled:opacity-60 disabled:pointer-events-none transition"
               >
                 {cooldownSeconds > 0
-                  ? copy.emailCooldown(cooldownSeconds)
+                  ? common.emailCooldown(cooldownSeconds)
                   : loading === "email"
-                    ? copy.sending
-                    : copy.emailButton}
+                    ? common.sending
+                    : common.emailButton}
               </button>
             </form>
           </div>
 
-          <p className="mt-6 text-xs text-white/50">{copy.tip}</p>
+          {mode === "login" && (
+            <p className="mt-6 text-sm text-white/70">
+              {common.noAccount}{" "}
+              <Link
+                href={buildLoginUrl("signup")}
+                className="text-yellow-400 hover:text-yellow-300 font-medium underline"
+              >
+                {common.createAccount}
+              </Link>
+            </p>
+          )}
+          {mode === "signup" && (
+            <p className="mt-6 text-sm text-white/70">
+              {common.haveAccount}{" "}
+              <Link
+                href={buildLoginUrl("login")}
+                className="text-yellow-400 hover:text-yellow-300 font-medium underline"
+              >
+                {common.signIn}
+              </Link>
+            </p>
+          )}
+
+          <p className="mt-6 text-xs text-white/50">{common.tip}</p>
         </div>
       </div>
     </main>
