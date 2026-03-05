@@ -1,9 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Navbar from "../components/Navbar";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { categoryConfig, type CategoryKey } from "../config/categoryConfig";
 
@@ -1171,8 +1170,6 @@ if (isPro && videoFile && !videoError) {
 
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
-      <Navbar />
-
       <div className="max-w-4xl mx-auto px-6 pt-28 pb-16">
         <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col gap-2">
