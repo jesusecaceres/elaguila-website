@@ -12,8 +12,6 @@ type Plan = "free" | "pro";
 function normalizePlan(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
   if (v === "pro") return "pro";
-  // LOCKED: only Free + LEONIX Pro exist publicly.
-  // Legacy tiers map to Pro for backward compatibility.
   if (v === "business" || v === "lite" || v === "premium") return "pro";
   return "free";
 }
@@ -42,14 +40,6 @@ function getInitials(input?: string | null) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function safeInternalRedirect(raw: string | null | undefined) {
-  const v = (raw ?? "").trim();
-  if (!v) return "";
-  // Only allow internal paths
-  if (v.startsWith("/")) return v;
-  return "";
-}
-
 function NavbarContent() {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -58,30 +48,24 @@ function NavbarContent() {
   const urlLang = searchParams?.get("lang");
   const [lang, setLang] = useState<Lang>(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
 
-  // Auth UI state
   const [user, setUser] = useState<NavbarUser | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
 
-  // Hide navbar on cinematic intro
   if (pathname === "/") return null;
 
   useEffect(() => {
     if (urlLang === "es" || urlLang === "en") setLang(urlLang);
   }, [urlLang]);
 
-  // Close drawers on route changes
   useEffect(() => {
     setMobileOpen(false);
     setAccountOpen(false);
-    setMobileAccountOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, urlLang, searchParams?.toString()]);
 
-  // Prevent body scroll behind mobile drawer
   useEffect(() => {
     if (!mobileOpen) return;
     const prev = document.body.style.overflow;
@@ -105,10 +89,13 @@ function NavbarContent() {
         churches: "Iglesias",
         advertise: "Anúnciate",
         signIn: "Iniciar sesión",
+        createAccount: "Crear cuenta",
         myAccount: "Mi cuenta",
         myListings: "Mis anuncios",
         signOut: "Cerrar sesión",
         dashboard: "Panel",
+        account: "Cuenta",
+        manageAccount: "Administrar mi cuenta",
       },
       en: {
         home: "Home",
@@ -122,10 +109,13 @@ function NavbarContent() {
         churches: "Churches",
         advertise: "Advertise",
         signIn: "Sign in",
+        createAccount: "Create account",
         myAccount: "My account",
         myListings: "My listings",
         signOut: "Sign out",
         dashboard: "Dashboard",
+        account: "Account",
+        manageAccount: "Manage account",
       },
     }),
     []
@@ -133,7 +123,6 @@ function NavbarContent() {
 
   const L = t[lang];
 
-  // Inicio/Home → always goes to /home?lang={}
   const buildLink = (href: string) => {
     if (href === "/") return `/home?lang=${lang}`;
     const cleanHref = href.split("?")[0];
@@ -146,7 +135,6 @@ function NavbarContent() {
     return pathname === cleanHref || pathname.startsWith(`${cleanHref}/`);
   };
 
-  // Preserve current query params, only switch lang.
   const switchLang = (target: Lang) => {
     const next = new URLSearchParams(searchParams?.toString() ?? "");
     next.set("lang", target);
@@ -154,7 +142,6 @@ function NavbarContent() {
     router.push(q ? `${pathname}?${q}` : pathname);
   };
 
-  // NAV ORDER (LOCKED)
   const navLinks: Array<{ href: string; label: string; gold?: boolean }> = [
     { href: "/", label: L.home },
     { href: "/magazine", label: L.magazine },
@@ -174,7 +161,6 @@ function NavbarContent() {
   }, [pathname, searchParams]);
 
   const goToLogin = useCallback(() => {
-    // If user hit login while on the posting flow, send them back to Clasificados after auth.
     const safePath = currentPathWithQuery?.startsWith("/clasificados/publicar")
       ? `/clasificados?lang=${lang}`
       : (currentPathWithQuery || `/home?lang=${lang}`);
@@ -182,7 +168,6 @@ function NavbarContent() {
     router.push(`/login?redirect=${redirect}`);
   }, [currentPathWithQuery, lang, router]);
 
-  // Rehydrate from session first (persist after refresh), then subscribe to auth changes
   useEffect(() => {
     let mounted = true;
 
@@ -207,7 +192,7 @@ function NavbarContent() {
           null;
         setUser({
           id: u.id,
-          email: u.email,
+          email: u.email ?? null,
           fullName,
           avatarUrl,
         });
@@ -218,7 +203,7 @@ function NavbarContent() {
             .eq("id", u.id)
             .maybeSingle();
           if (!pErr && pData) {
-            setPlan(normalizePlan((pData as any).plan ?? (pData as any).role));
+            setPlan(normalizePlan((pData as { plan?: string; role?: string }).plan ?? (pData as { plan?: string; role?: string }).role));
           } else {
             setPlan("free");
           }
@@ -255,6 +240,10 @@ function NavbarContent() {
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);
+  const displayName =
+    user?.fullName?.trim() ||
+    (user?.email ? user.email.split("@")[0] : null) ||
+    L.myAccount;
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50">
@@ -291,7 +280,6 @@ function NavbarContent() {
 
         {/* RIGHT SIDE (LANG + ACCOUNT) */}
         <div className="hidden sm:flex items-center gap-3 ml-auto text-[clamp(11px,0.95vw,13px)]">
-          {/* LANGUAGE TOGGLE */}
           <div className="flex gap-3 items-center">
             <button
               onClick={() => switchLang("es")}
@@ -314,7 +302,7 @@ function NavbarContent() {
             </button>
           </div>
 
-          {/* ACCOUNT */}
+          {/* DESKTOP ACCOUNT */}
           <div className="relative">
             {authLoading ? (
               <div className="h-9 w-24 rounded-full bg-white/10 animate-pulse" />
@@ -325,9 +313,17 @@ function NavbarContent() {
                   className="flex items-center gap-2 rounded-full border border-white/10 bg-white/7 px-3 py-1.5 hover:bg-white/9 transition"
                   aria-label={L.myAccount}
                 >
-                  <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold text-xs">
-                    {initials}
-                  </div>
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt=""
+                      className="h-7 w-7 rounded-full border border-yellow-500/30 object-cover"
+                    />
+                  ) : (
+                    <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold text-xs">
+                      {initials}
+                    </div>
+                  )}
                   <span className="text-white/90 text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
@@ -342,20 +338,25 @@ function NavbarContent() {
                     className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-[0_12px_30px_rgba(0,0,0,0.55)] overflow-hidden"
                     role="menu"
                   >
-
-<div className="px-4 py-3 border-b border-white/15">
-  <div className="text-xs text-white truncate">{user?.email}</div>
-  <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
-    {planLabel(plan, lang)}
-  </div>
-</div>
-
+                    <div className="px-4 py-3 border-b border-white/15">
+                      <div className="text-xs text-white truncate font-medium">
+                        {displayName}
+                      </div>
+                      {user.email && (
+                        <div className="text-xs text-white/70 truncate mt-0.5">
+                          {user.email}
+                        </div>
+                      )}
+                      <div className="mt-1.5 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                        {planLabel(plan, lang)}
+                      </div>
+                    </div>
                     <Link
                       href={`/dashboard?lang=${lang}`}
                       className="block px-4 py-3 text-sm text-white/90 hover:bg-white/5"
                       onClick={() => setAccountOpen(false)}
                     >
-                      {L.dashboard}
+                      {L.manageAccount}
                     </Link>
                     <Link
                       href={`/dashboard/mis-anuncios?lang=${lang}`}
@@ -365,8 +366,9 @@ function NavbarContent() {
                       {L.myListings}
                     </Link>
                     <button
+                      type="button"
                       onClick={signOut}
-                      className="w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/5"
+                      className="w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/5 border-t border-white/10"
                     >
                       {L.signOut}
                     </button>
@@ -397,14 +399,12 @@ function NavbarContent() {
       {/* MOBILE OVERLAY + DRAWER */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[999]">
-          {/* overlay */}
           <button
             className="absolute inset-0 bg-white/14 backdrop-blur-[1px]"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
 
-          {/* drawer */}
           <div
             className="
               absolute top-0 right-0
@@ -426,150 +426,139 @@ function NavbarContent() {
               </button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-24 flex flex-col gap-6">
-            {/* NAV LINKS */}
-{navLinks.map((item, i) => (
-  <Link
-    key={i}
-    href={buildLink(item.href)}
-    onClick={() => setMobileOpen(false)}
-    className={cx(
-      "text-base font-semibold",
-      item.gold ? "text-yellow-300" : "text-white",
-      isActive(item.href) && !item.gold && "text-yellow-200"
-    )}
-  >
-    {item.label}
-  </Link>
-))}
+              {/* NAV LINKS */}
+              {navLinks.map((item, i) => (
+                <Link
+                  key={i}
+                  href={buildLink(item.href)}
+                  onClick={() => setMobileOpen(false)}
+                  className={cx(
+                    "text-base font-semibold",
+                    item.gold ? "text-yellow-300" : "text-white",
+                    isActive(item.href) && !item.gold && "text-yellow-200"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
 
-{/* Cuenta — always visible; goes to dashboard (logged in) or login (logged out) */}
-{authLoading ? (
-  <span
-    className="text-base font-semibold text-white/50 cursor-not-allowed"
-    aria-disabled="true"
-  >
-    {lang === "es" ? "Cuenta" : "Account"}
-  </span>
-) : user ? (
-  <Link
-    href={`/dashboard?lang=${lang}`}
-    onClick={() => setMobileOpen(false)}
-    className={cx(
-      "text-base font-semibold",
-      pathname.startsWith("/dashboard") ? "text-yellow-200" : "text-white"
-    )}
-  >
-    {lang === "es" ? "Cuenta" : "Account"}
-  </Link>
-) : (
-  <Link
-    href={`/login?lang=${lang}&redirect=${encodeURIComponent(currentPathWithQuery || pathname || "/dashboard")}`}
-    onClick={() => setMobileOpen(false)}
-    className="text-base font-semibold text-white"
-  >
-    {lang === "es" ? "Cuenta" : "Account"}
-  </Link>
-)}
-
-{/* ACCOUNT (MOBILE) — collapsible so it never pushes nav down */}
-<div className="mt-2 rounded-2xl border border-white/10 bg-white/6 overflow-hidden">
-  <button
-    type="button"
-    onClick={() => setMobileAccountOpen((v) => !v)}
-    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
-    aria-expanded={mobileAccountOpen}
-  >
-    <div className="text-white/90 font-semibold">
-      {user ? (lang === "es" ? "Mi cuenta" : "My account") : (lang === "es" ? "Cuenta" : "Account")}
-    </div>
-    <div className="text-white text-lg">{mobileAccountOpen ? "−" : "+"}</div>
-  </button>
-
-  {mobileAccountOpen && (
-    <div className="px-4 pb-4">
-      {authLoading ? (
-        <div className="h-10 rounded-xl bg-white/10 animate-pulse" />
-      ) : user ? (
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold">
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <div className="text-white/90 font-semibold truncate">
-              {accountLabel}
-            </div>
-            <div className="text-white text-xs truncate">
-              {user.email}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => {
-            setMobileOpen(false);
-            goToLogin();
-          }}
-          className="w-full rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition"
-        >
-          {L.signIn}
-        </button>
-      )}
-
-      {user && (
-        <div className="mt-4 flex flex-col gap-2">
-          <Link
-            href={`/dashboard?lang=${lang}`}
-            className="rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition"
-            onClick={() => setMobileOpen(false)}
-          >
-            {L.dashboard}
-          </Link>
-          <Link
-            href={`/dashboard/mis-anuncios?lang=${lang}`}
-            className="rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition"
-            onClick={() => setMobileOpen(false)}
-          >
-            {L.myListings}
-          </Link>
-          <button
-            onClick={async () => {
-              await signOut();
-              setMobileOpen(false);
-            }}
-            className="rounded-xl border border-white/10 bg-white/9 px-4 py-2 text-white/90 hover:bg-white/12 transition text-left"
-          >
-            {L.signOut}
-          </button>
-        </div>
-      )}
-    </div>
-  )}
-</div>
-
-{/* LANGUAGE TOGGLE MOBILE */}
-            <div className="flex gap-6 pt-6 text-white text-base font-semibold">
-              <button
-                onClick={() => {
-                  switchLang("es");
-                  setMobileOpen(false);
-                }}
-                className={lang === "es" ? "text-yellow-400" : ""}
-                aria-label="Cambiar idioma a Español"
+              {/* ACCOUNT (MOBILE) — dedicated section, never a plain row */}
+              <section
+                aria-label={L.account}
+                className="mt-4 pt-6 border-t border-white/10"
               >
-                ES
-              </button>
+                {authLoading ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-white/10" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-32 rounded bg-white/10" />
+                        <div className="h-3 w-40 rounded bg-white/10" />
+                      </div>
+                    </div>
+                    <div className="mt-3 h-10 rounded-xl bg-white/10" />
+                  </div>
+                ) : user ? (
+                  <div className="rounded-2xl border border-yellow-500/20 bg-white/5 p-4">
+                    <div className="flex items-center gap-3">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt=""
+                          className="h-12 w-12 rounded-full border border-yellow-500/30 object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full border border-yellow-500/30 bg-yellow-600/20 flex items-center justify-center text-yellow-200 font-bold text-lg">
+                          {initials}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-white font-semibold truncate">
+                          {displayName}
+                        </div>
+                        {user.email && (
+                          <div className="text-white/70 text-sm truncate">
+                            {user.email}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/dashboard?lang=${lang}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="mt-3 flex w-full items-center justify-center rounded-xl bg-yellow-500/90 px-4 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                    >
+                      {L.manageAccount}
+                    </Link>
+                    <Link
+                      href={`/dashboard/mis-anuncios?lang=${lang}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
+                    >
+                      {L.myListings}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await signOut();
+                        setMobileOpen(false);
+                      }}
+                      className="mt-2 w-full rounded-xl border border-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition text-center"
+                    >
+                      {L.signOut}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <h3 className="text-sm font-semibold text-white/90">
+                      {L.account}
+                    </h3>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileOpen(false);
+                          goToLogin();
+                        }}
+                        className="w-full rounded-xl bg-yellow-500/90 px-4 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                      >
+                        {L.signIn}
+                      </button>
+                      <Link
+                        href={`/login?lang=${lang}&redirect=${encodeURIComponent(currentPathWithQuery || pathname || "/home")}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition text-center"
+                      >
+                        {L.createAccount}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </section>
 
-              <button
-                onClick={() => {
-                  switchLang("en");
-                  setMobileOpen(false);
-                }}
-                className={lang === "en" ? "text-yellow-400" : ""}
-                aria-label="Switch language to English"
-              >
-                EN
-              </button>
-            </div>
+              {/* LANGUAGE TOGGLE MOBILE */}
+              <div className="flex gap-6 pt-6 text-white text-base font-semibold">
+                <button
+                  onClick={() => {
+                    switchLang("es");
+                    setMobileOpen(false);
+                  }}
+                  className={lang === "es" ? "text-yellow-400" : ""}
+                  aria-label="Cambiar idioma a Español"
+                >
+                  ES
+                </button>
+                <button
+                  onClick={() => {
+                    switchLang("en");
+                    setMobileOpen(false);
+                  }}
+                  className={lang === "en" ? "text-yellow-400" : ""}
+                  aria-label="Switch language to English"
+                >
+                  EN
+                </button>
+              </div>
             </div>
           </div>
         </div>
