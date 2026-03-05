@@ -5,9 +5,9 @@ export async function POST(request: NextRequest) {
   const password = (formData.get("password") as string) ?? "";
   const expected = process.env.ADMIN_PASSWORD ?? "";
   if (!expected || password !== expected) {
-    return NextResponse.redirect(new URL("/admin/login?error=1", request.url));
+    return NextResponse.redirect(new URL("/admin/login?error=1", request.url), 303);
   }
-  const res = NextResponse.redirect(new URL("/admin", request.url));
+  const res = NextResponse.redirect(new URL("/admin", request.url), 303);
   res.cookies.set("leonix_admin", "1", {
     path: "/",
     httpOnly: true,
