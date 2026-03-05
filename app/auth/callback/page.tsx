@@ -25,7 +25,6 @@ function detectLangFromRedirect(redirect: string): Lang {
 }
 
 function stripHashFromUrl() {
-  // Remove #access_token... from the visible URL bar ASAP (security/UX).
   try {
     const clean = window.location.pathname + window.location.search;
     window.history.replaceState(null, "", clean);
@@ -53,7 +52,6 @@ export default function AuthCallbackPage() {
     const supabase = createSupabaseBrowserClient();
 
     async function finalizeSessionFromUrl() {
-      // 1) PKCE code flow (Google OAuth)
       const code = searchParams?.get("code");
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -61,7 +59,6 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      // 2) Implicit/hash flow (some email magic-link flows can land with #access_token)
       const hash = window.location.hash?.replace(/^#/, "") ?? "";
       if (!hash) return;
 
@@ -69,7 +66,6 @@ export default function AuthCallbackPage() {
       const access_token = hashParams.get("access_token");
       const refresh_token = hashParams.get("refresh_token");
 
-      // Clear the hash from the URL bar immediately (even if tokens are invalid).
       stripHashFromUrl();
 
       if (access_token && refresh_token) {
@@ -82,22 +78,35 @@ export default function AuthCallbackPage() {
     }
 
     async function decideWhereToGo() {
-      // After session is finalized, decide:
-      // - Existing user -> redirectTo
-      // - New user (no profile or no name) -> onboarding at /dashboard/perfil?onboarding=1
       const { data } = await supabase.auth.getUser();
       const u = data.user;
 
       if (!u) {
-        // No session; send back to login
         const r = encodeURIComponent(redirectTo);
         router.replace(`/login?redirect=${r}`);
         return;
       }
 
-      const hasName =
-        Boolean((u.user_metadata as any)?.full_name) ||
-        Boolean((u.user_metadata as any)?.name);
+      const meta = (u.user_metadata || {}) as Record<string, unknown>;
+      const hasName = Boolean(
+        (meta.full_name as string)?.trim() || (meta.name as string)?.trim()
+      );
+      const hasEmail = Boolean(u.email?.trim());
+
+      const hasLightIdentity = hasName && hasEmail;
+
+      if (hasLightIdentity) {
+        router.replace(redirectTo);
+        return;
+      }
+
+      const redirectIncludesRequirePost =
+        typeof redirectTo === "string" && redirectTo.includes("require=post");
+
+      if (redirectIncludesRequirePost) {
+        router.replace(redirectTo);
+        return;
+      }
 
       let hasProfileRow = false;
       try {
@@ -106,20 +115,18 @@ export default function AuthCallbackPage() {
           .select("id")
           .eq("id", u.id)
           .maybeSingle();
-
         if (!pErr && pData?.id) hasProfileRow = true;
       } catch {
-        // If profiles table doesn't exist or RLS blocks it, we fall back to metadata only.
         hasProfileRow = hasName;
       }
 
-      const needsOnboarding = !hasName || !hasProfileRow;
+      const needsLightStart = !hasName || !hasProfileRow;
 
-      if (needsOnboarding) {
-        const onboardingUrl =
-          `/dashboard/perfil?onboarding=1&lang=${lang}` +
+      if (needsLightStart) {
+        const startUrl =
+          `/dashboard/perfil?onboarding=1&start=1&lang=${lang}` +
           `&redirect=${encodeURIComponent(redirectTo)}`;
-        router.replace(onboardingUrl);
+        router.replace(startUrl);
         return;
       }
 
@@ -130,11 +137,10 @@ export default function AuthCallbackPage() {
       try {
         await finalizeSessionFromUrl();
         await decideWhereToGo();
-      } catch (e: any) {
-        // Ensure we don't leave tokens in the URL bar in error cases.
+      } catch (e: unknown) {
         stripHashFromUrl();
         setStatus("error");
-        setErrorMsg(e?.message ?? "Unknown error");
+        setErrorMsg((e as { message?: string })?.message ?? "Unknown error");
       }
     }
 
@@ -165,7 +171,7 @@ export default function AuthCallbackPage() {
               {errorMsg ||
                 (lang === "es"
                   ? "No pudimos completar el inicio de sesión."
-                  : "We couldn’t complete sign-in.")}
+                  : "We couldn't complete sign-in.")}
             </p>
 
             <button

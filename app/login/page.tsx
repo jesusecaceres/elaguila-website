@@ -196,34 +196,16 @@ export default function LoginPage() {
   const copy = useMemo(
     () => ({
       login: {
-        es: {
-          title: "Iniciar sesión",
-          subtitle: "Entrá con Google o recibe un link por email para continuar.",
-        },
-        en: {
-          title: "Sign in",
-          subtitle: "Continue with Google or get a link by email.",
-        },
+        es: { title: "Iniciar sesión", subtitle: "Entrá con Google o recibe un link por email para volver a tu cuenta.", badge: "Acceso" },
+        en: { title: "Sign in", subtitle: "Continue with Google or get a link by email to access your account.", badge: "Sign in" },
       },
       signup: {
-        es: {
-          title: "Crear cuenta",
-          subtitle: "Usa Google o tu email para crear tu cuenta en LEONIX.",
-        },
-        en: {
-          title: "Create account",
-          subtitle: "Use Google or your email to create your LEONIX account.",
-        },
+        es: { title: "Crear cuenta", subtitle: "Usa Google o tu email para crear tu cuenta en LEONIX y empezar a explorar.", badge: "Nuevo" },
+        en: { title: "Create account", subtitle: "Use Google or your email to create your LEONIX account and start exploring.", badge: "New" },
       },
       post: {
-        es: {
-          title: "Accede para publicar",
-          subtitle: "Inicia sesión o crea tu cuenta para continuar con tu anuncio.",
-        },
-        en: {
-          title: "Sign in to post",
-          subtitle: "Sign in or create an account to continue with your listing.",
-        },
+        es: { title: "Accede para publicar", subtitle: "Inicia sesión o crea tu cuenta para continuar con tu anuncio.", badge: "Publicar" },
+        en: { title: "Sign in to post", subtitle: "Sign in or create an account to continue with your listing.", badge: "Post" },
       },
       common: {
         es: {
@@ -285,7 +267,10 @@ export default function LoginPage() {
             ×
           </button>
 
-          <div className="flex flex-col gap-4 pr-12">
+          <div className="flex flex-col gap-3 pr-12">
+            <span className="inline-flex w-fit items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2.5 py-1 text-xs font-medium text-yellow-200">
+              {modeCopy.badge}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400">
               {modeCopy.title}
             </h1>

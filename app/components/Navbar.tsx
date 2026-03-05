@@ -54,6 +54,22 @@ function NavbarContent() {
   const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
 
+  const signedOutParam = searchParams?.get("signed_out") === "1";
+  const [showSignedOutToast, setShowSignedOutToast] = useState(false);
+  useEffect(() => {
+    if (pathname === "/home" && signedOutParam) {
+      setShowSignedOutToast(true);
+      const t = setTimeout(() => {
+        setShowSignedOutToast(false);
+        const next = new URLSearchParams(searchParams?.toString() ?? "");
+        next.delete("signed_out");
+        const q = next.toString();
+        router.replace(q ? `/home?${q}` : "/home");
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [pathname, signedOutParam, router, searchParams]);
+
   if (pathname === "/") return null;
 
   useEffect(() => {
@@ -96,6 +112,7 @@ function NavbarContent() {
         dashboard: "Panel",
         account: "Cuenta",
         manageAccount: "Administrar mi cuenta",
+        signedOutToast: "Sesión cerrada correctamente",
       },
       en: {
         home: "Home",
@@ -116,6 +133,7 @@ function NavbarContent() {
         dashboard: "Dashboard",
         account: "Account",
         manageAccount: "Manage account",
+        signedOutToast: "Signed out successfully",
       },
     }),
     []
@@ -234,11 +252,13 @@ function NavbarContent() {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    setMobileOpen(false);
     setAccountOpen(false);
+    await supabase.auth.signOut();
     setUser(null);
     router.refresh();
-  }, [router]);
+    router.replace(`/home?lang=${lang}&signed_out=1`);
+  }, [router, lang]);
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);
@@ -249,6 +269,15 @@ function NavbarContent() {
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50">
+      {showSignedOutToast && (
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-green-600/95 text-white px-4 py-2.5 text-sm font-medium shadow-lg border border-green-500/30"
+          role="status"
+        >
+          {L.signedOutToast}
+        </div>
+      )}
+
       <div
         className="
           backdrop-blur-md bg-white/10
@@ -398,7 +427,7 @@ function NavbarContent() {
         </button>
       </div>
 
-      {/* MOBILE OVERLAY + DRAWER */}
+      {/* MOBILE OVERLAY + DRAWER — viewport height, scrollable content, account + lang reachable */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[999]">
           <button
@@ -408,15 +437,10 @@ function NavbarContent() {
           />
 
           <div
-            className="
-              absolute top-0 right-0
-              h-[100dvh] max-h-[100dvh] w-72 max-w-[85vw]
-              bg-black/90 backdrop-blur-xl
-              rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)]
-              flex flex-col border-l border-white/10
-            "
+            className="absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] max-h-[100dvh] flex flex-col bg-black/90 backdrop-blur-xl rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border-l border-white/10"
             role="dialog"
             aria-modal="true"
+            style={{ height: "100dvh" }}
           >
             <div className="flex-shrink-0 p-6 pt-10">
               <button
@@ -427,8 +451,8 @@ function NavbarContent() {
                 ×
               </button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-24 flex flex-col gap-6">
-              {/* NAV LINKS */}
+
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 flex flex-col gap-6">
               {navLinks.map((item, i) => (
                 <Link
                   key={i}
@@ -444,10 +468,9 @@ function NavbarContent() {
                 </Link>
               ))}
 
-              {/* ACCOUNT (MOBILE) — dedicated section, never a plain row */}
               <section
                 aria-label={L.account}
-                className="mt-4 pt-6 border-t border-white/10"
+                className="mt-4 pt-6 border-t border-white/10 flex-shrink-0"
               >
                 {authLoading ? (
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 animate-pulse">
@@ -503,7 +526,6 @@ function NavbarContent() {
                       type="button"
                       onClick={async () => {
                         await signOut();
-                        setMobileOpen(false);
                       }}
                       className="mt-2 w-full rounded-xl border border-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition text-center"
                     >
@@ -538,8 +560,7 @@ function NavbarContent() {
                 )}
               </section>
 
-              {/* LANGUAGE TOGGLE MOBILE */}
-              <div className="flex gap-6 pt-6 text-white text-base font-semibold">
+              <div className="flex gap-6 py-6 text-white text-base font-semibold flex-shrink-0">
                 <button
                   onClick={() => {
                     switchLang("es");
