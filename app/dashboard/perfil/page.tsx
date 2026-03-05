@@ -36,17 +36,12 @@ export default function ProfilePage() {
   const t = useMemo(
     () => ({
       es: {
-        title: requirePost
-          ? "Completa tu perfil para publicar"
-          : onboarding
-            ? "Completa tu perfil"
-            : "Perfil",
-        subtitle: requirePost
-          ? "Necesitamos tu teléfono y ciudad para que los compradores puedan contactarte."
-          : onboarding
-            ? "Tu cuenta ya está lista. Solo falta completar tu perfil para continuar."
-            : "Información básica de tu cuenta.",
-        signedInNote: "Ya iniciaste sesión correctamente.",
+        titlePost: "Completa tu perfil para publicar",
+        titleOnboarding: "Comienza tu perfil",
+        titleNormal: "Perfil",
+        subtitlePost: "Necesitamos tu teléfono y ciudad para que los compradores puedan contactarte.",
+        subtitleOnboarding: "Tu cuenta ya está lista. Solo confirma tu nombre para empezar.",
+        subtitleNormal: "Información básica de tu cuenta.",
         postHelper: "Esto es necesario para que compradores puedan contactarte.",
         back: "Volver a mi cuenta",
         name: "Nombre",
@@ -55,22 +50,15 @@ export default function ProfilePage() {
         city: "Ciudad",
         save: "Guardar y continuar",
         saving: "Guardando…",
-        skip: "Omitir por ahora",
-        signInAgain: "Iniciar sesión",
         close: "Cerrar",
       },
       en: {
-        title: requirePost
-          ? "Complete your profile to post"
-          : onboarding
-            ? "Complete your profile"
-            : "Profile",
-        subtitle: requirePost
-          ? "We need your phone and city so buyers can contact you."
-          : onboarding
-            ? "Your account is already ready. Just complete your profile to continue."
-            : "Basic account information.",
-        signedInNote: "You've already signed in successfully.",
+        titlePost: "Complete your profile to post",
+        titleOnboarding: "Start your profile",
+        titleNormal: "Profile",
+        subtitlePost: "We need your phone and city so buyers can contact you.",
+        subtitleOnboarding: "Your account is ready. Just confirm your name to get started.",
+        subtitleNormal: "Basic account information.",
         postHelper: "This is required so buyers can contact you.",
         back: "Back to my account",
         name: "Name",
@@ -79,14 +67,15 @@ export default function ProfilePage() {
         city: "City",
         save: "Save and continue",
         saving: "Saving…",
-        skip: "Skip for now",
-        signInAgain: "Sign in",
         close: "Close",
       },
     }),
-    [onboarding, requirePost]
+    []
   );
   const L = t[lang];
+
+  const title = requirePost ? L.titlePost : onboarding ? L.titleOnboarding : L.titleNormal;
+  const subtitle = requirePost ? L.subtitlePost : onboarding ? L.subtitleOnboarding : L.subtitleNormal;
 
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
@@ -143,8 +132,15 @@ export default function ProfilePage() {
   }, [router, pathname]);
 
   function closeCard() {
-    const target = redirectTo || `/dashboard?lang=${lang}`;
-    router.replace(target);
+    if (requirePost) {
+      router.replace(redirectTo || `/dashboard?lang=${lang}`);
+      return;
+    }
+    if (onboarding) {
+      router.replace(`/clasificados?lang=${lang}`);
+      return;
+    }
+    router.replace(`/dashboard?lang=${lang}`);
   }
 
   async function saveAndContinue() {
@@ -209,16 +205,22 @@ export default function ProfilePage() {
             role: "free",
           } as Record<string, unknown>);
         } catch {
-          // ignore if profiles table/columns aren't ready yet
+          // ignore
         }
 
         if (redirectTo) router.replace(redirectTo);
-        else router.replace(`/dashboard?lang=${lang}`);
+        else router.replace(`/clasificados/publicar?lang=${lang}`);
         return;
       }
 
+      const trimmedPhone = phone.trim();
+      const trimmedCity = city.trim();
+      const updateData: Record<string, string> = { full_name: trimmedName };
+      if (trimmedPhone) updateData.phone = trimmedPhone;
+      if (trimmedCity) updateData.city = trimmedCity;
+
       const { error: updErr } = await supabase.auth.updateUser({
-        data: { full_name: trimmedName },
+        data: updateData,
       });
       if (updErr) throw updErr;
 
@@ -227,6 +229,8 @@ export default function ProfilePage() {
           id: u.id,
           email: u.email,
           full_name: trimmedName,
+          ...(trimmedPhone && { phone: trimmedPhone }),
+          ...(trimmedCity && { city: trimmedCity }),
           plan: "free",
           role: "free",
         } as Record<string, unknown>);
@@ -235,9 +239,7 @@ export default function ProfilePage() {
       }
 
       if (onboarding) {
-        router.replace(`/dashboard?lang=${lang}`);
-      } else if (redirectTo) {
-        router.replace(redirectTo);
+        router.replace(`/clasificados?lang=${lang}`);
       } else {
         router.replace(`/dashboard?lang=${lang}`);
       }
@@ -253,13 +255,10 @@ export default function ProfilePage() {
       <Navbar />
       <main className="max-w-6xl mx-auto px-6 pt-28 pb-16">
         <h1 className="text-3xl md:text-4xl font-semibold text-yellow-400">
-          {L.title}
+          {title}
         </h1>
-        <p className="mt-2 text-gray-300">{L.subtitle}</p>
+        <p className="mt-2 text-gray-300">{subtitle}</p>
 
-        {onboarding && (
-          <p className="mt-2 text-sm text-white/60">{L.signedInNote}</p>
-        )}
         {requirePost && (
           <p className="mt-2 text-sm text-white/60">{L.postHelper}</p>
         )}
@@ -289,7 +288,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <div className="text-xs text-white/60">{L.name}</div>
-                  {onboarding || requirePost ? (
+                  {(onboarding || requirePost) ? (
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -297,9 +296,12 @@ export default function ProfilePage() {
                       className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
                     />
                   ) : (
-                    <div className="mt-1 text-base font-semibold text-white">
-                      {name || "—"}
-                    </div>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={lang === "es" ? "Tu nombre" : "Your name"}
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
+                    />
                   )}
                 </div>
 
@@ -310,11 +312,12 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {requirePost && (
+                {(requirePost || !onboarding) && (
                   <>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                       <div className="text-xs text-white/60">
-                        {L.phone} <span className="text-yellow-400/90">*</span>
+                        {L.phone}
+                        {requirePost && <span className="text-yellow-400/90"> *</span>}
                       </div>
                       <input
                         value={phone}
@@ -326,7 +329,8 @@ export default function ProfilePage() {
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                       <div className="text-xs text-white/60">
-                        {L.city} <span className="text-yellow-400/90">*</span>
+                        {L.city}
+                        {requirePost && <span className="text-yellow-400/90"> *</span>}
                       </div>
                       <input
                         value={city}
@@ -360,12 +364,23 @@ export default function ProfilePage() {
                   </button>
                 </div>
               ) : (
-                <Link
-                  href={`/dashboard?lang=${lang}`}
-                  className="mt-6 inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
-                >
-                  {L.back}
-                </Link>
+                <>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button
+                      onClick={saveAndContinue}
+                      disabled={saving}
+                      className="w-full sm:w-auto rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3 disabled:opacity-60"
+                    >
+                      {saving ? L.saving : L.save}
+                    </button>
+                    <Link
+                      href={`/dashboard?lang=${lang}`}
+                      className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
+                    >
+                      {L.back}
+                    </Link>
+                  </div>
+                </>
               )}
             </>
           )}

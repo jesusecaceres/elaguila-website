@@ -38,12 +38,15 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams();
 
   const redirectParam = searchParams?.get("redirect");
+  const urlLang = searchParams?.get("lang");
+  const lang: Lang = urlLang === "en" ? "en" : "es";
+
   const redirectTo = useMemo(() => {
     const safe = safeInternalRedirect(redirectParam);
     return safe || "/dashboard?lang=es";
   }, [redirectParam]);
 
-  const lang = useMemo(() => detectLangFromRedirect(redirectTo), [redirectTo]);
+  const redirectLang = useMemo(() => detectLangFromRedirect(redirectTo), [redirectTo]);
 
   const [status, setStatus] = useState<"working" | "error">("working");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -91,46 +94,26 @@ export default function AuthCallbackPage() {
       const hasName = Boolean(
         (meta.full_name as string)?.trim() || (meta.name as string)?.trim()
       );
-      const hasEmail = Boolean(u.email?.trim());
 
-      const hasLightIdentity = hasName && hasEmail;
+      const safeRedirect = safeInternalRedirect(redirectParam);
+      const isRequirePost = safeRedirect && safeRedirect.includes("require=post");
 
-      if (hasLightIdentity) {
+      if (isRequirePost) {
         router.replace(redirectTo);
         return;
       }
 
-      const redirectIncludesRequirePost =
-        typeof redirectTo === "string" && redirectTo.includes("require=post");
-
-      if (redirectIncludesRequirePost) {
+      if (safeRedirect) {
         router.replace(redirectTo);
         return;
       }
 
-      let hasProfileRow = false;
-      try {
-        const { data: pData, error: pErr } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", u.id)
-          .maybeSingle();
-        if (!pErr && pData?.id) hasProfileRow = true;
-      } catch {
-        hasProfileRow = hasName;
-      }
-
-      const needsLightStart = !hasName || !hasProfileRow;
-
-      if (needsLightStart) {
-        const startUrl =
-          `/dashboard/perfil?onboarding=1&start=1&lang=${lang}` +
-          `&redirect=${encodeURIComponent(redirectTo)}`;
-        router.replace(startUrl);
+      if (hasName) {
+        router.replace(`/clasificados?lang=${redirectLang}`);
         return;
       }
 
-      router.replace(redirectTo);
+      router.replace(`/dashboard/perfil?onboarding=1&lang=${redirectLang}`);
     }
 
     async function run() {
@@ -148,16 +131,18 @@ export default function AuthCallbackPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const langDisplay = redirectTo ? redirectLang : lang;
+
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
       <div className="w-full max-w-md rounded-2xl border border-yellow-600/20 bg-black/40 p-6 text-center">
         {status === "working" ? (
           <>
             <div className="text-yellow-400 font-semibold text-lg">
-              {lang === "es" ? "Entrando…" : "Signing you in…"}
+              {langDisplay === "es" ? "Entrando…" : "Signing you in…"}
             </div>
             <p className="text-gray-300 mt-2">
-              {lang === "es"
+              {langDisplay === "es"
                 ? "Estamos finalizando tu sesión y regresándote al sitio."
                 : "Finalizing your session and sending you back."}
             </p>
@@ -165,11 +150,11 @@ export default function AuthCallbackPage() {
         ) : (
           <>
             <div className="text-yellow-400 font-semibold text-lg">
-              {lang === "es" ? "Hubo un problema" : "Something went wrong"}
+              {langDisplay === "es" ? "Hubo un problema" : "Something went wrong"}
             </div>
             <p className="text-gray-300 mt-2">
               {errorMsg ||
-                (lang === "es"
+                (langDisplay === "es"
                   ? "No pudimos completar el inicio de sesión."
                   : "We couldn't complete sign-in.")}
             </p>
@@ -180,7 +165,7 @@ export default function AuthCallbackPage() {
               }
               className="mt-6 w-full rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold py-3"
             >
-              {lang === "es" ? "Volver a intentar" : "Try again"}
+              {langDisplay === "es" ? "Volver a intentar" : "Try again"}
             </button>
           </>
         )}
