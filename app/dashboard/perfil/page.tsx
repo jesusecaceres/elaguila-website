@@ -45,6 +45,7 @@ export default function ProfilePage() {
         saving: "Guardando…",
         skip: "Omitir por ahora",
         signInAgain: "Iniciar sesión",
+        close: "Cerrar",
       },
       en: {
         title: onboarding ? "Complete your profile" : "Profile",
@@ -59,6 +60,7 @@ export default function ProfilePage() {
         saving: "Saving…",
         skip: "Skip for now",
         signInAgain: "Sign in",
+        close: "Close",
       },
     }),
     [onboarding]
@@ -105,6 +107,11 @@ export default function ProfilePage() {
     };
   }, [router, pathname]);
 
+  function closeOnboarding() {
+    const target = redirectTo || `/dashboard?lang=${lang}`;
+    router.replace(target);
+  }
+
   async function saveAndContinue() {
     setMsg(null);
     setSaving(true);
@@ -144,18 +151,18 @@ export default function ProfilePage() {
         // ignore if profiles table/columns aren't ready yet
       }
 
-      if (redirectTo) router.replace(redirectTo);
-      else router.replace(`/dashboard?lang=${lang}`);
+      if (onboarding) {
+        router.replace(`/dashboard?lang=${lang}`);
+      } else if (redirectTo) {
+        router.replace(redirectTo);
+      } else {
+        router.replace(`/dashboard?lang=${lang}`);
+      }
     } catch (e: unknown) {
       setMsg((e as { message?: string })?.message ?? "Unknown error");
     } finally {
       setSaving(false);
     }
-  }
-
-  function skip() {
-    if (redirectTo) router.replace(redirectTo);
-    else router.replace(`/dashboard?lang=${lang}`);
   }
 
   return (
@@ -171,7 +178,18 @@ export default function ProfilePage() {
           <p className="mt-2 text-sm text-white/60">{L.signedInNote}</p>
         )}
 
-        <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/40 p-6">
+        <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/40 p-6 relative">
+          {onboarding && (
+            <button
+              type="button"
+              onClick={closeOnboarding}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition"
+              aria-label={L.close}
+            >
+              ×
+            </button>
+          )}
+
           {loading ? (
             <div className="text-white/70">Loading…</div>
           ) : (
@@ -208,20 +226,13 @@ export default function ProfilePage() {
               </div>
 
               {onboarding ? (
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <div className="mt-6">
                   <button
                     onClick={saveAndContinue}
                     disabled={saving}
                     className="w-full sm:w-auto rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3 disabled:opacity-60"
                   >
                     {saving ? L.saving : L.save}
-                  </button>
-
-                  <button
-                    onClick={skip}
-                    className="w-full sm:w-auto rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold px-5 py-3"
-                  >
-                    {L.skip}
                   </button>
                 </div>
               ) : (
