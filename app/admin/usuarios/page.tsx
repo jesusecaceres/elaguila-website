@@ -5,13 +5,14 @@ import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server"
 
 type ProfileRow = {
   id: string;
-  email: string | null;
-  full_name: string | null;
-  name: string | null;
-  phone: string | null;
-  city: string | null;
-  plan: string | null;
   created_at: string | null;
+  display_name: string | null;
+  email: string | null;
+  phone: string | null;
+  account_type: string | null;
+  membership_tier: string | null;
+  home_city: string | null;
+  owned_city_slug: string | null;
 };
 
 function formatDate(iso: string | null): string {
@@ -27,14 +28,16 @@ function formatDate(iso: string | null): string {
 }
 
 function displayName(row: ProfileRow): string {
-  const n = (row.full_name ?? row.name ?? "").trim();
-  return n || "(sin nombre)";
+  return (row.display_name ?? "").trim() || "(sin nombre)";
 }
 
-function planLabel(plan: string | null): string {
-  const p = (plan ?? "").trim().toLowerCase();
-  if (p === "pro") return "Pro";
-  return "Gratis";
+function correo(row: ProfileRow): string {
+  return (row.email ?? "").trim() || "(sin correo)";
+}
+
+function membresia(tier: string | null): string {
+  const t = (tier ?? "").trim();
+  return t || "Gratis";
 }
 
 export default async function AdminUsuariosPage() {
@@ -50,7 +53,7 @@ export default async function AdminUsuariosPage() {
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, email, full_name, name, phone, city, plan, created_at")
+      .select("id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug")
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -66,7 +69,7 @@ export default async function AdminUsuariosPage() {
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400">
             Lista de clientes
           </h1>
@@ -76,7 +79,7 @@ export default async function AdminUsuariosPage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {queryError ? (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
             <p className="text-sm text-red-200">{queryError}</p>
@@ -95,18 +98,27 @@ export default async function AdminUsuariosPage() {
                     <th className="p-3 font-semibold text-yellow-400/90">Correo</th>
                     <th className="p-3 font-semibold text-yellow-400/90">Teléfono</th>
                     <th className="p-3 font-semibold text-yellow-400/90">Ciudad</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Plan</th>
+                    <th className="p-3 font-semibold text-yellow-400/90">Tipo de cuenta</th>
+                    <th className="p-3 font-semibold text-yellow-400/90">Membresía</th>
                     <th className="p-3 font-semibold text-yellow-400/90">Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-white/5">
-                      <td className="p-3 text-white/90">{displayName(row)}</td>
-                      <td className="p-3 text-white/70">{row.email ?? "—"}</td>
+                      <td className="p-3 text-white/90">
+                        <span>{displayName(row)}</span>
+                        {row.owned_city_slug?.trim() && (
+                          <span className="block text-xs text-white/50 mt-0.5">
+                            {row.owned_city_slug.trim()}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 text-white/70">{correo(row)}</td>
                       <td className="p-3 text-white/70">{row.phone ?? "—"}</td>
-                      <td className="p-3 text-white/70">{row.city ?? "—"}</td>
-                      <td className="p-3 text-white/70">{planLabel(row.plan)}</td>
+                      <td className="p-3 text-white/70">{row.home_city ?? "—"}</td>
+                      <td className="p-3 text-white/70">{row.account_type ?? "—"}</td>
+                      <td className="p-3 text-white/70">{membresia(row.membership_tier)}</td>
                       <td className="p-3 text-white/60">{formatDate(row.created_at)}</td>
                     </tr>
                   ))}
@@ -123,11 +135,17 @@ export default async function AdminUsuariosPage() {
                   <div className="font-semibold text-yellow-400/90">
                     {displayName(row)}
                   </div>
+                  {row.owned_city_slug?.trim() && (
+                    <div className="text-xs text-white/50 mt-0.5">
+                      {row.owned_city_slug.trim()}
+                    </div>
+                  )}
                   <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-white/70">
-                    <span>Correo: {row.email ?? "—"}</span>
+                    <span>Correo: {correo(row)}</span>
                     <span>Teléfono: {row.phone ?? "—"}</span>
-                    <span>Ciudad: {row.city ?? "—"}</span>
-                    <span>Plan: {planLabel(row.plan)}</span>
+                    <span>Ciudad: {row.home_city ?? "—"}</span>
+                    <span>Tipo de cuenta: {row.account_type ?? "—"}</span>
+                    <span>Membresía: {membresia(row.membership_tier)}</span>
                     <span>Fecha: {formatDate(row.created_at)}</span>
                   </div>
                 </div>
