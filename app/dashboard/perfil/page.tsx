@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
+import CityAutocomplete from "../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { CA_CITIES, CITY_ALIASES } from "../../data/locations/norcal";
 
@@ -41,38 +42,6 @@ function normalizeCity(raw: string): string {
     if (record.aliases?.some((a) => toCityKey(a) === key)) return record.city;
   }
   return "";
-}
-
-/** Top 10 NorCal city suggestions (excludes SoCal). Score: exact 0, startsWith 1, includes 2. */
-function getCitySuggestions(query: string): string[] {
-  const q = toCityKey(query);
-  if (!q) return [];
-
-  const norcal = CA_CITIES.filter((r) => r.region !== "SoCal");
-  const scored: Array<{ city: string; score: number }> = [];
-
-  for (const record of norcal) {
-    let best = 999;
-    const check = (key: string) => {
-      if (key === q) best = Math.min(best, 0);
-      else if (key.startsWith(q)) best = Math.min(best, 1);
-      else if (key.includes(q)) best = Math.min(best, 2);
-    };
-    check(toCityKey(record.city));
-    record.aliases?.forEach((a) => check(toCityKey(a)));
-    if (best !== 999) scored.push({ city: record.city, score: best });
-  }
-
-  scored.sort((a, b) => a.score - b.score || a.city.localeCompare(b.city));
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const { city } of scored) {
-    if (seen.has(city)) continue;
-    seen.add(city);
-    out.push(city);
-    if (out.length >= 10) break;
-  }
-  return out;
 }
 
 /** Digits only from raw input */
@@ -129,7 +98,6 @@ export default function ProfilePage() {
         errPhoneOptional: "Si escribes teléfono, debe tener 10 dígitos.",
         errCityRequired: "Elige una ciudad de la lista (California).",
         errCityOptional: "Si escribes ciudad, debe ser una de la lista (California).",
-        cityNoResults: "No se encontró. Elige una ciudad de la lista.",
       },
       en: {
         titlePost: "Complete your profile to post",
@@ -152,7 +120,6 @@ export default function ProfilePage() {
         errPhoneOptional: "If you enter a phone, it must have 10 digits.",
         errCityRequired: "Select a city from the list (California).",
         errCityOptional: "If you enter a city, it must be from the list (California).",
-        cityNoResults: "No results. Choose a city from the list.",
       },
     }),
     []
@@ -167,7 +134,6 @@ export default function ProfilePage() {
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [city, setCity] = useState<string>("");
-  const [cityOpen, setCityOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -228,14 +194,6 @@ export default function ProfilePage() {
     }
     router.replace(`/dashboard?lang=${lang}`);
   }
-
-  function handleCityBlur() {
-    const canonical = normalizeCity(city);
-    if (canonical) setCity(canonical);
-  }
-
-  const citySuggestions = useMemo(() => getCitySuggestions(city), [city]);
-  const showCityDropdown = cityOpen && city.trim().length >= 1;
 
   async function saveAndContinue() {
     setMsg(null);
@@ -423,53 +381,17 @@ export default function ProfilePage() {
                         maxLength={14}
                       />
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 relative">
-                      <div className="text-xs text-white/60">
-                        {L.city}
-                        {requirePost && <span className="text-yellow-400/90"> *</span>}
-                      </div>
-                      <input
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                      <CityAutocomplete
                         value={city}
-                        onChange={(e) => {
-                          setCity(e.target.value);
-                          setCityOpen(true);
-                        }}
-                        onFocus={() => setCityOpen(true)}
-                        onBlur={() => {
-                          setTimeout(() => {
-                            setCityOpen(false);
-                            handleCityBlur();
-                          }, 120);
-                        }}
+                        onChange={setCity}
                         placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
-                        autoComplete="off"
+                        lang={lang}
+                        label={L.city}
+                        required={requirePost}
+                        variant="dark"
+                        onSelect={() => setMsg(null)}
                       />
-                      {showCityDropdown && (
-                        <div className="absolute left-0 right-0 mt-2 z-50 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/95 shadow-xl">
-                          {citySuggestions.length > 0 ? (
-                            citySuggestions.map((option) => (
-                              <button
-                                key={option}
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setCity(option);
-                                  setCityOpen(false);
-                                  setMsg(null);
-                                }}
-                                className="block w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition"
-                              >
-                                {option}
-                              </button>
-                            ))
-                          ) : (
-                            <div className="px-4 py-3 text-sm text-white/60">
-                              {L.cityNoResults}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </>
                 )}
