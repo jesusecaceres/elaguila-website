@@ -14,6 +14,7 @@ type ProfileRow = {
   membership_tier: string | null;
   home_city: string | null;
   owned_city_slug: string | null;
+  newsletter_opt_in: boolean | null;
 };
 
 type ListingRow = {
@@ -39,7 +40,6 @@ function isValidUuid(id: string): boolean {
   return typeof id === "string" && UUID_REGEX.test(id.trim());
 }
 
-/** First 4 + last 4 meaningful chars of UUID (no hyphens), uppercase, e.g. CDCC-3790 */
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
   if (s.length < 8) return "—";
@@ -60,10 +60,6 @@ function formatDate(iso: string | null): string {
   }
 }
 
-function formatListingDate(iso: string | null): string {
-  return formatDate(iso);
-}
-
 function formatMoney(price: number | string | null): string {
   if (price === null || price === undefined) return "—";
   const n = typeof price === "number" ? price : Number(price);
@@ -76,7 +72,6 @@ function formatMoney(price: number | string | null): string {
   }
 }
 
-/** Extract one thumbnail URL from listings.images (jsonb). Safe for malformed data. */
 function getListingImage(row: ListingRow): string | null {
   try {
     const images = row.images;
@@ -125,10 +120,6 @@ function displayName(row: ProfileRow): string {
   return (row.display_name ?? "").trim() || "(sin nombre)";
 }
 
-function correo(row: ProfileRow): string {
-  return (row.email ?? "").trim() || "(sin correo)";
-}
-
 function membershipTierLabel(tier: string | null): string {
   const t = (tier ?? "").trim().toLowerCase();
   if (t === "gratis") return "Gratis";
@@ -143,6 +134,10 @@ function accountTypeLabel(accountType: string | null): string {
   if (a === "personal") return "Personal";
   if (a === "business") return "Business";
   return a || "—";
+}
+
+function newsletterStatus(optIn: boolean | null): string {
+  return optIn === true ? "Suscrito" : "No suscrito";
 }
 
 function isPersonalTier(tier: string): boolean {
@@ -225,7 +220,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   const updated = searchParams.updated;
   const errorParam = searchParams.error;
   const isUpdated = updated === "1" || (Array.isArray(updated) && updated.includes("1"));
-  const errorValue = typeof errorParam === "string" ? errorParam : Array.isArray(errorParam) ? errorParam[0] : undefined;
+  const errorValue =
+    typeof errorParam === "string" ? errorParam : Array.isArray(errorParam) ? errorParam[0] : undefined;
 
   let row: ProfileRow | null = null;
   let queryError: string | null = null;
@@ -234,7 +230,9 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug")
+      .select(
+        "id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug,newsletter_opt_in"
+      )
       .eq("id", clientId)
       .maybeSingle();
 
@@ -254,12 +252,18 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
             <p className="text-sm text-red-200">{queryError}</p>
           </div>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/admin/usuarios"
               className="inline-flex items-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition"
             >
               ← Volver a clientes
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center rounded-xl border border-yellow-600/20 bg-yellow-500/10 px-4 py-2.5 text-sm font-medium text-yellow-400 hover:bg-yellow-500/20 transition"
+            >
+              Panel de administración
             </Link>
           </div>
         </div>
@@ -302,7 +306,9 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
 
   const currentAccountType = (row.account_type ?? "").trim().toLowerCase();
   const currentMembershipTier = (row.membership_tier ?? "").trim().toLowerCase();
-  const selectedAccountType = ALLOWED_ACCOUNT_TYPES.includes(currentAccountType as (typeof ALLOWED_ACCOUNT_TYPES)[number])
+  const selectedAccountType = ALLOWED_ACCOUNT_TYPES.includes(
+    currentAccountType as (typeof ALLOWED_ACCOUNT_TYPES)[number]
+  )
     ? currentAccountType
     : "personal";
 
@@ -329,7 +335,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
             <Link
               href="/admin/usuarios"
               className="inline-flex items-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
@@ -344,12 +350,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             </Link>
           </div>
           <p className="text-sm text-yellow-400/90">Cliente</p>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400 mt-1">
-            {name}
-          </h1>
-          <p className="mt-1.5 text-sm text-white/60">
-            Vista administrativa de cuenta
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400 mt-1">{name}</h1>
+          <p className="mt-1.5 text-sm text-white/60">Vista administrativa de cuenta</p>
           <div className="mt-4 space-y-2">
             <p className="text-sm">
               <span className="text-white/50">Cuenta #</span>{" "}
@@ -376,9 +378,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         )}
 
         <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">
-            Estado actual
-          </h2>
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">Estado actual</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
               <p className="text-xs text-white/50">Tipo de cuenta</p>
@@ -387,6 +387,10 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
               <p className="text-xs text-white/50">Membresía</p>
               <p className="text-sm font-medium text-white/90 mt-0.5">{membershipTierLabel(row.membership_tier)}</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
+              <p className="text-xs text-white/50">Newsletter</p>
+              <p className="text-sm font-medium text-white/90 mt-0.5">{newsletterStatus(row.newsletter_opt_in)}</p>
             </div>
             <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
               <p className="text-xs text-white/50">Ciudad</p>
@@ -404,9 +408,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         </section>
 
         <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">
-            Información principal
-          </h2>
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">Información principal</h2>
           <dl className="grid grid-cols-1 gap-4 text-sm">
             <div>
               <dt className="text-white/50">Nombre</dt>
@@ -446,9 +448,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         </section>
 
         <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">
-            Cuenta
-          </h2>
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">Cuenta</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-white/50">Tipo de cuenta</dt>
@@ -457,6 +457,10 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             <div>
               <dt className="text-white/50">Membresía</dt>
               <dd className="text-white/90 mt-0.5">{membershipTierLabel(row.membership_tier)}</dd>
+            </div>
+            <div>
+              <dt className="text-white/50">Newsletter</dt>
+              <dd className="text-white/90 mt-0.5">{newsletterStatus(row.newsletter_opt_in)}</dd>
             </div>
             <div>
               <dt className="text-white/50">Ciudad</dt>
@@ -478,11 +482,10 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         </section>
 
         <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-yellow-400/90 mb-1">
-            Administrar cuenta
-          </h2>
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-1">Administrar cuenta</h2>
           <p className="text-sm text-white/60 mb-4">
-            Actualiza el tipo de cuenta y la membresía manualmente. Si cambias el tipo de cuenta, guarda y luego elige una membresía válida para ese tipo.
+            Actualiza el tipo de cuenta y la membresía manualmente. Si cambias el tipo de cuenta, guarda y luego elige
+            una membresía válida para ese tipo.
           </p>
           <form action={updateClientAccountAction} className="space-y-4">
             <input type="hidden" name="clientId" value={row.id} />
@@ -536,12 +539,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         </section>
 
         <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-yellow-400/90 mb-1">
-            Clasificados del cliente
-          </h2>
-          <p className="text-sm text-white/60 mb-4">
-            Anuncios relacionados con esta cuenta.
-          </p>
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-1">Clasificados del cliente</h2>
+          <p className="text-sm text-white/60 mb-4">Anuncios relacionados con esta cuenta.</p>
 
           {listingsError ? (
             <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
@@ -568,11 +567,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                       {imgUrl ? (
                         <div className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white/5">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={imgUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                         </div>
                       ) : null}
                       <div className="flex-1 min-w-0">
@@ -582,7 +577,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                           <span>{formatMoney(listing.price)}</span>
                           <span>{listing.city ?? "—"}</span>
                           <span>{humanStatus(listing.status)}</span>
-                          <span>{formatListingDate(listing.created_at)}</span>
+                          <span>{formatDate(listing.created_at)}</span>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Link

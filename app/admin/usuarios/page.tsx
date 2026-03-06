@@ -13,9 +13,9 @@ type ProfileRow = {
   membership_tier: string | null;
   home_city: string | null;
   owned_city_slug: string | null;
+  newsletter_opt_in: boolean | null;
 };
 
-/** First 4 + last 4 meaningful chars of UUID (no hyphens), uppercase, e.g. CDCC-3790 */
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
   if (s.length < 8) return "—";
@@ -49,6 +49,10 @@ function membresia(tier: string | null): string {
   return t || "Gratis";
 }
 
+function newsletterLabel(optIn: boolean | null): string {
+  return optIn === true ? "Sí" : "No";
+}
+
 function matchesSearch(row: ProfileRow, q: string): boolean {
   if (!q) return true;
   const ref = accountRefFromId(row.id).toLowerCase().replace(/-/g, "");
@@ -78,7 +82,12 @@ export default async function AdminUsuariosPage(props: PageProps) {
 
   const searchParams = props.searchParams ? await props.searchParams : {};
   const qParam = searchParams.q;
-  const searchQuery = typeof qParam === "string" ? qParam.trim().toLowerCase() : Array.isArray(qParam) ? (qParam[0] ?? "").trim().toLowerCase() : "";
+  const searchQuery =
+    typeof qParam === "string"
+      ? qParam.trim().toLowerCase()
+      : Array.isArray(qParam)
+        ? (qParam[0] ?? "").trim().toLowerCase()
+        : "";
 
   let rows: ProfileRow[] = [];
   let queryError: string | null = null;
@@ -87,7 +96,9 @@ export default async function AdminUsuariosPage(props: PageProps) {
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug")
+      .select(
+        "id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug,newsletter_opt_in"
+      )
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -124,6 +135,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
             ← Volver al panel
           </Link>
         </div>
+
         {queryError ? (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
             <p className="text-sm text-red-200">{queryError}</p>
@@ -171,6 +183,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
                         <th className="p-2.5 font-semibold text-yellow-400/90">Ciudad</th>
                         <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Tipo</th>
                         <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Membresía</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Newsletter</th>
                         <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Fecha</th>
                       </tr>
                     </thead>
@@ -200,6 +213,9 @@ export default async function AdminUsuariosPage(props: PageProps) {
                           <td className="p-2.5 text-white/70 whitespace-nowrap">{row.home_city ?? "—"}</td>
                           <td className="p-2.5 text-white/70 whitespace-nowrap">{row.account_type ?? "—"}</td>
                           <td className="p-2.5 text-white/70 whitespace-nowrap">{membresia(row.membership_tier)}</td>
+                          <td className="p-2.5 text-white/70 whitespace-nowrap">
+                            {newsletterLabel(row.newsletter_opt_in)}
+                          </td>
                           <td className="p-2.5 text-white/60 whitespace-nowrap">{formatDate(row.created_at)}</td>
                         </tr>
                       ))}
@@ -232,6 +248,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
                         <span>Ciudad: {row.home_city ?? "—"}</span>
                         <span>Tipo de cuenta: {row.account_type ?? "—"}</span>
                         <span>Membresía: {membresia(row.membership_tier)}</span>
+                        <span>Newsletter: {newsletterLabel(row.newsletter_opt_in)}</span>
                         <span>Fecha: {formatDate(row.created_at)}</span>
                       </div>
                       <div className="mt-3">
