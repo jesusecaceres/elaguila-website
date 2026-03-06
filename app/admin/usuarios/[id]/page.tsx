@@ -33,6 +33,12 @@ const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
 const PERSONAL_TIERS = ["gratis", "pro"] as const;
 const BUSINESS_TIERS = ["business_lite", "business_premium"] as const;
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUuid(id: string): boolean {
+  return typeof id === "string" && UUID_REGEX.test(id.trim());
+}
+
 /** First 4 + last 4 meaningful chars of UUID (no hyphens), uppercase, e.g. CDCC-3790 */
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
@@ -156,7 +162,7 @@ async function updateClientAccountAction(formData: FormData) {
   }
 
   const clientId = (formData.get("clientId") ?? "").toString().trim();
-  if (!clientId) {
+  if (!clientId || !isValidUuid(clientId)) {
     redirect("/admin/usuarios");
   }
 
@@ -211,8 +217,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   const params = await props.params;
   const clientId = typeof params?.id === "string" ? params.id.trim() : "";
 
-  if (!clientId) {
-    notFound();
+  if (!clientId || !isValidUuid(clientId)) {
+    redirect("/admin/usuarios");
   }
 
   const searchParams = props.searchParams ? await props.searchParams : {};
