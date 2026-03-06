@@ -24,7 +24,6 @@ type ListingRow = {
   zip: string | null;
   status: string | null;
   created_at: string | null;
-  created: string | null;
   category: string | null;
   image_urls?: string[] | null;
   image?: string | null;
@@ -261,7 +260,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("listings")
-      .select("id,title,price,city,zip,status,created_at,created,category,image_urls,image")
+      .select("id,title,price,city,zip,status,created_at,category,image_urls,image")
       .eq("user_id", clientId)
       .order("created_at", { ascending: false })
       .limit(LISTINGS_LIMIT);
@@ -557,7 +556,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                           <span>{formatMoney(listing.price)}</span>
                           <span>{listing.city ?? "—"}</span>
                           <span>{humanStatus(listing.status)}</span>
-                          <span>{formatListingDate(listing.created_at ?? listing.created)}</span>
+                          <span>{formatListingDate(listing.created_at)}</span>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Link
