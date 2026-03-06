@@ -7,7 +7,17 @@ import Navbar from "../../components/Navbar";
 
 type Lang = "es" | "en";
 
-type CategoryKey = "venta-personal" | "auto" | "rentas" | "empleos" | "servicios" | "clases" | null;
+type CategoryKey =
+  | "rentas"
+  | "en-venta"
+  | "empleos"
+  | "servicios"
+  | "restaurantes"
+  | "viajes"
+  | "autos"
+  | "clases"
+  | "comunidad"
+  | null;
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -20,10 +30,6 @@ export default function MembresiasPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>(null);
   const [autoSub, setAutoSub] = useState<"particular" | "negocio" | null>(null);
   const [rentasSub, setRentasSub] = useState<"persona" | "negocio" | null>(null);
-  const [expandedPlan, setExpandedPlan] = useState<"gratis" | "pro" | "standard" | "plus" | null>(null);
-  const [showPersonalCompare, setShowPersonalCompare] = useState(false);
-  const [showBusinessCompare, setShowBusinessCompare] = useState(false);
-
   const [quizStep, setQuizStep] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [quizResult, setQuizResult] = useState<"standard" | "plus" | null>(null);
@@ -35,8 +41,10 @@ export default function MembresiasPage() {
 
   const isBusinessPath =
     selectedCategory === "servicios" ||
+    selectedCategory === "restaurantes" ||
+    selectedCategory === "viajes" ||
     selectedCategory === "empleos" ||
-    (selectedCategory === "auto" && autoSub === "negocio") ||
+    (selectedCategory === "autos" && autoSub === "negocio") ||
     (selectedCategory === "rentas" && rentasSub === "negocio");
 
   const copy = useMemo(() => {
@@ -48,19 +56,25 @@ export default function MembresiasPage() {
           "No todos publican igual. Algunas opciones son para vendedores personales y otras para negocios que quieren crecer con más fuerza.",
 
         selectorTitle: "¿Qué quieres publicar?",
-        ventaPersonal: "Venta personal",
-        ventaPersonalHelp: "Artículos, cosas del hogar, ventas personales.",
-        auto: "Auto",
-        autoHelp: "Vehículos de vendedor particular o presencia comercial.",
         rentas: "Rentas",
         rentasHelp: "Publicaciones personales, propietarios o presencia profesional.",
+        enVenta: "En venta",
+        enVentaHelp: "Artículos, cosas del hogar, ventas personales.",
         empleos: "Empleos",
         empleosHelp: "Ofertas de trabajo y contratación.",
-        servicios: "Servicios / Negocio",
-        serviciosHelp: "Negocios, marcas, servicios y presencia comercial.",
-        clases: "Clases / Comunidad",
-        clasesHelp: "Clases, actividades y publicaciones comunitarias.",
-
+        servicios: "Servicios",
+        serviciosHelp: "Si ofreces servicios al público, trabajas por citas o dependes de clientes.",
+        restaurantes: "Restaurantes",
+        restaurantesHelp: "Descubrimiento, confianza y contacto para tu negocio.",
+        viajes: "Viajes",
+        viajesHelp: "Agencias, ofertas de viajes y presencia profesional.",
+        autos: "Autos",
+        autosHelp: "Vehículos de particular o presencia comercial.",
+        clases: "Clases",
+        clasesHelp: "Clases, talleres y actividades.",
+        comunidad: "Comunidad",
+        comunidadHelp: "Publicaciones comunitarias, gratis.",
+        enVentaIntro: "Para vendedores personales y ventas locales. Comparación Gratis vs LEONIX Pro.",
         personalIntro: "Si publicas como persona, estas son las opciones más relevantes para ti.",
         personalNote:
           "Estas opciones son para vendedores personales, no para negocios ni inventario comercial.",
@@ -106,6 +120,9 @@ export default function MembresiasPage() {
         compConvertir: "Mejor oportunidad de generar resultados",
         compGenerarContactos: "Mejor oportunidad de generar contactos",
         compGenerarCandidatos: "Mayor oportunidad de generar candidatos",
+        compSugerenciasIA: "Sugerencias de IA",
+        compMejorPara: "Mejor para",
+        compIdealPara: "Ideal para",
         standardLine: "Standard te ayuda a verte profesionalmente.",
         plusLine: "Plus te ayuda a convertir mejor esa visibilidad en oportunidades.",
         queSignificaAsistencia: "Asistencia de visibilidad: le da un impulso extra a tu anuncio por un tiempo cuando más lo necesitas.",
@@ -137,7 +154,11 @@ export default function MembresiasPage() {
           "Si buscas presencia más sólida o publicación recurrente como negocio, estas opciones te ayudan más:",
 
         serviciosIntro:
-          "Si tu meta es que más personas te descubran, te contacten y confíen en tu negocio, esta es tu ruta.",
+          "Si ofreces servicios al público, trabajas por citas o dependes de clientes, esta ruta es para ti.",
+        restaurantesIntro:
+          "Para que más personas descubran tu restaurante, confíen y te contacten. Presencia y herramientas de negocio.",
+        viajesIntro:
+          "Para agencias, ofertas de viajes o presencia profesional en el sector. Presencia y herramientas de negocio.",
         plusSummaryStrong: "Bueno para negocios que quieren más impulso, más contacto y mejor oportunidad de generar resultados.",
 
         clasesIntro:
@@ -209,17 +230,18 @@ export default function MembresiasPage() {
         quizNote: "Esta guía es solo una recomendación rápida.",
         quizAiLine: "LEONIX también puede ayudarte a mejorar tu anuncio con sugerencias como mejores fotos, mejor video o ajustes de precio cuando haga falta.",
         clasesComunidadFree: "Comunidad: es gratis, no necesitas membresía.",
+        comunidadIntro: "Publicaciones comunitarias sin costo. No necesitas membresía para participar.",
         clasesComercialNote: "Si tu clase es de pago o claramente comercial, conviene la ruta de negocio.",
         autoDealerNote: "Si operas como dealer, lote o inventario comercial, te corresponde esta ruta.",
         quizReset: "Volver a responder",
         ctaAccount: "Ir a mi cuenta",
 
-        resourceTitle: "Aprende a vender mejor con LEONIX",
+        resourceTitle: "LEONIX te ayuda a entender el lenguaje del negocio",
         resource1: "Qué significa SEO en palabras simples",
-        resource2: "Cómo tomar mejores fotos para vender",
-        resource3: "Qué poner en un perfil de negocio",
-        resource4: "Cómo saber si tu publicidad está funcionando",
-        resourceSoon: "Muy pronto: recursos y guías creadas para negocios latinos.",
+        resource2: "Qué significa ROI en palabras simples",
+        resource3: "Cómo tomar mejores fotos para vender",
+        resource4: "Cómo saber si tu anuncio va bien",
+        resourceSoon: "El inicio de una guía para que negocios latinos entiendan mejor estos conceptos.",
 
         trustTitle: "Invertir en visibilidad también es parte de crecer",
         trustBody:
@@ -242,19 +264,25 @@ export default function MembresiasPage() {
           "Not everyone posts the same way. Some options are for personal sellers and others for businesses that want to grow stronger.",
 
         selectorTitle: "What do you want to post?",
-        ventaPersonal: "Personal sale",
-        ventaPersonalHelp: "Items, household stuff, personal sales.",
-        auto: "Auto",
-        autoHelp: "Private seller vehicles or commercial presence.",
         rentas: "Rentals",
         rentasHelp: "Personal listings, owners, or professional presence.",
+        enVenta: "For sale",
+        enVentaHelp: "Items, household stuff, personal sales.",
         empleos: "Jobs",
         empleosHelp: "Job offers and hiring.",
-        servicios: "Services / Business",
-        serviciosHelp: "Businesses, brands, services, and commercial presence.",
-        clases: "Classes / Community",
-        clasesHelp: "Classes, activities, and community posts.",
-
+        servicios: "Services",
+        serviciosHelp: "If you offer services to the public, work by appointment, or depend on clients.",
+        restaurantes: "Restaurants",
+        restaurantesHelp: "Discovery, trust, and contact for your business.",
+        viajes: "Travel",
+        viajesHelp: "Agencies, travel offers, and professional presence.",
+        autos: "Autos",
+        autosHelp: "Private seller vehicles or commercial presence.",
+        clases: "Classes",
+        clasesHelp: "Classes, workshops, and activities.",
+        comunidad: "Community",
+        comunidadHelp: "Community posts, free.",
+        enVentaIntro: "For personal sellers and local item sales. Gratis vs LEONIX Pro comparison.",
         personalIntro: "If you post as an individual, these are the most relevant options for you.",
         personalNote: "These options are for personal sellers, not for businesses or commercial inventory.",
 
@@ -299,6 +327,9 @@ export default function MembresiasPage() {
         compConvertir: "Better chance to generate results",
         compGenerarContactos: "Better chance to generate contacts",
         compGenerarCandidatos: "Better chance to generate candidates",
+        compSugerenciasIA: "AI suggestions",
+        compMejorPara: "Best for",
+        compIdealPara: "Ideal for",
         standardLine: "Standard helps you look professional.",
         plusLine: "Plus helps you turn that visibility into opportunities.",
         queSignificaAsistencia: "Visibility assist: gives your listing an extra boost for a period when you need it most.",
@@ -330,7 +361,11 @@ export default function MembresiasPage() {
           "If you want a stronger presence or recurring business posting, these options help more:",
 
         serviciosIntro:
-          "If your goal is for more people to discover you, contact you, and trust your business, this is your path.",
+          "If you offer services to the public, work by appointment, or depend on clients, this path is for you.",
+        restaurantesIntro:
+          "So more people discover your restaurant, trust it, and contact you. Presence and business tools.",
+        viajesIntro:
+          "For agencies, travel offers, or professional presence in the sector. Presence and business tools.",
         plusSummaryStrong: "Good for businesses that want more momentum, more contact, and better chance to generate results.",
 
         clasesIntro:
@@ -402,17 +437,18 @@ export default function MembresiasPage() {
         quizNote: "This is just a quick recommendation.",
         quizAiLine: "LEONIX can also help you improve your listing with suggestions like better photos, better video, or price adjustments when needed.",
         clasesComunidadFree: "Community: it's free, no membership needed.",
+        comunidadIntro: "Community posts at no cost. You don't need a membership to participate.",
         clasesComercialNote: "If your class is paid or clearly commercial, the business path fits better.",
         autoDealerNote: "If you operate as a dealer, lot, or commercial inventory, this path is for you.",
         quizReset: "Answer again",
         ctaAccount: "Go to my account",
 
-        resourceTitle: "Learn how to sell better with LEONIX",
+        resourceTitle: "LEONIX helps you understand the language of business",
         resource1: "What SEO means in simple words",
-        resource2: "How to take better photos to sell",
-        resource3: "What to put in a business profile",
-        resource4: "How to tell if your advertising is working",
-        resourceSoon: "Coming soon: resources and guides built for Latino businesses.",
+        resource2: "What ROI means in simple words",
+        resource3: "How to take better photos to sell",
+        resource4: "How to tell if your listing is doing well",
+        resourceSoon: "The start of a guide for Latino businesses to better understand these concepts.",
 
         trustTitle: "Investing in visibility is also part of growing",
         trustBody:
@@ -456,229 +492,129 @@ export default function MembresiasPage() {
     setSelectedCategory(key);
     setAutoSub(null);
     setRentasSub(null);
-    setExpandedPlan(null);
-    setShowPersonalCompare(false);
-    setShowBusinessCompare(false);
     setQuizStep(0);
     setQuizAnswers([]);
     setQuizResult(null);
   };
 
-  type PlanId = "gratis" | "pro" | "standard" | "plus";
-
-  const PlanCard = ({
-    id,
-    title,
-    price,
-    summary,
-    ideal,
-    incluye,
-    significa,
-    cuandoSubir,
-    accent,
-    onShowCompare,
+  type MatrixRow = { feature: string; col0: string; col1: string };
+  const ComparisonMatrix = ({
+    intro,
+    col0Name,
+    col1Name,
+    rows,
+    footer0,
+    footer1,
+    bordered = true,
   }: {
-    id: PlanId;
-    title: string;
-    price: string;
-    summary: string;
-    ideal: string[];
-    incluye: string[];
-    significa: string;
-    cuandoSubir: string;
-    accent?: "gold" | "strong";
-    onShowCompare?: () => void;
-  }) => {
-    const isExpanded = expandedPlan === id;
-    return (
-      <div
-        className={cx(
-          "rounded-2xl border bg-[#F5F5F5] overflow-hidden",
-          accent === "gold" && "border-yellow-500/25",
-          accent === "strong" && "border-yellow-500/40 bg-[#F8F6F0]"
-        )}
-      >
-        <div className="p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h3 className="text-lg font-bold text-[#111111]">{title}</h3>
-              <p className="text-sm font-semibold text-[#111111] mt-0.5">{price}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setExpandedPlan(isExpanded ? null : id)}
-              className="rounded-xl border border-[#C9B46A]/50 bg-white/80 px-3 py-2 text-sm font-medium text-[#111111] hover:bg-white transition"
-            >
-              {isExpanded ? L.ocultarDetalles : L.verDetalles}
-            </button>
-          </div>
-          <p className="mt-2 text-sm text-[#111111]/90">{summary}</p>
-          {onShowCompare && (
-            <button
-              type="button"
-              onClick={onShowCompare}
-              className="mt-2 text-xs font-medium text-[#111111]/80 hover:text-[#111111] underline underline-offset-1"
-            >
-              {L.verQueIncluye}
-            </button>
-          )}
-          {isExpanded && (
-            <div className="mt-4 pt-4 border-t border-[#111111]/10 space-y-3 text-sm">
-              <div>
-                <h4 className="font-semibold text-[#111111]">{L.idealPara}</h4>
-                <ul className="mt-1 space-y-0.5 text-[#111111]/90">
-                  {ideal.map((s, i) => (
-                    <li key={i}>· {s}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#111111]">{L.incluye}</h4>
-                <ul className="mt-1 space-y-0.5 text-[#111111]/90">
-                  {incluye.map((s, i) => (
-                    <li key={i}>· {s}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#111111]">{L.queSignifica}</h4>
-                <p className="mt-1 text-[#111111]/90">{significa}</p>
-              </div>
-              {cuandoSubir && (
-                <div>
-                  <h4 className="font-semibold text-[#111111]">{L.cuandoSubir}</h4>
-                  <p className="mt-1 text-[#111111]/90">{cuandoSubir}</p>
-                </div>
-              )}
-            </div>
-          )}
+    intro?: string;
+    col0Name: string;
+    col1Name: string;
+    rows: MatrixRow[];
+    footer0?: string;
+    footer1?: string;
+    bordered?: boolean;
+  }) => (
+    <div
+      className={cx(
+        "rounded-2xl overflow-hidden",
+        bordered && "border border-[#C9B46A]/30 bg-[#F8F6F0]"
+      )}
+    >
+      {intro && <p className="p-3 sm:p-4 text-sm text-[#111111]/90">{intro}</p>}
+        <div className={bordered ? "p-3 sm:p-4 pt-0" : "p-0"}>
+        <div className="hidden sm:block overflow-x-auto overflow-y-hidden">
+          <table className="w-full min-w-[280px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[#111111]/10">
+                <th className="text-left font-semibold text-[#111111] py-2 pr-2 align-top w-[40%] sm:w-[35%]">
+                  {L.incluye}
+                </th>
+                <th className="text-left font-semibold text-[#111111] py-2 px-2 align-top">{col0Name}</th>
+                <th className="text-left font-semibold text-[#111111] py-2 pl-2 align-top">{col1Name}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} className="border-b border-[#111111]/5 last:border-0">
+                  <td className="py-2.5 pr-2 font-medium text-[#111111] align-top">{r.feature}</td>
+                  <td className="py-2.5 px-2 text-[#111111]/90 align-top">{r.col0}</td>
+                  <td className="py-2.5 pl-2 text-[#111111]/90 align-top">{r.col1}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-    );
-  };
-
-  const PersonalCompare = () => {
-    const rows: { feature: string; gratis: string; pro: string }[] = [
-      { feature: L.compDuración, gratis: L.compBasica, pro: L.compAmpliado },
-      { feature: L.compFotosContenido, gratis: L.compBasica, pro: L.compAmpliado },
-      { feature: L.compVideo, gratis: L.compNoIncluido, pro: L.compIncluido },
-      { feature: L.compAsistencia, gratis: L.compNo, pro: L.comp1 },
-      { feature: L.compVistas, gratis: L.compSinAnaliticas, pro: L.compSi },
-      { feature: L.compGuardados, gratis: L.compSinAnaliticas, pro: L.compSi },
-      { feature: L.compCompartidos, gratis: L.compSinAnaliticas, pro: L.compSi },
-      { feature: L.compBotonesContacto, gratis: L.compNo, pro: L.compLlamarTexto },
-      { feature: L.compPresentacionMejor, gratis: L.compBasica, pro: L.compMejorada },
-    ];
-    return (
-      <div className="mt-4 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] overflow-hidden">
-        <div className="p-3 sm:p-4 border-b border-[#111111]/10 flex items-center justify-between">
-          <h4 className="text-sm font-bold text-[#111111]">{L.compareTitle}</h4>
-          <button
-            type="button"
-            onClick={() => setShowPersonalCompare(false)}
-            className="text-xs font-medium text-[#111111]/70 hover:text-[#111111]"
-          >
-            {L.compareHide}
-          </button>
-        </div>
-        <div className="p-3 sm:p-4">
-          <div className="hidden sm:grid sm:grid-cols-3 gap-2 text-sm mb-2">
-            <div className="font-semibold text-[#111111]">{L.incluye}</div>
-            <div className="font-semibold text-[#111111]">{L.gratisTitle}</div>
-            <div className="font-semibold text-[#111111]">{L.proTitle}</div>
-          </div>
-          <div className="space-y-2">
-            {rows.map((r, i) => (
-              <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 py-2 border-b border-[#111111]/5 last:border-0 text-sm">
-                <span className="font-medium text-[#111111]">{r.feature}</span>
-                <div className="flex gap-2 text-[#111111]/90">
-                  <span className="sm:hidden text-[#111111]/60">{L.gratisTitle}:</span>
-                  <span>{r.gratis}</span>
-                </div>
-                <div className="flex gap-2 text-[#111111]/90">
-                  <span className="sm:hidden text-[#111111]/60">{L.proTitle}:</span>
-                  <span>{r.pro}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-3 border-t border-[#111111]/10 space-y-1.5 text-xs text-[#111111]/70">
-            <p>{L.queSignificaAsistencia}</p>
-            <p>{L.queSignificaVistas}</p>
-            <p>{L.queSignificaBotones}</p>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const BusinessCompare = ({ empleos = false }: { empleos?: boolean }) => {
-    const defaultRows: { feature: string; standard: string; plus: string }[] = [
-      { feature: L.compPerfil, standard: L.compSi, plus: L.compSi },
-      { feature: L.compPresenciaCategoria, standard: L.compSi, plus: L.compSi },
-      { feature: L.compFotosVideo, standard: L.compSi, plus: L.compMejorada },
-      { feature: L.compHerramientasContacto, standard: L.compBasica, plus: L.compMejorada },
-      { feature: L.compPrioridadVisibilidad, standard: L.compBasica, plus: L.compMejorada },
-      { feature: L.compAnaliticas, standard: L.compSi, plus: L.compSi },
-      { feature: L.compAsistenciasVisibilidad, standard: L.comp1, plus: L.comp2 },
-      { feature: L.compMasLlamadas, standard: L.compBasica, plus: L.compMejorada },
-      { feature: empleos ? L.compGenerarCandidatos : L.compConvertir, standard: L.compBasica, plus: L.compMejorada },
-    ];
-    const rows = empleos
-      ? [
-          { feature: L.compPerfil, standard: L.compSi, plus: L.compSi },
-          { feature: L.compPresenciaCategoria, standard: L.compSi, plus: L.compSi },
-          { feature: L.compHerramientasContacto, standard: L.compBasica, plus: L.compMejorada },
-          { feature: L.compAnaliticas, standard: L.compSi, plus: L.compSi },
-          { feature: L.compAsistenciasVisibilidad, standard: L.comp1, plus: L.comp2 },
-          { feature: L.compGenerarCandidatos, standard: L.compBasica, plus: L.compMejorada },
-        ]
-      : defaultRows;
-    return (
-      <div className="mt-4 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] overflow-hidden">
-        <div className="p-3 sm:p-4 border-b border-[#111111]/10 flex items-center justify-between">
-          <h4 className="text-sm font-bold text-[#111111]">{L.compareTitle}</h4>
-          <button
-            type="button"
-            onClick={() => setShowBusinessCompare(false)}
-            className="text-xs font-medium text-[#111111]/70 hover:text-[#111111]"
-          >
-            {L.compareHide}
-          </button>
-        </div>
-        <div className="p-3 sm:p-4">
-          <div className="hidden sm:grid sm:grid-cols-3 gap-2 text-sm mb-2">
-            <div className="font-semibold text-[#111111]">{L.incluye}</div>
-            <div className="font-semibold text-[#111111]">{L.standardTitle}</div>
-            <div className="font-semibold text-[#111111]">{L.plusTitle}</div>
-          </div>
+        <div className="sm:hidden space-y-2">
           {rows.map((r, i) => (
-            <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 py-2 border-b border-[#111111]/5 last:border-0 text-sm">
-              <div className="font-medium text-[#111111]">{r.feature}</div>
-              <div className="sm:col-span-1 text-[#111111]/90 flex gap-2">
-                <span className="sm:hidden text-[#111111]/60">{L.standardTitle}:</span>
-                <span>{r.standard}</span>
-              </div>
-              <div className="sm:col-span-1 text-[#111111]/90 flex gap-2">
-                <span className="sm:hidden text-[#111111]/60">{L.plusTitle}:</span>
-                <span>{r.plus}</span>
-              </div>
+            <div key={i} className="rounded-xl border border-[#111111]/10 bg-white/60 p-3 text-sm">
+              <p className="font-medium text-[#111111] mb-2">{r.feature}</p>
+              <p className="text-[#111111]/80">
+                <span className="text-[#111111]/60">{col0Name}:</span> {r.col0}
+              </p>
+              <p className="text-[#111111]/80 mt-1">
+                <span className="text-[#111111]/60">{col1Name}:</span> {r.col1}
+              </p>
             </div>
           ))}
-          <p className="text-xs text-[#111111]/80 mt-3">{L.standardLine}</p>
-          <p className="text-xs text-[#111111]/80 mt-1">{L.plusLine}</p>
         </div>
+        {(footer0 || footer1) && (
+          <div className="mt-4 pt-3 border-t border-[#111111]/10 space-y-1 text-xs text-[#111111]/80">
+            {footer0 && <p>{footer0}</p>}
+            {footer1 && <p>{footer1}</p>}
+          </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+
+  const personalMatrixRows: MatrixRow[] = [
+    { feature: L.compIdealPara, col0: L.gratisIdeal[0], col1: L.proIdeal[0] },
+    { feature: L.compDuración, col0: L.compBasica, col1: L.compAmpliado },
+    { feature: L.compFotosContenido, col0: L.compBasica, col1: L.compAmpliado },
+    { feature: L.compVideo, col0: L.compNoIncluido, col1: L.compIncluido },
+    { feature: L.compPresentacionMejor, col0: L.compBasica, col1: L.compMejorada },
+    { feature: L.compAsistencia, col0: L.compNo, col1: L.comp1 },
+    { feature: L.compVistas, col0: L.compSinAnaliticas, col1: L.compSi },
+    { feature: L.compGuardados, col0: L.compSinAnaliticas, col1: L.compSi },
+    { feature: L.compCompartidos, col0: L.compSinAnaliticas, col1: L.compSi },
+    { feature: L.compBotonesContacto, col0: L.compNo, col1: L.compLlamarTexto },
+    { feature: L.compSugerenciasIA, col0: L.compNo, col1: L.compSi },
+  ];
+
+  const businessMatrixRows: MatrixRow[] = [
+    { feature: L.compIdealPara, col0: L.standardIdeal[0], col1: L.plusIdeal[0] },
+    { feature: L.compPerfil, col0: L.compSi, col1: L.compSi },
+    { feature: L.compPresenciaCategoria, col0: L.compSi, col1: L.compSi },
+    { feature: L.compFotosVideo, col0: L.compSi, col1: L.compMejorada },
+    { feature: L.compHerramientasContacto, col0: L.compBasica, col1: L.compMejorada },
+    { feature: L.compPrioridadVisibilidad, col0: L.compBasica, col1: L.compMejorada },
+    { feature: L.compAnaliticas, col0: L.compSi, col1: L.compSi },
+    { feature: L.compAsistenciasVisibilidad, col0: L.comp1, col1: L.comp2 },
+    { feature: L.compSugerenciasIA, col0: L.compSi, col1: L.compSi },
+    { feature: L.compMejorPara, col0: L.standardLine, col1: L.plusLine },
+  ];
+
+  const businessMatrixRowsEmpleos: MatrixRow[] = [
+    { feature: L.compIdealPara, col0: L.standardIdeal[0], col1: L.plusIdeal[0] },
+    { feature: L.compPerfil, col0: L.compSi, col1: L.compSi },
+    { feature: L.compPresenciaCategoria, col0: L.compSi, col1: L.compSi },
+    { feature: L.compHerramientasContacto, col0: L.compBasica, col1: L.compMejorada },
+    { feature: L.compAnaliticas, col0: L.compSi, col1: L.compSi },
+    { feature: L.compAsistenciasVisibilidad, col0: L.comp1, col1: L.comp2 },
+    { feature: L.compGenerarCandidatos, col0: L.compBasica, col1: L.compMejorada },
+  ];
 
   const selectorCards: { key: CategoryKey; label: string; help: string }[] = [
-    { key: "venta-personal", label: L.ventaPersonal, help: L.ventaPersonalHelp },
-    { key: "auto", label: L.auto, help: L.autoHelp },
     { key: "rentas", label: L.rentas, help: L.rentasHelp },
+    { key: "en-venta", label: L.enVenta, help: L.enVentaHelp },
     { key: "empleos", label: L.empleos, help: L.empleosHelp },
     { key: "servicios", label: L.servicios, help: L.serviciosHelp },
+    { key: "restaurantes", label: L.restaurantes, help: L.restaurantesHelp },
+    { key: "viajes", label: L.viajes, help: L.viajesHelp },
+    { key: "autos", label: L.autos, help: L.autosHelp },
     { key: "clases", label: L.clases, help: L.clasesHelp },
+    { key: "comunidad", label: L.comunidad, help: L.comunidadHelp },
   ];
 
   return (
@@ -694,7 +630,7 @@ export default function MembresiasPage() {
 
         <section className="mb-8">
           <h2 className="text-xl font-bold text-[#111111] mb-4">{L.selectorTitle}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {selectorCards.map(({ key, label, help }) => (
               <button
                 key={key}
@@ -714,39 +650,21 @@ export default function MembresiasPage() {
           </div>
         </section>
 
-        {selectedCategory === "venta-personal" && (
+        {selectedCategory === "en-venta" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
-            <p className="text-sm text-[#111111] mb-4">{L.personalIntro}</p>
-            <div className="space-y-4">
-              <PlanCard
-                id="gratis"
-                title={L.gratisTitle}
-                price={L.gratisPrice}
-                summary={L.gratisSummary}
-                ideal={L.gratisIdeal}
-                incluye={L.gratisIncluye}
-                significa={L.gratisSignifica}
-                cuandoSubir={L.gratisSubir}
-              />
-              <PlanCard
-                id="pro"
-                title={L.proTitle}
-                price={L.proPrice}
-                summary={L.proSummary}
-                ideal={L.proIdeal}
-                incluye={L.proIncluye}
-                significa={L.proSignifica}
-                cuandoSubir={L.proSubir}
-                accent="gold"
-                onShowCompare={() => setShowPersonalCompare(true)}
-              />
-            </div>
-            {showPersonalCompare && <PersonalCompare />}
+            <ComparisonMatrix
+              intro={L.enVentaIntro}
+              col0Name={L.gratisTitle}
+              col1Name={L.proTitle}
+              rows={personalMatrixRows}
+              footer0={L.queSignificaAsistencia}
+              footer1={L.queSignificaBotones}
+            />
             <p className="mt-4 text-xs text-[#111111]/70">{L.personalNote}</p>
           </section>
         )}
 
-        {selectedCategory === "auto" && (
+        {selectedCategory === "autos" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
             <p className="text-sm font-medium text-[#111111] mb-3">{L.autoSplit}</p>
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
@@ -777,64 +695,27 @@ export default function MembresiasPage() {
             </div>
             {autoSub === "particular" && (
               <>
-                <div className="space-y-4">
-                  <PlanCard
-                    id="gratis"
-                    title={L.gratisTitle}
-                    price={L.gratisPrice}
-                    summary={L.gratisSummary}
-                    ideal={L.gratisIdeal}
-                    incluye={L.gratisIncluye}
-                    significa={L.gratisSignifica}
-                    cuandoSubir={L.gratisSubir}
-                  />
-                  <PlanCard
-                    id="pro"
-                    title={L.proTitle}
-                    price={L.proPrice}
-                    summary={L.proSummary}
-                    ideal={L.proIdeal}
-                    incluye={L.proIncluye}
-                    significa={L.proSignifica}
-                    cuandoSubir={L.proSubir}
-                    accent="gold"
-                    onShowCompare={() => setShowPersonalCompare(true)}
-                  />
-                </div>
-                {showPersonalCompare && <PersonalCompare />}
+                <ComparisonMatrix
+                  intro={L.personalIntro}
+                  col0Name={L.gratisTitle}
+                  col1Name={L.proTitle}
+                  rows={personalMatrixRows}
+                  footer0={L.queSignificaAsistencia}
+                  footer1={L.queSignificaBotones}
+                />
                 <p className="mt-4 text-xs text-[#111111]/70">{L.autoDealerNote}</p>
               </>
             )}
             {autoSub === "negocio" && (
               <>
-                <div className="space-y-4">
-                  <PlanCard
-                    id="standard"
-                    title={L.standardTitle}
-                    price={L.standardPrice}
-                    summary={L.standardSummary}
-                    ideal={L.standardIdeal}
-                    incluye={L.standardIncluye}
-                    significa={L.standardSignifica}
-                    cuandoSubir={L.standardSubir}
-                    accent="strong"
-                    onShowCompare={() => setShowBusinessCompare(true)}
-                  />
-                  <PlanCard
-                    id="plus"
-                    title={L.plusTitle}
-                    price={L.plusPrice}
-                    summary={L.plusSummaryStrong}
-                    ideal={L.plusIdeal}
-                    incluye={L.plusIncluye}
-                    significa={L.plusSignifica}
-                    cuandoSubir={L.plusSubir}
-                    accent="strong"
-                    onShowCompare={() => setShowBusinessCompare(true)}
-                  />
-                </div>
-                {showBusinessCompare && <BusinessCompare />}
-                <p className="mt-4 text-xs text-[#111111]/70">{L.autoNegocioNote}</p>
+                <ComparisonMatrix
+                  intro={L.autoNegocioNote}
+                  col0Name={L.standardTitle}
+                  col1Name={L.plusTitle}
+                  rows={businessMatrixRows}
+                  footer0={L.standardLine}
+                  footer1={L.plusLine}
+                />
               </>
             )}
           </section>
@@ -887,34 +768,14 @@ export default function MembresiasPage() {
             )}
             {rentasSub === "negocio" && (
               <>
-                <div className="space-y-4">
-                  <PlanCard
-                    id="standard"
-                    title={L.standardTitle}
-                    price={L.standardPrice}
-                    summary={L.standardSummary}
-                    ideal={L.standardIdeal}
-                    incluye={L.standardIncluye}
-                    significa={L.standardSignifica}
-                    cuandoSubir={L.standardSubir}
-                    accent="strong"
-                    onShowCompare={() => setShowBusinessCompare(true)}
-                  />
-                  <PlanCard
-                    id="plus"
-                    title={L.plusTitle}
-                    price={L.plusPrice}
-                    summary={L.plusSummaryStrong}
-                    ideal={L.plusIdeal}
-                    incluye={L.plusIncluye}
-                    significa={L.plusSignifica}
-                    cuandoSubir={L.plusSubir}
-                    accent="strong"
-                    onShowCompare={() => setShowBusinessCompare(true)}
-                  />
-                </div>
-                {showBusinessCompare && <BusinessCompare />}
-                <p className="mt-4 text-xs text-[#111111]/70">{L.rentasNegocioNote}</p>
+                <ComparisonMatrix
+                  intro={L.rentasNegocioNote}
+                  col0Name={L.standardTitle}
+                  col1Name={L.plusTitle}
+                  rows={businessMatrixRows}
+                  footer0={L.standardLine}
+                  footer1={L.plusLine}
+                />
               </>
             )}
           </section>
@@ -928,66 +789,52 @@ export default function MembresiasPage() {
               <p className="mt-2 text-sm text-[#111111]/90">{L.empleosExplain}</p>
             </div>
             <p className="text-sm text-[#111111] mb-4">{L.empleosNote}</p>
-            <div className="space-y-4">
-              <PlanCard
-                id="standard"
-                title={L.standardTitle}
-                price={L.standardPrice}
-                summary={L.standardSummary}
-                ideal={L.standardIdeal}
-                incluye={L.standardIncluye}
-                significa={L.standardSignifica}
-                cuandoSubir={L.standardSubir}
-                accent="strong"
-                onShowCompare={() => setShowBusinessCompare(true)}
-              />
-              <PlanCard
-                id="plus"
-                title={L.plusTitle}
-                price={L.plusPrice}
-                summary={L.plusSummaryStrong}
-                ideal={L.plusIdeal}
-                incluye={L.plusIncluye}
-                significa={L.plusSignifica}
-                cuandoSubir={L.plusSubir}
-                accent="strong"
-                onShowCompare={() => setShowBusinessCompare(true)}
-              />
-            </div>
-            {showBusinessCompare && <BusinessCompare empleos />}
+            <ComparisonMatrix
+              col0Name={L.standardTitle}
+              col1Name={L.plusTitle}
+              rows={businessMatrixRowsEmpleos}
+              footer0={L.standardLine}
+              footer1={L.plusLine}
+            />
           </section>
         )}
 
         {selectedCategory === "servicios" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4 sm:p-6">
-            <p className="text-sm font-medium text-[#111111] mb-4">{L.serviciosIntro}</p>
-            <div className="space-y-4">
-              <PlanCard
-                id="standard"
-                title={L.standardTitle}
-                price={L.standardPrice}
-                summary={L.standardSummary}
-                ideal={L.standardIdeal}
-                incluye={L.standardIncluye}
-                significa={L.standardSignifica}
-                cuandoSubir={L.standardSubir}
-                accent="strong"
-                onShowCompare={() => setShowBusinessCompare(true)}
-              />
-              <PlanCard
-                id="plus"
-                title={L.plusTitle}
-                price={L.plusPrice}
-                summary={L.plusSummaryStrong}
-                ideal={L.plusIdeal}
-                incluye={L.plusIncluye}
-                significa={L.plusSignifica}
-                cuandoSubir={L.plusSubir}
-                accent="strong"
-                onShowCompare={() => setShowBusinessCompare(true)}
-              />
-            </div>
-            {showBusinessCompare && <BusinessCompare />}
+            <ComparisonMatrix
+              intro={L.serviciosIntro}
+              col0Name={L.standardTitle}
+              col1Name={L.plusTitle}
+              rows={businessMatrixRows}
+              footer0={L.standardLine}
+              footer1={L.plusLine}
+            />
+          </section>
+        )}
+
+        {selectedCategory === "restaurantes" && (
+          <section className="mb-8 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4 sm:p-6">
+            <ComparisonMatrix
+              intro={L.restaurantesIntro}
+              col0Name={L.standardTitle}
+              col1Name={L.plusTitle}
+              rows={businessMatrixRows}
+              footer0={L.standardLine}
+              footer1={L.plusLine}
+            />
+          </section>
+        )}
+
+        {selectedCategory === "viajes" && (
+          <section className="mb-8 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4 sm:p-6">
+            <ComparisonMatrix
+              intro={L.viajesIntro}
+              col0Name={L.standardTitle}
+              col1Name={L.plusTitle}
+              rows={businessMatrixRows}
+              footer0={L.standardLine}
+              footer1={L.plusLine}
+            />
           </section>
         )}
 
@@ -996,58 +843,28 @@ export default function MembresiasPage() {
             <p className="text-sm text-[#111111] mb-2">{L.clasesComunidadFree}</p>
             <p className="text-sm text-[#111111] mb-4">{L.clasesIntro}</p>
             <p className="text-xs font-medium text-[#111111]/80 mb-2">{L.clasesPersonal}</p>
-            <div className="space-y-3 mb-6">
-              <PlanCard
-                id="gratis"
-                title={L.gratisTitle}
-                price={L.gratisPrice}
-                summary={L.gratisSummary}
-                ideal={L.gratisIdeal}
-                incluye={L.gratisIncluye}
-                significa={L.gratisSignifica}
-                cuandoSubir={L.gratisSubir}
-              />
-              <PlanCard
-                id="pro"
-                title={L.proTitle}
-                price={L.proPrice}
-                summary={L.proSummary}
-                ideal={L.proIdeal}
-                incluye={L.proIncluye}
-                significa={L.proSignifica}
-                cuandoSubir={L.proSubir}
-                accent="gold"
-              />
-            </div>
-            <p className="text-xs font-medium text-[#111111]/80 mb-2">{L.clasesNegocio}</p>
+            <ComparisonMatrix
+              col0Name={L.gratisTitle}
+              col1Name={L.proTitle}
+              rows={personalMatrixRows}
+              bordered={false}
+            />
+            <p className="text-xs font-medium text-[#111111]/80 mt-6 mb-2">{L.clasesNegocio}</p>
             <p className="text-xs text-[#111111]/70 mb-3">{L.clasesComercialNote}</p>
-            <div className="space-y-3">
-              <PlanCard
-                id="standard"
-                title={L.standardTitle}
-                price={L.standardPrice}
-                summary={L.standardSummary}
-                ideal={L.standardIdeal}
-                incluye={L.standardIncluye}
-                significa={L.standardSignifica}
-                cuandoSubir={L.standardSubir}
-                accent="strong"
-                onShowCompare={() => setShowBusinessCompare(true)}
-              />
-              <PlanCard
-                id="plus"
-                title={L.plusTitle}
-                price={L.plusPrice}
-                summary={L.plusSummaryStrong}
-                ideal={L.plusIdeal}
-                incluye={L.plusIncluye}
-                significa={L.plusSignifica}
-                cuandoSubir={L.plusSubir}
-                accent="strong"
-                onShowCompare={() => setShowBusinessCompare(true)}
-              />
-            </div>
-            {showBusinessCompare && <BusinessCompare />}
+            <ComparisonMatrix
+              col0Name={L.standardTitle}
+              col1Name={L.plusTitle}
+              rows={businessMatrixRows}
+              footer0={L.standardLine}
+              footer1={L.plusLine}
+            />
+          </section>
+        )}
+
+        {selectedCategory === "comunidad" && (
+          <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
+            <p className="text-base font-semibold text-[#111111]">{L.clasesComunidadFree}</p>
+            <p className="mt-2 text-sm text-[#111111]/90">{L.comunidadIntro}</p>
           </section>
         )}
 
