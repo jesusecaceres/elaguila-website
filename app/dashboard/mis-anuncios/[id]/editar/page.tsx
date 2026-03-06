@@ -10,6 +10,25 @@ type Lang = "es" | "en";
 
 const EDIT_WINDOW_MINUTES = 30;
 
+/** Safe helper: extract URL strings from listings.images (jsonb). Array of strings or array of objects with url/src/path. */
+function getListingImageUrls(images: unknown): string[] {
+  if (images == null) return [];
+  if (Array.isArray(images)) {
+    return images
+      .map((item) => {
+        if (typeof item === "string" && item.trim()) return item.trim();
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
+          if (typeof url === "string" && url.trim()) return url.trim();
+        }
+        return null;
+      })
+      .filter((u): u is string => u != null);
+  }
+  return [];
+}
+
 function minutesSince(iso?: string | null) {
   if (!iso) return null;
   const ms = new Date(iso).getTime();
@@ -136,7 +155,7 @@ const [uploadNote, setUploadNote] = useState<string | null>(null);
         .from("listings")
         .select("*")
         .eq("id", id)
-        .eq("user_id", u.id)
+        .eq("owner_id", u.id)
         .maybeSingle();
 
       if (!mounted) return;
@@ -187,15 +206,6 @@ async function uploadImages() {
 
   const bucketCandidates = ["listing-images", "listing_images", "listings", "images"];
 
-  const supportsArray = listing && Array.isArray((listing as any).image_urls);
-  const supportsImage = listing && ("image" in listing);
-
-  if (!supportsArray && !supportsImage) {
-    setUploadNote(L.photosUnavailable);
-    setUploading(false);
-    return;
-  }
-
   const uploadedUrls: string[] = [];
 
   for (const file of selectedFiles) {
@@ -239,16 +249,10 @@ async function uploadImages() {
     uploadedUrls.push(publicUrl);
   }
 
-  // Persist to DB
+  // Persist to DB (listings.images jsonb only; no image_urls/image)
   try {
-    const payload: any = {};
-
-    if (listing && "image_urls" in listing) {
-      const prev = Array.isArray((listing as any).image_urls) ? (listing as any).image_urls : [];
-      payload.image_urls = [...prev, ...uploadedUrls];
-    } else if (listing && "image" in listing) {
-      payload.image = uploadedUrls[0];
-    }
+    const prev = getListingImageUrls(listing?.images);
+    const payload: { images: string[] } = { images: [...prev, ...uploadedUrls] };
 
     const { error: uErr } = await supabase.from("listings").update(payload).eq("id", id);
 
@@ -473,23 +477,16 @@ async function uploadImages() {
     </div>
   ) : null}
 
-  {Array.isArray((listing as any)?.image_urls) && (listing as any).image_urls.length > 0 ? (
+  {getListingImageUrls(listing?.images).length > 0 ? (
     <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {(listing as any).image_urls.slice(0, 8).map((url: string) => (
+      {getListingImageUrls(listing?.images).slice(0, 8).map((url) => (
         <div key={url} className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="photo" className="h-full w-full object-cover" />
         </div>
       ))}
     </div>
-  ) : (listing && (listing as any).image ? (
-    <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
-      <div className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={(listing as any).image} alt="photo" className="h-full w-full object-cover" />
-      </div>
-    </div>
-  ) : null)}
+  ) : null}
 </div>
 
 

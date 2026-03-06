@@ -644,21 +644,21 @@ setIsPro(plan.includes("pro"));
       try {
         const supabase = createSupabaseBrowserClient();
 
-        // Try the most correct query first (status + user_id). Fall back safely if schema differs.
+        // Try the most correct query first (status + owner_id). Fall back safely if schema differs.
         const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
 
-        // Attempt with user_id + status=active
-        let r = await base.eq("user_id", userId).eq("status", "active");
+        // Attempt with owner_id + status=active
+        let r = await base.eq("owner_id", userId).eq("status", "active");
         if (r.error) {
           const msg = String(r.error.message || "");
           // Missing status column
           if (/status/i.test(msg) && /(does not exist|unknown|column)/i.test(msg)) {
-            r = await base.eq("user_id", userId);
+            r = await base.eq("owner_id", userId);
           }
         }
 
         if (r.error) {
-          // If user_id column is missing, we can't enforce Garage Mode safely.
+          // If owner_id column is missing, we can't enforce Garage Mode safely.
           if (mounted) setEnVentaActiveCount(null);
           return;
         }
@@ -1062,8 +1062,9 @@ async function publish() {
       }
 
       const finalDescription = (description.trim() + buildDetailsAppendix(category, lang, details)).trim();
-      // Minimal insert to avoid schema guessing.
+      // Minimal insert aligned to listings schema (owner_id for ownership).
       const insertPayload: any = {
+        owner_id: userId,
         title: title.trim(),
         description: finalDescription,
         city: canonicalCity,
