@@ -32,7 +32,14 @@ type ListingRow = {
 
 const LISTINGS_LIMIT = 12;
 const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
-const ALLOWED_MEMBERSHIP_TIERS = ["gratis", "pro", "business_lite", "business_premium"] as const;
+const PERSONAL_TIERS = ["gratis", "pro"] as const;
+const BUSINESS_TIERS = ["business_lite", "business_premium"] as const;
+
+function accountRefFromId(id: string): string {
+  const s = (id ?? "").trim();
+  if (!s) return "—";
+  return s.slice(0, 8).toUpperCase();
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -106,8 +113,8 @@ function membershipTierLabel(tier: string | null): string {
   const t = (tier ?? "").trim().toLowerCase();
   if (t === "gratis") return "Gratis";
   if (t === "pro") return "Pro";
-  if (t === "business_lite") return "Business Lite";
-  if (t === "business_premium") return "Business Premium";
+  if (t === "business_lite") return "Standard";
+  if (t === "business_premium") return "Plus";
   return t || "Gratis";
 }
 
@@ -116,6 +123,14 @@ function accountTypeLabel(accountType: string | null): string {
   if (a === "personal") return "Personal";
   if (a === "business") return "Business";
   return a || "—";
+}
+
+function isPersonalTier(tier: string): boolean {
+  return PERSONAL_TIERS.includes(tier as (typeof PERSONAL_TIERS)[number]);
+}
+
+function isBusinessTier(tier: string): boolean {
+  return BUSINESS_TIERS.includes(tier as (typeof BUSINESS_TIERS)[number]);
 }
 
 async function updateClientAccountAction(formData: FormData) {
@@ -137,8 +152,17 @@ async function updateClientAccountAction(formData: FormData) {
   if (!ALLOWED_ACCOUNT_TYPES.includes(rawAccountType as (typeof ALLOWED_ACCOUNT_TYPES)[number])) {
     redirect(`/admin/usuarios/${clientId}?error=invalid-account-type`);
   }
-  if (!ALLOWED_MEMBERSHIP_TIERS.includes(rawMembershipTier as (typeof ALLOWED_MEMBERSHIP_TIERS)[number])) {
-    redirect(`/admin/usuarios/${clientId}?error=invalid-membership`);
+
+  if (rawAccountType === "personal") {
+    if (!isPersonalTier(rawMembershipTier)) {
+      redirect(`/admin/usuarios/${clientId}?error=membership-mismatch`);
+    }
+  } else if (rawAccountType === "business") {
+    if (!isBusinessTier(rawMembershipTier)) {
+      redirect(`/admin/usuarios/${clientId}?error=membership-mismatch`);
+    }
+  } else {
+    redirect(`/admin/usuarios/${clientId}?error=invalid-account-type`);
   }
 
   const supabase = getAdminSupabase();
@@ -206,7 +230,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   if (queryError) {
     return (
       <main className="min-h-screen bg-black text-white">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
             <p className="text-sm text-red-200">{queryError}</p>
           </div>
@@ -261,25 +285,30 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   const selectedAccountType = ALLOWED_ACCOUNT_TYPES.includes(currentAccountType as (typeof ALLOWED_ACCOUNT_TYPES)[number])
     ? currentAccountType
     : "personal";
-  const selectedMembershipTier = ALLOWED_MEMBERSHIP_TIERS.includes(currentMembershipTier as (typeof ALLOWED_MEMBERSHIP_TIERS)[number])
+
+  const isPersonal = selectedAccountType === "personal";
+  const allowedTiers: readonly string[] = isPersonal ? PERSONAL_TIERS : BUSINESS_TIERS;
+  const selectedMembershipTier = allowedTiers.includes(currentMembershipTier)
     ? currentMembershipTier
-    : "gratis";
+    : (allowedTiers[0] as string);
 
   const errorMessage =
     errorValue === "invalid-account-type"
       ? "Tipo de cuenta no válido."
       : errorValue === "invalid-membership"
         ? "Membresía no válida."
-        : errorValue === "update-failed"
-          ? "No se pudo guardar. Intenta de nuevo."
-          : errorValue
-            ? "Error al actualizar."
-            : null;
+        : errorValue === "membership-mismatch"
+          ? "La membresía no corresponde al tipo de cuenta. Elige una opción válida para el tipo seleccionado."
+          : errorValue === "update-failed"
+            ? "No se pudo guardar. Intenta de nuevo."
+            : errorValue
+              ? "Error al actualizar."
+              : null;
 
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <Link
             href="/admin/usuarios"
             className="inline-flex items-center text-sm text-white/60 hover:text-white/90 transition mb-4"
@@ -293,13 +322,20 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           <p className="mt-1 text-sm text-white/60">
             Vista administrativa de cuenta
           </p>
-          <p className="mt-2 font-mono text-xs text-white/50 break-all">
-            {row.id}
-          </p>
+          <div className="mt-3">
+            <p className="text-sm text-white/80">
+              <span className="text-white/50">Cuenta #</span>{" "}
+              <span className="font-mono font-semibold text-yellow-400/90">{accountRefFromId(row.id)}</span>
+            </p>
+            <p className="mt-1 text-xs text-white/50">
+              <span className="text-white/40">ID interno</span>{" "}
+              <span className="font-mono break-all">{row.id}</span>
+            </p>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {isUpdated && (
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
             <p className="text-sm text-emerald-200">Cambios guardados correctamente.</p>
@@ -407,7 +443,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
               <dd className="text-white/90 mt-0.5">{formatDate(row.created_at)}</dd>
             </div>
             <div>
-              <dt className="text-white/50">ID</dt>
+              <dt className="text-white/50">ID interno</dt>
               <dd className="mt-0.5 font-mono text-xs text-white/50 break-all">{row.id}</dd>
             </div>
           </dl>
@@ -418,7 +454,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             Administrar cuenta
           </h2>
           <p className="text-sm text-white/60 mb-4">
-            Actualiza el tipo de cuenta y la membresía manualmente.
+            Actualiza el tipo de cuenta y la membresía manualmente. Si cambias el tipo de cuenta, guarda y luego elige una membresía válida para ese tipo.
           </p>
           <form action={updateClientAccountAction} className="space-y-4">
             <input type="hidden" name="clientId" value={row.id} />
@@ -446,10 +482,17 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                 defaultValue={selectedMembershipTier}
                 className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-white focus:border-yellow-500/60 focus:outline-none"
               >
-                <option value="gratis">Gratis</option>
-                <option value="pro">Pro</option>
-                <option value="business_lite">Business Lite</option>
-                <option value="business_premium">Business Premium</option>
+                {isPersonal ? (
+                  <>
+                    <option value="gratis">Gratis</option>
+                    <option value="pro">Pro</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="business_lite">Standard</option>
+                    <option value="business_premium">Plus</option>
+                  </>
+                )}
               </select>
             </div>
             <button

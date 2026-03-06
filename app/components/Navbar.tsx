@@ -7,17 +7,17 @@ import { supabase } from "../lib/supabaseClient";
 
 type Lang = "es" | "en";
 
-type Plan = "free" | "pro";
+type MembershipBadge = "free" | "pro";
 
-function normalizePlan(raw: unknown): Plan {
+function normalizeMembershipTier(raw: unknown): MembershipBadge {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
   if (v === "pro") return "pro";
-  if (v === "business" || v === "lite" || v === "premium") return "pro";
+  if (v === "business_lite" || v === "business_premium") return "pro";
   return "free";
 }
 
-function planLabel(plan: Plan, lang: Lang) {
-  if (plan === "pro") return lang === "es" ? "Pro" : "Pro";
+function planLabel(badge: MembershipBadge, lang: Lang) {
+  if (badge === "pro") return lang === "es" ? "Pro" : "Pro";
   return lang === "es" ? "Gratis" : "Free";
 }
 
@@ -50,7 +50,7 @@ function NavbarContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [user, setUser] = useState<NavbarUser | null>(null);
-  const [plan, setPlan] = useState<Plan>("free");
+  const [membershipBadge, setMembershipBadge] = useState<MembershipBadge>("free");
   const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
 
@@ -198,7 +198,7 @@ function NavbarContent() {
         const u = session?.user;
         if (!u) {
           setUser(null);
-          setPlan("free");
+          setMembershipBadge("free");
           setAuthLoading(false);
           return;
         }
@@ -219,22 +219,23 @@ function NavbarContent() {
         try {
           const { data: pData, error: pErr } = await supabase
             .from("profiles")
-            .select("plan, role")
+            .select("membership_tier, account_type")
             .eq("id", u.id)
             .maybeSingle();
           if (!pErr && pData) {
-            setPlan(normalizePlan((pData as { plan?: string; role?: string }).plan ?? (pData as { plan?: string; role?: string }).role));
+            const row = pData as { membership_tier?: string | null; account_type?: string | null };
+            setMembershipBadge(normalizeMembershipTier(row.membership_tier ?? row.account_type));
           } else {
-            setPlan("free");
+            setMembershipBadge("free");
           }
         } catch {
-          setPlan("free");
+          setMembershipBadge("free");
         }
         setAuthLoading(false);
       } catch {
         if (!mounted) return;
         setUser(null);
-        setPlan("free");
+        setMembershipBadge("free");
         setAuthLoading(false);
       }
     }
@@ -359,7 +360,7 @@ function NavbarContent() {
                     {accountLabel}
                   </span>
                   <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
-                    {planLabel(plan, lang)}
+                    {planLabel(membershipBadge, lang)}
                   </span>
                   <span className="text-white text-xs">{accountOpen ? "▲" : "▼"}</span>
                 </button>
@@ -379,7 +380,7 @@ function NavbarContent() {
                         </div>
                       )}
                       <div className="mt-1.5 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
-                        {planLabel(plan, lang)}
+                        {planLabel(membershipBadge, lang)}
                       </div>
                     </div>
                     <Link
@@ -427,7 +428,7 @@ function NavbarContent() {
         </button>
       </div>
 
-      {/* MOBILE OVERLAY + DRAWER — viewport height, scrollable content, account + lang reachable */}
+      {/* MOBILE OVERLAY + DRAWER — viewport-safe, scrollable, no overflow */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[999]">
           <button
@@ -437,29 +438,29 @@ function NavbarContent() {
           />
 
           <div
-            className="absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] max-h-[100dvh] flex flex-col bg-black/90 backdrop-blur-xl rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border-l border-white/10"
+            className="absolute top-0 right-0 bottom-0 w-[min(88vw,22rem)] max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-black/90 backdrop-blur-xl rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border-l border-white/10"
             role="dialog"
             aria-modal="true"
-            style={{ height: "100dvh" }}
           >
-            <div className="flex-shrink-0 p-6 pt-10">
+            <div className="flex-shrink-0 flex items-center justify-between p-4 pb-2">
+              <span className="text-white/60 text-sm font-medium">Menú</span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="text-white text-3xl self-end"
+                className="text-white text-2xl leading-none p-2 -m-2"
                 aria-label="Close menu"
               >
                 ×
               </button>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 flex flex-col gap-6">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4 flex flex-col gap-4">
               {navLinks.map((item, i) => (
                 <Link
                   key={i}
                   href={buildLink(item.href)}
                   onClick={() => setMobileOpen(false)}
                   className={cx(
-                    "text-base font-semibold",
+                    "text-base font-semibold py-1",
                     item.gold ? "text-yellow-300" : "text-white",
                     isActive(item.href) && !item.gold && "text-yellow-200"
                   )}
@@ -470,7 +471,7 @@ function NavbarContent() {
 
               <section
                 aria-label={L.account}
-                className="mt-4 pt-6 border-t border-white/10 flex-shrink-0"
+                className="mt-2 pt-4 border-t border-white/10 flex-shrink-0"
               >
                 {authLoading ? (
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 animate-pulse">
@@ -490,10 +491,10 @@ function NavbarContent() {
                         <img
                           src={user.avatarUrl}
                           alt=""
-                          className="h-12 w-12 rounded-full border border-yellow-500/30 object-cover"
+                          className="h-12 w-12 rounded-full border border-yellow-500/30 object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="h-12 w-12 rounded-full border border-yellow-500/30 bg-yellow-600/20 flex items-center justify-center text-yellow-200 font-bold text-lg">
+                        <div className="h-12 w-12 rounded-full border border-yellow-500/30 bg-yellow-600/20 flex items-center justify-center text-yellow-200 font-bold text-lg flex-shrink-0">
                           {initials}
                         </div>
                       )}
@@ -506,6 +507,9 @@ function NavbarContent() {
                             {user.email}
                           </div>
                         )}
+                        <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90 w-fit">
+                          {planLabel(membershipBadge, lang)}
+                        </div>
                       </div>
                     </div>
                     <Link
@@ -560,7 +564,7 @@ function NavbarContent() {
                 )}
               </section>
 
-              <div className="flex gap-6 py-6 text-white text-base font-semibold flex-shrink-0">
+              <div className="flex gap-6 py-4 text-white text-base font-semibold flex-shrink-0">
                 <button
                   onClick={() => {
                     switchLang("es");

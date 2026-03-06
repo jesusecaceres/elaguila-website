@@ -15,6 +15,12 @@ type ProfileRow = {
   owned_city_slug: string | null;
 };
 
+function accountRefFromId(id: string): string {
+  const s = (id ?? "").trim();
+  if (!s) return "—";
+  return s.slice(0, 8).toUpperCase();
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   try {
@@ -40,11 +46,28 @@ function membresia(tier: string | null): string {
   return t || "Gratis";
 }
 
-export default async function AdminUsuariosPage() {
+function matchesSearch(row: ProfileRow, q: string): boolean {
+  if (!q) return true;
+  const ref = accountRefFromId(row.id).toLowerCase();
+  const name = (row.display_name ?? "").toLowerCase();
+  const email = (row.email ?? "").toLowerCase();
+  const phone = (row.phone ?? "").toLowerCase();
+  return ref.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q);
+}
+
+type PageProps = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function AdminUsuariosPage(props: PageProps) {
   const cookieStore = await cookies();
   if (!requireAdminCookie(cookieStore)) {
     redirect("/admin/login");
   }
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const qParam = searchParams.q;
+  const searchQuery = typeof qParam === "string" ? qParam.trim().toLowerCase() : Array.isArray(qParam) ? (qParam[0] ?? "").trim().toLowerCase() : "";
 
   let rows: ProfileRow[] = [];
   let queryError: string | null = null;
@@ -66,6 +89,8 @@ export default async function AdminUsuariosPage() {
     queryError = e instanceof Error ? e.message : "Error al cargar clientes.";
   }
 
+  const filteredRows = searchQuery ? rows.filter((r) => matchesSearch(r, searchQuery)) : rows;
+
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
@@ -84,92 +109,124 @@ export default async function AdminUsuariosPage() {
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
             <p className="text-sm text-red-200">{queryError}</p>
           </div>
-        ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-yellow-600/20 bg-white/5 p-6">
-            <p className="text-white/80">Aún no hay clientes.</p>
-          </div>
         ) : (
           <>
-            <div className="hidden md:block overflow-x-auto rounded-2xl border border-yellow-600/20 bg-white/5">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="p-3 font-semibold text-yellow-400/90">Nombre</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Correo</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Teléfono</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Ciudad</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Tipo de cuenta</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Membresía</th>
-                    <th className="p-3 font-semibold text-yellow-400/90">Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id} className="border-b border-white/5">
-                      <td className="p-3 text-white/90">
+            <form method="get" action="/admin/usuarios" className="mb-6">
+              <label htmlFor="admin-user-search" className="sr-only">
+                Buscar clientes
+              </label>
+              <input
+                id="admin-user-search"
+                type="search"
+                name="q"
+                defaultValue={searchQuery}
+                placeholder="Buscar por nombre, correo, teléfono o referencia…"
+                className="w-full rounded-xl border border-yellow-600/30 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/50 focus:border-yellow-500/60 focus:outline-none text-sm"
+              />
+              <p className="mt-1.5 text-xs text-white/50">
+                Busca por nombre, correo, teléfono o referencia.
+              </p>
+            </form>
+
+            {filteredRows.length === 0 ? (
+              <div className="rounded-2xl border border-yellow-600/20 bg-white/5 p-6">
+                <p className="text-white/80">
+                  {searchQuery ? "Ningún cliente coincide con la búsqueda." : "Aún no hay clientes."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="hidden md:block overflow-x-auto rounded-2xl border border-yellow-600/20 bg-white/5">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="p-3 font-semibold text-yellow-400/90">Ref</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Nombre</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Correo</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Teléfono</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Ciudad</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Tipo de cuenta</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Membresía</th>
+                        <th className="p-3 font-semibold text-yellow-400/90">Fecha</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRows.map((row) => (
+                        <tr key={row.id} className="border-b border-white/5">
+                          <td className="p-3 font-mono text-xs text-yellow-400/80">
+                            {accountRefFromId(row.id)}
+                          </td>
+                          <td className="p-3 text-white/90">
+                            <Link
+                              href={`/admin/usuarios/${row.id}`}
+                              className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                            >
+                              {displayName(row)}
+                            </Link>
+                            {row.owned_city_slug?.trim() && (
+                              <span className="block text-xs text-white/50 mt-0.5">
+                                {row.owned_city_slug.trim()}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-white/70">{correo(row)}</td>
+                          <td className="p-3 text-white/70">{row.phone ?? "—"}</td>
+                          <td className="p-3 text-white/70">{row.home_city ?? "—"}</td>
+                          <td className="p-3 text-white/70">{row.account_type ?? "—"}</td>
+                          <td className="p-3 text-white/70">{membresia(row.membership_tier)}</td>
+                          <td className="p-3 text-white/60">{formatDate(row.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="md:hidden space-y-4">
+                  {filteredRows.map((row) => (
+                    <div
+                      key={row.id}
+                      className="rounded-2xl border border-yellow-600/20 bg-white/5 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-semibold text-yellow-400/90">
+                          {displayName(row)}
+                        </div>
+                        <span className="font-mono text-xs text-yellow-400/80 flex-shrink-0">
+                          Cuenta #{accountRefFromId(row.id)}
+                        </span>
+                      </div>
+                      {row.owned_city_slug?.trim() && (
+                        <div className="text-xs text-white/50 mt-0.5">
+                          {row.owned_city_slug.trim()}
+                        </div>
+                      )}
+                      <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-white/70">
+                        <span>Correo: {correo(row)}</span>
+                        <span>Teléfono: {row.phone ?? "—"}</span>
+                        <span>Ciudad: {row.home_city ?? "—"}</span>
+                        <span>Tipo de cuenta: {row.account_type ?? "—"}</span>
+                        <span>Membresía: {membresia(row.membership_tier)}</span>
+                        <span>Fecha: {formatDate(row.created_at)}</span>
+                      </div>
+                      <div className="mt-3">
                         <Link
                           href={`/admin/usuarios/${row.id}`}
-                          className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                          className="inline-flex items-center rounded-xl border border-yellow-600/30 bg-yellow-500/10 px-4 py-2 text-sm font-medium text-yellow-400 hover:bg-yellow-500/20 transition"
                         >
-                          {displayName(row)}
+                          Ver cliente
                         </Link>
-                        {row.owned_city_slug?.trim() && (
-                          <span className="block text-xs text-white/50 mt-0.5">
-                            {row.owned_city_slug.trim()}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-white/70">{correo(row)}</td>
-                      <td className="p-3 text-white/70">{row.phone ?? "—"}</td>
-                      <td className="p-3 text-white/70">{row.home_city ?? "—"}</td>
-                      <td className="p-3 text-white/70">{row.account_type ?? "—"}</td>
-                      <td className="p-3 text-white/70">{membresia(row.membership_tier)}</td>
-                      <td className="p-3 text-white/60">{formatDate(row.created_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="md:hidden space-y-4">
-              {rows.map((row) => (
-                <div
-                  key={row.id}
-                  className="rounded-2xl border border-yellow-600/20 bg-white/5 p-4"
-                >
-                  <div className="font-semibold text-yellow-400/90">
-                    {displayName(row)}
-                  </div>
-                  {row.owned_city_slug?.trim() && (
-                    <div className="text-xs text-white/50 mt-0.5">
-                      {row.owned_city_slug.trim()}
+                      </div>
                     </div>
-                  )}
-                  <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-white/70">
-                    <span>Correo: {correo(row)}</span>
-                    <span>Teléfono: {row.phone ?? "—"}</span>
-                    <span>Ciudad: {row.home_city ?? "—"}</span>
-                    <span>Tipo de cuenta: {row.account_type ?? "—"}</span>
-                    <span>Membresía: {membresia(row.membership_tier)}</span>
-                    <span>Fecha: {formatDate(row.created_at)}</span>
-                  </div>
-                  <div className="mt-3">
-                    <Link
-                      href={`/admin/usuarios/${row.id}`}
-                      className="inline-flex items-center rounded-xl border border-yellow-600/30 bg-yellow-500/10 px-4 py-2 text-sm font-medium text-yellow-400 hover:bg-yellow-500/20 transition"
-                    >
-                      Ver cliente
-                    </Link>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+
+            <p className="mt-6 text-xs text-white/50">
+              Próximo: buscar, ver detalles, editar y eliminar.
+            </p>
           </>
         )}
-
-        <p className="mt-6 text-xs text-white/50">
-          Próximo: buscar, ver detalles, editar y eliminar.
-        </p>
 
         <div className="mt-8">
           <Link
