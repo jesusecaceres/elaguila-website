@@ -107,7 +107,12 @@ export default async function AdminUsuariosPage() {
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-white/5">
                       <td className="p-3 text-white/90">
-                        <span>{displayName(row)}</span>
+                        <Link
+                          href={`/admin/usuarios/${row.id}`}
+                          className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                        >
+                          {displayName(row)}
+                        </Link>
                         {row.owned_city_slug?.trim() && (
                           <span className="block text-xs text-white/50 mt-0.5">
                             {row.owned_city_slug.trim()}
@@ -147,6 +152,14 @@ export default async function AdminUsuariosPage() {
                     <span>Tipo de cuenta: {row.account_type ?? "—"}</span>
                     <span>Membresía: {membresia(row.membership_tier)}</span>
                     <span>Fecha: {formatDate(row.created_at)}</span>
+                  </div>
+                  <div className="mt-3">
+                    <Link
+                      href={`/admin/usuarios/${row.id}`}
+                      className="inline-flex items-center rounded-xl border border-yellow-600/30 bg-yellow-500/10 px-4 py-2 text-sm font-medium text-yellow-400 hover:bg-yellow-500/20 transition"
+                    >
+                      Ver cliente
+                    </Link>
                   </div>
                 </div>
               ))}
