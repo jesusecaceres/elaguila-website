@@ -18,13 +18,26 @@ type ListingRow = {
   zip?: string | null;
   status?: ListingStatus | null;
   created_at?: string | null;
-  created?: string | null;
-  image_urls?: string[] | null;
-  image?: string | null;
+  images?: unknown;
   category?: string | null;
 };
 
 const EDIT_WINDOW_MINUTES = 30;
+
+/** Safe first thumbnail from listings.images (jsonb). Array of strings or objects with url/src/path. */
+function getFirstListingImageUrl(images: unknown): string | null {
+  if (images == null) return null;
+  if (Array.isArray(images) && images.length > 0) {
+    const first = images[0];
+    if (typeof first === "string" && first.trim()) return first.trim();
+    if (first && typeof first === "object") {
+      const obj = first as Record<string, unknown>;
+      const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
+      if (typeof url === "string" && url.trim()) return url.trim();
+    }
+  }
+  return null;
+}
 
 function formatPrice(v: ListingRow["price"], lang: Lang) {
   if (v === null || v === undefined || v === "") return lang === "es" ? "Gratis" : "Free";
@@ -159,8 +172,8 @@ export default function MyListingsPage() {
 
       const { data: rows, error: qErr } = await supabase
         .from("listings")
-        .select("id,title,price,city,zip,status,created_at,created,category,image_urls,image")
-        .eq("user_id", u.id)
+        .select("id,title,price,city,zip,status,created_at,category,images")
+        .eq("owner_id", u.id)
         .order("created_at", { ascending: false });
 
       if (!mounted) return;
@@ -266,7 +279,7 @@ export default function MyListingsPage() {
               {listings.map((x) => {
                 const status = (x.status || "active").toLowerCase();
                 const isSold = status === "sold";
-                const createdIso = x.created_at || x.created || null;
+                const createdIso = x.created_at ?? null;
                 const dateText = formatDateIso(createdIso) || "";
                 const priceText = formatPrice(x.price, lang);
                 const busy = busyId === x.id;
