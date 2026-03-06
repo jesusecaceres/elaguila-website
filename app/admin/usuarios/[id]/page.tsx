@@ -165,7 +165,13 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   }
 
   const name = displayName(row);
-  const email = correo(row);
+  const emailRaw = (row.email ?? "").trim();
+  const emailDisplay = emailRaw || "(sin correo)";
+  const hasEmail = emailRaw.length > 0;
+  const phoneRaw = (row.phone ?? "").trim();
+  const phoneDisplay = phoneRaw || "—";
+  const hasPhone = phoneRaw.length > 0;
+
   const currentAccountType = (row.account_type ?? "").trim().toLowerCase();
   const currentMembershipTier = (row.membership_tier ?? "").trim().toLowerCase();
   const selectedAccountType = ALLOWED_ACCOUNT_TYPES.includes(currentAccountType as (typeof ALLOWED_ACCOUNT_TYPES)[number])
@@ -190,6 +196,12 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
         <div className="max-w-2xl mx-auto">
+          <Link
+            href="/admin/usuarios"
+            className="inline-flex items-center text-sm text-white/60 hover:text-white/90 transition mb-4"
+          >
+            ← Volver a clientes
+          </Link>
           <p className="text-sm text-yellow-400/90">Cliente</p>
           <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400 mt-0.5">
             {name}
@@ -197,10 +209,13 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           <p className="mt-1 text-sm text-white/60">
             Vista administrativa de cuenta
           </p>
+          <p className="mt-2 font-mono text-xs text-white/50 break-all">
+            {row.id}
+          </p>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {isUpdated && (
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
             <p className="text-sm text-emerald-200">Cambios guardados correctamente.</p>
@@ -212,31 +227,81 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           </div>
         )}
 
-        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold text-yellow-400/90 mb-4">
+        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">
+            Estado actual
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
+              <p className="text-xs text-white/50">Tipo de cuenta</p>
+              <p className="text-sm font-medium text-white/90 mt-0.5">{accountTypeLabel(row.account_type)}</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
+              <p className="text-xs text-white/50">Membresía</p>
+              <p className="text-sm font-medium text-white/90 mt-0.5">{membershipTierLabel(row.membership_tier)}</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
+              <p className="text-xs text-white/50">Ciudad</p>
+              <p className="text-sm font-medium text-white/90 mt-0.5">{row.home_city ?? "—"}</p>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3">
+              <p className="text-xs text-white/50">Ciudad asignada</p>
+              <p className="text-sm font-medium text-white/90 mt-0.5">{row.owned_city_slug?.trim() ?? "—"}</p>
+            </div>
+          </div>
+          <div className="mt-3 rounded-xl border border-white/5 bg-black/20 px-4 py-3">
+            <p className="text-xs text-white/50">Fecha de creación</p>
+            <p className="text-sm font-medium text-white/90 mt-0.5">{formatDate(row.created_at)}</p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">
             Información principal
           </h2>
-          <dl className="grid grid-cols-1 gap-3 text-sm">
+          <dl className="grid grid-cols-1 gap-4 text-sm">
             <div>
               <dt className="text-white/50">Nombre</dt>
               <dd className="text-white/90 mt-0.5">{name}</dd>
             </div>
             <div>
               <dt className="text-white/50">Correo</dt>
-              <dd className="text-white/90 mt-0.5">{email}</dd>
+              <dd className="text-white/90 mt-0.5">
+                {hasEmail ? (
+                  <a
+                    href={`mailto:${emailRaw}`}
+                    className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                  >
+                    {emailDisplay}
+                  </a>
+                ) : (
+                  <span className="text-white/50">{emailDisplay}</span>
+                )}
+              </dd>
             </div>
             <div>
               <dt className="text-white/50">Teléfono</dt>
-              <dd className="text-white/90 mt-0.5">{row.phone ?? "—"}</dd>
+              <dd className="text-white/90 mt-0.5">
+                {hasPhone ? (
+                  <a
+                    href={`tel:${phoneRaw}`}
+                    className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                  >
+                    {phoneDisplay}
+                  </a>
+                ) : (
+                  <span className="text-white/50">{phoneDisplay}</span>
+                )}
+              </dd>
             </div>
           </dl>
         </section>
 
-        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold text-yellow-400/90 mb-4">
+        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-3">
             Cuenta
           </h2>
-          <dl className="grid grid-cols-1 gap-3 text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-white/50">Tipo de cuenta</dt>
               <dd className="text-white/90 mt-0.5">{accountTypeLabel(row.account_type)}</dd>
@@ -264,8 +329,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           </dl>
         </section>
 
-        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold text-yellow-400/90 mb-1">
+        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-1">
             Administrar cuenta
           </h2>
           <p className="text-sm text-white/60 mb-4">
@@ -315,7 +380,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           </form>
         </section>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 pt-2">
           <Link
             href="/admin/usuarios"
             className="inline-flex items-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition"
