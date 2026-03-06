@@ -217,6 +217,9 @@ export default function LoginPage() {
           connecting: "Conectando…",
           sending: "Enviando…",
           tip: "Tip: Si no ves el email, revisa Spam/Promociones.",
+          sameAccount: "Si ya tienes cuenta, usa el mismo correo o la misma cuenta de Google de siempre.",
+          noPassword: "Este acceso funciona con link por email o Google; no necesitas contraseña.",
+          supportHint: "Si tu cuenta ya existe y no puedes entrar, usa el mismo método de acceso que usaste al crearla.",
           noAccount: "¿No tienes cuenta?",
           createAccount: "Crear cuenta",
           haveAccount: "¿Ya tienes cuenta?",
@@ -232,6 +235,9 @@ export default function LoginPage() {
           connecting: "Connecting…",
           sending: "Sending…",
           tip: "Tip: If you don't see the email, check Spam/Promotions.",
+          sameAccount: "If you already have an account, use the same email or the same Google account as before.",
+          noPassword: "This access uses email links or Google; no password is required.",
+          supportHint: "If your account already exists and you can't get in, use the same sign-in method you used when you created it.",
           noAccount: "Don't have an account?",
           createAccount: "Create account",
           haveAccount: "Already have an account?",
@@ -313,6 +319,12 @@ export default function LoginPage() {
             <h2 className="text-sm font-semibold text-white">
               {common.emailTitle}
             </h2>
+            <p className="mt-2 text-xs text-white/60">
+              {common.sameAccount}
+            </p>
+            <p className="mt-1 text-xs text-white/50">
+              {common.noPassword}
+            </p>
             <form onSubmit={sendMagicLink} className="mt-4 space-y-4">
               <input
                 value={email}
@@ -360,7 +372,10 @@ export default function LoginPage() {
             </p>
           )}
 
-          <p className="mt-6 text-xs text-white/50">{common.tip}</p>
+          <p className="mt-4 text-xs text-white/50">
+            {common.supportHint}
+          </p>
+          <p className="mt-2 text-xs text-white/50">{common.tip}</p>
         </div>
       </div>
     </main>

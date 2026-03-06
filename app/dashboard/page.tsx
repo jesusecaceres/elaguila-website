@@ -14,6 +14,15 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+/** First 4 + last 4 meaningful UUID chars (no hyphens), uppercase, e.g. CDCC-3790 */
+function accountRefFromId(id: string): string {
+  const s = (id ?? "").replace(/-/g, "").trim();
+  if (s.length < 8) return "—";
+  const first = s.slice(0, 4).toUpperCase();
+  const last = s.slice(-4).toUpperCase();
+  return `${first}-${last}`;
+}
+
 function normalizePlanFromMembershipTier(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
   if (v.includes("pro") || v.includes("business") || v.includes("lite") || v.includes("premium")) return "pro";
@@ -89,6 +98,7 @@ export default function DashboardPage() {
         checkProfile: "Perfil completado",
         checkViolations: "Sin infracciones",
         comingSoon: "Próximamente",
+        accountRef: "Cuenta #",
       },
       en: {
         title: "My account",
@@ -130,6 +140,7 @@ export default function DashboardPage() {
         checkProfile: "Profile completion",
         checkViolations: "No violations",
         comingSoon: "Coming soon",
+        accountRef: "Account #",
       },
     }),
     []
@@ -139,6 +150,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
@@ -172,20 +184,19 @@ export default function DashboardPage() {
 
       setHasSession(true);
       const u = session.user;
+      setUserId(u.id);
 
       const inferredName =
         (u.user_metadata?.full_name as string | undefined) ||
         (u.user_metadata?.name as string | undefined) ||
         null;
 
-      // Ensure a profile row exists (one upsert by id, real schema)
+      // Ensure a profile row exists without overwriting account_type or membership_tier
       try {
         await supabase.from("profiles").upsert({
           id: u.id,
           email: u.email ?? null,
           display_name: inferredName ?? null,
-          account_type: "personal",
-          membership_tier: "gratis",
         }, { onConflict: "id" });
       } catch {
         // ignore
@@ -354,6 +365,11 @@ export default function DashboardPage() {
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="text-sm font-medium text-white">{name || "—"}</div>
               <div className="mt-1 text-xs text-white/70">{email || "—"}</div>
+              {userId && (
+                <div className="mt-2 text-xs text-white/50 font-mono">
+                  {L.accountRef} {accountRefFromId(userId)}
+                </div>
+              )}
             </div>
 
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">

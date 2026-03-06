@@ -17,6 +17,15 @@ function safeInternalRedirect(raw: string | null | undefined) {
   return "";
 }
 
+/** First 4 + last 4 meaningful UUID chars (no hyphens), uppercase, e.g. CDCC-3790 */
+function accountRefFromId(id: string): string {
+  const s = (id ?? "").replace(/-/g, "").trim();
+  if (s.length < 8) return "—";
+  const first = s.slice(0, 4).toUpperCase();
+  const last = s.slice(-4).toUpperCase();
+  return `${first}-${last}`;
+}
+
 /** Normalize string for city lookup: trim, lower, remove accents, remove punctuation, collapse spaces */
 function toCityKey(s: string): string {
   return (s || "")
@@ -98,6 +107,7 @@ export default function ProfilePage() {
         errPhoneOptional: "Si escribes teléfono, debe tener 10 dígitos.",
         errCityRequired: "Elige una ciudad de la lista (California).",
         errCityOptional: "Si escribes ciudad, debe ser una de la lista (California).",
+        accountRef: "Cuenta #",
       },
       en: {
         titlePost: "Complete your profile to post",
@@ -120,6 +130,7 @@ export default function ProfilePage() {
         errPhoneOptional: "If you enter a phone, it must have 10 digits.",
         errCityRequired: "Select a city from the list (California).",
         errCityOptional: "If you enter a city, it must be from the list (California).",
+        accountRef: "Account #",
       },
     }),
     []
@@ -130,6 +141,7 @@ export default function ProfilePage() {
   const subtitle = requirePost ? L.subtitlePost : onboarding ? L.subtitleOnboarding : L.subtitleNormal;
 
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
@@ -154,6 +166,7 @@ export default function ProfilePage() {
       }
 
       const u = data.user;
+      setUserId(u.id);
       setEmail(u.email ?? null);
 
       const existingName =
@@ -251,8 +264,6 @@ export default function ProfilePage() {
             display_name: trimmedName,
             phone: formattedPhone,
             home_city: canonicalCity,
-            account_type: "personal",
-            membership_tier: "gratis",
           });
         } catch {
           // ignore
@@ -292,8 +303,6 @@ export default function ProfilePage() {
           display_name: trimmedName,
           phone: formattedPhone || null,
           home_city: canonicalCity || null,
-          account_type: "personal",
-          membership_tier: "gratis",
         });
       } catch {
         // ignore
@@ -319,6 +328,11 @@ export default function ProfilePage() {
           {title}
         </h1>
         <p className="mt-2 text-gray-300">{subtitle}</p>
+        {userId && (
+          <p className="mt-1 text-xs text-white/50 font-mono">
+            {L.accountRef} {accountRefFromId(userId)}
+          </p>
+        )}
 
         {requirePost && (
           <p className="mt-2 text-sm text-white/60">{L.postHelper}</p>
