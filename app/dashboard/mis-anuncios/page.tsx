@@ -18,13 +18,12 @@ type ListingRow = {
   zip?: string | null;
   status?: ListingStatus | null;
   created_at?: string | null;
-  images?: unknown;
   category?: string | null;
+  images?: unknown;
 };
 
 const EDIT_WINDOW_MINUTES = 30;
 
-/** Safe first thumbnail from listings.images (jsonb). Array of strings or objects with url/src/path. */
 function getFirstListingImageUrl(images: unknown): string | null {
   if (images == null) return null;
   if (Array.isArray(images) && images.length > 0) {
@@ -65,8 +64,7 @@ function canEditListing(createdAtIso?: string | null) {
   if (!createdAtIso) return false;
   const createdMs = new Date(createdAtIso).getTime();
   if (!Number.isFinite(createdMs)) return false;
-  const nowMs = Date.now();
-  const minutes = (nowMs - createdMs) / 1000 / 60;
+  const minutes = (Date.now() - createdMs) / 1000 / 60;
   return minutes <= EDIT_WINDOW_MINUTES;
 }
 
@@ -110,7 +108,7 @@ export default function MyListingsPage() {
         subtitle: "Manage your posted listings on LEONIX.",
         cta: "Post an ad",
         loading: "Loading…",
-        emptyTitle: "You don’t have any listings yet",
+        emptyTitle: "You don't have any listings yet",
         emptyBody: "Post your first listing to get started.",
         view: "View",
         edit: "Edit",
@@ -119,12 +117,12 @@ export default function MyListingsPage() {
         markActive: "Mark active",
         deleting: "Deleting…",
         delete: "Delete",
-        confirmDelete: "Delete this listing? This can’t be undone.",
+        confirmDelete: "Delete this listing? This can't be undone.",
         deleteGuard:
-          "Note: deleting doesn’t let you repost the same item to bypass limits. The system detects duplicates.",
+          "Note: deleting doesn't let you repost the same item to bypass limits. The system detects duplicates.",
         statusActive: "Active",
         statusSold: "Sold",
-        errorTitle: "We couldn’t load your listings",
+        errorTitle: "We couldn't load your listings",
         errorHint:
           "If this happens in development, send me the exact error so we can match your table/column names.",
       },
@@ -147,7 +145,7 @@ export default function MyListingsPage() {
     const supabase = createSupabaseBrowserClient();
     let mounted = true;
 
-    async function loadUser() {
+    async function run() {
       const { data } = await supabase.auth.getUser();
       if (!mounted) return;
 
@@ -166,7 +164,6 @@ export default function MyListingsPage() {
       );
       setAuthLoading(false);
 
-      // Now load listings
       setListingsLoading(true);
       setError(null);
 
@@ -187,7 +184,7 @@ export default function MyListingsPage() {
       setListingsLoading(false);
     }
 
-    loadUser();
+    run();
     return () => {
       mounted = false;
     };
