@@ -116,6 +116,14 @@ export default async function AdminUsuariosPage(props: PageProps) {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Link
+            href="/admin"
+            className="inline-flex items-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition"
+          >
+            ← Volver al panel
+          </Link>
+        </div>
         {queryError ? (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
             <p className="text-sm text-red-200">{queryError}</p>

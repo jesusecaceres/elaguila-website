@@ -323,12 +323,20 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
-          <Link
-            href="/admin/usuarios"
-            className="inline-flex items-center text-sm text-white/60 hover:text-white/90 transition mb-4"
-          >
-            ← Volver a clientes
-          </Link>
+          <div className="flex flex-wrap gap-3 mb-4">
+            <Link
+              href="/admin/usuarios"
+              className="inline-flex items-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
+            >
+              ← Volver a clientes
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center rounded-xl border border-yellow-600/20 bg-yellow-500/10 px-3 py-2 text-sm font-medium text-yellow-400 hover:bg-yellow-500/20 transition"
+            >
+              Panel de administración
+            </Link>
+          </div>
           <p className="text-sm text-yellow-400/90">Cliente</p>
           <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400 mt-1">
             {name}

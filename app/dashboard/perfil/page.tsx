@@ -247,6 +247,8 @@ export default function ProfilePage() {
         }
 
         const formattedPhone = formatPhoneInput(phone);
+        const profileEmailRaw = (u.email ?? "").trim().toLowerCase();
+        const profileEmail = profileEmailRaw === "" ? null : profileEmailRaw;
 
         const { error: updErr } = await supabase.auth.updateUser({
           data: {
@@ -258,13 +260,16 @@ export default function ProfilePage() {
         if (updErr) throw updErr;
 
         try {
-          await supabase.from("profiles").upsert({
-            id: u.id,
-            email: u.email ?? null,
-            display_name: trimmedName,
-            phone: formattedPhone,
-            home_city: canonicalCity,
-          });
+          await supabase.from("profiles").upsert(
+            {
+              id: u.id,
+              email: profileEmail,
+              display_name: trimmedName,
+              phone: formattedPhone,
+              home_city: canonicalCity,
+            },
+            { onConflict: "id" }
+          );
         } catch {
           // ignore
         }
@@ -287,6 +292,11 @@ export default function ProfilePage() {
       }
 
       const formattedPhone = digits.length === 10 ? formatPhoneInput(phone) : "";
+      const profilePhone = formattedPhone || null;
+      const profileCity = canonicalCity || null;
+      const profileEmailRaw = (u.email ?? "").trim().toLowerCase();
+      const profileEmail = profileEmailRaw === "" ? null : profileEmailRaw;
+
       const updateData: Record<string, string> = { full_name: trimmedName };
       if (formattedPhone) updateData.phone = formattedPhone;
       if (canonicalCity) updateData.city = canonicalCity;
@@ -297,13 +307,16 @@ export default function ProfilePage() {
       if (updErr) throw updErr;
 
       try {
-        await supabase.from("profiles").upsert({
-          id: u.id,
-          email: u.email ?? null,
-          display_name: trimmedName,
-          phone: formattedPhone || null,
-          home_city: canonicalCity || null,
-        });
+        await supabase.from("profiles").upsert(
+          {
+            id: u.id,
+            email: profileEmail,
+            display_name: trimmedName,
+            phone: profilePhone,
+            home_city: profileCity,
+          },
+          { onConflict: "id" }
+        );
       } catch {
         // ignore
       }

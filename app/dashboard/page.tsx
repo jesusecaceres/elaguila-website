@@ -25,7 +25,7 @@ function accountRefFromId(id: string): string {
 
 function normalizePlanFromMembershipTier(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
-  if (v.includes("pro") || v.includes("business") || v.includes("lite") || v.includes("premium")) return "pro";
+  if (v === "pro" || v === "business_lite" || v === "business_premium") return "pro";
   return "free";
 }
 
@@ -190,13 +190,17 @@ export default function DashboardPage() {
         (u.user_metadata?.full_name as string | undefined) ||
         (u.user_metadata?.name as string | undefined) ||
         null;
+      const rawEmail = (u.email ?? "").trim().toLowerCase();
+      const profileEmail = rawEmail === "" ? null : rawEmail;
+      const profileName = (inferredName ?? "").trim();
+      const profileDisplayName = profileName === "" ? null : profileName;
 
-      // Ensure a profile row exists without overwriting account_type or membership_tier
+      // Ensure a profile row exists. Only safe identity fields; NO account_type, NO membership_tier.
       try {
         await supabase.from("profiles").upsert({
           id: u.id,
-          email: u.email ?? null,
-          display_name: inferredName ?? null,
+          email: profileEmail,
+          display_name: profileDisplayName,
         }, { onConflict: "id" });
       } catch {
         // ignore
@@ -255,7 +259,7 @@ export default function DashboardPage() {
         const { count } = await supabase
           .from("listings")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", u.id);
+          .eq("owner_id", u.id);
 
         if (mounted) setListingsCount(typeof count === "number" ? count : null);
       } catch {
@@ -264,11 +268,11 @@ export default function DashboardPage() {
 
       try {
         const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
-        let r = await base.eq("user_id", u.id).eq("status", "active");
+        let r = await base.eq("owner_id", u.id).eq("status", "active");
         if (r.error) {
           const msg = String(r.error.message || "");
           if (/status/i.test(msg) && /(does not exist|unknown|column)/i.test(msg)) {
-            r = await base.eq("user_id", u.id);
+            r = await base.eq("owner_id", u.id);
           }
         }
         if (!r.error && mounted) setEnVentaActiveCount(typeof r.count === "number" ? r.count : 0);
