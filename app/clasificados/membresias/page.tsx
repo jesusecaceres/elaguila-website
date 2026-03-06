@@ -21,6 +21,8 @@ export default function MembresiasPage() {
   const [autoSub, setAutoSub] = useState<"particular" | "negocio" | null>(null);
   const [rentasSub, setRentasSub] = useState<"persona" | "negocio" | null>(null);
   const [expandedPlan, setExpandedPlan] = useState<"gratis" | "pro" | "standard" | "plus" | null>(null);
+  const [showPersonalCompare, setShowPersonalCompare] = useState(false);
+  const [showBusinessCompare, setShowBusinessCompare] = useState(false);
 
   const [quizStep, setQuizStep] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
@@ -63,38 +65,70 @@ export default function MembresiasPage() {
         personalNote:
           "Estas opciones son para vendedores personales, no para negocios ni inventario comercial.",
 
+        compareTitle: "Comparación rápida",
+        compareHide: "Ocultar comparación",
+        verQueIncluye: "Ver qué incluye",
+        queCambiaSubir: "Qué cambia al subir",
+        loQueGanas: "Lo que ganas con este plan",
+        asistenciaExplain: "Ayuda a darle un impulso extra a tu anuncio por un tiempo cuando más lo necesitas.",
+
+        compDuración: "Duración del anuncio",
+        compPresentación: "Presentación del anuncio",
+        compFotos: "Fotos incluidas",
+        compAsistencia: "Asistencia de visibilidad",
+        compAnaliticas: "Analíticas básicas",
+        compPrioridad: "Prioridad frente a opciones básicas",
+        compBasica: "Básica",
+        compMejorada: "Mejorada",
+        compNo: "No",
+        compSi: "Sí",
+        comp1: "1",
+        comp2: "2",
+        compPerfil: "Perfil profesional",
+        compHerramientasContacto: "Herramientas de contacto",
+        compPrioridadVisibilidad: "Prioridad de visibilidad",
+        compMasLlamadas: "Mejor oportunidad de generar llamadas o mensajes",
+        compConvertir: "Mejor oportunidad de convertir vistas en clientes",
+        standardLine: "Standard te ayuda a verte profesionalmente.",
+        plusLine: "Plus te ayuda a convertir mejor esa visibilidad en oportunidades.",
+
         autoSplit: "¿Publicas como vendedor particular o como negocio?",
         autoParticular: "Particular",
         autoNegocio: "Negocio",
         autoParticularNote:
-          "Para vendedores particulares. Si operas como lote, dealer o inventario comercial, aplica la ruta de negocio.",
+          "Si operas como lote, dealer o inventario comercial, te corresponde la ruta de negocio.",
         autoNegocioNote: "Para presencia comercial, inventario o operación como negocio.",
 
+        rentasTop: "En rentas, la publicación personal se maneja por publicación de 30 días.",
         rentasSplit: "¿Publicas como persona o como negocio/profesional?",
         rentasPersona: "Persona / propietario ocasional",
         rentasNegocio: "Negocio / realtor / administrador",
-        rentasPersonaBlock:
-          "En rentas, algunas publicaciones personales pueden manejarse por publicación individual. Si publicas seguido o como operación profesional, te conviene la ruta de negocio.",
+        rentasPersonalCard: "Rentas personales",
+        rentasPersonalPrice: "$35 / 30 días",
+        rentasPersonalExplain: "Para propietarios o publicaciones personales ocasionales.",
         rentasPersonaCta: "Ver opciones de publicación",
-        rentasPersonaHint: "Las opciones finales aparecen al publicar.",
         rentasNegocioNote:
-          "Si manejas varias propiedades, servicios de real estate o presencia profesional, estas son las opciones recomendadas.",
+          "Si publicas como realtor, administrador o presencia profesional recurrente, te conviene la ruta de negocio.",
 
-        empleosIntro:
-          "Empleos funciona mejor como publicación profesional o comercial. Si tu meta es contratar con más visibilidad y mejor presentación, estas son las opciones relevantes.",
+        empleosCard: "Publicación de empleo",
+        empleosPrice: "$35 / 30 días",
+        empleosExplain: "Para vacantes y contratación.",
+        empleosNote:
+          "Si buscas presencia más sólida o publicación recurrente como negocio, estas opciones te ayudan más:",
 
         serviciosIntro:
           "Si tu meta es que más personas te descubran, te contacten y confíen en tu negocio, esta es tu ruta.",
+        plusSummaryStrong: "Bueno para negocios que quieren más impulso, más contacto y mejor oportunidad de generar resultados.",
 
         clasesIntro:
-          "Algunas publicaciones comunitarias pueden ser gratuitas o más ligeras. Las ofertas con fin claramente comercial o de crecimiento pueden necesitar una opción más fuerte.",
+          "Algunas publicaciones comunitarias pueden ser más ligeras. Si tu oferta es claramente comercial o recurrente, conviene la ruta de negocio.",
         clasesPersonal: "Comunitario / personal",
         clasesNegocio: "Comercial / negocio recurrente",
 
         verDetalles: "Ver detalles",
         ocultarDetalles: "Ocultar detalles",
         idealPara: "Ideal para",
-        incluye: "Incluye",
+        incluye: "Qué incluye",
         queSignifica: "Qué significa",
         cuandoSubir: "Cuándo conviene subir",
 
@@ -131,27 +165,27 @@ export default function MembresiasPage() {
         plusSubir: "",
 
         quizTitle: "¿Qué plan te conviene?",
-        q1: "¿Qué quieres lograr más ahorita?",
+        q1: "¿Qué buscas más ahorita?",
         q1a: "Tener presencia profesional",
-        q1b: "Conseguir más contacto y oportunidades",
-        q2: "¿Te importa que la gente te llame o te escriba directamente desde tu presencia?",
+        q1b: "Conseguir más llamadas, mensajes o clientes",
+        q2: "¿Qué tan importante es que te contacten rápido desde tu anuncio?",
         q2a: "Algo",
         q2b: "Mucho",
-        q3: "¿Quieres mostrar más herramientas de negocio como sitio web, redes o formas de contacto más claras?",
+        q3: "¿Quieres mostrar herramientas como sitio web, redes sociales o formas claras de contactarte?",
         q3a: "No tanto",
         q3b: "Sí, eso me importa",
         q4: "¿Tu negocio depende mucho de fotos, presentación y confianza visual?",
         q4a: "Algo",
         q4b: "Mucho",
-        q5: "¿Buscas solo aparecer o destacar por encima de opciones básicas?",
-        q5a: "Solo aparecer bien",
-        q5b: "Quiero destacar más",
+        q5: "¿Tu meta principal es…?",
+        q5a: "Tener presencia profesional",
+        q5b: "Generar más resultados",
         resultStandard: "Te recomendamos Standard",
         resultPlus: "Te recomendamos Plus",
         resultStandardWhy:
           "Nos dijiste que buscas una presencia profesional clara y ordenada. Standard te ayuda a empezar fuerte sin complicarte.",
         resultPlusWhy:
-          "Nos dijiste que quieres más contacto, más visibilidad y una presencia más fuerte para convertir interés en oportunidades. Plus te conviene más.",
+          "Nos dijiste que quieres más contacto, más visibilidad y una presencia más fuerte para generar más resultados. Plus te conviene más.",
         quizNote: "Esta guía es solo una recomendación rápida.",
         quizReset: "Volver a responder",
         ctaAccount: "Ir a mi cuenta",
@@ -165,7 +199,7 @@ export default function MembresiasPage() {
 
         trustTitle: "Invertir en visibilidad también es parte de crecer",
         trustBody:
-          "Muchos negocios tratan este tipo de inversión como parte de su presupuesto de publicidad y promoción. Lo importante es usar una plataforma que te ayude a verte mejor, a generar más confianza y a facilitar el contacto con clientes.",
+          "Muchos negocios tratan este tipo de inversión como parte de su presupuesto de publicidad y promoción.",
         trustTax: "Para temas fiscales o deducciones específicas, consulta con tu contador.",
 
         ctaPost: "Publicar anuncio",
@@ -200,38 +234,70 @@ export default function MembresiasPage() {
         personalIntro: "If you post as an individual, these are the most relevant options for you.",
         personalNote: "These options are for personal sellers, not for businesses or commercial inventory.",
 
+        compareTitle: "Quick comparison",
+        compareHide: "Hide comparison",
+        verQueIncluye: "See what's included",
+        queCambiaSubir: "What changes when you upgrade",
+        loQueGanas: "What you get with this plan",
+        asistenciaExplain: "Helps give your listing extra momentum for a period when you need it most.",
+
+        compDuración: "Listing duration",
+        compPresentación: "Listing presentation",
+        compFotos: "Photos included",
+        compAsistencia: "Visibility assist",
+        compAnaliticas: "Basic analytics",
+        compPrioridad: "Priority over basic options",
+        compBasica: "Basic",
+        compMejorada: "Enhanced",
+        compNo: "No",
+        compSi: "Yes",
+        comp1: "1",
+        comp2: "2",
+        compPerfil: "Professional profile",
+        compHerramientasContacto: "Contact tools",
+        compPrioridadVisibilidad: "Visibility priority",
+        compMasLlamadas: "Better chance to get calls or messages",
+        compConvertir: "Better chance to turn views into clients",
+        standardLine: "Standard helps you look professional.",
+        plusLine: "Plus helps you turn that visibility into opportunities.",
+
         autoSplit: "Do you post as a private seller or as a business?",
         autoParticular: "Private",
         autoNegocio: "Business",
         autoParticularNote:
-          "For private sellers. If you operate as a lot, dealer, or commercial inventory, use the business path.",
+          "If you operate as a lot, dealer, or commercial inventory, use the business path.",
         autoNegocioNote: "For commercial presence, inventory, or business operation.",
 
+        rentasTop: "For rentals, personal posting is handled per 30-day listing.",
         rentasSplit: "Do you post as an individual or as a business/professional?",
         rentasPersona: "Individual / occasional owner",
         rentasNegocio: "Business / realtor / manager",
-        rentasPersonaBlock:
-          "For rentals, some personal listings can be handled per listing. If you post often or as a professional operation, the business path fits you better.",
+        rentasPersonalCard: "Personal rentals",
+        rentasPersonalPrice: "$35 / 30 days",
+        rentasPersonalExplain: "For owners or occasional personal listings.",
         rentasPersonaCta: "See posting options",
-        rentasPersonaHint: "Final options appear when you publish.",
         rentasNegocioNote:
-          "If you manage multiple properties, real estate services, or professional presence, these are the recommended options.",
+          "If you post as a realtor, manager, or recurring professional presence, the business path fits you better.",
 
-        empleosIntro:
-          "Jobs works best as professional or commercial posting. If your goal is to hire with more visibility and better presentation, these are the relevant options.",
+        empleosCard: "Job posting",
+        empleosPrice: "$35 / 30 days",
+        empleosExplain: "For vacancies and hiring.",
+        empleosNote:
+          "If you want a stronger presence or recurring business posting, these options help more:",
 
         serviciosIntro:
           "If your goal is for more people to discover you, contact you, and trust your business, this is your path.",
+        plusSummaryStrong: "Good for businesses that want more momentum, more contact, and better chance to generate results.",
 
         clasesIntro:
-          "Some community posts can be free or lighter. Clearly commercial or growth-focused offers may need a stronger option.",
+          "Some community posts can be lighter. If your offer is clearly commercial or recurring, the business path fits better.",
         clasesPersonal: "Community / personal",
         clasesNegocio: "Commercial / recurring business",
 
         verDetalles: "See details",
         ocultarDetalles: "Hide details",
         idealPara: "Ideal for",
-        incluye: "Includes",
+        incluye: "What's included",
         queSignifica: "What it means",
         cuandoSubir: "When to upgrade",
 
@@ -268,27 +334,27 @@ export default function MembresiasPage() {
         plusSubir: "",
 
         quizTitle: "Which plan fits you best?",
-        q1: "What do you want to achieve most right now?",
+        q1: "What are you looking for most right now?",
         q1a: "Have a professional presence",
-        q1b: "Get more contact and opportunities",
-        q2: "Do you care if people call or message you directly from your presence?",
+        q1b: "Get more calls, messages, or clients",
+        q2: "How important is it that people contact you quickly from your listing?",
         q2a: "Some",
         q2b: "A lot",
-        q3: "Do you want to show more business tools like website, social, or clearer contact options?",
+        q3: "Do you want to show tools like website, social media, or clear ways to contact you?",
         q3a: "Not really",
         q3b: "Yes, that matters to me",
         q4: "Does your business depend a lot on photos, presentation, and visual trust?",
         q4a: "Some",
         q4b: "A lot",
-        q5: "Do you want to just show up or stand out above basic options?",
-        q5a: "Just show up well",
-        q5b: "I want to stand out more",
+        q5: "Your main goal is…?",
+        q5a: "Have a professional presence",
+        q5b: "Generate more results",
         resultStandard: "We recommend Standard",
         resultPlus: "We recommend Plus",
         resultStandardWhy:
           "You said you want a clear, organized professional presence. Standard helps you start strong without overcomplicating.",
         resultPlusWhy:
-          "You said you want more contact, more visibility, and a stronger presence to turn interest into opportunities. Plus fits you better.",
+          "You said you want more contact, more visibility, and a stronger presence to generate more results. Plus fits you better.",
         quizNote: "This is just a quick recommendation.",
         quizReset: "Answer again",
         ctaAccount: "Go to my account",
@@ -302,7 +368,7 @@ export default function MembresiasPage() {
 
         trustTitle: "Investing in visibility is also part of growing",
         trustBody:
-          "Many businesses treat this kind of investment as part of their advertising and promotion budget. What matters is using a platform that helps you look better, build more trust, and make it easier for customers to reach you.",
+          "Many businesses treat this kind of investment as part of their advertising and promotion budget.",
         trustTax: "For tax-specific treatment or deductions, check with your accountant.",
 
         ctaPost: "Post a listing",
@@ -343,6 +409,8 @@ export default function MembresiasPage() {
     setAutoSub(null);
     setRentasSub(null);
     setExpandedPlan(null);
+    setShowPersonalCompare(false);
+    setShowBusinessCompare(false);
     setQuizStep(0);
     setQuizAnswers([]);
     setQuizResult(null);
@@ -360,6 +428,7 @@ export default function MembresiasPage() {
     significa,
     cuandoSubir,
     accent,
+    onShowCompare,
   }: {
     id: PlanId;
     title: string;
@@ -370,6 +439,7 @@ export default function MembresiasPage() {
     significa: string;
     cuandoSubir: string;
     accent?: "gold" | "strong";
+    onShowCompare?: () => void;
   }) => {
     const isExpanded = expandedPlan === id;
     return (
@@ -395,6 +465,15 @@ export default function MembresiasPage() {
             </button>
           </div>
           <p className="mt-2 text-sm text-[#111111]/90">{summary}</p>
+          {onShowCompare && (
+            <button
+              type="button"
+              onClick={onShowCompare}
+              className="mt-2 text-xs font-medium text-[#111111]/80 hover:text-[#111111] underline underline-offset-1"
+            >
+              {L.verQueIncluye}
+            </button>
+          )}
           {isExpanded && (
             <div className="mt-4 pt-4 border-t border-[#111111]/10 space-y-3 text-sm">
               <div>
@@ -430,6 +509,102 @@ export default function MembresiasPage() {
     );
   };
 
+  const PersonalCompare = () => {
+    const rows: { feature: string; gratis: string; pro: string }[] = [
+      { feature: L.compDuración, gratis: L.compBasica, pro: L.compMejorada },
+      { feature: L.compPresentación, gratis: L.compBasica, pro: L.compMejorada },
+      { feature: L.compFotos, gratis: L.compBasica, pro: L.compMejorada },
+      { feature: L.compAsistencia, gratis: L.compNo, pro: L.comp1 },
+      { feature: L.compAnaliticas, gratis: L.compNo, pro: L.compSi },
+      { feature: L.compPrioridad, gratis: L.compNo, pro: L.compSi },
+    ];
+    return (
+      <div className="mt-4 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] overflow-hidden">
+        <div className="p-3 sm:p-4 border-b border-[#111111]/10 flex items-center justify-between">
+          <h4 className="text-sm font-bold text-[#111111]">{L.compareTitle}</h4>
+          <button
+            type="button"
+            onClick={() => setShowPersonalCompare(false)}
+            className="text-xs font-medium text-[#111111]/70 hover:text-[#111111]"
+          >
+            {L.compareHide}
+          </button>
+        </div>
+        <div className="p-3 sm:p-4">
+          <p className="text-xs text-[#111111]/60 mb-3">{L.asistenciaExplain}</p>
+          <div className="hidden sm:grid sm:grid-cols-3 gap-2 text-sm mb-2">
+            <div className="font-semibold text-[#111111]">{L.incluye}</div>
+            <div className="font-semibold text-[#111111]">{L.gratisTitle}</div>
+            <div className="font-semibold text-[#111111]">{L.proTitle}</div>
+          </div>
+          <div className="space-y-2">
+            {rows.map((r, i) => (
+              <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 py-2 border-b border-[#111111]/5 last:border-0 text-sm">
+                <span className="font-medium text-[#111111]">{r.feature}</span>
+                <div className="flex gap-2 text-[#111111]/90">
+                  <span className="sm:hidden text-[#111111]/60">{L.gratisTitle}:</span>
+                  <span>{r.gratis}</span>
+                </div>
+                <div className="flex gap-2 text-[#111111]/90">
+                  <span className="sm:hidden text-[#111111]/60">{L.proTitle}:</span>
+                  <span>{r.pro}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const BusinessCompare = () => {
+    const rows: { feature: string; standard: string; plus: string }[] = [
+      { feature: L.compPerfil, standard: L.compSi, plus: L.compSi },
+      { feature: L.compHerramientasContacto, standard: L.compBasica, plus: L.compMejorada },
+      { feature: L.compPrioridadVisibilidad, standard: L.compBasica, plus: L.compMejorada },
+      { feature: L.compAnaliticas, standard: L.compSi, plus: L.compSi },
+      { feature: L.compAsistencia, standard: L.comp1, plus: L.comp2 },
+      { feature: L.compMasLlamadas, standard: L.compBasica, plus: L.compMejorada },
+      { feature: L.compConvertir, standard: L.compBasica, plus: L.compMejorada },
+    ];
+    return (
+      <div className="mt-4 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] overflow-hidden">
+        <div className="p-3 sm:p-4 border-b border-[#111111]/10 flex items-center justify-between">
+          <h4 className="text-sm font-bold text-[#111111]">{L.compareTitle}</h4>
+          <button
+            type="button"
+            onClick={() => setShowBusinessCompare(false)}
+            className="text-xs font-medium text-[#111111]/70 hover:text-[#111111]"
+          >
+            {L.compareHide}
+          </button>
+        </div>
+        <div className="p-3 sm:p-4">
+          <div className="hidden sm:grid sm:grid-cols-3 gap-2 text-sm mb-2">
+            <div className="font-semibold text-[#111111]">{L.incluye}</div>
+            <div className="font-semibold text-[#111111]">{L.standardTitle}</div>
+            <div className="font-semibold text-[#111111]">{L.plusTitle}</div>
+          </div>
+          {rows.map((r, i) => (
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 py-2 border-b border-[#111111]/5 last:border-0 text-sm">
+              <div className="font-medium text-[#111111]">{r.feature}</div>
+              <div className="sm:col-span-1 text-[#111111]/90 flex gap-2">
+                <span className="sm:hidden text-[#111111]/60">{L.standardTitle}:</span>
+                <span>{r.standard}</span>
+              </div>
+              <div className="sm:col-span-1 text-[#111111]/90 flex gap-2">
+                <span className="sm:hidden text-[#111111]/60">{L.plusTitle}:</span>
+                <span>{r.plus}</span>
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-[#111111]/80 mt-3">{L.standardLine}</p>
+          <p className="text-xs text-[#111111]/80 mt-1">{L.plusLine}</p>
+        </div>
+      </div>
+    );
+  };
+
   const selectorCards: { key: CategoryKey; label: string; help: string }[] = [
     { key: "venta-personal", label: L.ventaPersonal, help: L.ventaPersonalHelp },
     { key: "auto", label: L.auto, help: L.autoHelp },
@@ -444,14 +619,12 @@ export default function MembresiasPage() {
       <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28">
-        {/* 1) HERO */}
         <header className="text-center mb-8 sm:mb-10">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#111111]">{L.title}</h1>
           <p className="mt-3 text-base sm:text-lg text-[#111111] max-w-xl mx-auto">{L.subtitle}</p>
           <p className="mt-2 text-sm text-[#111111]/80 max-w-lg mx-auto">{L.supportLine}</p>
         </header>
 
-        {/* 2) SELECTOR */}
         <section className="mb-8">
           <h2 className="text-xl font-bold text-[#111111] mb-4">{L.selectorTitle}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -474,7 +647,6 @@ export default function MembresiasPage() {
           </div>
         </section>
 
-        {/* 3) DYNAMIC PANELS */}
         {selectedCategory === "venta-personal" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
             <p className="text-sm text-[#111111] mb-4">{L.personalIntro}</p>
@@ -499,8 +671,10 @@ export default function MembresiasPage() {
                 significa={L.proSignifica}
                 cuandoSubir={L.proSubir}
                 accent="gold"
+                onShowCompare={() => setShowPersonalCompare(true)}
               />
             </div>
+            {showPersonalCompare && <PersonalCompare />}
             <p className="mt-4 text-xs text-[#111111]/70">{L.personalNote}</p>
           </section>
         )}
@@ -557,8 +731,10 @@ export default function MembresiasPage() {
                     significa={L.proSignifica}
                     cuandoSubir={L.proSubir}
                     accent="gold"
+                    onShowCompare={() => setShowPersonalCompare(true)}
                   />
                 </div>
+                {showPersonalCompare && <PersonalCompare />}
                 <p className="mt-4 text-xs text-[#111111]/70">{L.autoParticularNote}</p>
               </>
             )}
@@ -575,19 +751,22 @@ export default function MembresiasPage() {
                     significa={L.standardSignifica}
                     cuandoSubir={L.standardSubir}
                     accent="strong"
+                    onShowCompare={() => setShowBusinessCompare(true)}
                   />
                   <PlanCard
                     id="plus"
                     title={L.plusTitle}
                     price={L.plusPrice}
-                    summary={L.plusSummary}
+                    summary={L.plusSummaryStrong}
                     ideal={L.plusIdeal}
                     incluye={L.plusIncluye}
                     significa={L.plusSignifica}
                     cuandoSubir={L.plusSubir}
                     accent="strong"
+                    onShowCompare={() => setShowBusinessCompare(true)}
                   />
                 </div>
+                {showBusinessCompare && <BusinessCompare />}
                 <p className="mt-4 text-xs text-[#111111]/70">{L.autoNegocioNote}</p>
               </>
             )}
@@ -596,6 +775,7 @@ export default function MembresiasPage() {
 
         {selectedCategory === "rentas" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
+            <p className="text-sm text-[#111111] mb-3">{L.rentasTop}</p>
             <p className="text-sm font-medium text-[#111111] mb-3">{L.rentasSplit}</p>
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
               <button
@@ -625,14 +805,17 @@ export default function MembresiasPage() {
             </div>
             {rentasSub === "persona" && (
               <div>
-                <p className="text-sm text-[#111111]/90 mb-4">{L.rentasPersonaBlock}</p>
+                <div className="rounded-2xl border-2 border-[#C9B46A]/40 bg-[#F8F6F0] p-4 mb-4">
+                  <h3 className="text-lg font-bold text-[#111111]">{L.rentasPersonalCard}</h3>
+                  <p className="text-base font-semibold text-[#111111] mt-1">{L.rentasPersonalPrice}</p>
+                  <p className="mt-2 text-sm text-[#111111]/90">{L.rentasPersonalExplain}</p>
+                </div>
                 <Link
                   href={withLang(L.routePost)}
                   className="inline-flex justify-center w-full sm:w-auto rounded-xl bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-5 text-sm hover:opacity-95 transition"
                 >
                   {L.rentasPersonaCta}
                 </Link>
-                <p className="mt-2 text-xs text-[#111111]/60">{L.rentasPersonaHint}</p>
               </div>
             )}
             {rentasSub === "negocio" && (
@@ -648,19 +831,22 @@ export default function MembresiasPage() {
                     significa={L.standardSignifica}
                     cuandoSubir={L.standardSubir}
                     accent="strong"
+                    onShowCompare={() => setShowBusinessCompare(true)}
                   />
                   <PlanCard
                     id="plus"
                     title={L.plusTitle}
                     price={L.plusPrice}
-                    summary={L.plusSummary}
+                    summary={L.plusSummaryStrong}
                     ideal={L.plusIdeal}
                     incluye={L.plusIncluye}
                     significa={L.plusSignifica}
                     cuandoSubir={L.plusSubir}
                     accent="strong"
+                    onShowCompare={() => setShowBusinessCompare(true)}
                   />
                 </div>
+                {showBusinessCompare && <BusinessCompare />}
                 <p className="mt-4 text-xs text-[#111111]/70">{L.rentasNegocioNote}</p>
               </>
             )}
@@ -669,7 +855,12 @@ export default function MembresiasPage() {
 
         {selectedCategory === "empleos" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
-            <p className="text-sm text-[#111111] mb-4">{L.empleosIntro}</p>
+            <div className="rounded-2xl border-2 border-[#C9B46A]/40 bg-[#F8F6F0] p-4 mb-4">
+              <h3 className="text-lg font-bold text-[#111111]">{L.empleosCard}</h3>
+              <p className="text-base font-semibold text-[#111111] mt-1">{L.empleosPrice}</p>
+              <p className="mt-2 text-sm text-[#111111]/90">{L.empleosExplain}</p>
+            </div>
+            <p className="text-sm text-[#111111] mb-4">{L.empleosNote}</p>
             <div className="space-y-4">
               <PlanCard
                 id="standard"
@@ -681,19 +872,22 @@ export default function MembresiasPage() {
                 significa={L.standardSignifica}
                 cuandoSubir={L.standardSubir}
                 accent="strong"
+                onShowCompare={() => setShowBusinessCompare(true)}
               />
               <PlanCard
                 id="plus"
                 title={L.plusTitle}
                 price={L.plusPrice}
-                summary={L.plusSummary}
+                summary={L.plusSummaryStrong}
                 ideal={L.plusIdeal}
                 incluye={L.plusIncluye}
                 significa={L.plusSignifica}
                 cuandoSubir={L.plusSubir}
                 accent="strong"
+                onShowCompare={() => setShowBusinessCompare(true)}
               />
             </div>
+            {showBusinessCompare && <BusinessCompare />}
           </section>
         )}
 
@@ -711,19 +905,22 @@ export default function MembresiasPage() {
                 significa={L.standardSignifica}
                 cuandoSubir={L.standardSubir}
                 accent="strong"
+                onShowCompare={() => setShowBusinessCompare(true)}
               />
               <PlanCard
                 id="plus"
                 title={L.plusTitle}
                 price={L.plusPrice}
-                summary={L.plusSummary}
+                summary={L.plusSummaryStrong}
                 ideal={L.plusIdeal}
                 incluye={L.plusIncluye}
                 significa={L.plusSignifica}
                 cuandoSubir={L.plusSubir}
                 accent="strong"
+                onShowCompare={() => setShowBusinessCompare(true)}
               />
             </div>
+            {showBusinessCompare && <BusinessCompare />}
           </section>
         )}
 
@@ -782,23 +979,17 @@ export default function MembresiasPage() {
           </section>
         )}
 
-        {/* 5) QUIZ - only in business path */}
         {isBusinessPath && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4 sm:p-6">
             <h2 className="text-lg font-bold text-[#111111]">{L.quizTitle}</h2>
-
             {!quizResult && quizStep < 5 && (
               <div className="mt-4 space-y-4">
                 {quizStep === 0 && (
                   <div>
                     <p className="font-medium text-[#111111] mb-2">{L.q1}</p>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q1a}
-                      </button>
-                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q1b}
-                      </button>
+                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q1a}</button>
+                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q1b}</button>
                     </div>
                   </div>
                 )}
@@ -806,12 +997,8 @@ export default function MembresiasPage() {
                   <div>
                     <p className="font-medium text-[#111111] mb-2">{L.q2}</p>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q2a}
-                      </button>
-                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q2b}
-                      </button>
+                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q2a}</button>
+                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q2b}</button>
                     </div>
                   </div>
                 )}
@@ -819,12 +1006,8 @@ export default function MembresiasPage() {
                   <div>
                     <p className="font-medium text-[#111111] mb-2">{L.q3}</p>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q3a}
-                      </button>
-                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q3b}
-                      </button>
+                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q3a}</button>
+                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q3b}</button>
                     </div>
                   </div>
                 )}
@@ -832,12 +1015,8 @@ export default function MembresiasPage() {
                   <div>
                     <p className="font-medium text-[#111111] mb-2">{L.q4}</p>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q4a}
-                      </button>
-                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q4b}
-                      </button>
+                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q4a}</button>
+                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q4b}</button>
                     </div>
                   </div>
                 )}
@@ -845,31 +1024,19 @@ export default function MembresiasPage() {
                   <div>
                     <p className="font-medium text-[#111111] mb-2">{L.q5}</p>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q5a}
-                      </button>
-                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                        {L.q5b}
-                      </button>
+                      <button type="button" onClick={() => handleQuizAnswer(0)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q5a}</button>
+                      <button type="button" onClick={() => handleQuizAnswer(1)} className="w-full sm:flex-1 rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] py-3 px-4 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">{L.q5b}</button>
                     </div>
                   </div>
                 )}
               </div>
             )}
-
             {quizResult && (
               <div className="mt-4 rounded-xl border border-[#C9B46A]/40 bg-[#F5F5F5] p-4">
-                <p className="text-lg font-bold text-[#111111]">
-                  {quizResult === "standard" ? L.resultStandard : L.resultPlus}
-                </p>
-                <p className="mt-2 text-sm text-[#111111]/90">
-                  {quizResult === "standard" ? L.resultStandardWhy : L.resultPlusWhy}
-                </p>
+                <p className="text-lg font-bold text-[#111111]">{quizResult === "standard" ? L.resultStandard : L.resultPlus}</p>
+                <p className="mt-2 text-sm text-[#111111]/90">{quizResult === "standard" ? L.resultStandardWhy : L.resultPlusWhy}</p>
                 <p className="mt-3 text-xs text-[#111111]/60">{L.quizNote}</p>
-                <Link
-                  href={withLang(L.routeCuenta)}
-                  className="mt-4 block w-full text-center rounded-xl bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-4 text-sm hover:opacity-95 transition"
-                >
+                <Link href={withLang(L.routeCuenta)} className="mt-4 block w-full text-center rounded-xl bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-4 text-sm hover:opacity-95 transition">
                   {L.ctaAccount}
                 </Link>
                 <button type="button" onClick={resetQuiz} className="mt-2 block w-full text-center text-sm text-[#111111]/70 hover:text-[#111111]">
@@ -880,7 +1047,6 @@ export default function MembresiasPage() {
           </section>
         )}
 
-        {/* 6) RESOURCE PREVIEW */}
         <section className="mb-8">
           <h2 className="text-lg font-bold text-[#111111] mb-3">{L.resourceTitle}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -900,14 +1066,12 @@ export default function MembresiasPage() {
           <p className="mt-2 text-xs text-[#111111]/60">{L.resourceSoon}</p>
         </section>
 
-        {/* 7) TRUST NOTE */}
         <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-5">
           <h2 className="text-base font-bold text-[#111111]">{L.trustTitle}</h2>
           <p className="mt-2 text-sm text-[#111111]/90">{L.trustBody}</p>
           <p className="mt-2 text-xs text-[#111111]/70">{L.trustTax}</p>
         </section>
 
-        {/* 8) FINAL CTA ROW */}
         <section className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center">
           <Link href={withLang(L.routePost)} className="w-full sm:w-auto inline-flex justify-center items-center rounded-full bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-5 text-sm hover:opacity-95 transition">
             {L.ctaPost}
