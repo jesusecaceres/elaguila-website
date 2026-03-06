@@ -102,6 +102,38 @@ function normalizeCity(raw: string): string {
   return "";
 }
 
+/** Top 10 NorCal city suggestions (excludes SoCal). Score: exact 0, startsWith 1, includes 2. */
+function getCitySuggestions(query: string): string[] {
+  const q = toCityKey(query);
+  if (!q) return [];
+
+  const norcal = CA_CITIES.filter((r) => r.region !== "SoCal");
+  const scored: Array<{ city: string; score: number }> = [];
+
+  for (const record of norcal) {
+    let best = 999;
+    const check = (key: string) => {
+      if (key === q) best = Math.min(best, 0);
+      else if (key.startsWith(q)) best = Math.min(best, 1);
+      else if (key.includes(q)) best = Math.min(best, 2);
+    };
+    check(toCityKey(record.city));
+    record.aliases?.forEach((a) => check(toCityKey(a)));
+    if (best !== 999) scored.push({ city: record.city, score: best });
+  }
+
+  scored.sort((a, b) => a.score - b.score || a.city.localeCompare(b.city));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const { city } of scored) {
+    if (seen.has(city)) continue;
+    seen.add(city);
+    out.push(city);
+    if (out.length >= 10) break;
+  }
+  return out;
+}
+
 const DRAFT_KEY = "leonix_clasificados_post_draft_v1";
 
 
@@ -374,6 +406,7 @@ export default function PublicarPage() {
   const [isFree, setIsFree] = useState<boolean>(false);
   const [price, setPrice] = useState<string>("");
   const [city, setCity] = useState<string>(() => prefill.city || "");
+  const [cityOpen, setCityOpen] = useState(false);
 
   // Media + contact
   const [contactMethod, setContactMethod] = useState<"phone" | "email" | "both">("phone");
@@ -739,6 +772,7 @@ setIsPro(plan.includes("pro"));
     };
   }, [category, title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
 
+  const citySuggestions = useMemo(() => getCitySuggestions(city), [city]);
 
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
@@ -1536,25 +1570,52 @@ if (isPro && videoFile && !videoError) {
                         </div>
                       </div>
 
-                      <div>
+                      <div className="relative">
                         <label className="text-sm text-[#111111]">{copy.fieldCity}</label>
                         <input
-                          list="norcal-city-list"
                           value={city}
-                          onChange={(e) => setCity(e.target.value)}
+                          onChange={(e) => {
+                            setCity(e.target.value);
+                            setCityOpen(true);
+                          }}
+                          onFocus={() => setCityOpen(true)}
                           onBlur={() => {
-                            const canon = normalizeCity(city);
-                            if (canon) setCity(canon);
+                            setTimeout(() => {
+                              setCityOpen(false);
+                              const canon = normalizeCity(city);
+                              if (canon) setCity(canon);
+                            }, 120);
                           }}
                           placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
                           className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                           autoComplete="off"
                         />
-                        <datalist id="norcal-city-list">
-                          {CA_CITIES.map((c) => (
-                            <option key={c.city} value={c.city} />
-                          ))}
-                        </datalist>
+                        {cityOpen && city.trim().length >= 1 && (
+                          <div className="absolute left-0 right-0 mt-2 z-50 max-h-72 overflow-auto rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl">
+                            {citySuggestions.length > 0 ? (
+                              citySuggestions.map((option) => (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setCity(option);
+                                    setCityOpen(false);
+                                  }}
+                                  className="block w-full text-left px-4 py-3 text-sm text-[#111111] hover:bg-white/80 transition"
+                                >
+                                  {option}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-[#111111]/60">
+                                {lang === "es"
+                                  ? "No se encontró. Elige una ciudad de la lista."
+                                  : "No results. Choose a city from the list."}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {!requirements.cityOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">
                             {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
