@@ -25,8 +25,7 @@ type ListingRow = {
   status: string | null;
   created_at: string | null;
   category: string | null;
-  image_urls?: string[] | null;
-  image?: string | null;
+  images?: unknown | null;
 };
 
 const LISTINGS_LIMIT = 12;
@@ -71,10 +70,23 @@ function formatMoney(price: number | string | null): string {
   }
 }
 
+/** Extract one thumbnail URL from listings.images (jsonb). Safe for malformed data. */
 function getListingImage(row: ListingRow): string | null {
-  const urls = row.image_urls;
-  if (Array.isArray(urls) && urls.length > 0 && typeof urls[0] === "string") return urls[0];
-  if (typeof row.image === "string" && row.image.trim()) return row.image.trim();
+  try {
+    const images = row.images;
+    if (images == null) return null;
+    if (typeof images === "string" && images.trim()) return images.trim();
+    if (!Array.isArray(images) || images.length === 0) return null;
+    const first = images[0];
+    if (typeof first === "string" && first.trim()) return first.trim();
+    if (first && typeof first === "object") {
+      const obj = first as Record<string, unknown>;
+      const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
+      if (typeof url === "string" && url.trim()) return url.trim();
+    }
+  } catch {
+    // ignore malformed jsonb
+  }
   return null;
 }
 
@@ -260,8 +272,8 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("listings")
-      .select("id,title,price,city,zip,status,created_at,category,image_urls,image")
-      .eq("user_id", clientId)
+      .select("id,title,price,city,zip,status,created_at,category,images")
+      .eq("owner_id", clientId)
       .order("created_at", { ascending: false })
       .limit(LISTINGS_LIMIT);
 
