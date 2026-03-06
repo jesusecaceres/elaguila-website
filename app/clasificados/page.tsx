@@ -68,7 +68,7 @@ export default function ClasificadosPage() {
         ctaPost: "Publicar anuncio",
         ctaView: "Ver anuncios",
         ctaMemberships: "Membresías",
-        ctaPricing: "Ver opciones y precios",
+        ctaSeeOptions: "Ver opciones y precios",
 
         sectionBrowse: "Explorar por categoría",
         sectionFeatured: "Destacados por categoría",
@@ -79,7 +79,7 @@ export default function ClasificadosPage() {
 
         cat: {
           rentas: { label: "Rentas", hint: "Casas, cuartos y propiedades." },
-          "en-venta": { label: "En Venta", hint: "Compra y vende local." },
+          "en-venta": { label: "En venta", hint: "Compra y vende local." },
           empleos: { label: "Empleos", hint: "Oportunidades cerca de ti." },
           servicios: {
             label: "Servicios",
@@ -103,31 +103,57 @@ export default function ClasificadosPage() {
 
         membershipsTitle: "Membresías",
         membershipsSubtitle:
-          "Beneficios principales. Los precios se muestran dentro de tu cuenta según tu categoría.",
+          "Opciones claras para personas y negocios. Elige la que mejor se adapta a cómo publicas y vendes.",
+
+        personalHeading: "Personal",
+        negociosHeading: "Negocios",
 
         freeTitle: "Gratis",
         freeBullets: [
           "Publicación básica para la comunidad",
-          "Duración corta (ideal para anuncios rápidos)",
           "Siempre visible y buscable",
+          "Ideal para anuncios ocasionales",
         ] as const,
 
-        proTitle: "LEONIX Pro (Personal)",
+        proTitle: "LEONIX Pro",
         proBullets: [
           "Más duración y mejor presentación",
           "Más fotos y mejor descripción",
-          "1 “asistencia de visibilidad” por anuncio (ventana corta)",
-          "Analíticas básicas (vistas/guardados)",
-          "Reglas anti-spam (sin lenguaje de negocio, sin inventario)",
+          "1 asistencia de visibilidad",
+          "Analíticas básicas",
         ] as const,
 
+        standardTitle: "Standard",
+        standardPrice: "$49/semana",
+        standardBullets: [
+          "Perfil profesional para tu negocio",
+          "Presencia por categoría",
+          "Analíticas básicas",
+          "1 asistencia de visibilidad",
+        ] as const,
+
+        plusTitle: "Plus",
+        plusPrice: "$125/semana",
+        plusBullets: [
+          "Perfil premium para vender mejor",
+          "Más herramientas de contacto",
+          "Mayor visibilidad y prioridad",
+          "2 asistencias de visibilidad",
+        ] as const,
+
+        printTitle: "¿Quieres más exposición en revista?",
+        printBody:
+          "Los paquetes de revista y perfil premium se manejan por separado para proteger el valor de la edición impresa.",
+        printCta: "Solicita el Media Kit",
+
         trustLine:
-          "Un espacio confiable, familiar y comunitario. Los anuncios gratuitos siempre permanecen visibles en la búsqueda.",
+          "Un espacio confiable, familiar y comunitario. Los anuncios gratis siempre permanecen visibles en la búsqueda.",
 
         routePost: "/clasificados/publicar",
         routeList: "/clasificados/lista",
         routeMemberships: "/clasificados/membresias",
         routeLogin: "/clasificados/login",
+        routeContacto: "/contacto",
       },
       en: {
         pageTitle: "Classifieds",
@@ -139,7 +165,7 @@ export default function ClasificadosPage() {
         ctaPost: "Post listing",
         ctaView: "View listings",
         ctaMemberships: "Memberships",
-        ctaPricing: "See options & pricing",
+        ctaSeeOptions: "See options & pricing",
 
         sectionBrowse: "Browse by category",
         sectionFeatured: "Featured by category",
@@ -150,7 +176,7 @@ export default function ClasificadosPage() {
 
         cat: {
           rentas: { label: "Rentals", hint: "Homes, rooms, and properties." },
-          "en-venta": { label: "For Sale", hint: "Buy and sell locally." },
+          "en-venta": { label: "For sale", hint: "Buy and sell locally." },
           empleos: { label: "Jobs", hint: "Opportunities near you." },
           servicios: { label: "Services", hint: "Trusted pros and businesses." },
           autos: { label: "Autos", hint: "Cars and dealer inventory." },
@@ -165,23 +191,48 @@ export default function ClasificadosPage() {
 
         membershipsTitle: "Memberships",
         membershipsSubtitle:
-          "Key benefits. Prices are shown inside your account based on your category.",
+          "Clear options for personal sellers and businesses. Choose the one that fits how you post and sell.",
 
-        freeTitle: "Free",
+        personalHeading: "Personal",
+        negociosHeading: "Business",
+
+        freeTitle: "Gratis",
         freeBullets: [
           "Basic community posting",
-          "Short duration (great for quick posts)",
-          "Always visible & searchable",
+          "Always visible and searchable",
+          "Best for occasional posts",
         ] as const,
 
-        proTitle: "LEONIX Pro (Personal)",
+        proTitle: "LEONIX Pro",
         proBullets: [
           "Longer duration and better presentation",
           "More photos and better description",
-          "1 short “visibility assist” per listing",
-          "Basic analytics (views/saves)",
-          "Anti-spam rules (no business language, no inventory behavior)",
+          "1 visibility assist",
+          "Basic analytics",
         ] as const,
+
+        standardTitle: "Standard",
+        standardPrice: "$49/week",
+        standardBullets: [
+          "Professional business profile",
+          "Category presence",
+          "Basic analytics",
+          "1 visibility assist",
+        ] as const,
+
+        plusTitle: "Plus",
+        plusPrice: "$125/week",
+        plusBullets: [
+          "Premium profile built to convert",
+          "More contact tools",
+          "More visibility and priority",
+          "2 visibility assists",
+        ] as const,
+
+        printTitle: "Want more exposure in print?",
+        printBody:
+          "Magazine packages and premium profile opportunities are handled separately to protect the value of print.",
+        printCta: "Request the Media Kit",
 
         trustLine:
           "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
@@ -190,6 +241,7 @@ export default function ClasificadosPage() {
         routeList: "/clasificados/lista",
         routeMemberships: "/clasificados/membresias",
         routeLogin: "/clasificados/login",
+        routeContacto: "/contacto",
       },
     } as const;
 
@@ -197,28 +249,17 @@ export default function ClasificadosPage() {
   }, [lang]);
 
   const withLang = (path: string) => {
-    // Preserve hash fragments like /clasificados#memberships
     const [base, hash] = path.split("#");
     const joiner = base.includes("?") ? "&" : "?";
     const withParam = `${base}${joiner}lang=${lang}`;
     return hash ? `${withParam}#${hash}` : withParam;
   };
 
-  // ✅ Canonical: route all category entry points into the single engine (/clasificados/lista)
-  // This guarantees consistent filters/labels no matter how users enter.
   const withCategoryRoute = (cat: CategoryKey) => {
     return withLang(`/clasificados/lista?cat=${cat}`);
   };
 
-  
-  const withAccountMemberships = () => {
-    const target = `/clasificados/cuenta?lang=${lang}`;
-    const sp = new URLSearchParams();
-    sp.set("redirect", target);
-    return `/login?${sp.toString()}`;
-  };
-
-const withListParams = (cat?: CategoryKey) => {
+  const withListParams = (cat?: CategoryKey) => {
     const base = t.routeList;
     const sp = new URLSearchParams();
     sp.set("lang", lang);
@@ -231,7 +272,6 @@ const withListParams = (cat?: CategoryKey) => {
     []
   );
 
-  // Avoid hydration mismatch: detect mobile after mount
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -276,20 +316,18 @@ const withListParams = (cat?: CategoryKey) => {
       const all = sampleListings.filter((l) => l.category === cat);
       const business = all.filter((x) => x.sellerType === "business");
       const personal = all.filter((x) => x.sellerType === "personal");
-      const limit = (limits as any)[cat] as number;
-// Fair mix: businesses get priority visibility, but personal listings must appear early too
-const mixed: Listing[] = [];
-let bi = 0;
-let pi = 0;
+      const limit = (limits as Record<string, number>)[cat] as number;
+      const mixed: Listing[] = [];
+      let bi = 0;
+      let pi = 0;
 
-// Pattern: B, P, B, P... (keeps businesses strong but prevents a wall of only business)
-while (mixed.length < limit && (bi < business.length || pi < personal.length)) {
-  if (bi < business.length) mixed.push(business[bi++]);
-  if (mixed.length >= limit) break;
-  if (pi < personal.length) mixed.push(personal[pi++]);
-}
+      while (mixed.length < limit && (bi < business.length || pi < personal.length)) {
+        if (bi < business.length) mixed.push(business[bi++]);
+        if (mixed.length >= limit) break;
+        if (pi < personal.length) mixed.push(personal[pi++]);
+      }
 
-out[cat] = mixed.slice(0, limit);
+      out[cat] = mixed.slice(0, limit);
     }
 
     return out;
@@ -317,7 +355,7 @@ out[cat] = mixed.slice(0, limit);
                 {item.priceLabel[lang]}
               </div>
               <div className="mt-1 text-xs text-[#111111]">
-                {item.city} • {item.postedAgo[lang]}
+                {item.city} · {item.postedAgo[lang]}
               </div>
             </div>
 
@@ -334,8 +372,8 @@ out[cat] = mixed.slice(0, limit);
                   ? "Negocio"
                   : "Business"
                 : lang === "es"
-                ? "Personal"
-                : "Personal"}
+                  ? "Personal"
+                  : "Personal"}
             </span>
           </div>
 
@@ -348,11 +386,10 @@ out[cat] = mixed.slice(0, limit);
   };
 
   const CategoryTile = ({ cat }: { cat: CategoryKey }) => {
-    const meta = (t.cat as any)[cat] as { label: string; hint: string };
+    const meta = (t.cat as Record<string, { label: string; hint: string }>)[cat];
 
     return (
       <a
-        // ✅ CHANGED: from lista params to dedicated category page route
         href={withCategoryRoute(cat)}
         className={cx(
           "group block rounded-2xl border border-[#C9B46A]/70 bg-[#F5F5F5] backdrop-blur",
@@ -365,40 +402,38 @@ out[cat] = mixed.slice(0, limit);
               <div className="text-lg font-bold text-[#111111]">{meta.label}</div>
               <div className="mt-1 text-sm text-[#111111]">{meta.hint}</div>
             </div>
-            <div className="shrink-0 text-[#111111] group-hover:text-[#111111] transition">
+            <span className="shrink-0 text-[#111111] group-hover:text-[#111111] transition" aria-hidden>
               →
-            </div>
+            </span>
           </div>
         </div>
       </a>
     );
   };
 
-  // ✅ FIX: accept readonly arrays (tuples) and mutable arrays
   const PlanCard = ({
     title,
+    price,
     bullets,
     accent,
   }: {
     title: string;
+    price?: string;
     bullets: readonly string[];
-    accent?: "gold";
+    accent?: "gold" | "strong";
   }) => {
     return (
       <div
         className={cx(
           "rounded-2xl border bg-[#F5F5F5] backdrop-blur p-6",
-          accent === "gold" ? "border-yellow-500/25" : "border-black/10"
+          accent === "gold" && "border-yellow-500/25",
+          accent === "strong" && "border-yellow-500/40 bg-[#F8F6F0]"
         )}
       >
-        <div
-          className={cx(
-            "text-xl font-bold",
-            accent === "gold" ? "text-[#111111]" : "text-[#111111]"
-          )}
-        >
-          {title}
-        </div>
+        <div className="text-xl font-bold text-[#111111]">{title}</div>
+        {price ? (
+          <div className="mt-1 text-sm font-semibold text-[#111111]">{price}</div>
+        ) : null}
         <ul className="mt-4 space-y-2 text-sm text-[#111111]">
           {bullets.map((b, i) => (
             <li key={i} className="flex gap-2">
@@ -415,7 +450,6 @@ out[cat] = mixed.slice(0, limit);
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-28 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
       <Navbar />
 
-      {/* HERO (keep strong, cohesive) */}
       <section className="max-w-screen-2xl mx-auto px-6 pt-28">
         <div className="relative text-center mb-14">
           <div className="flex flex-wrap justify-center sm:justify-end gap-3 mb-6 sm:mb-0 sm:absolute sm:right-0 sm:top-0">
@@ -473,7 +507,6 @@ out[cat] = mixed.slice(0, limit);
         </div>
       </section>
 
-      {/* CATEGORY ENTRY (premium tiles; replaces old pills) */}
       <section className="max-w-screen-2xl mx-auto px-6">
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
@@ -488,37 +521,65 @@ out[cat] = mixed.slice(0, limit);
         </div>
       </section>
 
-      {/* MEMBERSHIPS (benefits only, no prices) */}
       <section id="memberships" className="max-w-screen-2xl mx-auto px-6 mt-16">
         <div className="border border-[#C9B46A]/70 rounded-2xl p-8 bg-[#EFEFEF]">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
-                {t.membershipsTitle}
-              </h2>
-              <p className="mt-2 text-sm text-[#111111] max-w-3xl">
-                {t.membershipsSubtitle}
-              </p>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
+              {t.membershipsTitle}
+            </h2>
+            <p className="mt-2 text-sm text-[#111111] max-w-3xl">
+              {t.membershipsSubtitle}
+            </p>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#111111]/70 mb-3">
+                {t.personalHeading}
+              </p>
+              <div className="space-y-4">
+                <PlanCard title={t.freeTitle} bullets={t.freeBullets} />
+                <PlanCard title={t.proTitle} bullets={t.proBullets} accent="gold" />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#111111]/70 mb-3">
+                {t.negociosHeading}
+              </p>
+              <div className="space-y-4">
+                <PlanCard
+                  title={t.standardTitle}
+                  price={t.standardPrice}
+                  bullets={t.standardBullets}
+                  accent="strong"
+                />
+                <PlanCard
+                  title={t.plusTitle}
+                  price={t.plusPrice}
+                  bullets={t.plusBullets}
+                  accent="strong"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] p-5">
+            <h3 className="text-base font-semibold text-[#111111]">{t.printTitle}</h3>
+            <p className="mt-2 text-sm text-[#111111]">{t.printBody}</p>
             <a
-              href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
+              href={withLang(t.routeContacto)}
+              className="mt-3 inline-flex items-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition"
             >
-              {t.ctaMemberships} →
+              {t.printCta}
             </a>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PlanCard title={t.freeTitle} bullets={t.freeBullets} />
-            <PlanCard title={t.proTitle} bullets={t.proBullets} accent="gold" />
-          </div>
-          <div className="mt-4 flex justify-start">
+          <div className="mt-6 flex justify-center">
             <Link
-              href={withAccountMemberships()}
-              className="inline-flex items-center rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-white/10 transition"
+              href={withLang(t.routeMemberships)}
+              className="inline-flex items-center rounded-full bg-[#111111] text-[#F5F5F5] font-semibold px-5 py-2.5 text-sm hover:opacity-95 transition"
             >
-              {t.ctaPricing} →
+              {t.ctaSeeOptions}
             </Link>
           </div>
         </div>
