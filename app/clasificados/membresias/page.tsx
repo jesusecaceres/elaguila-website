@@ -73,24 +73,44 @@ export default function MembresiasPage() {
         asistenciaExplain: "Ayuda a darle un impulso extra a tu anuncio por un tiempo cuando más lo necesitas.",
 
         compDuración: "Duración del anuncio",
+        compFotosContenido: "Fotos y contenido visual",
+        compVideo: "Video",
         compPresentación: "Presentación del anuncio",
-        compFotos: "Fotos incluidas",
+        compPresentacionMejor: "Mejor presentación",
         compAsistencia: "Asistencia de visibilidad",
-        compAnaliticas: "Analíticas básicas",
+        compVistas: "Vistas",
+        compGuardados: "Guardados",
+        compCompartidos: "Compartidos",
+        compBotonesContacto: "Botones de contacto",
+        compAnaliticas: "Analíticas",
         compPrioridad: "Prioridad frente a opciones básicas",
         compBasica: "Básica",
         compMejorada: "Mejorada",
+        compAmpliado: "Ampliado",
+        compNoIncluido: "No incluido",
+        compIncluido: "Incluido",
+        compSinAnaliticas: "Sin analíticas",
+        compVistasGuardadosCompartidos: "Vistas, guardados y compartidos",
+        compLlamarTexto: "Llamar o enviar texto (si el vendedor lo activa)",
         compNo: "No",
         compSi: "Sí",
         comp1: "1",
         comp2: "2",
         compPerfil: "Perfil profesional",
+        compPresenciaCategoria: "Presencia por categoría",
+        compFotosVideo: "Fotos y video",
         compHerramientasContacto: "Herramientas de contacto",
         compPrioridadVisibilidad: "Prioridad de visibilidad",
+        compAsistenciasVisibilidad: "Asistencias de visibilidad",
         compMasLlamadas: "Mejor oportunidad de generar llamadas o mensajes",
-        compConvertir: "Mejor oportunidad de convertir vistas en clientes",
+        compConvertir: "Mejor oportunidad de generar resultados",
+        compGenerarContactos: "Mejor oportunidad de generar contactos",
+        compGenerarCandidatos: "Mayor oportunidad de generar candidatos",
         standardLine: "Standard te ayuda a verte profesionalmente.",
         plusLine: "Plus te ayuda a convertir mejor esa visibilidad en oportunidades.",
+        queSignificaAsistencia: "Asistencia de visibilidad: le da un impulso extra a tu anuncio por un tiempo cuando más lo necesitas.",
+        queSignificaVistas: "Vistas, guardados y compartidos: te ayudan a ver si tu anuncio está llamando la atención.",
+        queSignificaBotones: "Botones de contacto: facilitan que te llamen o te manden texto más rápido.",
 
         autoSplit: "¿Publicas como vendedor particular o como negocio?",
         autoParticular: "Particular",
@@ -144,24 +164,24 @@ export default function MembresiasPage() {
         proPrice: "Desde tu cuenta",
         proSummary: "Más duración, mejor presentación, más fotos y 1 asistencia de visibilidad.",
         proIdeal: ["Personas que venden con más frecuencia", "Quienes quieren verse más serios y destacar mejor"],
-        proIncluye: ["Más duración y mejor presentación", "Más fotos y mejor descripción", "1 asistencia de visibilidad", "Analíticas básicas"],
-        proSignifica: "Más confianza, mejor exposición y seguimiento del rendimiento.",
+        proIncluye: ["Más duración y mejor presentación", "Más fotos, video y mejor descripción", "1 asistencia de visibilidad", "Vistas, guardados y compartidos", "Botones para llamar o enviar texto"],
+        proSignifica: "Te deja ver cómo va tu anuncio y te ayuda a entender si la gente está respondiendo.",
         proSubir: "Si ya operas como negocio o dependes de captar clientes o contratos constantemente.",
 
         standardTitle: "Standard",
         standardPrice: "$49/semana",
         standardSummary: "Bueno para establecer una presencia profesional clara.",
         standardIdeal: ["Negocios que quieren presencia profesional clara y constante", "Dueños que quieren verse mejor por categoría"],
-        standardIncluye: ["Perfil profesional del negocio", "Presencia por categoría", "Analíticas básicas", "1 asistencia de visibilidad"],
-        standardSignifica: "Mejor presencia, mejor descubrimiento y una imagen más seria y organizada.",
+        standardIncluye: ["Perfil profesional del negocio", "Presencia por categoría", "Fotos y video", "Herramientas de contacto", "1 asistencia de visibilidad por anuncio activo / 30 días", "Analíticas para ver cómo va tu negocio"],
+        standardSignifica: "Te ayuda a verte profesionalmente y a que más gente te descubra y te contacte.",
         standardSubir: "Si necesitas más llamadas, mensajes o urgencia de conversión.",
 
         plusTitle: "Plus",
         plusPrice: "$125/semana",
         plusSummary: "Bueno para negocios que quieren más impulso, más contacto y mejor oportunidad de convertir visitas en clientes.",
         plusIdeal: ["Negocios que quieren cerrar más oportunidades", "Quienes necesitan mejor visibilidad y herramientas de contacto"],
-        plusIncluye: ["Perfil premium para vender mejor", "Más herramientas de contacto", "Mayor visibilidad y prioridad", "2 asistencias de visibilidad"],
-        plusSignifica: "Más exposición, menos fricción para que te contacten y mejor oportunidad de convertir vistas en llamadas o mensajes.",
+        plusIncluye: ["Perfil premium para vender mejor", "Más herramientas de contacto", "Mayor visibilidad y prioridad", "2 asistencias de visibilidad por anuncio activo / 30 días", "Analíticas más completas"],
+        plusSignifica: "Más impulso, más llamadas y textos, y mejor oportunidad de convertir vistas en clientes.",
         plusSubir: "",
 
         quizTitle: "¿Qué plan te conviene?",
@@ -187,6 +207,10 @@ export default function MembresiasPage() {
         resultPlusWhy:
           "Nos dijiste que quieres más contacto, más visibilidad y una presencia más fuerte para generar más resultados. Plus te conviene más.",
         quizNote: "Esta guía es solo una recomendación rápida.",
+        quizAiLine: "LEONIX también puede ayudarte a mejorar tu anuncio con sugerencias como mejores fotos, mejor video o ajustes de precio cuando haga falta.",
+        clasesComunidadFree: "Comunidad: es gratis, no necesitas membresía.",
+        clasesComercialNote: "Si tu clase es de pago o claramente comercial, conviene la ruta de negocio.",
+        autoDealerNote: "Si operas como dealer, lote o inventario comercial, te corresponde esta ruta.",
         quizReset: "Volver a responder",
         ctaAccount: "Ir a mi cuenta",
 
@@ -242,24 +266,44 @@ export default function MembresiasPage() {
         asistenciaExplain: "Helps give your listing extra momentum for a period when you need it most.",
 
         compDuración: "Listing duration",
+        compFotosContenido: "Photos and visual content",
+        compVideo: "Video",
         compPresentación: "Listing presentation",
-        compFotos: "Photos included",
+        compPresentacionMejor: "Better presentation",
         compAsistencia: "Visibility assist",
-        compAnaliticas: "Basic analytics",
+        compVistas: "Views",
+        compGuardados: "Saves",
+        compCompartidos: "Shares",
+        compBotonesContacto: "Contact buttons",
+        compAnaliticas: "Analytics",
         compPrioridad: "Priority over basic options",
         compBasica: "Basic",
         compMejorada: "Enhanced",
+        compAmpliado: "Expanded",
+        compNoIncluido: "Not included",
+        compIncluido: "Included",
+        compSinAnaliticas: "No analytics",
+        compVistasGuardadosCompartidos: "Views, saves, and shares",
+        compLlamarTexto: "Call or text (if seller enables it)",
         compNo: "No",
         compSi: "Yes",
         comp1: "1",
         comp2: "2",
         compPerfil: "Professional profile",
+        compPresenciaCategoria: "Category presence",
+        compFotosVideo: "Photos and video",
         compHerramientasContacto: "Contact tools",
         compPrioridadVisibilidad: "Visibility priority",
+        compAsistenciasVisibilidad: "Visibility assists",
         compMasLlamadas: "Better chance to get calls or messages",
-        compConvertir: "Better chance to turn views into clients",
+        compConvertir: "Better chance to generate results",
+        compGenerarContactos: "Better chance to generate contacts",
+        compGenerarCandidatos: "Better chance to generate candidates",
         standardLine: "Standard helps you look professional.",
         plusLine: "Plus helps you turn that visibility into opportunities.",
+        queSignificaAsistencia: "Visibility assist: gives your listing an extra boost for a period when you need it most.",
+        queSignificaVistas: "Views, saves, and shares: help you see if your listing is getting attention.",
+        queSignificaBotones: "Contact buttons: make it easier for people to call or text you.",
 
         autoSplit: "Do you post as a private seller or as a business?",
         autoParticular: "Private",
@@ -313,24 +357,24 @@ export default function MembresiasPage() {
         proPrice: "Available in your account",
         proSummary: "Longer duration, better presentation, more photos, and 1 visibility assist.",
         proIdeal: ["People who sell more often", "Those who want to look more serious and stand out"],
-        proIncluye: ["Longer duration and better presentation", "More photos and description", "1 visibility assist", "Basic analytics"],
-        proSignifica: "More trust, better exposure, and performance tracking.",
+        proIncluye: ["Longer duration and better presentation", "More photos, video, and description", "1 visibility assist", "Views, saves, and shares", "Call or text buttons"],
+        proSignifica: "Lets you see how your listing is doing and whether people are responding.",
         proSubir: "If you already operate as a business or depend on capturing clients or contracts regularly.",
 
         standardTitle: "Standard",
         standardPrice: "$49/week",
         standardSummary: "Good for establishing a clear professional presence.",
         standardIdeal: ["Businesses that want clear, steady professional presence", "Owners who want to look better by category"],
-        standardIncluye: ["Professional business profile", "Category presence", "Basic analytics", "1 visibility assist"],
-        standardSignifica: "Better presence, better discovery, and a more serious, organized image.",
+        standardIncluye: ["Professional business profile", "Category presence", "Photos and video", "Contact tools", "1 visibility assist per active listing / 30 days", "Analytics to see how your business is doing"],
+        standardSignifica: "Helps you look professional and get discovered and contacted by more people.",
         standardSubir: "If you need more calls, messages, or conversion urgency.",
 
         plusTitle: "Plus",
         plusPrice: "$125/week",
         plusSummary: "Good for businesses that want more momentum, more contact, and better chance to turn visits into clients.",
         plusIdeal: ["Businesses that want to close more opportunities", "Those who need better visibility and contact tools"],
-        plusIncluye: ["Premium profile to sell better", "More contact tools", "Higher visibility and priority", "2 visibility assists"],
-        plusSignifica: "More exposure, less friction for people to contact you, and better chance to turn views into calls or messages.",
+        plusIncluye: ["Premium profile to sell better", "More contact tools", "Higher visibility and priority", "2 visibility assists per active listing / 30 days", "Richer analytics"],
+        plusSignifica: "More momentum, more calls and texts, and better chance to turn views into clients.",
         plusSubir: "",
 
         quizTitle: "Which plan fits you best?",
@@ -356,6 +400,10 @@ export default function MembresiasPage() {
         resultPlusWhy:
           "You said you want more contact, more visibility, and a stronger presence to generate more results. Plus fits you better.",
         quizNote: "This is just a quick recommendation.",
+        quizAiLine: "LEONIX can also help you improve your listing with suggestions like better photos, better video, or price adjustments when needed.",
+        clasesComunidadFree: "Community: it's free, no membership needed.",
+        clasesComercialNote: "If your class is paid or clearly commercial, the business path fits better.",
+        autoDealerNote: "If you operate as a dealer, lot, or commercial inventory, this path is for you.",
         quizReset: "Answer again",
         ctaAccount: "Go to my account",
 
@@ -511,12 +559,15 @@ export default function MembresiasPage() {
 
   const PersonalCompare = () => {
     const rows: { feature: string; gratis: string; pro: string }[] = [
-      { feature: L.compDuración, gratis: L.compBasica, pro: L.compMejorada },
-      { feature: L.compPresentación, gratis: L.compBasica, pro: L.compMejorada },
-      { feature: L.compFotos, gratis: L.compBasica, pro: L.compMejorada },
+      { feature: L.compDuración, gratis: L.compBasica, pro: L.compAmpliado },
+      { feature: L.compFotosContenido, gratis: L.compBasica, pro: L.compAmpliado },
+      { feature: L.compVideo, gratis: L.compNoIncluido, pro: L.compIncluido },
       { feature: L.compAsistencia, gratis: L.compNo, pro: L.comp1 },
-      { feature: L.compAnaliticas, gratis: L.compNo, pro: L.compSi },
-      { feature: L.compPrioridad, gratis: L.compNo, pro: L.compSi },
+      { feature: L.compVistas, gratis: L.compSinAnaliticas, pro: L.compSi },
+      { feature: L.compGuardados, gratis: L.compSinAnaliticas, pro: L.compSi },
+      { feature: L.compCompartidos, gratis: L.compSinAnaliticas, pro: L.compSi },
+      { feature: L.compBotonesContacto, gratis: L.compNo, pro: L.compLlamarTexto },
+      { feature: L.compPresentacionMejor, gratis: L.compBasica, pro: L.compMejorada },
     ];
     return (
       <div className="mt-4 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] overflow-hidden">
@@ -531,7 +582,6 @@ export default function MembresiasPage() {
           </button>
         </div>
         <div className="p-3 sm:p-4">
-          <p className="text-xs text-[#111111]/60 mb-3">{L.asistenciaExplain}</p>
           <div className="hidden sm:grid sm:grid-cols-3 gap-2 text-sm mb-2">
             <div className="font-semibold text-[#111111]">{L.incluye}</div>
             <div className="font-semibold text-[#111111]">{L.gratisTitle}</div>
@@ -552,21 +602,38 @@ export default function MembresiasPage() {
               </div>
             ))}
           </div>
+          <div className="mt-4 pt-3 border-t border-[#111111]/10 space-y-1.5 text-xs text-[#111111]/70">
+            <p>{L.queSignificaAsistencia}</p>
+            <p>{L.queSignificaVistas}</p>
+            <p>{L.queSignificaBotones}</p>
+          </div>
         </div>
       </div>
     );
   };
 
-  const BusinessCompare = () => {
-    const rows: { feature: string; standard: string; plus: string }[] = [
+  const BusinessCompare = ({ empleos = false }: { empleos?: boolean }) => {
+    const defaultRows: { feature: string; standard: string; plus: string }[] = [
       { feature: L.compPerfil, standard: L.compSi, plus: L.compSi },
+      { feature: L.compPresenciaCategoria, standard: L.compSi, plus: L.compSi },
+      { feature: L.compFotosVideo, standard: L.compSi, plus: L.compMejorada },
       { feature: L.compHerramientasContacto, standard: L.compBasica, plus: L.compMejorada },
       { feature: L.compPrioridadVisibilidad, standard: L.compBasica, plus: L.compMejorada },
       { feature: L.compAnaliticas, standard: L.compSi, plus: L.compSi },
-      { feature: L.compAsistencia, standard: L.comp1, plus: L.comp2 },
+      { feature: L.compAsistenciasVisibilidad, standard: L.comp1, plus: L.comp2 },
       { feature: L.compMasLlamadas, standard: L.compBasica, plus: L.compMejorada },
-      { feature: L.compConvertir, standard: L.compBasica, plus: L.compMejorada },
+      { feature: empleos ? L.compGenerarCandidatos : L.compConvertir, standard: L.compBasica, plus: L.compMejorada },
     ];
+    const rows = empleos
+      ? [
+          { feature: L.compPerfil, standard: L.compSi, plus: L.compSi },
+          { feature: L.compPresenciaCategoria, standard: L.compSi, plus: L.compSi },
+          { feature: L.compHerramientasContacto, standard: L.compBasica, plus: L.compMejorada },
+          { feature: L.compAnaliticas, standard: L.compSi, plus: L.compSi },
+          { feature: L.compAsistenciasVisibilidad, standard: L.comp1, plus: L.comp2 },
+          { feature: L.compGenerarCandidatos, standard: L.compBasica, plus: L.compMejorada },
+        ]
+      : defaultRows;
     return (
       <div className="mt-4 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] overflow-hidden">
         <div className="p-3 sm:p-4 border-b border-[#111111]/10 flex items-center justify-between">
@@ -735,7 +802,7 @@ export default function MembresiasPage() {
                   />
                 </div>
                 {showPersonalCompare && <PersonalCompare />}
-                <p className="mt-4 text-xs text-[#111111]/70">{L.autoParticularNote}</p>
+                <p className="mt-4 text-xs text-[#111111]/70">{L.autoDealerNote}</p>
               </>
             )}
             {autoSub === "negocio" && (
@@ -887,7 +954,7 @@ export default function MembresiasPage() {
                 onShowCompare={() => setShowBusinessCompare(true)}
               />
             </div>
-            {showBusinessCompare && <BusinessCompare />}
+            {showBusinessCompare && <BusinessCompare empleos />}
           </section>
         )}
 
@@ -926,6 +993,7 @@ export default function MembresiasPage() {
 
         {selectedCategory === "clases" && (
           <section className="mb-8 rounded-2xl border border-[#C9B46A]/20 bg-[#F5F5F5] p-4 sm:p-6">
+            <p className="text-sm text-[#111111] mb-2">{L.clasesComunidadFree}</p>
             <p className="text-sm text-[#111111] mb-4">{L.clasesIntro}</p>
             <p className="text-xs font-medium text-[#111111]/80 mb-2">{L.clasesPersonal}</p>
             <div className="space-y-3 mb-6">
@@ -952,6 +1020,7 @@ export default function MembresiasPage() {
               />
             </div>
             <p className="text-xs font-medium text-[#111111]/80 mb-2">{L.clasesNegocio}</p>
+            <p className="text-xs text-[#111111]/70 mb-3">{L.clasesComercialNote}</p>
             <div className="space-y-3">
               <PlanCard
                 id="standard"
@@ -963,19 +1032,22 @@ export default function MembresiasPage() {
                 significa={L.standardSignifica}
                 cuandoSubir={L.standardSubir}
                 accent="strong"
+                onShowCompare={() => setShowBusinessCompare(true)}
               />
               <PlanCard
                 id="plus"
                 title={L.plusTitle}
                 price={L.plusPrice}
-                summary={L.plusSummary}
+                summary={L.plusSummaryStrong}
                 ideal={L.plusIdeal}
                 incluye={L.plusIncluye}
                 significa={L.plusSignifica}
                 cuandoSubir={L.plusSubir}
                 accent="strong"
+                onShowCompare={() => setShowBusinessCompare(true)}
               />
             </div>
+            {showBusinessCompare && <BusinessCompare />}
           </section>
         )}
 
@@ -1035,6 +1107,7 @@ export default function MembresiasPage() {
               <div className="mt-4 rounded-xl border border-[#C9B46A]/40 bg-[#F5F5F5] p-4">
                 <p className="text-lg font-bold text-[#111111]">{quizResult === "standard" ? L.resultStandard : L.resultPlus}</p>
                 <p className="mt-2 text-sm text-[#111111]/90">{quizResult === "standard" ? L.resultStandardWhy : L.resultPlusWhy}</p>
+                <p className="mt-2 text-xs text-[#111111]/70">{L.quizAiLine}</p>
                 <p className="mt-3 text-xs text-[#111111]/60">{L.quizNote}</p>
                 <Link href={withLang(L.routeCuenta)} className="mt-4 block w-full text-center rounded-xl bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-4 text-sm hover:opacity-95 transition">
                   {L.ctaAccount}
