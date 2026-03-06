@@ -10,6 +10,12 @@ type Lang = "es" | "en";
 
 const EDIT_WINDOW_MINUTES = 30;
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value: string): boolean {
+  return typeof value === "string" && UUID_REGEX.test(value.trim());
+}
+
 /** Safe helper: extract URL strings from listings.images (jsonb). Array of strings or array of objects with url/src/path. */
 function getListingImageUrls(images: unknown): string[] {
   if (images == null) return [];
@@ -131,7 +137,11 @@ const [uploadNote, setUploadNote] = useState<string | null>(null);
 
 
   useEffect(() => {
-    if (!id) return;
+    const resolvedId = typeof id === "string" ? id.trim() : "";
+    if (!resolvedId || !isValidUuid(resolvedId)) {
+      router.replace("/dashboard/mis-anuncios");
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
     let mounted = true;
 
@@ -194,7 +204,10 @@ const [uploadNote, setUploadNote] = useState<string | null>(null);
 
 
 async function uploadImages() {
-  if (!id) return;
+  if (!id || !isValidUuid(id)) {
+    router.replace("/dashboard/mis-anuncios");
+    return;
+  }
   if (!userId) return;
   if (selectedFiles.length === 0) return;
 
@@ -274,7 +287,10 @@ async function uploadImages() {
 }
 
   async function save() {
-    if (!id) return;
+    if (!id || !isValidUuid(id)) {
+      router.replace("/dashboard/mis-anuncios");
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
 
     setSaving(true);
@@ -305,7 +321,10 @@ async function uploadImages() {
   }
 
   async function markStatus(status: "active" | "sold") {
-    if (!id) return;
+    if (!id || !isValidUuid(id)) {
+      router.replace("/dashboard/mis-anuncios");
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
 
     setBusyAction("status");
@@ -325,7 +344,10 @@ async function uploadImages() {
   }
 
   async function deleteListing() {
-    if (!id) return;
+    if (!id || !isValidUuid(id)) {
+      router.replace("/dashboard/mis-anuncios");
+      return;
+    }
     if (!confirm(L.confirmDelete)) return;
 
     const supabase = createSupabaseBrowserClient();
