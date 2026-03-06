@@ -16,6 +16,21 @@ type ProfileRow = {
   owned_city_slug: string | null;
 };
 
+type ListingRow = {
+  id: string;
+  title: string | null;
+  price: number | string | null;
+  city: string | null;
+  zip: string | null;
+  status: string | null;
+  created_at: string | null;
+  created: string | null;
+  category: string | null;
+  image_urls?: string[] | null;
+  image?: string | null;
+};
+
+const LISTINGS_LIMIT = 12;
 const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
 const ALLOWED_MEMBERSHIP_TIERS = ["gratis", "pro", "business_lite", "business_premium"] as const;
 
@@ -29,6 +44,54 @@ function formatDate(iso: string | null): string {
   } catch {
     return "—";
   }
+}
+
+function formatListingDate(iso: string | null): string {
+  return formatDate(iso);
+}
+
+function formatMoney(price: number | string | null): string {
+  if (price === null || price === undefined) return "—";
+  const n = typeof price === "number" ? price : Number(price);
+  if (!Number.isFinite(n)) return "—";
+  if (n === 0) return "Gratis";
+  try {
+    return new Intl.NumberFormat("es-MX", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  } catch {
+    return "—";
+  }
+}
+
+function getListingImage(row: ListingRow): string | null {
+  const urls = row.image_urls;
+  if (Array.isArray(urls) && urls.length > 0 && typeof urls[0] === "string") return urls[0];
+  if (typeof row.image === "string" && row.image.trim()) return row.image.trim();
+  return null;
+}
+
+function humanStatus(status: string | null): string {
+  const s = (status ?? "").trim().toLowerCase();
+  if (s === "active") return "Activo";
+  if (s === "draft") return "Borrador";
+  if (s === "sold") return "Vendido";
+  if (s === "expired") return "Expirado";
+  return s || "—";
+}
+
+function humanCategory(cat: string | null): string {
+  const c = (cat ?? "").trim();
+  if (!c) return "—";
+  const map: Record<string, string> = {
+    "en-venta": "En venta",
+    rentas: "Rentas",
+    autos: "Autos",
+    empleos: "Empleos",
+    servicios: "Servicios",
+    restaurantes: "Restaurantes",
+    travel: "Viajes",
+    viajes: "Viajes",
+  };
+  return map[c] ?? c;
 }
 
 function displayName(row: ProfileRow): string {
@@ -162,6 +225,27 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
 
   if (!row) {
     notFound();
+  }
+
+  let listings: ListingRow[] = [];
+  let listingsError: string | null = null;
+
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("listings")
+      .select("id,title,price,city,zip,status,created_at,created,category,image_urls,image")
+      .eq("user_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(LISTINGS_LIMIT);
+
+    if (error) {
+      listingsError = error.message;
+    } else if (data && Array.isArray(data)) {
+      listings = data as ListingRow[];
+    }
+  } catch {
+    listingsError = "No se pudieron cargar los anuncios.";
   }
 
   const name = displayName(row);
@@ -378,6 +462,78 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
               Sobrescritura administrativa. Solo se actualizan tipo de cuenta y membresía.
             </p>
           </form>
+        </section>
+
+        <section className="rounded-2xl border border-yellow-600/20 bg-white/5 p-5 sm:p-6">
+          <h2 className="text-base font-semibold text-yellow-400/90 mb-1">
+            Clasificados del cliente
+          </h2>
+          <p className="text-sm text-white/60 mb-4">
+            Anuncios relacionados con esta cuenta.
+          </p>
+
+          {listingsError ? (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+              <p className="text-sm text-red-200">{listingsError}</p>
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-6 text-center">
+              <p className="text-sm text-white/60">Este cliente aún no tiene anuncios.</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-white/50 mb-3">
+                Mostrando {listings.length} reciente{listings.length !== 1 ? "s" : ""}.
+              </p>
+              <ul className="space-y-3">
+                {listings.map((listing) => {
+                  const imgUrl = getListingImage(listing);
+                  const title = (listing.title ?? "").trim() || "(sin título)";
+                  return (
+                    <li
+                      key={listing.id}
+                      className="rounded-xl border border-white/5 bg-black/20 p-4 flex flex-wrap gap-4 items-start"
+                    >
+                      {imgUrl ? (
+                        <div className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white/5">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={imgUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : null}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white/90">{title}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-white/60">
+                          <span>{humanCategory(listing.category)}</span>
+                          <span>{formatMoney(listing.price)}</span>
+                          <span>{listing.city ?? "—"}</span>
+                          <span>{humanStatus(listing.status)}</span>
+                          <span>{formatListingDate(listing.created_at ?? listing.created)}</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Link
+                            href={`/clasificados/anuncio/${listing.id}`}
+                            className="text-xs text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                          >
+                            Ver anuncio
+                          </Link>
+                          <Link
+                            href={`/dashboard/mis-anuncios/${listing.id}/editar`}
+                            className="text-xs text-white/60 hover:text-white/80 underline underline-offset-2"
+                          >
+                            Editar
+                          </Link>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </section>
 
         <div className="flex flex-wrap gap-3 pt-2">
