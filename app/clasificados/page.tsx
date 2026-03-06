@@ -110,35 +110,35 @@ export default function ClasificadosPage() {
 
         freeTitle: "Gratis",
         freeBullets: [
-          "Publicación básica para la comunidad",
-          "Siempre visible y buscable",
+          "7 días por anuncio; menos fotos; sin video",
+          "Límite bajo de republicaciones",
           "Ideal para anuncios ocasionales",
         ] as const,
 
         proTitle: "LEONIX Pro",
         proBullets: [
-          "Más duración y mejor presentación",
-          "Más fotos y mejor descripción",
-          "1 asistencia de visibilidad",
-          "Analíticas básicas",
+          "Por anuncio: $9.99 (en venta), $24.99 (rentas/empleos)",
+          "30 días por anuncio; más fotos y video",
+          "Vistas, guardados, compartidos; 1 asistencia de visibilidad",
+          "Formas de contacto (llamar o texto)",
         ] as const,
 
         standardTitle: "Standard",
-        standardPrice: "$49/semana",
+        standardPrice: "$49 al mes",
         standardBullets: [
           "Perfil profesional para tu negocio",
           "Presencia por categoría",
-          "Analíticas básicas",
-          "1 asistencia de visibilidad",
+          "Solo imágenes (sin video); contacto por llamada",
+          "1 asistencia de visibilidad por anuncio activo / 30 días",
         ] as const,
 
         plusTitle: "Plus",
-        plusPrice: "$125/semana",
+        plusPrice: "$125 al mes",
         plusBullets: [
           "Perfil premium para vender mejor",
-          "Más herramientas de contacto",
+          "Más formas de contacto (mensaje, email, videollamada, cotización)",
           "Mayor visibilidad y prioridad",
-          "2 asistencias de visibilidad",
+          "2 asistencias de visibilidad por anuncio activo / 30 días",
         ] as const,
 
         printTitle: "¿Quieres más exposición en revista?",
@@ -198,35 +198,35 @@ export default function ClasificadosPage() {
 
         freeTitle: "Gratis",
         freeBullets: [
-          "Basic community posting",
-          "Always visible and searchable",
+          "7 days per listing; fewer photos; no video",
+          "Low repost limit",
           "Best for occasional posts",
         ] as const,
 
         proTitle: "LEONIX Pro",
         proBullets: [
-          "Longer duration and better presentation",
-          "More photos and better description",
-          "1 visibility assist",
-          "Basic analytics",
+          "Per listing: $9.99 (for sale), $24.99 (rentals/jobs)",
+          "30 days per listing; more photos and video",
+          "Views, saves, shares; 1 visibility assist",
+          "Contact options (call or text)",
         ] as const,
 
         standardTitle: "Standard",
-        standardPrice: "$49/week",
+        standardPrice: "$49/month",
         standardBullets: [
           "Professional business profile",
           "Category presence",
-          "Basic analytics",
-          "1 visibility assist",
+          "Images only (no video); contact by call",
+          "1 visibility assist per active listing / 30 days",
         ] as const,
 
         plusTitle: "Plus",
-        plusPrice: "$125/week",
+        plusPrice: "$125/month",
         plusBullets: [
           "Premium profile built to convert",
-          "More contact tools",
+          "More contact options (message, email, video call, quote)",
           "More visibility and priority",
-          "2 visibility assists",
+          "2 visibility assists per active listing / 30 days",
         ] as const,
 
         printTitle: "Want more exposure in print?",
