@@ -428,7 +428,7 @@ function NavbarContent() {
         </button>
       </div>
 
-      {/* MOBILE OVERLAY + DRAWER — viewport-safe, scrollable, no overflow */}
+      {/* MOBILE DRAWER — 3 zones: top (title/close), middle (nav links, scrolls), bottom (account + lang) */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[999]">
           <button
@@ -438,72 +438,74 @@ function NavbarContent() {
           />
 
           <div
-            className="absolute top-0 right-0 bottom-0 w-[min(88vw,22rem)] max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-black/90 backdrop-blur-xl rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border-l border-white/10"
+            className="absolute top-0 right-0 w-[min(88vw,22rem)] max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-black/90 backdrop-blur-xl rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border-l border-white/10"
             role="dialog"
             aria-modal="true"
+            style={{ height: "100dvh" }}
           >
-            <div className="flex-shrink-0 flex items-center justify-between p-4 pb-2">
-              <span className="text-white/60 text-sm font-medium">Menú</span>
+            {/* ZONE 1: Top — title + close, always visible */}
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-white/70 text-sm font-semibold">Menú</span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="text-white text-2xl leading-none p-2 -m-2"
+                className="text-white text-2xl leading-none p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Close menu"
               >
                 ×
               </button>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4 flex flex-col gap-4">
-              {navLinks.map((item, i) => (
-                <Link
-                  key={i}
-                  href={buildLink(item.href)}
-                  onClick={() => setMobileOpen(false)}
-                  className={cx(
-                    "text-base font-semibold py-1",
-                    item.gold ? "text-yellow-300" : "text-white",
-                    isActive(item.href) && !item.gold && "text-yellow-200"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            {/* ZONE 2: Middle — nav links only, primary scroll area */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+              <nav className="flex flex-col gap-1" aria-label="Navegación">
+                {navLinks.map((item, i) => (
+                  <Link
+                    key={i}
+                    href={buildLink(item.href)}
+                    onClick={() => setMobileOpen(false)}
+                    className={cx(
+                      "py-2.5 text-[15px] font-semibold",
+                      item.gold ? "text-yellow-300" : "text-white",
+                      isActive(item.href) && !item.gold && "text-yellow-200"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
 
-              <section
-                aria-label={L.account}
-                className="mt-2 pt-4 border-t border-white/10 flex-shrink-0"
-              >
+            {/* ZONE 3: Bottom — account card + language, pinned */}
+            <div className="flex-shrink-0 flex flex-col gap-3 px-4 py-4 pt-3 border-t border-white/10">
+              <section aria-label={L.account} className="rounded-2xl border border-yellow-500/20 bg-white/5 p-3">
                 {authLoading ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 animate-pulse">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-white/10" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 w-32 rounded bg-white/10" />
-                        <div className="h-3 w-40 rounded bg-white/10" />
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-white/10 flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3.5 w-24 rounded bg-white/10" />
+                      <div className="h-3 w-20 rounded bg-white/10" />
                     </div>
-                    <div className="mt-3 h-10 rounded-xl bg-white/10" />
                   </div>
                 ) : user ? (
-                  <div className="rounded-2xl border border-yellow-500/20 bg-white/5 p-4">
+                  <>
                     <div className="flex items-center gap-3">
                       {user.avatarUrl ? (
                         <img
                           src={user.avatarUrl}
                           alt=""
-                          className="h-12 w-12 rounded-full border border-yellow-500/30 object-cover flex-shrink-0"
+                          className="h-10 w-10 rounded-full border border-yellow-500/30 object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="h-12 w-12 rounded-full border border-yellow-500/30 bg-yellow-600/20 flex items-center justify-center text-yellow-200 font-bold text-lg flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full border border-yellow-500/30 bg-yellow-600/20 flex items-center justify-center text-yellow-200 font-bold text-sm flex-shrink-0">
                           {initials}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-white font-semibold truncate">
+                        <div className="text-white font-semibold text-sm truncate">
                           {displayName}
                         </div>
                         {user.email && (
-                          <div className="text-white/70 text-sm truncate">
+                          <div className="text-white/70 text-xs truncate">
                             {user.email}
                           </div>
                         )}
@@ -512,65 +514,64 @@ function NavbarContent() {
                         </div>
                       </div>
                     </div>
-                    <Link
-                      href={`/dashboard?lang=${lang}`}
-                      onClick={() => setMobileOpen(false)}
-                      className="mt-3 flex w-full items-center justify-center rounded-xl bg-yellow-500/90 px-4 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
-                    >
-                      {L.manageAccount}
-                    </Link>
-                    <Link
-                      href={`/dashboard/mis-anuncios?lang=${lang}`}
-                      onClick={() => setMobileOpen(false)}
-                      className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
-                    >
-                      {L.myListings}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await signOut();
-                      }}
-                      className="mt-2 w-full rounded-xl border border-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition text-center"
-                    >
-                      {L.signOut}
-                    </button>
-                  </div>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <Link
+                        href={`/dashboard?lang=${lang}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="w-full rounded-xl bg-yellow-500/90 px-3 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition text-center"
+                      >
+                        {L.manageAccount}
+                      </Link>
+                      <Link
+                        href={`/dashboard/mis-anuncios?lang=${lang}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white hover:bg-white/10 transition text-center"
+                      >
+                        {L.myListings}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await signOut();
+                        }}
+                        className="w-full rounded-xl border border-white/10 px-3 py-2 text-sm text-white/80 hover:bg-white/5 transition text-center"
+                      >
+                        {L.signOut}
+                      </button>
+                    </div>
+                  </>
                 ) : (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex flex-col gap-2">
                     <h3 className="text-sm font-semibold text-white/90">
                       {L.account}
                     </h3>
-                    <div className="mt-3 flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileOpen(false);
-                          goToLogin();
-                        }}
-                        className="w-full rounded-xl bg-yellow-500/90 px-4 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
-                      >
-                        {L.signIn}
-                      </button>
-                      <Link
-                        href={`/login?mode=signup&lang=${lang}`}
-                        onClick={() => setMobileOpen(false)}
-                        className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition text-center"
-                      >
-                        {L.createAccount}
-                      </Link>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        goToLogin();
+                      }}
+                      className="w-full rounded-xl bg-yellow-500/90 px-3 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                    >
+                      {L.signIn}
+                    </button>
+                    <Link
+                      href={`/login?mode=signup&lang=${lang}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition text-center block"
+                    >
+                      {L.createAccount}
+                    </Link>
                   </div>
                 )}
               </section>
-
-              <div className="flex gap-6 py-4 text-white text-base font-semibold flex-shrink-0">
+              <div className="flex gap-6 text-white text-sm font-semibold">
                 <button
                   onClick={() => {
                     switchLang("es");
                     setMobileOpen(false);
                   }}
-                  className={lang === "es" ? "text-yellow-400" : ""}
+                  className={lang === "es" ? "text-yellow-400" : "text-white/90"}
                   aria-label="Cambiar idioma a Español"
                 >
                   ES
@@ -580,7 +581,7 @@ function NavbarContent() {
                     switchLang("en");
                     setMobileOpen(false);
                   }}
-                  className={lang === "en" ? "text-yellow-400" : ""}
+                  className={lang === "en" ? "text-yellow-400" : "text-white/90"}
                   aria-label="Switch language to English"
                 >
                   EN

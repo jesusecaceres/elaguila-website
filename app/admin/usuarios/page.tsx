@@ -15,10 +15,13 @@ type ProfileRow = {
   owned_city_slug: string | null;
 };
 
+/** First 4 + last 4 meaningful chars of UUID (no hyphens), uppercase, e.g. CDCC-3790 */
 function accountRefFromId(id: string): string {
-  const s = (id ?? "").trim();
-  if (!s) return "—";
-  return s.slice(0, 8).toUpperCase();
+  const s = (id ?? "").replace(/-/g, "").trim();
+  if (s.length < 8) return "—";
+  const first = s.slice(0, 4).toUpperCase();
+  const last = s.slice(-4).toUpperCase();
+  return `${first}-${last}`;
 }
 
 function formatDate(iso: string | null): string {
@@ -48,11 +51,19 @@ function membresia(tier: string | null): string {
 
 function matchesSearch(row: ProfileRow, q: string): boolean {
   if (!q) return true;
-  const ref = accountRefFromId(row.id).toLowerCase();
+  const ref = accountRefFromId(row.id).toLowerCase().replace(/-/g, "");
+  const rawId = (row.id ?? "").toLowerCase().replace(/-/g, "");
   const name = (row.display_name ?? "").toLowerCase();
   const email = (row.email ?? "").toLowerCase();
   const phone = (row.phone ?? "").toLowerCase();
-  return ref.includes(q) || name.includes(q) || email.includes(q) || phone.includes(q);
+  const qNorm = q.replace(/-/g, "");
+  return (
+    ref.includes(qNorm) ||
+    rawId.includes(qNorm) ||
+    name.includes(q) ||
+    email.includes(q) ||
+    phone.includes(q)
+  );
 }
 
 type PageProps = {
@@ -111,7 +122,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
           </div>
         ) : (
           <>
-            <form method="get" action="/admin/usuarios" className="mb-6">
+            <form method="get" action="/admin/usuarios" className="mb-4">
               <label htmlFor="admin-user-search" className="sr-only">
                 Buscar clientes
               </label>
@@ -126,6 +137,11 @@ export default async function AdminUsuariosPage(props: PageProps) {
               <p className="mt-1.5 text-xs text-white/50">
                 Busca por nombre, correo, teléfono o referencia.
               </p>
+              {!queryError && (
+                <p className="mt-1 text-xs text-white/40">
+                  Mostrando {filteredRows.length} cuenta{filteredRows.length !== 1 ? "s" : ""}.
+                </p>
+              )}
             </form>
 
             {filteredRows.length === 0 ? (
@@ -140,58 +156,60 @@ export default async function AdminUsuariosPage(props: PageProps) {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="p-3 font-semibold text-yellow-400/90">Ref</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Nombre</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Correo</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Teléfono</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Ciudad</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Tipo de cuenta</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Membresía</th>
-                        <th className="p-3 font-semibold text-yellow-400/90">Fecha</th>
+                        <th className="p-2.5 pr-3 font-semibold text-yellow-400/90 whitespace-nowrap">Cuenta #</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 min-w-[120px]">Nombre</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 min-w-[140px]">Correo</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Teléfono</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90">Ciudad</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Tipo</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Membresía</th>
+                        <th className="p-2.5 font-semibold text-yellow-400/90 whitespace-nowrap">Fecha</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredRows.map((row) => (
                         <tr key={row.id} className="border-b border-white/5">
-                          <td className="p-3 font-mono text-xs text-yellow-400/80">
+                          <td className="p-2.5 pr-3 font-mono text-xs text-yellow-400/90 whitespace-nowrap">
                             {accountRefFromId(row.id)}
                           </td>
-                          <td className="p-3 text-white/90">
+                          <td className="p-2.5 min-w-0 max-w-[200px]">
                             <Link
                               href={`/admin/usuarios/${row.id}`}
-                              className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2"
+                              className="text-yellow-400/90 hover:text-yellow-400 underline underline-offset-2 truncate block"
                             >
                               {displayName(row)}
                             </Link>
                             {row.owned_city_slug?.trim() && (
-                              <span className="block text-xs text-white/50 mt-0.5">
+                              <span className="block text-xs text-white/50 mt-0.5 truncate">
                                 {row.owned_city_slug.trim()}
                               </span>
                             )}
                           </td>
-                          <td className="p-3 text-white/70">{correo(row)}</td>
-                          <td className="p-3 text-white/70">{row.phone ?? "—"}</td>
-                          <td className="p-3 text-white/70">{row.home_city ?? "—"}</td>
-                          <td className="p-3 text-white/70">{row.account_type ?? "—"}</td>
-                          <td className="p-3 text-white/70">{membresia(row.membership_tier)}</td>
-                          <td className="p-3 text-white/60">{formatDate(row.created_at)}</td>
+                          <td className="p-2.5 text-white/70 min-w-0 max-w-[180px] truncate" title={correo(row)}>
+                            {correo(row)}
+                          </td>
+                          <td className="p-2.5 text-white/70 whitespace-nowrap">{row.phone ?? "—"}</td>
+                          <td className="p-2.5 text-white/70 whitespace-nowrap">{row.home_city ?? "—"}</td>
+                          <td className="p-2.5 text-white/70 whitespace-nowrap">{row.account_type ?? "—"}</td>
+                          <td className="p-2.5 text-white/70 whitespace-nowrap">{membresia(row.membership_tier)}</td>
+                          <td className="p-2.5 text-white/60 whitespace-nowrap">{formatDate(row.created_at)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                <div className="md:hidden space-y-4">
+                <div className="md:hidden space-y-3">
                   {filteredRows.map((row) => (
                     <div
                       key={row.id}
                       className="rounded-2xl border border-yellow-600/20 bg-white/5 p-4"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="font-semibold text-yellow-400/90">
+                        <div className="font-semibold text-yellow-400/90 min-w-0 truncate">
                           {displayName(row)}
                         </div>
-                        <span className="font-mono text-xs text-yellow-400/80 flex-shrink-0">
+                        <span className="font-mono text-xs text-yellow-400/90 flex-shrink-0">
                           Cuenta #{accountRefFromId(row.id)}
                         </span>
                       </div>

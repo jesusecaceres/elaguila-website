@@ -35,10 +35,13 @@ const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
 const PERSONAL_TIERS = ["gratis", "pro"] as const;
 const BUSINESS_TIERS = ["business_lite", "business_premium"] as const;
 
+/** First 4 + last 4 meaningful chars of UUID (no hyphens), uppercase, e.g. CDCC-3790 */
 function accountRefFromId(id: string): string {
-  const s = (id ?? "").trim();
-  if (!s) return "—";
-  return s.slice(0, 8).toUpperCase();
+  const s = (id ?? "").replace(/-/g, "").trim();
+  if (s.length < 8) return "—";
+  const first = s.slice(0, 4).toUpperCase();
+  const last = s.slice(-4).toUpperCase();
+  return `${first}-${last}`;
 }
 
 function formatDate(iso: string | null): string {
@@ -316,18 +319,18 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             ← Volver a clientes
           </Link>
           <p className="text-sm text-yellow-400/90">Cliente</p>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400 mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-yellow-400 mt-1">
             {name}
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1.5 text-sm text-white/60">
             Vista administrativa de cuenta
           </p>
-          <div className="mt-3">
-            <p className="text-sm text-white/80">
+          <div className="mt-4 space-y-2">
+            <p className="text-sm">
               <span className="text-white/50">Cuenta #</span>{" "}
-              <span className="font-mono font-semibold text-yellow-400/90">{accountRefFromId(row.id)}</span>
+              <span className="font-mono font-semibold text-yellow-400/95">{accountRefFromId(row.id)}</span>
             </p>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="text-xs text-white/45">
               <span className="text-white/40">ID interno</span>{" "}
               <span className="font-mono break-all">{row.id}</span>
             </p>
