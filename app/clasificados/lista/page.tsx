@@ -358,6 +358,19 @@ const CATEGORY_ORDER: CategoryKey[] = [
   "travel",
 ];
 
+/** Pills only: real categories, no Todos. */
+const CATEGORY_PILL_ORDER: CategoryKey[] = [
+  "en-venta",
+  "rentas",
+  "autos",
+  "restaurantes",
+  "servicios",
+  "empleos",
+  "clases",
+  "comunidad",
+  "travel",
+];
+
 /** Quick pick tiles for mobile Search Panel (icon + label). "more" opens Más filtros drawer. */
 const QUICK_PICKS: Array<{ key: CategoryKey | "more"; icon: string; labelEs: string; labelEn: string }> = [
   { key: "all", icon: "📋", labelEs: "Todos", labelEn: "All" },
@@ -833,12 +846,7 @@ export default function ListaPage() {
   const [isMobileUI, setIsMobileUI] = useState(false);
   const [showTop, setShowTop] = useState(false);
 
-  const [filtersCollapsed, setFiltersCollapsed] = useState(true);
-
-  // Servicios uses the Yelp-style top bar (Todo + hover groups). No collapsed sidebar button.
-  useEffect(() => {
-    if (category === "servicios" && filtersCollapsed) setFiltersCollapsed(false);
-  }, [category, filtersCollapsed]);
+  const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(false);
 
 // Category switching polish (A4.19)
 
@@ -4364,7 +4372,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             </div>
 
             <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {CATEGORY_ORDER.map((c) => {
+              {CATEGORY_PILL_ORDER.map((c) => {
                 const active = c === category;
                 return (
                   <button
@@ -4393,525 +4401,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         <div
           className={cx(
-            "transition-opacity duration-200",
-            isServicios ? "mt-2" : "mt-6",
-            "md:grid md:items-start md:gap-6",
-            isServicios ? "md:grid-cols-[minmax(0,1fr)]" : (filtersCollapsed ? "md:grid-cols-[52px,minmax(0,1fr)]" : "md:grid-cols-[minmax(140px,168px),minmax(0,1fr)]"),
+            "transition-opacity duration-200 mt-2 md:grid md:items-start md:gap-4 md:grid-cols-[minmax(0,1fr)]",
             isSwitchingCategory ? "opacity-80" : "opacity-100"
           )}
         >
-        {/* FILTERS SIDEBAR (desktop) — not shown for Servicios */}
-        {!isServicios && (
-        <aside
-          className={cx(
-            "hidden md:block",
-            "w-[240px] lg:w-[260px]",
-            "sticky top-[calc(56px+12px)] z-30",
-            "rounded-2xl border border-black/10 bg-white shadow-sm",
-            compact ? "shadow-lg" : ""
-          )}
-        >
-          {filtersCollapsed ? (
-            <div className="flex h-full flex-col items-center justify-start p-2">
-              <button
-                type="button"
-                onClick={() => setFiltersCollapsed(false)}
-                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                aria-label={lang === "es" ? "Mostrar filtros" : "Show filters"}
-                title={lang === "es" ? "Mostrar filtros" : "Show filters"}
-              >
-                ≡
-              </button>
-            </div>
-          ) : (
-            <div className="p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-[#111111]">
-                    {lang === "es" ? "Filtros" : "Filters"}
-                  </div>
-                  <div className="mt-0.5 text-xs text-[#111111]">
-                    {lang === "es"
-                      ? "Ajusta para afinar resultados."
-                      : "Adjust to refine results."}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFiltersCollapsed(true)}
-                  className="shrink-0 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                  aria-label={lang === "es" ? "Cerrar" : "Close"}
-                >
-                  {lang === "es" ? "Cerrar" : "Close"}
-                </button>
-              </div>
-
-              {/* Radius (unified shell: moved from main bar so search bar = search + location + chips only) */}
-              <div className="mt-4">
-                <label className="block text-xs font-semibold text-[#111111]">{UI.radius[lang]}</label>
-                <select
-                  value={String(radiusMi)}
-                  onChange={(e) => setRadiusMi(Number(e.target.value) as any)}
-                  className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                >
-                  {[10, 25, 40, 50].map((m) => (
-                    <option key={m} value={String(m)}>{m} mi</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Category-shaped: RENTAS */}
-              {category === "rentas" ? (
-                <div className="mt-4 grid gap-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Precio mín." : "Min price"}
-                      </label>
-                      <input
-                        value={rentasParams.rpmin}
-                        onChange={(e) =>
-                          setRentasParams((p) => ({ ...p, rpmin: e.target.value }))
-                        }
-                        inputMode="numeric"
-                        placeholder="$"
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Precio máx." : "Max price"}
-                      </label>
-                      <input
-                        value={rentasParams.rpmax}
-                        onChange={(e) =>
-                          setRentasParams((p) => ({ ...p, rpmax: e.target.value }))
-                        }
-                        inputMode="numeric"
-                        placeholder="$"
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Recámaras" : "Beds"}
-                      </label>
-                      <select
-                        value={rentasParams.rbeds}
-                        onChange={(e) =>
-                          setRentasParams((p) => ({ ...p, rbeds: e.target.value }))
-                        }
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="0">{lang === "es" ? "Estudio" : "Studio"}</option>
-                        <option value="1">1+</option>
-                        <option value="2">2+</option>
-                        <option value="3">3+</option>
-                        <option value="4">4+</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Baños" : "Baths"}
-                      </label>
-                      <select
-                        value={rentasParams.rbaths}
-                        onChange={(e) =>
-                          setRentasParams((p) => ({ ...p, rbaths: e.target.value }))
-                        }
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="1">1+</option>
-                        <option value="1.5">1.5+</option>
-                        <option value="2">2+</option>
-                        <option value="2.5">2.5+</option>
-                        <option value="3">3+</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {category === "empleos" ? (
-                <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                  <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Empleos" : "Jobs"}</div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Tipo" : "Type"}</label>
-                      <select
-                        value={empleosParams.ejob || ""}
-                        onChange={(e) => setEmpleosParams((p) => ({ ...p, ejob: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="full">{lang === "es" ? "Tiempo completo" : "Full-time"}</option>
-                        <option value="part">{lang === "es" ? "Medio tiempo" : "Part-time"}</option>
-                        <option value="contract">{lang === "es" ? "Contrato" : "Contract"}</option>
-                        <option value="temp">{lang === "es" ? "Temporal" : "Temp"}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Modalidad" : "Mode"}</label>
-                      <select
-                        value={empleosParams.eremote || ""}
-                        onChange={(e) => setEmpleosParams((p) => ({ ...p, eremote: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="remote">{lang === "es" ? "Remoto" : "Remote"}</option>
-                        <option value="onsite">{lang === "es" ? "Presencial" : "On-site"}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Pago mín." : "Pay min"}</label>
-                      <input
-                        value={empleosParams.epaymin}
-                        onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymin: e.target.value }))}
-                        inputMode="numeric"
-                        placeholder="18"
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Pago máx." : "Pay max"}</label>
-                      <input
-                        value={empleosParams.epaymax}
-                        onChange={(e) => setEmpleosParams((p) => ({ ...p, epaymax: e.target.value }))}
-                        inputMode="numeric"
-                        placeholder="35"
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Industria" : "Industry"}</label>
-                      <select
-                        value={empleosParams.eindustry || ""}
-                        onChange={(e) => setEmpleosParams((p) => ({ ...p, eindustry: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="construction">{empleoIndustryLabel("construction", lang)}</option>
-                        <option value="restaurant">{empleoIndustryLabel("restaurant", lang)}</option>
-                        <option value="cleaning">{empleoIndustryLabel("cleaning", lang)}</option>
-                        <option value="office">{empleoIndustryLabel("office", lang)}</option>
-                        <option value="medical">{empleoIndustryLabel("medical", lang)}</option>
-                        <option value="driving">{empleoIndustryLabel("driving", lang)}</option>
-                        <option value="sales">{empleoIndustryLabel("sales", lang)}</option>
-                        <option value="warehouse">{empleoIndustryLabel("warehouse", lang)}</option>
-                        <option value="childcare">{empleoIndustryLabel("childcare", lang)}</option>
-                        <option value="other">{empleoIndustryLabel("other", lang)}</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {category === "en-venta" ? (
-                <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                  <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "En Venta" : "For Sale"}</div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Precio min" : "Price min"}</label>
-                      <input
-                        value={ventaParams.vpmin}
-                        onChange={(e) => setVentaParams((p) => ({ ...p, vpmin: e.target.value }))}
-                        inputMode="numeric"
-                        placeholder="50"
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Precio max" : "Price max"}</label>
-                      <input
-                        value={ventaParams.vpmax}
-                        onChange={(e) => setVentaParams((p) => ({ ...p, vpmax: e.target.value }))}
-                        inputMode="numeric"
-                        placeholder="500"
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      />
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Tipo" : "Type"}</label>
-                      <select
-                        value={ventaParams.vtype || ""}
-                        onChange={(e) => setVentaParams((p) => ({ ...p, vtype: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="phone">{ventaItemTypeLabel("phone", lang)}</option>
-                        <option value="computer">{ventaItemTypeLabel("computer", lang)}</option>
-                        <option value="electronics">{ventaItemTypeLabel("electronics", lang)}</option>
-                        <option value="furniture">{ventaItemTypeLabel("furniture", lang)}</option>
-                        <option value="appliances">{ventaItemTypeLabel("appliances", lang)}</option>
-                        <option value="tools">{ventaItemTypeLabel("tools", lang)}</option>
-                        <option value="baby-kids">{ventaItemTypeLabel("baby-kids", lang)}</option>
-                        <option value="clothing">{ventaItemTypeLabel("clothing", lang)}</option>
-                        <option value="sports">{ventaItemTypeLabel("sports", lang)}</option>
-                        <option value="auto-parts">{ventaItemTypeLabel("auto-parts", lang)}</option>
-                        <option value="other">{ventaItemTypeLabel("other", lang)}</option>
-                      </select>
-                    </div>
-
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Condición" : "Condition"}</label>
-                      <select
-                        value={ventaParams.vcond || ""}
-                        onChange={(e) => setVentaParams((p) => ({ ...p, vcond: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="new">{ventaConditionLabel("new", lang)}</option>
-                        <option value="like-new">{ventaConditionLabel("like-new", lang)}</option>
-                        <option value="good">{ventaConditionLabel("good", lang)}</option>
-                        <option value="fair">{ventaConditionLabel("fair", lang)}</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">
-                        {lang === "es" ? "Negociable" : "Negotiable"}
-                      </label>
-                      <select
-                        value={ventaParams.vneg || ""}
-                        onChange={(e) => setVentaParams((p) => ({ ...p, vneg: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="yes">{lang === "es" ? "Sí (negociable/OB O)" : "Yes (negotiable/OB O)"}</option>
-                      </select>
-                      <div className="mt-2 text-xs text-[#111111]/80">
-                        {lang === "es"
-                          ? "Tip: se infiere por palabras como “negociable”, “mejor oferta”, “OBO”."
-                          : "Tip: inferred from “negotiable”, “best offer”, “OBO”."}
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              ) : null}
-
-              {category === "clases" ? (
-                <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                  <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Clases" : "Classes"}</div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Materia" : "Subject"}</label>
-                      <select
-                        value={clasesParams.csub || ""}
-                        onChange={(e) => setClasesParams((p) => ({ ...p, csub: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="music">{claseSubjectLabel("music", lang)}</option>
-                        <option value="tutoring">{claseSubjectLabel("tutoring", lang)}</option>
-                        <option value="sports">{claseSubjectLabel("sports", lang)}</option>
-                        <option value="dance">{claseSubjectLabel("dance", lang)}</option>
-                        <option value="martial">{claseSubjectLabel("martial", lang)}</option>
-                        <option value="coding">{claseSubjectLabel("coding", lang)}</option>
-                        <option value="english">{claseSubjectLabel("english", lang)}</option>
-                        <option value="math">{claseSubjectLabel("math", lang)}</option>
-                        <option value="other">{claseSubjectLabel("other", lang)}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Nivel" : "Level"}</label>
-                      <select
-                        value={clasesParams.clevel || ""}
-                        onChange={(e) => setClasesParams((p) => ({ ...p, clevel: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="kids">{claseLevelLabel("kids", lang)}</option>
-                        <option value="teen">{claseLevelLabel("teen", lang)}</option>
-                        <option value="adult">{claseLevelLabel("adult", lang)}</option>
-                        <option value="beginner">{claseLevelLabel("beginner", lang)}</option>
-                        <option value="intermediate">{claseLevelLabel("intermediate", lang)}</option>
-                        <option value="advanced">{claseLevelLabel("advanced", lang)}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Modalidad" : "Mode"}</label>
-                      <select
-                        value={clasesParams.cmode || ""}
-                        onChange={(e) => setClasesParams((p) => ({ ...p, cmode: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="inperson">{claseModeLabel("inperson", lang)}</option>
-                        <option value="online">{claseModeLabel("online", lang)}</option>
-                        <option value="hybrid">{claseModeLabel("hybrid", lang)}</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {category === "travel" ? (
-                <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                  <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Viajes" : "Travel"}</div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Tipo" : "Type"}</label>
-                      <select
-                        value={travelParams.ttype || ""}
-                        onChange={(e) => setTravelParams((p) => ({ ...p, ttype: e.target.value }))}
-                        className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                      >
-                        <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                        <option value="package">{travelTypeLabel("package", lang)}</option>
-                        <option value="cruise">{travelTypeLabel("cruise", lang)}</option>
-                        <option value="hotel">{travelTypeLabel("hotel", lang)}</option>
-                        <option value="flight">{travelTypeLabel("flight", lang)}</option>
-                        <option value="tour">{travelTypeLabel("tour", lang)}</option>
-                        <option value="other">{travelTypeLabel("other", lang)}</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Presupuesto" : "Budget"}</label>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <input
-                          value={travelParams.tbmin}
-                          onChange={(e) => setTravelParams((p) => ({ ...p, tbmin: e.target.value }))}
-                          inputMode="numeric"
-                          placeholder={lang === "es" ? "mín." : "min"}
-                          className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                        />
-                        <input
-                          value={travelParams.tbmax}
-                          onChange={(e) => setTravelParams((p) => ({ ...p, tbmax: e.target.value }))}
-                          inputMode="numeric"
-                          placeholder={lang === "es" ? "máx." : "max"}
-                          className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-black/10 bg-[#EFEFEF] p-3 text-xs text-[#111111]">
-                    {lang === "es"
-                      ? "Tip: Usa presupuesto cuando el anuncio tenga precio numérico. Si dice “Ofertas”, se mantiene visible."
-                      : "Tip: Budget applies when a numeric price exists. “Deals” stays visible."}
-                  </div>
-                </div>
-              ) : null}
-
-
-              {category === "comunidad" ? (
-                <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                  <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Comunidad" : "Community"}</div>
-
-                  <div className="mt-3">
-                    <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Tipo" : "Type"}</label>
-                    <select
-                      value={comunidadParams.gtype || ""}
-                      onChange={(e) => setComunidadParams((p) => ({ ...p, gtype: e.target.value }))}
-                      className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
-                    >
-                      <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                      <option value="donation">{comunidadTypeLabel("donation", lang)}</option>
-                      <option value="help">{comunidadTypeLabel("help", lang)}</option>
-                      <option value="church">{comunidadTypeLabel("church", lang)}</option>
-                      <option value="youth">{comunidadTypeLabel("youth", lang)}</option>
-                      <option value="lostfound">{comunidadTypeLabel("lostfound", lang)}</option>
-                      <option value="announcement">{comunidadTypeLabel("announcement", lang)}</option>
-                      <option value="event">{comunidadTypeLabel("event", lang)}</option>
-                      <option value="other">{comunidadTypeLabel("other", lang)}</option>
-                    </select>
-                  </div>
-                </div>
-              ) : null}
-
-
-              {/* Generic advanced filters */}
-              <div className="mt-4 grid gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[#111111]">
-                    {UI.seller[lang]}
-                  </label>
-                  <select
-                    value={sellerType ?? "all"}
-                    onChange={(e) =>
-                      setSellerType(
-                        e.target.value === "all"
-                          ? null
-                          : (e.target.value as SellerType)
-                      )
-                    }
-                    className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5 text-sm text-[#111111] outline-none"
-                  >
-                    <option value="all">{lang === "es" ? "Todos" : "All"}</option>
-                    <option value="personal">{SELLER_LABELS.personal[lang]}</option>
-                    <option value="business">{SELLER_LABELS.business[lang]}</option>
-                  </select>
-                </div>
-
-                <label className="flex items-center gap-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3 text-sm text-[#111111]">
-                  <input
-                    type="checkbox"
-                    checked={onlyWithImage}
-                    onChange={(e) => setOnlyWithImage(e.target.checked)}
-                  />
-                  {UI.hasImage[lang]}
-                </label>
-
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSellerType(null);
-                      setOnlyWithImage(false);
-                      setRentasParams((p) => ({
-                        ...p,
-                        rpmin: "",
-                        rpmax: "",
-                        rbeds: "",
-                        rbaths: "",
-                        rtype: "",
-                        rpets: "",
-                      }));
-                    }}
-                    className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                  >
-                    {UI.clear[lang]}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={resetAllFilters}
-                    className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                  >
-                    {UI.reset[lang]}
-                  </button>
-                </div>
-
-                <div className="text-[11px] text-[#111111]">
-                  {lang === "es"
-                    ? "Consejo: en móvil usa “Más filtros”."
-                    : "Tip: on mobile use “More filters”."}
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
-        )}
-
-<div className={cx("md:mt-0 min-w-0", isServicios ? "md:col-start-1" : "md:col-start-2")}>
+          <div className="md:mt-0 min-w-0 md:col-start-1">
           <div className={isServicios ? "mx-auto w-full max-w-6xl" : ""}>
 
         {/* TOP QUICK FILTERS (compact) */}
@@ -4921,11 +4415,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               {/* Search + Location (Servicios = Yelp-style combined bar) */}
               {isServicios ? (
                 <div ref={serviciosTypeRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
-                  <label className="block text-xs font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
 
-                  {/* What + Where row: fixed 2-column grid so left input never shrinks or shifts */}
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_260px] gap-3 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_220px] gap-2 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
                         <input
                           value={q}
@@ -4935,17 +4428,17 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           }}
                           onFocus={() => setServiciosTypeOpen(true)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="w-full min-w-0 bg-transparent px-3 py-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]"
+                          className="w-full min-w-0 bg-transparent px-2.5 py-2 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80"
                           aria-label={lang === "es" ? "Buscar servicio" : "Search service"}
                         />
                       </div>
 
-                      <div className="flex min-w-[260px] shrink-0 items-stretch">
+                      <div className="flex min-w-[220px] shrink-0 items-stretch">
                         <div className="w-px shrink-0 bg-black/10" aria-hidden="true" />
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="min-w-0 flex-1 truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="min-w-0 flex-1 truncate px-2.5 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.location[lang]}
                         >
                           {locationLabel}
@@ -4953,7 +4446,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="shrink-0 px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="shrink-0 px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.edit[lang]}
                           title={UI.edit[lang]}
                         >
@@ -4964,10 +4457,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
                     {/* Typeahead suggestions (typo-tolerant) */}
                     {serviciosTypeOpen && serviciosTypeSuggestions.length ? (
-                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl">
-                        <div className="px-3 py-2 text-[11px] text-[#111111]">
-                          {lang === "es" ? "Sugerencias" : "Suggestions"}
-                        </div>
+                      <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5] shadow-lg">
+                        <div className="px-2.5 py-1.5 text-[11px] text-[#111111]/80">{lang === "es" ? "Sugerencias" : "Suggestions"}</div>
                         {serviciosTypeSuggestions.map((s) => (
                           <button
                             key={s.key}
@@ -4979,24 +4470,21 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                               setServiciosHover(null);
                               setPage(1);
                             }}
-                            className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                            className="flex w-full items-center justify-between px-2.5 py-1.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           >
                             <span className="truncate">{s.label}</span>
-                            <span className="ml-3 shrink-0 text-xs text-[#111111]">
-                              {SERVICIOS_GROUP_LABEL[s.group][lang]}
-                            </span>
+                            <span className="ml-2 shrink-0 text-[11px] text-[#111111]">{SERVICIOS_GROUP_LABEL[s.group][lang]}</span>
                           </button>
                         ))}
                       </div>
                     ) : null}
                   </div>
 
-                  {/* Yelp-style hover buckets + All drawer trigger */}
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setServiciosAllOpen(true)}
-                      className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                      className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                     >
                       ☰ {lang === "es" ? "Todo" : "All"}
                     </button>
@@ -5016,17 +4504,16 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <button
                           type="button"
                           onClick={() => setServiciosHover((cur) => (cur === grp ? null : grp))}
-                          className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                         >
                           {SERVICIOS_GROUP_LABEL[grp][lang]} ▾
                         </button>
-                        {/* Invisible bridge so mouse can reach popover without leaving parent (fixes clickability) */}
                         {serviciosHover === grp ? (
-                          <div className="absolute left-0 right-0 top-full h-2" aria-hidden="true" />
+                          <div className="absolute left-0 top-full h-1" aria-hidden="true" />
                         ) : null}
                         {serviciosHover === grp ? (
-                          <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[320px] overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl">
-                            <div className="grid grid-cols-2 gap-1 p-2">
+                          <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[260px] overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5] shadow-lg">
+                            <div className="grid grid-cols-2 gap-0.5 p-1.5">
                               {SERVICIOS_TAXONOMY[grp].map((it) => (
                                 <button
                                   key={it.key}
@@ -5038,7 +4525,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                                     setServiciosTypeOpen(false);
                                     setPage(1);
                                   }}
-                                  className="rounded-xl px-3 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                                  className="rounded-md px-2.5 py-1.5 text-left text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                                 >
                                   {it.label[lang]}
                                 </button>
@@ -5050,8 +4537,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     ))}
                   </div>
 
-                  {/* Breadcrumb path + deep filter chips (Servicios only); fixed min-height to avoid reflow when subtype selected */}
-                  <div className="mt-0.5 flex min-h-[1.75rem] flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden text-[12px] text-[#111111]">
+                  <div className="mt-0.5 flex min-h-[1.25rem] flex-wrap items-center gap-x-1.5 gap-y-0.5 overflow-hidden text-[11px] text-[#111111]">
                     <span className="min-w-0 truncate font-medium" title={serviciosBreadcrumb.replace(/ › /g, " > ")}>{serviciosBreadcrumb.replace(/ › /g, " > ")}</span>
                     {serviciosDeepChips.length > 0 && (
                       <>
@@ -5072,26 +4558,26 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 </div>
               ) : (
-                /* Unified shell: same as Servicios — search | location, then category-native chips (no cross-category dropdown) */
+                /* Unified shell: same as Servicios — search | location, then Todo + category-native chips */
                 <div ref={searchBoxRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
-                  <label className="block text-xs font-semibold text-[#111111]">{UI.search[lang]}</label>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{UI.search[lang]}</label>
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_260px] gap-3 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_220px] gap-2 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
                         <input
                           value={q}
                           onChange={(e) => setQ(e.target.value)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="w-full min-w-0 bg-transparent px-3 py-3 text-sm text-[#111111] outline-none placeholder:text-[#111111] focus:ring-0"
+                          className="w-full min-w-0 bg-transparent px-2.5 py-2 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80 focus:ring-0"
                           aria-label={UI.search[lang]}
                         />
                       </div>
-                      <div className="flex min-w-[260px] shrink-0 items-stretch">
+                      <div className="flex min-w-[220px] shrink-0 items-stretch">
                         <div className="w-px shrink-0 bg-black/10" aria-hidden="true" />
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="min-w-0 flex-1 truncate px-3 py-3 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="min-w-0 flex-1 truncate px-2.5 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.location[lang]}
                         >
                           {locationLabel}
@@ -5099,7 +4585,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="shrink-0 px-4 py-3 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="shrink-0 px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.edit[lang]}
                           title={UI.edit[lang]}
                         >
@@ -5108,39 +4594,46 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       </div>
                     </div>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFiltersOpen(true)}
+                      className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                    >
+                      ☰ {lang === "es" ? "Todo" : "All"}
+                    </button>
                     {category === "en-venta" && EN_VENTA_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "rentas" && RENTAS_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "autos" && AUTOS_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "empleos" && EMPLEOS_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "clases" && CLASES_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "comunidad" && COMUNIDAD_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "travel" && TRAVEL_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
@@ -5148,81 +4641,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </div>
               )}
                   </div>
-
-                  {!isServicios && (
-                  <>
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="sr-only">{UI.sort[lang]}</label>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                >
-                  {Object.keys(SORT_LABELS).map((k) => (
-                    <option key={k} value={k}>{SORT_LABELS[k as SortKey][lang]}</option>
-                  ))}
-                </select>
-
-                <div className="flex items-center gap-1 rounded-xl border border-black/10 bg-[#F5F5F5] p-1">
-                  {(["grid","list","list-img"] as ViewMode[]).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setView(m)}
-                      className={cx(
-                        "rounded-lg px-2 py-1.5 text-xs",
-                        view === m ? "bg-[#111111]/20 text-yellow-200" : "text-[#111111] hover:bg-[#EFEFEF]"
-                      )}
-                      aria-label={m}
-                      title={m}
-                    >
-                      {m === "grid" ? "▦" : m === "list" ? "≡" : "▤"}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobilePanelTab("filters");
-                    setMobilePanelOpen(true);
-                  }}
-                  className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-                >
-                  {lang === "es" ? "Filtros" : "Filters"}
-                  {activeChips.length ? (
-                    <span className="ml-2 text-xs font-medium text-[#111111]">({activeChips.length})</span>
-                  ) : null}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-              >
-                {UI.reset[lang]}
-              </button>
-            </div>
-
-            {activeChips.length > 0 && (
-              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-                {activeChips.map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={c.clear}
-                    className="whitespace-nowrap rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs sm:py-1 text-[#111111] hover:bg-[#EFEFEF] transition"
-                    aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
-                  >
-                    {c.text} <span className="ml-1 opacity-80">×</span>
-                  </button>
-                ))}
-              </div>
-            )}
-                  </>
-                  )}
           </div>
         </section>
 
@@ -5626,7 +5044,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div
               className={cx(
                 "grid gap-2.5 sm:gap-3 md:gap-4",
-                filtersCollapsed ? "md:grid-cols-3 lg:grid-cols-4" : "md:grid-cols-3 lg:grid-cols-3"
+                "md:grid-cols-3 lg:grid-cols-4"
               )}
             >
               {visible.map(ListingCardGrid)}
@@ -5678,6 +5096,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
         </div>
       </main>
+
+      {/* Category-native filters panel (Todo button; no sidebar) */}
+      {categoryFiltersOpen && !isServicios ? (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setCategoryFiltersOpen(false)} aria-hidden />
+          <div className="absolute right-0 top-0 h-full w-[280px] max-w-[85vw] border-l border-black/10 bg-[#F5F5F5] shadow-xl p-3 overflow-y-auto">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-xs font-semibold text-[#111111]">{lang === "es" ? "Filtros" : "Filters"}</span>
+              <button type="button" onClick={() => setCategoryFiltersOpen(false)} className="rounded-lg border border-black/10 bg-white px-2 py-1 text-xs text-[#111111] hover:bg-[#EFEFEF]" aria-label={UI.close[lang]}>{UI.close[lang]}</button>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-[#111111]">{UI.radius[lang]}</label>
+              <select value={String(radiusMi)} onChange={(e) => setRadiusMi(Number(e.target.value) as any)} className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none">
+                {[10, 25, 40, 50].map((m) => <option key={m} value={String(m)}>{m} mi</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* MORE FILTERS DRAWER (unchanged) */}
       {moreOpen ? (

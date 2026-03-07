@@ -205,28 +205,26 @@ export default function TravelPage() {
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-stretch">
-            <a href={baseHref} className="relative flex min-w-0 items-center rounded-xl border border-[#C9B46A]/30 bg-white py-3 pl-10 pr-4 text-sm text-[#111111]/70">
-              <span className="pointer-events-none absolute left-3 text-[#111111]/50 text-lg" aria-hidden>⌕</span>
+        <section className="mt-4 rounded-xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-3 ring-1 ring-[#C9B46A]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-stretch">
+            <a href={baseHref} className="relative flex min-w-0 items-center rounded-lg border border-[#C9B46A]/30 bg-white py-2 pl-8 pr-3 text-sm text-[#111111]/70">
+              <span className="pointer-events-none absolute left-2.5 text-[#111111]/50 text-sm" aria-hidden>⌕</span>
               {lang === "en" ? "Search: destination, deal, agent…" : "Buscar: destino, oferta, agente…"}
             </a>
-            <Link href={baseHref} className="flex items-center rounded-xl border border-[#C9B46A]/30 bg-white px-4 py-3 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-40">
-              <span className="truncate">{lang === "en" ? "City or ZIP" : "Ciudad o ZIP"}</span>
-            </Link>
+            <Link href={baseHref} className="flex items-center rounded-lg border border-[#C9B46A]/30 bg-white px-3 py-2 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-36"><span className="truncate">{lang === "en" ? "City or ZIP" : "Ciudad o ZIP"}</span></Link>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {travelChips.map(({ label, t: tKey }) => (
               <Link
                 key={label}
                 href={tKey ? `${baseHref}&t=${tKey}` : baseHref}
-                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
               >
                 {label}
               </Link>
             ))}
           </div>
-          <p className="mt-2 text-xs text-[#111111]/70">{lang === "en" ? "Use the button below to see results with filters." : "Usa el botón para ver resultados con filtros."}</p>
+          <p className="mt-1.5 text-[11px] text-[#111111]/70">{lang === "en" ? "Use the button below to see results with filters." : "Usa el botón para ver resultados con filtros."}</p>
         </section>
       </div>
 

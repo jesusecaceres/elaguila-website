@@ -117,27 +117,15 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-stretch">
+        <section className="mt-4 rounded-xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-3 ring-1 ring-[#C9B46A]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-stretch">
             <div className="relative min-w-0">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#111111]/50 text-lg" aria-hidden>⌕</span>
-              <input
-                type="text"
-                placeholder={t.searchPlaceholder}
-                className="w-full rounded-xl border border-[#C9B46A]/30 bg-white py-3 pl-10 pr-4 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20"
-                aria-label={t.searchPlaceholder}
-                readOnly
-                onFocus={(e) => e.target.blur()}
-              />
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>⌕</span>
+              <input type="text" placeholder={t.searchPlaceholder} className="w-full rounded-lg border border-[#C9B46A]/30 bg-white py-2 pl-8 pr-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20" aria-label={t.searchPlaceholder} readOnly onFocus={(e) => e.target.blur()} />
             </div>
-            <Link
-              href={listaHref}
-              className="flex items-center rounded-xl border border-[#C9B46A]/30 bg-white px-4 py-3 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-40"
-            >
-              <span className="truncate">{t.locationPlaceholder}</span>
-            </Link>
+            <Link href={listaHref} className="flex items-center rounded-lg border border-[#C9B46A]/30 bg-white px-3 py-2 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-36"><span className="truncate">{t.locationPlaceholder}</span></Link>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Link
               href={listaHref}
               className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
@@ -148,13 +136,13 @@ export default function Page() {
               <Link
                 key={key}
                 href={buildListaUrl(CATEGORY, lang, undefined, undefined, key)}
-                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
               >
                 {lang === "es" ? labelEs : labelEn}
               </Link>
             ))}
           </div>
-          <p className="mt-2 text-xs text-[#111111]/70">{t.hint}</p>
+          <p className="mt-1.5 text-[11px] text-[#111111]/70">{t.hint}</p>
         </section>
 
         <div className="mt-6 flex flex-col sm:flex-row gap-3">

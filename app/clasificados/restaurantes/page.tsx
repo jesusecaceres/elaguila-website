@@ -111,24 +111,22 @@ export default async function Page({
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-stretch">
-            <Link href="#discovery" className="relative flex min-w-0 items-center rounded-xl border border-[#C9B46A]/30 bg-white py-3 pl-10 pr-4 text-sm text-[#111111]/70">
-              <span className="pointer-events-none absolute left-3 text-[#111111]/50 text-lg" aria-hidden>⌕</span>
+        <section className="mt-4 rounded-xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-3 ring-1 ring-[#C9B46A]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-stretch">
+            <Link href="#discovery" className="relative flex min-w-0 items-center rounded-lg border border-[#C9B46A]/30 bg-white py-2 pl-8 pr-3 text-sm text-[#111111]/70">
+              <span className="pointer-events-none absolute left-2.5 text-[#111111]/50 text-sm" aria-hidden>⌕</span>
               {lang === "es" ? "Buscar: nombre, tipo de cocina…" : "Search: name, cuisine…"}
             </Link>
-            <Link href={listaHref} className="flex items-center rounded-xl border border-[#C9B46A]/30 bg-white px-4 py-3 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-40">
-              <span className="truncate">{lang === "es" ? "Ciudad o ZIP" : "City or ZIP"}</span>
-            </Link>
+            <Link href={listaHref} className="flex items-center rounded-lg border border-[#C9B46A]/30 bg-white px-3 py-2 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-36"><span className="truncate">{lang === "es" ? "Ciudad o ZIP" : "City or ZIP"}</span></Link>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {cuisineChips.map((label) => (
-              <Link key={label} href={`${listaHref}&cuisine=${encodeURIComponent(label)}`} className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+              <Link key={label} href={`${listaHref}&cuisine=${encodeURIComponent(label)}`} className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
                 {label}
               </Link>
             ))}
           </div>
-          <p className="mt-2 text-xs text-[#111111]/70">{lang === "es" ? "Usa el botón para ver resultados con filtros." : "Use the button below to see results with filters."}</p>
+          <p className="mt-1.5 text-[11px] text-[#111111]/70">{lang === "es" ? "Usa el botón para ver resultados con filtros." : "Use the button below to see results with filters."}</p>
         </section>
       </div>
 
