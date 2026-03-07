@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -142,9 +143,92 @@ export default function TravelPage() {
     [lang]
   );
 
+  const travelChips = useMemo(
+    () =>
+      lang === "en"
+        ? [
+            { label: "Packages & Deals", t: "deals" },
+            { label: "Travel Agents", t: "agents" },
+            { label: "Resorts & Hotels", t: "resorts" },
+            { label: "Cruises", t: "cruises" },
+            { label: "Tours & Excursions", t: "tours" },
+            { label: "Other", t: "" },
+          ]
+        : [
+            { label: "Paquetes y Ofertas", t: "deals" },
+            { label: "Agentes de Viajes", t: "agents" },
+            { label: "Resorts y Hoteles", t: "resorts" },
+            { label: "Cruceros", t: "cruises" },
+            { label: "Tours y Excursiones", t: "tours" },
+            { label: "Otro", t: "" },
+          ],
+    [lang]
+  );
+
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <Navbar />
+
+      <div className="sticky top-14 z-30 border-b border-black/10 bg-[#D9D9D9]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2">
+          <Link href={`${t.postHref}?lang=${lang}&cat=travel`} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+            {t.secondary}
+          </Link>
+          <Link href={baseHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+            {t.primary}
+          </Link>
+          <Link href={`/clasificados/membresias?lang=${lang}`} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+            {lang === "en" ? "Memberships" : "Membresías"}
+          </Link>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-4xl px-4 pt-6 pb-4">
+        <section className="rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
+          <p className="text-xs font-semibold text-[#111111]/80">{lang === "en" ? "Browse by category" : "Explorar por categoría"}</p>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              { key: "rentas", es: "Rentas", en: "Rentals" },
+              { key: "en-venta", es: "En venta", en: "For sale" },
+              { key: "empleos", es: "Empleos", en: "Jobs" },
+              { key: "servicios", es: "Servicios", en: "Services" },
+              { key: "restaurantes", es: "Restaurantes", en: "Restaurants" },
+              { key: "travel", es: "Viajes", en: "Travel" },
+              { key: "autos", es: "Autos", en: "Autos" },
+              { key: "clases", es: "Clases", en: "Classes" },
+              { key: "comunidad", es: "Comunidad", en: "Community" },
+            ].map(({ key, es, en }) => (
+              <Link key={key} href={`/clasificados/lista?cat=${key}&lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+                {lang === "es" ? es : en}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-stretch">
+            <a href={baseHref} className="relative flex min-w-0 items-center rounded-xl border border-[#C9B46A]/30 bg-white py-3 pl-10 pr-4 text-sm text-[#111111]/70">
+              <span className="pointer-events-none absolute left-3 text-[#111111]/50 text-lg" aria-hidden>⌕</span>
+              {lang === "en" ? "Search: destination, deal, agent…" : "Buscar: destino, oferta, agente…"}
+            </a>
+            <Link href={baseHref} className="flex items-center rounded-xl border border-[#C9B46A]/30 bg-white px-4 py-3 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-40">
+              <span className="truncate">{lang === "en" ? "City or ZIP" : "Ciudad o ZIP"}</span>
+            </Link>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {travelChips.map(({ label, t: tKey }) => (
+              <Link
+                key={label}
+                href={tKey ? `${baseHref}&t=${tKey}` : baseHref}
+                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-[#111111]/70">{lang === "en" ? "Use the button below to see results with filters." : "Usa el botón para ver resultados con filtros."}</p>
+        </section>
+      </div>
 
       {/* HERO */}
       <section className="relative overflow-hidden">

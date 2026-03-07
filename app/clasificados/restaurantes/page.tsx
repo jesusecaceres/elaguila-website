@@ -64,10 +64,75 @@ export default async function Page({
   });
 
 
+  const listaHref = `/clasificados/lista?cat=restaurantes&lang=${lang}`;
+  const postHref = `/clasificados/publicar?cat=restaurantes&lang=${lang}`;
+  const membershipsHref = `/clasificados/membresias?lang=${lang}`;
+  const cuisineChips = lang === "es"
+    ? ["Mexicana", "Italiana", "Americana", "Asiática", "Mariscos", "Otro"]
+    : ["Mexican", "Italian", "American", "Asian", "Seafood", "Other"];
+
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <Navbar />
-      <div className="max-w-screen-2xl mx-auto px-6 pt-28 pb-32 text-center">
+
+      <div className="sticky top-14 z-30 border-b border-black/10 bg-[#D9D9D9]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2">
+          <Link href={`/clasificados/restaurantes/paquetes?lang=${lang}`} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+            {lang === "es" ? "Anuncia tu restaurante" : "List your restaurant"}
+          </Link>
+          <Link href={listaHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+            {lang === "es" ? "Ver anuncios" : "View listings"}
+          </Link>
+          <Link href={membershipsHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+            {lang === "es" ? "Membresías" : "Memberships"}
+          </Link>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-4xl px-4 pt-6 pb-4">
+        <section className="rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
+          <p className="text-xs font-semibold text-[#111111]/80">{lang === "es" ? "Explorar por categoría" : "Browse by category"}</p>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              { key: "rentas", es: "Rentas", en: "Rentals" },
+              { key: "en-venta", es: "En venta", en: "For sale" },
+              { key: "empleos", es: "Empleos", en: "Jobs" },
+              { key: "servicios", es: "Servicios", en: "Services" },
+              { key: "restaurantes", es: "Restaurantes", en: "Restaurants" },
+              { key: "travel", es: "Viajes", en: "Travel" },
+              { key: "autos", es: "Autos", en: "Autos" },
+              { key: "clases", es: "Clases", en: "Classes" },
+              { key: "comunidad", es: "Comunidad", en: "Community" },
+            ].map(({ key, es, en }) => (
+              <Link key={key} href={`/clasificados/lista?cat=${key}&lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+                {lang === "es" ? es : en}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-stretch">
+            <Link href="#discovery" className="relative flex min-w-0 items-center rounded-xl border border-[#C9B46A]/30 bg-white py-3 pl-10 pr-4 text-sm text-[#111111]/70">
+              <span className="pointer-events-none absolute left-3 text-[#111111]/50 text-lg" aria-hidden>⌕</span>
+              {lang === "es" ? "Buscar: nombre, tipo de cocina…" : "Search: name, cuisine…"}
+            </Link>
+            <Link href={listaHref} className="flex items-center rounded-xl border border-[#C9B46A]/30 bg-white px-4 py-3 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-40">
+              <span className="truncate">{lang === "es" ? "Ciudad o ZIP" : "City or ZIP"}</span>
+            </Link>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {cuisineChips.map((label) => (
+              <Link key={label} href={`${listaHref}&cuisine=${encodeURIComponent(label)}`} className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+                {label}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-[#111111]/70">{lang === "es" ? "Usa el botón para ver resultados con filtros." : "Use the button below to see results with filters."}</p>
+        </section>
+      </div>
+
+      <div className="max-w-screen-2xl mx-auto px-6 pt-6 pb-32 text-center">
         <div className="mx-auto max-w-3xl">
           <Image
             src="/logo.png"
@@ -265,33 +330,6 @@ function Placeholder({ lang }: { lang: Lang }) {
           {lang === "es" ? "Tu negocio puede estar aquí" : "Your business can be here"}
         </div>
         <div className="mt-2 h-3 w-52 bg-white/10 rounded" />
-      {/* Mobile sticky actions */}
-      <div className="sm:hidden fixed bottom-4 left-0 right-0 z-40 px-4">
-        <div className="mx-auto max-w-md grid grid-cols-3 gap-3 rounded-2xl border border-yellow-600/30 bg-black/80 backdrop-blur px-3 py-3 shadow-lg">
-          <a
-            href="#discovery"
-            aria-label="Discover restaurants"
-            className="text-center text-sm font-semibold rounded-xl bg-yellow-600/20 border border-yellow-600/30 py-2 hover:bg-yellow-600/30"
-          >
-            {lang === "es" ? "Descubrir" : "Discover"}
-          </a>
-          <a
-            href="#alerts"
-            aria-label="Restaurant alerts"
-            className="text-center text-sm font-semibold rounded-xl bg-yellow-600/20 border border-yellow-600/30 py-2 hover:bg-yellow-600/30"
-          >
-            {lang === "es" ? "Alertas" : "Alerts"}
-          </a>
-          <Link
-            href={`/clasificados/restaurantes/publicar?lang=${lang}`}
-            aria-label="Post a restaurant"
-            className="text-center text-sm font-semibold rounded-xl bg-yellow-500 text-black py-2 hover:bg-yellow-400"
-          >
-            {lang === "es" ? "Publicar" : "Post"}
-          </Link>
-        </div>
-      </div>
-
       </div>
     </div>
   );

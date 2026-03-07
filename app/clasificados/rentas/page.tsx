@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import Navbar from "../../components/Navbar";
 
 type Lang = "es" | "en";
 
@@ -11,75 +12,146 @@ const CATEGORY = "rentas";
 const COPY = {
   es: {
     title: "Rentas",
-    subtitle: "Apartamentos, cuartos y propiedades en renta.",
-    searchPlaceholder: "Buscar: apartamento, cuarto, zona…",
+    subtitle: "Casas, departamentos y cuartos en renta cerca de ti.",
+    searchPlaceholder: "Buscar: zona, colonia, cuartos…",
+    locationPlaceholder: "Ciudad o ZIP",
     buttonView: "Ver anuncios",
     buttonPost: "Publicar anuncio",
+    exploreCategory: "Explorar por categoría",
+    hint: "Usa el botón para ver resultados con filtros.",
+    ctaPost: "Publicar anuncio",
+    ctaView: "Ver anuncios",
+    ctaMemberships: "Membresías",
+    chips: ["Casa", "Departamento", "Cuarto", "Estudio", "Otro"],
   },
   en: {
     title: "Rentals",
-    subtitle: "Apartments, rooms and properties for rent.",
-    searchPlaceholder: "Search: apartment, room, area…",
+    subtitle: "Houses, apartments and rooms for rent near you.",
+    searchPlaceholder: "Search: area, neighborhood, rooms…",
+    locationPlaceholder: "City or ZIP",
     buttonView: "View listings",
     buttonPost: "Post listing",
+    exploreCategory: "Browse by category",
+    hint: "Use the button below to see results with filters.",
+    ctaPost: "Post listing",
+    ctaView: "View listings",
+    ctaMemberships: "Memberships",
+    chips: ["House", "Apartment", "Room", "Studio", "Other"],
   },
 } as const;
 
+function buildListaUrl(cat: string, lang: Lang, q?: string, city?: string) {
+  const params = new URLSearchParams();
+  params.set("cat", cat);
+  params.set("lang", lang);
+  if (q?.trim()) params.set("q", q.trim());
+  if (city?.trim()) params.set("city", city.trim());
+  return `/clasificados/lista?${params.toString()}`;
+}
+
+const CATEGORY_PILLS: { key: string; labelEs: string; labelEn: string }[] = [
+  { key: "rentas", labelEs: "Rentas", labelEn: "Rentals" },
+  { key: "en-venta", labelEs: "En venta", labelEn: "For sale" },
+  { key: "empleos", labelEs: "Empleos", labelEn: "Jobs" },
+  { key: "servicios", labelEs: "Servicios", labelEn: "Services" },
+  { key: "restaurantes", labelEs: "Restaurantes", labelEn: "Restaurants" },
+  { key: "travel", labelEs: "Viajes", labelEn: "Travel" },
+  { key: "autos", labelEs: "Autos", labelEn: "Autos" },
+  { key: "clases", labelEs: "Clases", labelEn: "Classes" },
+  { key: "comunidad", labelEs: "Comunidad", labelEn: "Community" },
+];
+
 export default function Page() {
   const sp = useSearchParams();
-
-  const lang = useMemo<Lang>(() => {
-    const v = sp?.get("lang");
-    return v === "en" ? "en" : "es";
-  }, [sp]);
-
-  const listaHref = useMemo(() => `/clasificados/lista?cat=${CATEGORY}&lang=${lang}`, [lang]);
-  const postHref = useMemo(() => `/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`, [lang]);
-
+  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
   const t = COPY[lang];
 
+  const listaHref = useMemo(() => buildListaUrl(CATEGORY, lang), [lang]);
+  const postHref = useMemo(() => `/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`, [lang]);
+  const membershipsHref = useMemo(() => `/clasificados/membresias?lang=${lang}`, [lang]);
+
   return (
-    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] px-4 pt-24 pb-12">
-      <div className="mx-auto max-w-xl">
-        <h1 className="text-3xl md:text-4xl font-bold text-yellow-400 tracking-tight">
-          {t.title}
-        </h1>
-        <p className="mt-2 text-[#111111] text-base">
-          {t.subtitle}
-        </p>
+    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-20 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
+      <Navbar />
 
-        <section className="mt-6 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#111111]/50 text-lg" aria-hidden="true">⌕</span>
-            <input
-              type="text"
-              placeholder={t.searchPlaceholder}
-              className="w-full rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] py-3 pl-10 pr-4 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20"
-              aria-label={t.searchPlaceholder}
-              readOnly
-              onFocus={(e) => e.target.blur()}
-            />
-          </div>
-          <p className="mt-2 text-xs text-[#111111]/70">
-            {lang === "es" ? "Usa el botón para ver resultados con filtros." : "Use the button below to see results with filters."}
-          </p>
-        </section>
-
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <Link
-            href={listaHref}
-            className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black hover:bg-yellow-300 transition"
-          >
-            {t.buttonView}
+      <div className="sticky top-14 z-30 border-b border-black/10 bg-[#D9D9D9]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2">
+          <Link href={postHref} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+            {t.ctaPost}
           </Link>
-          <Link
-            href={postHref}
-            className="inline-flex items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-5 py-3 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
-          >
-            {t.buttonPost}
+          <Link href="/clasificados/lista" className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+            {t.ctaView}
+          </Link>
+          <Link href={membershipsHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+            {t.ctaMemberships}
           </Link>
         </div>
       </div>
+
+      <main className="mx-auto max-w-4xl px-4 pt-6 pb-12">
+        <h1 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight">
+          {t.title}
+        </h1>
+        <p className="mt-2 text-[#111111] text-base">{t.subtitle}</p>
+
+        <section className="mt-6 rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
+          <p className="text-xs font-semibold text-[#111111]/80">{t.exploreCategory}</p>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
+              <Link
+                key={key}
+                href={`/clasificados/lista?cat=${key}&lang=${lang}`}
+                className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+              >
+                {lang === "es" ? labelEs : labelEn}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-4 ring-1 ring-[#C9B46A]/10">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-stretch">
+            <div className="relative min-w-0">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#111111]/50 text-lg" aria-hidden>⌕</span>
+              <input
+                type="text"
+                placeholder={t.searchPlaceholder}
+                className="w-full rounded-xl border border-[#C9B46A]/30 bg-white py-3 pl-10 pr-4 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20"
+                aria-label={t.searchPlaceholder}
+                readOnly
+                onFocus={(e) => e.target.blur()}
+              />
+            </div>
+            <Link
+              href={listaHref}
+              className="flex items-center rounded-xl border border-[#C9B46A]/30 bg-white px-4 py-3 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-40"
+            >
+              <span className="truncate">{t.locationPlaceholder}</span>
+            </Link>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {t.chips.map((label) => (
+              <Link
+                key={label}
+                href={buildListaUrl(CATEGORY, lang, label)}
+                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-[#111111]/70">{t.hint}</p>
+        </section>
+
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <Link href={listaHref} className="inline-flex justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+            {t.buttonView}
+          </Link>
+          <Link href={postHref} className="inline-flex justify-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-5 py-3 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+            {t.buttonPost}
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }
