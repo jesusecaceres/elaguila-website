@@ -3,10 +3,37 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+  FiShoppingCart,
+  FiHome,
+  FiTruck,
+  FiCoffee,
+  FiTool,
+  FiBriefcase,
+  FiBook,
+  FiUsers,
+  FiMapPin,
+} from "react-icons/fi";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { categoryConfig, type CategoryKey } from "../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+
+/** Real categories for publicar (no "all", no "Más"). Same order and icons as lista explorer. */
+const PUBLICAR_CATEGORIES: Array<{
+  key: Exclude<CategoryKey, "all">;
+  Icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { key: "en-venta", Icon: FiShoppingCart },
+  { key: "rentas", Icon: FiHome },
+  { key: "autos", Icon: FiTruck },
+  { key: "restaurantes", Icon: FiCoffee },
+  { key: "servicios", Icon: FiTool },
+  { key: "empleos", Icon: FiBriefcase },
+  { key: "clases", Icon: FiBook },
+  { key: "comunidad", Icon: FiUsers },
+  { key: "travel", Icon: FiMapPin },
+];
 
 type Lang = "es" | "en";
 type PublishStep = "category" | "basics" | "details" | "media";
@@ -1273,39 +1300,40 @@ if (isPro && videoFile && !videoError) {
 
 
               <div className="mt-6 grid gap-6">
-                {/* CATEGORY (STEP 1) */}
+                {/* CATEGORY (STEP 1) — icon cards, all real categories, no Más */}
                 {step === "category" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.categoryTitle}</h2>
                     <p className="mt-2 text-sm text-[#111111]">{copy.categoryNote}</p>
 
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {(["servicios","restaurantes","comunidad","rentas","empleos","en-venta","autos","clases","travel"] as CategoryKey[]).map((k) => {
-                        const label = categoryConfig[k].label[lang];
-                        const selected = category === k;
+                      {PUBLICAR_CATEGORIES.map(({ key, Icon }) => {
+                        const label = categoryConfig[key].label[lang];
+                        const selected = category === key;
                         return (
                           <button
-                            key={k}
+                            key={key}
                             type="button"
-                            onClick={() => setCategory(k)}
+                            onClick={() => setCategory(key)}
                             className={cx(
-                              "rounded-2xl border px-4 py-4 text-left",
+                              "flex flex-col items-center justify-center gap-2 rounded-xl border py-4 px-3 transition-colors",
+                              "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
                               selected
-                                ? "border-yellow-500/35 bg-[#F2EFE8]"
-                                : "border-black/10 bg-[#F5F5F5] hover:bg-white"
+                                ? "border-[#C9B46A]/60 bg-[#F8F6F0] text-[#111111]"
+                                : "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5] active:bg-[#EFEFEF]"
                             )}
+                            aria-pressed={selected}
+                            aria-label={label}
                           >
-                            <div className={cx("text-sm font-semibold", selected ? "text-[#111111]" : "text-[#111111]/90")}>
-                              {label}
-                            </div>
-                            <div className="mt-1 text-xs text-[#111111]">{k}</div>
+                            <Icon className="h-7 w-7 shrink-0 text-[#111111]" aria-hidden />
+                            <span className="text-sm font-medium leading-tight text-center">{label}</span>
                           </button>
                         );
                       })}
                     </div>
 
                     {!requirements.categoryOk && (
-                      <div className="mt-4 rounded-xl border border-yellow-400/20 bg-[#F2EFE8] p-3 text-xs text-[#111111]">
+                      <div className="mt-4 rounded-xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-3 text-xs text-[#111111]">
                         {lang === "es" ? "Selecciona una categoría para continuar." : "Choose a category to continue."}
                       </div>
                     )}
