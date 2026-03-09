@@ -3,6 +3,18 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import {
+  FiShoppingCart,
+  FiHome,
+  FiTruck,
+  FiCoffee,
+  FiTool,
+  FiBriefcase,
+  FiBook,
+  FiUsers,
+  FiMapPin,
+  FiGrid,
+} from "react-icons/fi";
 import Navbar from "../../components/Navbar";
 import { serviciosDrawerFilters } from "../config/categoryConfig";
 import newLogo from "../../../public/logo.png";
@@ -368,6 +380,25 @@ const CATEGORY_PILL_ORDER: CategoryKey[] = [
   "clases",
   "comunidad",
   "travel",
+];
+
+/** Mobile-only: 2-column icon-card grid. "more" opens full category list drawer. */
+const MOBILE_CATEGORY_GRID: Array<{
+  key: CategoryKey | "more";
+  labelEs: string;
+  labelEn: string;
+  Icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { key: "en-venta", labelEs: "En Venta", labelEn: "For Sale", Icon: FiShoppingCart },
+  { key: "rentas", labelEs: "Rentas", labelEn: "Rentals", Icon: FiHome },
+  { key: "autos", labelEs: "Autos", labelEn: "Autos", Icon: FiTruck },
+  { key: "restaurantes", labelEs: "Restaurantes", labelEn: "Restaurants", Icon: FiCoffee },
+  { key: "servicios", labelEs: "Servicios", labelEn: "Services", Icon: FiTool },
+  { key: "empleos", labelEs: "Empleos", labelEn: "Jobs", Icon: FiBriefcase },
+  { key: "clases", labelEs: "Clases", labelEn: "Classes", Icon: FiBook },
+  { key: "comunidad", labelEs: "Comunidad", labelEn: "Community", Icon: FiUsers },
+  { key: "travel", labelEs: "Viajes", labelEn: "Travel", Icon: FiMapPin },
+  { key: "more", labelEs: "Más", labelEn: "More", Icon: FiGrid },
 ];
 
 /** Quick pick tiles for mobile Search Panel (icon + label). "more" opens Más filtros drawer. */
@@ -1632,6 +1663,7 @@ useEffect(() => {
 // ✓ Mobile full-screen Filters/Sort panel (A3)
 const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 const [mobilePanelTab, setMobilePanelTab] = useState<"filters" | "sort">("filters");
+  const [moreCategoriesOpen, setMoreCategoriesOpen] = useState(false);
 
 useEffect(() => {
   if (!mobilePanelOpen) return;
@@ -1641,6 +1673,15 @@ useEffect(() => {
     document.body.style.overflow = prev;
   };
 }, [mobilePanelOpen]);
+
+  useEffect(() => {
+    if (!moreCategoriesOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [moreCategoriesOpen]);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -4321,7 +4362,8 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
             <div className="text-[11px] font-semibold text-[#111111]">
               {lang === "es" ? "Explorar por categoría" : "Browse by category"}
             </div>
-            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Desktop: pill strip */}
+            <div className="mt-2 hidden md:flex items-center gap-1.5 overflow-x-auto pb-0.5">
               {CATEGORY_PILL_ORDER.map((c) => {
                 const active = c === category;
                 return (
@@ -4338,6 +4380,50 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     )}
                   >
                     {CATEGORY_LABELS[c][lang]}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Mobile: 2-column icon-card grid (premium directory style) */}
+            <div className="mt-2 md:hidden grid grid-cols-2 gap-2">
+              {MOBILE_CATEGORY_GRID.map(({ key, labelEs, labelEn, Icon }) => {
+                const label = lang === "es" ? labelEs : labelEn;
+                if (key === "more") {
+                  return (
+                    <button
+                      key="more"
+                      type="button"
+                      onClick={() => setMoreCategoriesOpen(true)}
+                      className={cx(
+                        "flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 bg-white py-3 px-2",
+                        "text-[#111111] hover:bg-[#F5F5F5] active:bg-[#EFEFEF]",
+                        "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30 transition-colors"
+                      )}
+                      aria-label={label}
+                    >
+                      <Icon className="h-6 w-6 text-[#111111]" aria-hidden />
+                      <span className="text-xs font-medium leading-tight">{label}</span>
+                    </button>
+                  );
+                }
+                const active = key === category;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => switchCategory(key)}
+                    aria-current={active ? "page" : undefined}
+                    className={cx(
+                      "flex flex-col items-center justify-center gap-1.5 rounded-xl border py-3 px-2",
+                      "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30 transition-colors",
+                      active
+                        ? "border-[#C9B46A]/60 bg-[#F8F6F0] text-[#111111]"
+                        : "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5] active:bg-[#EFEFEF]"
+                    )}
+                    aria-label={label}
+                  >
+                    <Icon className="h-6 w-6 text-[#111111]" aria-hidden />
+                    <span className="text-xs font-medium leading-tight">{label}</span>
                   </button>
                 );
               })}
@@ -4586,8 +4672,20 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
 
 
-        {/* RESULTS TOOLBAR (unchanged) */}
+        {/* RESULTS TOOLBAR + mobile Ordenar trigger (no bottom bar) */}
         <section className="mt-3 z-20" aria-busy={isSwitchingCategory}>
+          <div className="md:hidden flex justify-end mb-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMobilePanelTab("sort");
+                setMobilePanelOpen(true);
+              }}
+              className="rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+            >
+              {lang === "es" ? "Ordenar" : "Sort"}
+            </button>
+          </div>
 
 {/* Mobile full-screen Filters/Sort (A3) */}
 {mobilePanelOpen ? (
@@ -4849,37 +4947,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   </div>
 ) : null}
 
-<div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
-  <div className="mx-auto w-full max-w-screen-2xl px-4 pb-4">
-    <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] backdrop-blur shadow-lg">
-      <div className="flex items-center gap-3 p-3">
-        {!isServicios && (
-        <button
-          type="button"
-          onClick={() => {
-            setMobilePanelTab("filters");
-            setMobilePanelOpen(true);
-          }}
-          className="flex-1 rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-        >
-          {lang === "es" ? "Filtros" : "Filters"}
-        </button>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setMobilePanelTab("sort");
-            setMobilePanelOpen(true);
-          }}
-          className="flex-1 rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-        >
-          {lang === "es" ? "Ordenar" : "Sort"}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 </section>
 
         
@@ -4987,7 +5054,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </section>
 
         {category !== "servicios" ? (
-        <section className="mt-6 flex items-center justify-center gap-3 pb-14">
+        <section className="mt-6 flex items-center justify-center gap-3 pb-8 md:pb-6">
           <button
             type="button"
             disabled={pageClamped <= 1}
@@ -5026,6 +5093,58 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
         </div>
       </main>
+
+      {/* Mobile "Más" category list drawer */}
+      {moreCategoriesOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/25"
+            onClick={() => setMoreCategoriesOpen(false)}
+            aria-hidden
+          />
+          <div className="absolute inset-x-0 bottom-0 top-[20%] rounded-t-2xl border-t border-black/10 bg-[#F5F5F5] shadow-xl flex flex-col">
+            <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
+              <span className="text-sm font-semibold text-[#111111]">
+                {lang === "es" ? "Todas las categorías" : "All categories"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMoreCategoriesOpen(false)}
+                className="rounded-lg border border-black/10 bg-white p-2 text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                aria-label={lang === "es" ? "Cerrar" : "Close"}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 py-2">
+              {CATEGORY_PILL_ORDER.map((c) => {
+                const active = c === category;
+                const label = CATEGORY_LABELS[c][lang];
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      switchCategory(c);
+                      setMoreCategoriesOpen(false);
+                    }}
+                    className={cx(
+                      "flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
+                      active
+                        ? "bg-[#111111]/10 text-[#111111] font-medium"
+                        : "text-[#111111] hover:bg-[#EFEFEF] active:bg-[#E5E5E5]"
+                    )}
+                    aria-current={active ? "true" : undefined}
+                  >
+                    <span className="text-sm">{label}</span>
+                    <span className="text-[#111111]/60" aria-hidden>›</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Category-native filters panel (Todo button; no sidebar) */}
       {categoryFiltersOpen && !isServicios ? (
