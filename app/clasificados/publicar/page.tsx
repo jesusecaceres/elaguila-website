@@ -740,6 +740,8 @@ setIsPro(plan.includes("pro"));
     };
   }, [category, title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
 
+  const basicsOk = requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
+
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
       {
@@ -1231,123 +1233,46 @@ if (isPro && videoFile && !videoError) {
 
           {!checking && signedIn && (
             <>
-              {/* Stepper */}
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/10 bg-[#F5F5F5] p-3">
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-[#111111]">
-                  <span
-                    className={cx(
-                      "px-2 py-1 rounded-lg border",
-                      step === "category"
-                        ? "border-yellow-500/35 bg-[#F2EFE8] text-yellow-200"
-                        : "border-black/10 bg-[#F5F5F5]"
-                    )}
-                  >
-                    {copy.steps.category}
-                  </span>
-                  <span className="text-[#111111]/30">→</span>
-                  <span
-                    className={cx(
-                      "px-2 py-1 rounded-lg border",
-                      step === "basics"
-                        ? "border-yellow-500/35 bg-[#F2EFE8] text-yellow-200"
-                        : "border-black/10 bg-[#F5F5F5]"
-                    )}
-                  >
-                    {copy.steps.basics}
-                  </span>
-                  <span className="text-[#111111]/30">→</span>
-                  <span
-                    className={cx(
-                      "px-2 py-1 rounded-lg border",
-                      step === "details"
-                        ? "border-yellow-500/35 bg-[#F2EFE8] text-yellow-200"
-                        : "border-black/10 bg-[#F5F5F5]"
-                    )}
-                  >
-                    {copy.steps.details}
-                  </span>
-                  <span className="text-[#111111]/30">→</span>
-                  <span
-                    className={cx(
-                      "px-2 py-1 rounded-lg border",
-                      step === "media"
-                        ? "border-yellow-500/35 bg-[#F2EFE8] text-yellow-200"
-                        : "border-black/10 bg-[#F5F5F5]"
-                    )}
-                  >
-                    {copy.steps.media}
-                  </span>
+              {/* Read-only progress bar (not clickable) */}
+              <div className="mt-6 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={step === "category" ? 1 : step === "basics" ? 2 : step === "details" ? 3 : 4} aria-valuemin={1} aria-valuemax={4} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  {(["category", "basics", "details", "media"] as const).map((s, idx) => {
+                    const isActive = step === s;
+                    const isPast = (s === "category" && step !== "category") || (s === "basics" && (step === "details" || step === "media")) || (s === "details" && step === "media");
+                    const isUpcoming = !isActive && !isPast;
+                    const label = s === "category" ? copy.steps.category : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
+                    return (
+                      <span
+                        key={s}
+                        className={cx(
+                          "inline-flex items-center text-[11px] sm:text-xs font-medium select-none",
+                          isActive && "text-[#111111]",
+                          isPast && "text-[#111111]/70",
+                          isUpcoming && "text-[#111111]/40"
+                        )}
+                      >
+                        <span
+                          className={cx(
+                            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
+                            isActive && "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]",
+                            isPast && "border-black/15 bg-[#E8E8E8] text-[#111111]/80",
+                            isUpcoming && "border-black/10 bg-[#F5F5F5] text-[#111111]/40"
+                          )}
+                        >
+                          {isPast ? "✓" : idx + 1}
+                        </span>
+                        <span className="ml-1.5 hidden sm:inline">{label}</span>
+                        {idx < 3 && <span className="mx-1 text-[#111111]/25" aria-hidden>›</span>}
+                      </span>
+                    );
+                  })}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    deleteDraft();
-                    setPublishError("");
-                    setPublishedId("");
-                  }}
-                  className="text-xs sm:text-sm rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-3 py-2 text-[#111111]"
-                >
-                  {copy.deleteDraft}
-                </button>
               </div>
 
               
 
-              {/* Requirements checklist (quality gate) */}
-              <div className="mt-6 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-[#111111]">
-                      {lang === "es" ? "Requisitos para publicar" : "Publish requirements"}
-                    </div>
-                    <p className="mt-1 text-xs text-[#111111]">
-                      {lang === "es"
-                        ? "Completa esto para que tu anuncio salga bien en la lista. Te guiamos paso a paso."
-                        : "Complete these so your listing shows up cleanly in search. We’ll guide you step by step."}
-                    </p>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setStep("category")}
-                      className="text-xs rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-3 py-2 text-[#111111]"
-                    >
-                      {copy.steps.category}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); }}
-                      className="text-xs rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-3 py-2 text-[#111111]"
-                    >
-                      {copy.steps.basics}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep("details")}
-                      className="text-xs rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-3 py-2 text-[#111111]"
-                    >
-                      {copy.steps.details}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep("media")}
-                      className="text-xs rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-3 py-2 text-[#111111]"
-                    >
-                      {copy.steps.media}
-                    </button>
-                  </div>
-                </div>
-
-                {!requirements.allOk && (
-                  <div className="mt-3 rounded-xl border border-yellow-400/20 bg-[#F2EFE8] p-3 text-xs text-[#111111]">
-                    {missingRequirementsText}
-                  </div>
-                )}
-              </div>
-
-<div className="mt-6 grid gap-6">
+              <div className="mt-6 grid gap-6">
                 {/* CATEGORY (STEP 1) */}
                 {step === "category" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
@@ -1407,7 +1332,7 @@ if (isPro && videoFile && !videoError) {
                 {step === "basics" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.basicsTitle}</h2>
-                    {!isPro && category === "en-venta" && (
+                    {false && !isPro && category === "en-venta" && (
                       <div className="mt-4 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                           <div>
@@ -1440,11 +1365,11 @@ if (isPro && videoFile && !videoError) {
                           </div>
                         )}
 
-                        {!garage.active && typeof garage.cooldownDaysLeft === "number" && garage.cooldownDaysLeft > 0 && (
+                        {!garage.active && typeof garage.cooldownDaysLeft === "number" && (garage.cooldownDaysLeft ?? 0) > 0 && (
                           <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3 text-xs text-[#111111]">
                             {lang === "es"
-                              ? `Disponible de nuevo en ${garage.cooldownDaysLeft} día(s).`
-                              : `Available again in ${garage.cooldownDaysLeft} day(s).`}
+                              ? `Disponible de nuevo en ${garage.cooldownDaysLeft ?? 0} día(s).`
+                              : `Available again in ${garage.cooldownDaysLeft ?? 0} day(s).`}
                           </div>
                         )}
 
@@ -1528,7 +1453,7 @@ if (isPro && videoFile && !videoError) {
                             className={cx(
                               "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
                               isFree
-                                ? "border-yellow-500/35 bg-[#F2EFE8] text-yellow-200"
+                                ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
                                 : "border-black/10 bg-white/9 text-[#111111] hover:bg-white/12"
                             )}
                           >
@@ -1563,11 +1488,17 @@ if (isPro && videoFile && !videoError) {
                       >
                         {copy.back}
                       </button>
-                      <div className="text-xs text-[#111111]/40 flex-1 text-center">{copy.requiredHint}</div>
+                      <div className="text-xs text-[#111111]/40 flex-1 text-center hidden sm:block">{copy.requiredHint}</div>
                       <button
                         type="button"
-                        onClick={() => setStep("details")}
-                        className="rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3"
+                        disabled={!basicsOk}
+                        onClick={() => basicsOk && setStep("details")}
+                        className={cx(
+                          "rounded-xl font-semibold px-5 py-3",
+                          basicsOk
+                            ? "bg-yellow-500/90 hover:bg-yellow-500 text-black"
+                            : "bg-black/10 text-[#111111]/40 cursor-not-allowed"
+                        )}
                       >
                         {copy.next}
                       </button>
@@ -1916,7 +1847,7 @@ if (isPro && videoFile && !videoError) {
                               className={cx(
                                 "rounded-xl border px-3 py-2 text-sm font-semibold",
                                 contactMethod === value
-                                  ? "border-yellow-500/35 bg-[#F2EFE8] text-yellow-200"
+                                  ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
                                   : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF]"
                               )}
                             >
