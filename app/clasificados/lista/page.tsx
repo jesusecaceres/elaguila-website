@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
-import ActiveFilterChips from "../components/ActiveFilterChips";
 import { serviciosDrawerFilters } from "../config/categoryConfig";
 import newLogo from "../../../public/logo.png";
 
@@ -1653,8 +1652,6 @@ useEffect(() => {
   const [citySuggestOpen, setCitySuggestOpen] = useState(false);
   const citySuggestRef = useRef<HTMLDivElement | null>(null);
 
-  const chipsRowRef = useRef<HTMLDivElement | null>(null);
-
   const didHydrateRef = useRef(false);
 
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -2807,14 +2804,6 @@ const visible = useMemo(() => {
       });
     }
 
-    if (category !== "all") {
-      chips.push({
-        key: "cat",
-        text: `${UI.category[lang]}: ${CATEGORY_LABELS[category][lang]}`,
-        clear: () => setCategory("all"),
-      });
-    }
-
     // ✓ Rentas chips (only show when in rentas + has params)
     if (category === "rentas") {
       if (rentasParams.rpmin) chips.push({ key: "rpmin", text: `Min: $${rentasParams.rpmin}`, clear: () => setRentasParams((p) => ({ ...p, rpmin: "" })) });
@@ -2892,14 +2881,6 @@ const visible = useMemo(() => {
       if (comunidadParams.gtype) chips.push({ key: "gtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${comunidadTypeLabel(comunidadParams.gtype as any, lang)}`, clear: () => setComunidadParams((p) => ({ ...p, gtype: "" })) });
     }
 
-    if (sort !== "newest") {
-      chips.push({
-        key: "sort",
-        text: `${UI.sort[lang]}: ${SORT_LABELS[sort][lang]}`,
-        clear: () => setSort("newest"),
-      });
-    }
-
     if (sellerType) {
       chips.push({
         key: "seller",
@@ -2917,7 +2898,7 @@ const visible = useMemo(() => {
     }
 
     return chips;
-  }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
+  }, [q, lang, zipMode, zipClean, city, locationLabel, radiusMi, category, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
   useEffect(() => {
     setUrlParams({
@@ -3059,13 +3040,6 @@ const visible = useMemo(() => {
       setLocMsg(lang === "es" ? "Error de ubicación." : "Location error.");
       setUsingMyLocation(false);
     }
-  };
-
-  const scrollChips = (dir: "left" | "right") => {
-    const el = chipsRowRef.current;
-    if (!el) return;
-    const dx = dir === "left" ? -260 : 260;
-    el.scrollBy({ left: dx, behavior: "smooth" });
   };
 
   const mapsHref = (address: string) =>
@@ -4342,36 +4316,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           </p>
         </div>
 
-        <section className="mt-6">
-          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-4 py-3 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold text-[#111111]">
-                {lang === "es" ? "Explorar por categoría" : "Browse by category"}
-              </div>
-
-              <div className="hidden md:flex items-center gap-1 text-[11px] text-[#111111]">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#111111]/60" />
-                <span>{lang === "es" ? "Cambio rápido" : "Quick switch"}</span>
-              </div>
+        <section className="mt-4">
+          <div className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 shadow-sm ring-1 ring-[#C9B46A]/20">
+            <div className="text-[11px] font-semibold text-[#111111]">
+              {lang === "es" ? "Explorar por categoría" : "Browse by category"}
             </div>
-
-            {/* Switch feedback (no layout shift) */}
-            <div
-              className={cx(
-                "mt-3 h-0.5 w-full overflow-hidden rounded-full bg-[#EFEFEF] transition-colors",
-                isSwitchingCategory ? "bg-[#111111]/25" : ""
-              )}
-              aria-hidden="true"
-            >
-              <div
-                className={cx(
-                  "h-full w-full transition-opacity",
-                  isSwitchingCategory ? "opacity-100 animate-pulse bg-[#111111]/40" : "opacity-0"
-                )}
-              />
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {CATEGORY_PILL_ORDER.map((c) => {
                 const active = c === category;
                 return (
@@ -4381,9 +4331,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                     onClick={() => switchCategory(c)}
                     aria-current={active ? "page" : undefined}
                     className={cx(
-                      "whitespace-nowrap snap-start snap-always rounded-full border px-3 py-1.5 text-xs sm:py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
+                      "whitespace-nowrap snap-start rounded-full border px-2.5 py-1 text-[11px] transition-colors focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
                       active
-                        ? "border-yellow-500/50 bg-[#111111]/15 text-[#111111]"
+                        ? "border-yellow-500/50 bg-[#111111]/12 text-[#111111]"
                         : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF]"
                     )}
                   >
@@ -4392,7 +4342,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 );
               })}
             </div>
-
           </div>
         </section>
 
@@ -4408,17 +4357,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           <div className="md:mt-0 min-w-0 md:col-start-1">
           <div className={isServicios ? "mx-auto w-full max-w-6xl" : ""}>
 
-        {/* TOP QUICK FILTERS (compact) */}
-        <section className="mt-0">
-          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] px-3 py-1 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] ring-1 ring-[#C9B46A]/25 backdrop-blur-sm">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
-              {/* Search + Location (Servicios = Yelp-style combined bar) */}
+        {/* TOP QUICK FILTERS (compact — Servicios-style master shell) */}
+        <section className="mt-2">
+          <div className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 ring-1 ring-[#C9B46A]/20">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {isServicios ? (
                 <div ref={serviciosTypeRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
                   <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Servicio" : "Service"}</label>
-
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_220px] gap-2 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_180px] gap-1.5 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
                         <input
                           value={q}
@@ -4428,17 +4375,16 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           }}
                           onFocus={() => setServiciosTypeOpen(true)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="w-full min-w-0 bg-transparent px-2.5 py-2 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80"
+                          className="w-full min-w-0 bg-transparent px-2 py-1.5 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80"
                           aria-label={lang === "es" ? "Buscar servicio" : "Search service"}
                         />
                       </div>
-
-                      <div className="flex min-w-[220px] shrink-0 items-stretch">
+                      <div className="flex min-w-[180px] shrink-0 items-stretch">
                         <div className="w-px shrink-0 bg-black/10" aria-hidden="true" />
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="min-w-0 flex-1 truncate px-2.5 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.location[lang]}
                         >
                           {locationLabel}
@@ -4446,7 +4392,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="shrink-0 px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="shrink-0 px-2 py-1.5 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.edit[lang]}
                           title={UI.edit[lang]}
                         >
@@ -4454,11 +4400,9 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         </button>
                       </div>
                     </div>
-
-                    {/* Typeahead suggestions (typo-tolerant) */}
                     {serviciosTypeOpen && serviciosTypeSuggestions.length ? (
-                      <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5] shadow-lg">
-                        <div className="px-2.5 py-1.5 text-[11px] text-[#111111]/80">{lang === "es" ? "Sugerencias" : "Suggestions"}</div>
+                      <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 overflow-hidden rounded-md border border-black/10 bg-[#F5F5F5] shadow-md">
+                        <div className="px-2 py-1 text-[11px] text-[#111111]/80">{lang === "es" ? "Sugerencias" : "Suggestions"}</div>
                         {serviciosTypeSuggestions.map((s) => (
                           <button
                             key={s.key}
@@ -4470,7 +4414,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                               setServiciosHover(null);
                               setPage(1);
                             }}
-                            className="flex w-full items-center justify-between px-2.5 py-1.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                            className="flex w-full items-center justify-between px-2 py-1.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           >
                             <span className="truncate">{s.label}</span>
                             <span className="ml-2 shrink-0 text-[11px] text-[#111111]">{SERVICIOS_GROUP_LABEL[s.group][lang]}</span>
@@ -4479,16 +4423,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       </div>
                     ) : null}
                   </div>
-
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setServiciosAllOpen(true)}
-                      className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                      className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                     >
                       ☰ {lang === "es" ? "Todo" : "All"}
                     </button>
-
 					{(Object.keys(SERVICIOS_TAXONOMY) as ServiciosGroupKey[])
 						.filter((g) => {
 							const only = servicioGroupForKey(serviciosDraft.stype);
@@ -4504,15 +4446,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <button
                           type="button"
                           onClick={() => setServiciosHover((cur) => (cur === grp ? null : grp))}
-                          className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                         >
                           {SERVICIOS_GROUP_LABEL[grp][lang]} ▾
                         </button>
                         {serviciosHover === grp ? (
-                          <div className="absolute left-0 top-full h-1" aria-hidden="true" />
+                          <div className="absolute left-0 top-full h-0.5" aria-hidden="true" />
                         ) : null}
                         {serviciosHover === grp ? (
-                          <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[260px] overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5] shadow-lg">
+                          <div className="absolute left-0 top-[calc(100%+4px)] z-50 w-[220px] overflow-hidden rounded-md border border-black/10 bg-[#F5F5F5] shadow-md">
                             <div className="grid grid-cols-2 gap-0.5 p-1.5">
                               {SERVICIOS_TAXONOMY[grp].map((it) => (
                                 <button
@@ -4525,7 +4467,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                                     setServiciosTypeOpen(false);
                                     setPage(1);
                                   }}
-                                  className="rounded-md px-2.5 py-1.5 text-left text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                                  className="rounded px-2 py-1.5 text-left text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                                 >
                                   {it.label[lang]}
                                 </button>
@@ -4536,8 +4478,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       </div>
                     ))}
                   </div>
-
-                  <div className="mt-0.5 flex min-h-[1.25rem] flex-wrap items-center gap-x-1.5 gap-y-0.5 overflow-hidden text-[11px] text-[#111111]">
+                  <div className="mt-1 flex min-h-[1rem] flex-wrap items-center gap-x-1.5 gap-y-0.5 overflow-hidden text-[11px] text-[#111111]">
                     <span className="min-w-0 truncate font-medium" title={serviciosBreadcrumb.replace(/ › /g, " > ")}>{serviciosBreadcrumb.replace(/ › /g, " > ")}</span>
                     {serviciosDeepChips.length > 0 && (
                       <>
@@ -4558,26 +4499,25 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 </div>
               ) : (
-                /* Unified shell: same as Servicios — search | location, then Todo + category-native chips */
                 <div ref={searchBoxRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
                   <label className="block text-[11px] font-semibold text-[#111111]">{UI.search[lang]}</label>
                   <div className="relative mt-1 w-full min-w-0">
-                    <div className="grid w-full grid-cols-[minmax(0,1fr)_220px] gap-2 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
+                    <div className="grid w-full grid-cols-[minmax(0,1fr)_180px] gap-1.5 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
                         <input
                           value={q}
                           onChange={(e) => setQ(e.target.value)}
                           placeholder={getSearchPlaceholder(category, lang)}
-                          className="w-full min-w-0 bg-transparent px-2.5 py-2 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80 focus:ring-0"
+                          className="w-full min-w-0 bg-transparent px-2 py-1.5 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80 focus:ring-0"
                           aria-label={UI.search[lang]}
                         />
                       </div>
-                      <div className="flex min-w-[220px] shrink-0 items-stretch">
+                      <div className="flex min-w-[180px] shrink-0 items-stretch">
                         <div className="w-px shrink-0 bg-black/10" aria-hidden="true" />
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="min-w-0 flex-1 truncate px-2.5 py-2 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.location[lang]}
                         >
                           {locationLabel}
@@ -4585,7 +4525,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         <button
                           type="button"
                           onClick={() => setLocationOpen(true)}
-                          className="shrink-0 px-3 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                          className="shrink-0 px-2 py-1.5 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                           aria-label={UI.edit[lang]}
                           title={UI.edit[lang]}
                         >
@@ -4594,46 +4534,46 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       </div>
                     </div>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <button
                       type="button"
                       onClick={() => setCategoryFiltersOpen(true)}
-                      className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                      className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                     >
                       ☰ {lang === "es" ? "Todo" : "All"}
                     </button>
                     {category === "en-venta" && EN_VENTA_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "rentas" && RENTAS_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "autos" && AUTOS_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "empleos" && EMPLEOS_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "clases" && CLASES_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "comunidad" && COMUNIDAD_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
                     {category === "travel" && TRAVEL_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
+                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
                       </button>
                     ))}
@@ -4672,11 +4612,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               )}
             >
               {lang === "es" ? "Filtros" : "Filters"}
-              {activeChips.length ? (
-                <span className="ml-2 text-xs text-[#111111]">
-                  ({activeChips.length})
-                </span>
-              ) : null}
             </button>
             )}
             <button
@@ -4928,11 +4863,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           className="flex-1 rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
         >
           {lang === "es" ? "Filtros" : "Filters"}
-          {activeChips.length ? (
-            <span className="ml-2 text-xs font-medium text-[#111111]">
-              ({activeChips.length})
-            </span>
-          ) : null}
         </button>
         )}
         <button
