@@ -1640,6 +1640,10 @@ if (isPro && videoFile && !videoError) {
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
                               placeholder={lang === "es" ? "Ej: Sofá 3 plazas en buen estado" : "Ex: 3-seat sofa in good condition"}
+                              spellCheck={true}
+                              autoCorrect="on"
+                              autoCapitalize="sentences"
+                              lang={lang === "es" ? "es" : "en"}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                             {!requirements.titleOk && (
@@ -1664,6 +1668,10 @@ if (isPro && videoFile && !videoError) {
                                   ? "Estado, medidas, entrega o recoger, etc."
                                   : "Condition, size, pickup/delivery, etc."
                               }
+                              spellCheck={true}
+                              autoCorrect="on"
+                              autoCapitalize="sentences"
+                              lang={lang === "es" ? "es" : "en"}
                               rows={5}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
