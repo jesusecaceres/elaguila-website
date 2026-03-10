@@ -407,9 +407,21 @@ const EN_VENTA_TIPO_BY_RAMA: Record<string, Array<{ value: string; labelEs: stri
 };
 
 /**
- * Suggests a better En Venta description based ONLY on what the user wrote.
- * Does NOT inject title, price, city, condition, or delivery. Optional light context from item type.
- * Latin American Spanish only.
+ * Light title cleanup only: trim, normalize spacing, capitalize.
+ * Does NOT inject condition/city/price or invent specs. Latin American Spanish friendly.
+ */
+function buildEnVentaSuggestedTitle(title: string): string {
+  const t = (title ?? "").trim().replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  const first = t.slice(0, 1).toUpperCase();
+  const rest = t.slice(1);
+  return first + rest;
+}
+
+/**
+ * Improves the En Venta description based ONLY on what the user wrote.
+ * Light cleanup and readability. No coaching lines unless description is basically empty.
+ * Does NOT inject title, price, city, condition, or delivery.
  */
 function buildEnVentaSuggestedDescription(params: {
   description: string;
@@ -419,7 +431,7 @@ function buildEnVentaSuggestedDescription(params: {
   const normalized = raw.replace(/\s+/g, " ").trim();
   const len = normalized.length;
 
-  // Optional soft context: friendly word for template when description is empty/short
+  // Optional soft context for template when description is empty
   let articuloWord = "artículo";
   if (params.itemTypeValue) {
     for (const rama of Object.keys(EN_VENTA_TIPO_BY_RAMA)) {
@@ -431,24 +443,18 @@ function buildEnVentaSuggestedDescription(params: {
     }
   }
 
-  // Empty or very short: template only, no invented facts
-  if (len < 10) {
+  // Empty or nearly empty: neutral prompt only
+  if (len < 8) {
     if (articuloWord === "celular") {
-      return "Describe el estado del celular, si incluye cargador y cualquier detalle importante para el comprador.";
+      return "Describe el estado del celular y si incluye cargador.";
     }
-    return `Describe el estado del ${articuloWord}, qué incluye y cualquier detalle importante para el comprador.`;
+    return `Describe el estado del ${articuloWord} y qué incluye.`;
   }
 
-  // User wrote something: keep their meaning, light cleanup, optional gentle prompt if still short
+  // User wrote something meaningful: clean only, no extra coaching
   const firstChar = normalized.slice(0, 1).toUpperCase();
   const rest = normalized.slice(1);
-  const cleaned = firstChar + rest;
-
-  if (len < 35) {
-    return `${cleaned}. Describe si funciona bien, qué incluye y cualquier detalle importante para el comprador.`;
-  }
-
-  return cleaned;
+  return firstChar + rest;
 }
 
 function getCategoryFields(cat: string): DetailField[] {
@@ -589,6 +595,8 @@ export default function PublicarPage() {
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   /** En Venta only: optional description suggestion (user must click "Usar sugerencia" to apply). */
   const [enVentaSuggestedDesc, setEnVentaSuggestedDesc] = useState<string | null>(null);
+  /** En Venta only: optional title suggestion (user must click "Usar título sugerido" to apply). */
+  const [enVentaSuggestedTitle, setEnVentaSuggestedTitle] = useState<string | null>(null);
 
   const maxImages = isPro ? 12 : 5;
 
@@ -1686,13 +1694,54 @@ if (isPro && videoFile && !videoError) {
                             </p>
                             <input
                               value={title}
-                              onChange={(e) => setTitle(e.target.value)}
+                              onChange={(e) => {
+                                setTitle(e.target.value);
+                                setEnVentaSuggestedTitle(null);
+                              }}
                               placeholder={lang === "es" ? "Ej: Sofá 3 plazas en buen estado" : "Ex: 3-seat sofa in good condition"}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                             {!requirements.titleOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
                                 {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                            {!enVentaSuggestedTitle ? (
+                              title.trim().length >= 3 && (
+                                <div className="mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const suggested = buildEnVentaSuggestedTitle(title);
+                                      if (suggested !== title.trim()) setEnVentaSuggestedTitle(suggested);
+                                    }}
+                                    className="text-xs rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-[#111111] hover:bg-[#EFEFEF]"
+                                  >
+                                    {lang === "es" ? "Sugerir título" : "Suggest title"}
+                                  </button>
+                                </div>
+                              )
+                            ) : (
+                              <div className="mt-2 rounded-xl border border-black/10 bg-[#F5F5F5] p-2 flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-[#111111]/70">{lang === "es" ? "Sugerido:" : "Suggested:"}</span>
+                                <span className="text-sm text-[#111111]">{enVentaSuggestedTitle}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTitle(enVentaSuggestedTitle);
+                                    setEnVentaSuggestedTitle(null);
+                                  }}
+                                  className="rounded-lg border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8]"
+                                >
+                                  {lang === "es" ? "Usar título sugerido" : "Use suggested title"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEnVentaSuggestedTitle(null)}
+                                  className="rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF]"
+                                >
+                                  {lang === "es" ? "Descartar" : "Discard"}
+                                </button>
                               </div>
                             )}
                           </div>
@@ -1723,8 +1772,8 @@ if (isPro && videoFile && !videoError) {
                             <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
                               <p className="text-xs text-[#111111]/70">
                                 {lang === "es"
-                                  ? "Te ayudamos a mejorar tu descripción con base en lo que escribiste."
-                                  : "We help you improve your description based on what you wrote."}
+                                  ? "Mejoramos ortografía y redacción de lo que escribiste, sin agregar datos."
+                                  : "We clean up spelling and wording of what you wrote, without adding facts."}
                               </p>
                               {!enVentaSuggestedDesc ? (
                                 <button
@@ -1770,7 +1819,7 @@ if (isPro && videoFile && !videoError) {
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="sm:col-span-2">
+                            <div className={cx("sm:col-span-2", isFree && "hidden")}>
                               <label className="text-sm text-[#111111]">{copy.fieldPrice}{" *"}</label>
                               <input
                                 value={price}
@@ -1784,29 +1833,43 @@ if (isPro && videoFile && !videoError) {
                                     : "border-black/10 bg-white/9 focus:ring-yellow-400/30"
                                 )}
                               />
-                              {!requirements.priceOk && (
+                              {!isFree && !requirements.priceOk && (
                                 <div className="mt-1 text-xs text-[#111111]/40">
-                                  {lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}
+                                  {lang === "es" ? "Agrega el precio." : "Add the price."}
                                 </div>
                               )}
                             </div>
-                            <div className="sm:col-span-1">
-                              <label className="text-sm text-[#111111]">{copy.freeToggle}{" *"}</label>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsFree((v) => !v);
-                                  if (!isFree) setPrice("");
-                                }}
-                                className={cx(
-                                  "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
-                                  isFree
-                                    ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
-                                    : "border-black/10 bg-white/9 text-[#111111] hover:bg-white/12"
-                                )}
-                              >
-                                {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
-                              </button>
+                            <div className={cx(isFree ? "sm:col-span-2" : "sm:col-span-1")}>
+                              <label className="text-sm text-[#111111]">{lang === "es" ? "Gratis" : "Free"}{" *"}</label>
+                              <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsFree(true);
+                                    setPrice("");
+                                  }}
+                                  className={cx(
+                                    "flex-1 py-3 text-sm font-semibold",
+                                    isFree
+                                      ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50"
+                                      : "text-[#111111]/70 hover:bg-[#EFEFEF] hover:text-[#111111]"
+                                  )}
+                                >
+                                  {lang === "es" ? "Sí" : "Yes"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsFree(false)}
+                                  className={cx(
+                                    "flex-1 py-3 text-sm font-semibold",
+                                    !isFree
+                                      ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50"
+                                      : "text-[#111111]/70 hover:bg-[#EFEFEF] hover:text-[#111111]"
+                                  )}
+                                >
+                                  {lang === "es" ? "No" : "No"}
+                                </button>
+                              </div>
                             </div>
                           </div>
 
