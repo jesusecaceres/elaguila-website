@@ -272,7 +272,7 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   "en-venta": [
     {
       key: "rama",
-      label: { es: "Rama principal", en: "Main category" },
+      label: { es: "Categoría", en: "Category" },
       type: "select",
       options: EN_VENTA_RAMAS.map((r) => ({ value: r.value, label: { es: r.labelEs, en: r.labelEn } })),
     },
@@ -405,6 +405,45 @@ const EN_VENTA_TIPO_BY_RAMA: Record<string, Array<{ value: string; labelEs: stri
   ],
   otros: [{ value: "otro", labelEs: "Otro", labelEn: "Other" }],
 };
+
+/**
+ * Builds a short, honest En Venta description suggestion from current form data.
+ * Latin American Spanish only. No invented details (delivery, defects, accessories).
+ */
+function buildEnVentaSuggestedDescription(params: {
+  ramaValue: string;
+  itemTypeValue: string;
+  conditionValue: string;
+  title: string;
+  isFree: boolean;
+  priceFormatted: string;
+  city: string;
+}): string {
+  const { ramaValue, itemTypeValue, conditionValue, title, isFree, priceFormatted, city } = params;
+  const rama = EN_VENTA_RAMAS.find((r) => r.value === ramaValue);
+  const ramaLabel = rama?.labelEs ?? "";
+  const tipos = EN_VENTA_TIPO_BY_RAMA[ramaValue] ?? [];
+  const tipo = tipos.find((t) => t.value === itemTypeValue);
+  const tipoLabel = tipo?.labelEs ?? "";
+  const cond = EN_VENTA_CONDICION.find((c) => c.value === conditionValue);
+  const condLabel = cond?.labelEs ?? "";
+
+  const parts: string[] = [];
+  const itemDesc = title.trim() || (ramaLabel && tipoLabel ? `${tipoLabel} (${ramaLabel})` : ramaLabel || tipoLabel || "Artículo");
+  parts.push(`${itemDesc}.${condLabel ? ` Condición: ${condLabel}.` : ""}`);
+  if (isFree) {
+    parts.push(" Se da gratis.");
+  } else if (priceFormatted) {
+    parts.push(` Precio: ${priceFormatted}.`);
+  } else {
+    parts.push(" Precio a acordar.");
+  }
+  if (city.trim()) {
+    parts.push(` Ubicación: ${city.trim()}.`);
+  }
+  parts.push(" Acordar entrega o recoger con el vendedor.");
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
 
 function getCategoryFields(cat: string): DetailField[] {
   return DETAIL_FIELDS[cat] ?? [];
@@ -542,6 +581,8 @@ export default function PublicarPage() {
   const [contactEmail, setContactEmail] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  /** En Venta only: optional description suggestion (user must click "Usar sugerencia" to apply). */
+  const [enVentaSuggestedDesc, setEnVentaSuggestedDesc] = useState<string | null>(null);
 
   const maxImages = isPro ? 12 : 5;
 
@@ -1558,17 +1599,18 @@ if (isPro && videoFile && !videoError) {
                         <>
                           <div>
                             <label className="text-sm text-[#111111]">
-                              {lang === "es" ? "Rama principal" : "Main category"}{" *"}
+                              {lang === "es" ? "Categoría" : "Category"}{" *"}
                             </label>
                             <select
                               value={details.rama ?? ""}
                               onChange={(e) => {
                                 const v = e.target.value;
                                 setDetails((prev) => ({ ...prev, rama: v, itemType: "" }));
+                                setEnVentaSuggestedDesc(null);
                               }}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             >
-                              <option value="">{lang === "es" ? "Elige una rama…" : "Choose one…"}</option>
+                              <option value="">{lang === "es" ? "Elige una categoría…" : "Choose one…"}</option>
                               {EN_VENTA_RAMAS.map((r) => (
                                 <option key={r.value} value={r.value}>
                                   {lang === "es" ? r.labelEs : r.labelEn}
@@ -1653,8 +1695,8 @@ if (isPro && videoFile && !videoError) {
                             <label className="text-sm text-[#111111]">{copy.fieldDesc}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">
                               {lang === "es"
-                                ? "Incluye defectos, qué trae incluido, si es entrega o recoger, y notas importantes."
-                                : "Include defects, what’s included, pickup or delivery, and any important notes."}
+                                ? "Escribe lo esencial: estado, qué incluye, y si entregas o deben recoger."
+                                : "Include condition, what's included, and whether you deliver or they pick up."}
                             </p>
                             <textarea
                               value={description}
@@ -1672,6 +1714,58 @@ if (isPro && videoFile && !videoError) {
                                 {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
                               </div>
                             )}
+                            <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
+                              <p className="text-xs text-[#111111]/70">
+                                {lang === "es"
+                                  ? "Te ayudamos con una sugerencia clara basada en lo que ya llenaste."
+                                  : "We can suggest a short description from what you've entered."}
+                              </p>
+                              {!enVentaSuggestedDesc ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const suggested = buildEnVentaSuggestedDescription({
+                                      ramaValue: details.rama ?? "",
+                                      itemTypeValue: details.itemType ?? "",
+                                      conditionValue: details.condition ?? "",
+                                      title: title.trim(),
+                                      isFree,
+                                      priceFormatted: formatMoneyMaybe(price, "es") || "",
+                                      city: city.trim(),
+                                    });
+                                    setEnVentaSuggestedDesc(suggested);
+                                  }}
+                                  className="mt-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF]"
+                                >
+                                  {lang === "es" ? "Sugerir descripción" : "Suggest description"}
+                                </button>
+                              ) : (
+                                <div className="mt-3 space-y-2">
+                                  <div className="rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm text-[#111111] whitespace-pre-wrap">
+                                    {enVentaSuggestedDesc}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDescription(enVentaSuggestedDesc);
+                                        setEnVentaSuggestedDesc(null);
+                                      }}
+                                      className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]"
+                                    >
+                                      {lang === "es" ? "Usar sugerencia" : "Use suggestion"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEnVentaSuggestedDesc(null)}
+                                      className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF]"
+                                    >
+                                      {lang === "es" ? "Descartar" : "Discard"}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
