@@ -625,7 +625,7 @@ setIsPro(plan.includes("pro"));
     []
   )[lang];
 
-  // Load draft once signed in
+  // Load draft once signed in — restore form data only; always show Category step first (do not restore step)
   useEffect(() => {
     if (!signedIn) return;
     try {
@@ -634,10 +634,7 @@ setIsPro(plan.includes("pro"));
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
       if (parsed.v !== 1) return;
 
-      const savedStep = (parsed.step as PublishStep) || "category";
-      setStep(savedStep === "basics" || savedStep === "details" || savedStep === "media" || savedStep === "category"
-        ? savedStep
-        : "category");
+      // Do NOT restore step: publish app must always land on Category step first
       setTitle(typeof parsed.title === "string" ? parsed.title : "");
       setDescription(typeof parsed.description === "string" ? parsed.description : "");
       setIsFree(Boolean(parsed.isFree));
