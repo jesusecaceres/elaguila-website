@@ -515,6 +515,19 @@ export default function PublicarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
+  const isEnVentaFlow = category === "en-venta";
+  const stepOrder: PublishStep[] = isEnVentaFlow
+    ? ["category", "basics", "media"]
+    : ["category", "basics", "details", "media"];
+  const safeStepForProgress: PublishStep =
+    isEnVentaFlow && step === "details" ? "media" : step;
+  const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
+
+  useEffect(() => {
+    if (category === "en-venta" && step === "details") {
+      setStep("media");
+    }
+  }, [category, step]);
 
   // Details (category-specific structured fields)
   const [details, setDetails] = useState<Record<string, string>>(() => {
@@ -881,9 +894,14 @@ setIsPro(plan.includes("pro"));
     const descOk = description.trim().length >= 5;
     const cityOk = Boolean(normalizeCity(city));
     const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
-    const imagesOk = true;
+    const imagesOk = files.length >= 1;
     const phoneOk = contactMethod === "email" ? true : contactPhone.trim().length >= 7;
     const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
+    const enVentaMetaOk =
+      category !== "en-venta" ||
+      (!!details.rama?.trim() &&
+        !!details.itemType?.trim() &&
+        !!details.condition?.trim());
     return {
       categoryOk,
       titleOk,
@@ -893,21 +911,27 @@ setIsPro(plan.includes("pro"));
       imagesOk,
       phoneOk,
       emailOk,
-      allOk: categoryOk && titleOk && descOk && cityOk && priceOk && imagesOk && phoneOk && emailOk,
+      enVentaMetaOk,
+      allOk:
+        categoryOk &&
+        titleOk &&
+        descOk &&
+        cityOk &&
+        priceOk &&
+        imagesOk &&
+        phoneOk &&
+        emailOk &&
+        enVentaMetaOk,
     };
-  }, [category, title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
+  }, [category, title, description, city, isFree, price, details, files.length, contactMethod, contactPhone, contactEmail, lang]);
 
-  const enVentaBasicsOk =
-    !!details.rama?.trim() &&
-    !!details.itemType?.trim() &&
-    !!details.condition?.trim() &&
-    requirements.titleOk &&
-    requirements.descOk &&
-    requirements.priceOk &&
-    requirements.cityOk;
   const basicsOk =
     category === "en-venta"
-      ? enVentaBasicsOk
+      ? requirements.enVentaMetaOk &&
+        requirements.titleOk &&
+        requirements.descOk &&
+        requirements.priceOk &&
+        requirements.cityOk
       : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
 
   const requirementItems = useMemo(() => {
@@ -942,6 +966,16 @@ setIsPro(plan.includes("pro"));
         ok: requirements.cityOk,
         step: "basics",
       },
+      ...(category === "en-venta"
+        ? [
+            {
+              key: "itemDetails" as const,
+              label: lang === "es" ? "Detalles del artículo" : "Item details",
+              ok: requirements.enVentaMetaOk,
+              step: "basics" as const,
+            },
+          ]
+        : []),
       {
         key: "images",
         label: lang === "es" ? "1+ foto" : "1+ photo",
@@ -963,11 +997,11 @@ setIsPro(plan.includes("pro"));
                 ? "Phone"
                 : "Contact",
         ok: requirements.phoneOk && requirements.emailOk,
-        step: "details",
+        step: "media",
       },
     ];
     return items;
-  }, [requirements, lang, isFree, contactMethod]);
+  }, [requirements, lang, isFree, contactMethod, category]);
 
   const missingRequirementsText = useMemo(() => {
     const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
@@ -1402,11 +1436,11 @@ if (isPro && videoFile && !videoError) {
           {!checking && signedIn && (
             <>
               {/* Read-only progress bar (not clickable) */}
-              <div className="mt-6 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={step === "category" ? 1 : step === "basics" ? 2 : step === "details" ? 3 : 4} aria-valuemin={1} aria-valuemax={4} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
+              <div className="mt-6 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={stepOrder.length} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
                 <div className="flex items-center gap-1 sm:gap-2">
-                  {(["category", "basics", "details", "media"] as const).map((s, idx) => {
-                    const isActive = step === s;
-                    const isPast = (s === "category" && step !== "category") || (s === "basics" && (step === "details" || step === "media")) || (s === "details" && step === "media");
+                  {stepOrder.map((s, idx) => {
+                    const isActive = safeStepForProgress === s;
+                    const isPast = stepOrder.indexOf(s) < currentStepIndex;
                     const isUpcoming = !isActive && !isPast;
                     const label = s === "category" ? copy.steps.category : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
                     return (
@@ -1430,7 +1464,7 @@ if (isPro && videoFile && !videoError) {
                           {isPast ? "✓" : idx + 1}
                         </span>
                         <span className="ml-1.5 hidden sm:inline">{label}</span>
-                        {idx < 3 && <span className="mx-1 text-[#111111]/25" aria-hidden>›</span>}
+                        {idx < stepOrder.length - 1 && <span className="mx-1 text-[#111111]/25" aria-hidden>›</span>}
                       </span>
                     );
                   })}
@@ -1866,7 +1900,7 @@ if (isPro && videoFile && !videoError) {
                       <button
                         type="button"
                         disabled={!basicsOk}
-                        onClick={() => basicsOk && setStep("details")}
+                        onClick={() => basicsOk && setStep(isEnVentaFlow ? "media" : "details")}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
                           basicsOk
@@ -1881,7 +1915,7 @@ if (isPro && videoFile && !videoError) {
                 )}
 
                 {/* DETAILS */}
-                {step === "details" && (
+                {step === "details" && !isEnVentaFlow && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.detailsTitle}</h2>
                     <p className="mt-2 text-sm text-[#111111]">
@@ -2426,7 +2460,7 @@ if (isPro && videoFile && !videoError) {
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <button
                           type="button"
-                          onClick={() => setStep("details")}
+                          onClick={() => setStep(isEnVentaFlow ? "basics" : "details")}
                           className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                         >
                           {copy.back}
