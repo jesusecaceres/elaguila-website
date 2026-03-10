@@ -878,7 +878,7 @@ setIsPro(plan.includes("pro"));
   const requirements = useMemo(() => {
     const categoryOk = !!normalizeCategory(category);
     const titleOk = title.trim().length >= 5;
-    const descOk = description.trim().length >= 10;
+    const descOk = description.trim().length >= 5;
     const cityOk = Boolean(normalizeCity(city));
     const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
     const imagesOk = true;
@@ -1677,7 +1677,7 @@ if (isPro && videoFile && !videoError) {
                             />
                             {!requirements.descOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Mínimo 10 caracteres." : "Min 10 characters."}
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                               </div>
                             )}
                           </div>
@@ -1787,7 +1787,7 @@ if (isPro && videoFile && !videoError) {
                             />
                             {!requirements.descOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Mínimo 10 caracteres." : "Min 10 characters."}
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                               </div>
                             )}
                           </div>
