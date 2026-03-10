@@ -132,6 +132,29 @@ function normalizeCity(raw: string): string {
 
 const DRAFT_KEY = "leonix_clasificados_post_draft_v1";
 
+/** En Venta: rama principal (taxonomy-first Basics). */
+const EN_VENTA_RAMAS: Array<{ value: string; labelEs: string; labelEn: string }> = [
+  { value: "electronicos", labelEs: "Electrónicos", labelEn: "Electronics" },
+  { value: "hogar", labelEs: "Hogar", labelEn: "Home" },
+  { value: "muebles", labelEs: "Muebles", labelEn: "Furniture" },
+  { value: "ropa-accesorios", labelEs: "Ropa y accesorios", labelEn: "Clothing & accessories" },
+  { value: "bebes-ninos", labelEs: "Bebés y niños", labelEn: "Babies & kids" },
+  { value: "herramientas", labelEs: "Herramientas", labelEn: "Tools" },
+  { value: "auto-partes", labelEs: "Auto partes", labelEn: "Auto parts" },
+  { value: "deportes", labelEs: "Deportes", labelEn: "Sports" },
+  { value: "juguetes-juegos", labelEs: "Juguetes y juegos", labelEn: "Toys & games" },
+  { value: "coleccionables", labelEs: "Coleccionables", labelEn: "Collectibles" },
+  { value: "musica-foto-video", labelEs: "Música / foto / video", labelEn: "Music / photo / video" },
+  { value: "otros", labelEs: "Otros", labelEn: "Other" },
+];
+
+/** Condición options for En Venta (Basics). */
+const EN_VENTA_CONDICION: Array<{ value: string; labelEs: string; labelEn: string }> = [
+  { value: "new", labelEs: "Nuevo", labelEn: "New" },
+  { value: "like-new", labelEs: "Como nuevo", labelEn: "Like new" },
+  { value: "good", labelEs: "Buen estado", labelEn: "Good" },
+  { value: "fair", labelEs: "Regular", labelEn: "Fair" },
+];
 
 type DetailField = {
   key: string;
@@ -247,17 +270,18 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
     { key: "availability", label: { es: "Disponibilidad", en: "Availability" }, type: "text", placeholder: { es: "Ej: Lun–Sáb", en: "e.g. Mon–Sat" } },
   ],
   "en-venta": [
-    { key: "itemType", label: { es: "Tipo de artículo", en: "Item type" }, type: "text", placeholder: { es: "Ej: Muebles, Electrónica", en: "e.g. Furniture, Electronics" } },
+    {
+      key: "rama",
+      label: { es: "Rama principal", en: "Main category" },
+      type: "select",
+      options: EN_VENTA_RAMAS.map((r) => ({ value: r.value, label: { es: r.labelEs, en: r.labelEn } })),
+    },
+    { key: "itemType", label: { es: "Tipo de artículo", en: "Item type" }, type: "text", placeholder: { es: "Definido en Básicos", en: "Set in Basics" } },
     {
       key: "condition",
       label: { es: "Condición", en: "Condition" },
       type: "select",
-      options: [
-        { value: "new", label: { es: "Nuevo", en: "New" } },
-        { value: "like-new", label: { es: "Como nuevo", en: "Like new" } },
-        { value: "good", label: { es: "Buen estado", en: "Good" } },
-        { value: "fair", label: { es: "Regular", en: "Fair" } },
-      ],
+      options: EN_VENTA_CONDICION.map((c) => ({ value: c.value, label: { es: c.labelEs, en: c.labelEn } })),
     },
   ],
   restaurantes: [
@@ -281,6 +305,107 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
 
 };
 
+/** En Venta: tipo de artículo por rama. */
+const EN_VENTA_TIPO_BY_RAMA: Record<string, Array<{ value: string; labelEs: string; labelEn: string }>> = {
+  electronicos: [
+    { value: "celular", labelEs: "Celular", labelEn: "Phone" },
+    { value: "laptop", labelEs: "Laptop", labelEn: "Laptop" },
+    { value: "tablet", labelEs: "Tablet", labelEn: "Tablet" },
+    { value: "tv", labelEs: "TV", labelEn: "TV" },
+    { value: "bocina", labelEs: "Bocina", labelEn: "Speaker" },
+    { value: "audifonos", labelEs: "Audífonos", labelEn: "Headphones" },
+    { value: "camara", labelEs: "Cámara", labelEn: "Camera" },
+    { value: "videojuego-consola", labelEs: "Videojuego / consola", labelEn: "Video game / console" },
+    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  hogar: [
+    { value: "electrodomestico", labelEs: "Electrodoméstico", labelEn: "Appliance" },
+    { value: "decoracion", labelEs: "Decoración", labelEn: "Decor" },
+    { value: "cocina", labelEs: "Cocina", labelEn: "Kitchen" },
+    { value: "organizacion", labelEs: "Organización", labelEn: "Organization" },
+    { value: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  muebles: [
+    { value: "sofa", labelEs: "Sofá", labelEn: "Sofa" },
+    { value: "mesa", labelEs: "Mesa", labelEn: "Table" },
+    { value: "silla", labelEs: "Silla", labelEn: "Chair" },
+    { value: "cama", labelEs: "Cama", labelEn: "Bed" },
+    { value: "comoda", labelEs: "Cómoda", labelEn: "Dresser" },
+    { value: "escritorio", labelEs: "Escritorio", labelEn: "Desk" },
+    { value: "estante", labelEs: "Estante", labelEn: "Shelf" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  "ropa-accesorios": [
+    { value: "camisa", labelEs: "Camisa", labelEn: "Shirt" },
+    { value: "pantalon", labelEs: "Pantalón", labelEn: "Pants" },
+    { value: "zapatos", labelEs: "Zapatos", labelEn: "Shoes" },
+    { value: "bolsa", labelEs: "Bolsa", labelEn: "Bag" },
+    { value: "joyeria", labelEs: "Joyería", labelEn: "Jewelry" },
+    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  "bebes-ninos": [
+    { value: "ropa", labelEs: "Ropa", labelEn: "Clothing" },
+    { value: "juguete", labelEs: "Juguete", labelEn: "Toy" },
+    { value: "carriola", labelEs: "Carriola", labelEn: "Stroller" },
+    { value: "cuna", labelEs: "Cuna", labelEn: "Crib" },
+    { value: "silla-carro", labelEs: "Silla para carro", labelEn: "Car seat" },
+    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  herramientas: [
+    { value: "taladro", labelEs: "Taladro", labelEn: "Drill" },
+    { value: "caja-herramientas", labelEs: "Caja de herramientas", labelEn: "Toolbox" },
+    { value: "sierra", labelEs: "Sierra", labelEn: "Saw" },
+    { value: "generador", labelEs: "Generador", labelEn: "Generator" },
+    { value: "jardineria", labelEs: "Jardinería", labelEn: "Gardening" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  "auto-partes": [
+    { value: "llantas", labelEs: "Llantas", labelEn: "Tires" },
+    { value: "rines", labelEs: "Rines", labelEn: "Rims" },
+    { value: "bateria", labelEs: "Batería", labelEn: "Battery" },
+    { value: "luces", labelEs: "Luces", labelEn: "Lights" },
+    { value: "estereo", labelEs: "Estéreo", labelEn: "Stereo" },
+    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  deportes: [
+    { value: "bicicleta", labelEs: "Bicicleta", labelEn: "Bicycle" },
+    { value: "pesas", labelEs: "Pesas", labelEn: "Weights" },
+    { value: "equipo", labelEs: "Equipo", labelEn: "Equipment" },
+    { value: "ropa-deportiva", labelEs: "Ropa deportiva", labelEn: "Sportswear" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  "juguetes-juegos": [
+    { value: "juguetes", labelEs: "Juguetes", labelEn: "Toys" },
+    { value: "juegos-mesa", labelEs: "Juegos de mesa", labelEn: "Board games" },
+    { value: "consola", labelEs: "Consola", labelEn: "Console" },
+    { value: "videojuego", labelEs: "Videojuego", labelEn: "Video game" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  coleccionables: [
+    { value: "monedas", labelEs: "Monedas", labelEn: "Coins" },
+    { value: "tarjetas", labelEs: "Tarjetas", labelEn: "Cards" },
+    { value: "antiguedades", labelEs: "Antigüedades", labelEn: "Antiques" },
+    { value: "figuras", labelEs: "Figuras", labelEn: "Figures" },
+    { value: "memorabilia", labelEs: "Memorabilia", labelEn: "Memorabilia" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  "musica-foto-video": [
+    { value: "instrumento", labelEs: "Instrumento", labelEn: "Instrument" },
+    { value: "microfono", labelEs: "Micrófono", labelEn: "Microphone" },
+    { value: "camara", labelEs: "Cámara", labelEn: "Camera" },
+    { value: "lente", labelEs: "Lente", labelEn: "Lens" },
+    { value: "iluminacion", labelEs: "Iluminación", labelEn: "Lighting" },
+    { value: "audio", labelEs: "Audio", labelEn: "Audio" },
+    { value: "otro", labelEs: "Otro", labelEn: "Other" },
+  ],
+  otros: [{ value: "otro", labelEs: "Otro", labelEn: "Other" }],
+};
+
 function getCategoryFields(cat: string): DetailField[] {
   return DETAIL_FIELDS[cat] ?? [];
 }
@@ -292,9 +417,17 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     const raw = (details[f.key] ?? "").toString().trim();
     if (!raw) continue;
 
-    if (f.type === "select" && f.options) {
+    if (f.type === "select" && f.options && f.options.length > 0) {
       const opt = f.options.find((o) => o.value === raw);
       out.push({ label: f.label[lang], value: opt ? opt.label[lang] : raw });
+      continue;
+    }
+
+    if (cat === "en-venta" && f.key === "itemType") {
+      const rama = (details.rama ?? "").trim();
+      const tipos = EN_VENTA_TIPO_BY_RAMA[rama] ?? [];
+      const t = tipos.find((o) => o.value === raw);
+      out.push({ label: f.label[lang], value: t ? (lang === "es" ? t.labelEs : t.labelEn) : raw });
       continue;
     }
 
@@ -764,7 +897,18 @@ setIsPro(plan.includes("pro"));
     };
   }, [category, title, description, city, isFree, price, files.length, contactMethod, contactPhone, contactEmail, lang]);
 
-  const basicsOk = requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
+  const enVentaBasicsOk =
+    !!details.rama?.trim() &&
+    !!details.itemType?.trim() &&
+    !!details.condition?.trim() &&
+    requirements.titleOk &&
+    requirements.descOk &&
+    requirements.priceOk &&
+    requirements.cityOk;
+  const basicsOk =
+    category === "en-venta"
+      ? enVentaBasicsOk
+      : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
 
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
@@ -1410,99 +1554,282 @@ if (isPro && videoFile && !videoError) {
 
 
                     <div className="mt-4 grid gap-4">
-                      <div>
-                        <label className="text-sm text-[#111111]">{copy.fieldTitle}</label>
-                        <input
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "Ex: Great-condition sofa"}
-                          className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                        />
-                        {!requirements.titleOk && (
-                          <div className="mt-1 text-xs text-[#111111]/40">
-                            {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm text-[#111111]">{copy.fieldDesc}</label>
-                        <textarea
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder={
-                            lang === "es"
-                              ? "Describe el estado, medidas, entrega, etc."
-                              : "Describe condition, size, pickup/delivery, etc."
-                          }
-                          rows={5}
-                          className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                        />
-                        {!requirements.descOk && (
-                          <div className="mt-1 text-xs text-[#111111]/40">
-                            {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="sm:col-span-2">
-                          <label className="text-sm text-[#111111]">{copy.fieldPrice}</label>
-                          <input
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
-                            disabled={isFree}
-                            placeholder={lang === "es" ? "Ej: 120" : "Ex: 120"}
-                            className={cx(
-                              "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
-                              isFree
-                                ? "border-white/5 bg-[#F5F5F5] text-[#111111]"
-                                : "border-black/10 bg-white/9 focus:ring-yellow-400/30"
+                      {category === "en-venta" ? (
+                        <>
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Rama principal" : "Main category"}{" *"}
+                            </label>
+                            <select
+                              value={details.rama ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setDetails((prev) => ({ ...prev, rama: v, itemType: "" }));
+                              }}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            >
+                              <option value="">{lang === "es" ? "Elige una rama…" : "Choose one…"}</option>
+                              {EN_VENTA_RAMAS.map((r) => (
+                                <option key={r.value} value={r.value}>
+                                  {lang === "es" ? r.labelEs : r.labelEn}
+                                </option>
+                              ))}
+                            </select>
+                            {!details.rama?.trim() && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Requerido." : "Required."}
+                              </div>
                             )}
-                          />
-                          {!requirements.priceOk && (
-                            <div className="mt-1 text-xs text-[#111111]/40">
-                              {lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Tipo de artículo" : "Item type"}{" *"}
+                            </label>
+                            <select
+                              value={details.itemType ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
+                              disabled={!details.rama?.trim()}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                            >
+                              <option value="">{lang === "es" ? "Elige el tipo…" : "Choose type…"}</option>
+                              {(EN_VENTA_TIPO_BY_RAMA[details.rama ?? ""] ?? []).map((t) => (
+                                <option key={t.value} value={t.value}>
+                                  {lang === "es" ? t.labelEs : t.labelEn}
+                                </option>
+                              ))}
+                            </select>
+                            {!details.itemType?.trim() && details.rama?.trim() && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Requerido." : "Required."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Condición" : "Condition"}{" *"}
+                            </label>
+                            <select
+                              value={details.condition ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, condition: e.target.value }))}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            >
+                              <option value="">{lang === "es" ? "Elige condición…" : "Choose condition…"}</option>
+                              {EN_VENTA_CONDICION.map((c) => (
+                                <option key={c.value} value={c.value}>
+                                  {lang === "es" ? c.labelEs : c.labelEn}
+                                </option>
+                              ))}
+                            </select>
+                            {!details.condition?.trim() && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Requerido." : "Required."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">
+                              {lang === "es"
+                                ? "Un título claro que describa el artículo ayuda a que te encuentren."
+                                : "A clear title that describes the item helps people find you."}
+                            </p>
+                            <input
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: Sofá 3 plazas en buen estado" : "Ex: 3-seat sofa in good condition"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.titleOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldDesc}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">
+                              {lang === "es"
+                                ? "Incluye defectos, qué trae incluido, si es entrega o recoger, y notas importantes."
+                                : "Include defects, what’s included, pickup or delivery, and any important notes."}
+                            </p>
+                            <textarea
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder={
+                                lang === "es"
+                                  ? "Estado, medidas, entrega o recoger, etc."
+                                  : "Condition, size, pickup/delivery, etc."
+                              }
+                              rows={5}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.descOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                              <label className="text-sm text-[#111111]">{copy.fieldPrice}{" *"}</label>
+                              <input
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                disabled={isFree}
+                                placeholder={lang === "es" ? "Ej: 120" : "Ex: 120"}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
+                                  isFree
+                                    ? "border-white/5 bg-[#F5F5F5] text-[#111111]"
+                                    : "border-black/10 bg-white/9 focus:ring-yellow-400/30"
+                                )}
+                              />
+                              {!requirements.priceOk && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-
-                        <div className="sm:col-span-1">
-                          <label className="text-sm text-[#111111]">{copy.freeToggle}</label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsFree((v) => !v);
-                              if (!isFree) setPrice("");
-                            }}
-                            className={cx(
-                              "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
-                              isFree
-                                ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
-                                : "border-black/10 bg-white/9 text-[#111111] hover:bg-white/12"
-                            )}
-                          >
-                            {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <CityAutocomplete
-                          value={city}
-                          onChange={setCity}
-                          placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
-                          lang={lang}
-                          label={copy.fieldCity}
-                          variant="light"
-                          className="mt-0"
-                        />
-                        {!requirements.cityOk && (
-                          <div className="mt-1 text-xs text-[#111111]/40">
-                            {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
+                            <div className="sm:col-span-1">
+                              <label className="text-sm text-[#111111]">{copy.freeToggle}{" *"}</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsFree((v) => !v);
+                                  if (!isFree) setPrice("");
+                                }}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
+                                  isFree
+                                    ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
+                                    : "border-black/10 bg-white/9 text-[#111111] hover:bg-white/12"
+                                )}
+                              >
+                                {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldCity}{" *"}</label>
+                            <CityAutocomplete
+                              value={city}
+                              onChange={setCity}
+                              placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
+                              lang={lang}
+                              label=""
+                              variant="light"
+                              className="mt-2"
+                            />
+                            {!requirements.cityOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldTitle}</label>
+                            <input
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "Ex: Great-condition sofa"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.titleOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldDesc}</label>
+                            <textarea
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder={
+                                lang === "es"
+                                  ? "Describe el estado, medidas, entrega, etc."
+                                  : "Describe condition, size, pickup/delivery, etc."
+                              }
+                              rows={5}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.descOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                              <label className="text-sm text-[#111111]">{copy.fieldPrice}</label>
+                              <input
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                disabled={isFree}
+                                placeholder={lang === "es" ? "Ej: 120" : "Ex: 120"}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
+                                  isFree
+                                    ? "border-white/5 bg-[#F5F5F5] text-[#111111]"
+                                    : "border-black/10 bg-white/9 focus:ring-yellow-400/30"
+                                )}
+                              />
+                              {!requirements.priceOk && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="sm:col-span-1">
+                              <label className="text-sm text-[#111111]">{copy.freeToggle}</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsFree((v) => !v);
+                                  if (!isFree) setPrice("");
+                                }}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
+                                  isFree
+                                    ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
+                                    : "border-black/10 bg-white/9 text-[#111111] hover:bg-white/12"
+                                )}
+                              >
+                                {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : lang === "es" ? "No" : "No"}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <CityAutocomplete
+                              value={city}
+                              onChange={setCity}
+                              placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
+                              lang={lang}
+                              label={copy.fieldCity}
+                              variant="light"
+                              className="mt-0"
+                            />
+                            {!requirements.cityOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="mt-5 flex items-center justify-between gap-3">
