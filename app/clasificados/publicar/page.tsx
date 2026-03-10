@@ -406,57 +406,6 @@ const EN_VENTA_TIPO_BY_RAMA: Record<string, Array<{ value: string; labelEs: stri
   otros: [{ value: "otro", labelEs: "Otro", labelEn: "Other" }],
 };
 
-/**
- * Light title cleanup only: trim, normalize spacing, capitalize.
- * Does NOT inject condition/city/price or invent specs. Latin American Spanish friendly.
- */
-function buildEnVentaSuggestedTitle(title: string): string {
-  const t = (title ?? "").trim().replace(/\s+/g, " ").trim();
-  if (!t) return "";
-  const first = t.slice(0, 1).toUpperCase();
-  const rest = t.slice(1);
-  return first + rest;
-}
-
-/**
- * Improves the En Venta description based ONLY on what the user wrote.
- * Light cleanup and readability. No coaching lines unless description is basically empty.
- * Does NOT inject title, price, city, condition, or delivery.
- */
-function buildEnVentaSuggestedDescription(params: {
-  description: string;
-  itemTypeValue?: string;
-}): string {
-  const raw = (params.description ?? "").trim();
-  const normalized = raw.replace(/\s+/g, " ").trim();
-  const len = normalized.length;
-
-  // Optional soft context for template when description is empty
-  let articuloWord = "artículo";
-  if (params.itemTypeValue) {
-    for (const rama of Object.keys(EN_VENTA_TIPO_BY_RAMA)) {
-      const t = EN_VENTA_TIPO_BY_RAMA[rama].find((o) => o.value === params.itemTypeValue);
-      if (t?.labelEs) {
-        articuloWord = t.labelEs.toLowerCase();
-        break;
-      }
-    }
-  }
-
-  // Empty or nearly empty: neutral prompt only
-  if (len < 8) {
-    if (articuloWord === "celular") {
-      return "Describe el estado del celular y si incluye cargador.";
-    }
-    return `Describe el estado del ${articuloWord} y qué incluye.`;
-  }
-
-  // User wrote something meaningful: clean only, no extra coaching
-  const firstChar = normalized.slice(0, 1).toUpperCase();
-  const rest = normalized.slice(1);
-  return firstChar + rest;
-}
-
 function getCategoryFields(cat: string): DetailField[] {
   return DETAIL_FIELDS[cat] ?? [];
 }
@@ -593,10 +542,6 @@ export default function PublicarPage() {
   const [contactEmail, setContactEmail] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
-  /** En Venta only: optional description suggestion (user must click "Usar sugerencia" to apply). */
-  const [enVentaSuggestedDesc, setEnVentaSuggestedDesc] = useState<string | null>(null);
-  /** En Venta only: optional title suggestion (user must click "Usar título sugerido" to apply). */
-  const [enVentaSuggestedTitle, setEnVentaSuggestedTitle] = useState<string | null>(null);
 
   const maxImages = isPro ? 12 : 5;
 
@@ -1620,7 +1565,6 @@ if (isPro && videoFile && !videoError) {
                               onChange={(e) => {
                                 const v = e.target.value;
                                 setDetails((prev) => ({ ...prev, rama: v, itemType: "" }));
-                                setEnVentaSuggestedDesc(null);
                               }}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             >
@@ -1694,54 +1638,13 @@ if (isPro && videoFile && !videoError) {
                             </p>
                             <input
                               value={title}
-                              onChange={(e) => {
-                                setTitle(e.target.value);
-                                setEnVentaSuggestedTitle(null);
-                              }}
+                              onChange={(e) => setTitle(e.target.value)}
                               placeholder={lang === "es" ? "Ej: Sofá 3 plazas en buen estado" : "Ex: 3-seat sofa in good condition"}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                             {!requirements.titleOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
                                 {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
-                              </div>
-                            )}
-                            {!enVentaSuggestedTitle ? (
-                              title.trim().length >= 3 && (
-                                <div className="mt-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const suggested = buildEnVentaSuggestedTitle(title);
-                                      if (suggested !== title.trim()) setEnVentaSuggestedTitle(suggested);
-                                    }}
-                                    className="text-xs rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-[#111111] hover:bg-[#EFEFEF]"
-                                  >
-                                    {lang === "es" ? "Sugerir título" : "Suggest title"}
-                                  </button>
-                                </div>
-                              )
-                            ) : (
-                              <div className="mt-2 rounded-xl border border-black/10 bg-[#F5F5F5] p-2 flex flex-wrap items-center gap-2">
-                                <span className="text-xs text-[#111111]/70">{lang === "es" ? "Sugerido:" : "Suggested:"}</span>
-                                <span className="text-sm text-[#111111]">{enVentaSuggestedTitle}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTitle(enVentaSuggestedTitle);
-                                    setEnVentaSuggestedTitle(null);
-                                  }}
-                                  className="rounded-lg border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8]"
-                                >
-                                  {lang === "es" ? "Usar título sugerido" : "Use suggested title"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEnVentaSuggestedTitle(null)}
-                                  className="rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF]"
-                                >
-                                  {lang === "es" ? "Descartar" : "Discard"}
-                                </button>
                               </div>
                             )}
                           </div>
@@ -1769,53 +1672,6 @@ if (isPro && videoFile && !videoError) {
                                 {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
                               </div>
                             )}
-                            <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
-                              <p className="text-xs text-[#111111]/70">
-                                {lang === "es"
-                                  ? "Mejoramos ortografía y redacción de lo que escribiste, sin agregar datos."
-                                  : "We clean up spelling and wording of what you wrote, without adding facts."}
-                              </p>
-                              {!enVentaSuggestedDesc ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const suggested = buildEnVentaSuggestedDescription({
-                                      description: description,
-                                      itemTypeValue: details.itemType?.trim() || undefined,
-                                    });
-                                    setEnVentaSuggestedDesc(suggested);
-                                  }}
-                                  className="mt-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF]"
-                                >
-                                  {lang === "es" ? "Sugerir descripción" : "Suggest description"}
-                                </button>
-                              ) : (
-                                <div className="mt-3 space-y-2">
-                                  <div className="rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm text-[#111111] whitespace-pre-wrap">
-                                    {enVentaSuggestedDesc}
-                                  </div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setDescription(enVentaSuggestedDesc);
-                                        setEnVentaSuggestedDesc(null);
-                                      }}
-                                      className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]"
-                                    >
-                                      {lang === "es" ? "Usar sugerencia" : "Use suggestion"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEnVentaSuggestedDesc(null)}
-                                      className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF]"
-                                    >
-                                      {lang === "es" ? "Descartar" : "Discard"}
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
