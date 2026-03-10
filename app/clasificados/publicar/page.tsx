@@ -407,42 +407,48 @@ const EN_VENTA_TIPO_BY_RAMA: Record<string, Array<{ value: string; labelEs: stri
 };
 
 /**
- * Builds a short, honest En Venta description suggestion from current form data.
- * Latin American Spanish only. No invented details (delivery, defects, accessories).
+ * Suggests a better En Venta description based ONLY on what the user wrote.
+ * Does NOT inject title, price, city, condition, or delivery. Optional light context from item type.
+ * Latin American Spanish only.
  */
 function buildEnVentaSuggestedDescription(params: {
-  ramaValue: string;
-  itemTypeValue: string;
-  conditionValue: string;
-  title: string;
-  isFree: boolean;
-  priceFormatted: string;
-  city: string;
+  description: string;
+  itemTypeValue?: string;
 }): string {
-  const { ramaValue, itemTypeValue, conditionValue, title, isFree, priceFormatted, city } = params;
-  const rama = EN_VENTA_RAMAS.find((r) => r.value === ramaValue);
-  const ramaLabel = rama?.labelEs ?? "";
-  const tipos = EN_VENTA_TIPO_BY_RAMA[ramaValue] ?? [];
-  const tipo = tipos.find((t) => t.value === itemTypeValue);
-  const tipoLabel = tipo?.labelEs ?? "";
-  const cond = EN_VENTA_CONDICION.find((c) => c.value === conditionValue);
-  const condLabel = cond?.labelEs ?? "";
+  const raw = (params.description ?? "").trim();
+  const normalized = raw.replace(/\s+/g, " ").trim();
+  const len = normalized.length;
 
-  const parts: string[] = [];
-  const itemDesc = title.trim() || (ramaLabel && tipoLabel ? `${tipoLabel} (${ramaLabel})` : ramaLabel || tipoLabel || "Artículo");
-  parts.push(`${itemDesc}.${condLabel ? ` Condición: ${condLabel}.` : ""}`);
-  if (isFree) {
-    parts.push(" Se da gratis.");
-  } else if (priceFormatted) {
-    parts.push(` Precio: ${priceFormatted}.`);
-  } else {
-    parts.push(" Precio a acordar.");
+  // Optional soft context: friendly word for template when description is empty/short
+  let articuloWord = "artículo";
+  if (params.itemTypeValue) {
+    for (const rama of Object.keys(EN_VENTA_TIPO_BY_RAMA)) {
+      const t = EN_VENTA_TIPO_BY_RAMA[rama].find((o) => o.value === params.itemTypeValue);
+      if (t?.labelEs) {
+        articuloWord = t.labelEs.toLowerCase();
+        break;
+      }
+    }
   }
-  if (city.trim()) {
-    parts.push(` Ubicación: ${city.trim()}.`);
+
+  // Empty or very short: template only, no invented facts
+  if (len < 10) {
+    if (articuloWord === "celular") {
+      return "Describe el estado del celular, si incluye cargador y cualquier detalle importante para el comprador.";
+    }
+    return `Describe el estado del ${articuloWord}, qué incluye y cualquier detalle importante para el comprador.`;
   }
-  parts.push(" Acordar entrega o recoger con el vendedor.");
-  return parts.join(" ").replace(/\s+/g, " ").trim();
+
+  // User wrote something: keep their meaning, light cleanup, optional gentle prompt if still short
+  const firstChar = normalized.slice(0, 1).toUpperCase();
+  const rest = normalized.slice(1);
+  const cleaned = firstChar + rest;
+
+  if (len < 35) {
+    return `${cleaned}. Describe si funciona bien, qué incluye y cualquier detalle importante para el comprador.`;
+  }
+
+  return cleaned;
 }
 
 function getCategoryFields(cat: string): DetailField[] {
@@ -1717,21 +1723,16 @@ if (isPro && videoFile && !videoError) {
                             <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
                               <p className="text-xs text-[#111111]/70">
                                 {lang === "es"
-                                  ? "Te ayudamos con una sugerencia clara basada en lo que ya llenaste."
-                                  : "We can suggest a short description from what you've entered."}
+                                  ? "Te ayudamos a mejorar tu descripción con base en lo que escribiste."
+                                  : "We help you improve your description based on what you wrote."}
                               </p>
                               {!enVentaSuggestedDesc ? (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     const suggested = buildEnVentaSuggestedDescription({
-                                      ramaValue: details.rama ?? "",
-                                      itemTypeValue: details.itemType ?? "",
-                                      conditionValue: details.condition ?? "",
-                                      title: title.trim(),
-                                      isFree,
-                                      priceFormatted: formatMoneyMaybe(price, "es") || "",
-                                      city: city.trim(),
+                                      description: description,
+                                      itemTypeValue: details.itemType?.trim() || undefined,
                                     });
                                     setEnVentaSuggestedDesc(suggested);
                                   }}
