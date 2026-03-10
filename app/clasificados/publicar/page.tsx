@@ -878,10 +878,10 @@ setIsPro(plan.includes("pro"));
   const requirements = useMemo(() => {
     const categoryOk = !!normalizeCategory(category);
     const titleOk = title.trim().length >= 5;
-    const descOk = description.trim().length >= 20;
+    const descOk = description.trim().length >= 10;
     const cityOk = Boolean(normalizeCity(city));
     const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
-    const imagesOk = files.length >= 1;
+    const imagesOk = true;
     const phoneOk = contactMethod === "email" ? true : contactPhone.trim().length >= 7;
     const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
     return {
@@ -1677,7 +1677,7 @@ if (isPro && videoFile && !videoError) {
                             />
                             {!requirements.descOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
+                                {lang === "es" ? "Mínimo 10 caracteres." : "Min 10 characters."}
                               </div>
                             )}
                           </div>
@@ -1787,7 +1787,7 @@ if (isPro && videoFile && !videoError) {
                             />
                             {!requirements.descOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Mínimo 20 caracteres." : "Min 20 characters."}
+                                {lang === "es" ? "Mínimo 10 caracteres." : "Min 10 characters."}
                               </div>
                             )}
                           </div>
