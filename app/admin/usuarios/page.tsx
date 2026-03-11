@@ -15,7 +15,7 @@ type ProfileRow = {
   home_city: string | null;
   owned_city_slug: string | null;
   newsletter_opt_in: boolean | null;
-  disabled: boolean | null;
+  is_disabled: boolean | null;
 };
 
 function accountRefFromId(id: string): string {
@@ -99,7 +99,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug,newsletter_opt_in,disabled"
+        "id,created_at,display_name,email,phone,account_type,membership_tier,home_city,owned_city_slug,newsletter_opt_in,is_disabled"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -192,7 +192,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
                     </thead>
                     <tbody>
                       {filteredRows.map((row) => (
-                        <tr key={row.id} className={`border-b border-white/5 ${row.disabled ? "opacity-60" : ""}`}>
+                        <tr key={row.id} className={`border-b border-white/5 ${row.is_disabled ? "opacity-60" : ""}`}>
                           <td className="p-2.5 pr-3 font-mono text-xs text-yellow-400/90 whitespace-nowrap">
                             {accountRefFromId(row.id)}
                           </td>
@@ -220,7 +220,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
                             {newsletterLabel(row.newsletter_opt_in)}
                           </td>
                           <td className="p-2.5 text-white/60 whitespace-nowrap">{formatDate(row.created_at)}</td>
-                          <AdminUserActions userId={row.id} disabled={row.disabled} />
+                          <AdminUserActions userId={row.id} disabled={row.is_disabled} />
                         </tr>
                       ))}
                     </tbody>

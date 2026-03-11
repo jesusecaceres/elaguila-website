@@ -42,6 +42,7 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
   const [showProVideo, setShowProVideo] = useState(false);
   const galleryTouchStartX = useRef(0);
 
+  // In preview mode listing is draft data; listing.images are draft image URLs (publishDraft.images)
   const mediaSlots = useMemo((): MediaSlot[] => {
     const urls = listing.images ?? [];
     const slots: MediaSlot[] = [];
@@ -89,7 +90,7 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
             tapToPlay: "Toque la miniatura para reproducir. No se reproduce automáticamente.",
             play: "Reproducir",
             details: "Detalles",
-            proUpgradeTitle: "Destaca tu anuncio con LEONIX Pro",
+            proUpgradeTitle: "Distingue tu anuncio con LEONIX Pro",
             proUpgradeBody: "Video, badge Pro y más visibilidad.",
           }
         : {
@@ -113,7 +114,7 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
             tapToPlay: "Tap the thumbnail to play. No autoplay.",
             play: "Play",
             details: "Details",
-            proUpgradeTitle: "Stand out with LEONIX Pro",
+            proUpgradeTitle: "Distinguish your listing with LEONIX Pro",
             proUpgradeBody: "Video, Pro badge, and more visibility.",
           },
     [lang]
@@ -182,8 +183,8 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
             </div>
           )}
 
-          {/* Thumbnails */}
-          {listing.images.length > 1 && (
+          {/* Thumbnail strip — always from draft/listing.images */}
+          {listing.images.length >= 1 && (
             <div className="mt-2 flex gap-2 flex-wrap">
               {listing.images.slice(0, 8).map((src, idx) => (
                 <button
@@ -201,12 +202,20 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
             </div>
           )}
 
-          <div className="flex items-start justify-between gap-4 mt-4">
+          {/* Pro upgrade box — directly under media gallery */}
+          {previewMode && !listing.isPro && (
+            <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 p-6">
+              <div className="text-lg font-bold text-[#111111]">{t.proUpgradeTitle}</div>
+              <div className="mt-2 text-sm text-[#111111]/80">{t.proUpgradeBody}</div>
+            </div>
+          )}
+
+          <div className="flex items-start justify-between gap-4 mt-6">
             <div className="min-w-0">
-              <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
+              <h1 className="text-3xl font-bold text-[#111111] leading-tight">
                 {listing.title}
               </h1>
-              <div className="mt-3 text-2xl font-extrabold text-yellow-200">
+              <div className="mt-3 text-xl font-semibold text-[#E0B84C]">
                 {formatListingPrice(listing.priceLabel, { lang })}
               </div>
               <div className="mt-4 text-[#111111]">
@@ -217,6 +226,21 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
               {listing.isPro ? <ProBadge /> : null}
             </div>
           </div>
+
+          {/* Details section — under title */}
+          {listing.detailPairs.length > 0 && (
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {listing.detailPairs.map((p) => (
+                <div
+                  key={p.label}
+                  className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-5"
+                >
+                  <div className="text-xs text-[#111111]">{p.label}</div>
+                  <div className="mt-1 text-[#111111] font-semibold">{p.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-8 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
             <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">
@@ -269,28 +293,6 @@ export default function ListingDetailView({ listing, previewMode = false }: Prop
             </div>
           )}
 
-          {/* Pro upgrade module (preview only, when not Pro) */}
-          {previewMode && !listing.isPro && (
-            <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 p-6">
-              <div className="text-lg font-bold text-[#111111]">{t.proUpgradeTitle}</div>
-              <div className="mt-2 text-sm text-[#111111]/80">{t.proUpgradeBody}</div>
-            </div>
-          )}
-
-          {/* Details grid */}
-          {listing.detailPairs.length > 0 && (
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {listing.detailPairs.map((p) => (
-                <div
-                  key={p.label}
-                  className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-5"
-                >
-                  <div className="text-xs text-[#111111]">{p.label}</div>
-                  <div className="mt-1 text-[#111111] font-semibold">{p.value}</div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
