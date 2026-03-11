@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
-import ListingDetailView, { type ListingDetailDraft } from "@/app/clasificados/components/ListingDetailView";
+import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
@@ -16,12 +16,13 @@ export default function PreviewListingPage() {
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
   const [draft, setDraft] = useState<ReturnType<typeof getPreviewDraft>>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState(false);
+  const [infoConfirmed, setInfoConfirmed] = useState(false);
 
   useEffect(() => {
     setDraft(getPreviewDraft());
   }, []);
 
-  const draftListingData = useMemo((): ListingDetailDraft | null => {
+  const draftListingData = useMemo((): ListingData | null => {
     if (!draft) return null;
     const L = draft.lang;
     const title = draft.title.trim() || (L === "es" ? "(Sin título)" : "(No title)");
@@ -63,6 +64,7 @@ export default function PreviewListingPage() {
             editListing: "Editar anuncio",
             confirmPublish: "Confirmar y publicar",
             rulesCheckbox: "Confirmo que mi anuncio cumple con las reglas de la comunidad.",
+            infoCheckbox: "Confirmo que la información es correcta.",
           }
         : {
             backToEdit: "Back to edit",
@@ -73,12 +75,13 @@ export default function PreviewListingPage() {
             editListing: "Edit listing",
             confirmPublish: "Confirm & Publish",
             rulesCheckbox: "I confirm my listing complies with the community rules.",
+            infoCheckbox: "I confirm the information is correct.",
           },
     [lang]
   );
 
   const handleConfirmPublish = () => {
-    if (!draft?.backToEditUrl || !rulesConfirmed) return;
+    if (!draft?.backToEditUrl || !rulesConfirmed || !infoConfirmed) return;
     if (typeof window !== "undefined") {
       sessionStorage.setItem(RULES_CONFIRMED_KEY, "1");
     }
@@ -121,13 +124,13 @@ export default function PreviewListingPage() {
         <span className="text-xs text-[#111111]/50">{t.previewSubtitle}</span>
       </div>
 
-      <section className="max-w-screen-2xl mx-auto px-6 py-6">
+      <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full max-w-full">
         {draftListingData ? (
-          <ListingDetailView listing={draftListingData} previewMode={true} />
+          <ListingView listing={draftListingData} previewMode={true} />
         ) : null}
       </section>
 
-      {/* Bottom: rules checkbox + Edit + Confirm & Publish */}
+      {/* Preview confirm bar: community rules + confirm info + Editar anuncio + Confirmar y publicar */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
         <div className="max-w-md mx-auto space-y-3">
           <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
@@ -139,21 +142,30 @@ export default function PreviewListingPage() {
             />
             <span>{t.rulesCheckbox}</span>
           </label>
+          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+            <input
+              type="checkbox"
+              checked={infoConfirmed}
+              onChange={(e) => setInfoConfirmed(e.target.checked)}
+              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+            />
+            <span>{t.infoCheckbox}</span>
+          </label>
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
             >
               {t.editListing}
             </button>
             <button
               type="button"
               onClick={handleConfirmPublish}
-              disabled={!rulesConfirmed}
+              disabled={!rulesConfirmed || !infoConfirmed}
               className={cx(
-                "flex-1 rounded-xl font-semibold py-3.5 text-center transition",
-                rulesConfirmed
+                "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+                rulesConfirmed && infoConfirmed
                   ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                   : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
               )}
