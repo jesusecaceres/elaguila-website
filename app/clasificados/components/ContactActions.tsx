@@ -28,6 +28,9 @@ type Props = {
    */
   showDisabled?: boolean;
 
+  /** Called when user initiates contact (call, text, email, etc.) for analytics */
+  onContact?: () => void;
+
   className?: string;
 };
 
@@ -48,12 +51,17 @@ function safeHttpUrl(raw: string) {
 
 export default function ContactActions(props: Props) {
   const lang: Lang = props.lang === "en" ? "en" : "es";
+  const onContact = props.onContact;
 
   const phoneTel = props.phone ? normalizePhoneForTel(props.phone) : "";
   const textTel = props.text ? normalizePhoneForTel(props.text) : "";
   const email = String(props.email || "").trim();
   const website = safeHttpUrl(props.website || "");
   const mapsUrl = safeHttpUrl(props.mapsUrl || "");
+
+  const handleContact = () => {
+    onContact?.();
+  };
 
   const labels =
     lang === "es"
@@ -71,31 +79,31 @@ export default function ContactActions(props: Props) {
   return (
     <div className={cx("flex flex-wrap gap-2", props.className)}>
       {phoneTel ? (
-        <a href={`tel:${phoneTel}`} className={cx(BtnBase, primary)}>
+        <a href={`tel:${phoneTel}`} className={cx(BtnBase, primary)} onClick={handleContact}>
           {labels.call}
         </a>
       ) : null}
 
       {textTel ? (
-        <a href={`sms:${textTel}`} className={cx(BtnBase, secondary)}>
+        <a href={`sms:${textTel}`} className={cx(BtnBase, secondary)} onClick={handleContact}>
           {labels.text}
         </a>
       ) : null}
 
       {email ? (
-        <a href={`mailto:${email}`} className={cx(BtnBase, secondary)}>
+        <a href={`mailto:${email}`} className={cx(BtnBase, secondary)} onClick={handleContact}>
           {labels.email}
         </a>
       ) : null}
 
       {mapsUrl ? (
-        <a href={mapsUrl} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)}>
+        <a href={mapsUrl} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)} onClick={handleContact}>
           {labels.directions}
         </a>
       ) : null}
 
       {website ? (
-        <a href={website} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)}>
+        <a href={website} target="_blank" rel="noreferrer" className={cx(BtnBase, secondary)} onClick={handleContact}>
           {labels.website}
         </a>
       ) : null}

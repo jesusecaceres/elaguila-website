@@ -14,6 +14,7 @@ import { isVerifiedSeller } from "../../components/verifiedSeller";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "../../components/savedListings";
 import ContactActions from "../../components/ContactActions";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
+import { trackEvent } from "@/app/lib/listingAnalytics";
 
 type Lang = "es" | "en";
 
@@ -42,6 +43,9 @@ type Listing = {
   condition: "any" | "new" | "good" | "fair";
   sellerType: SellerType;
   status?: ListingStatus;
+  original_price?: number | null;
+  current_price?: number | null;
+  price_last_updated?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -278,6 +282,20 @@ export default function AnuncioDetallePage() {
   }, [listing, lang]);
 
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
+  const [viewCount, setViewCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!listing) return;
+    trackEvent(listing.id, "listing_view");
+  }, [listing?.id]);
+
+  useEffect(() => {
+    if (!listing?.id) return;
+    fetch(`/api/clasificados/listings/${encodeURIComponent(listing.id)}/views`)
+      .then((res) => res.json())
+      .then((data: { count?: number }) => setViewCount(typeof data.count === "number" ? data.count : 0))
+      .catch(() => setViewCount(0));
+  }, [listing?.id]);
 
   useEffect(() => {
     if (!listing) return;
@@ -312,6 +330,7 @@ export default function AnuncioDetallePage() {
     try {
       if (nav?.share) {
         await nav.share({ title, text, url });
+        if (listing) trackEvent(listing.id, "listing_share");
         return;
       }
     } catch {
@@ -319,6 +338,7 @@ export default function AnuncioDetallePage() {
     }
 
     await copyText(url || buildShareMessage());
+    if (listing) trackEvent(listing.id, "listing_share");
   };
 
 
@@ -327,6 +347,14 @@ export default function AnuncioDetallePage() {
   const isBusiness = listing?.sellerType === "business";
   const isPro = isProListing(listing as any);
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
+
+  const priceDropHours = useMemo(() => {
+    if (!listing?.price_last_updated || listing.current_price == null || listing.original_price == null) return null;
+    if (listing.current_price >= listing.original_price) return null;
+    const updated = new Date(listing.price_last_updated).getTime();
+    if (!Number.isFinite(updated)) return null;
+    return Math.max(0, Math.floor((Date.now() - updated) / (1000 * 60 * 60)));
+  }, [listing?.price_last_updated, listing?.current_price, listing?.original_price]);
 
   const proVideoInfo = useMemo(() => {
     if (!listing) return null;
@@ -452,6 +480,11 @@ export default function AnuncioDetallePage() {
                   <div className="mt-3 text-2xl font-extrabold text-yellow-200">
                     {listing.priceLabel[lang]}
                   </div>
+                  {priceDropHours !== null && (
+                    <div className="mt-2 text-sm font-semibold text-emerald-600">
+                      ⬇ {lang === "es" ? `Precio reducido hace ${priceDropHours} horas` : `Price reduced ${priceDropHours} hours ago`}
+                    </div>
+                  )}
 
                   <div className="mt-4 text-[#111111]">
                     {listing.city} • {listing.postedAgo[lang]}
@@ -640,13 +673,25 @@ export default function AnuncioDetallePage() {
 
           {/* Right rail */}
           <div className="lg:col-span-4 space-y-6">
+            {viewCount !== null && (
+              <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4">
+                <p className="text-sm text-[#111111]">
+                  👁 {viewCount} {lang === "es" ? "personas vieron este anuncio" : "people viewed this listing"}
+                </p>
+              </div>
+            )}
             <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <div className="text-xl font-bold text-[#111111]">{t.actionsTitle}</div>
 
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
-                  onClick={() => listing && setSaved(toggleListingSaved(listing.id))}
+                  onClick={() => {
+                    if (listing) {
+                      setSaved(toggleListingSaved(listing.id));
+                      trackEvent(listing.id, "listing_save");
+                    }
+                  }}
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
                     "border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
@@ -790,6 +835,7 @@ export default function AnuncioDetallePage() {
                   email={(listing as any)?.email}
                   website={(listing as any)?.website}
                   mapsUrl={(listing as any)?.mapsUrl}
+                  onContact={listing ? () => trackEvent(listing.id, "message_sent") : undefined}
                 />
               </div>
 

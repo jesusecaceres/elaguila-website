@@ -98,6 +98,10 @@ export default function MyListingsPage() {
           "Nota: eliminar no permite volver a publicar lo mismo para evadir límites. El sistema detecta duplicados.",
         statusActive: "Activo",
         statusSold: "Vendido",
+        views: "Vistas",
+        messages: "Mensajes",
+        saves: "Guardados",
+        shares: "Compartidos",
         errorTitle: "No pudimos cargar tus anuncios",
         errorHint:
           "Si esto ocurre en desarrollo, dime el mensaje exacto para ajustar la consulta según tu esquema (nombre de tabla/columnas).",
@@ -122,6 +126,10 @@ export default function MyListingsPage() {
           "Note: deleting doesn't let you repost the same item to bypass limits. The system detects duplicates.",
         statusActive: "Active",
         statusSold: "Sold",
+        views: "Views",
+        messages: "Messages",
+        saves: "Saves",
+        shares: "Shares",
         errorTitle: "We couldn't load your listings",
         errorHint:
           "If this happens in development, send me the exact error so we can match your table/column names.",
@@ -134,10 +142,12 @@ export default function MyListingsPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [isPro, setIsPro] = useState(false);
 
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, { views: number; messages: number; saves: number; shares: number }>>({});
 
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -162,6 +172,8 @@ export default function MyListingsPage() {
           (u.user_metadata?.name as string | undefined) ||
           null
       );
+      const plan = (u.user_metadata?.plan as string | undefined) ?? "";
+      setIsPro(plan.includes("pro"));
       setAuthLoading(false);
 
       setListingsLoading(true);
@@ -178,10 +190,37 @@ export default function MyListingsPage() {
       if (qErr) {
         setError(qErr.message);
         setListings([]);
-      } else {
-        setListings((rows as ListingRow[]) ?? []);
+        setListingsLoading(false);
+        return;
       }
+
+      const list = (rows as ListingRow[]) ?? [];
+      setListings(list);
       setListingsLoading(false);
+
+      if (list.length > 0) {
+        const ids = list.map((x) => x.id);
+        const { data: events } = await supabase
+          .from("listing_analytics")
+          .select("listing_id, event_type")
+          .in("listing_id", ids);
+
+        if (!mounted) return;
+        const byId: Record<string, { views: number; messages: number; saves: number; shares: number }> = {};
+        for (const id of ids) {
+          byId[id] = { views: 0, messages: 0, saves: 0, shares: 0 };
+        }
+        for (const row of events ?? []) {
+          const lid = (row as { listing_id: string; event_type: string }).listing_id;
+          const type = (row as { listing_id: string; event_type: string }).event_type;
+          if (!byId[lid]) continue;
+          if (type === "listing_view") byId[lid].views += 1;
+          else if (type === "message_sent") byId[lid].messages += 1;
+          else if (type === "listing_save") byId[lid].saves += 1;
+          else if (type === "listing_share") byId[lid].shares += 1;
+        }
+        setAnalyticsByListing(byId);
+      }
     }
 
     run();
@@ -308,6 +347,22 @@ export default function MyListingsPage() {
                         {x.zip ? ` · ${x.zip}` : ""}
                         {dateText ? ` · ${dateText}` : ""}
                       </div>
+                      {(() => {
+                        const stats = analyticsByListing[x.id];
+                        if (!stats) return null;
+                        const parts: string[] = [];
+                        parts.push(`${L.views}: ${stats.views}`);
+                        parts.push(`${L.messages}: ${stats.messages}`);
+                        if (isPro) {
+                          parts.push(`${L.saves}: ${stats.saves}`);
+                          parts.push(`${L.shares}: ${stats.shares}`);
+                        }
+                        return (
+                          <div className="mt-1 text-xs text-white/50">
+                            {parts.join(" · ")}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap justify-end">
