@@ -68,6 +68,19 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const dataUrl = r.result as string;
+      const base64 = dataUrl.split(",")[1];
+      resolve(base64 ?? "");
+    };
+    r.onerror = () => reject(new Error("File read failed"));
+    r.readAsDataURL(file);
+  });
+}
+
 function formatMoneyMaybe(raw: string, lang: Lang) {
   const cleaned = (raw ?? "").replace(/[^0-9.]/g, "");
   if (!cleaned) return "";
@@ -724,6 +737,7 @@ export default function PublicarPage() {
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
+  const confirmPublishTriggered = useRef(false);
 
   const draftKey = useMemo(
     () => `listing_draft_${getStableSessionId(userId || null)}`,
@@ -937,7 +951,9 @@ setIsPro(plan.includes("pro"));
     []
   )[lang];
 
-  // Load draft when key is ready — restore form data only; always show Category step first (do not restore step)
+  const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
+
+  // Load draft when key is ready — restore form data only — restore form data only; always show Category step first (do not restore step)
   useEffect(() => {
     if (draftKey === "listing_draft_ssr") return;
     try {
@@ -964,6 +980,46 @@ setIsPro(plan.includes("pro"));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey]);
+
+  // Restore images from sessionStorage when returning from preview (prevents form reset)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(IMAGES_RESTORE_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(IMAGES_RESTORE_KEY);
+      const { base64: b64List, names, types } = JSON.parse(raw) as { base64: string[]; names: string[]; types: string[] };
+      if (!Array.isArray(b64List) || !Array.isArray(names) || b64List.length === 0) return;
+      const files: File[] = [];
+      for (let i = 0; i < b64List.length; i++) {
+        const b64 = b64List[i];
+        const name = (names && names[i]) || `image-${i + 1}.jpg`;
+        const type = (types && types[i]) || "image/jpeg";
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
+        const blob = new Blob([arr], { type });
+        files.push(new File([blob], name, { type }));
+      }
+      if (files.length) setImages(files);
+    } catch {
+      sessionStorage.removeItem(IMAGES_RESTORE_KEY);
+    }
+  }, []);
+
+  // When returning from preview with Confirm & Publish: set rules/preview state and run publish once.
+  useEffect(() => {
+    if (searchParams?.get("confirmPublish") !== "1" || confirmPublishTriggered.current) return;
+    confirmPublishTriggered.current = true;
+    setRulesConfirmedPersisted(true);
+    setPreviewViewed(true);
+    setStep("media");
+    const t = setTimeout(() => {
+      publish();
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional single run with current publish
+  }, [searchParams]);
 
   // Load active listing count for Garage Mode messaging (Free-only, En Venta).
   useEffect(() => {
@@ -1611,12 +1667,22 @@ if (isPro && videoFile && !videoError) {
   const previewCategoryLabel = category ? categoryConfig[category as CategoryKey]?.label[lang] ?? "" : "";
   const previewContactMethod = contactMethod;
 
-  const openFullPreview = () => {
+  const openFullPreview = async () => {
     const slug = (category || "en-venta").trim().toLowerCase();
     const qs = new URLSearchParams(searchParams?.toString() ?? "");
     qs.set("lang", lang);
     qs.set("fromPreview", "1");
     const backToEditUrl = `${pathname ?? `/clasificados/publicar/${slug}`}?${qs.toString()}`;
+    if (images.length > 0) {
+      try {
+        const base64 = await Promise.all(images.map((f) => fileToBase64(f)));
+        const names = images.map((f) => f.name);
+        const types = images.map((f) => f.type || "image/jpeg");
+        sessionStorage.setItem(IMAGES_RESTORE_KEY, JSON.stringify({ base64, names, types }));
+      } catch {
+        // proceed without image restore
+      }
+    }
     setPreviewDraft({
       backToEditUrl,
       lang,
