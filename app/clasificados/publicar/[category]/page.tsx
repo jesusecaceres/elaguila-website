@@ -688,6 +688,20 @@ export default function PublicarPage() {
     }
   };
 
+  const handleVideoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const f = (event.target.files ?? [])[0] || null;
+    setVideoFile(f);
+    setVideoError("");
+    setVideoInfo(null);
+    setVideoThumbBlob(null);
+    if (f) await inspectAndThumbVideo(f);
+    try {
+      (event.target as HTMLInputElement).value = "";
+    } catch {
+      /* reset input */
+    }
+  };
+
   const proVideoThumbPreviewUrl = useMemo(() => {
     if (!videoThumbBlob) return "";
     try {
@@ -722,7 +736,9 @@ export default function PublicarPage() {
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const videoCameraRef = useRef<HTMLInputElement | null>(null);
+  const videoGalleryRef = useRef<HTMLInputElement | null>(null);
+  const [showVideoUpgradeModal, setShowVideoUpgradeModal] = useState(false);
 
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
@@ -2247,6 +2263,7 @@ if (isPro && videoFile && !videoError) {
                           aria-hidden
                         />
 
+                        <div className="mt-2 text-sm font-medium text-[#111111]">{copy.addImages}</div>
                         <div className="flex gap-3 mt-3">
                           <button
                             type="button"
@@ -2348,54 +2365,58 @@ if (isPro && videoFile && !videoError) {
                         )}
                       </div>
 
-                      <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 relative overflow-hidden">
-  <div className="flex items-start justify-between gap-3">
-    <div>
-      <div className="text-sm text-[#111111]">{copy.video}</div>
-      <div className="mt-1 text-xs text-[#111111]/45">{copy.videoHint}</div>
-    </div>
+                      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 relative overflow-hidden">
+  <div className="text-sm text-[#111111]">{copy.video}</div>
+  <div className="mt-1 text-xs text-[#111111]/45">{copy.videoHint}</div>
 
+  <div className="mt-2 text-sm font-medium text-[#111111]">{copy.addVideo}</div>
+
+  <input
+    ref={videoCameraRef}
+    type="file"
+    accept="video/*"
+    capture="environment"
+    onChange={handleVideoSelect}
+    style={{ display: "none" }}
+    aria-hidden
+  />
+  <input
+    ref={videoGalleryRef}
+    type="file"
+    accept="video/*"
+    onChange={handleVideoSelect}
+    style={{ display: "none" }}
+    aria-hidden
+  />
+
+  <div className="flex gap-3 mt-3">
     <button
       type="button"
-      disabled={!isPro}
-      onClick={() => videoInputRef.current?.click()}
-      className={cx(
-        "rounded-xl border px-4 py-2 text-sm font-semibold cursor-pointer",
-        isPro
-          ? "border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111]"
-          : "border-black/10 bg-[#F5F5F5] text-[#111111]/40 cursor-not-allowed"
-      )}
-    >
-      {copy.addVideo}
-    </button>
-    <input
-      ref={videoInputRef}
-      type="file"
-      accept="video/*"
-      capture="environment"
-      className="hidden"
-      onChange={async (e) => {
-        const f = (e.target.files ?? [])[0] || null;
-        setVideoFile(f);
-        setVideoError("");
-        setVideoInfo(null);
-        setVideoThumbBlob(null);
-        if (f) await inspectAndThumbVideo(f);
+      onClick={() => {
+        if (!isPro) {
+          setShowVideoUpgradeModal(true);
+          return;
+        }
+        videoCameraRef.current?.click();
       }}
-    />
+      className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded"
+    >
+      🎥 {lang === "es" ? "Cámara video" : "Video camera"}
+    </button>
+    <button
+      type="button"
+      onClick={() => {
+        if (!isPro) {
+          setShowVideoUpgradeModal(true);
+          return;
+        }
+        videoGalleryRef.current?.click();
+      }}
+      className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-[#111111] rounded"
+    >
+      📁 {lang === "es" ? "Subir video" : "Upload video"}
+    </button>
   </div>
-
-  {!isPro && (
-    <div className="mt-3 rounded-xl border border-yellow-400/20 bg-[#F2EFE8] p-3 text-sm text-yellow-200/90 flex items-center justify-between gap-3">
-      <div>{copy.videoLocked}</div>
-      <Link
-        href={`/dashboard?lang=${lang}`}
-        className="shrink-0 rounded-lg border border-[#C9B46A]/70 bg-[#F5F5F5] px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-white/9"
-      >
-        {lang === "es" ? "Ver Pro" : "See Pro"}
-      </Link>
-    </div>
-  )}
 
   {videoError && <div className="mt-3 text-sm text-red-300">{videoError}</div>}
 
@@ -2407,10 +2428,10 @@ if (isPro && videoFile && !videoError) {
           type="button"
           onClick={() => {
             setVideoFile(null);
-          setVideoThumbBlob(null);
-          setVideoInfo(null);
-          setVideoError("");
-          setShowProVideoPreview(false);
+            setVideoThumbBlob(null);
+            setVideoInfo(null);
+            setVideoError("");
+            setShowProVideoPreview(false);
           }}
           className="text-xs rounded-lg border border-black/10 bg-[#F5F5F5] hover:bg-white/10 px-3 py-2 text-[#111111]"
         >
@@ -2418,9 +2439,16 @@ if (isPro && videoFile && !videoError) {
         </button>
       </div>
 
+      <video
+        src={proVideoPreviewUrl}
+        controls
+        className="rounded-lg mt-3 w-full max-w-md"
+        playsInline
+      />
+
       {videoInfo && (
         <div className="mt-2 text-xs text-[#111111]/45">
-          {Math.round(videoInfo.duration * 10) / 10}s ¢ {videoInfo.width}×{videoInfo.height}
+          {Math.round(videoInfo.duration * 10) / 10}s · {videoInfo.width}×{videoInfo.height}
         </div>
       )}
 
@@ -2961,6 +2989,38 @@ if (isPro && videoFile && !videoError) {
           )}
         </div>
       </div>
+          {showVideoUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl">
+            <div className="p-5">
+              <h3 className="text-lg font-semibold text-[#111111]">
+                {lang === "es" ? "Sube videos con LEONIX Pro" : "Upload videos with LEONIX Pro"}
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
+                <li>• {lang === "es" ? "Los videos atraen 3x más compradores" : "Videos attract 3x more buyers"}</li>
+                <li>• {lang === "es" ? "Destaca tu anuncio" : "Highlight your listing"}</li>
+                <li>• {lang === "es" ? "Aparece más arriba en búsquedas" : "Appear higher in search"}</li>
+              </ul>
+              <div className="mt-5 flex gap-3">
+                <Link
+                  href={`/dashboard?lang=${lang}`}
+                  className="flex-1 rounded-xl bg-black px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#333]"
+                >
+                  {lang === "es" ? "Upgrade to Pro" : "Upgrade to Pro"}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowVideoUpgradeModal(false)}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-gray-50"
+                >
+                  {lang === "es" ? "Cancelar" : "Cancel"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
           {showServicesGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-black/10 bg-white shadow-xl">
