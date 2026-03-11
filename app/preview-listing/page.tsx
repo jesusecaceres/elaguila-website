@@ -7,6 +7,7 @@ import Navbar from "@/app/components/Navbar";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -134,19 +135,9 @@ export default function PreviewListingPage() {
   const L = draft.lang;
   const title = draft.title.trim() || (L === "es" ? "(Sin título)" : "(No title)");
   const description = draft.description.trim() || (L === "es" ? t.noDescription : "No description");
-  const price = draft.isFree
-    ? (L === "es" ? t.free : "Free")
-    : draft.price.trim()
-      ? (() => {
-          const n = Number(draft.price.replace(/[^0-9.]/g, ""));
-          if (!Number.isFinite(n)) return (L === "es" ? t.noPrice : "No price");
-          try {
-            return new Intl.NumberFormat(L === "es" ? "es-US" : "en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-          } catch {
-            return `$${Math.round(n)}`;
-          }
-        })()
-      : (L === "es" ? t.noPrice : "No price");
+  const price = !draft.price.trim() && !draft.isFree
+    ? (L === "es" ? t.noPrice : "No price")
+    : formatListingPrice(draft.price, { lang: L, isFree: draft.isFree });
   const city = draft.city.trim() || (L === "es" ? t.city : "City");
   const showPhone = (draft.contactMethod === "phone" || draft.contactMethod === "both") && draft.contactPhone;
   const showEmail = (draft.contactMethod === "email" || draft.contactMethod === "both") && draft.contactEmail;

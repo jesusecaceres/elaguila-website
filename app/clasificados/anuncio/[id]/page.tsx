@@ -20,6 +20,7 @@ import { trackEvent } from "@/app/lib/listingAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 type Lang = "es" | "en";
 
@@ -813,7 +814,7 @@ export default function AnuncioDetallePage() {
                     {listing.title[lang]}
                   </h1>
                   <div className="mt-3 text-2xl font-extrabold text-yellow-200">
-                    {listing.priceLabel[lang]}
+                    {formatListingPrice(listing.priceLabel[lang], { lang })}
                   </div>
                   {priceDropHours !== null && (
                     <div className="mt-2 text-sm font-semibold text-emerald-600">
@@ -1128,7 +1129,7 @@ export default function AnuncioDetallePage() {
                         {item.title[lang]}
                       </div>
                       <div className="mt-1 text-sm font-semibold text-[#111111]">
-                        {item.priceLabel[lang]}
+                        {formatListingPrice(item.priceLabel[lang], { lang })}
                       </div>
                       <div className="mt-1 text-xs text-[#111111]">
                         {item.city} · {item.postedAgo[lang]}

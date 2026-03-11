@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { getRecentlyViewedIds } from "../../lib/recentlyViewed";
 import { SAMPLE_LISTINGS } from "@/app/data/classifieds/sampleListings";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 type Lang = "es" | "en";
 
@@ -67,7 +68,7 @@ export default function VistosRecientesPage() {
                 >
                   <span className="font-medium">{item.title[lang]}</span>
                   <span className="ml-2 text-white/70 text-sm">
-                    {item.priceLabel[lang]} · {item.city}
+                    {formatListingPrice(item.priceLabel[lang], { lang })} · {item.city}
                   </span>
                 </Link>
               </li>

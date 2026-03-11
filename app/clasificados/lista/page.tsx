@@ -29,6 +29,7 @@ import {
 import { SAMPLE_LISTINGS } from "../../data/classifieds/sampleListings";
 import RecentlyViewedSection from "../components/RecentlyViewedSection";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 type ServicesTier = "standard" | "plus" | "premium";
 
@@ -3963,7 +3964,7 @@ function EnVentaCard({
             ⬇ {lang === "es" ? "Precio reducido" : "Price drop"}
           </div>
         )}
-        <div className="text-lg font-extrabold text-[#111111]">{x.priceLabel[lang]}</div>
+        <div className="text-lg font-extrabold text-[#111111]">{formatListingPrice(x.priceLabel[lang], { lang })}</div>
         <div className="mt-0.5 line-clamp-2 text-base font-semibold text-[#111111]">{x.title[lang]}</div>
         <div className="mt-1 text-sm text-[#111111]">{x.city}</div>
         <div className="text-xs text-[#111111]/80">
@@ -4128,10 +4129,10 @@ const isComunidadLite = isComunidad;
             {isEmpleos && !/\$/.test(x.priceLabel[lang]) ? (
               <>
                 <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
-                <span>{x.priceLabel[lang]}</span>
+                <span>{formatListingPrice(x.priceLabel[lang], { lang })}</span>
               </>
             ) : isServicios ? null : (
-              x.priceLabel[lang]
+              formatListingPrice(x.priceLabel[lang], { lang })
             )}
           </div>
 
@@ -4393,10 +4394,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   {isEmpleos && !/\$/.test(x.priceLabel[lang]) ? (
     <>
       <span className="text-[#111111] font-semibold mr-2">{lang === "es" ? "Pago:" : "Pay:"}</span>
-      <span>{x.priceLabel[lang]}</span>
+      <span>{formatListingPrice(x.priceLabel[lang], { lang })}</span>
     </>
   ) : isServicios ? null : (
-    x.priceLabel[lang]
+    formatListingPrice(x.priceLabel[lang], { lang })
   )}
 </div>
 
@@ -5260,7 +5261,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
           </div>
 
           {x.category !== "servicios" || (x.priceLabel[lang] !== "Cotización" && x.priceLabel[lang] !== "Quote") ? (
-            <div className="mt-2 text-sm font-bold text-yellow-200 tracking-tight">{x.priceLabel[lang]}</div>
+            <div className="mt-2 text-sm font-bold text-yellow-200 tracking-tight">{formatListingPrice(x.priceLabel[lang], { lang })}</div>
           ) : null}
 
           <a

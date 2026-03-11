@@ -16,6 +16,7 @@ import {
 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { setPreviewDraft } from "@/app/lib/previewListingDraft";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -1582,7 +1583,7 @@ if (isPro && videoFile && !videoError) {
 
   const previewTitle = title.trim() || (lang === "es" ? "(Sin título)" : "(No title)");
   const previewDescription = description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)");
-  const previewPrice = isFree ? (lang === "es" ? "Gratis" : "Free") : (formatMoneyMaybe(price, lang) || (lang === "es" ? "(Sin precio)" : "(No price)"));
+  const previewPrice = !price.trim() && !isFree ? (lang === "es" ? "(Sin precio)" : "(No price)") : formatListingPrice(price, { lang, isFree });
   const previewCity = city.trim() || (lang === "es" ? "(Ciudad)" : "(City)");
   const previewPosted = copy.todayLabel;
   const previewShortDescription = getShortPreviewText(description, 72);
