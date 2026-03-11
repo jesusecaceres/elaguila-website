@@ -103,6 +103,56 @@ function getShortPreviewText(raw: string, maxLen = 90): string {
   return t.slice(0, maxLen).trim() + "…";
 }
 
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  sacramento: { lat: 38.5816, lng: -121.4944 },
+  "san jose": { lat: 37.3382, lng: -121.8863 },
+  "san francisco": { lat: 37.7749, lng: -122.4194 },
+  oakland: { lat: 37.8044, lng: -122.2712 },
+  berkeley: { lat: 37.8715, lng: -122.273 },
+  fremont: { lat: 37.5483, lng: -121.9886 },
+  stockton: { lat: 37.9577, lng: -121.2908 },
+  modesto: { lat: 37.6391, lng: -120.9969 },
+  "palo alto": { lat: 37.4419, lng: -122.143 },
+  "santa clara": { lat: 37.3541, lng: -121.9552 },
+  sunnyvale: { lat: 37.3688, lng: -122.0363 },
+  hayward: { lat: 37.6688, lng: -122.0808 },
+  concord: { lat: 37.978, lng: -122.0311 },
+  vallejo: { lat: 38.1041, lng: -122.2566 },
+  "san leandro": { lat: 37.7249, lng: -122.1561 },
+};
+
+function normalizeCityKey(input: string): string {
+  return stripDiacritics((input ?? "").trim().toLowerCase()).replace(/\s+/g, " ").trim();
+}
+
+function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function getRoughDistanceLabel(viewerCity: string, listingCity: string, lang: "es" | "en"): string {
+  const listingKey = normalizeCityKey(listingCity);
+  if (!listingKey || !CITY_COORDS[listingKey]) return "";
+  const viewerKey = normalizeCityKey(viewerCity);
+  if (!viewerKey || !CITY_COORDS[viewerKey]) {
+    return lang === "es"
+      ? "Agrega una ciudad reconocida para estimar distancia"
+      : "Enter a recognized city to estimate distance";
+  }
+  const a = CITY_COORDS[viewerKey];
+  const b = CITY_COORDS[listingKey];
+  const miles = haversineMiles(a.lat, a.lng, b.lat, b.lng);
+  return lang === "es"
+    ? `Aproximadamente a ${Math.round(miles)} millas de ti`
+    : `Approximately ${Math.round(miles)} miles from you`;
+}
+
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
@@ -519,6 +569,7 @@ export default function PublicarPage() {
   const [showProVideoPreview, setShowProVideoPreview] = useState(false);
   const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
+  const [viewerCityInput, setViewerCityInput] = useState("");
 
   const [step, setStep] = useState<PublishStep>("category");
   const [category, setCategory] = useState<CategoryKey | "">(() => {
@@ -1520,6 +1571,11 @@ if (isPro && videoFile && !videoError) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isFullPreviewOpen]);
 
+  const viewerDistanceLabel = useMemo(
+    () => getRoughDistanceLabel(viewerCityInput, city.trim(), lang),
+    [viewerCityInput, city, lang]
+  );
+
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <div className="max-w-4xl mx-auto px-6 pt-28 pb-16">
@@ -2420,11 +2476,11 @@ if (isPro && videoFile && !videoError) {
                           {/* Left: compact feed card */}
                           <div className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm max-w-[280px] lg:max-w-none">
                             <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
-                            <div className="relative rounded-lg border border-black/10 overflow-hidden">
+                            <div className="relative rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] h-48 flex items-center justify-center">
                               {coverImage ? (
-                                <img src={coverImage} alt="" className="aspect-[4/5] w-full object-cover" />
+                                <img src={coverImage} alt="" className="max-h-full max-w-full w-full object-contain" />
                               ) : (
-                                <div className="aspect-[4/5] w-full flex items-center justify-center bg-[#E8E8E8] text-[#111111]/45 text-xs px-3 text-center">
+                                <div className="flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center h-full">
                                   {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
                                 </div>
                               )}
@@ -2448,11 +2504,11 @@ if (isPro && videoFile && !videoError) {
                           <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 flex flex-col">
                             <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-2">{copy.detailPreview}</div>
 
-                            <div className="rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] mb-3">
+                            <div className="rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] h-40 flex items-center justify-center mb-3">
                               {coverImage ? (
-                                <img src={coverImage} alt="" className="aspect-video w-full object-cover" />
+                                <img src={coverImage} alt="" className="max-h-full max-w-full w-full object-contain" />
                               ) : (
-                                <div className="aspect-video w-full flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center">
+                                <div className="flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center h-full">
                                   {lang === "es" ? "La vista detallada mostrará tu foto principal aquí" : "The detail view will show your main photo here"}
                                 </div>
                               )}
@@ -2669,15 +2725,15 @@ if (isPro && videoFile && !videoError) {
                       <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,340px)] gap-6">
                         {/* Left: media gallery */}
                         <div>
-                          <div className="rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8]">
+                          <div className="rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8] max-h-[min(50vh,380px)] min-h-[200px] flex items-center justify-center">
                             {(activePreviewImage ?? coverImage) ? (
                               <img
                                 src={activePreviewImage ?? coverImage ?? ""}
                                 alt=""
-                                className="aspect-video w-full object-cover"
+                                className="max-h-full max-w-full w-full object-contain"
                               />
                             ) : (
-                              <div className="aspect-video w-full flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center">
+                              <div className="flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center min-h-[200px]">
                                 {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
                               </div>
                             )}
@@ -2690,13 +2746,13 @@ if (isPro && videoFile && !videoError) {
                                   type="button"
                                   onClick={() => setActivePreviewImage(src ?? null)}
                                   className={cx(
-                                    "h-14 w-14 shrink-0 rounded-lg overflow-hidden border-2 object-cover focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                    "h-14 w-14 shrink-0 rounded-lg overflow-hidden border-2 bg-[#E8E8E8] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
                                     (activePreviewImage ?? coverImage) === src
                                       ? "border-[#C9B46A]/60"
                                       : "border-black/10"
                                   )}
                                 >
-                                  <img src={src ?? ""} alt="" className="h-full w-full object-cover" />
+                                  <img src={src ?? ""} alt="" className="max-h-full max-w-full object-contain" />
                                 </button>
                               ))}
                             </div>
@@ -2833,6 +2889,22 @@ if (isPro && videoFile && !videoError) {
                             >
                               {copy.sendMessageLabel}
                             </button>
+                          </div>
+
+                          <div className="rounded-xl border border-black/10 bg-white p-4">
+                            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                              {lang === "es" ? "Tu ubicación" : "Your location"}
+                            </h3>
+                            <input
+                              type="text"
+                              value={viewerCityInput}
+                              onChange={(e) => setViewerCityInput(e.target.value)}
+                              placeholder={lang === "es" ? "Escribe tu ciudad" : "Enter your city"}
+                              className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {viewerCityInput.trim() && viewerDistanceLabel ? (
+                              <p className="mt-2 text-sm text-[#111111]/80">{viewerDistanceLabel}</p>
+                            ) : null}
                           </div>
                         </div>
                       </div>
