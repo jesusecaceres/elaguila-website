@@ -3832,6 +3832,154 @@ function ServiciosResult(x: Listing, lang: Lang) {
   return ServiciosPlusOrPremiumRow(x, lang);
 }
 
+/** En Venta card with hover expansion, mobile tap-to-expand, and engagement indicators */
+function EnVentaCard({
+  x,
+  lang,
+  isFav,
+  onToggleFav,
+  getHref,
+}: {
+  x: Listing;
+  lang: Lang;
+  isFav: boolean;
+  onToggleFav: (id: string) => void;
+  getHref: (x: Listing, lang: Lang) => string;
+}) {
+  const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+  const [touchDevice, setTouchDevice] = useState(false);
+  useEffect(() => {
+    setTouchDevice(typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+
+  const href = getHref(x, lang);
+  const boostUntil = (x as any).boostUntil as string | undefined;
+  const isBoosted = boostUntil && new Date(boostUntil).getTime() > Date.now();
+  const hasVideo = Boolean((x as any).hasVideo || (x as any).proVideoId);
+  const images = (x as any).images as string[] | undefined;
+  const imageCount = Array.isArray(images) ? images.length : x.hasImage ? 1 : 0;
+  const multiImage = Array.isArray(images) && images.length > 1;
+  const viewCount = typeof (x as any).viewCount === "number" ? (x as any).viewCount : null;
+  const viewsToday = typeof (x as any).viewsToday === "number" ? (x as any).viewsToday : null;
+  const orig = (x as any).original_price != null ? Number((x as any).original_price) : null;
+  const curr = (x as any).current_price != null ? Number((x as any).current_price) : null;
+  const priceDrop = orig != null && curr != null && curr < orig;
+  const isPopular = (viewsToday != null && viewsToday >= 5) || (viewCount != null && viewCount >= 20);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (touchDevice) {
+      if (!expanded) {
+        e.preventDefault();
+        setExpanded(true);
+      } else {
+        e.preventDefault();
+        router.push(href);
+      }
+    }
+  };
+
+  return (
+    <a
+      key={x.id}
+      href={href}
+      onClick={touchDevice ? handleCardClick : undefined}
+      className={cx(
+        "group relative block overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5]",
+        "transition-all duration-200 ease-out",
+        "hover:scale-[1.03] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.06)]",
+        "hover:-translate-y-[1px] hover:bg-[#EFEFEF]",
+        (touchDevice && expanded) && "ring-2 ring-[#A98C2A]/50 shadow-lg"
+      )}
+    >
+      {/* Image on top */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E5E5E5]">
+        {x.hasImage ? (
+          <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center transition-transform duration-200 group-hover:scale-105" />
+        ) : (
+          <div className="h-full w-full bg-[#E5E5E5]" />
+        )}
+        {hasVideo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <span className="rounded bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+              ▶ VIDEO
+            </span>
+          </div>
+        )}
+        {multiImage && (
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+            {images!.slice(0, 5).map((_, i) => (
+              <span key={i} className="h-1.5 w-1.5 rounded-full bg-white/80" aria-hidden />
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="p-3">
+        {isPopular && (
+          <div className="mb-1 text-[11px] font-semibold text-[#111111]">
+            🔥 {lang === "es" ? "Popular hoy" : "Popular today"}
+          </div>
+        )}
+        {isBoosted && (
+          <div className="mb-1 text-[11px] font-medium text-[#111111]">
+            🚀 {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
+          </div>
+        )}
+        {priceDrop && (
+          <div className="mb-1 text-[11px] font-medium text-emerald-700">
+            ⬇ {lang === "es" ? "Precio reducido" : "Price drop"}
+          </div>
+        )}
+        <div className="text-lg font-extrabold text-[#111111]">{x.priceLabel[lang]}</div>
+        <div className="mt-0.5 line-clamp-2 text-base font-semibold text-[#111111]">{x.title[lang]}</div>
+        <div className="mt-1 text-sm text-[#111111]">{x.city}</div>
+        <div className="text-xs text-[#111111]/80">
+          {lang === "es" ? "Publicado" : "Posted"} {x.postedAgo[lang]}
+        </div>
+        {/* Media count */}
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#111111]/80">
+          {imageCount > 0 && (
+            <span>📷 {imageCount} {lang === "es" ? "fotos" : "photos"}</span>
+          )}
+          {hasVideo && (
+            <span>🎥 {lang === "es" ? "video incluido" : "video included"}</span>
+          )}
+        </div>
+        {/* Expanded / hover indicators */}
+        <div
+          className={cx(
+            "mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#111111]/70",
+            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+            touchDevice && expanded && "opacity-100"
+          )}
+        >
+          {viewCount != null && (
+            <span>👁 {viewCount} {lang === "es" ? "vistas" : "views"}</span>
+          )}
+          {imageCount > 0 && <span>📷 {imageCount}</span>}
+          {isBoosted && <span>🚀</span>}
+          {priceDrop && <span>⬇</span>}
+        </div>
+        {touchDevice && expanded && (
+          <div className="mt-2 text-center">
+            <span className="inline-block rounded-full bg-[#111111] px-4 py-1.5 text-xs font-semibold text-white">
+              {lang === "es" ? "Toca de nuevo para ver" : "Tap again to view"}
+            </span>
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFav(x.id); }}
+        className="absolute right-2 top-2 z-10 rounded-full border border-black/10 bg-white/90 p-1.5 shadow hover:bg-white"
+        aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
+      >
+        {isFav ? "★" : "☆"}
+      </button>
+    </a>
+  );
+}
+
 const ListingCardGrid = (x: Listing) => {
   const isFav = favIds.has(x.id);
   const isAutos = x.category === "autos";
@@ -3841,63 +3989,15 @@ const ListingCardGrid = (x: Listing) => {
   const isEnVenta = x.category === "en-venta";
   const tier = inferVisualTier(x);
 
-  // En Venta: card with image on top, price, title, location, time; boost badge; VIDEO overlay; carousel dots
   if (isEnVenta) {
-    const boostUntil = (x as any).boostUntil as string | undefined;
-    const isBoosted = boostUntil && new Date(boostUntil).getTime() > Date.now();
-    const hasVideo = Boolean((x as any).hasVideo || (x as any).proVideoId);
-    const images = (x as any).images as string[] | undefined;
-    const multiImage = Array.isArray(images) && images.length > 1;
     return (
-      <a
-        key={x.id}
-        href={getListingHref(x, lang)}
-        className="group relative block overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5] transition-all duration-200 hover:-translate-y-[1px] hover:bg-[#EFEFEF]"
-      >
-        {/* Image on top */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E5E5E5]">
-          {x.hasImage ? (
-            <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
-          ) : (
-            <div className="h-full w-full bg-[#E5E5E5]" />
-          )}
-          {hasVideo && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-              <span className="rounded bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                ▶ VIDEO
-              </span>
-            </div>
-          )}
-          {multiImage && (
-            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-              {images.slice(0, 5).map((_, i) => (
-                <span key={i} className="h-1.5 w-1.5 rounded-full bg-white/80" aria-hidden />
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="p-3">
-          {isBoosted && (
-            <div className="mb-1.5 text-[11px] font-medium text-[#111111]">
-              🚀 {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
-            </div>
-          )}
-          <div className="text-lg font-extrabold text-[#111111]">{x.priceLabel[lang]}</div>
-          <div className="mt-0.5 line-clamp-2 text-base font-semibold text-[#111111]">{x.title[lang]}</div>
-          <div className="mt-1 text-sm text-[#111111]">{x.city}</div>
-          <div className="text-xs text-[#111111]/80">
-            {lang === "es" ? "Publicado" : "Posted"} {x.postedAgo[lang]}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFav(x.id); }}
-          className="absolute right-2 top-2 z-10 rounded-full border border-black/10 bg-white/90 p-1.5 shadow hover:bg-white"
-          aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
-        >
-          {isFav ? "★" : "☆"}
-        </button>
-      </a>
+      <EnVentaCard
+        x={x}
+        lang={lang}
+        isFav={isFav}
+        onToggleFav={toggleFav}
+        getHref={getListingHref}
+      />
     );
   }
 
@@ -3936,7 +4036,9 @@ const isComunidadLite = isComunidad;
     <div
       key={x.id}
       className={cx(
-        "relative overflow-hidden rounded-2xl border bg-[#F5F5F5] p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out hover:-translate-y-[1px] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
+        "relative overflow-hidden rounded-2xl border bg-[#F5F5F5] p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out",
+        "hover:scale-[1.03] hover:-translate-y-[1px] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.06)]",
+        "shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
         tier === "corona-oro"
           ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_0_22px_rgba(250,204,21,0.10),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
           : tier === "corona"

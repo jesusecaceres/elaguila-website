@@ -40,11 +40,10 @@ export default function ListingCard({
     <div
       className={cx(
         "relative rounded-2xl border",
-        // Warmer, premium card tone (no harsh white panels)
         "border-[#C9B46A]/70 bg-[#F5F5F5]",
         "p-4 sm:p-5",
-        "shadow-sm transition",
-        "hover:-translate-y-[1px] hover:bg-[#EFEFEF] hover:border-[#A98C2A]"
+        "shadow-sm transition-all duration-200 ease-out",
+        "hover:scale-[1.03] hover:-translate-y-[1px] hover:bg-[#EFEFEF] hover:border-[#A98C2A] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(0,0,0,0.05)]"
       )}
     >
       <button
