@@ -517,6 +517,8 @@ export default function PublicarPage() {
   const [videoInfo, setVideoInfo] = useState<{ duration: number; width: number; height: number } | null>(null);
   const [videoError, setVideoError] = useState<string>("");
   const [showProVideoPreview, setShowProVideoPreview] = useState(false);
+  const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
+  const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
 
   const [step, setStep] = useState<PublishStep>("category");
   const [category, setCategory] = useState<CategoryKey | "">(() => {
@@ -783,6 +785,10 @@ setIsPro(plan.includes("pro"));
         saveLabel: "Guardar",
         shareLabel: "Compartir",
         contactLabel: "Contactar",
+        fullPreviewCta: "Ver anuncio completo",
+        fullPreviewTitle: "Vista completa del anuncio",
+        sendMessageLabel: "Enviar mensaje",
+        contactHelperText: "Así verán los usuarios cómo pueden contactarte.",
       },
       en: {
         title: "Post your ad",
@@ -827,6 +833,10 @@ setIsPro(plan.includes("pro"));
         saveLabel: "Save",
         shareLabel: "Share",
         contactLabel: "Contact",
+        fullPreviewCta: "Open full listing preview",
+        fullPreviewTitle: "Full listing preview",
+        sendMessageLabel: "Send message",
+        contactHelperText: "This is how users will see how to contact you.",
       },
     }),
     []
@@ -1489,6 +1499,26 @@ if (isPro && videoFile && !videoError) {
   const previewDetailPairs = getDetailPairs(category, lang, details);
   const coverImage = filePreviews[0] ?? null;
   const extraPreviewImages = filePreviews.slice(1, 5);
+  const previewCategoryLabel = category ? categoryConfig[category as CategoryKey]?.label[lang] ?? "" : "";
+  const previewContactMethod = contactMethod;
+  const previewDistanceLabel = previewCity && previewCity !== (lang === "es" ? "(Ciudad)" : "(City)")
+    ? (lang === "es" ? "Cerca de " + previewCity : "Near " + previewCity)
+    : "";
+
+  useEffect(() => {
+    if (isFullPreviewOpen) {
+      setActivePreviewImage(coverImage);
+    }
+  }, [isFullPreviewOpen, coverImage]);
+
+  useEffect(() => {
+    if (!isFullPreviewOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullPreviewOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullPreviewOpen]);
 
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
@@ -2386,92 +2416,82 @@ if (isPro && videoFile && !videoError) {
                           </div>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          {/* Card preview (marketplace style) */}
-                          <div className="rounded-2xl border border-black/10 bg-white overflow-hidden shadow-sm">
-                            <div className="text-xs text-[#111111]/60 mb-2">{copy.cardPreview}</div>
-                            <div className="relative rounded-2xl border border-black/10 bg-[#F5F5F5] overflow-hidden">
+                        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
+                          {/* Left: compact feed card */}
+                          <div className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm max-w-[280px] lg:max-w-none">
+                            <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
+                            <div className="relative rounded-lg border border-black/10 overflow-hidden">
                               {coverImage ? (
-                                <img src={coverImage} alt="" className="aspect-[4/3] w-full object-cover" />
+                                <img src={coverImage} alt="" className="aspect-[4/5] w-full object-cover" />
                               ) : (
-                                <div className="aspect-[4/3] w-full flex items-center justify-center bg-[#E8E8E8] text-[#111111]/50 text-sm px-4 text-center">
+                                <div className="aspect-[4/5] w-full flex items-center justify-center bg-[#E8E8E8] text-[#111111]/45 text-xs px-3 text-center">
                                   {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
                                 </div>
                               )}
-                              <span className="absolute top-2 right-2 rounded-full border border-black/10 bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-[#111111] shadow-sm">
+                              <span className="absolute top-1.5 right-1.5 rounded-full border border-black/10 bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-[#111111]">
                                 {copy.saveLabel}
                               </span>
                             </div>
-                            <div className="p-3">
-                              <div className="text-base font-semibold text-[#111111]">{previewPrice}</div>
-                              <h3 className="mt-1 text-sm font-semibold text-[#111111] line-clamp-2">{previewTitle}</h3>
-                              <div className="mt-1 text-xs text-[#111111]/60">
+                            <div className="p-2">
+                              <div className="text-sm font-semibold text-[#111111]">{previewPrice}</div>
+                              <h3 className="mt-0.5 text-xs font-semibold text-[#111111] line-clamp-2 leading-tight">{previewTitle}</h3>
+                              <div className="mt-0.5 text-[10px] text-[#111111]/55">
                                 {previewCity} · {previewPosted}
                               </div>
                               {previewShortDescription ? (
-                                <p className="mt-2 text-xs text-[#111111]/80 line-clamp-2">{previewShortDescription}</p>
+                                <p className="mt-1.5 text-[10px] text-[#111111]/75 line-clamp-2">{previewShortDescription}</p>
                               ) : null}
                             </div>
                           </div>
 
-                          {/* Detail preview (listing page style) */}
-                          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                            <div className="text-xs text-[#111111]/60 mb-2">{copy.detailPreview}</div>
+                          {/* Right: summary + launcher */}
+                          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 flex flex-col">
+                            <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-2">{copy.detailPreview}</div>
 
-                            {/* A. Hero image */}
-                            <div className="rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8]">
+                            <div className="rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] mb-3">
                               {coverImage ? (
                                 <img src={coverImage} alt="" className="aspect-video w-full object-cover" />
                               ) : (
-                                <div className="aspect-video w-full flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center">
+                                <div className="aspect-video w-full flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center">
                                   {lang === "es" ? "La vista detallada mostrará tu foto principal aquí" : "The detail view will show your main photo here"}
                                 </div>
                               )}
                             </div>
 
-                            {/* B. Thumbnail row */}
-                            {extraPreviewImages.length >= 1 && (
-                              <div className="mt-2 flex gap-2">
-                                {extraPreviewImages.slice(0, 4).map((src, idx) => (
-                                  <img key={idx} src={src} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover border border-black/10" />
-                                ))}
-                              </div>
-                            )}
-
-                            {/* C. Title */}
-                            <h2 className="mt-3 text-lg font-semibold text-[#111111] leading-snug">{previewTitle}</h2>
-
-                            {/* D. Price + city / post date */}
-                            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                              <span className="text-base font-semibold text-[#111111]">{previewPrice}</span>
+                            <h2 className="text-base font-semibold text-[#111111] leading-snug">{previewTitle}</h2>
+                            <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
+                              <span className="font-semibold text-[#111111]">{previewPrice}</span>
                               <span className="text-[#111111]/40">·</span>
-                              <span className="text-sm text-[#111111]/80">{previewCity}</span>
+                              <span className="text-[#111111]/80">{previewCity}</span>
                               <span className="text-[#111111]/40">·</span>
-                              <span className="text-xs text-[#111111]/60">{previewPosted}</span>
+                              <span className="text-[#111111]/60 text-xs">{previewPosted}</span>
                             </div>
+                            {previewCategoryLabel ? (
+                              <span className="mt-2 inline-block rounded-md border border-black/10 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-[#111111]/80">
+                                {previewCategoryLabel}
+                              </span>
+                            ) : null}
 
-                            {/* E. Primary actions (preview only) */}
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#111111]">
                                 {copy.saveLabel}
                               </span>
-                              <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                              <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#111111]">
                                 {copy.shareLabel}
                               </span>
-                              <span className="rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-semibold text-[#111111]">
+                              <span className="rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-2.5 py-1 text-[10px] font-semibold text-[#111111]">
                                 {copy.contactLabel}
                               </span>
                             </div>
 
-                            {/* F. Structured details card */}
                             {previewDetailPairs.length > 0 && (
-                              <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
-                                <div className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
+                              <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
+                                <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
                                   {lang === "es" ? "Detalles" : "Details"}
                                 </div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                                   {previewDetailPairs.map((p) => (
-                                    <div key={p.label} className="text-sm">
+                                    <div key={p.label}>
                                       <span className="text-[#111111]/55">{p.label}</span>
                                       <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
                                     </div>
@@ -2480,36 +2500,20 @@ if (isPro && videoFile && !videoError) {
                               </div>
                             )}
 
-                            {/* G. Description card */}
-                            <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
-                              <div className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
-                                {lang === "es" ? "Descripción" : "Description"}
-                              </div>
-                              <div className="text-sm text-[#111111] whitespace-pre-wrap">
-                                {previewDescription || (lang === "es" ? "(Sin descripción)" : "(No description)")}
-                              </div>
+                            <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
+                              <p className="text-xs text-[#111111] line-clamp-3 whitespace-pre-wrap">
+                                {previewShortDescription || previewDescription || (lang === "es" ? "(Sin descripción)" : "(No description)")}
+                              </p>
                             </div>
 
-                            {/* H. Contact card */}
-                            <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
-                              <div className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
-                                {lang === "es" ? "Contacto" : "Contact"}
-                              </div>
-                              <div className="text-sm text-[#111111]">
-                                {contactMethod === "email" && !previewEmail && (
-                                  <span className="text-[#111111]/50">{lang === "es" ? "Email (no mostrado)" : "Email (not shown)"}</span>
-                                )}
-                                {contactMethod === "phone" && !previewPhone && (
-                                  <span className="text-[#111111]/50">{lang === "es" ? "Teléfono (no mostrado)" : "Phone (not shown)"}</span>
-                                )}
-                                {(contactMethod === "both" || contactMethod === "phone") && previewPhone && <span>{previewPhone}</span>}
-                                {(contactMethod === "both" || contactMethod === "email") && previewEmail && (
-                                  <span className={previewPhone ? "ml-2" : ""}>{previewEmail}</span>
-                                )}
-                                {contactMethod === "both" && !previewPhone && !previewEmail && (
-                                  <span className="text-[#111111]/50">{lang === "es" ? "Teléfono y email" : "Phone and email"}</span>
-                                )}
-                              </div>
+                            <div className="mt-4 pt-3 border-t border-black/10">
+                              <button
+                                type="button"
+                                onClick={() => setIsFullPreviewOpen(true)}
+                                className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                {copy.fullPreviewCta}
+                              </button>
                             </div>
 
                             {isPro && videoFile && (
@@ -2632,6 +2636,210 @@ if (isPro && videoFile && !videoError) {
                   </section>
                 )}
               </div>
+
+              {/* Full listing preview modal */}
+              {isFullPreviewOpen && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={copy.fullPreviewTitle}
+                >
+                  <div
+                    className="absolute inset-0 bg-black/60"
+                    aria-hidden
+                    onClick={() => setIsFullPreviewOpen(false)}
+                  />
+                  <div className="relative z-10 w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden rounded-none sm:rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl flex flex-col">
+                    {/* Top bar */}
+                    <div className="flex items-center justify-between shrink-0 px-4 py-3 border-b border-black/10 bg-white">
+                      <h2 className="text-base font-semibold text-[#111111]">{copy.fullPreviewTitle}</h2>
+                      <button
+                        type="button"
+                        onClick={() => setIsFullPreviewOpen(false)}
+                        className="rounded-lg p-2 text-[#111111] hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                        aria-label={lang === "es" ? "Cerrar" : "Close"}
+                      >
+                        <span className="text-lg leading-none">×</span>
+                      </button>
+                    </div>
+
+                    {/* Scrollable content */}
+                    <div className="overflow-y-auto flex-1 min-h-0">
+                      <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,340px)] gap-6">
+                        {/* Left: media gallery */}
+                        <div>
+                          <div className="rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8]">
+                            {(activePreviewImage ?? coverImage) ? (
+                              <img
+                                src={activePreviewImage ?? coverImage ?? ""}
+                                alt=""
+                                className="aspect-video w-full object-cover"
+                              />
+                            ) : (
+                              <div className="aspect-video w-full flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center">
+                                {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
+                              </div>
+                            )}
+                          </div>
+                          {extraPreviewImages.length >= 1 && (
+                            <div className="mt-2 flex gap-2 flex-wrap">
+                              {[coverImage, ...extraPreviewImages].filter(Boolean).slice(0, 5).map((src, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setActivePreviewImage(src ?? null)}
+                                  className={cx(
+                                    "h-14 w-14 shrink-0 rounded-lg overflow-hidden border-2 object-cover focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                    (activePreviewImage ?? coverImage) === src
+                                      ? "border-[#C9B46A]/60"
+                                      : "border-black/10"
+                                  )}
+                                >
+                                  <img src={src ?? ""} alt="" className="h-full w-full object-cover" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {isPro && videoFile && (
+                            <div className="mt-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
+                              <div className="text-sm font-semibold text-[#111111]">
+                                {lang === "es" ? "Video (Pro)" : "Pro Video"}
+                              </div>
+                              <div className="mt-2">
+                                {!showProVideoPreview ? (
+                                  proVideoThumbPreviewUrl ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowProVideoPreview(true)}
+                                      className="block w-full rounded-xl overflow-hidden border border-black/10"
+                                    >
+                                      <img
+                                        src={proVideoThumbPreviewUrl}
+                                        alt=""
+                                        className="w-full aspect-video object-cover"
+                                      />
+                                    </button>
+                                  ) : (
+                                    <div className="rounded-xl border border-black/10 bg-[#F5F5F5] p-4 text-sm text-[#111111]">
+                                      {lang === "es" ? "Video Pro incluido." : "Pro video included."}
+                                    </div>
+                                  )
+                                ) : (
+                                  <video
+                                    className="w-full rounded-xl border border-black/10 bg-black"
+                                    controls
+                                    preload="none"
+                                    playsInline
+                                    poster={proVideoThumbPreviewUrl || undefined}
+                                    src={proVideoPreviewUrl || undefined}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right: info */}
+                        <div className="space-y-4">
+                          <h1 className="text-xl font-semibold text-[#111111] leading-tight">{previewTitle}</h1>
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                            <span className="text-lg font-semibold text-[#111111]">{previewPrice}</span>
+                            <span className="text-[#111111]/40">·</span>
+                            <span className="text-sm text-[#111111]/80">{previewCity}</span>
+                            <span className="text-[#111111]/40">·</span>
+                            <span className="text-xs text-[#111111]/60">{previewPosted}</span>
+                          </div>
+                          {previewCategoryLabel ? (
+                            <span className="inline-block rounded-md border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-[#111111]">
+                              {previewCategoryLabel}
+                            </span>
+                          ) : null}
+                          {previewDistanceLabel ? (
+                            <p className="text-sm text-[#111111]/70">{previewDistanceLabel}</p>
+                          ) : null}
+
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
+                              {copy.saveLabel}
+                              <span className="ml-1 text-[#111111]/50 text-[10px]">
+                                {lang === "es" ? "(inicia sesión)" : "(sign in)"}
+                              </span>
+                            </span>
+                            <span className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
+                              {copy.shareLabel}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const el = document.getElementById("full-preview-contact-section");
+                                el?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="rounded-full border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8]"
+                            >
+                              {copy.contactLabel}
+                            </button>
+                          </div>
+
+                          {previewDetailPairs.length > 0 && (
+                            <div className="rounded-xl border border-black/10 bg-white p-4">
+                              <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+                                {lang === "es" ? "Detalles" : "Details"}
+                              </h3>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                {previewDetailPairs.map((p) => (
+                                  <div key={p.label}>
+                                    <span className="text-[#111111]/55">{p.label}</span>
+                                    <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="rounded-xl border border-black/10 bg-white p-4">
+                            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                              {lang === "es" ? "Descripción" : "Description"}
+                            </h3>
+                            <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">
+                              {previewDescription || (lang === "es" ? "(Sin descripción)" : "(No description)")}
+                            </div>
+                          </div>
+
+                          <div
+                            id="full-preview-contact-section"
+                            className="rounded-xl border border-black/10 bg-white p-4 scroll-mt-4"
+                          >
+                            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                              {lang === "es" ? "Contacto" : "Contact"}
+                            </h3>
+                            <div className="text-sm text-[#111111] space-y-1">
+                              {(previewContactMethod === "phone" || previewContactMethod === "both") && previewPhone && (
+                                <p>{previewPhone}</p>
+                              )}
+                              {(previewContactMethod === "email" || previewContactMethod === "both") && previewEmail && (
+                                <p>{previewEmail}</p>
+                              )}
+                              {((previewContactMethod === "phone" && !previewPhone) || (previewContactMethod === "email" && !previewEmail) || (previewContactMethod === "both" && !previewPhone && !previewEmail)) && (
+                                <p className="text-[#111111]/50">
+                                  {lang === "es" ? "Teléfono o email (no mostrado)" : "Phone or email (not shown)"}
+                                </p>
+                              )}
+                            </div>
+                            <p className="mt-2 text-xs text-[#111111]/60">{copy.contactHelperText}</p>
+                            <button
+                              type="button"
+                              className="mt-3 w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]"
+                            >
+                              {copy.sendMessageLabel}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 text-xs text-[#111111]/40 text-center">
                 {lang === "es"
