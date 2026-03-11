@@ -82,9 +82,11 @@ export default function PreviewListingPage() {
             play: "Reproducir",
             proVideo: "Video (Pro)",
             tapToPlay: "Toque la miniatura para reproducir. No se reproduce automáticamente.",
+            backToEditListing: "Volver a editar anuncio",
           }
         : {
             backToEdit: "Back to edit",
+            backToEditListing: "Back to edit listing",
             noPreview: "No preview available.",
             goToClassifieds: "Go to Classifieds",
             details: "Details",
@@ -352,6 +354,17 @@ export default function PreviewListingPage() {
           </div>
         </div>
       </div>
+
+      {/* Bottom button: return to publish form without losing data (mobile-friendly) */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
+        <Link
+          href={backUrl}
+          className="block w-full max-w-md mx-auto rounded-xl bg-[#C9B46A] text-[#111111] font-semibold py-3.5 text-center hover:opacity-90 transition"
+        >
+          {t.backToEditListing}
+        </Link>
+      </div>
+      <div className="h-20" aria-hidden />
     </main>
   );
 }

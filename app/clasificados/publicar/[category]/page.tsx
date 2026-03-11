@@ -707,8 +707,20 @@ export default function PublicarPage() {
   const [publishing, setPublishing] = useState<boolean>(false);
   const [publishedId, setPublishedId] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
-  const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(false);
+  const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
+  const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(RULES_CONFIRMED_KEY) === "1";
+  });
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+
+  const setRulesConfirmedPersisted = (value: boolean) => {
+    setRulesConfirmed(value);
+    if (typeof window !== "undefined") {
+      if (value) sessionStorage.setItem(RULES_CONFIRMED_KEY, "1");
+      else sessionStorage.removeItem(RULES_CONFIRMED_KEY);
+    }
+  };
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -2549,7 +2561,7 @@ if (isPro && videoFile && !videoError) {
                         <input
                           type="checkbox"
                           checked={rulesConfirmed}
-                          onChange={(e) => setRulesConfirmed(e.target.checked)}
+                          onChange={(e) => setRulesConfirmedPersisted(e.target.checked)}
                           className="mt-1 rounded border-black/20"
                         />
                         <span className="text-sm text-[#111111]">{copy.rulesConfirm}</span>
