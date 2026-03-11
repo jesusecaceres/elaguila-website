@@ -1,8 +1,8 @@
--- Listing analytics: events for views, saves, shares, messages
+-- Listing analytics: events for views, saves, shares, messages, profile_view
 CREATE TABLE IF NOT EXISTS listing_analytics (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id text NOT NULL,
-  event_type text NOT NULL CHECK (event_type IN ('listing_view', 'listing_save', 'listing_share', 'message_sent')),
+  listing_id text NULL,
+  event_type text NOT NULL CHECK (event_type IN ('listing_view', 'listing_save', 'listing_share', 'message_sent', 'profile_view')),
   user_id uuid NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );

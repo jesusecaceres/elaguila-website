@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
 import newLogo from "../../../../public/logo.png";
@@ -14,6 +14,7 @@ import { isVerifiedSeller } from "../../components/verifiedSeller";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "../../components/savedListings";
 import ContactActions from "../../components/ContactActions";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
+import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
 
 type Lang = "es" | "en";
@@ -46,10 +47,35 @@ type Listing = {
   original_price?: number | null;
   current_price?: number | null;
   price_last_updated?: string | null;
+  created_at?: string | null;
+  sellerName?: string | null;
+  sellerJoinYear?: number | null;
+  sellerActiveListings?: number | null;
+  images?: string[] | null;
+  boostUntil?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function formatPostedAgo(createdAt: string | null | undefined, lang: Lang): string {
+  if (!createdAt) return "";
+  const created = new Date(createdAt).getTime();
+  if (!Number.isFinite(created)) return "";
+  const now = Date.now();
+  const diffMs = now - created;
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (lang === "es") {
+    if (diffMins < 60) return `Publicado hace ${diffMins <= 1 ? "1 minuto" : `${diffMins} minutos`}`;
+    if (diffHours < 24) return `Publicado hace ${diffHours === 1 ? "1 hora" : `${diffHours} horas`}`;
+    return `Publicado hace ${diffDays === 1 ? "1 día" : `${diffDays} días`}`;
+  }
+  if (diffMins < 60) return `Posted ${diffMins <= 1 ? "1 minute" : `${diffMins} minutes`} ago`;
+  if (diffHours < 24) return `Posted ${diffHours === 1 ? "1 hour" : `${diffHours} hours`} ago`;
+  return `Posted ${diffDays === 1 ? "1 day" : `${diffDays} days`} ago`;
 }
 
 export default function AnuncioDetallePage() {
@@ -348,6 +374,12 @@ export default function AnuncioDetallePage() {
   const isPro = isProListing(listing as any);
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
+  const proVideoInfo = useMemo(() => {
+    if (!listing) return null;
+    const blob = `${listing.blurb?.[lang] ?? ""}\n${listing.blurb?.[lang === "es" ? "en" : "es"] ?? ""}`;
+    return extractProVideoInfo(blob);
+  }, [listing, lang]);
+
   const priceDropHours = useMemo(() => {
     if (!listing?.price_last_updated || listing.current_price == null || listing.original_price == null) return null;
     if (listing.current_price >= listing.original_price) return null;
@@ -356,13 +388,61 @@ export default function AnuncioDetallePage() {
     return Math.max(0, Math.floor((Date.now() - updated) / (1000 * 60 * 60)));
   }, [listing?.price_last_updated, listing?.current_price, listing?.original_price]);
 
-  const proVideoInfo = useMemo(() => {
-    if (!listing) return null;
-    // Parse from the currently displayed blurb, but also include the other language
-    // to maximize compatibility with mixed-language posts.
-    const blob = `${listing.blurb?.[lang] ?? ""}\n${listing.blurb?.[lang === "es" ? "en" : "es"] ?? ""}`;
-    return extractProVideoInfo(blob);
+  const postedAgoDisplay = useMemo(() => {
+    if (!listing) return "";
+    if (listing.created_at) return formatPostedAgo(listing.created_at, lang);
+    return listing.postedAgo[lang];
   }, [listing, lang]);
+
+  const isBoosted = useMemo(() => {
+    const until = (listing as any)?.boostUntil;
+    return until && new Date(until).getTime() > Date.now();
+  }, [listing]);
+
+  const [viewerCityInput, setViewerCityInput] = useState("");
+  const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
+  useEffect(() => {
+    if (!viewerCityInput.trim() || !listing?.city) {
+      setDistanceMiles(null);
+      return;
+    }
+    fetch(
+      `/api/clasificados/distance?viewer=${encodeURIComponent(viewerCityInput.trim())}&listing=${encodeURIComponent(listing.city)}`
+    )
+      .then((r) => r.json())
+      .then((data: { miles?: number | null }) => setDistanceMiles(data.miles ?? null))
+      .catch(() => setDistanceMiles(null));
+  }, [viewerCityInput, listing?.city]);
+
+  type MediaSlot = { type: "image"; url: string } | { type: "video" };
+  const mediaSlots = useMemo((): MediaSlot[] => {
+    const imgs = listing?.images ?? (listing as any)?.photos;
+    const urls = Array.isArray(imgs) ? imgs.filter((u): u is string => typeof u === "string") : [];
+    const cover = urls[0];
+    const restImages = urls.slice(1);
+    const slots: MediaSlot[] = [];
+    if (cover) slots.push({ type: "image", url: cover });
+    if (proVideoInfo) slots.push({ type: "video" });
+    restImages.forEach((u) => slots.push({ type: "image", url: u }));
+    if (slots.length === 0 && (listing?.hasImage || proVideoInfo)) {
+      if (proVideoInfo) slots.push({ type: "video" });
+      if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
+    }
+    return slots;
+  }, [listing?.images, (listing as any)?.photos, listing?.hasImage, proVideoInfo]);
+
+  const [mediaIndex, setMediaIndex] = useState(0);
+  const galleryTouchStartX = useRef(0);
+  useEffect(() => {
+    setMediaIndex(0);
+  }, [listing?.id]);
+  const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
+  const goPrev = useCallback(() => {
+    setMediaIndex((i) => (i <= 0 ? mediaSlots.length - 1 : i - 1));
+  }, [mediaSlots.length]);
+  const goNext = useCallback(() => {
+    setMediaIndex((i) => (i >= mediaSlots.length - 1 ? 0 : i + 1));
+  }, [mediaSlots.length]);
 
   const [showProVideo, setShowProVideo] = useState(false);
 
@@ -472,6 +552,59 @@ export default function AnuncioDetallePage() {
                 isBusiness ? "border-yellow-400/45" : "border-black/10"
               )}
             >
+              {mediaSlots.length > 0 && (
+                <div
+                  className="relative rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8] max-h-[360px] min-h-[200px] flex items-center justify-center mb-6"
+                  onTouchStart={(e) => {
+                    galleryTouchStartX.current = e.touches[0]?.clientX ?? 0;
+                  }}
+                  onTouchEnd={(e) => {
+                    const endX = e.changedTouches[0]?.clientX ?? 0;
+                    const dx = endX - galleryTouchStartX.current;
+                    if (dx > 50) goPrev();
+                    else if (dx < -50) goNext();
+                  }}
+                >
+                  {mediaSlots[safeMediaIndex]?.type === "image" ? (
+                    <img
+                      src={mediaSlots[safeMediaIndex].url}
+                      alt=""
+                      className="max-h-full max-w-full w-full object-contain"
+                    />
+                  ) : (
+                    proVideoInfo && (
+                      <video
+                        className="max-h-full max-w-full w-full object-contain"
+                        controls
+                        preload="none"
+                        playsInline
+                        poster={proVideoInfo.thumbUrl}
+                        src={proVideoInfo.url}
+                      />
+                    )
+                  )}
+                  {mediaSlots.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold"
+                        aria-label={lang === "es" ? "Anterior" : "Previous"}
+                        onClick={goPrev}
+                      >
+                        ←
+                      </button>
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold"
+                        aria-label={lang === "es" ? "Siguiente" : "Next"}
+                        onClick={goNext}
+                      >
+                        →
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
@@ -487,11 +620,16 @@ export default function AnuncioDetallePage() {
                   )}
 
                   <div className="mt-4 text-[#111111]">
-                    {listing.city} • {listing.postedAgo[lang]}
+                    {listing.city} • {postedAgoDisplay}
                   </div>
                 </div>
 
                 <div className="shrink-0 flex flex-col items-end gap-2">
+                  {isBoosted && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border border-yellow-400/40 bg-yellow-400/15 text-yellow-200">
+                      🚀 {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
+                    </span>
+                  )}
                   <span
                     className={cx(
                       "px-3 py-1 rounded-full text-xs font-semibold border",
@@ -540,7 +678,7 @@ export default function AnuncioDetallePage() {
               </div>
 
 
-{proVideoInfo && (
+{proVideoInfo && mediaSlots.length === 0 && (
   <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
     <div className="flex items-center justify-between gap-3">
       <div>
@@ -629,7 +767,7 @@ export default function AnuncioDetallePage() {
 
                 <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
                   <div className="text-xs text-[#111111]">{t.metaPosted}</div>
-                  <div className="mt-1 text-[#111111] font-semibold">{listing.postedAgo[lang]}</div>
+                  <div className="mt-1 text-[#111111] font-semibold">{postedAgoDisplay}</div>
 
                 {autoMeta?.facts?.slice(0, 4).map((f) => (
                   <div
@@ -771,6 +909,47 @@ export default function AnuncioDetallePage() {
                   </div>
                 )}
               </div>
+            </div>
+
+            <div className="seller-card rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+              <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                {lang === "es" ? "Publicado por" : "Posted by"}
+              </h4>
+              <p className="text-sm font-medium text-[#111111]">
+                {listing?.sellerName ?? (lang === "es" ? "Vendedor" : "Seller")}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
+                <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
+                <span>📅 {lang === "es" ? "Miembro desde" : "Member since"} {listing?.sellerJoinYear ?? new Date().getFullYear()}</span>
+                <span>📦 {(listing?.sellerActiveListings ?? 0)} {lang === "es" ? "anuncios activos" : "active listings"}</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+              <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                {lang === "es" ? "Ubicación" : "Location"}
+              </h3>
+              <p className="text-sm text-[#111111] mb-2">
+                {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {listing?.city ?? ""}
+              </p>
+              <label className="block text-sm text-[#111111]/80 mb-1">
+                {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
+              </label>
+              <CityAutocomplete
+                value={viewerCityInput}
+                onChange={setViewerCityInput}
+                placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
+                lang={lang}
+                variant="light"
+                className="mt-1"
+              />
+              {distanceMiles !== null && (
+                <p className="mt-2 text-sm text-[#111111]/80">
+                  {lang === "es"
+                    ? `Aproximadamente ${Math.round(distanceMiles)} millas de distancia`
+                    : `Approximately ${Math.round(distanceMiles)} miles away`}
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
