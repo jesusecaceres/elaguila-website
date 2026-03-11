@@ -2599,6 +2599,22 @@ if (isPro && videoFile && !videoError) {
                               ))}
                             </div>
                           )}
+                          {!isPro && (
+                            <div className="mt-2 flex gap-2 flex-wrap items-end">
+                              <div className="h-14 w-14 shrink-0 rounded-lg border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0] flex flex-col items-center justify-center text-[10px] text-[#111111]/60">
+                                <span>Image slot 4</span>
+                              </div>
+                              <div className="h-14 w-14 shrink-0 rounded-lg border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0] flex flex-col items-center justify-center text-[10px] text-[#111111]/60">
+                                <span>Image slot 5</span>
+                              </div>
+                              <div className="h-14 w-14 shrink-0 rounded-lg border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0] flex flex-col items-center justify-center text-[10px] text-[#111111]/60">
+                                <span>Video slot</span>
+                              </div>
+                              <span className="text-xs text-[#111111]/60 ml-1">
+                                Disponible con Pro
+                              </span>
+                            </div>
+                          )}
                           {isPro && videoFile && (
                             <div className="mt-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
                               <div className="text-sm font-semibold text-[#111111]">
@@ -2634,6 +2650,25 @@ if (isPro && videoFile && !videoError) {
                                   />
                                 )}
                               </div>
+                            </div>
+                          )}
+                          {!isPro && (
+                            <div className="upgrade-preview mt-4">
+                              <h3 className="text-base font-semibold text-[#111111] mt-0 mb-2">
+                                Mejora tu anuncio con LEONIX Pro
+                              </h3>
+                              <ul className="list-disc pl-5 space-y-1 text-sm text-[#111111] mb-4">
+                                <li>Hasta 12 fotos</li>
+                                <li>Sube video a tu anuncio</li>
+                                <li>2 impulsos de visibilidad</li>
+                                <li>Duración del anuncio: 30 días</li>
+                              </ul>
+                              <button
+                                type="button"
+                                className="upgrade-button rounded-xl bg-[#f5c518] hover:bg-[#e5b508] text-black font-semibold px-4 py-2.5 text-sm"
+                              >
+                                Actualizar a Pro — $9.99
+                              </button>
                             </div>
                           )}
                         </div>

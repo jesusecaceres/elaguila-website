@@ -36,3 +36,11 @@ body {
   background-color: #0b0b0b;
   color: #ffffff;
 }
+
+/* Pro upgrade preview in listing modal */
+.upgrade-preview {
+  border: 2px solid #f5c518;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fffdf5;
+}
