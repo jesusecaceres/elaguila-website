@@ -2201,6 +2201,7 @@ if (isPro && videoFile && !videoError) {
                             <input
                               type="file"
                               accept="image/*"
+                              capture="environment"
                               multiple
                               className="hidden"
                               onChange={(e) => {
@@ -2331,7 +2332,8 @@ if (isPro && videoFile && !videoError) {
       {copy.addVideo}
       <input
         type="file"
-        accept="video/mp4,video/webm"
+        accept="video/*"
+        capture="environment"
         className="hidden"
         disabled={!isPro}
         onChange={async (e) => {
