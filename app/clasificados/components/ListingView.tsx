@@ -43,15 +43,19 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
   const [showProVideo, setShowProVideo] = useState(false);
   const galleryTouchStartX = useRef(0);
 
+  const images = useMemo(() => {
+    const incoming = listing.images ?? [];
+    return Array.isArray(incoming) && incoming.length > 0 ? incoming : ["/logo.png"];
+  }, [listing.images]);
+
   const mediaSlots = useMemo((): MediaSlot[] => {
-    const urls = listing.images ?? [];
     const slots: MediaSlot[] = [];
-    if (urls[0]) slots.push({ type: "image", url: urls[0] });
+    if (images[0]) slots.push({ type: "image", url: images[0] });
     if (listing.isPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video" });
-    urls.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
+    images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [listing.images, listing.isPro, listing.proVideoUrl, listing.proVideoThumbUrl]);
+  }, [images, listing.isPro, listing.proVideoUrl, listing.proVideoThumbUrl]);
 
   const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
   const goPrev = useCallback(() => {
@@ -180,9 +184,9 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
           )}
 
           {/* Thumbnail strip */}
-          {listing.images.length >= 1 && (
+          {images.length >= 1 && (
             <div className="mt-2 flex gap-2 flex-wrap">
-              {listing.images.slice(0, 8).map((src, idx) => (
+              {images.slice(0, 8).map((src, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -300,37 +304,22 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
           <div className="mt-4 space-y-3">
             <button
               type="button"
-              disabled={previewMode}
-              className={cx(
-                "w-full px-5 py-3 rounded-full font-semibold transition border",
-                previewMode
-                  ? "border-black/10 bg-[#E8E8E8] text-[#111111]/60 cursor-not-allowed"
-                  : "border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
-              )}
+              disabled={false}
+              className="w-full px-5 py-3 rounded-full font-semibold transition border border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
             >
               {t.guardar}
             </button>
             <button
               type="button"
-              disabled={previewMode}
-              className={cx(
-                "w-full px-5 py-3 rounded-full font-semibold transition border",
-                previewMode
-                  ? "border-black/10 bg-[#E8E8E8] text-[#111111]/60 cursor-not-allowed"
-                  : "border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
-              )}
+              disabled={false}
+              className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
             >
               {t.compartir}
             </button>
             <button
               type="button"
-              disabled={previewMode}
-              className={cx(
-                "w-full px-5 py-3 rounded-full font-semibold transition border",
-                previewMode
-                  ? "border-black/10 bg-[#E8E8E8] text-[#111111]/60 cursor-not-allowed"
-                  : "border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
-              )}
+              disabled={false}
+              className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
             >
               {t.contactar}
             </button>

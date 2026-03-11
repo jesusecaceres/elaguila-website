@@ -1120,6 +1120,7 @@ setIsPro(plan.includes("pro"));
     const phoneDigits = getPhoneDigits(contactPhone);
     const phoneOk = contactMethod === "email" ? true : phoneDigits.length === 10;
     const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
+    const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(contactEmail.trim());
     const enVentaMetaOk =
       category !== "en-venta" ||
       (!!details.rama?.trim() &&
@@ -1134,6 +1135,7 @@ setIsPro(plan.includes("pro"));
       imagesOk,
       phoneOk,
       emailOk,
+      contactOk,
       enVentaMetaOk,
       allOk:
         categoryOk &&
@@ -1142,6 +1144,7 @@ setIsPro(plan.includes("pro"));
         cityOk &&
         priceOk &&
         imagesOk &&
+        contactOk &&
         phoneOk &&
         emailOk &&
         enVentaMetaOk,
@@ -1506,6 +1509,7 @@ async function publish() {
         contact_email: contactMethod === "phone" ? null : contactEmail.trim(),
         contact_method: contactMethod || null,
         status: "active",
+        is_published: true,
       };
 
       const { data, error } = await supabase

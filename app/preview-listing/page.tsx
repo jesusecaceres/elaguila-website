@@ -29,22 +29,30 @@ export default function PreviewListingPage() {
     const priceLabel =
       !draft.price.trim() && !draft.isFree
         ? L === "es"
-          ? "(Sin precio)"
-          : "(No price)"
+          ? "Gratis"
+          : "Free"
         : formatListingPrice(draft.price, { lang: L, isFree: draft.isFree });
     const city = draft.city.trim() || (L === "es" ? "Ciudad" : "City");
     const description = draft.description.trim() || (L === "es" ? "Sin descripción" : "No description");
+    const contactPhone = (draft as any).contact_phone ?? draft.contactPhone ?? "";
+    const contactEmail = (draft as any).contact_email ?? draft.contactEmail ?? "";
+    const contactMethod =
+      draft.contactMethod ??
+      (contactPhone && contactEmail ? "both" : contactPhone ? "phone" : contactEmail ? "email" : "both");
+    const rawImages =
+      (draft as any).image_urls ?? (draft as any).images ?? draft.imageUrls ?? (draft as any).photos ?? [];
+    const images = Array.isArray(rawImages) && rawImages.length > 0 ? rawImages : ["/logo.png"];
     return {
       title,
       priceLabel,
       city,
       description,
       todayLabel: draft.todayLabel,
-      images: draft.imageUrls ?? [],
+      images,
       detailPairs: draft.detailPairs ?? [],
-      contactMethod: draft.contactMethod,
-      contactPhone: draft.contactPhone ?? "",
-      contactEmail: draft.contactEmail ?? "",
+      contactMethod: contactMethod as "phone" | "email" | "both",
+      contactPhone,
+      contactEmail,
       isPro: draft.isPro ?? false,
       proVideoThumbUrl: draft.proVideoThumbUrl ?? null,
       proVideoUrl: draft.proVideoUrl ?? null,
