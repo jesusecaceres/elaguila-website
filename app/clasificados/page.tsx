@@ -8,6 +8,7 @@ import Navbar from "../components/Navbar";
 import newLogo from "../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../data/classifieds/sampleListings";
+import RecentlyViewedSection from "./components/RecentlyViewedSection";
 
 type Lang = "es" | "en";
 
@@ -519,6 +520,10 @@ export default function ClasificadosPage() {
             <CategoryTile key={k} cat={k} />
           ))}
         </div>
+      </section>
+
+      <section className="max-w-screen-2xl mx-auto px-6 mt-12">
+        <RecentlyViewedSection lang={lang} />
       </section>
 
       <section id="memberships" className="max-w-screen-2xl mx-auto px-6 mt-16">

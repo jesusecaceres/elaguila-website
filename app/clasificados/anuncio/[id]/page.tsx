@@ -17,6 +17,7 @@ import ContactActions from "../../components/ContactActions";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
+import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 type Lang = "es" | "en";
@@ -268,6 +269,14 @@ export default function AnuncioDetallePage() {
     return facts.length ? { facts } : null;
   }, [listing, lang]);
 
+  const relatedListings = useMemo(() => {
+    if (!listing) return [];
+    const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter(
+      (l) => l.category === listing.category && l.id !== listing.id
+    );
+    return list.slice(0, 6);
+  }, [listing?.id, listing?.category]);
+
   const rentasMeta = useMemo(() => {
     if (!listing || listing.category !== "rentas") return null;
 
@@ -319,6 +328,7 @@ export default function AnuncioDetallePage() {
     if (!listing) return;
     trackEvent(listing.id, "listing_view");
     trackEvent(listing.id, "listing_open");
+    addListingView(listing.id);
   }, [listing?.id]);
 
   // Sync saved state from Supabase when user is logged in
@@ -872,6 +882,34 @@ export default function AnuncioDetallePage() {
                 </button>
               </div>
             </div>
+
+            {/* También te puede interesar */}
+            {relatedListings.length > 0 && (
+              <div className="mt-10">
+                <h3 className="text-xl font-bold text-[#111111] mb-4">
+                  {lang === "es" ? "También te puede interesar" : "You may also like"}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {relatedListings.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/clasificados/anuncio/${item.id}?lang=${lang}`}
+                      className="block rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 hover:bg-[#EFEFEF] transition"
+                    >
+                      <div className="text-base font-bold text-[#111111] line-clamp-2">
+                        {item.title[lang]}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-[#111111]">
+                        {item.priceLabel[lang]}
+                      </div>
+                      <div className="mt-1 text-xs text-[#111111]">
+                        {item.city} · {item.postedAgo[lang]}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right rail */}

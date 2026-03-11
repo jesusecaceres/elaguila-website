@@ -65,6 +65,7 @@ export default function DashboardPage() {
         profile: "Perfil",
         myListings: "Mis anuncios",
         savedListings: "Anuncios guardados",
+        recentlyViewed: "Vistos recientemente",
         plan: "Plan",
         quickActions: "Acciones rápidas",
         postAd: "Publicar anuncio",
@@ -108,6 +109,7 @@ export default function DashboardPage() {
         profile: "Profile",
         myListings: "My listings",
         savedListings: "Saved listings",
+        recentlyViewed: "Recently viewed",
         plan: "Plan",
         quickActions: "Quick actions",
         postAd: "Post an ad",
@@ -324,6 +326,10 @@ export default function DashboardPage() {
     { href: `/dashboard/mis-anuncios?lang=${lang}`, label: L.myListings, active: false },
     { href: `/dashboard/guardados?lang=${lang}`, label: L.savedListings, active: false },
   ];
+  const activityLabel = lang === "es" ? "Mi actividad" : "My activity";
+  const activityNav = [
+    { href: `/dashboard/vistos-recientes?lang=${lang}`, label: L.recentlyViewed, active: false },
+  ];
 
   const isPro = plan === "pro";
 
@@ -367,6 +373,23 @@ export default function DashboardPage() {
                   {item.label}
                 </Link>
               ))}
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <div className="px-3 py-1 text-xs font-semibold text-white/50 uppercase tracking-wide">
+                  {activityLabel}
+                </div>
+                {activityNav.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cx(
+                      "block rounded-xl px-3 py-2 text-sm transition",
+                      item.active ? "bg-white/10 text-white" : "text-white/80 hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             </nav>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
