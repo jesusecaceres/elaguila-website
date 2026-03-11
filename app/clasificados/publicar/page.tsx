@@ -81,6 +81,28 @@ function formatMoneyMaybe(raw: string, lang: Lang) {
   }
 }
 
+function formatPhoneDigits(raw: string): string {
+  return (raw ?? "").replace(/\D/g, "").slice(0, 10);
+}
+
+function formatPhoneDisplay(raw: string): string {
+  const digits = formatPhoneDigits(raw);
+  if (digits.length <= 3) return digits.length > 0 ? `(${digits}` : "";
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function getPhoneDigits(raw: string): string {
+  return (raw ?? "").replace(/\D/g, "").slice(0, 10);
+}
+
+function getShortPreviewText(raw: string, maxLen = 90): string {
+  const t = (raw ?? "").replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  if (t.length <= maxLen) return t;
+  return t.slice(0, maxLen).trim() + "…";
+}
+
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
@@ -550,8 +572,8 @@ export default function PublicarPage() {
   const [city, setCity] = useState<string>(() => prefill.city || "");
 
   // Media + contact
-  const [contactMethod, setContactMethod] = useState<"phone" | "email" | "both">("phone");
-  const [contactPhone, setContactPhone] = useState<string>(() => prefill.phone || "");
+  const [contactMethod, setContactMethod] = useState<"phone" | "email" | "both">("both");
+  const [contactPhone, setContactPhone] = useState<string>(() => formatPhoneDisplay(prefill.phone || ""));
   const [contactEmail, setContactEmail] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
@@ -617,6 +639,37 @@ export default function PublicarPage() {
   const [publishedId, setPublishedId] = useState<string>("");
 
   const draftTimer = useRef<number | null>(null);
+  const topAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
+    if (typeof window === "undefined") return;
+
+    const yOffset = 16;
+
+    if (topAnchorRef.current) {
+      const rect = topAnchorRef.current.getBoundingClientRect();
+      const absoluteTop = window.scrollY + rect.top - yOffset;
+      window.scrollTo({
+        top: Math.max(0, absoluteTop),
+        behavior,
+      });
+      return;
+    }
+
+    window.scrollTo({ top: 0, behavior });
+  }
+
+  useEffect(() => {
+    if (checking) return;
+    if (!signedIn) return;
+    scrollFormToTop("auto");
+  }, [checking, signedIn]);
+
+  useEffect(() => {
+    if (checking) return;
+    if (!signedIn) return;
+    scrollFormToTop("auto");
+  }, [step, checking, signedIn]);
 
   // Session gate
   useEffect(() => {
@@ -726,6 +779,10 @@ setIsPro(plan.includes("pro"));
         viewListing: "Ver anuncio",
         needReqs: "Revisa los requisitos antes de publicar.",
         checking: "Verificando sesión…",
+        todayLabel: "Publicado hoy",
+        saveLabel: "Guardar",
+        shareLabel: "Compartir",
+        contactLabel: "Contactar",
       },
       en: {
         title: "Post your ad",
@@ -766,6 +823,10 @@ setIsPro(plan.includes("pro"));
         viewListing: "View listing",
         needReqs: "Please meet the requirements before publishing.",
         checking: "Checking session…",
+        todayLabel: "Posted today",
+        saveLabel: "Save",
+        shareLabel: "Share",
+        contactLabel: "Contact",
       },
     }),
     []
@@ -790,8 +851,9 @@ setIsPro(plan.includes("pro"));
       const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
       setCategory(draftCat || category);
       setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
-      setContactMethod((parsed.contactMethod as any) || "phone");
-      setContactPhone(typeof parsed.contactPhone === "string" ? parsed.contactPhone : "");
+      const method = parsed.contactMethod === "phone" || parsed.contactMethod === "email" || parsed.contactMethod === "both" ? parsed.contactMethod : "both";
+      setContactMethod(method);
+      setContactPhone(typeof parsed.contactPhone === "string" ? formatPhoneDisplay(parsed.contactPhone) : "");
       setContactEmail(typeof parsed.contactEmail === "string" ? parsed.contactEmail : "");
     } catch {
       // ignore corrupt drafts
@@ -895,7 +957,8 @@ setIsPro(plan.includes("pro"));
     const cityOk = Boolean(normalizeCity(city));
     const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
     const imagesOk = files.length >= 1;
-    const phoneOk = contactMethod === "email" ? true : contactPhone.trim().length >= 7;
+    const phoneDigits = getPhoneDigits(contactPhone);
+    const phoneOk = contactMethod === "email" ? true : phoneDigits.length === 10;
     const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
     const enVentaMetaOk =
       category !== "en-venta" ||
@@ -1275,7 +1338,7 @@ async function publish() {
         category: category.trim(),
         price: isFree ? 0 : Number((price ?? "").replace(/[^0-9.]/g, "")) || 0,
         is_free: isFree,
-        contact_phone: contactMethod === "email" ? null : contactPhone.trim(),
+        contact_phone: contactMethod === "email" ? null : (getPhoneDigits(contactPhone).length === 10 ? getPhoneDigits(contactPhone) : null),
         contact_email: contactMethod === "phone" ? null : contactEmail.trim(),
       };
 
@@ -1415,6 +1478,18 @@ if (isPro && videoFile && !videoError) {
     }
   }, []);
 
+  const previewTitle = title.trim() || (lang === "es" ? "(Sin título)" : "(No title)");
+  const previewDescription = description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)");
+  const previewPrice = isFree ? (lang === "es" ? "Gratis" : "Free") : (formatMoneyMaybe(price, lang) || (lang === "es" ? "(Sin precio)" : "(No price)"));
+  const previewCity = city.trim() || (lang === "es" ? "(Ciudad)" : "(City)");
+  const previewPosted = copy.todayLabel;
+  const previewShortDescription = getShortPreviewText(description, 72);
+  const previewPhone = contactMethod === "email" ? "" : formatPhoneDisplay(contactPhone);
+  const previewEmail = contactMethod === "phone" ? "" : contactEmail.trim();
+  const previewDetailPairs = getDetailPairs(category, lang, details);
+  const coverImage = filePreviews[0] ?? null;
+  const extraPreviewImages = filePreviews.slice(1, 5);
+
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <div className="max-w-4xl mx-auto px-6 pt-28 pb-16">
@@ -1435,6 +1510,7 @@ if (isPro && videoFile && !videoError) {
 
           {!checking && signedIn && (
             <>
+              <div ref={topAnchorRef} aria-hidden className="h-px w-full" />
               {/* Read-only progress bar (not clickable) */}
               <div className="mt-6 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={stepOrder.length} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
                 <div className="flex items-center gap-1 sm:gap-2">
@@ -1517,7 +1593,7 @@ if (isPro && videoFile && !videoError) {
                       <button
                         type="button"
                         disabled={!requirements.categoryOk}
-                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); }}
+                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
                           requirements.categoryOk
@@ -1891,7 +1967,7 @@ if (isPro && videoFile && !videoError) {
                     <div className="mt-5 flex items-center justify-between gap-3">
                       <button
                         type="button"
-                        onClick={() => setStep("category")}
+                        onClick={() => { setStep("category"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -1900,7 +1976,7 @@ if (isPro && videoFile && !videoError) {
                       <button
                         type="button"
                         disabled={!basicsOk}
-                        onClick={() => basicsOk && setStep(isEnVentaFlow ? "media" : "details")}
+                        onClick={() => { if (basicsOk) { setStep(isEnVentaFlow ? "media" : "details"); requestAnimationFrame(() => scrollFormToTop("auto")); } }}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
                           basicsOk
@@ -2002,14 +2078,14 @@ if (isPro && videoFile && !videoError) {
 <div className="mt-5 flex items-center justify-between gap-3">
                       <button
                         type="button"
-                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); }}
+                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
                       </button>
                       <button
                         type="button"
-                        onClick={() => setStep("media")}
+                        onClick={() => { setStep("media"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
                         className="rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3"
                       >
                         {copy.next}
@@ -2270,8 +2346,8 @@ if (isPro && videoFile && !videoError) {
                               <label className="text-xs text-[#111111]">{copy.phone}</label>
                               <input
                                 value={contactPhone}
-                                onChange={(e) => setContactPhone(e.target.value)}
-                                placeholder={lang === "es" ? "Ej: 408-555-1234" : "Ex: 408-555-1234"}
+                                onChange={(e) => setContactPhone(formatPhoneDisplay(e.target.value))}
+                                placeholder="(408) 555-1234"
                                 className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               />
                               {!requirements.phoneOk && (
@@ -2311,51 +2387,131 @@ if (isPro && videoFile && !videoError) {
                         </div>
 
                         <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                            <div className="text-xs text-[#111111] mb-2">{copy.cardPreview}</div>
-                            {ListingCard ? (
-                              (() => {
-                                const item: any = {
-                                  title: title.trim() || (lang === "es" ? "(Sin título)" : "(No title)"),
-                                  description:
-                                    description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)"),
-                                  createdAt: lang === "es" ? "hoy" : "today",
-                                };
-                                return <ListingCard item={item} />;
-                              })()
-                            ) : (
-                              <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 text-sm text-[#111111]">
-                                {lang === "es" ? "(Vista previa no disponible)" : "(Preview unavailable)"}
+                          {/* Card preview (marketplace style) */}
+                          <div className="rounded-2xl border border-black/10 bg-white overflow-hidden shadow-sm">
+                            <div className="text-xs text-[#111111]/60 mb-2">{copy.cardPreview}</div>
+                            <div className="relative rounded-2xl border border-black/10 bg-[#F5F5F5] overflow-hidden">
+                              {coverImage ? (
+                                <img src={coverImage} alt="" className="aspect-[4/3] w-full object-cover" />
+                              ) : (
+                                <div className="aspect-[4/3] w-full flex items-center justify-center bg-[#E8E8E8] text-[#111111]/50 text-sm px-4 text-center">
+                                  {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
+                                </div>
+                              )}
+                              <span className="absolute top-2 right-2 rounded-full border border-black/10 bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-[#111111] shadow-sm">
+                                {copy.saveLabel}
+                              </span>
+                            </div>
+                            <div className="p-3">
+                              <div className="text-base font-semibold text-[#111111]">{previewPrice}</div>
+                              <h3 className="mt-1 text-sm font-semibold text-[#111111] line-clamp-2">{previewTitle}</h3>
+                              <div className="mt-1 text-xs text-[#111111]/60">
+                                {previewCity} · {previewPosted}
                               </div>
-                            )}
+                              {previewShortDescription ? (
+                                <p className="mt-2 text-xs text-[#111111]/80 line-clamp-2">{previewShortDescription}</p>
+                              ) : null}
+                            </div>
                           </div>
 
+                          {/* Detail preview (listing page style) */}
                           <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                            <div className="text-xs text-[#111111] mb-2">{copy.detailPreview}</div>
-                            <div className="text-lg font-semibold text-[#111111] leading-snug">
-                              {title.trim() || (lang === "es" ? "(Sin título)" : "(No title)")}
+                            <div className="text-xs text-[#111111]/60 mb-2">{copy.detailPreview}</div>
+
+                            {/* A. Hero image */}
+                            <div className="rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8]">
+                              {coverImage ? (
+                                <img src={coverImage} alt="" className="aspect-video w-full object-cover" />
+                              ) : (
+                                <div className="aspect-video w-full flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center">
+                                  {lang === "es" ? "La vista detallada mostrará tu foto principal aquí" : "The detail view will show your main photo here"}
+                                </div>
+                              )}
                             </div>
-                            <div className="mt-1 text-sm text-[#111111]">
-                              {isFree
-                                ? lang === "es"
-                                  ? "Gratis"
-                                  : "Free"
-                                : formatMoneyMaybe(price, lang) || (lang === "es" ? "(Sin precio)" : "(No price)")}
-                              <span className="text-[#111111]/30"> · </span>
-                              {city.trim() || (lang === "es" ? "(Ciudad)" : "(City)")}
-                            </div>
-                            {filePreviews.length > 0 && (
-                              <div className="mt-3 grid grid-cols-3 gap-2">
-                                {filePreviews.slice(0, 3).map((src, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={src}
-                                    alt="preview"
-                                    className="h-20 w-full object-cover rounded-xl border border-black/10"
-                                  />
+
+                            {/* B. Thumbnail row */}
+                            {extraPreviewImages.length >= 1 && (
+                              <div className="mt-2 flex gap-2">
+                                {extraPreviewImages.slice(0, 4).map((src, idx) => (
+                                  <img key={idx} src={src} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover border border-black/10" />
                                 ))}
                               </div>
                             )}
+
+                            {/* C. Title */}
+                            <h2 className="mt-3 text-lg font-semibold text-[#111111] leading-snug">{previewTitle}</h2>
+
+                            {/* D. Price + city / post date */}
+                            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                              <span className="text-base font-semibold text-[#111111]">{previewPrice}</span>
+                              <span className="text-[#111111]/40">·</span>
+                              <span className="text-sm text-[#111111]/80">{previewCity}</span>
+                              <span className="text-[#111111]/40">·</span>
+                              <span className="text-xs text-[#111111]/60">{previewPosted}</span>
+                            </div>
+
+                            {/* E. Primary actions (preview only) */}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                                {copy.saveLabel}
+                              </span>
+                              <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                                {copy.shareLabel}
+                              </span>
+                              <span className="rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-semibold text-[#111111]">
+                                {copy.contactLabel}
+                              </span>
+                            </div>
+
+                            {/* F. Structured details card */}
+                            {previewDetailPairs.length > 0 && (
+                              <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                                <div className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
+                                  {lang === "es" ? "Detalles" : "Details"}
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                  {previewDetailPairs.map((p) => (
+                                    <div key={p.label} className="text-sm">
+                                      <span className="text-[#111111]/55">{p.label}</span>
+                                      <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* G. Description card */}
+                            <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                              <div className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
+                                {lang === "es" ? "Descripción" : "Description"}
+                              </div>
+                              <div className="text-sm text-[#111111] whitespace-pre-wrap">
+                                {previewDescription || (lang === "es" ? "(Sin descripción)" : "(No description)")}
+                              </div>
+                            </div>
+
+                            {/* H. Contact card */}
+                            <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                              <div className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
+                                {lang === "es" ? "Contacto" : "Contact"}
+                              </div>
+                              <div className="text-sm text-[#111111]">
+                                {contactMethod === "email" && !previewEmail && (
+                                  <span className="text-[#111111]/50">{lang === "es" ? "Email (no mostrado)" : "Email (not shown)"}</span>
+                                )}
+                                {contactMethod === "phone" && !previewPhone && (
+                                  <span className="text-[#111111]/50">{lang === "es" ? "Teléfono (no mostrado)" : "Phone (not shown)"}</span>
+                                )}
+                                {(contactMethod === "both" || contactMethod === "phone") && previewPhone && <span>{previewPhone}</span>}
+                                {(contactMethod === "both" || contactMethod === "email") && previewEmail && (
+                                  <span className={previewPhone ? "ml-2" : ""}>{previewEmail}</span>
+                                )}
+                                {contactMethod === "both" && !previewPhone && !previewEmail && (
+                                  <span className="text-[#111111]/50">{lang === "es" ? "Teléfono y email" : "Phone and email"}</span>
+                                )}
+                              </div>
+                            </div>
+
                             {isPro && videoFile && (
                               <div className="mt-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
                                 <div className="flex items-center justify-between gap-3">
@@ -2422,25 +2578,6 @@ if (isPro && videoFile && !videoError) {
                                 </div>
                               </div>
                             )}
-
-                            {getDetailPairs(category, lang, details).length > 0 && (
-                              <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
-                                <div className="text-xs text-[#111111] mb-2">
-                                  {lang === "es" ? "Detalles" : "Details"}
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                  {getDetailPairs(category, lang, details).map((p) => (
-                                    <div key={p.label} className="text-sm text-[#111111]/75">
-                                      <span className="text-[#111111]/45">{p.label}:</span>{" "}
-                                      <span className="text-[#111111]/85">{p.value}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-<div className="mt-3 text-sm text-[#111111] whitespace-pre-wrap">
-                              {description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)")}
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -2460,7 +2597,7 @@ if (isPro && videoFile && !videoError) {
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <button
                           type="button"
-                          onClick={() => setStep(isEnVentaFlow ? "basics" : "details")}
+                          onClick={() => { setStep(isEnVentaFlow ? "basics" : "details"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
                           className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                         >
                           {copy.back}
@@ -2525,6 +2662,7 @@ if (isPro && videoFile && !videoError) {
                     setServicesPackage("standard");
                     setShowServicesGate(false);
                     setStep("basics");
+                    requestAnimationFrame(() => scrollFormToTop("auto"));
                   }}
                   className="rounded-2xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] p-4 text-left"
                 >
@@ -2543,6 +2681,7 @@ if (isPro && videoFile && !videoError) {
                     setServicesPackage("plus");
                     setShowServicesGate(false);
                     setStep("basics");
+                    requestAnimationFrame(() => scrollFormToTop("auto"));
                   }}
                   className="rounded-2xl border border-[#A98C2A]/60 bg-[#F2EFE8] hover:bg-[#EFE7D8] p-4 text-left"
                 >
