@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   FiShoppingCart,
@@ -15,6 +15,7 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
+import { setPreviewDraft } from "@/app/lib/previewListingDraft";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -542,6 +543,7 @@ function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, s
 
 export default function PublicarPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useParams<{ category?: string }>();
 
@@ -598,10 +600,7 @@ export default function PublicarPage() {
   const [videoInfo, setVideoInfo] = useState<{ duration: number; width: number; height: number } | null>(null);
   const [videoError, setVideoError] = useState<string>("");
   const [showProVideoPreview, setShowProVideoPreview] = useState(false);
-  const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
   const [previewViewed, setPreviewViewed] = useState(false);
-  const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
-  const [viewerCityInput, setViewerCityInput] = useState("");
 
   const [step, setStep] = useState<PublishStep>("category");
   const [category, setCategory] = useState<CategoryKey | "">(() => categoryFromUrl);
@@ -609,6 +608,10 @@ export default function PublicarPage() {
   useEffect(() => {
     setCategory(categoryFromUrl);
   }, [categoryFromUrl]);
+
+  useEffect(() => {
+    if (searchParams?.get("fromPreview") === "1") setPreviewViewed(true);
+  }, [searchParams]);
 
   type ServicesPackage = "" | "standard" | "plus";
   const [servicesPackage, setServicesPackage] = useState<ServicesPackage>("");
@@ -708,7 +711,6 @@ export default function PublicarPage() {
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
-  const galleryTouchStartX = useRef<number>(0);
 
   const draftKey = useMemo(
     () => `listing_draft_${getStableSessionId(userId || null)}`,
@@ -1595,33 +1597,34 @@ if (isPro && videoFile && !videoError) {
   );
   const previewCategoryLabel = category ? categoryConfig[category as CategoryKey]?.label[lang] ?? "" : "";
   const previewContactMethod = contactMethod;
-  const previewDistanceLabel = previewCity && previewCity !== (lang === "es" ? "(Ciudad)" : "(City)")
-    ? (lang === "es" ? "Cerca de " + previewCity : "Near " + previewCity)
-    : "";
 
-  useEffect(() => {
-    if (isFullPreviewOpen) {
-      setActivePreviewImage(coverImage);
-    }
-  }, [isFullPreviewOpen, coverImage]);
-
-  useEffect(() => {
-    if (!isFullPreviewOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsFullPreviewOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isFullPreviewOpen]);
-
-  const viewerDistanceLabel = useMemo(
-    () => getRoughDistanceLabel(viewerCityInput, city.trim(), lang),
-    [viewerCityInput, city, lang]
-  );
-  const viewerDistanceMiles = useMemo(
-    () => getRoughDistanceMiles(viewerCityInput, city.trim()),
-    [viewerCityInput, city]
-  );
+  const openFullPreview = () => {
+    const slug = (category || "en-venta").trim().toLowerCase();
+    const qs = new URLSearchParams(searchParams?.toString() ?? "");
+    qs.set("lang", lang);
+    qs.set("fromPreview", "1");
+    const backToEditUrl = `${pathname ?? `/clasificados/publicar/${slug}`}?${qs.toString()}`;
+    setPreviewDraft({
+      backToEditUrl,
+      lang,
+      category: slug,
+      title: title.trim() || (lang === "es" ? "(Sin título)" : "(No title)"),
+      description: description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)"),
+      isFree,
+      price: price.trim(),
+      city: city.trim() || (lang === "es" ? "(Ciudad)" : "(City)"),
+      todayLabel: copy.todayLabel,
+      detailPairs: previewDetailPairs,
+      contactMethod,
+      contactPhone: formatPhoneDisplay(contactPhone),
+      contactEmail: contactEmail.trim(),
+      imageUrls: allPreviewImages,
+      proVideoThumbUrl: proVideoThumbPreviewUrl ?? null,
+      proVideoUrl: proVideoPreviewUrl ?? null,
+      isPro,
+    });
+    router.push(`/preview-listing?lang=${lang}`);
+  };
 
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
@@ -2453,10 +2456,7 @@ if (isPro && videoFile && !videoError) {
                             <div className="mt-4 pt-3 border-t border-black/10">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setIsFullPreviewOpen(true);
-                                  setPreviewViewed(true);
-                                }}
+                                onClick={openFullPreview}
                                 className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               >
                                 {copy.fullPreviewCta}
@@ -2554,6 +2554,19 @@ if (isPro && videoFile && !videoError) {
                         <span className="text-sm text-[#111111]">{copy.rulesConfirm}</span>
                       </label>
 
+                      <label className="mt-3 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="confirmPreview"
+                          checked={previewViewed}
+                          onChange={(e) => setPreviewViewed(e.target.checked)}
+                          className="mt-1 rounded border-black/20 text-[#C9B46A] focus:ring-yellow-400/30"
+                        />
+                        <span className="text-sm text-[#111111]">
+                          {lang === "es" ? "Confirmo que revisé mi anuncio y que toda la información es correcta." : "I confirm I reviewed my listing and all information is correct."}
+                        </span>
+                      </label>
+
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <button
                           type="button"
@@ -2621,352 +2634,6 @@ if (isPro && videoFile && !videoError) {
                       >
                         {copy.goToMyListings}
                       </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Full listing preview modal */}
-              {isFullPreviewOpen && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label={copy.fullPreviewTitle}
-                >
-                  <div
-                    className="absolute inset-0 bg-black/60"
-                    aria-hidden
-                    onClick={() => setIsFullPreviewOpen(false)}
-                  />
-                  <div className="relative z-10 w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden rounded-none sm:rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl flex flex-col">
-                    {/* Top bar */}
-                    <div className="flex items-center justify-between shrink-0 px-4 py-3 border-b border-black/10 bg-white">
-                      <h2 className="text-base font-semibold text-[#111111]">{copy.fullPreviewTitle}</h2>
-                      <button
-                        type="button"
-                        onClick={() => setIsFullPreviewOpen(false)}
-                        className="rounded-lg p-2 text-[#111111] hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                        aria-label={lang === "es" ? "Cerrar" : "Close"}
-                      >
-                        <span className="text-lg leading-none">×</span>
-                      </button>
-                    </div>
-
-                    {/* Scrollable content */}
-                    <div className="overflow-y-auto flex-1 min-h-0">
-                      <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,340px)] gap-6">
-                        {/* Left: media gallery */}
-                        <div>
-                          <div
-                            className="relative rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8] max-h-[min(50vh,380px)] min-h-[200px] flex items-center justify-center"
-                            onTouchStart={(e) => {
-                              galleryTouchStartX.current = e.touches[0]?.clientX ?? 0;
-                            }}
-                            onTouchEnd={(e) => {
-                              const endX = e.changedTouches[0]?.clientX ?? 0;
-                              const dx = endX - galleryTouchStartX.current;
-                              const list = allPreviewImages;
-                              if (list.length <= 1) return;
-                              const idx = list.findIndex((src) => (activePreviewImage ?? coverImage) === src);
-                              const safeIdx = idx < 0 ? 0 : idx;
-                              if (dx > 50) setActivePreviewImage(list[(safeIdx - 1 + list.length) % list.length] ?? null);
-                              else if (dx < -50) setActivePreviewImage(list[(safeIdx + 1) % list.length] ?? null);
-                            }}
-                          >
-                            {(activePreviewImage ?? coverImage) ? (
-                              <img
-                                src={activePreviewImage ?? coverImage ?? ""}
-                                alt=""
-                                className="max-h-full max-w-full w-full object-contain"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center min-h-[200px]">
-                                {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
-                              </div>
-                            )}
-                            {allPreviewImages.length > 1 && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="gallery-arrow-left absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-                                  aria-label={lang === "es" ? "Anterior" : "Previous"}
-                                  onClick={() => {
-                                    const list = allPreviewImages;
-                                    const idx = list.findIndex((src) => (activePreviewImage ?? coverImage) === src);
-                                    const safeIdx = idx < 0 ? 0 : idx;
-                                    setActivePreviewImage(list[(safeIdx - 1 + list.length) % list.length] ?? null);
-                                  }}
-                                >
-                                  ←
-                                </button>
-                                <button
-                                  type="button"
-                                  className="gallery-arrow-right absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-                                  aria-label={lang === "es" ? "Siguiente" : "Next"}
-                                  onClick={() => {
-                                    const list = allPreviewImages;
-                                    const idx = list.findIndex((src) => (activePreviewImage ?? coverImage) === src);
-                                    const safeIdx = idx < 0 ? 0 : idx;
-                                    setActivePreviewImage(list[(safeIdx + 1) % list.length] ?? null);
-                                  }}
-                                >
-                                  →
-                                </button>
-                              </>
-                            )}
-                          </div>
-                          {extraPreviewImages.length >= 1 && (
-                            <div className="mt-2 flex gap-2 flex-wrap">
-                              {[coverImage, ...extraPreviewImages].filter(Boolean).slice(0, 5).map((src, idx) => (
-                                <button
-                                  key={idx}
-                                  type="button"
-                                  onClick={() => setActivePreviewImage(src ?? null)}
-                                  className={cx(
-                                    "h-14 w-14 shrink-0 rounded-lg overflow-hidden border-2 bg-[#E8E8E8] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
-                                    (activePreviewImage ?? coverImage) === src
-                                      ? "border-[#C9B46A]/60"
-                                      : "border-black/10"
-                                  )}
-                                >
-                                  <img src={src ?? ""} alt="" className="max-h-full max-w-full object-contain" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          {!isPro && (
-                            <div className="mt-2 flex gap-2 flex-wrap items-end">
-                              <div className="h-14 w-14 shrink-0 rounded-lg border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0] flex flex-col items-center justify-center text-[10px] text-[#111111]/60">
-                                <span>Image slot 4</span>
-                              </div>
-                              <div className="h-14 w-14 shrink-0 rounded-lg border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0] flex flex-col items-center justify-center text-[10px] text-[#111111]/60">
-                                <span>Image slot 5</span>
-                              </div>
-                              <div className="h-14 w-14 shrink-0 rounded-lg border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0] flex flex-col items-center justify-center text-[10px] text-[#111111]/60">
-                                <span>Video slot</span>
-                              </div>
-                              <span className="text-xs text-[#111111]/60 ml-1">
-                                Disponible con Pro
-                              </span>
-                            </div>
-                          )}
-                          {isPro && videoFile && (
-                            <div className="mt-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
-                              <div className="text-sm font-semibold text-[#111111]">
-                                {lang === "es" ? "Video (Pro)" : "Pro Video"}
-                              </div>
-                              <div className="mt-2">
-                                {!showProVideoPreview ? (
-                                  proVideoThumbPreviewUrl ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setShowProVideoPreview(true)}
-                                      className="block w-full rounded-xl overflow-hidden border border-black/10"
-                                    >
-                                      <img
-                                        src={proVideoThumbPreviewUrl}
-                                        alt=""
-                                        className="w-full aspect-video object-cover"
-                                      />
-                                    </button>
-                                  ) : (
-                                    <div className="rounded-xl border border-black/10 bg-[#F5F5F5] p-4 text-sm text-[#111111]">
-                                      {lang === "es" ? "Video Pro incluido." : "Pro video included."}
-                                    </div>
-                                  )
-                                ) : (
-                                  <video
-                                    className="w-full rounded-xl border border-black/10 bg-black"
-                                    controls
-                                    preload="none"
-                                    playsInline
-                                    poster={proVideoThumbPreviewUrl || undefined}
-                                    src={proVideoPreviewUrl || undefined}
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {!isPro && (
-                            <div className="upgrade-preview mt-4">
-                              <h3 className="text-base font-semibold text-[#111111] mt-0 mb-2">
-                                Mejora tu anuncio con LEONIX Pro
-                              </h3>
-                              <ul className="list-disc pl-5 space-y-1 text-sm text-[#111111] mb-4">
-                                <li>⭐ Hasta 12 fotos</li>
-                                <li>🎥 Video destacado</li>
-                                <li>🚀 2 impulsos de visibilidad</li>
-                                <li>📅 Duración del anuncio: 30 días</li>
-                              </ul>
-                              <button
-                                type="button"
-                                className="cta-premium upgrade-button rounded-xl bg-[#f5c518] hover:bg-[#e5b508] text-black font-semibold px-4 py-2.5 text-sm"
-                              >
-                                Actualizar a Pro — $9.99
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Right: info — order: Price, Title, Actions, Category, Detalles, Descripción, Contact, Vendedor, Ubicación */}
-                        <div className="space-y-4">
-                          {/* 1. Price */}
-                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                            <span className="text-xl font-semibold text-[#111111]">{previewPrice}</span>
-                            <span className="text-[#111111]/40">·</span>
-                            <span className="text-sm text-[#111111]/80">{previewCity}</span>
-                            <span className="text-[#111111]/40">·</span>
-                            <span className="text-xs text-[#111111]/60">{previewPosted}</span>
-                          </div>
-
-                          {/* 2. Title */}
-                          <h1 className="text-xl font-semibold text-[#111111] leading-tight mt-0">{previewTitle}</h1>
-
-                          {/* 3. Action buttons */}
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
-                              {copy.saveLabel}
-                              <span className="ml-1 text-[#111111]/50 text-[10px]">
-                                {lang === "es" ? "(inicia sesión)" : "(sign in)"}
-                              </span>
-                            </span>
-                            <span className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
-                              {copy.shareLabel}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const el = document.getElementById("full-preview-contact-section");
-                                el?.scrollIntoView({ behavior: "smooth" });
-                              }}
-                              className="rounded-full border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8]"
-                            >
-                              {copy.contactLabel}
-                            </button>
-                          </div>
-
-                          {/* 4. Category badge */}
-                          {previewCategoryLabel ? (
-                            <span className="inline-block rounded-md border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-[#111111]">
-                              {previewCategoryLabel}
-                            </span>
-                          ) : null}
-
-                          {/* 5. Detalles */}
-                          {previewDetailPairs.length > 0 && (
-                            <div className="rounded-xl border border-black/10 bg-white p-4">
-                              <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
-                                {lang === "es" ? "Detalles" : "Details"}
-                              </h3>
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                {previewDetailPairs.map((p) => (
-                                  <div key={p.label}>
-                                    <span className="text-[#111111]/55">{p.label}</span>
-                                    <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* 6. Descripción */}
-                          <div className="rounded-xl border border-black/10 bg-white p-4">
-                            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                              {lang === "es" ? "Descripción" : "Description"}
-                            </h3>
-                            <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">
-                              {previewDescription || (lang === "es" ? "(Sin descripción)" : "(No description)")}
-                            </div>
-                          </div>
-
-                          {/* Contact (scroll target for Contactar) */}
-                          <div
-                            id="full-preview-contact-section"
-                            className="rounded-xl border border-black/10 bg-white p-4 scroll-mt-4"
-                          >
-                            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                              {lang === "es" ? "Contacto" : "Contact"}
-                            </h3>
-                            <div className="text-sm text-[#111111] space-y-1">
-                              {(previewContactMethod === "phone" || previewContactMethod === "both") && previewPhone && (
-                                <p>{previewPhone}</p>
-                              )}
-                              {(previewContactMethod === "email" || previewContactMethod === "both") && previewEmail && (
-                                <p>{previewEmail}</p>
-                              )}
-                              {((previewContactMethod === "phone" && !previewPhone) || (previewContactMethod === "email" && !previewEmail) || (previewContactMethod === "both" && !previewPhone && !previewEmail)) && (
-                                <p className="text-[#111111]/50">
-                                  {lang === "es" ? "Teléfono o email (no mostrado)" : "Phone or email (not shown)"}
-                                </p>
-                              )}
-                            </div>
-                            <p className="mt-2 text-xs text-[#111111]/60">{copy.contactHelperText}</p>
-                            <button
-                              type="button"
-                              className="mt-3 w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]"
-                            >
-                              {copy.sendMessageLabel}
-                            </button>
-                          </div>
-
-                          {/* 7. Vendedor (seller card) */}
-                          <div className="seller-card rounded-xl border border-black/10 bg-white p-4">
-                            <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                              {lang === "es" ? "Publicado por" : "Posted by"}
-                            </h4>
-                            <p className="text-sm font-medium text-[#111111]">
-                              {lang === "es" ? "Tú" : "You"}
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
-                              <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
-                              <span>{lang === "es" ? "Miembro desde" : "Member since"} {new Date().getFullYear()}</span>
-                            </div>
-                          </div>
-
-                          {/* 8. Ubicación (location + distance calculator) */}
-                          <div className="rounded-xl border border-black/10 bg-white p-4">
-                            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                              {lang === "es" ? "Ubicación" : "Location"}
-                            </h3>
-                            <p className="text-sm text-[#111111] mb-2">
-                              {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {previewCity}
-                            </p>
-                            <label className="block text-sm text-[#111111]/80 mb-1">
-                              {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
-                            </label>
-                            <CityAutocomplete
-                              value={viewerCityInput}
-                              onChange={setViewerCityInput}
-                              placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
-                              lang={lang}
-                              variant="light"
-                              className="mt-1"
-                            />
-                            {viewerDistanceMiles !== null && (
-                              <p className="mt-2 text-sm text-[#111111]/80">
-                                {lang === "es"
-                                  ? `Aproximadamente ${Math.round(viewerDistanceMiles)} millas de distancia`
-                                  : `Approximately ${Math.round(viewerDistanceMiles)} miles away`}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="confirm-preview px-4 sm:px-6 pb-4 sm:pb-6 pt-2 border-t border-black/10 bg-white">
-                        <label htmlFor="confirmPreview" className="flex items-start gap-3 cursor-pointer text-sm text-[#111111]">
-                          <input
-                            type="checkbox"
-                            id="confirmPreview"
-                            checked={previewViewed}
-                            onChange={(e) => setPreviewViewed(e.target.checked)}
-                            className="mt-1 rounded border-black/20 text-[#C9B46A] focus:ring-yellow-400/30"
-                          />
-                          <span>
-                            Confirmo que revisé mi anuncio y que toda la información es correcta.
-                          </span>
-                        </label>
-                      </div>
                     </div>
                   </div>
                 </div>
