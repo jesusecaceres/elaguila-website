@@ -27,6 +27,7 @@ import {
   DEFAULT_RADIUS_MI,
 } from "../../data/locations/norcal";
 import { SAMPLE_LISTINGS } from "../../data/classifieds/sampleListings";
+import RecentlyViewedSection from "../components/RecentlyViewedSection";
 
 type ServicesTier = "standard" | "plus" | "premium";
 
@@ -870,7 +871,9 @@ export default function ListaPage() {
   };
 
   const [page, setPage] = useState(1);
-  const perPage = 9;
+  const perPage = 20;
+  const [infiniteScrollLimit, setInfiniteScrollLimit] = useState(20);
+  const isEnVenta = category === "en-venta";
 
   const [compact, setCompact] = useState(true);
   const [isMobileUI, setIsMobileUI] = useState(false);
@@ -1026,6 +1029,7 @@ type VentaParams = {
   vcond: string;   // condition key or ""
   vtype: string;   // item type key or ""
   vneg: string;    // "yes" | ""
+  vpostedToday: boolean;
 };
 
 const EMPTY_VENTA_PARAMS: VentaParams = {
@@ -1034,6 +1038,7 @@ const EMPTY_VENTA_PARAMS: VentaParams = {
   vcond: "",
   vtype: "",
   vneg: "",
+  vpostedToday: false,
 };
 
 type VentaCondition = "new" | "like-new" | "good" | "fair";
@@ -1579,6 +1584,13 @@ function applyVentaParams(list: Listing[], vp: VentaParams): Listing[] {
     if (hasMin && pn !== null && pn < pmin) return false;
     if (hasMax && pn !== null && pn > pmax) return false;
 
+    if (vp.vpostedToday) {
+      const created = new Date(x.createdAtISO).getTime();
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      if (created < todayStart.getTime()) return false;
+    }
+
     return true;
   });
 }
@@ -1634,6 +1646,7 @@ function applyComunidadParams(list: Listing[], gp: ComunidadParams): Listing[] {
 
 
 const resultsTopRef = useRef<HTMLDivElement | null>(null);
+const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
 const switchTimerRef = useRef<number | null>(null);
 const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
 
@@ -1880,6 +1893,7 @@ useEffect(() => {
           vcond: get("vcond"),
           vtype: get("vtype"),
           vneg: get("vneg"),
+          vpostedToday: get("vpostedToday") === "1",
         });
       } else {
         setVentaParams(EMPTY_VENTA_PARAMS);
@@ -2042,6 +2056,7 @@ useEffect(() => {
         vcond: params?.get("vcond") ?? "",
         vtype: params?.get("vtype") ?? "",
         vneg: params?.get("vneg") ?? "",
+        vpostedToday: params?.get("vpostedToday") === "1",
       });
     } else {
       setVentaParams(EMPTY_VENTA_PARAMS);
@@ -2609,7 +2624,26 @@ useEffect(() => {
     if (category === "comunidad") catApplied = applyComunidadParams(base, comunidadParams);
     if (category === "travel") catApplied = applyTravelParams(base, travelParams);
 
+    const now = Date.now();
     const sorted = [...catApplied].sort((a, b) => {
+      // En-venta (and marketplace): 1) boosted first, 2) recently posted, 3) recently updated, 4) older
+      const isVentaOrAll = category === "en-venta" || category === "all";
+      if (isVentaOrAll) {
+        const boostA = (a as any).boostUntil != null ? new Date((a as any).boostUntil).getTime() : 0;
+        const boostB = (b as any).boostUntil != null ? new Date((b as any).boostUntil).getTime() : 0;
+        const activeA = boostA > now ? 1 : 0;
+        const activeB = boostB > now ? 1 : 0;
+        if (activeB !== activeA) return activeB - activeA;
+        if (activeA && activeB && boostB !== boostA) return boostB - boostA;
+        const updatedA = (a as any).updatedAtISO ? new Date((a as any).updatedAtISO).getTime() : 0;
+        const updatedB = (b as any).updatedAtISO ? new Date((b as any).updatedAtISO).getTime() : 0;
+        const createdA = new Date(a.createdAtISO).getTime();
+        const createdB = new Date(b.createdAtISO).getTime();
+        const sortA = updatedA || createdA;
+        const sortB = updatedB || createdB;
+        if (sortB !== sortA) return sortB - sortA;
+        return createdB - createdA;
+      }
       if (sort === "newest") {
         return (
           new Date(b.createdAtISO).getTime() -
@@ -2629,6 +2663,7 @@ useEffect(() => {
 
   useEffect(() => {
     setPage(1);
+    setInfiniteScrollLimit(20);
   }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
 
   
@@ -2754,9 +2789,29 @@ const visible = useMemo(() => {
   const topIds = new Set(businessTop.map((x) => x.id));
   const main = topIds.size ? filtered.filter((x) => !topIds.has(x.id)) : filtered;
   const mixed = category === "servicios" ? mixServicios(main) : mixFair(main);
+  if (isEnVenta) {
+    return mixed.slice(0, infiniteScrollLimit);
+  }
   const start = (pageClamped - 1) * perPage;
   return mixed.slice(start, start + perPage);
-}, [filtered, pageClamped, perPage, businessTop]);
+}, [filtered, pageClamped, perPage, businessTop, isEnVenta, infiniteScrollLimit]);
+
+  // Infinite scroll: when sentinel is in view, load next batch (en-venta only)
+  useEffect(() => {
+    if (!isEnVenta || visible.length >= filtered.length) return;
+    const el = loadMoreSentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInfiniteScrollLimit((n) => Math.min(n + perPage, filtered.length));
+        }
+      },
+      { rootMargin: "200px", threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [isEnVenta, visible.length, filtered.length, perPage]);
 
   /** Servicios-only: Featured(3) -> Standard(4) -> Featured(3) -> Standard(4) -> ... */
   const serviciosSectioned = useMemo(() => {
@@ -2908,6 +2963,7 @@ const visible = useMemo(() => {
       if (ventaParams.vpmax) chips.push({ key: "vpmax", text: `${lang === "es" ? "Precio máx" : "Price max"}: $${ventaParams.vpmax}`, clear: () => setVentaParams((p) => ({ ...p, vpmax: "" })) });
       if (ventaParams.vcond) chips.push({ key: "vcond", text: `${lang === "es" ? "Condición" : "Condition"}: ${ventaConditionLabel(ventaParams.vcond as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vcond: "" })) });
       if (ventaParams.vtype) chips.push({ key: "vtype", text: `${lang === "es" ? "Tipo" : "Type"}: ${ventaItemTypeLabel(ventaParams.vtype as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vtype: "" })) });
+      if (ventaParams.vpostedToday) chips.push({ key: "vpostedToday", text: lang === "es" ? "Publicado hoy" : "Posted today", clear: () => setVentaParams((p) => ({ ...p, vpostedToday: false })) });
     }
 
     // ✓ Clases chips (only show when in clases + has params)
@@ -3000,6 +3056,7 @@ const visible = useMemo(() => {
       vcond: category === "en-venta" && ventaParams.vcond ? ventaParams.vcond : null,
       vtype: category === "en-venta" && ventaParams.vtype ? ventaParams.vtype : null,
       vneg: category === "en-venta" && ventaParams.vneg ? ventaParams.vneg : null,
+      vpostedToday: category === "en-venta" && ventaParams.vpostedToday ? "1" : null,
 
       // ✓ Clases params are preserved in URL only when cat=clases
       csub: category === "clases" && clasesParams.csub ? clasesParams.csub : null,
@@ -3781,7 +3838,68 @@ const ListingCardGrid = (x: Listing) => {
   const isEmpleos = x.category === "empleos";
   const isServicios = x.category === "servicios";
   const isComunidad = x.category === "comunidad";
+  const isEnVenta = x.category === "en-venta";
   const tier = inferVisualTier(x);
+
+  // En Venta: card with image on top, price, title, location, time; boost badge; VIDEO overlay; carousel dots
+  if (isEnVenta) {
+    const boostUntil = (x as any).boostUntil as string | undefined;
+    const isBoosted = boostUntil && new Date(boostUntil).getTime() > Date.now();
+    const hasVideo = Boolean((x as any).hasVideo || (x as any).proVideoId);
+    const images = (x as any).images as string[] | undefined;
+    const multiImage = Array.isArray(images) && images.length > 1;
+    return (
+      <a
+        key={x.id}
+        href={getListingHref(x, lang)}
+        className="group relative block overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5] transition-all duration-200 hover:-translate-y-[1px] hover:bg-[#EFEFEF]"
+      >
+        {/* Image on top */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E5E5E5]">
+          {x.hasImage ? (
+            <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
+          ) : (
+            <div className="h-full w-full bg-[#E5E5E5]" />
+          )}
+          {hasVideo && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <span className="rounded bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                ▶ VIDEO
+              </span>
+            </div>
+          )}
+          {multiImage && (
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+              {images.slice(0, 5).map((_, i) => (
+                <span key={i} className="h-1.5 w-1.5 rounded-full bg-white/80" aria-hidden />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="p-3">
+          {isBoosted && (
+            <div className="mb-1.5 text-[11px] font-medium text-[#111111]">
+              🚀 {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
+            </div>
+          )}
+          <div className="text-lg font-extrabold text-[#111111]">{x.priceLabel[lang]}</div>
+          <div className="mt-0.5 line-clamp-2 text-base font-semibold text-[#111111]">{x.title[lang]}</div>
+          <div className="mt-1 text-sm text-[#111111]">{x.city}</div>
+          <div className="text-xs text-[#111111]/80">
+            {lang === "es" ? "Publicado" : "Posted"} {x.postedAgo[lang]}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFav(x.id); }}
+          className="absolute right-2 top-2 z-10 rounded-full border border-black/10 bg-white/90 p-1.5 shadow hover:bg-white"
+          aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
+        >
+          {isFav ? "★" : "☆"}
+        </button>
+      </a>
+    );
+  }
 
   // Autos: structured scan (AutoTrader-style)
   const autosParsed = isAutos ? parseAutoFromTitle(x.title[lang]) : null;
@@ -5012,7 +5130,78 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       ))}
     </div>
   </section>
-) : null}        <section className="mt-6">
+) : null}
+
+        {isEnVenta ? (
+          <section className="mt-6">
+            <RecentlyViewedSection lang={lang} />
+          </section>
+        ) : null}
+
+        <div className={cx("mt-6", isEnVenta && "lg:grid lg:grid-cols-[240px_1fr] lg:gap-6")}>
+          {isEnVenta ? (
+            <aside className="hidden lg:block shrink-0 space-y-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
+              <div className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Filtros" : "Filters"}</div>
+              <div>
+                <label className="block text-xs font-medium text-[#111111]">{lang === "es" ? "Precio mín" : "Price min"}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="$0"
+                  value={ventaParams.vpmin}
+                  onChange={(e) => { setVentaParams((p) => ({ ...p, vpmin: e.target.value })); setPage(1); setInfiniteScrollLimit(20); }}
+                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-sm text-[#111111]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#111111]">{lang === "es" ? "Precio máx" : "Price max"}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="$9999"
+                  value={ventaParams.vpmax}
+                  onChange={(e) => { setVentaParams((p) => ({ ...p, vpmax: e.target.value })); setPage(1); setInfiniteScrollLimit(20); }}
+                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-sm text-[#111111]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#111111]">{lang === "es" ? "Condición" : "Condition"}</label>
+                <select
+                  value={ventaParams.vcond}
+                  onChange={(e) => { setVentaParams((p) => ({ ...p, vcond: e.target.value })); setPage(1); setInfiniteScrollLimit(20); }}
+                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-sm text-[#111111]"
+                >
+                  <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                  {(["new", "like-new", "good", "fair"] as const).map((c) => (
+                    <option key={c} value={c}>{ventaConditionLabel(c, lang)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#111111]">{lang === "es" ? "Radio" : "Radius"}</label>
+                <select
+                  value={radiusMi}
+                  onChange={(e) => { setRadiusMi(Number(e.target.value)); setPage(1); setInfiniteScrollLimit(20); }}
+                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-sm text-[#111111]"
+                >
+                  {RADIUS_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r} mi</option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-[#111111]">
+                <input
+                  type="checkbox"
+                  checked={ventaParams.vpostedToday}
+                  onChange={(e) => { setVentaParams((p) => ({ ...p, vpostedToday: e.target.checked })); setPage(1); setInfiniteScrollLimit(20); }}
+                  className="rounded border-black/20"
+                />
+                {lang === "es" ? "Publicado hoy" : "Posted today"}
+              </label>
+            </aside>
+          ) : null}
+          <div className="min-w-0">
+        <section className={cx(isEnVenta && "mt-0")}>
           {category === "servicios" && serviciosSectioned ? (
             <div className="flex flex-col gap-6">
               {serviciosSectioned.renderBlocks.map((block, idx) =>
@@ -5054,42 +5243,65 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </section>
 
         {category !== "servicios" ? (
-        <section className="mt-6 flex items-center justify-center gap-3 pb-8 md:pb-6">
-          <button
-            type="button"
-            disabled={pageClamped <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className={cx(
-              "rounded-xl border px-4 py-2 text-sm",
-              pageClamped <= 1
-                ? "border-black/10 bg-[#F5F5F5] text-[#111111]"
-                : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-            )}
-          >
-            {UI.prev[lang]}
-          </button>
-
-          <div className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111]">
-            {pageClamped}/{totalPages}
-          </div>
-
-          <button
-            type="button"
-            disabled={pageClamped >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className={cx(
-              "rounded-xl border px-4 py-2 text-sm",
-              pageClamped >= totalPages
-                ? "border-black/10 bg-[#F5F5F5] text-[#111111]"
-                : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-            )}
-          >
-            {UI.next[lang]}
-          </button>
-        </section>
+        <>
+          {isEnVenta ? (
+            <section className="mt-6 pb-8 md:pb-6" aria-hidden>
+              <div
+                ref={loadMoreSentinelRef}
+                className="h-4 w-full"
+                data-infinite-sentinel
+              />
+              {visible.length < filtered.length && visible.length > 0 && (
+                <div className="flex justify-center py-4">
+                  <button
+                    type="button"
+                    onClick={() => setInfiniteScrollLimit((n) => n + perPage)}
+                    className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                  >
+                    {lang === "es" ? "Cargar más" : "Load more"}
+                  </button>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="mt-6 flex items-center justify-center gap-3 pb-8 md:pb-6">
+              <button
+                type="button"
+                disabled={pageClamped <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className={cx(
+                  "rounded-xl border px-4 py-2 text-sm",
+                  pageClamped <= 1
+                    ? "border-black/10 bg-[#F5F5F5] text-[#111111]"
+                    : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                )}
+              >
+                {UI.prev[lang]}
+              </button>
+              <div className="rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-sm text-[#111111]">
+                {pageClamped}/{totalPages}
+              </div>
+              <button
+                type="button"
+                disabled={pageClamped >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className={cx(
+                  "rounded-xl border px-4 py-2 text-sm",
+                  pageClamped >= totalPages
+                    ? "border-black/10 bg-[#F5F5F5] text-[#111111]"
+                    : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                )}
+              >
+                {UI.next[lang]}
+              </button>
+            </section>
+          )}
+        </>
         ) : null}
 
+            </div>
           </div>
+        </div>
         </div>
         </div>
       </main>

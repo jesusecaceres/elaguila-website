@@ -63,6 +63,11 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function parsePriceLabel(label: string): number | null {
+  const m = (label || "").replace(/,/g, "").match(/(\d+(\.\d+)?)/);
+  return m ? Number(m[1]) : null;
+}
+
 function formatPostedAgo(createdAt: string | null | undefined, lang: Lang): string {
   if (!createdAt) return "";
   const created = new Date(createdAt).getTime();
@@ -271,11 +276,17 @@ export default function AnuncioDetallePage() {
 
   const relatedListings = useMemo(() => {
     if (!listing) return [];
-    const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter(
-      (l) => l.category === listing.category && l.id !== listing.id
-    );
+    const price = parsePriceLabel(listing.priceLabel?.en ?? listing.priceLabel?.es ?? "");
+    const low = price != null ? price * 0.5 : 0;
+    const high = price != null ? price * 2 : Infinity;
+    const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter((l) => {
+      if (l.category !== listing.category || l.id === listing.id) return false;
+      const p = parsePriceLabel(l.priceLabel?.en ?? l.priceLabel?.es ?? "");
+      if (p == null) return true;
+      return p >= low && p <= high;
+    });
     return list.slice(0, 6);
-  }, [listing?.id, listing?.category]);
+  }, [listing?.id, listing?.category, listing?.priceLabel]);
 
   const rentasMeta = useMemo(() => {
     if (!listing || listing.category !== "rentas") return null;
@@ -887,7 +898,7 @@ export default function AnuncioDetallePage() {
             {relatedListings.length > 0 && (
               <div className="mt-10">
                 <h3 className="text-xl font-bold text-[#111111] mb-4">
-                  {lang === "es" ? "También te puede interesar" : "You may also like"}
+                  {lang === "es" ? "Más anuncios similares" : "More similar listings"}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {relatedListings.map((item) => (
