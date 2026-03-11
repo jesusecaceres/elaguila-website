@@ -526,7 +526,9 @@ export default function PublicarPage() {
   const urlLang = searchParams?.get("lang");
   const lang: Lang = urlLang === "en" ? "en" : "es";
 
+  const slugFromUrl = (params?.category ?? "").trim().toLowerCase();
   const categoryFromUrl = normalizeCategory(params?.category ?? "") || "en-venta";
+  const showFormPlaceholder = slugFromUrl !== "" && normalizeCategory(params?.category ?? "") === "";
 
   // Prefill support (used by category-specific pre-forms like Restaurants)
   const prefill = useMemo(() => {
@@ -556,6 +558,8 @@ export default function PublicarPage() {
   const [authError, setAuthError] = useState<string>("");
   const [isPro, setIsPro] = useState(false);
 
+  // Free listing rules: 7 days, 3 photos, no video, no boosts. Free reposts: 2 max.
+  const FREE_REPOST_LIMIT = 2;
   // Garage Mode (Free-only, En Venta only) — +4 temporary listings for 7 days, once per 30 days.
   const FREE_EN_VENTA_LIMIT = 2;
   const GARAGE_EXTRA = 4;
@@ -637,12 +641,12 @@ export default function PublicarPage() {
   const [images, setImages] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
 
-  const maxImages = isPro ? 12 : 5;
+  const maxImages = isPro ? 12 : 3;
 
-  // If plan changes to Free, trim images to Free limit.
+  // If plan changes to Free, trim images to Free limit (3).
   useEffect(() => {
-    if (!isPro && images.length > 5) {
-      setImages((prev) => prev.slice(0, 5));
+    if (!isPro && images.length > 3) {
+      setImages((prev) => prev.slice(0, 3));
     }
   }, [isPro, images.length]);
 
@@ -1584,7 +1588,21 @@ if (isPro && videoFile && !videoError) {
             )}
           </div>
 
-          {!checking && signedIn && (
+          {!checking && signedIn && showFormPlaceholder && (
+            <div className="mt-6 rounded-2xl border border-black/10 bg-[#F5F5F5] p-8 text-center text-[#111111]">
+              <p className="text-lg font-medium">
+                {lang === "es" ? "Formulario disponible próximamente." : "Form available soon."}
+              </p>
+              <Link
+                href={`/clasificados/publicar/en-venta${lang ? `?lang=${lang}` : ""}`}
+                className="mt-4 inline-block rounded-xl bg-[#A98C2A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f7a24]"
+              >
+                {lang === "es" ? "Publicar en En Venta" : "Post in For Sale"}
+              </Link>
+            </div>
+          )}
+
+          {!checking && signedIn && !showFormPlaceholder && (
             <>
               <div ref={topAnchorRef} aria-hidden className="h-px w-full" />
               {/* Read-only progress bar (not clickable) */}
@@ -1641,7 +1659,7 @@ if (isPro && videoFile && !videoError) {
                           <button
                             key={key}
                             type="button"
-                            onClick={() => router.push(`/clasificados/publicar/${key}${lang ? `?lang=${lang}` : ""}`)}
+                            onClick={() => setCategory(key)}
                             className={cx(
                               "flex flex-col items-center justify-center gap-2 rounded-xl border py-4 px-3 transition-colors",
                               "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",

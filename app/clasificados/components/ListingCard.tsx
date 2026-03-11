@@ -71,6 +71,17 @@ export default function ListingCard({
       <div className="mb-2 flex flex-wrap items-center gap-2">
         {isPro ? <ProBadge /> : null}
 
+        {(() => {
+          const boostUntil = (item as any)?.boostUntil as string | undefined;
+          const isBoosted = boostUntil && new Date(boostUntil).getTime() > Date.now();
+          if (!isBoosted) return null;
+          return (
+            <span className="inline-flex items-center rounded-full border border-[#A98C2A]/40 bg-[#F8F6F0] px-2.5 py-1 text-[11px] font-medium text-[#111111]">
+              {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
+            </span>
+          );
+        })()}
+
         {verified ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-200">
             <span aria-hidden="true">✓</span>

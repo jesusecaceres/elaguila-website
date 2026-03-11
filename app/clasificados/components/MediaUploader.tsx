@@ -84,6 +84,7 @@ function SortableImageItem({
         src={previewUrl}
         alt=""
         className="w-full h-28 object-cover rounded"
+        loading="lazy"
       />
       {isFirst && (
         <div className="absolute left-1 top-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-[#111111] border border-black/10">
@@ -250,6 +251,9 @@ export function MediaUploader({
         />
 
         <div className="mt-2 text-sm font-medium text-[#111111]">{addImagesLabel}</div>
+        <p className="mt-1 text-xs text-[#111111]/70">
+          {images.length} {lang === "es" ? "de" : "of"} {maxImages} {lang === "es" ? "fotos usadas" : "photos used"}
+        </p>
         <div className="flex gap-3 mt-3">
           <button
             type="button"
@@ -316,6 +320,17 @@ export function MediaUploader({
               </div>
             </SortableContext>
           </DndContext>
+        )}
+
+        {atLimit && !isPro && images.length > 0 && (
+          <div className="mt-3 rounded-xl border border-[#A98C2A]/30 bg-[#F8F6F0] p-3 text-sm text-[#111111]">
+            {lang === "es"
+              ? "Límite de fotos alcanzado. Actualiza a Pro para hasta 12 fotos y video."
+              : "Photo limit reached. Upgrade to Pro for up to 12 photos and video."}
+            <Link href="/dashboard" className="mt-2 inline-block text-sm font-semibold text-[#A98C2A] hover:underline">
+              {lang === "es" ? "Ver planes Pro" : "See Pro plans"}
+            </Link>
+          </div>
         )}
       </div>
 
@@ -406,15 +421,18 @@ export function MediaUploader({
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
                 <li>• {lang === "es" ? "Los videos atraen 3x más compradores" : "Videos attract 3x more buyers"}</li>
-                <li>• {lang === "es" ? "Destaca tu anuncio" : "Highlight your listing"}</li>
-                <li>• {lang === "es" ? "Aparece más arriba en búsquedas" : "Appear higher in search"}</li>
+                <li>• {lang === "es" ? "Distingue tu anuncio" : "Stand out from your listing"}</li>
+                <li>• {lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
+                <li>• {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
+                <li>• {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}</li>
               </ul>
+              <p className="mt-4 text-lg font-semibold text-[#111111]">$9.99</p>
               <div className="mt-5 flex gap-3">
                 <Link
                   href={`/dashboard?lang=${lang}`}
                   className="flex-1 rounded-xl bg-black px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#333]"
                 >
-                  {lang === "es" ? "Upgrade to Pro" : "Upgrade to Pro"}
+                  {lang === "es" ? "Actualizar a Pro" : "Upgrade to Pro"}
                 </Link>
                 <button
                   type="button"
