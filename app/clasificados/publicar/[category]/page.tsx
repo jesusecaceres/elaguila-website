@@ -2536,7 +2536,7 @@ if (isPro && videoFile && !videoError) {
                       {publishError && (
                         <div
                           className="rounded-xl p-4 text-sm"
-                          style={{ background: "#ffe5e5", border: "2px solid red", color: "#8b0000" }}
+                          style={{ background: "#ffe5e5", border: "2px solid red", color: "#b00020" }}
                           role="alert"
                         >
                           <div className="font-semibold">❌ {copy.errorTitle}</div>

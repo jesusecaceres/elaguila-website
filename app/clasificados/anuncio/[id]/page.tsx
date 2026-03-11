@@ -19,6 +19,7 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { submitListingReportAction } from "@/app/admin/actions";
 
 type Lang = "es" | "en";
 
@@ -129,6 +130,10 @@ export default function AnuncioDetallePage() {
         guardBody:
           "Los anuncios se publican al instante, pero el sistema puede ocultarlos automáticamente si detecta spam o contenido inapropiado.",
         report: "Reportar anuncio",
+        reportReasonPlaceholder: "Motivo del reporte (obligatorio)",
+        reportSubmit: "Enviar reporte",
+        reportCancel: "Cancelar",
+        reportThankYou: "Gracias. Hemos recibido tu reporte.",
 
         contactTitle: "Contacto",
         contactBody:
@@ -165,6 +170,10 @@ export default function AnuncioDetallePage() {
         guardBody:
           "Listings appear immediately, but the system may auto-hide them if it detects spam or inappropriate content.",
         report: "Report listing",
+        reportReasonPlaceholder: "Reason for report (required)",
+        reportSubmit: "Submit report",
+        reportCancel: "Cancel",
+        reportThankYou: "Thank you. We have received your report.",
 
         contactTitle: "Contact",
         contactBody:
@@ -334,6 +343,10 @@ export default function AnuncioDetallePage() {
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
   const [savedSyncDone, setSavedSyncDone] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
 
   useEffect(() => {
     if (!listing) return;
@@ -449,7 +462,33 @@ export default function AnuncioDetallePage() {
   };
 
   const handleReportarAnuncio = () => {
-    alert(lang === "es" ? "Gracias — recibido." : "Thanks — received.");
+    setReportReason("");
+    setReportDone(false);
+    setShowReportModal(true);
+  };
+
+  const handleReportSubmit = async () => {
+    if (!listing?.id) return;
+    const reason = reportReason.trim();
+    if (!reason) {
+      alert(lang === "es" ? "Escribe el motivo del reporte." : "Please enter a reason for the report.");
+      return;
+    }
+    setReportSubmitting(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      await submitListingReportAction(listing.id, reason, user?.id ?? null);
+      setReportDone(true);
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportReason("");
+      }, 1500);
+    } catch {
+      alert(lang === "es" ? "No se pudo enviar el reporte. Intenta de nuevo." : "Could not submit report. Please try again.");
+    } finally {
+      setReportSubmitting(false);
+    }
   };
 
 
@@ -893,6 +932,46 @@ export default function AnuncioDetallePage() {
                 </button>
               </div>
             </div>
+
+            {/* Report modal */}
+            {showReportModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
+                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-[#111111]">
+                  <h3 className="text-lg font-bold">{t.report}</h3>
+                  {reportDone ? (
+                    <p className="mt-4 text-[#111111]">{t.reportThankYou}</p>
+                  ) : (
+                    <>
+                      <textarea
+                        className="mt-4 w-full rounded-xl border border-gray-300 p-3 text-sm min-h-[100px] resize-y"
+                        placeholder={t.reportReasonPlaceholder}
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        disabled={reportSubmitting}
+                      />
+                      <div className="mt-4 flex gap-3 justify-end">
+                        <button
+                          type="button"
+                          className="px-4 py-2 rounded-full border border-gray-300 bg-white font-medium hover:bg-gray-50 disabled:opacity-50"
+                          onClick={() => setShowReportModal(false)}
+                          disabled={reportSubmitting}
+                        >
+                          {t.reportCancel}
+                        </button>
+                        <button
+                          type="button"
+                          className="px-4 py-2 rounded-full bg-[#C9B46A] text-[#111111] font-medium hover:opacity-90 disabled:opacity-50"
+                          onClick={handleReportSubmit}
+                          disabled={reportSubmitting}
+                        >
+                          {reportSubmitting ? (lang === "es" ? "Enviando…" : "Sending…") : t.reportSubmit}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* También te puede interesar */}
             {relatedListings.length > 0 && (

@@ -45,6 +45,16 @@ export default async function AdminHome() {
           </Link>
 
           <Link
+            href="/admin/reportes"
+            className="block rounded-2xl border border-yellow-600/20 bg-white/5 p-6 hover:bg-white/10 hover:border-yellow-500/30 transition text-left"
+          >
+            <h2 className="text-lg font-semibold text-yellow-400">Reportes</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Revisar reportes de anuncios y marcar como revisados o descartados.
+            </p>
+          </Link>
+
+          <Link
             href="/admin/clasificados/servicios"
             className="block rounded-2xl border border-yellow-600/20 bg-white/5 p-6 hover:bg-white/10 hover:border-yellow-500/30 transition text-left"
           >

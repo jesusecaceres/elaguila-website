@@ -2625,8 +2625,9 @@ useEffect(() => {
     if (category === "travel") catApplied = applyTravelParams(base, travelParams);
 
     const now = Date.now();
+    const engagementScore = (x: any) => (Number(x?.views) || 0) + 2 * (Number(x?.saves) || 0) + (Number(x?.shares) || 0);
     const sorted = [...catApplied].sort((a, b) => {
-      // En-venta (and marketplace): 1) boosted first, 2) recently posted, 3) recently updated, 4) older
+      // En-venta (and marketplace): 1) boosted first, 2) engagement score, 3) newest / recently updated, 4) older
       const isVentaOrAll = category === "en-venta" || category === "all";
       if (isVentaOrAll) {
         const boostA = (a as any).boostUntil != null ? new Date((a as any).boostUntil).getTime() : 0;
@@ -2635,6 +2636,9 @@ useEffect(() => {
         const activeB = boostB > now ? 1 : 0;
         if (activeB !== activeA) return activeB - activeA;
         if (activeA && activeB && boostB !== boostA) return boostB - boostA;
+        const scoreA = engagementScore(a);
+        const scoreB = engagementScore(b);
+        if (scoreB !== scoreA) return scoreB - scoreA;
         const updatedA = (a as any).updatedAtISO ? new Date((a as any).updatedAtISO).getTime() : 0;
         const updatedB = (b as any).updatedAtISO ? new Date((b as any).updatedAtISO).getTime() : 0;
         const createdA = new Date(a.createdAtISO).getTime();
