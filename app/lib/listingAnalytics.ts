@@ -1,11 +1,11 @@
 /**
  * Listing analytics: track events into listing_analytics table.
- * Events: listing_view, listing_save, listing_share, message_sent, profile_view
+ * Events: listing_view, listing_save, listing_share, message_sent, profile_view, listing_open
  */
 
 import { createSupabaseBrowserClient } from "./supabase/browser";
 
-export type ListingEventType = "listing_view" | "listing_save" | "listing_share" | "message_sent" | "profile_view";
+export type ListingEventType = "listing_view" | "listing_save" | "listing_share" | "message_sent" | "profile_view" | "listing_open";
 
 /**
  * Track an analytics event. Fire-and-forget (does not throw).

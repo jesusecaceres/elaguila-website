@@ -64,6 +64,7 @@ export default function DashboardPage() {
         overview: "Resumen",
         profile: "Perfil",
         myListings: "Mis anuncios",
+        savedListings: "Anuncios guardados",
         plan: "Plan",
         quickActions: "Acciones rápidas",
         postAd: "Publicar anuncio",
@@ -106,6 +107,7 @@ export default function DashboardPage() {
         overview: "Overview",
         profile: "Profile",
         myListings: "My listings",
+        savedListings: "Saved listings",
         plan: "Plan",
         quickActions: "Quick actions",
         postAd: "Post an ad",
@@ -320,6 +322,7 @@ export default function DashboardPage() {
     { href: `/dashboard?lang=${lang}`, label: L.overview, active: true },
     { href: `/dashboard/perfil?lang=${lang}`, label: L.profile, active: false },
     { href: `/dashboard/mis-anuncios?lang=${lang}`, label: L.myListings, active: false },
+    { href: `/dashboard/guardados?lang=${lang}`, label: L.savedListings, active: false },
   ];
 
   const isPro = plan === "pro";

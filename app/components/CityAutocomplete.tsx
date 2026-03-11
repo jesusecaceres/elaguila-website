@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
+import { NORCAL_CITY_NAMES } from "@/app/data/norcalCities";
 
 const MAX_SUGGESTIONS = 8;
 const BLUR_DELAY_MS = 120;
@@ -20,6 +21,8 @@ function toCityKey(s: string): string {
 function normalizeToCanonical(raw: string): string {
   const key = toCityKey(raw);
   if (!key) return "";
+  const fromNorCal = NORCAL_CITY_NAMES.find((n) => toCityKey(n) === key);
+  if (fromNorCal) return fromNorCal;
   const fromAlias = CITY_ALIASES[key];
   if (fromAlias) return fromAlias;
   for (const record of CA_CITIES) {
@@ -32,29 +35,18 @@ function normalizeToCanonical(raw: string): string {
 function getSuggestions(query: string): string[] {
   const q = toCityKey(query);
   if (!q) return [];
-  const norcal = CA_CITIES.filter((r) => r.region !== "SoCal");
+  // Use NorCal cities dataset for autocomplete suggestions
   const scored: Array<{ city: string; score: number }> = [];
-  for (const record of norcal) {
+  for (const name of NORCAL_CITY_NAMES) {
+    const key = toCityKey(name);
     let best = 999;
-    const check = (key: string) => {
-      if (key === q) best = Math.min(best, 0);
-      else if (key.startsWith(q)) best = Math.min(best, 1);
-      else if (key.includes(q)) best = Math.min(best, 2);
-    };
-    check(toCityKey(record.city));
-    record.aliases?.forEach((a) => check(toCityKey(a)));
-    if (best !== 999) scored.push({ city: record.city, score: best });
+    if (key === q) best = 0;
+    else if (key.startsWith(q)) best = 1;
+    else if (key.includes(q)) best = 2;
+    if (best !== 999) scored.push({ city: name, score: best });
   }
   scored.sort((a, b) => a.score - b.score || a.city.localeCompare(b.city));
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const { city } of scored) {
-    if (seen.has(city)) continue;
-    seen.add(city);
-    out.push(city);
-    if (out.length >= MAX_SUGGESTIONS) break;
-  }
-  return out;
+  return scored.slice(0, MAX_SUGGESTIONS).map((s) => s.city);
 }
 
 export type CityAutocompleteLang = "es" | "en";

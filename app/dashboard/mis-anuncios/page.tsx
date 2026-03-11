@@ -99,9 +99,11 @@ export default function MyListingsPage() {
         statusActive: "Activo",
         statusSold: "Vendido",
         views: "Vistas",
+        uniqueViews: "Vistas únicas",
         messages: "Mensajes",
         saves: "Guardados",
         shares: "Compartidos",
+        profileClicks: "Clics en perfil",
         errorTitle: "No pudimos cargar tus anuncios",
         errorHint:
           "Si esto ocurre en desarrollo, dime el mensaje exacto para ajustar la consulta según tu esquema (nombre de tabla/columnas).",
@@ -127,9 +129,11 @@ export default function MyListingsPage() {
         statusActive: "Active",
         statusSold: "Sold",
         views: "Views",
+        uniqueViews: "Unique views",
         messages: "Messages",
         saves: "Saves",
         shares: "Shares",
+        profileClicks: "Profile clicks",
         errorTitle: "We couldn't load your listings",
         errorHint:
           "If this happens in development, send me the exact error so we can match your table/column names.",
@@ -147,7 +151,9 @@ export default function MyListingsPage() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, { views: number; messages: number; saves: number; shares: number }>>({});
+  const [analyticsByListing, setAnalyticsByListing] = useState<
+    Record<string, { views: number; uniqueViews: number; messages: number; saves: number; shares: number; profileClicks: number }>
+  >({});
 
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -202,23 +208,30 @@ export default function MyListingsPage() {
         const ids = list.map((x) => x.id);
         const { data: events } = await supabase
           .from("listing_analytics")
-          .select("listing_id, event_type")
+          .select("listing_id, event_type, user_id")
           .in("listing_id", ids);
 
         if (!mounted) return;
-        const byId: Record<string, { views: number; messages: number; saves: number; shares: number }> = {};
+        const byId: Record<string, { views: number; uniqueViews: number; messages: number; saves: number; shares: number; profileClicks: number }> = {};
         for (const id of ids) {
-          byId[id] = { views: 0, messages: 0, saves: 0, shares: 0 };
+          byId[id] = { views: 0, uniqueViews: 0, messages: 0, saves: 0, shares: 0, profileClicks: 0 };
         }
+        const viewUserIdsByListing: Record<string, Set<string>> = {};
+        for (const id of ids) viewUserIdsByListing[id] = new Set<string>();
         for (const row of events ?? []) {
-          const lid = (row as { listing_id: string; event_type: string }).listing_id;
-          const type = (row as { listing_id: string; event_type: string }).event_type;
+          const r = row as { listing_id: string; event_type: string; user_id?: string | null };
+          const lid = r.listing_id;
+          const type = r.event_type;
           if (!byId[lid]) continue;
-          if (type === "listing_view") byId[lid].views += 1;
-          else if (type === "message_sent") byId[lid].messages += 1;
+          if (type === "listing_view") {
+            byId[lid].views += 1;
+            if (r.user_id) viewUserIdsByListing[lid].add(r.user_id);
+          } else if (type === "message_sent") byId[lid].messages += 1;
           else if (type === "listing_save") byId[lid].saves += 1;
           else if (type === "listing_share") byId[lid].shares += 1;
+          else if (type === "profile_view") byId[lid].profileClicks += 1;
         }
+        for (const id of ids) byId[id].uniqueViews = viewUserIdsByListing[id].size;
         setAnalyticsByListing(byId);
       }
     }
@@ -354,8 +367,10 @@ export default function MyListingsPage() {
                         parts.push(`${L.views}: ${stats.views}`);
                         parts.push(`${L.messages}: ${stats.messages}`);
                         if (isPro) {
+                          parts.push(`${L.uniqueViews}: ${stats.uniqueViews}`);
                           parts.push(`${L.saves}: ${stats.saves}`);
                           parts.push(`${L.shares}: ${stats.shares}`);
+                          parts.push(`${L.profileClicks}: ${stats.profileClicks}`);
                         }
                         return (
                           <div className="mt-1 text-xs text-white/50">

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
@@ -16,6 +17,7 @@ import ContactActions from "../../components/ContactActions";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 type Lang = "es" | "en";
 
@@ -49,6 +51,7 @@ type Listing = {
   price_last_updated?: string | null;
   created_at?: string | null;
   sellerName?: string | null;
+  sellerUsername?: string | null;
   sellerJoinYear?: number | null;
   sellerActiveListings?: number | null;
   images?: string[] | null;
@@ -309,18 +312,49 @@ export default function AnuncioDetallePage() {
 
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
   const [viewCount, setViewCount] = useState<number | null>(null);
+  const [viewsToday, setViewsToday] = useState<number | null>(null);
+  const [savedSyncDone, setSavedSyncDone] = useState(false);
 
   useEffect(() => {
     if (!listing) return;
     trackEvent(listing.id, "listing_view");
+    trackEvent(listing.id, "listing_open");
   }, [listing?.id]);
+
+  // Sync saved state from Supabase when user is logged in
+  useEffect(() => {
+    if (!listing?.id || savedSyncDone) return;
+    let mounted = true;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (user) {
+        const { data } = await supabase
+          .from("user_saved_listings")
+          .select("listing_id")
+          .eq("user_id", user.id)
+          .eq("listing_id", listing.id)
+          .maybeSingle();
+        if (mounted) setSaved(!!data);
+      }
+      setSavedSyncDone(true);
+    })();
+    return () => { mounted = false; };
+  }, [listing?.id, savedSyncDone]);
 
   useEffect(() => {
     if (!listing?.id) return;
     fetch(`/api/clasificados/listings/${encodeURIComponent(listing.id)}/views`)
       .then((res) => res.json())
-      .then((data: { count?: number }) => setViewCount(typeof data.count === "number" ? data.count : 0))
-      .catch(() => setViewCount(0));
+      .then((data: { count?: number; todayCount?: number }) => {
+        setViewCount(typeof data.count === "number" ? data.count : 0);
+        setViewsToday(typeof data.todayCount === "number" ? data.todayCount : 0);
+      })
+      .catch(() => {
+        setViewCount(0);
+        setViewsToday(0);
+      });
   }, [listing?.id]);
 
   useEffect(() => {
@@ -367,8 +401,20 @@ export default function AnuncioDetallePage() {
     if (listing) trackEvent(listing.id, "listing_share");
   };
 
-  const handleGuardarAnuncio = () => {
-    if (listing) {
+  const handleGuardarAnuncio = async () => {
+    if (!listing) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      if (saved) {
+        await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
+        setSaved(false);
+      } else {
+        await supabase.from("user_saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
+        setSaved(true);
+        trackEvent(listing.id, "listing_save");
+      }
+    } else {
       setSaved(toggleListingSaved(listing.id));
       trackEvent(listing.id, "listing_save");
     }
@@ -831,10 +877,15 @@ export default function AnuncioDetallePage() {
           {/* Right rail */}
           <div className="lg:col-span-4 space-y-6">
             {viewCount !== null && (
-              <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4">
+              <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4 space-y-1">
                 <p className="text-sm text-[#111111]">
                   👁 {viewCount} {lang === "es" ? "personas vieron este anuncio" : "people viewed this listing"}
                 </p>
+                {viewsToday !== null && viewsToday >= 0 && (
+                  <p className="text-sm text-[#111111]">
+                    🔥 {viewsToday} {lang === "es" ? "visitas hoy" : "views today"}
+                  </p>
+                )}
               </div>
             )}
             <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
@@ -929,9 +980,18 @@ export default function AnuncioDetallePage() {
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
                 {lang === "es" ? "Publicado por" : "Posted by"}
               </h4>
-              <p className="text-sm font-medium text-[#111111]">
-                {listing?.sellerName ?? (lang === "es" ? "Vendedor" : "Seller")}
-              </p>
+              {(listing as any)?.sellerUsername ? (
+                <Link
+                  href={`/vendedor/${encodeURIComponent((listing as any).sellerUsername)}?lang=${lang}`}
+                  className="text-sm font-medium text-[#111111] hover:underline"
+                >
+                  {listing?.sellerName ?? (listing as any).sellerUsername ?? (lang === "es" ? "Vendedor" : "Seller")}
+                </Link>
+              ) : (
+                <p className="text-sm font-medium text-[#111111]">
+                  {listing?.sellerName ?? (lang === "es" ? "Vendedor" : "Seller")}
+                </p>
+              )}
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
                 <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
                 <span>📅 {lang === "es" ? "Miembro desde" : "Member since"} {listing?.sellerJoinYear ?? new Date().getFullYear()}</span>
