@@ -18,6 +18,7 @@ import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { MediaUploader } from "../../components/MediaUploader";
 
 /** Real categories for publicar (no "all", no "Más"). Same order and icons as lista explorer. */
 const PUBLICAR_CATEGORIES: Array<{
@@ -645,63 +646,6 @@ export default function PublicarPage() {
     }
   }, [isPro, images.length]);
 
-  const moveImage = (from: number, to: number) => {
-    setImages((prev) => {
-      if (from === to) return prev;
-      if (from < 0 || from >= prev.length) return prev;
-      if (to < 0 || to >= prev.length) return prev;
-      const next = prev.slice();
-      const [picked] = next.splice(from, 1);
-      next.splice(to, 0, picked);
-      return next;
-    });
-  };
-
-  const makeCover = (idx: number) => moveImage(idx, 0);
-
-  const moveLeft = (idx: number) => moveImage(idx, idx - 1);
-  const moveRight = (idx: number) => moveImage(idx, idx + 1);
-
-  const removeImage = (idx: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
-    setImages((prev) => {
-      const combined = [...prev, ...files];
-      const seen = new Set<string>();
-      const deduped: File[] = [];
-      for (const f of combined) {
-        const k = `${f.name}__${f.size}__${f.lastModified}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
-        deduped.push(f);
-      }
-      return deduped.slice(0, maxImages);
-    });
-    try {
-      (event.target as HTMLInputElement).value = "";
-    } catch {
-      /* reset input so picking the same file again triggers change */
-    }
-  };
-
-  const handleVideoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const f = (event.target.files ?? [])[0] || null;
-    setVideoFile(f);
-    setVideoError("");
-    setVideoInfo(null);
-    setVideoThumbBlob(null);
-    if (f) await inspectAndThumbVideo(f);
-    try {
-      (event.target as HTMLInputElement).value = "";
-    } catch {
-      /* reset input */
-    }
-  };
-
   const proVideoThumbPreviewUrl = useMemo(() => {
     if (!videoThumbBlob) return "";
     try {
@@ -731,14 +675,10 @@ export default function PublicarPage() {
   const [publishError, setPublishError] = useState<string>("");
   const [publishing, setPublishing] = useState<boolean>(false);
   const [publishedId, setPublishedId] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
-  const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const videoCameraRef = useRef<HTMLInputElement | null>(null);
-  const videoGalleryRef = useRef<HTMLInputElement | null>(null);
-  const [showVideoUpgradeModal, setShowVideoUpgradeModal] = useState(false);
 
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
@@ -1472,6 +1412,7 @@ async function publish() {
       const photoUrls: string[] = [];
       try {
         const basePath = `${userId}/${id}/photos`;
+        setUploadProgress({ current: 0, total: images.length });
         for (let i = 0; i < images.length; i++) {
           const f = images[i];
           const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
@@ -1488,6 +1429,7 @@ async function publish() {
           }
           const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
           if (url) photoUrls.push(url);
+          setUploadProgress({ current: i + 1, total: images.length });
         }
 
         if (photoUrls.length) {
@@ -1506,6 +1448,8 @@ async function publish() {
       } catch (e: any) {
         // If photo upload fails, don't crash the publish flow; listing is already live.
         console.warn("photo upload error", e?.message || e);
+      } finally {
+        setUploadProgress(null);
       }
       // Optimistic local count update for Free En Venta caps (keeps UI in sync without extra fetch).
       if (!isPro && category === "en-venta" && typeof enVentaActiveCount === "number") {
@@ -2232,240 +2176,44 @@ if (isPro && videoFile && !videoError) {
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.mediaTitle}</h2>
 
                     <div className="mt-4 grid gap-5">
-                      <div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm text-[#111111]">
-                            {copy.images}
-                            <span className="ml-2 text-xs text-[#111111]">
-                              {lang === "es"
-                                ? `(Máx ${maxImages}. ${isPro ? "Puedes reordenar." : "Pro: 12 + reordenar."})`
-                                : `(Max ${maxImages}. ${isPro ? "You can reorder." : "Pro: 12 + reorder."})`}
-                            </span>
-                          </div>
-                        </div>
-
-                        <input
-                          ref={cameraInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleImageSelect}
-                          style={{ display: "none" }}
-                          aria-hidden
-                        />
-                        <input
-                          ref={galleryInputRef}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageSelect}
-                          style={{ display: "none" }}
-                          aria-hidden
-                        />
-
-                        <div className="mt-2 text-sm font-medium text-[#111111]">{copy.addImages}</div>
-                        <div className="flex gap-3 mt-3">
-                          <button
-                            type="button"
-                            onClick={() => cameraInputRef.current?.click()}
-                            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded"
-                          >
-                            📷 {lang === "es" ? "Cámara" : "Camera"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => galleryInputRef.current?.click()}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-[#111111] rounded"
-                          >
-                            🖼 {lang === "es" ? "Galería" : "Gallery"}
-                          </button>
-                        </div>
-
-                        {images.length === 0 ? (
-                          <div className="mt-3 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 text-sm text-[#111111]/55">
-                            {lang === "es" ? "Agrega por lo menos 1 foto." : "Add at least 1 photo."}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-3 gap-2 mt-3">
-                            {filePreviews.map((src, index) => (
-                              <div
-                                key={index}
-                                className="relative overflow-hidden rounded border border-black/10 bg-[#F5F5F5]"
-                              >
-                                <img src={src} alt="preview" className="w-full h-28 object-cover rounded" />
-                                {index === 0 && (
-                                  <div className="absolute left-1 top-1 rounded-md bg-white/14 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-200 border border-yellow-400/20">
-                                    {lang === "es" ? "Portada" : "Cover"}
-                                  </div>
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
-                                  className="absolute top-1 right-1 bg-black text-white text-xs rounded-full w-5 h-5"
-                                  aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
-                                  title={lang === "es" ? "Quitar" : "Remove"}
-                                >
-                                  ×
-                                </button>
-
-                                {isPro && (
-                                  <div className="absolute left-1 bottom-1 flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      disabled={index === 0}
-                                      onClick={() => makeCover(index)}
-                                      className={cx(
-                                        "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold",
-                                        index === 0
-                                          ? "border-black/10 bg-white/9 text-[#111111]/40 cursor-not-allowed"
-                                          : "border-yellow-500/25 bg-white/14 text-yellow-200 hover:bg-white/16"
-                                      )}
-                                      title={lang === "es" ? "Hacer portada" : "Make cover"}
-                                    >
-                                      {lang === "es" ? "Portada" : "Cover"}
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      disabled={index === 0}
-                                      onClick={() => moveLeft(index)}
-                                      className={cx(
-                                        "rounded-md border border-black/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-[#111111] hover:bg-white/16",
-                                        index === 0 && "opacity-40 cursor-not-allowed"
-                                      )}
-                                      title={lang === "es" ? "Mover izquierda" : "Move left"}
-                                    >
-                                      ◀
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      disabled={index === filePreviews.length - 1}
-                                      onClick={() => moveRight(index)}
-                                      className={cx(
-                                        "rounded-md border border-black/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-[#111111] hover:bg-white/16",
-                                        index === filePreviews.length - 1 && "opacity-40 cursor-not-allowed"
-                                      )}
-                                      title={lang === "es" ? "Mover derecha" : "Move right"}
-                                    >
-                                      ▶
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                      <MediaUploader
+                        images={images}
+                        onImagesChange={setImages}
+                        videoFile={videoFile}
+                        onVideoChange={(f) => {
+                          setVideoFile(f);
+                          setVideoError("");
+                          setVideoInfo(null);
+                          setVideoThumbBlob(null);
+                          if (f) inspectAndThumbVideo(f);
+                        }}
+                        onVideoRemove={() => {
+                          setVideoFile(null);
+                          setVideoThumbBlob(null);
+                          setVideoInfo(null);
+                          setVideoError("");
+                          setShowProVideoPreview(false);
+                        }}
+                        isPro={isPro}
+                        maxImages={maxImages}
+                        lang={lang}
+                        uploadProgress={uploadProgress}
+                        videoPreviewUrl={proVideoPreviewUrl}
+                        videoError={videoError}
+                        copy={{
+                          addImages: copy.addImages,
+                          addVideo: copy.addVideo,
+                          video: copy.video,
+                          videoHint: copy.videoHint,
+                          images: copy.images,
+                        }}
+                      />
 
                         {!requirements.imagesOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">
                             {lang === "es" ? "Requerido: mínimo 1 foto." : "Required: at least 1 photo."}
                           </div>
                         )}
-                      </div>
-
-                      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 relative overflow-hidden">
-  <div className="text-sm text-[#111111]">{copy.video}</div>
-  <div className="mt-1 text-xs text-[#111111]/45">{copy.videoHint}</div>
-
-  <div className="mt-2 text-sm font-medium text-[#111111]">{copy.addVideo}</div>
-
-  <input
-    ref={videoCameraRef}
-    type="file"
-    accept="video/*"
-    capture="environment"
-    onChange={handleVideoSelect}
-    style={{ display: "none" }}
-    aria-hidden
-  />
-  <input
-    ref={videoGalleryRef}
-    type="file"
-    accept="video/*"
-    onChange={handleVideoSelect}
-    style={{ display: "none" }}
-    aria-hidden
-  />
-
-  <div className="flex gap-3 mt-3">
-    <button
-      type="button"
-      onClick={() => {
-        if (!isPro) {
-          setShowVideoUpgradeModal(true);
-          return;
-        }
-        videoCameraRef.current?.click();
-      }}
-      className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded"
-    >
-      🎥 {lang === "es" ? "Cámara video" : "Video camera"}
-    </button>
-    <button
-      type="button"
-      onClick={() => {
-        if (!isPro) {
-          setShowVideoUpgradeModal(true);
-          return;
-        }
-        videoGalleryRef.current?.click();
-      }}
-      className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-[#111111] rounded"
-    >
-      📁 {lang === "es" ? "Subir video" : "Upload video"}
-    </button>
-  </div>
-
-  {videoError && <div className="mt-3 text-sm text-red-300">{videoError}</div>}
-
-  {videoFile && !videoError && (
-    <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm text-[#111111]/75 truncate">{videoFile.name}</div>
-        <button
-          type="button"
-          onClick={() => {
-            setVideoFile(null);
-            setVideoThumbBlob(null);
-            setVideoInfo(null);
-            setVideoError("");
-            setShowProVideoPreview(false);
-          }}
-          className="text-xs rounded-lg border border-black/10 bg-[#F5F5F5] hover:bg-white/10 px-3 py-2 text-[#111111]"
-        >
-          {lang === "es" ? "Quitar" : "Remove"}
-        </button>
-      </div>
-
-      <video
-        src={proVideoPreviewUrl}
-        controls
-        className="rounded-lg mt-3 w-full max-w-md"
-        playsInline
-      />
-
-      {videoInfo && (
-        <div className="mt-2 text-xs text-[#111111]/45">
-          {Math.round(videoInfo.duration * 10) / 10}s · {videoInfo.width}×{videoInfo.height}
-        </div>
-      )}
-
-      {videoThumbBlob && (
-        <div className="mt-3">
-          <div className="text-xs text-[#111111]/45 mb-2">{lang === "es" ? "Miniatura" : "Thumbnail"}</div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            alt="video thumbnail"
-            className="w-full max-w-sm rounded-xl border border-black/10"
-            src={proVideoThumbPreviewUrl}
-          />
-        </div>
-      )}
-    </div>
-  )}
-</div>
 
 <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
 
@@ -2989,38 +2737,6 @@ if (isPro && videoFile && !videoError) {
           )}
         </div>
       </div>
-          {showVideoUpgradeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl">
-            <div className="p-5">
-              <h3 className="text-lg font-semibold text-[#111111]">
-                {lang === "es" ? "Sube videos con LEONIX Pro" : "Upload videos with LEONIX Pro"}
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
-                <li>• {lang === "es" ? "Los videos atraen 3x más compradores" : "Videos attract 3x more buyers"}</li>
-                <li>• {lang === "es" ? "Destaca tu anuncio" : "Highlight your listing"}</li>
-                <li>• {lang === "es" ? "Aparece más arriba en búsquedas" : "Appear higher in search"}</li>
-              </ul>
-              <div className="mt-5 flex gap-3">
-                <Link
-                  href={`/dashboard?lang=${lang}`}
-                  className="flex-1 rounded-xl bg-black px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#333]"
-                >
-                  {lang === "es" ? "Upgrade to Pro" : "Upgrade to Pro"}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowVideoUpgradeModal(false)}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-gray-50"
-                >
-                  {lang === "es" ? "Cancelar" : "Cancel"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
           {showServicesGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-black/10 bg-white shadow-xl">
