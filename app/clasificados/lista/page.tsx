@@ -28,6 +28,7 @@ import {
 } from "../../data/locations/norcal";
 import { SAMPLE_LISTINGS } from "../../data/classifieds/sampleListings";
 import RecentlyViewedSection from "../components/RecentlyViewedSection";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 type ServicesTier = "standard" | "plus" | "premium";
 
@@ -880,6 +881,8 @@ export default function ListaPage() {
   const [showTop, setShowTop] = useState(false);
 
   const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(false);
+  const [saveSearchLoading, setSaveSearchLoading] = useState(false);
+  const [saveSearchDone, setSaveSearchDone] = useState(false);
 
 // Category switching polish (A4.19)
 
@@ -3095,6 +3098,32 @@ const visible = useMemo(() => {
     setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
   };
 
+  const handleSaveSearch = async () => {
+    setSaveSearchLoading(true);
+    setSaveSearchDone(false);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert(lang === "es" ? "Inicia sesión para guardar búsquedas." : "Sign in to save searches.");
+        setSaveSearchLoading(false);
+        return;
+      }
+      await supabase.from("saved_searches").insert({
+        user_id: user.id,
+        query: q.trim().slice(0, 500),
+        category: category,
+        city: city.trim().slice(0, 200),
+      });
+      setSaveSearchDone(true);
+      setTimeout(() => setSaveSearchDone(false), 3000);
+    } catch {
+      alert(lang === "es" ? "No se pudo guardar la búsqueda." : "Could not save search.");
+    } finally {
+      setSaveSearchLoading(false);
+    }
+  };
+
   const onUseMyLocation = async () => {
     try {
       setUsingMyLocation(true);
@@ -4887,6 +4916,14 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         {label}
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      onClick={handleSaveSearch}
+                      disabled={saveSearchLoading}
+                      className="shrink-0 rounded-full border border-[#C9B46A]/50 bg-[#F2EFE8] px-2 py-1 text-[11px] font-medium text-[#111111] hover:bg-[#E8E4D8] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30 disabled:opacity-50"
+                    >
+                      {saveSearchDone ? (lang === "es" ? "✓ Guardada" : "✓ Saved") : saveSearchLoading ? "…" : (lang === "es" ? "Guardar búsqueda" : "Save search")}
+                    </button>
                   </div>
                 </div>
               )}

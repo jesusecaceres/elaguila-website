@@ -58,6 +58,7 @@ type Listing = {
   sellerActiveListings?: number | null;
   images?: string[] | null;
   boostUntil?: string | null;
+  owner_id?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -288,14 +289,17 @@ export default function AnuncioDetallePage() {
     const price = parsePriceLabel(listing.priceLabel?.en ?? listing.priceLabel?.es ?? "");
     const low = price != null ? price * 0.5 : 0;
     const high = price != null ? price * 2 : Infinity;
+    const cityNorm = (listing.city ?? "").trim().toLowerCase();
     const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter((l) => {
       if (l.category !== listing.category || l.id === listing.id) return false;
       const p = parsePriceLabel(l.priceLabel?.en ?? l.priceLabel?.es ?? "");
-      if (p == null) return true;
-      return p >= low && p <= high;
+      if (p != null && (p < low || p > high)) return false;
+      return true;
     });
-    return list.slice(0, 6);
-  }, [listing?.id, listing?.category, listing?.priceLabel]);
+    const sameCity = (l: Listing) => (l.city ?? "").trim().toLowerCase() === cityNorm;
+    const sorted = [...list].sort((a, b) => (sameCity(b) ? 1 : 0) - (sameCity(a) ? 1 : 0));
+    return sorted.slice(0, 6);
+  }, [listing?.id, listing?.category, listing?.priceLabel, listing?.city]);
 
   const rentasMeta = useMemo(() => {
     if (!listing || listing.category !== "rentas") return null;
@@ -347,6 +351,12 @@ export default function AnuncioDetallePage() {
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
+  const [sellerStats, setSellerStats] = useState<{ avgRating: number | null; totalRatings: number } | null>(null);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender_id: string; message: string; created_at: string }>>([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatSending, setChatSending] = useState(false);
+  const [chatCurrentUserId, setChatCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!listing) return;
@@ -390,6 +400,23 @@ export default function AnuncioDetallePage() {
         setViewsToday(0);
       });
   }, [listing?.id]);
+
+  useEffect(() => {
+    const ownerId = (listing as any)?.owner_id;
+    if (!ownerId) {
+      setSellerStats(null);
+      return;
+    }
+    fetch(`/api/seller-stats?seller_id=${encodeURIComponent(ownerId)}`)
+      .then((res) => res.json())
+      .then((data: { avgRating?: number | null; totalRatings?: number }) => {
+        setSellerStats({
+          avgRating: typeof data.avgRating === "number" ? data.avgRating : null,
+          totalRatings: typeof data.totalRatings === "number" ? data.totalRatings : 0,
+        });
+      })
+      .catch(() => setSellerStats(null));
+  }, [(listing as any)?.owner_id]);
 
   useEffect(() => {
     if (!listing) return;
@@ -465,6 +492,57 @@ export default function AnuncioDetallePage() {
     setReportReason("");
     setReportDone(false);
     setShowReportModal(true);
+  };
+
+  useEffect(() => {
+    if (!showChatModal || !listing?.id) return;
+    const ownerId = (listing as any)?.owner_id;
+    let mounted = true;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setChatCurrentUserId(user?.id ?? null);
+      if (!user || !ownerId) {
+        setChatMessages([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("messages")
+        .select("id, sender_id, message, created_at")
+        .eq("listing_id", listing.id)
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: true });
+      if (mounted) setChatMessages((data ?? []) as Array<{ id: string; sender_id: string; message: string; created_at: string }>);
+    })();
+    return () => { mounted = false; };
+  }, [showChatModal, listing?.id, (listing as any)?.owner_id]);
+
+  const handleSendMessage = async () => {
+    const ownerId = (listing as any)?.owner_id;
+    if (!listing?.id || !ownerId || !chatDraft.trim()) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert(lang === "es" ? "Inicia sesión para enviar mensajes." : "Sign in to send messages.");
+      return;
+    }
+    setChatSending(true);
+    try {
+      const { data: inserted, error } = await supabase
+        .from("messages")
+        .insert({ sender_id: user.id, receiver_id: ownerId, listing_id: listing.id, message: chatDraft.trim().slice(0, 2000) })
+        .select("id, sender_id, message, created_at")
+        .single();
+      if (error) throw error;
+      setChatMessages((prev) => [...prev, { id: (inserted as any).id, sender_id: (inserted as any).sender_id, message: (inserted as any).message, created_at: (inserted as any).created_at }]);
+      setChatDraft("");
+      if (listing) trackEvent(listing.id, "message_sent");
+    } catch {
+      alert(lang === "es" ? "No se pudo enviar el mensaje." : "Could not send message.");
+    } finally {
+      setChatSending(false);
+    }
   };
 
   const handleReportSubmit = async () => {
@@ -973,6 +1051,66 @@ export default function AnuncioDetallePage() {
               </div>
             )}
 
+            {/* Chat modal — Contactar vendedor */}
+            {showChatModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
+                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col text-[#111111]">
+                  <div className="p-4 border-b border-black/10 flex justify-between items-center">
+                    <h3 className="text-lg font-bold">
+                      {lang === "es" ? "Contactar vendedor" : "Contact seller"}
+                    </h3>
+                    <button type="button" className="p-2 rounded-lg hover:bg-black/5" onClick={() => setShowChatModal(false)} aria-label={lang === "es" ? "Cerrar" : "Close"}>
+                      ×
+                    </button>
+                  </div>
+                  <div className="p-4 overflow-y-auto flex-1 min-h-[200px] space-y-2">
+                    {!chatCurrentUserId ? (
+                      <p className="text-sm text-[#111111]/70">{lang === "es" ? "Inicia sesión para enviar mensajes al vendedor." : "Sign in to send messages to the seller."}</p>
+                    ) : !(listing as any)?.owner_id ? (
+                      <p className="text-sm text-[#111111]/70">{lang === "es" ? "Este anuncio no tiene vendedor asignado." : "This listing has no seller assigned."}</p>
+                    ) : (
+                      <>
+                        {chatMessages.map((m) => (
+                          <div
+                            key={m.id}
+                            className={m.sender_id === chatCurrentUserId ? "text-right" : "text-left"}
+                          >
+                            <div className={m.sender_id === chatCurrentUserId ? "inline-block rounded-xl bg-[#C9B46A]/20 px-3 py-2 text-sm" : "inline-block rounded-xl bg-[#F5F5F5] px-3 py-2 text-sm"}>
+                              {m.message}
+                            </div>
+                            <div className="text-xs text-[#111111]/50 mt-0.5">
+                              {new Date(m.created_at).toLocaleString(lang === "es" ? "es-MX" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  {chatCurrentUserId && (listing as any)?.owner_id && (
+                    <div className="p-4 border-t border-black/10 flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                        placeholder={lang === "es" ? "Escribe tu mensaje…" : "Type your message…"}
+                        value={chatDraft}
+                        onChange={(e) => setChatDraft(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                        disabled={chatSending}
+                      />
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-xl bg-[#C9B46A] text-[#111111] font-semibold text-sm hover:opacity-90 disabled:opacity-50"
+                        onClick={handleSendMessage}
+                        disabled={chatSending || !chatDraft.trim()}
+                      >
+                        {chatSending ? (lang === "es" ? "…" : "…") : (lang === "es" ? "Enviar" : "Send")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* También te puede interesar */}
             {relatedListings.length > 0 && (
               <div className="mt-10">
@@ -1121,9 +1259,23 @@ export default function AnuncioDetallePage() {
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
-                <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
+                {sellerStats?.avgRating != null ? (
+                  <span>⭐ {sellerStats.avgRating.toFixed(1)} {lang === "es" ? "vendedor" : "seller"}</span>
+                ) : (
+                  <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
+                )}
+                <span>{sellerStats?.totalRatings ?? 0} {lang === "es" ? "ventas completadas" : "completed sales"}</span>
                 <span>📅 {lang === "es" ? "Miembro desde" : "Member since"} {listing?.sellerJoinYear ?? new Date().getFullYear()}</span>
                 <span>📦 {(listing?.sellerActiveListings ?? 0)} {lang === "es" ? "anuncios activos" : "active listings"}</span>
+              </div>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#C9B46A] text-[#111111] hover:opacity-90 transition"
+                  onClick={() => setShowChatModal(true)}
+                >
+                  {lang === "es" ? "Contactar vendedor" : "Contact seller"}
+                </button>
               </div>
             </div>
 
