@@ -367,6 +367,24 @@ export default function AnuncioDetallePage() {
     if (listing) trackEvent(listing.id, "listing_share");
   };
 
+  const handleGuardarAnuncio = () => {
+    if (listing) {
+      setSaved(toggleListingSaved(listing.id));
+      trackEvent(listing.id, "listing_save");
+    }
+  };
+
+  const handleCompartirAnuncio = handleShare;
+
+  const handleContactarVendedor = () => {
+    const el = document.getElementById("contact-actions");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleReportarAnuncio = () => {
+    alert(lang === "es" ? "Gracias — recibido." : "Thanks — received.");
+  };
+
 
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
@@ -800,8 +818,9 @@ export default function AnuncioDetallePage() {
 
               <div className="mt-4">
                 <button
-                  className="px-5 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
-                  onClick={() => alert(lang === "es" ? "Gracias — recibido." : "Thanks — received.")}
+                  type="button"
+                  className="cta-free px-5 py-2.5 rounded-full border border-gray-300 bg-white text-[#111111] font-semibold hover:bg-gray-50 transition"
+                  onClick={handleReportarAnuncio}
                 >
                   {t.report}
                 </button>
@@ -824,12 +843,7 @@ export default function AnuncioDetallePage() {
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (listing) {
-                      setSaved(toggleListingSaved(listing.id));
-                      trackEvent(listing.id, "listing_save");
-                    }
-                  }}
+                  onClick={handleGuardarAnuncio}
                   className={cx(
                     "w-full px-5 py-3 rounded-full font-semibold transition border",
                     "border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
@@ -840,7 +854,7 @@ export default function AnuncioDetallePage() {
 
                 <button
                   type="button"
-                  onClick={handleShare}
+                  onClick={handleCompartirAnuncio}
                   className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
                 >
                   {lang === "es" ? "Compartir" : "Share"}

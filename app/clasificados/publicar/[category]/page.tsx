@@ -215,7 +215,17 @@ function normalizeCity(raw: string): string {
   return "";
 }
 
-const DRAFT_KEY = "leonix_clasificados_post_draft_v1";
+function getStableSessionId(userId: string | null): string {
+  if (userId) return userId;
+  if (typeof window === "undefined") return "ssr";
+  const key = "leonix_listing_draft_session_id";
+  let id = sessionStorage.getItem(key);
+  if (!id) {
+    id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `anon_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    sessionStorage.setItem(key, id);
+  }
+  return id;
+}
 
 /** En Venta: rama principal (taxonomy-first Basics). */
 const EN_VENTA_RAMAS: Array<{ value: string; labelEs: string; labelEn: string }> = [
@@ -698,6 +708,11 @@ export default function PublicarPage() {
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
   const galleryTouchStartX = useRef<number>(0);
 
+  const draftKey = useMemo(
+    () => `listing_draft_${getStableSessionId(userId || null)}`,
+    [userId]
+  );
+
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
 
@@ -897,16 +912,15 @@ setIsPro(plan.includes("pro"));
     []
   )[lang];
 
-  // Load draft once signed in — restore form data only; always show Category step first (do not restore step)
+  // Load draft when key is ready — restore form data only; always show Category step first (do not restore step)
   useEffect(() => {
-    if (!signedIn) return;
+    if (draftKey === "listing_draft_ssr") return;
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = localStorage.getItem(draftKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
       if (parsed.v !== 1) return;
 
-      // Do NOT restore step: publish app must always land on Category step first
       setTitle(typeof parsed.title === "string" ? parsed.title : "");
       setDescription(typeof parsed.description === "string" ? parsed.description : "");
       setIsFree(Boolean(parsed.isFree));
@@ -924,7 +938,7 @@ setIsPro(plan.includes("pro"));
       // ignore corrupt drafts
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signedIn]);
+  }, [draftKey]);
 
   // Load active listing count for Garage Mode messaging (Free-only, En Venta).
   useEffect(() => {
@@ -973,9 +987,9 @@ setIsPro(plan.includes("pro"));
   }, [signedIn, userId, category]);
 
 
-  // Draft autosave (debounced)
+  // Draft autosave (debounced) — when title, description, price, category, etc. change
   useEffect(() => {
-    if (!signedIn) return;
+    if (draftKey === "listing_draft_ssr") return;
 
     if (draftTimer.current) window.clearTimeout(draftTimer.current);
     draftTimer.current = window.setTimeout(() => {
@@ -995,7 +1009,7 @@ setIsPro(plan.includes("pro"));
         updatedAt: new Date().toISOString(),
       };
       try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        localStorage.setItem(draftKey, JSON.stringify(draft));
       } catch {
         // ignore
       }
@@ -1004,7 +1018,7 @@ setIsPro(plan.includes("pro"));
     return () => {
       if (draftTimer.current) window.clearTimeout(draftTimer.current);
     };
-  }, [signedIn, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
+  }, [draftKey, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
 
   // Image previews (from images state)
   useEffect(() => {
@@ -1192,7 +1206,7 @@ setIsPro(plan.includes("pro"));
 
   function deleteDraft() {
     try {
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(draftKey);
     } catch {
       // ignore
     }
@@ -1782,10 +1796,11 @@ if (isPro && videoFile && !videoError) {
                     <div className="mt-4 grid gap-4">
                       {category === "en-venta" ? (
                         <>
-                          <div>
-                            <label className="text-sm text-[#111111]">
-                              {lang === "es" ? "Categoría" : "Category"}{" *"}
-                            </label>
+                          <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-sm text-[#111111]">
+                                {lang === "es" ? "Categoría" : "Category"}{" *"}
+                              </label>
                             <select
                               value={details.rama ?? ""}
                               onChange={(e) => {
@@ -1853,6 +1868,7 @@ if (isPro && videoFile && !videoError) {
                                 {lang === "es" ? "Requerido." : "Required."}
                               </div>
                             )}
+                            </div>
                           </div>
 
                           <div>
@@ -2731,7 +2747,7 @@ if (isPro && videoFile && !videoError) {
                               </ul>
                               <button
                                 type="button"
-                                className="upgrade-button rounded-xl bg-[#f5c518] hover:bg-[#e5b508] text-black font-semibold px-4 py-2.5 text-sm"
+                                className="cta-premium upgrade-button rounded-xl bg-[#f5c518] hover:bg-[#e5b508] text-black font-semibold px-4 py-2.5 text-sm"
                               >
                                 Actualizar a Pro — $9.99
                               </button>

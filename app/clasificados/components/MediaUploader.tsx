@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useRef, useState } from "react";
-import Link from "next/link";
 import imageCompression from "browser-image-compression";
 import {
   DndContext,
@@ -327,9 +326,13 @@ export function MediaUploader({
             {lang === "es"
               ? "Límite de fotos alcanzado. Actualiza a Pro para hasta 12 fotos y video."
               : "Photo limit reached. Upgrade to Pro for up to 12 photos and video."}
-            <Link href="/dashboard" className="mt-2 inline-block text-sm font-semibold text-[#A98C2A] hover:underline">
+            <button
+              type="button"
+              onClick={() => setShowVideoUpgradeModal(true)}
+              className="mt-2 inline-block text-sm font-semibold text-[#A98C2A] hover:underline"
+            >
               {lang === "es" ? "Ver planes Pro" : "See Pro plans"}
-            </Link>
+            </button>
           </div>
         )}
       </div>
@@ -411,35 +414,38 @@ export function MediaUploader({
         )}
       </div>
 
-      {/* Video upgrade modal */}
+      {/* Pro upgrade modal (no page reload / redirect) */}
       {showVideoUpgradeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl">
             <div className="p-5">
               <h3 className="text-lg font-semibold text-[#111111]">
-                {lang === "es" ? "Sube videos con LEONIX Pro" : "Upload videos with LEONIX Pro"}
+                {lang === "es" ? "Actualizar a LEONIX Pro" : "Upgrade to LEONIX Pro"}
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
-                <li>• {lang === "es" ? "Los videos atraen 3x más compradores" : "Videos attract 3x more buyers"}</li>
-                <li>• {lang === "es" ? "Distingue tu anuncio" : "Stand out from your listing"}</li>
-                <li>• {lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
-                <li>• {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
-                <li>• {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}</li>
+                <li>⭐ {lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
+                <li>🎥 {lang === "es" ? "Video destacado" : "Featured video"}</li>
+                <li>🚀 {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
+                <li>📅 {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}</li>
               </ul>
-              <p className="mt-4 text-lg font-semibold text-[#111111]">$9.99</p>
+              <p className="mt-4 text-lg font-semibold text-[#111111]">
+                {lang === "es" ? "Precio:" : "Price:"} $9.99
+              </p>
               <div className="mt-5 flex gap-3">
-                <Link
-                  href={`/dashboard?lang=${lang}`}
-                  className="flex-1 rounded-xl bg-black px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#333]"
+                <a
+                  href={`/clasificados/membresias?lang=${lang}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="cta-premium flex-1 rounded-xl bg-[#f5c518] px-4 py-3 text-center text-sm font-semibold text-black hover:bg-[#e5b508]"
                 >
-                  {lang === "es" ? "Actualizar a Pro" : "Upgrade to Pro"}
-                </Link>
+                  {lang === "es" ? "Actualizar ahora" : "Upgrade now"}
+                </a>
                 <button
                   type="button"
                   onClick={() => setShowVideoUpgradeModal(false)}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-gray-50"
+                  className="cta-free rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-gray-50"
                 >
-                  {lang === "es" ? "Cancelar" : "Cancel"}
+                  {lang === "es" ? "Seguir con anuncio gratis" : "Continue with free listing"}
                 </button>
               </div>
             </div>

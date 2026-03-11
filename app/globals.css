@@ -44,3 +44,21 @@ body {
   border-radius: 10px;
   background: #fffdf5;
 }
+
+/* Detalles section grid */
+.grid-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* CTA color system */
+.cta-free {
+  background: white;
+  border: 1px solid #9ca3af;
+}
+
+.cta-premium {
+  background: #f5c518;
+  color: black;
+}
