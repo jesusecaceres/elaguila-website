@@ -414,38 +414,36 @@ export function MediaUploader({
         )}
       </div>
 
-      {/* Pro upgrade modal (no page reload / redirect) */}
+      {/* Pro upgrade modal — approved copy (Mejora / Continuar, no Actualizar) */}
       {showVideoUpgradeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl">
             <div className="p-5">
               <h3 className="text-lg font-semibold text-[#111111]">
-                {lang === "es" ? "Actualizar a LEONIX Pro" : "Upgrade to LEONIX Pro"}
+                {lang === "es" ? "Mejora tu anuncio con LEONIX Pro" : "Upgrade your listing with LEONIX Pro"}
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
                 <li>⭐ {lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
                 <li>🎥 {lang === "es" ? "Video destacado" : "Featured video"}</li>
                 <li>🚀 {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
                 <li>📅 {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}</li>
+                <li>📈 {lang === "es" ? "Los anuncios con video reciben hasta 3× más visibilidad" : "Listings with video get up to 3× more visibility"}</li>
               </ul>
-              <p className="mt-4 text-lg font-semibold text-[#111111]">
-                {lang === "es" ? "Precio:" : "Price:"} $9.99
-              </p>
               <div className="mt-5 flex gap-3">
                 <a
                   href={`/clasificados/membresias?lang=${lang}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="cta-premium flex-1 rounded-xl bg-[#f5c518] px-4 py-3 text-center text-sm font-semibold text-black hover:bg-[#e5b508]"
+                  className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"
                 >
-                  {lang === "es" ? "Actualizar ahora" : "Upgrade now"}
+                  {lang === "es" ? "Mejora ahora — $9.99" : "Upgrade now — $9.99"}
                 </a>
                 <button
                   type="button"
                   onClick={() => setShowVideoUpgradeModal(false)}
                   className="cta-free rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-gray-50"
                 >
-                  {lang === "es" ? "Seguir con anuncio gratis" : "Continue with free listing"}
+                  {lang === "es" ? "Continuar con anuncio gratis" : "Continue with free listing"}
                 </button>
               </div>
             </div>

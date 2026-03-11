@@ -1,4 +1,3 @@
-import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { isProListing } from "../components/planHelpers";
 import type { ListingData } from "../components/ListingView";
 
@@ -42,8 +41,16 @@ export type ListingRow = Record<string, unknown> & {
 };
 
 function normalizeImages(row: ListingRow): string[] {
-  const raw =
-    row.image_urls ?? row.images ?? row.imageUrls ?? row.photos ?? [];
+  let raw: unknown =
+    row.images ?? row.image_urls ?? row.imageUrls ?? row.photos;
+  if (raw == null) raw = [];
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw) as unknown;
+    } catch {
+      raw = [];
+    }
+  }
   if (!Array.isArray(raw)) return [];
   const urls = raw.filter((u): u is string => typeof u === "string");
   return urls.length > 0 ? urls : ["/logo.png"];
@@ -75,11 +82,13 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
 
   const isFree = row.is_free === true || row.isFree === true;
   const priceRaw = row.price;
+  const priceNum = priceRaw != null && priceRaw !== "" ? Number(String(priceRaw).replace(/[^0-9.]/g, "")) : NaN;
+  const hasPrice = Number.isFinite(priceNum) && priceNum >= 0;
   const priceLabel =
     isFree
       ? (L === "es" ? "Gratis" : "Free")
-      : priceRaw != null && priceRaw !== "" && Number(priceRaw) !== 0
-        ? formatListingPrice(priceRaw, { lang: L, isFree: false })
+      : hasPrice
+        ? (priceNum === 0 ? (L === "es" ? "Gratis" : "Free") : `$${Math.round(priceNum)}`)
         : (L === "es" ? "(Sin precio)" : "(No price)");
 
   const todayLabel =

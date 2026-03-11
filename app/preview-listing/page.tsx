@@ -26,11 +26,12 @@ export default function PreviewListingPage() {
     if (!draft) return null;
     const row = {
       ...draft,
+      images: draft.imageUrls,
       image_urls: draft.imageUrls,
       contact_phone: draft.contactPhone,
       contact_email: draft.contactEmail,
       is_free: draft.isFree,
-      price: draft.price,
+      price: draft.price.trim() ? draft.price : null,
     };
     return mapListingToViewModel(row, draft.lang);
   }, [draft]);
