@@ -126,6 +126,16 @@ function normalizeCityKey(input: string): string {
   return stripDiacritics((input ?? "").trim().toLowerCase()).replace(/\s+/g, " ").trim();
 }
 
+function getCityCoords(cityName: string): { lat: number; lng: number } | null {
+  const key = normalizeCityKey(cityName);
+  if (!key) return null;
+  if (CITY_COORDS[key]) return CITY_COORDS[key];
+  const record = CA_CITIES.find(
+    (r) => normalizeCityKey(r.city) === key || r.aliases?.some((a) => normalizeCityKey(a) === key)
+  );
+  return record ? { lat: record.lat, lng: record.lng } : null;
+}
+
 function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3959;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -137,18 +147,20 @@ function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number):
   return R * c;
 }
 
+function getRoughDistanceMiles(viewerCity: string, listingCity: string): number | null {
+  const a = getCityCoords(viewerCity);
+  const b = getCityCoords(listingCity);
+  if (!a || !b) return null;
+  return haversineMiles(a.lat, a.lng, b.lat, b.lng);
+}
+
 function getRoughDistanceLabel(viewerCity: string, listingCity: string, lang: "es" | "en"): string {
-  const listingKey = normalizeCityKey(listingCity);
-  if (!listingKey || !CITY_COORDS[listingKey]) return "";
-  const viewerKey = normalizeCityKey(viewerCity);
-  if (!viewerKey || !CITY_COORDS[viewerKey]) {
+  const miles = getRoughDistanceMiles(viewerCity, listingCity);
+  if (miles === null) {
     return lang === "es"
       ? "Agrega una ciudad reconocida para estimar distancia"
       : "Enter a recognized city to estimate distance";
   }
-  const a = CITY_COORDS[viewerKey];
-  const b = CITY_COORDS[listingKey];
-  const miles = haversineMiles(a.lat, a.lng, b.lat, b.lng);
   return lang === "es"
     ? `Aproximadamente a ${Math.round(miles)} millas de ti`
     : `Approximately ${Math.round(miles)} miles from you`;
@@ -684,6 +696,7 @@ export default function PublicarPage() {
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
+  const galleryTouchStartX = useRef<number>(0);
 
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
@@ -1545,6 +1558,10 @@ if (isPro && videoFile && !videoError) {
   const previewDetailPairs = getDetailPairs(category, lang, details);
   const coverImage = filePreviews[0] ?? null;
   const extraPreviewImages = filePreviews.slice(1, 5);
+  const allPreviewImages = useMemo(
+    () => [coverImage, ...extraPreviewImages].filter(Boolean) as string[],
+    [coverImage, extraPreviewImages]
+  );
   const previewCategoryLabel = category ? categoryConfig[category as CategoryKey]?.label[lang] ?? "" : "";
   const previewContactMethod = contactMethod;
   const previewDistanceLabel = previewCity && previewCity !== (lang === "es" ? "(Ciudad)" : "(City)")
@@ -1569,6 +1586,10 @@ if (isPro && videoFile && !videoError) {
   const viewerDistanceLabel = useMemo(
     () => getRoughDistanceLabel(viewerCityInput, city.trim(), lang),
     [viewerCityInput, city, lang]
+  );
+  const viewerDistanceMiles = useMemo(
+    () => getRoughDistanceMiles(viewerCityInput, city.trim()),
+    [viewerCityInput, city]
   );
 
   return (
@@ -2567,7 +2588,22 @@ if (isPro && videoFile && !videoError) {
                       <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,340px)] gap-6">
                         {/* Left: media gallery */}
                         <div>
-                          <div className="rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8] max-h-[min(50vh,380px)] min-h-[200px] flex items-center justify-center">
+                          <div
+                            className="relative rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8] max-h-[min(50vh,380px)] min-h-[200px] flex items-center justify-center"
+                            onTouchStart={(e) => {
+                              galleryTouchStartX.current = e.touches[0]?.clientX ?? 0;
+                            }}
+                            onTouchEnd={(e) => {
+                              const endX = e.changedTouches[0]?.clientX ?? 0;
+                              const dx = endX - galleryTouchStartX.current;
+                              const list = allPreviewImages;
+                              if (list.length <= 1) return;
+                              const idx = list.findIndex((src) => (activePreviewImage ?? coverImage) === src);
+                              const safeIdx = idx < 0 ? 0 : idx;
+                              if (dx > 50) setActivePreviewImage(list[(safeIdx - 1 + list.length) % list.length] ?? null);
+                              else if (dx < -50) setActivePreviewImage(list[(safeIdx + 1) % list.length] ?? null);
+                            }}
+                          >
                             {(activePreviewImage ?? coverImage) ? (
                               <img
                                 src={activePreviewImage ?? coverImage ?? ""}
@@ -2578,6 +2614,36 @@ if (isPro && videoFile && !videoError) {
                               <div className="flex items-center justify-center text-[#111111]/50 text-sm px-4 text-center min-h-[200px]">
                                 {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
                               </div>
+                            )}
+                            {allPreviewImages.length > 1 && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="gallery-arrow-left absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                                  aria-label={lang === "es" ? "Anterior" : "Previous"}
+                                  onClick={() => {
+                                    const list = allPreviewImages;
+                                    const idx = list.findIndex((src) => (activePreviewImage ?? coverImage) === src);
+                                    const safeIdx = idx < 0 ? 0 : idx;
+                                    setActivePreviewImage(list[(safeIdx - 1 + list.length) % list.length] ?? null);
+                                  }}
+                                >
+                                  ←
+                                </button>
+                                <button
+                                  type="button"
+                                  className="gallery-arrow-right absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                                  aria-label={lang === "es" ? "Siguiente" : "Next"}
+                                  onClick={() => {
+                                    const list = allPreviewImages;
+                                    const idx = list.findIndex((src) => (activePreviewImage ?? coverImage) === src);
+                                    const safeIdx = idx < 0 ? 0 : idx;
+                                    setActivePreviewImage(list[(safeIdx + 1) % list.length] ?? null);
+                                  }}
+                                >
+                                  →
+                                </button>
+                              </>
                             )}
                           </div>
                           {extraPreviewImages.length >= 1 && (
@@ -2658,10 +2724,10 @@ if (isPro && videoFile && !videoError) {
                                 Mejora tu anuncio con LEONIX Pro
                               </h3>
                               <ul className="list-disc pl-5 space-y-1 text-sm text-[#111111] mb-4">
-                                <li>Hasta 12 fotos</li>
-                                <li>Sube video a tu anuncio</li>
-                                <li>2 impulsos de visibilidad</li>
-                                <li>Duración del anuncio: 30 días</li>
+                                <li>⭐ Hasta 12 fotos</li>
+                                <li>🎥 Video destacado</li>
+                                <li>🚀 2 impulsos de visibilidad</li>
+                                <li>📅 Duración del anuncio: 30 días</li>
                               </ul>
                               <button
                                 type="button"
@@ -2673,25 +2739,21 @@ if (isPro && videoFile && !videoError) {
                           )}
                         </div>
 
-                        {/* Right: info */}
+                        {/* Right: info — order: Price, Title, Actions, Category, Detalles, Descripción, Contact, Vendedor, Ubicación */}
                         <div className="space-y-4">
-                          <h1 className="text-xl font-semibold text-[#111111] leading-tight">{previewTitle}</h1>
+                          {/* 1. Price */}
                           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                            <span className="text-lg font-semibold text-[#111111]">{previewPrice}</span>
+                            <span className="text-xl font-semibold text-[#111111]">{previewPrice}</span>
                             <span className="text-[#111111]/40">·</span>
                             <span className="text-sm text-[#111111]/80">{previewCity}</span>
                             <span className="text-[#111111]/40">·</span>
                             <span className="text-xs text-[#111111]/60">{previewPosted}</span>
                           </div>
-                          {previewCategoryLabel ? (
-                            <span className="inline-block rounded-md border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-[#111111]">
-                              {previewCategoryLabel}
-                            </span>
-                          ) : null}
-                          {previewDistanceLabel ? (
-                            <p className="text-sm text-[#111111]/70">{previewDistanceLabel}</p>
-                          ) : null}
 
+                          {/* 2. Title */}
+                          <h1 className="text-xl font-semibold text-[#111111] leading-tight mt-0">{previewTitle}</h1>
+
+                          {/* 3. Action buttons */}
                           <div className="flex flex-wrap gap-2">
                             <span className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
                               {copy.saveLabel}
@@ -2714,6 +2776,14 @@ if (isPro && videoFile && !videoError) {
                             </button>
                           </div>
 
+                          {/* 4. Category badge */}
+                          {previewCategoryLabel ? (
+                            <span className="inline-block rounded-md border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-[#111111]">
+                              {previewCategoryLabel}
+                            </span>
+                          ) : null}
+
+                          {/* 5. Detalles */}
                           {previewDetailPairs.length > 0 && (
                             <div className="rounded-xl border border-black/10 bg-white p-4">
                               <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
@@ -2730,6 +2800,7 @@ if (isPro && videoFile && !videoError) {
                             </div>
                           )}
 
+                          {/* 6. Descripción */}
                           <div className="rounded-xl border border-black/10 bg-white p-4">
                             <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
                               {lang === "es" ? "Descripción" : "Description"}
@@ -2739,6 +2810,7 @@ if (isPro && videoFile && !videoError) {
                             </div>
                           </div>
 
+                          {/* Contact (scroll target for Contactar) */}
                           <div
                             id="full-preview-contact-section"
                             className="rounded-xl border border-black/10 bg-white p-4 scroll-mt-4"
@@ -2768,20 +2840,46 @@ if (isPro && videoFile && !videoError) {
                             </button>
                           </div>
 
+                          {/* 7. Vendedor (seller card) */}
+                          <div className="seller-card rounded-xl border border-black/10 bg-white p-4">
+                            <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                              {lang === "es" ? "Publicado por" : "Posted by"}
+                            </h4>
+                            <p className="text-sm font-medium text-[#111111]">
+                              {lang === "es" ? "Tú" : "You"}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
+                              <span>⭐ {lang === "es" ? "Nuevo vendedor" : "New seller"}</span>
+                              <span>{lang === "es" ? "Miembro desde" : "Member since"} {new Date().getFullYear()}</span>
+                            </div>
+                          </div>
+
+                          {/* 8. Ubicación (location + distance calculator) */}
                           <div className="rounded-xl border border-black/10 bg-white p-4">
                             <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                              {lang === "es" ? "Tu ubicación" : "Your location"}
+                              {lang === "es" ? "Ubicación" : "Location"}
                             </h3>
-                            <input
-                              type="text"
+                            <p className="text-sm text-[#111111] mb-2">
+                              {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {previewCity}
+                            </p>
+                            <label className="block text-sm text-[#111111]/80 mb-1">
+                              {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
+                            </label>
+                            <CityAutocomplete
                               value={viewerCityInput}
-                              onChange={(e) => setViewerCityInput(e.target.value)}
-                              placeholder={lang === "es" ? "Escribe tu ciudad" : "Enter your city"}
-                              className="w-full rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              onChange={setViewerCityInput}
+                              placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
+                              lang={lang}
+                              variant="light"
+                              className="mt-1"
                             />
-                            {viewerCityInput.trim() && viewerDistanceLabel ? (
-                              <p className="mt-2 text-sm text-[#111111]/80">{viewerDistanceLabel}</p>
-                            ) : null}
+                            {viewerDistanceMiles !== null && (
+                              <p className="mt-2 text-sm text-[#111111]/80">
+                                {lang === "es"
+                                  ? `Aproximadamente ${Math.round(viewerDistanceMiles)} millas de distancia`
+                                  : `Approximately ${Math.round(viewerDistanceMiles)} miles away`}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
