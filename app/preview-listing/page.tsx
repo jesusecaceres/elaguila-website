@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
-import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
+import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
@@ -24,40 +24,15 @@ export default function PreviewListingPage() {
 
   const draftListingData = useMemo((): ListingData | null => {
     if (!draft) return null;
-    const L = draft.lang;
-    const title = draft.title.trim() || (L === "es" ? "(Sin título)" : "(No title)");
-    const priceLabel =
-      !draft.price.trim() && !draft.isFree
-        ? L === "es"
-          ? "Gratis"
-          : "Free"
-        : formatListingPrice(draft.price, { lang: L, isFree: draft.isFree });
-    const city = draft.city.trim() || (L === "es" ? "Ciudad" : "City");
-    const description = draft.description.trim() || (L === "es" ? "Sin descripción" : "No description");
-    const contactPhone = (draft as any).contact_phone ?? draft.contactPhone ?? "";
-    const contactEmail = (draft as any).contact_email ?? draft.contactEmail ?? "";
-    const contactMethod =
-      draft.contactMethod ??
-      (contactPhone && contactEmail ? "both" : contactPhone ? "phone" : contactEmail ? "email" : "both");
-    const rawImages =
-      (draft as any).image_urls ?? (draft as any).images ?? draft.imageUrls ?? (draft as any).photos ?? [];
-    const images = Array.isArray(rawImages) && rawImages.length > 0 ? rawImages : ["/logo.png"];
-    return {
-      title,
-      priceLabel,
-      city,
-      description,
-      todayLabel: draft.todayLabel,
-      images,
-      detailPairs: draft.detailPairs ?? [],
-      contactMethod: contactMethod as "phone" | "email" | "both",
-      contactPhone,
-      contactEmail,
-      isPro: draft.isPro ?? false,
-      proVideoThumbUrl: draft.proVideoThumbUrl ?? null,
-      proVideoUrl: draft.proVideoUrl ?? null,
-      lang: L,
+    const row = {
+      ...draft,
+      image_urls: draft.imageUrls,
+      contact_phone: draft.contactPhone,
+      contact_email: draft.contactEmail,
+      is_free: draft.isFree,
+      price: draft.price,
     };
+    return mapListingToViewModel(row, draft.lang);
   }, [draft]);
 
   const t = useMemo(
@@ -120,11 +95,11 @@ export default function PreviewListingPage() {
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <Navbar />
-      {/* Back to edit bar — use router.back() to avoid form reset */}
+      {/* Back to edit — single top bar; bottom actions are primary */}
       <div className="sticky top-0 z-30 flex items-center justify-between gap-4 px-4 py-3 border-b border-black/10 bg-[#F5F5F5] shadow-sm">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
           className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
         >
           ← {t.backToEdit}
@@ -162,7 +137,7 @@ export default function PreviewListingPage() {
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
               className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
             >
               {t.editListing}

@@ -41,7 +41,15 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
   const [viewerCityInput, setViewerCityInput] = useState("");
   const [mediaIndex, setMediaIndex] = useState(0);
   const [showProVideo, setShowProVideo] = useState(false);
+  const [previewToast, setPreviewToast] = useState<string | null>(null);
   const galleryTouchStartX = useRef(0);
+
+  const showPreviewToast = useCallback((msg: string) => {
+    if (!previewMode) return;
+    setPreviewToast(msg);
+    const t = setTimeout(() => setPreviewToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [previewMode]);
 
   const images = useMemo(() => {
     const incoming = listing.images ?? [];
@@ -94,6 +102,9 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             tapToPlay: "Toque la miniatura para reproducir. No se reproduce automáticamente.",
             play: "Reproducir",
             details: "Detalles",
+            previewToastSave: "Vista previa: aquí el usuario guardará el anuncio",
+            previewToastShare: "Vista previa: aquí el usuario compartirá el anuncio",
+            previewToastContact: "Vista previa: contacto —",
           }
         : {
             actionsTitle: "Actions",
@@ -116,6 +127,9 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             tapToPlay: "Tap the thumbnail to play. No autoplay.",
             play: "Play",
             details: "Details",
+            previewToastSave: "Preview: user would save listing here",
+            previewToastShare: "Preview: user would share listing here",
+            previewToastContact: "Preview: contact —",
           },
     [lang]
   );
@@ -234,9 +248,9 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
                 {t.details}
               </h3>
               {listing.detailPairs.map((p) => (
-                <div key={p.label} className="flex justify-between gap-2 text-sm">
-                  <span className="text-[#111111]/70">{p.label}</span>
-                  <span className="font-medium text-[#111111]">{p.value}</span>
+                <div key={p.label} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 text-sm">
+                  <span className="text-[#111111]/70 shrink-0">{p.label}</span>
+                  <span className="font-medium text-[#111111] break-words min-w-0">{p.value}</span>
                 </div>
               ))}
             </div>
@@ -304,21 +318,28 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
           <div className="mt-4 space-y-3">
             <button
               type="button"
-              disabled={false}
+              onClick={() => previewMode && showPreviewToast(t.previewToastSave)}
               className="w-full px-5 py-3 rounded-full font-semibold transition border border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
             >
               {t.guardar}
             </button>
             <button
               type="button"
-              disabled={false}
+              onClick={() => previewMode && showPreviewToast(t.previewToastShare)}
               className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
             >
               {t.compartir}
             </button>
             <button
               type="button"
-              disabled={false}
+              onClick={() => {
+                if (previewMode) {
+                  const parts = [t.previewToastContact];
+                  if (listing.contactPhone) parts.push(`Tel: ${listing.contactPhone}`);
+                  if (listing.contactEmail) parts.push(`Email: ${listing.contactEmail}`);
+                  showPreviewToast(parts.join(" "));
+                }
+              }}
               className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
             >
               {t.contactar}
@@ -377,6 +398,16 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
           </div>
         </div>
       </div>
+
+      {/* Preview-only toast */}
+      {previewMode && previewToast && (
+        <div
+          className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-md rounded-xl bg-[#111111] px-4 py-3 text-sm text-[#F5F5F5] shadow-lg sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
+          role="status"
+        >
+          {previewToast}
+        </div>
+      )}
     </div>
   );
 }

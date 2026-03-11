@@ -627,6 +627,11 @@ export default function PublicarPage() {
     if (searchParams?.get("fromPreview") === "1") setPreviewViewed(true);
   }, [searchParams]);
 
+  useEffect(() => {
+    const s = searchParams?.get("step");
+    if (s === "media") setStep("media");
+  }, [searchParams]);
+
   type ServicesPackage = "" | "standard" | "plus";
   const [servicesPackage, setServicesPackage] = useState<ServicesPackage>("");
   const [showServicesGate, setShowServicesGate] = useState(false);
@@ -1676,6 +1681,7 @@ if (isPro && videoFile && !videoError) {
     const qs = new URLSearchParams(searchParams?.toString() ?? "");
     qs.set("lang", lang);
     qs.set("fromPreview", "1");
+    qs.set("step", "media");
     const backToEditUrl = `${pathname ?? `/clasificados/publicar/${slug}`}?${qs.toString()}`;
     if (images.length > 0) {
       try {
