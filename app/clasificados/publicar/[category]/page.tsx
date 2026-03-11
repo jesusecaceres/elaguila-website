@@ -577,6 +577,7 @@ export default function PublicarPage() {
   const [videoError, setVideoError] = useState<string>("");
   const [showProVideoPreview, setShowProVideoPreview] = useState(false);
   const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
+  const [previewViewed, setPreviewViewed] = useState(false);
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
   const [viewerCityInput, setViewerCityInput] = useState("");
 
@@ -2398,7 +2399,10 @@ if (isPro && videoFile && !videoError) {
                             <div className="mt-4 pt-3 border-t border-black/10">
                               <button
                                 type="button"
-                                onClick={() => setIsFullPreviewOpen(true)}
+                                onClick={() => {
+                                  setIsFullPreviewOpen(true);
+                                  setPreviewViewed(true);
+                                }}
                                 className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               >
                                 {copy.fullPreviewCta}
@@ -2496,6 +2500,11 @@ if (isPro && videoFile && !videoError) {
                           {copy.back}
                         </button>
 
+                        {!previewViewed && (
+                          <p className="text-sm text-amber-700 mb-3">
+                            Debes revisar el anuncio completo antes de publicarlo.
+                          </p>
+                        )}
                         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                           {publishedId && (
                             <button
@@ -2508,11 +2517,11 @@ if (isPro && videoFile && !videoError) {
                           )}
                           <button
                             type="button"
-                            disabled={publishing || !requirements.allOk}
+                            disabled={publishing || !requirements.allOk || !previewViewed}
                             onClick={publish}
                             className={cx(
                               "rounded-xl font-semibold px-6 py-3",
-                              publishing || !requirements.allOk
+                              publishing || !requirements.allOk || !previewViewed
                                 ? "bg-yellow-500/40 text-black/70 cursor-not-allowed"
                                 : "bg-yellow-500/90 hover:bg-yellow-500 text-black"
                             )}
@@ -2740,6 +2749,20 @@ if (isPro && videoFile && !videoError) {
                             ) : null}
                           </div>
                         </div>
+                      </div>
+                      <div className="confirm-preview px-4 sm:px-6 pb-4 sm:pb-6 pt-2 border-t border-black/10 bg-white">
+                        <label htmlFor="confirmPreview" className="flex items-start gap-3 cursor-pointer text-sm text-[#111111]">
+                          <input
+                            type="checkbox"
+                            id="confirmPreview"
+                            checked={previewViewed}
+                            onChange={(e) => setPreviewViewed(e.target.checked)}
+                            className="mt-1 rounded border-black/20 text-[#C9B46A] focus:ring-yellow-400/30"
+                          />
+                          <span>
+                            Confirmo que revisé mi anuncio y que toda la información es correcta.
+                          </span>
+                        </label>
                       </div>
                     </div>
                   </div>
