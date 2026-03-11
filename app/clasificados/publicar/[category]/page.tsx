@@ -720,7 +720,8 @@ export default function PublicarPage() {
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
 
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
@@ -2225,23 +2226,42 @@ if (isPro && videoFile && !videoError) {
                                 : `(Max ${maxImages}. ${isPro ? "You can reorder." : "Pro: 12 + reorder."})`}
                             </span>
                           </div>
+                        </div>
+
+                        <input
+                          ref={cameraInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleImageSelect}
+                          style={{ display: "none" }}
+                          aria-hidden
+                        />
+                        <input
+                          ref={galleryInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageSelect}
+                          style={{ display: "none" }}
+                          aria-hidden
+                        />
+
+                        <div className="flex gap-3 mt-3">
                           <button
                             type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-4 py-2 text-sm font-semibold text-[#111111] cursor-pointer"
+                            onClick={() => cameraInputRef.current?.click()}
+                            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded"
                           >
-                            {copy.addImages}
+                            📷 {lang === "es" ? "Cámara" : "Camera"}
                           </button>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            multiple
-                            onChange={handleImageSelect}
-                            className="hidden"
-                            style={{ display: "none" }}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => galleryInputRef.current?.click()}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-[#111111] rounded"
+                          >
+                            🖼 {lang === "es" ? "Galería" : "Gallery"}
+                          </button>
                         </div>
 
                         {images.length === 0 ? (
