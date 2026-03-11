@@ -633,20 +633,20 @@ export default function PublicarPage() {
   const [contactMethod, setContactMethod] = useState<"phone" | "email" | "both">("both");
   const [contactPhone, setContactPhone] = useState<string>(() => formatPhoneDisplay(prefill.phone || ""));
   const [contactEmail, setContactEmail] = useState<string>("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [images, setImages] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
 
   const maxImages = isPro ? 12 : 5;
 
   // If plan changes to Free, trim images to Free limit.
   useEffect(() => {
-    if (!isPro && files.length > 5) {
-      setFiles((prev) => prev.slice(0, 5));
+    if (!isPro && images.length > 5) {
+      setImages((prev) => prev.slice(0, 5));
     }
-  }, [isPro, files.length]);
+  }, [isPro, images.length]);
 
   const moveImage = (from: number, to: number) => {
-    setFiles((prev) => {
+    setImages((prev) => {
       if (from === to) return prev;
       if (from < 0 || from >= prev.length) return prev;
       if (to < 0 || to >= prev.length) return prev;
@@ -663,7 +663,29 @@ export default function PublicarPage() {
   const moveRight = (idx: number) => moveImage(idx, idx + 1);
 
   const removeImage = (idx: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== idx));
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    setImages((prev) => {
+      const combined = [...prev, ...files];
+      const seen = new Set<string>();
+      const deduped: File[] = [];
+      for (const f of combined) {
+        const k = `${f.name}__${f.size}__${f.lastModified}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        deduped.push(f);
+      }
+      return deduped.slice(0, maxImages);
+    });
+    try {
+      (event.target as HTMLInputElement).value = "";
+    } catch {
+      /* reset input so picking the same file again triggers change */
+    }
   };
 
   const proVideoThumbPreviewUrl = useMemo(() => {
@@ -1009,14 +1031,14 @@ setIsPro(plan.includes("pro"));
     };
   }, [signedIn, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
 
-  // Image previews
+  // Image previews (from images state)
   useEffect(() => {
-    const urls = files.map((f) => URL.createObjectURL(f));
+    const urls = images.map((f) => URL.createObjectURL(f));
     setFilePreviews(urls);
     return () => {
       urls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [files]);
+  }, [images]);
 
   const requirements = useMemo(() => {
     const categoryOk = !!normalizeCategory(category);
@@ -1024,7 +1046,7 @@ setIsPro(plan.includes("pro"));
     const descOk = description.trim().length >= 5;
     const cityOk = Boolean(normalizeCity(city));
     const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
-    const imagesOk = files.length >= 1;
+    const imagesOk = images.length >= 1;
     const phoneDigits = getPhoneDigits(contactPhone);
     const phoneOk = contactMethod === "email" ? true : phoneDigits.length === 10;
     const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
@@ -1054,7 +1076,7 @@ setIsPro(plan.includes("pro"));
         emailOk &&
         enVentaMetaOk,
     };
-  }, [category, title, description, city, isFree, price, details, files.length, contactMethod, contactPhone, contactEmail, lang]);
+  }, [category, title, description, city, isFree, price, details, images.length, contactMethod, contactPhone, contactEmail, lang]);
 
   const basicsOk =
     category === "en-venta"
@@ -1433,8 +1455,8 @@ async function publish() {
       const photoUrls: string[] = [];
       try {
         const basePath = `${userId}/${id}/photos`;
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i];
+        for (let i = 0; i < images.length; i++) {
+          const f = images[i];
           const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
           const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
           const path = `${basePath}/${String(i + 1).padStart(2, "0")}.${safeExt}`;
@@ -2216,69 +2238,49 @@ if (isPro && videoFile && !videoError) {
                             accept="image/*"
                             capture="environment"
                             multiple
+                            onChange={handleImageSelect}
                             className="hidden"
-                            onChange={(e) => {
-                              const selected = Array.from(e.target.files ?? []);
-                              // Allow adding more photos across multiple picks
-                              const combined = [...files, ...selected];
-
-                              // De-dupe by (name,size,lastModified) to avoid accidental duplicates
-                              const seen = new Set<string>();
-                              const deduped: File[] = [];
-                              for (const f of combined) {
-                                const k = `${f.name}__${f.size}__${f.lastModified}`;
-                                if (seen.has(k)) continue;
-                                seen.add(k);
-                                deduped.push(f);
-                              }
-
-                              setFiles(deduped.slice(0, maxImages));
-
-                              // reset input so picking the same file again triggers change
-                              try { (e.target as HTMLInputElement).value = ""; } catch {}
-                            }}
+                            style={{ display: "none" }}
                           />
                         </div>
 
-                        {files.length === 0 ? (
+                        {images.length === 0 ? (
                           <div className="mt-3 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 text-sm text-[#111111]/55">
                             {lang === "es" ? "Agrega por lo menos 1 foto." : "Add at least 1 photo."}
                           </div>
                         ) : (
-                          <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            {filePreviews.map((src, idx) => (
+                          <div className="grid grid-cols-3 gap-2 mt-3">
+                            {filePreviews.map((src, index) => (
                               <div
-                                key={idx}
-                                className="relative overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]"
+                                key={index}
+                                className="relative overflow-hidden rounded border border-black/10 bg-[#F5F5F5]"
                               >
-                                <img src={src} alt="preview" className="h-20 w-full object-cover" />
-                                {idx === 0 && (
+                                <img src={src} alt="preview" className="w-full h-28 object-cover rounded" />
+                                {index === 0 && (
                                   <div className="absolute left-1 top-1 rounded-md bg-white/14 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-200 border border-yellow-400/20">
                                     {lang === "es" ? "Portada" : "Cover"}
                                   </div>
                                 )}
 
-                                <div className="absolute right-1 top-1 flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => removeImage(idx)}
-                                    className="rounded-md border border-black/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-[#111111] hover:bg-white/16"
-                                    aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
-                                    title={lang === "es" ? "Quitar" : "Remove"}
-                                  >
-                                    ✖
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                                  className="absolute top-1 right-1 bg-black text-white text-xs rounded-full w-5 h-5"
+                                  aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
+                                  title={lang === "es" ? "Quitar" : "Remove"}
+                                >
+                                  ×
+                                </button>
 
                                 {isPro && (
                                   <div className="absolute left-1 bottom-1 flex items-center gap-1">
                                     <button
                                       type="button"
-                                      disabled={idx === 0}
-                                      onClick={() => makeCover(idx)}
+                                      disabled={index === 0}
+                                      onClick={() => makeCover(index)}
                                       className={cx(
                                         "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold",
-                                        idx === 0
+                                        index === 0
                                           ? "border-black/10 bg-white/9 text-[#111111]/40 cursor-not-allowed"
                                           : "border-yellow-500/25 bg-white/14 text-yellow-200 hover:bg-white/16"
                                       )}
@@ -2289,11 +2291,11 @@ if (isPro && videoFile && !videoError) {
 
                                     <button
                                       type="button"
-                                      disabled={idx === 0}
-                                      onClick={() => moveLeft(idx)}
+                                      disabled={index === 0}
+                                      onClick={() => moveLeft(index)}
                                       className={cx(
                                         "rounded-md border border-black/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-[#111111] hover:bg-white/16",
-                                        idx === 0 && "opacity-40 cursor-not-allowed"
+                                        index === 0 && "opacity-40 cursor-not-allowed"
                                       )}
                                       title={lang === "es" ? "Mover izquierda" : "Move left"}
                                     >
@@ -2302,11 +2304,11 @@ if (isPro && videoFile && !videoError) {
 
                                     <button
                                       type="button"
-                                      disabled={idx === filePreviews.length - 1}
-                                      onClick={() => moveRight(idx)}
+                                      disabled={index === filePreviews.length - 1}
+                                      onClick={() => moveRight(index)}
                                       className={cx(
                                         "rounded-md border border-black/10 bg-white/14 px-1.5 py-0.5 text-[10px] text-[#111111] hover:bg-white/16",
-                                        idx === filePreviews.length - 1 && "opacity-40 cursor-not-allowed"
+                                        index === filePreviews.length - 1 && "opacity-40 cursor-not-allowed"
                                       )}
                                       title={lang === "es" ? "Mover derecha" : "Move right"}
                                     >
