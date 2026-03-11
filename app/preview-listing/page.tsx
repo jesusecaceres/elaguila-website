@@ -24,14 +24,15 @@ export default function PreviewListingPage() {
 
   const draftListingData = useMemo((): ListingData | null => {
     if (!draft) return null;
+    const imageUrls = draft.imageUrls ?? [];
     const row = {
       ...draft,
-      images: draft.imageUrls,
-      image_urls: draft.imageUrls,
-      contact_phone: draft.contactPhone,
-      contact_email: draft.contactEmail,
+      images: imageUrls,
+      image_urls: imageUrls,
+      contact_phone: draft.contactPhone ?? "",
+      contact_email: draft.contactEmail ?? "",
       is_free: draft.isFree,
-      price: draft.price.trim() ? draft.price : null,
+      price: draft.price?.trim() ? draft.price.trim() : (draft.isFree ? "0" : null),
     };
     return mapListingToViewModel(row, draft.lang);
   }, [draft]);
