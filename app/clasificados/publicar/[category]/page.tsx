@@ -702,6 +702,8 @@ export default function PublicarPage() {
   const [publishError, setPublishError] = useState<string>("");
   const [publishing, setPublishing] = useState<boolean>(false);
   const [publishedId, setPublishedId] = useState<string>("");
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   const draftTimer = useRef<number | null>(null);
@@ -842,7 +844,11 @@ setIsPro(plan.includes("pro"));
         email: "Email",
         both: "Ambos",
         publish: "Publicar",
-        publishing: "Publicando…",
+        publishing: "Publicando anuncio…",
+        rulesConfirm: "Confirmo que mi anuncio cumple con las reglas de la comunidad.",
+        errorTitle: "Error al publicar anuncio",
+        successTitle: "Anuncio publicado",
+        goToMyListings: "Ir a mis anuncios",
         preview: "Vista previa",
         cardPreview: "Tarjeta (grid)",
         detailPreview: "Detalle",
@@ -890,7 +896,11 @@ setIsPro(plan.includes("pro"));
         email: "Email",
         both: "Both",
         publish: "Publish",
-        publishing: "Publishing…",
+        publishing: "Publishing listing…",
+        rulesConfirm: "I confirm that my listing complies with the community rules.",
+        errorTitle: "Error publishing listing",
+        successTitle: "Listing published",
+        goToMyListings: "Go to my listings",
         preview: "Preview",
         cardPreview: "Card (grid)",
         detailPreview: "Detail",
@@ -1324,6 +1334,10 @@ async function publish() {
     setPublishError("");
     setPublishedId("");
 
+    if (!rulesConfirmed) {
+      setPublishError(lang === "es" ? "Debes confirmar que tu anuncio cumple con las reglas de la comunidad." : "You must confirm that your listing complies with the community rules.");
+      return;
+    }
     if (!requirements.allOk) {
       setPublishError(`${copy.needReqs}${missingRequirementsText ? " " + missingRequirementsText : ""}`);
       return;
@@ -1419,6 +1433,8 @@ async function publish() {
         is_free: isFree,
         contact_phone: contactMethod === "email" ? null : (getPhoneDigits(contactPhone).length === 10 ? getPhoneDigits(contactPhone) : null),
         contact_email: contactMethod === "phone" ? null : contactEmail.trim(),
+        contact_method: contactMethod || null,
+        status: "active",
       };
 
       const { data, error } = await supabase
@@ -1542,6 +1558,7 @@ if (isPro && videoFile && !videoError) {
 }
 
       setPublishedId(id);
+      setShowSuccessModal(true);
       deleteDraft();
     } catch (e: any) {
       setPublishError((e?.message as string) || "Unknown error");
@@ -2517,16 +2534,25 @@ if (isPro && videoFile && !videoError) {
                       </div>
 
                       {publishError && (
-                        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-                          {publishError}
+                        <div
+                          className="rounded-xl p-4 text-sm"
+                          style={{ background: "#ffe5e5", border: "2px solid red", color: "#8b0000" }}
+                          role="alert"
+                        >
+                          <div className="font-semibold">❌ {copy.errorTitle}</div>
+                          <div className="mt-1">{publishError}</div>
                         </div>
                       )}
 
-                      {publishedId && (
-                        <div className="rounded-xl border border-green-500/25 bg-green-500/10 p-3 text-sm text-green-200">
-                          {copy.published}
-                        </div>
-                      )}
+                      <label className="mt-3 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rulesConfirmed}
+                          onChange={(e) => setRulesConfirmed(e.target.checked)}
+                          className="mt-1 rounded border-black/20"
+                        />
+                        <span className="text-sm text-[#111111]">{copy.rulesConfirm}</span>
+                      </label>
 
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <button
@@ -2543,22 +2569,13 @@ if (isPro && videoFile && !videoError) {
                           </p>
                         )}
                         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                          {publishedId && (
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/clasificados/anuncio/${publishedId}?lang=${lang}`)}
-                              className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
-                            >
-                              {copy.viewListing}
-                            </button>
-                          )}
                           <button
                             type="button"
-                            disabled={publishing || !requirements.allOk || !previewViewed}
+                            disabled={publishing || !requirements.allOk || !previewViewed || !rulesConfirmed}
                             onClick={publish}
                             className={cx(
                               "rounded-xl font-semibold px-6 py-3",
-                              publishing || !requirements.allOk || !previewViewed
+                              publishing || !requirements.allOk || !previewViewed || !rulesConfirmed
                                 ? "bg-yellow-500/40 text-black/70 cursor-not-allowed"
                                 : "bg-yellow-500/90 hover:bg-yellow-500 text-black"
                             )}
@@ -2571,6 +2588,43 @@ if (isPro && videoFile && !videoError) {
                   </section>
                 )}
               </div>
+
+              {/* Success modal after publish */}
+              {showSuccessModal && publishedId && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="success-modal-title"
+                >
+                  <div
+                    className="absolute inset-0 bg-black/60"
+                    aria-hidden
+                    onClick={() => setShowSuccessModal(false)}
+                  />
+                  <div className="relative z-10 w-full max-w-md rounded-2xl border border-black/10 bg-[#F5F5F5] shadow-xl p-6">
+                    <h2 id="success-modal-title" className="text-xl font-bold text-[#111111] text-center">
+                      ✅ {copy.successTitle}
+                    </h2>
+                    <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/clasificados/anuncio/${publishedId}?lang=${lang}`)}
+                        className="rounded-xl bg-[#111111] text-white font-semibold px-5 py-3 hover:bg-[#333333]"
+                      >
+                        {copy.viewListing}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/dashboard/mis-anuncios?lang=${lang}`)}
+                        className="rounded-xl border border-black/10 bg-[#F5F5F5] text-[#111111] font-semibold px-5 py-3 hover:bg-[#EFEFEF]"
+                      >
+                        {copy.goToMyListings}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Full listing preview modal */}
               {isFullPreviewOpen && (
