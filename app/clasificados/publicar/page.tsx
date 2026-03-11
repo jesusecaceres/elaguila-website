@@ -693,6 +693,8 @@ export default function PublicarPage() {
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
 
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
@@ -2196,36 +2198,41 @@ if (isPro && videoFile && !videoError) {
                                 : `(Max ${maxImages}. ${isPro ? "You can reorder." : "Pro: 12 + reorder."})`}
                             </span>
                           </div>
-                          <label className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-4 py-2 text-sm font-semibold text-[#111111] cursor-pointer">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] px-4 py-2 text-sm font-semibold text-[#111111] cursor-pointer"
+                          >
                             {copy.addImages}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              multiple
-                              className="hidden"
-                              onChange={(e) => {
-                                const selected = Array.from(e.target.files ?? []);
-                                // Allow adding more photos across multiple picks
-                                const combined = [...files, ...selected];
+                          </button>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const selected = Array.from(e.target.files ?? []);
+                              // Allow adding more photos across multiple picks
+                              const combined = [...files, ...selected];
 
-                                // De-dupe by (name,size,lastModified) to avoid accidental duplicates
-                                const seen = new Set<string>();
-                                const deduped: File[] = [];
-                                for (const f of combined) {
-                                  const k = `${f.name}__${f.size}__${f.lastModified}`;
-                                  if (seen.has(k)) continue;
-                                  seen.add(k);
-                                  deduped.push(f);
-                                }
+                              // De-dupe by (name,size,lastModified) to avoid accidental duplicates
+                              const seen = new Set<string>();
+                              const deduped: File[] = [];
+                              for (const f of combined) {
+                                const k = `${f.name}__${f.size}__${f.lastModified}`;
+                                if (seen.has(k)) continue;
+                                seen.add(k);
+                                deduped.push(f);
+                              }
 
-                                setFiles(deduped.slice(0, maxImages));
+                              setFiles(deduped.slice(0, maxImages));
 
-                                // reset input so picking the same file again triggers change
-                                try { (e.target as HTMLInputElement).value = ""; } catch {}
-                              }}
-                            />
-                          </label>
+                              // reset input so picking the same file again triggers change
+                              try { (e.target as HTMLInputElement).value = ""; } catch {}
+                            }}
+                          />
                         </div>
 
                         {files.length === 0 ? (
@@ -2321,7 +2328,10 @@ if (isPro && videoFile && !videoError) {
       <div className="mt-1 text-xs text-[#111111]/45">{copy.videoHint}</div>
     </div>
 
-    <label
+    <button
+      type="button"
+      disabled={!isPro}
+      onClick={() => videoInputRef.current?.click()}
       className={cx(
         "rounded-xl border px-4 py-2 text-sm font-semibold cursor-pointer",
         isPro
@@ -2330,22 +2340,22 @@ if (isPro && videoFile && !videoError) {
       )}
     >
       {copy.addVideo}
-      <input
-        type="file"
-        accept="video/*"
-        capture="environment"
-        className="hidden"
-        disabled={!isPro}
-        onChange={async (e) => {
-          const f = (e.target.files ?? [])[0] || null;
-          setVideoFile(f);
-          setVideoError("");
-          setVideoInfo(null);
-          setVideoThumbBlob(null);
-          if (f) await inspectAndThumbVideo(f);
-        }}
-      />
-    </label>
+    </button>
+    <input
+      ref={videoInputRef}
+      type="file"
+      accept="video/*"
+      capture="environment"
+      className="hidden"
+      onChange={async (e) => {
+        const f = (e.target.files ?? [])[0] || null;
+        setVideoFile(f);
+        setVideoError("");
+        setVideoInfo(null);
+        setVideoThumbBlob(null);
+        if (f) await inspectAndThumbVideo(f);
+      }}
+    />
   </div>
 
   {!isPro && (
