@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -1076,6 +1076,22 @@ setIsPro(plan.includes("pro"));
 
   const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
 
+  // When returning from Pro page: auto-restore draft and step so seller lands back on same ad (no modal).
+  useEffect(() => {
+    if (searchParams?.get("fromPro") !== "1" || draftKey === "listing_draft_ssr") return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<DraftV1>;
+      if (parsed.v !== 1) return;
+      draftCheckedRef.current = true;
+      applyDraftToForm(parsed);
+      setStep("media");
+    } catch {
+      // ignore
+    }
+  }, [searchParams, draftKey]);
+
   // Draft restore: do not auto-load; show modal so user chooses Continuar borrador or Empezar de nuevo.
   useEffect(() => {
     if (draftKey === "listing_draft_ssr" || draftCheckedRef.current) return;
@@ -1250,6 +1266,37 @@ setIsPro(plan.includes("pro"));
       if (draftTimer.current) window.clearTimeout(draftTimer.current);
     };
   }, [draftKey, showDraftRestoreModal, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
+
+  /** Flush draft and images so when seller returns from Pro page their ad is intact. */
+  const saveDraftAndImagesForProReturn = useCallback(async () => {
+    if (draftKey === "listing_draft_ssr") return;
+    try {
+      const draft: DraftV1 = {
+        v: 1,
+        step,
+        title,
+        description,
+        isFree,
+        price,
+        city: normalizeCity(city) || city.trim(),
+        category,
+        details,
+        contactMethod,
+        contactPhone,
+        contactEmail,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+      if (images.length > 0) {
+        const base64 = await Promise.all(images.map((f) => fileToBase64(f)));
+        const names = images.map((f) => f.name);
+        const types = images.map((f) => f.type || "image/jpeg");
+        sessionStorage.setItem(IMAGES_RESTORE_KEY, JSON.stringify({ base64, names, types }));
+      }
+    } catch {
+      // ignore
+    }
+  }, [draftKey, step, title, description, isFree, price, city, category, details, contactMethod, contactPhone, contactEmail, images]);
 
   const isFormDirty = useMemo(() => {
     return (
@@ -2677,10 +2724,11 @@ if (isPro && videoFile && !videoError) {
                         proUpgradeHref={
                           category === "en-venta"
                             ? `/clasificados/publicar/en-venta/pro?lang=${lang}&return=${encodeURIComponent(
-                                (pathname ?? "/clasificados/publicar/en-venta") + (searchParams?.toString() ? `?${searchParams.toString()}` : "")
+                                `${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=media&fromPro=1`
                               )}`
                             : undefined
                         }
+                        onBeforeProNavigate={category === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
                         copy={{
                           addImages: copy.addImages,
                           addVideo: copy.addVideo,

@@ -28,7 +28,11 @@ export type ListingData = {
   categoryLabel?: string | null;
 };
 
-type MediaSlot = { type: "image"; url: string } | { type: "video" };
+type MediaSlot =
+  | { type: "image"; url: string }
+  | { type: "video" }
+  | { type: "locked-image" }
+  | { type: "locked-video" };
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -65,9 +69,15 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
     if (images[0]) slots.push({ type: "image", url: images[0] });
     if (listing.isPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video" });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
+    // Seller-only preview: show locked Pro slots so seller sees upgrade value (never on live ad).
+    if (previewMode && !listing.isPro) {
+      const extraPhotoSlots = Math.min(2, Math.max(0, 12 - slots.length)); // up to 2 extra photo slots as cue
+      for (let i = 0; i < extraPhotoSlots; i++) slots.push({ type: "locked-image" });
+      slots.push({ type: "locked-video" });
+    }
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [images, listing.isPro, listing.proVideoUrl, listing.proVideoThumbUrl]);
+  }, [images, listing.isPro, listing.proVideoUrl, listing.proVideoThumbUrl, previewMode]);
 
   const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
   const goPrev = useCallback(() => {
@@ -183,6 +193,18 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             >
               {currentSlot?.type === "image" ? (
                 <img src={currentSlot.url} alt="" className="object-contain w-full h-full bg-[#0d0d0d]" />
+              ) : currentSlot?.type === "locked-image" || currentSlot?.type === "locked-video" ? (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-[#1a1a1a] border border-[#C9B46A]/30 rounded-xl p-6">
+                  <span className="text-4xl opacity-80" aria-hidden>{currentSlot.type === "locked-video" ? "🎥" : "🖼️"}</span>
+                  <span className="text-sm font-medium text-[#C9B46A]">
+                    {lang === "es" ? "Disponible con Pro" : "Available with Pro"}
+                  </span>
+                  <span className="text-xs text-white/60">
+                    {currentSlot.type === "locked-video"
+                      ? (lang === "es" ? "Video destacado" : "Featured video")
+                      : (lang === "es" ? "Más fotos" : "More photos")}
+                  </span>
+                </div>
               ) : (
                 hasProVideo && (
                   <video
@@ -234,6 +256,16 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
                 >
                   {slot.type === "image" ? (
                     <img src={slot.url} alt="" className="object-cover w-full h-full" />
+                  ) : slot.type === "locked-image" ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#252525] border border-[#C9B46A]/40 rounded-lg">
+                      <span className="text-lg" aria-hidden>🖼️</span>
+                      <span className="text-[10px] text-[#C9B46A] font-medium mt-0.5">Pro</span>
+                    </div>
+                  ) : slot.type === "locked-video" ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#252525] border border-[#C9B46A]/40 rounded-lg">
+                      <span className="text-lg" aria-hidden>🎥</span>
+                      <span className="text-[10px] text-[#C9B46A] font-medium mt-0.5">Pro</span>
+                    </div>
                   ) : listing.proVideoThumbUrl ? (
                     <img src={listing.proVideoThumbUrl} alt="" className="object-cover w-full h-full opacity-90" />
                   ) : (

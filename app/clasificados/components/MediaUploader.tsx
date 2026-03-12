@@ -35,6 +35,8 @@ export type MediaUploaderProps = {
   onVideoRemove?: () => void;
   /** When set (e.g. En Venta flow), upgrade CTA goes here instead of generic membresias */
   proUpgradeHref?: string;
+  /** Call before navigating to Pro page so draft/images are persisted for return. */
+  onBeforeProNavigate?: () => Promise<void>;
   copy?: {
     addImages?: string;
     addVideo?: string;
@@ -128,6 +130,7 @@ export function MediaUploader({
   videoError = "",
   onVideoRemove,
   proUpgradeHref,
+  onBeforeProNavigate,
   copy = {},
 }: MediaUploaderProps) {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -433,14 +436,27 @@ export function MediaUploader({
                 <li>📈 {lang === "es" ? "Los anuncios con video reciben hasta 3× más visibilidad" : "Listings with video get up to 3× more visibility"}</li>
               </ul>
               <div className="mt-5 flex gap-3">
-                <a
-                  href={proUpgradeHref ?? `/clasificados/membresias?lang=${lang}`}
-                  target={proUpgradeHref ? "_self" : "_blank"}
-                  rel="noreferrer"
-                  className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"
-                >
-                  {lang === "es" ? "Mejora ahora — $9.99" : "Upgrade now — $9.99"}
-                </a>
+                {proUpgradeHref ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onBeforeProNavigate?.();
+                      window.location.href = proUpgradeHref!;
+                    }}
+                    className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"
+                  >
+                    {lang === "es" ? "Mejora ahora — $9.99" : "Upgrade now — $9.99"}
+                  </button>
+                ) : (
+                  <a
+                    href={`/clasificados/membresias?lang=${lang}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"
+                  >
+                    {lang === "es" ? "Mejora ahora — $9.99" : "Upgrade now — $9.99"}
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowVideoUpgradeModal(false)}
