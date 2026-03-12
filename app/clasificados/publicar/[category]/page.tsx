@@ -1877,7 +1877,8 @@ if (isPro && videoFile && !videoError) {
   const previewPrice = enVentaSnapshot.priceLabel;
   const previewCity = (enVentaSnapshot.cityCanonical ?? enVentaSnapshot.city) || (lang === "es" ? "(Ciudad)" : "(City)");
   const previewPosted = copy.todayLabel;
-  const previewShortDescription = getShortPreviewText(enVentaSnapshot.description, 72);
+  const COMPACT_TEASER_MAX_LEN = 80;
+  const previewShortDescription = getShortPreviewText(enVentaSnapshot.description, COMPACT_TEASER_MAX_LEN);
   const previewPhone = enVentaSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(enVentaSnapshot.contactPhone);
   const previewEmail = enVentaSnapshot.contactMethod === "phone" ? "" : enVentaSnapshot.contactEmail;
   const previewDetailPairs = enVentaSnapshot.detailPairs;
@@ -1931,6 +1932,7 @@ if (isPro && videoFile && !videoError) {
       isPro: snap.isPro,
       sellerName: sellerDisplayName || undefined,
     });
+    await new Promise((r) => setTimeout(r, 0));
     router.push(`/preview-listing?lang=${lang}`);
   };
 
@@ -2135,7 +2137,11 @@ if (isPro && videoFile && !videoError) {
                       <button
                         type="button"
                         disabled={!requirements.categoryOk}
-                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
+                        onClick={() => {
+                          if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
+                          setStep("basics");
+                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                        }}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
                           requirements.categoryOk
@@ -2511,7 +2517,7 @@ if (isPro && videoFile && !videoError) {
                     <div className="mt-5 flex items-center justify-between gap-3">
                       <button
                         type="button"
-                        onClick={() => { setStep("category"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
+                        onClick={() => { setStep("category"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -2520,7 +2526,7 @@ if (isPro && videoFile && !videoError) {
                       <button
                         type="button"
                         disabled={!basicsOk}
-                        onClick={() => { if (basicsOk) { setStep(isEnVentaFlow ? "media" : "details"); requestAnimationFrame(() => scrollFormToTop("auto")); } }}
+                        onClick={() => { if (basicsOk) { setStep(isEnVentaFlow ? "media" : "details"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); } }}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
                           basicsOk
@@ -2622,14 +2628,14 @@ if (isPro && videoFile && !videoError) {
 <div className="mt-5 flex items-center justify-between gap-3">
                       <button
                         type="button"
-                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
+                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setStep("media"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
+                        onClick={() => { setStep("media"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
                         className="rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3"
                       >
                         {copy.next}
@@ -2668,6 +2674,13 @@ if (isPro && videoFile && !videoError) {
                         uploadProgress={uploadProgress}
                         videoPreviewUrl={proVideoPreviewUrl}
                         videoError={videoError}
+                        proUpgradeHref={
+                          category === "en-venta"
+                            ? `/clasificados/publicar/en-venta/pro?lang=${lang}&return=${encodeURIComponent(
+                                (pathname ?? "/clasificados/publicar/en-venta") + (searchParams?.toString() ? `?${searchParams.toString()}` : "")
+                              )}`
+                            : undefined
+                        }
                         copy={{
                           addImages: copy.addImages,
                           addVideo: copy.addVideo,
@@ -2936,15 +2949,25 @@ if (isPro && videoFile && !videoError) {
                         </div>
                       )}
 
-                      <label className="mt-3 flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={rulesConfirmed}
-                          onChange={(e) => setRulesConfirmedPersisted(e.target.checked)}
-                          className="mt-1 rounded border-black/20"
-                        />
-                        <span className="text-sm text-[#111111]">{copy.rulesConfirm}</span>
-                      </label>
+                      <div className="mt-3 flex flex-col gap-1">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={rulesConfirmed}
+                            onChange={(e) => setRulesConfirmedPersisted(e.target.checked)}
+                            className="mt-1 rounded border-black/20"
+                          />
+                          <span className="text-sm text-[#111111]">{copy.rulesConfirm}</span>
+                        </label>
+                        <Link
+                          href={`/clasificados/reglas?lang=${lang}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#111111]/70 hover:text-[#111111] underline ml-6"
+                        >
+                          {lang === "es" ? "Ver reglas" : "View rules"}
+                        </Link>
+                      </div>
 
                       <label className="mt-3 flex items-start gap-3 cursor-pointer">
                         <input
@@ -2962,7 +2985,7 @@ if (isPro && videoFile && !videoError) {
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <button
                           type="button"
-                          onClick={() => { setStep(isEnVentaFlow ? "basics" : "details"); requestAnimationFrame(() => scrollFormToTop("auto")); }}
+                          onClick={() => { setStep(isEnVentaFlow ? "basics" : "details"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
                           className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                         >
                           {copy.back}
@@ -3060,7 +3083,7 @@ if (isPro && videoFile && !videoError) {
                     setServicesPackage("standard");
                     setShowServicesGate(false);
                     setStep("basics");
-                    requestAnimationFrame(() => scrollFormToTop("auto"));
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
                   }}
                   className="rounded-2xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] p-4 text-left"
                 >
@@ -3079,7 +3102,7 @@ if (isPro && videoFile && !videoError) {
                     setServicesPackage("plus");
                     setShowServicesGate(false);
                     setStep("basics");
-                    requestAnimationFrame(() => scrollFormToTop("auto"));
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
                   }}
                   className="rounded-2xl border border-[#A98C2A]/60 bg-[#F2EFE8] hover:bg-[#EFE7D8] p-4 text-left"
                 >

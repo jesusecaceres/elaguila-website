@@ -246,9 +246,9 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
         </div>
       </div>
 
-      {/* Right: info stack — title/price first, then CTA card, then details/desc/seller/location/contact */}
+      {/* Right: info stack — title/price/meta first, then CTA, then description/seller/location */}
       <div className="min-w-0 space-y-5">
-        {/* Card 1: Title, price (dark), city+posted, category chip — no actions */}
+        {/* Card 1: Title, price, city+posted, compact meta (details inline) */}
         <div className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -261,14 +261,23 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
               <div className="mt-2 text-sm text-[#111111]/80">
                 {listing.city} · {listing.todayLabel}
               </div>
+              {(() => {
+                const pairs = listing.detailPairs ?? [];
+                const conditionPair = pairs.find((p) => /condición|condition/i.test(p.label));
+                const others = pairs.filter((p) => p !== conditionPair && p.value?.trim());
+                const metaLine1 = [listing.categoryLabel, ...others.map((p) => p.value)].filter(Boolean).join(" · ");
+                const metaLine2 = conditionPair?.value ? (lang === "es" ? `Condición: ${conditionPair.value}` : `Condition: ${conditionPair.value}`) : "";
+                if (!metaLine1 && !metaLine2) return null;
+                return (
+                  <div className="mt-3 space-y-0.5">
+                    {metaLine1 ? <p className="text-xs text-[#111111]/70">{metaLine1}</p> : null}
+                    {metaLine2 ? <p className="text-xs text-[#111111]/70">{metaLine2}</p> : null}
+                  </div>
+                );
+              })()}
             </div>
             {listing.isPro ? <ProBadge /> : null}
           </div>
-          {listing.categoryLabel ? (
-            <span className="mt-3 inline-block rounded-lg border border-black/10 bg-[#F5F5F5] px-2.5 py-1 text-xs font-medium text-[#111111]/90">
-              {listing.categoryLabel}
-            </span>
-          ) : null}
         </div>
 
         {/* Card 2: CTA section — Guardar, Compartir, contact (preview = toasts only; no real links) */}
@@ -335,21 +344,6 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             </div>
           )}
         </div>
-
-        {/* Detalles */}
-        {listing.detailPairs.length > 0 && (
-          <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-            <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-3">{t.details}</h3>
-            <div className="space-y-2">
-              {listing.detailPairs.map((p) => (
-                <div key={p.label} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 text-sm">
-                  <span className="text-[#111111]/70 shrink-0">{p.label}</span>
-                  <span className="font-medium text-[#111111] break-words min-w-0">{p.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Descripción */}
         <div className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6 shadow-sm">

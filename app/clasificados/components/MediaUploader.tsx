@@ -33,6 +33,8 @@ export type MediaUploaderProps = {
   videoPreviewUrl?: string;
   videoError?: string;
   onVideoRemove?: () => void;
+  /** When set (e.g. En Venta flow), upgrade CTA goes here instead of generic membresias */
+  proUpgradeHref?: string;
   copy?: {
     addImages?: string;
     addVideo?: string;
@@ -125,6 +127,7 @@ export function MediaUploader({
   videoPreviewUrl = "",
   videoError = "",
   onVideoRemove,
+  proUpgradeHref,
   copy = {},
 }: MediaUploaderProps) {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -431,8 +434,8 @@ export function MediaUploader({
               </ul>
               <div className="mt-5 flex gap-3">
                 <a
-                  href={`/clasificados/membresias?lang=${lang}`}
-                  target="_blank"
+                  href={proUpgradeHref ?? `/clasificados/membresias?lang=${lang}`}
+                  target={proUpgradeHref ? "_self" : "_blank"}
                   rel="noreferrer"
                   className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"
                 >
