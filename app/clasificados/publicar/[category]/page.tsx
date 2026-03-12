@@ -838,11 +838,12 @@ export default function PublicarPage() {
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
 
-    const yOffset = 16;
+    // Navbar-aware offset so first visible content sits clearly below fixed navbar
+    const navbarOffset = 88;
 
     if (topAnchorRef.current) {
       const rect = topAnchorRef.current.getBoundingClientRect();
-      const absoluteTop = window.scrollY + rect.top - yOffset;
+      const absoluteTop = window.scrollY + rect.top - navbarOffset;
       window.scrollTo({
         top: Math.max(0, absoluteTop),
         behavior,
@@ -2015,9 +2016,9 @@ if (isPro && videoFile && !videoError) {
               )}
 
               <div ref={topAnchorRef} aria-hidden className="h-px w-full" />
-              {/* Progress bar + Salir */}
-              <div className="mt-6 flex items-center gap-3">
-                <div className="flex-1 min-w-0 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={stepOrder.length} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
+              {/* Progress bar — Salir moved to category step bottom left */}
+              <div className="mt-6">
+                <div className="min-w-0 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={stepOrder.length} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
                   <div className="flex items-center gap-1 sm:gap-2">
                   {stepOrder.map((s, idx) => {
                     const isActive = safeStepForProgress === s;
@@ -2051,13 +2052,6 @@ if (isPro && videoFile && !videoError) {
                   })}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleExitClick}
-                  className="shrink-0 text-sm font-medium text-[#111111]/70 hover:text-[#111111] underline"
-                >
-                  {copy.exitLink}
-                </button>
               </div>
 
               {/* Visible checklist from same normalized source as preview/publish — pass/fail so form and system stay in sync */}
@@ -2114,7 +2108,14 @@ if (isPro && videoFile && !videoError) {
                       </div>
                     )}
 
-                    <div className="mt-5 flex items-center justify-end gap-3">
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={handleExitClick}
+                        className="rounded-xl border border-black/15 bg-[#F5F5F5] hover:bg-[#E8E8E8] text-[#111111] font-semibold px-5 py-3"
+                      >
+                        {copy.exitLink}
+                      </button>
                       <button
                         type="button"
                         disabled={!requirements.categoryOk}
