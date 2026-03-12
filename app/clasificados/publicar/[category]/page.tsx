@@ -16,7 +16,15 @@ import {
 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { setPreviewDraft } from "@/app/lib/previewListingDraft";
-import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY } from "../../lib/classifiedsDraftStorage";
+import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
+import {
+  createDraft,
+  updateDraft,
+  getDraft,
+  getLatestDraftForCategory,
+  deleteDraftInDb,
+  type DraftDataPayload,
+} from "../../lib/listingDraftsDb";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
@@ -814,8 +822,12 @@ export default function PublicarPage() {
   const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
   const [saveProgressing, setSaveProgressing] = useState<boolean>(false);
   const [leaveSaving, setLeaveSaving] = useState<boolean>(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [dbSaveStatus, setDbSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const draftCheckedRef = useRef(false);
   const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dbSaveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDbSaveRef = useRef<ReturnType<typeof setTimeout> | number | null>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem(RULES_CONFIRMED_KEY) === "1";
@@ -1084,6 +1096,33 @@ setIsPro(plan.includes("pro"));
 
   const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
 
+  /** Restore form + images from DB draft_data payload. */
+  function applyDraftPayloadFromDb(payload: DraftDataPayload) {
+    applyDraftToForm(payload as Partial<DraftV1>);
+    if (payload.step && ["category", "basics", "details", "media"].includes(payload.step)) {
+      setStep(payload.step as PublishStep);
+    }
+    if (payload.images && Array.isArray(payload.images) && payload.images.length > 0) {
+      const files: File[] = [];
+      for (let i = 0; i < payload.images.length; i++) {
+        const img = payload.images[i];
+        const b64 = img?.base64 ?? "";
+        const name = img?.name || `image-${i + 1}.jpg`;
+        const type = img?.type || "image/jpeg";
+        if (!b64) continue;
+        try {
+          const bin = atob(b64);
+          const arr = new Uint8Array(bin.length);
+          for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
+          files.push(new File([new Blob([arr], { type })], name, { type }));
+        } catch {
+          // skip invalid image
+        }
+      }
+      if (files.length) setImages(files);
+    }
+  }
+
   // When returning from Pro page: auto-restore draft and step so seller lands back on same ad (no modal).
   useEffect(() => {
     if (searchParams?.get("fromPro") !== "1" || draftKey === "listing_draft_ssr") return;
@@ -1095,24 +1134,62 @@ setIsPro(plan.includes("pro"));
       draftCheckedRef.current = true;
       applyDraftToForm(parsed);
       setStep("media");
+      if (userId) {
+        const stored = getStoredDraftId(userId);
+        if (stored) setDraftId(stored);
+      }
     } catch {
       // ignore
     }
-  }, [searchParams, draftKey]);
+  }, [searchParams, draftKey, userId]);
 
-  // Draft restore: do not auto-load; show modal so user chooses Continuar borrador or Empezar de nuevo.
+  // Draft restore: DB-first, then localStorage fallback. Show modal or restore from URL.
   useEffect(() => {
-    if (draftKey === "listing_draft_ssr" || draftCheckedRef.current) return;
-    draftCheckedRef.current = true;
-    try {
-      const raw = localStorage.getItem(draftKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<DraftV1>;
-      if (parsed.v === 1) setShowDraftRestoreModal(true);
-    } catch {
-      // ignore
-    }
-  }, [draftKey]);
+    if (draftKey === "listing_draft_ssr" || draftCheckedRef.current || !signedIn || !userId) return;
+    if (searchParams?.get("fromPro") === "1") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const draftIdParam = searchParams?.get("draftId");
+        const storedId = getStoredDraftId(userId);
+
+        if (draftIdParam || storedId) {
+          const id = draftIdParam || storedId;
+          const row = await getDraft(supabase, id!, userId);
+          if (cancelled) return;
+          if (row?.draft_data) {
+            draftCheckedRef.current = true;
+            setDraftId(row.id);
+            setStoredDraftId(userId, row.id);
+            applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
+            return;
+          }
+        }
+
+        const categoryForQuery = categoryFromUrl || undefined;
+        const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
+        if (cancelled) return;
+        if (latest) {
+          draftCheckedRef.current = true;
+          setDraftId(latest.id);
+          setStoredDraftId(userId, latest.id);
+          setShowDraftRestoreModal(true);
+          return;
+        }
+
+        const raw = localStorage.getItem(draftKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<DraftV1>;
+          if (parsed.v === 1) setShowDraftRestoreModal(true);
+        }
+        draftCheckedRef.current = true;
+      } catch {
+        if (!cancelled) draftCheckedRef.current = true;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams]);
 
   /** Restore only form values from draft; step is not restored (avoids random step jumps). */
   function applyDraftToForm(parsed: Partial<DraftV1>) {
@@ -1131,21 +1208,22 @@ setIsPro(plan.includes("pro"));
     setContactEmail(typeof parsed.contactEmail === "string" ? parsed.contactEmail : "");
   }
 
-  function handleContinueDraft() {
+  async function handleContinueDraft() {
+    setShowDraftRestoreModal(false);
     try {
+      if (draftId && userId) {
+        const supabase = createSupabaseBrowserClient();
+        const row = await getDraft(supabase, draftId, userId);
+        if (row?.draft_data) {
+          applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
+          return;
+        }
+      }
       const raw = localStorage.getItem(draftKey);
-      if (!raw) {
-        setShowDraftRestoreModal(false);
-        return;
-      }
+      if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
-      if (parsed.v !== 1) {
-        setShowDraftRestoreModal(false);
-        return;
-      }
+      if (parsed.v !== 1) return;
       applyDraftToForm(parsed);
-      setShowDraftRestoreModal(false);
-      // Restore images from draft images stash so "Continuar con lo que guardaste" restores everything.
       try {
         const imgRaw = sessionStorage.getItem(draftKey + "_images");
         if (imgRaw) {
@@ -1168,11 +1246,21 @@ setIsPro(plan.includes("pro"));
         // ignore image restore
       }
     } catch {
-      setShowDraftRestoreModal(false);
+      // already closed modal
     }
   }
 
-  function handleStartNewDraft() {
+  async function handleStartNewDraft() {
+    if (draftId && userId) {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        await deleteDraftInDb(supabase, draftId, userId);
+      } catch {
+        // ignore
+      }
+      setDraftId(null);
+      clearStoredDraftId(userId);
+    }
     clearAllClassifiedsDrafts({ draftKey });
     setShowDraftRestoreModal(false);
   }
@@ -1264,10 +1352,9 @@ setIsPro(plan.includes("pro"));
   }, [signedIn, userId, category]);
 
 
-  // Draft autosave (debounced) — when title, description, price, category, etc. change; skip while restore modal is open
+  // Draft autosave to localStorage (quick resilience) — 250ms debounce
   useEffect(() => {
     if (draftKey === "listing_draft_ssr" || showDraftRestoreModal) return;
-
     if (draftTimer.current) window.clearTimeout(draftTimer.current);
     draftTimer.current = window.setTimeout(() => {
       const draft: DraftV1 = {
@@ -1291,13 +1378,12 @@ setIsPro(plan.includes("pro"));
         // ignore
       }
     }, 250);
-
     return () => {
       if (draftTimer.current) window.clearTimeout(draftTimer.current);
     };
   }, [draftKey, showDraftRestoreModal, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
 
-  // Persist images with draft (for "Continuar con lo que guardaste" restore); debounced.
+  // Persist images with draft (local fallback); debounced.
   const draftImagesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (draftKey === "listing_draft_ssr" || showDraftRestoreModal || images.length === 0) return;
@@ -1318,7 +1404,142 @@ setIsPro(plan.includes("pro"));
     };
   }, [draftKey, showDraftRestoreModal, images]);
 
-  /** Flush draft and images so when seller returns from Pro page their ad is intact. */
+  /** Build full normalized payload for DB (includes images as base64). */
+  const buildPayloadAsync = useCallback(async (): Promise<DraftDataPayload> => {
+    const imagePayload =
+      images.length > 0
+        ? await Promise.all(
+            images.map(async (f) => ({
+              base64: await fileToBase64(f),
+              name: f.name,
+              type: f.type || "image/jpeg",
+            }))
+          )
+        : [];
+    return {
+      v: 1,
+      step,
+      category: category || "",
+      title,
+      description,
+      isFree,
+      price,
+      city: normalizeCity(city) || city.trim(),
+      details,
+      contactMethod,
+      contactPhone,
+      contactEmail,
+      images: imagePayload,
+      updatedAt: new Date().toISOString(),
+    };
+  }, [step, category, title, description, isFree, price, city, details, contactMethod, contactPhone, contactEmail, images]);
+
+  /** Persist draft to DB (create or update) and localStorage fallback. */
+  const performDbSave = useCallback(async () => {
+    if (draftKey === "listing_draft_ssr" || !userId || showDraftRestoreModal) return;
+    try {
+      const payload = await buildPayloadAsync();
+      const hasContent =
+        (payload.title || "").trim() ||
+        (payload.description || "").trim() ||
+        (payload.city || "").trim() ||
+        (payload.price || "").trim() ||
+        payload.images.length > 0 ||
+        Object.values(payload.details || {}).some((v) => (v || "").trim());
+      if (!draftId && !hasContent) return;
+
+      setDbSaveStatus("saving");
+      const supabase = createSupabaseBrowserClient();
+
+      if (draftId) {
+        const result = await updateDraft(supabase, draftId, userId, payload);
+        if (result.ok) {
+          setDbSaveStatus("saved");
+          if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
+          dbSaveSuccessTimerRef.current = setTimeout(() => {
+            setDbSaveStatus("idle");
+            dbSaveSuccessTimerRef.current = null;
+          }, 2000);
+        } else {
+          setDbSaveStatus("error");
+        }
+      } else {
+        const created = await createDraft(supabase, userId, payload.category || "en-venta", payload);
+        if (created) {
+          setDraftId(created.id);
+          setStoredDraftId(userId, created.id);
+          setDbSaveStatus("saved");
+          if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
+          dbSaveSuccessTimerRef.current = setTimeout(() => {
+            setDbSaveStatus("idle");
+            dbSaveSuccessTimerRef.current = null;
+          }, 2000);
+        } else {
+          setDbSaveStatus("error");
+        }
+      }
+
+      const { images: _img, ...rest } = payload;
+      const forLocal = rest as Partial<DraftV1>;
+      localStorage.setItem(draftKey, JSON.stringify(forLocal));
+      if (payload.images.length > 0) {
+        const payloadStr = JSON.stringify({
+          base64: payload.images.map((i) => i.base64),
+          names: payload.images.map((i) => i.name),
+          types: payload.images.map((i) => i.type),
+        });
+        sessionStorage.setItem(IMAGES_RESTORE_KEY, payloadStr);
+        sessionStorage.setItem(draftKey + "_images", payloadStr);
+      }
+    } catch {
+      setDbSaveStatus("error");
+    }
+  }, [
+    draftKey,
+    userId,
+    draftId,
+    showDraftRestoreModal,
+    buildPayloadAsync,
+  ]);
+
+  // DB autosave — immediate for step, category, contactMethod, isFree, images
+  useEffect(() => {
+    if (draftKey === "listing_draft_ssr" || showDraftRestoreModal || !userId) return;
+    if (pendingDbSaveRef.current) clearTimeout(pendingDbSaveRef.current);
+    pendingDbSaveRef.current = null;
+    void performDbSave();
+    return () => {
+      if (pendingDbSaveRef.current) clearTimeout(pendingDbSaveRef.current);
+    };
+  }, [step, category, contactMethod, isFree, images, draftKey, showDraftRestoreModal, userId, performDbSave]);
+
+  // DB autosave — debounced 500ms for typing-heavy fields
+  useEffect(() => {
+    if (draftKey === "listing_draft_ssr" || showDraftRestoreModal || !userId) return;
+    if (pendingDbSaveRef.current) clearTimeout(pendingDbSaveRef.current);
+    pendingDbSaveRef.current = window.setTimeout(() => {
+      pendingDbSaveRef.current = null;
+      void performDbSave();
+    }, 500);
+    return () => {
+      if (pendingDbSaveRef.current) clearTimeout(pendingDbSaveRef.current);
+    };
+  }, [title, description, price, city, contactPhone, contactEmail, details, draftKey, showDraftRestoreModal, userId, performDbSave]);
+
+  // Flush pending DB save on visibilitychange (tab hidden / closed)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden" && pendingDbSaveRef.current) {
+        clearTimeout(pendingDbSaveRef.current);
+        pendingDbSaveRef.current = null;
+        void performDbSave();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [performDbSave]);
+
+  /** Flush draft and images so when seller returns from Pro page their ad is intact. Also persists to DB. */
   const saveDraftAndImagesForProReturn = useCallback(async () => {
     if (draftKey === "listing_draft_ssr") return;
     try {
@@ -1346,10 +1567,11 @@ setIsPro(plan.includes("pro"));
         sessionStorage.setItem(IMAGES_RESTORE_KEY, payload);
         sessionStorage.setItem(draftKey + "_images", payload);
       }
+      await performDbSave();
     } catch {
       // ignore
     }
-  }, [draftKey, step, title, description, isFree, price, city, category, details, contactMethod, contactPhone, contactEmail, images]);
+  }, [draftKey, step, title, description, isFree, price, city, category, details, contactMethod, contactPhone, contactEmail, images, performDbSave]);
 
   const handleSaveProgress = useCallback(async () => {
     setSaveProgressing(true);
@@ -1637,8 +1859,19 @@ setIsPro(plan.includes("pro"));
 
 
   function deleteDraft() {
+    if (draftId && userId) {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        void deleteDraftInDb(supabase, draftId, userId);
+      } catch {
+        // ignore
+      }
+      setDraftId(null);
+      clearStoredDraftId(userId);
+    }
     try {
       localStorage.removeItem(draftKey);
+      sessionStorage.removeItem(draftKey + "_images");
     } catch {
       // ignore
     }
@@ -2215,6 +2448,21 @@ if (isPro && videoFile && !videoError) {
                 {showSaveSuccess && (
                   <span className="text-sm text-[#0d7a0d] font-medium" role="status">
                     ✓ {copy.saveProgressSuccess}
+                  </span>
+                )}
+                {dbSaveStatus === "saving" && !showSaveSuccess && (
+                  <span className="text-sm text-[#111111]/70" role="status">
+                    {lang === "es" ? "Guardando…" : "Saving…"}
+                  </span>
+                )}
+                {dbSaveStatus === "saved" && !showSaveSuccess && (
+                  <span className="text-sm text-[#0d7a0d] font-medium" role="status">
+                    {lang === "es" ? "Guardado" : "Saved"}
+                  </span>
+                )}
+                {dbSaveStatus === "error" && (
+                  <span className="text-sm text-red-600" role="alert">
+                    {lang === "es" ? "Error al guardar. Reintenta." : "Error saving. Try again."}
                   </span>
                 )}
               </div>
@@ -3112,7 +3360,7 @@ if (isPro && videoFile && !videoError) {
                             {copy.rulesConfirm}
                             {" "}
                             <Link
-                              href={`/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(`${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=${step}`)}`}
+                              href={`/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(`${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=${step}${draftId ? `&draftId=${draftId}` : ""}`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"

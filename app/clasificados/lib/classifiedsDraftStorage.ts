@@ -19,6 +19,38 @@ export const DRAFT_SESSION_ID_KEY = "leonix_listing_draft_session_id";
 /** localStorage key prefix for form draft; suffix = userId or anon session id. */
 export const DRAFT_KEY_PREFIX = "listing_draft_";
 
+/** localStorage: current DB draft id for user (key = getDraftIdStorageKey(userId)). */
+export function getDraftIdStorageKey(userId: string): string {
+  return `leonix_listing_draft_id_${userId}`;
+}
+
+export function getStoredDraftId(userId: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(getDraftIdStorageKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredDraftId(userId: string, draftId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(getDraftIdStorageKey(userId), draftId);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearStoredDraftId(userId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(getDraftIdStorageKey(userId));
+  } catch {
+    // ignore
+  }
+}
+
 export const CLASSIFIEDS_DRAFT_STORAGE_KEYS = {
   sessionStorage: [
     PREVIEW_LISTING_DRAFT_KEY,
@@ -49,6 +81,7 @@ export function clearAllClassifiedsDrafts(options?: {
     }
     if (options?.userId) {
       localStorage.removeItem(`${DRAFT_KEY_PREFIX}${options.userId}`);
+      clearStoredDraftId(options.userId);
     }
   } catch {
     // ignore
