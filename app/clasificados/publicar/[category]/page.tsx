@@ -819,6 +819,7 @@ export default function PublicarPage() {
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showDraftRestoreModal, setShowDraftRestoreModal] = useState<boolean>(false);
   const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState<boolean>(false);
+  const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
   const [saveProgressing, setSaveProgressing] = useState<boolean>(false);
   const [leaveSaving, setLeaveSaving] = useState<boolean>(false);
@@ -1605,15 +1606,6 @@ setIsPro(plan.includes("pro"));
     );
   }, [title, description, city, price, isFree, images.length, details]);
 
-  useEffect(() => {
-    if (!isFormDirty || showLeaveConfirmModal) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [isFormDirty, showLeaveConfirmModal]);
-
   function handleExitClick(e: React.MouseEvent) {
     e.preventDefault();
     if (isFormDirty) setShowLeaveConfirmModal(true);
@@ -2392,6 +2384,47 @@ if (isPro && videoFile && !videoError) {
                         {copy.leaveKeepEditing}
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* In-page rules modal — no navigation, same publish state */}
+              {showRulesModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+                  <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-xl">
+                    <h2 id="rules-modal-title" className="text-xl font-bold text-[#111111]">
+                      {lang === "es" ? "Reglas de la comunidad" : "Community rules"}
+                    </h2>
+                    <p className="mt-3 text-sm text-[#111111]/80">
+                      {lang === "es"
+                        ? "Al publicar en LEONIX Clasificados aceptas que tu anuncio cumple con estas reglas. Esto nos ayuda a mantener un espacio útil para todos."
+                        : "By posting on LEONIX Classifieds you confirm your listing complies with these rules. This helps us keep the space useful for everyone."}
+                    </p>
+                    <ul className="mt-4 space-y-2 text-sm text-[#111111]/90 list-disc list-inside">
+                      {(lang === "es"
+                        ? [
+                            "El contenido debe ser real y corresponder a lo que ofreces (producto, servicio, renta, etc.).",
+                            "No está permitido el spam, contenido engañoso ni duplicados abusivos.",
+                            "Respeta a la comunidad: sin contenido ofensivo, discriminatorio o ilegal.",
+                            "Los anuncios gratuitos tienen duración y límites (por ejemplo 7 días, 3 fotos). Los planes Pro ofrecen más fotos, video y mayor visibilidad.",
+                          ]
+                        : [
+                            "Content must be real and match what you offer (item, service, rental, etc.).",
+                            "Spam, misleading content, and abusive duplicates are not allowed.",
+                            "Respect the community: no offensive, discriminatory, or illegal content.",
+                            "Free listings have duration and limits (e.g. 7 days, 3 photos). Pro plans offer more photos, video, and visibility.",
+                          ]
+                      ).map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => setShowRulesModal(false)}
+                      className="mt-6 w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]"
+                    >
+                      {lang === "es" ? "Volver a publicar" : "Back to publish"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -3359,15 +3392,13 @@ if (isPro && videoFile && !videoError) {
                           <span className="text-sm text-[#111111]">
                             {copy.rulesConfirm}
                             {" "}
-                            <Link
-                              href={`/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(`${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=${step}${draftId ? `&draftId=${draftId}` : ""}`)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setShowRulesModal(true); }}
                               className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
-                              onClick={(e) => e.stopPropagation()}
                             >
                               {lang === "es" ? "Ver reglas" : "View rules"}
-                            </Link>
+                            </button>
                           </span>
                         </label>
                       </div>
