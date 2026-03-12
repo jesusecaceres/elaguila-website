@@ -828,6 +828,7 @@ export default function PublicarPage() {
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
+  const categoryActionsRef = useRef<HTMLDivElement | null>(null);
   const confirmPublishTriggered = useRef(false);
 
   const draftKey = useMemo(
@@ -840,7 +841,7 @@ export default function PublicarPage() {
 
     const navbarEl = document.querySelector("[data-navbar-root]");
     const navbarHeight = navbarEl ? navbarEl.getBoundingClientRect().height : 0;
-    const gapBelowNavbar = 12;
+    const gapBelowNavbar = 16;
     const offset = navbarHeight > 0 ? navbarHeight + gapBelowNavbar : 72;
 
     if (topAnchorRef.current) {
@@ -854,6 +855,17 @@ export default function PublicarPage() {
     }
 
     window.scrollTo({ top: 0, behavior });
+  }
+
+  function scrollCategoryActionsIntoView() {
+    if (typeof window === "undefined") return;
+    requestAnimationFrame(() => {
+      const el = categoryActionsRef.current;
+      const isShortViewport = window.innerHeight <= 700;
+      if (el && isShortViewport) {
+        el.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    });
   }
 
   useEffect(() => {
@@ -2086,7 +2098,10 @@ if (isPro && videoFile && !videoError) {
                           <button
                             key={key}
                             type="button"
-                            onClick={() => setCategory(key)}
+                            onClick={() => {
+                              setCategory(key);
+                              scrollCategoryActionsIntoView();
+                            }}
                             className={cx(
                               "flex flex-col items-center justify-center gap-2 rounded-xl border py-4 px-3 transition-colors",
                               "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
@@ -2110,7 +2125,7 @@ if (isPro && videoFile && !videoError) {
                       </div>
                     )}
 
-                    <div className="mt-5 flex items-center justify-between gap-3">
+                    <div ref={categoryActionsRef} className="mt-5 flex items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={handleExitClick}
