@@ -1,3 +1,4 @@
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { isProListing } from "../components/planHelpers";
 import type { ListingData } from "../components/ListingView";
 
@@ -89,9 +90,9 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
   const hasPrice = Number.isFinite(priceNum) && priceNum >= 0;
   const priceLabel =
     isFree
-      ? (L === "es" ? "Gratis" : "Free")
+      ? formatListingPrice(null, { lang: L, isFree: true })
       : hasPrice
-        ? (priceNum === 0 ? (L === "es" ? "Gratis" : "Free") : `$${Math.round(priceNum)}`)
+        ? formatListingPrice(priceNum === 0 ? "0" : priceNum, { lang: L })
         : (L === "es" ? "(Sin precio)" : "(No price)");
 
   const todayLabel =

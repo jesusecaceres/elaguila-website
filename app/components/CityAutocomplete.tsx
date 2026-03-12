@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
-import { NORCAL_CITY_NAMES } from "@/app/data/norcalCities";
 
-const MAX_SUGGESTIONS = 22;
+const MAX_SUGGESTIONS = 30;
 const BLUR_DELAY_MS = 120;
 
 function toCityKey(s: string): string {
@@ -18,11 +17,10 @@ function toCityKey(s: string): string {
     .trim();
 }
 
+/** Canonical normalization: same source of truth as lista/filters (CITY_ALIASES + CA_CITIES). */
 function normalizeToCanonical(raw: string): string {
   const key = toCityKey(raw);
   if (!key) return "";
-  const fromNorCal = NORCAL_CITY_NAMES.find((n) => toCityKey(n) === key);
-  if (fromNorCal) return fromNorCal;
   const fromAlias = CITY_ALIASES[key];
   if (fromAlias) return fromAlias;
   for (const record of CA_CITIES) {
@@ -32,18 +30,30 @@ function normalizeToCanonical(raw: string): string {
   return "";
 }
 
+/** Suggestions from full NorCal list (CA_CITIES). Matches city + aliases; returns canonical record.city. */
 function getSuggestions(query: string): string[] {
   const q = toCityKey(query);
   if (!q) return [];
-  // Use NorCal cities dataset for autocomplete suggestions
   const scored: Array<{ city: string; score: number }> = [];
-  for (const name of NORCAL_CITY_NAMES) {
-    const key = toCityKey(name);
+  const seen = new Set<string>();
+  for (const record of CA_CITIES) {
+    const cityKey = toCityKey(record.city);
     let best = 999;
-    if (key === q) best = 0;
-    else if (key.startsWith(q)) best = 1;
-    else if (key.includes(q)) best = 2;
-    if (best !== 999) scored.push({ city: name, score: best });
+    if (cityKey === q) best = 0;
+    else if (cityKey.startsWith(q)) best = 1;
+    else if (cityKey.includes(q)) best = 2;
+    if (best === 999 && record.aliases?.length) {
+      for (const a of record.aliases) {
+        const aliasKey = toCityKey(a);
+        if (aliasKey === q) best = Math.min(best, 0);
+        else if (aliasKey.startsWith(q)) best = Math.min(best, 1);
+        else if (aliasKey.includes(q)) best = Math.min(best, 2);
+      }
+    }
+    if (best !== 999 && !seen.has(record.city)) {
+      seen.add(record.city);
+      scored.push({ city: record.city, score: best });
+    }
   }
   scored.sort((a, b) => a.score - b.score || a.city.localeCompare(b.city));
   return scored.slice(0, MAX_SUGGESTIONS).map((s) => s.city);

@@ -2755,7 +2755,7 @@ if (isPro && videoFile && !videoError) {
                               </span>
                             </div>
                             <div className="p-2">
-                              <div className="text-sm font-semibold text-[#111111]">{previewPrice}</div>
+                              <div className="text-sm font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaSnapshot.isFree })}</div>
                               <h3 className="mt-0.5 text-xs font-semibold text-[#111111] line-clamp-2 leading-tight">{previewTitle}</h3>
                               <div className="mt-0.5 text-[10px] text-[#111111]/55">
                                 {previewCity} · {previewPosted}
@@ -2782,7 +2782,7 @@ if (isPro && videoFile && !videoError) {
 
                             <h2 className="text-base font-semibold text-[#111111] leading-snug">{previewTitle}</h2>
                             <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
-                              <span className="font-semibold text-[#111111]">{previewPrice}</span>
+                              <span className="font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaSnapshot.isFree })}</span>
                               <span className="text-[#111111]/40">·</span>
                               <span className="text-[#111111]/80">{previewCity}</span>
                               <span className="text-[#111111]/40">·</span>
