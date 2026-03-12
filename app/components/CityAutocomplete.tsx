@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import { NORCAL_CITY_NAMES } from "@/app/data/norcalCities";
 
-const MAX_SUGGESTIONS = 14;
+const MAX_SUGGESTIONS = 22;
 const BLUR_DELAY_MS = 120;
 
 function toCityKey(s: string): string {

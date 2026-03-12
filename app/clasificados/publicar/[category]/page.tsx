@@ -1861,7 +1861,7 @@ if (isPro && videoFile && !videoError) {
   const previewTitle = enVentaSnapshot.title || (lang === "es" ? "(Sin título)" : "(No title)");
   const previewDescription = enVentaSnapshot.description || (lang === "es" ? "(Sin descripción)" : "(No description)");
   const previewPrice = enVentaSnapshot.priceLabel;
-  const previewCity = enVentaSnapshot.city || (lang === "es" ? "(Ciudad)" : "(City)");
+  const previewCity = (enVentaSnapshot.cityCanonical ?? enVentaSnapshot.city) || (lang === "es" ? "(Ciudad)" : "(City)");
   const previewPosted = copy.todayLabel;
   const previewShortDescription = getShortPreviewText(enVentaSnapshot.description, 72);
   const previewPhone = enVentaSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(enVentaSnapshot.contactPhone);
@@ -1905,7 +1905,7 @@ if (isPro && videoFile && !videoError) {
       description: snap.description || (lang === "es" ? "(Sin descripción)" : "(No description)"),
       isFree: snap.isFree,
       price: snap.priceRaw,
-      city: snap.city || (lang === "es" ? "(Ciudad)" : "(City)"),
+      city: (snap.cityCanonical ?? snap.city) || (lang === "es" ? "(Ciudad)" : "(City)"),
       todayLabel: copy.todayLabel,
       detailPairs: snap.detailPairs,
       contactMethod: snap.contactMethod,

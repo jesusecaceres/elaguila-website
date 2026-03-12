@@ -13063,6 +13063,10 @@ export const CITY_ALIASES: Record<string, string> = {
   "mt view": "Mountain View",
   "mountainview": "Mountain View",
 
+  // NorCal (En Venta / Clasificados)
+  "san francisco": "San Francisco",
+  salinas: "Salinas",
+
   // East Bay
   "walnutcreek": "Walnut Creek",
 

@@ -6,7 +6,6 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
-import ProPreviewCard from "./ProPreviewCard";
 
 export type ListingData = {
   title: string;
@@ -113,9 +112,9 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             details: "Detalles",
             previewToastSave: "Vista previa: aquí el usuario guardará el anuncio",
             previewToastShare: "Vista previa: aquí el usuario compartirá el anuncio",
-            previewToastCall: "Vista previa: el comprador podrá llamarte aquí",
-            previewToastText: "Vista previa: el comprador podrá enviarte texto aquí",
-            previewToastEmail: "Vista previa: el comprador podrá enviarte correo aquí",
+            previewToastCall: "Vista previa: aquí el comprador podrá llamarte",
+            previewToastText: "Vista previa: aquí el comprador podrá enviarte texto",
+            previewToastEmail: "Vista previa: aquí el comprador podrá enviarte correo",
             previewToastContact: "Vista previa: contacto —",
           }
         : {
@@ -253,10 +252,10 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
         <div className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight">
                 {listing.title}
               </h1>
-              <div className="mt-3 text-2xl font-bold text-[#111111]">
+              <div className="mt-3 text-xl sm:text-2xl font-bold text-[#1a1a1a]">
                 {formatListingPrice(listing.priceLabel, { lang })}
               </div>
               <div className="mt-2 text-sm text-[#111111]/80">
