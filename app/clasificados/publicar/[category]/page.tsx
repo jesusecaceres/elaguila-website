@@ -15,7 +15,6 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
-import { setPreviewDraft } from "@/app/lib/previewListingDraft";
 import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
 import {
   createDraft,
@@ -30,6 +29,7 @@ import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
+import ListingView, { type ListingData } from "../../components/ListingView";
 
 /** Real categories for publicar (no "all", no "Más"). Same order and icons as lista explorer. */
 const PUBLICAR_CATEGORIES: Array<{
@@ -820,6 +820,9 @@ export default function PublicarPage() {
   const [showDraftRestoreModal, setShowDraftRestoreModal] = useState<boolean>(false);
   const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState<boolean>(false);
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
+  const [showFullPreviewModal, setShowFullPreviewModal] = useState<boolean>(false);
+  const [fullPreviewRulesConfirmed, setFullPreviewRulesConfirmed] = useState<boolean>(false);
+  const [fullPreviewInfoConfirmed, setFullPreviewInfoConfirmed] = useState<boolean>(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
   const [saveProgressing, setSaveProgressing] = useState<boolean>(false);
   const [leaveSaving, setLeaveSaving] = useState<boolean>(false);
@@ -1016,11 +1019,16 @@ setIsPro(plan.includes("pro"));
         contactLabel: "Contactar",
         fullPreviewCta: "Ver anuncio completo",
         fullPreviewTitle: "Vista completa del anuncio",
+        fullPreviewBackToEdit: "Volver a editar",
+        fullPreviewInfoConfirm: "Confirmo que la información es correcta.",
+        fullPreviewConfirmPublish: "Confirmar y publicar",
         sendMessageLabel: "Enviar mensaje",
         contactHelperText: "Así verán los usuarios cómo pueden contactarte.",
         draftInProgress: "Tienes una publicación en progreso",
-        continueDraft: "Continuar con lo que guardaste",
-        startNew: "Empezar de nuevo",
+        continueDraft: "Continuar con lo guardado",
+        createNewAd: "Crear anuncio nuevo",
+        createNewAdHint: "El borrador actual se conserva; empezarás otro anuncio desde cero.",
+        deleteCurrentDraft: "Eliminar borrador actual",
         leaveConfirmTitle: "¿Salir de la publicación?",
         leaveSaveDraft: "Guardar progreso y salir",
         leaveDiscard: "Salir sin guardar",
@@ -1080,11 +1088,16 @@ setIsPro(plan.includes("pro"));
         contactLabel: "Contact",
         fullPreviewCta: "Open full listing preview",
         fullPreviewTitle: "Full listing preview",
+        fullPreviewBackToEdit: "Back to edit",
+        fullPreviewInfoConfirm: "I confirm the information is correct.",
+        fullPreviewConfirmPublish: "Confirm & Publish",
         sendMessageLabel: "Send message",
         contactHelperText: "This is how users will see how to contact you.",
         draftInProgress: "You have a draft in progress",
-        continueDraft: "Continue draft",
-        startNew: "Start over",
+        continueDraft: "Continue with saved draft",
+        createNewAd: "Create new ad",
+        createNewAdHint: "Your current draft is kept; you'll start a separate ad from scratch.",
+        deleteCurrentDraft: "Delete current draft",
         leaveConfirmTitle: "Leave publish flow?",
         leaveSaveDraft: "Save draft",
         leaveDiscard: "Leave without saving",
@@ -1209,6 +1222,27 @@ setIsPro(plan.includes("pro"));
     setContactEmail(typeof parsed.contactEmail === "string" ? parsed.contactEmail : "");
   }
 
+  function resetFormToEmpty() {
+    const d: Record<string, string> = {};
+    if (prefill.placeType) d["placeType"] = prefill.placeType;
+    if (prefill.cuisine) d["cuisine"] = prefill.cuisine;
+    if (prefill.website) d["website"] = prefill.website;
+    if (prefill.notes) d["notes"] = prefill.notes;
+    setTitle("");
+    setDescription(prefill.notes || "");
+    setPrice("");
+    setIsFree(false);
+    setCity(prefill.city || "");
+    setDetails(d);
+    setContactMethod("both");
+    setContactPhone(formatPhoneDisplay(prefill.phone || ""));
+    setContactEmail("");
+    setImages([]);
+    setFilePreviews([]);
+    setStep("category");
+    setCategory(categoryFromUrl);
+  }
+
   async function handleContinueDraft() {
     setShowDraftRestoreModal(false);
     try {
@@ -1251,7 +1285,14 @@ setIsPro(plan.includes("pro"));
     }
   }
 
-  async function handleStartNewDraft() {
+  function handleCreateNewAd() {
+    setDraftId(null);
+    if (userId) clearStoredDraftId(userId);
+    resetFormToEmpty();
+    setShowDraftRestoreModal(false);
+  }
+
+  async function handleDeleteCurrentDraft() {
     if (draftId && userId) {
       try {
         const supabase = createSupabaseBrowserClient();
@@ -1262,7 +1303,8 @@ setIsPro(plan.includes("pro"));
       setDraftId(null);
       clearStoredDraftId(userId);
     }
-    clearAllClassifiedsDrafts({ draftKey });
+    clearAllClassifiedsDrafts({ draftKey, userId });
+    resetFormToEmpty();
     setShowDraftRestoreModal(false);
   }
 
@@ -2242,53 +2284,45 @@ if (isPro && videoFile && !videoError) {
   const coverImage = enVentaSnapshot.images[0] ?? null;
   const extraPreviewImages = enVentaSnapshot.images.slice(1, 5);
 
-  // Full-screen seller preview: one normalized draft with exact ordered media so preview/detail stay in sync.
-  // Use data URLs for imageUrls so they survive navigation (blob URLs are revoked when this page unmounts).
-  const openFullPreview = async () => {
-    const slug = (enVentaSnapshot.category || "en-venta").trim().toLowerCase();
-    const qs = new URLSearchParams(searchParams?.toString() ?? "");
-    qs.set("lang", lang);
-    qs.set("fromPreview", "1");
-    qs.set("step", "media");
-    const backToEditUrl = `${pathname ?? `/clasificados/publicar/${slug}`}?${qs.toString()}`;
-    if (images.length > 0) {
-      try {
-        const base64 = await Promise.all(images.map((f) => fileToBase64(f)));
-        const names = images.map((f) => f.name);
-        const types = images.map((f) => f.type || "image/jpeg");
-        sessionStorage.setItem(IMAGES_RESTORE_KEY, JSON.stringify({ base64, names, types }));
-      } catch {
-        // proceed without image restore
-      }
-    }
+  // ListingData for in-page full preview modal (same shape as ListingView expects; uses current filePreviews so no navigation).
+  const fullPreviewListingData = useMemo((): ListingData => {
     const snap = enVentaSnapshot;
-    // Exact upload order; data URLs so preview page can show them after navigation (no stale blob URLs).
-    const orderedImageUrls =
-      images.length > 0
-        ? await Promise.all(images.map((f) => fileToDataUrl(f)))
-        : [];
-    setPreviewDraft({
-      backToEditUrl,
-      lang: snap.lang,
-      category: slug,
+    const imgs = snap.images?.length ? snap.images : ["/logo.png"];
+    return {
       title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
+      priceLabel: snap.priceLabel,
+      city: (snap.cityCanonical ?? snap.city) || (lang === "es" ? "Ciudad" : "City"),
       description: snap.description || (lang === "es" ? "(Sin descripción)" : "(No description)"),
-      isFree: snap.isFree,
-      price: snap.priceRaw,
-      city: (snap.cityCanonical ?? snap.city) || (lang === "es" ? "(Ciudad)" : "(City)"),
       todayLabel: copy.todayLabel,
-      detailPairs: snap.detailPairs,
+      images: imgs,
+      detailPairs: snap.detailPairs ?? [],
       contactMethod: snap.contactMethod,
       contactPhone: formatPhoneDisplay(snap.contactPhone),
       contactEmail: snap.contactEmail,
-      imageUrls: orderedImageUrls,
-      proVideoThumbUrl: snap.proVideoThumbUrl,
-      proVideoUrl: snap.proVideoUrl,
       isPro: snap.isPro,
+      proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
+      proVideoUrl: snap.proVideoUrl ?? null,
+      lang,
       sellerName: sellerDisplayName || undefined,
-    });
-    await new Promise((r) => setTimeout(r, 0));
-    router.push(`/preview-listing?lang=${lang}`);
+      categoryLabel: previewCategoryLabel || undefined,
+    };
+  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName]);
+
+  // Open in-page full preview modal (no route, no sessionStorage handoff).
+  const openFullPreview = () => {
+    setFullPreviewRulesConfirmed(false);
+    setFullPreviewInfoConfirmed(false);
+    setShowFullPreviewModal(true);
+  };
+
+  const closeFullPreviewModal = () => setShowFullPreviewModal(false);
+
+  const handleFullPreviewConfirmPublish = () => {
+    if (!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed) return;
+    setRulesConfirmedPersisted(true);
+    setPreviewViewed(true);
+    setShowFullPreviewModal(false);
+    setTimeout(() => publish(), 600);
   };
 
   return (
@@ -2331,7 +2365,9 @@ if (isPro && videoFile && !videoError) {
                   <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 max-w-md w-full shadow-xl">
                     <h2 id="draft-restore-title" className="text-xl font-bold text-[#111111]">{copy.draftInProgress}</h2>
                     <p className="mt-2 text-sm text-[#111111]/80">
-                      {lang === "es" ? "¿Continuar con lo que guardaste o empezar de nuevo?" : "Continue with what you saved or start over?"}
+                      {lang === "es"
+                        ? "Puedes continuar con este borrador, crear otro anuncio nuevo (este se conserva) o eliminar este borrador."
+                        : "You can continue this draft, create a separate new ad (this one is kept), or delete this draft."}
                     </p>
                     <div className="mt-6 flex flex-col gap-3">
                       <button
@@ -2343,10 +2379,18 @@ if (isPro && videoFile && !videoError) {
                       </button>
                       <button
                         type="button"
-                        onClick={handleStartNewDraft}
+                        onClick={handleCreateNewAd}
                         className="w-full rounded-xl border border-[#111111]/30 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#E8E8E8]"
                       >
-                        {copy.startNew}
+                        {copy.createNewAd}
+                      </button>
+                      <p className="text-xs text-[#111111]/60 px-1">{copy.createNewAdHint}</p>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteCurrentDraft()}
+                        className="mt-1 text-sm text-[#111111]/70 underline hover:text-[#111111]"
+                      >
+                        {copy.deleteCurrentDraft}
                       </button>
                     </div>
                   </div>
@@ -2388,9 +2432,85 @@ if (isPro && videoFile && !videoError) {
                 </div>
               )}
 
-              {/* In-page rules modal — no navigation, same publish state */}
+              {/* In-page full preview modal — no route, no sessionStorage; uses current form state and ListingView */}
+              {showFullPreviewModal && (
+                <div className="fixed inset-0 z-[110] flex flex-col bg-[#D9D9D9] text-[#111111]" role="dialog" aria-modal="true" aria-labelledby="full-preview-title">
+                  <h2 id="full-preview-title" className="sr-only">{copy.fullPreviewTitle}</h2>
+                  <div className="sticky top-0 z-10 flex items-center justify-between gap-4 px-4 py-3 border-b border-black/10 bg-[#F5F5F5] shadow-sm">
+                    <button
+                      type="button"
+                      onClick={closeFullPreviewModal}
+                      className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
+                    >
+                      ← {copy.fullPreviewBackToEdit}
+                    </button>
+                    <span className="text-xs text-[#111111]/50">
+                      {lang === "es" ? "Vista previa (como la verán los compradores)" : "Preview (as buyers will see it)"}
+                    </span>
+                  </div>
+                  <section className="flex-1 overflow-y-auto max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full">
+                    <ListingView listing={fullPreviewListingData} previewMode={true} />
+                  </section>
+                  <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
+                    <div className="max-w-md mx-auto space-y-3">
+                      <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                        <input
+                          type="checkbox"
+                          checked={fullPreviewRulesConfirmed}
+                          onChange={(e) => setFullPreviewRulesConfirmed(e.target.checked)}
+                          className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                        />
+                        <span>
+                          {copy.rulesConfirm}
+                          {" "}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowRulesModal(true); }}
+                            className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                          >
+                            {lang === "es" ? "Ver reglas" : "View rules"}
+                          </button>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                        <input
+                          type="checkbox"
+                          checked={fullPreviewInfoConfirmed}
+                          onChange={(e) => setFullPreviewInfoConfirmed(e.target.checked)}
+                          className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                        />
+                        <span>{copy.fullPreviewInfoConfirm}</span>
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          type="button"
+                          onClick={closeFullPreviewModal}
+                          className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+                        >
+                          {copy.fullPreviewBackToEdit}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleFullPreviewConfirmPublish}
+                          disabled={!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed || publishing}
+                          className={cx(
+                            "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+                            fullPreviewRulesConfirmed && fullPreviewInfoConfirmed && !publishing
+                              ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                              : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
+                          )}
+                        >
+                          {publishing ? copy.publishing : copy.fullPreviewConfirmPublish}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* In-page rules modal — no navigation, same publish state; z-[120] so it appears above full preview */}
               {showRulesModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
                   <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-xl">
                     <h2 id="rules-modal-title" className="text-xl font-bold text-[#111111]">
                       {lang === "es" ? "Reglas de la comunidad" : "Community rules"}
