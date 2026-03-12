@@ -811,7 +811,11 @@ export default function PublicarPage() {
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showDraftRestoreModal, setShowDraftRestoreModal] = useState<boolean>(false);
   const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState<boolean>(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
+  const [saveProgressing, setSaveProgressing] = useState<boolean>(false);
+  const [leaveSaving, setLeaveSaving] = useState<boolean>(false);
   const draftCheckedRef = useRef(false);
+  const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem(RULES_CONFIRMED_KEY) === "1";
@@ -954,7 +958,7 @@ setIsPro(plan.includes("pro"));
         title: "Publicar tu anuncio",
         subtitle: "Publica con claridad. Mientras más completo, más confianza y mejores resultados.",
         steps: { category: "Categoría", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
-        deleteDraft: "Eliminar borrador",
+        deleteDraft: "Eliminar progreso guardado",
         basicsTitle: "Básicos",
         categoryTitle: "Elige la categoría",
         categoryNote: "Esto asegura que tu anuncio salga en el lugar correcto y muestre los campos adecuados.",
@@ -1002,13 +1006,15 @@ setIsPro(plan.includes("pro"));
         sendMessageLabel: "Enviar mensaje",
         contactHelperText: "Así verán los usuarios cómo pueden contactarte.",
         draftInProgress: "Tienes una publicación en progreso",
-        continueDraft: "Continuar publicación",
+        continueDraft: "Continuar con lo que guardaste",
         startNew: "Empezar de nuevo",
         leaveConfirmTitle: "¿Salir de la publicación?",
-        leaveSaveDraft: "Guardar borrador",
-        leaveDiscard: "Descartar cambios",
+        leaveSaveDraft: "Guardar progreso y salir",
+        leaveDiscard: "Salir sin guardar",
         leaveKeepEditing: "Seguir editando",
         exitLink: "Salir",
+        saveProgress: "Guardar progreso",
+        saveProgressSuccess: "Tu anuncio ha sido guardado",
       },
       en: {
         title: "Post your ad",
@@ -1054,6 +1060,8 @@ setIsPro(plan.includes("pro"));
         needReqs: "Please meet the requirements before publishing.",
         checking: "Checking session…",
         todayLabel: "Posted today",
+        saveProgress: "Save progress",
+        saveProgressSuccess: "Your listing has been saved",
         saveLabel: "Save",
         shareLabel: "Share",
         contactLabel: "Contact",
@@ -1066,7 +1074,7 @@ setIsPro(plan.includes("pro"));
         startNew: "Start over",
         leaveConfirmTitle: "Leave publish flow?",
         leaveSaveDraft: "Save draft",
-        leaveDiscard: "Discard changes",
+        leaveDiscard: "Leave without saving",
         leaveKeepEditing: "Keep editing",
         exitLink: "Exit",
       },
@@ -1298,6 +1306,27 @@ setIsPro(plan.includes("pro"));
     }
   }, [draftKey, step, title, description, isFree, price, city, category, details, contactMethod, contactPhone, contactEmail, images]);
 
+  const handleSaveProgress = useCallback(async () => {
+    setSaveProgressing(true);
+    try {
+      await saveDraftAndImagesForProReturn();
+      if (saveSuccessTimerRef.current) clearTimeout(saveSuccessTimerRef.current);
+      setShowSaveSuccess(true);
+      saveSuccessTimerRef.current = setTimeout(() => {
+        setShowSaveSuccess(false);
+        saveSuccessTimerRef.current = null;
+      }, 3000);
+    } finally {
+      setSaveProgressing(false);
+    }
+  }, [saveDraftAndImagesForProReturn]);
+
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimerRef.current) clearTimeout(saveSuccessTimerRef.current);
+    };
+  }, []);
+
   const isFormDirty = useMemo(() => {
     return (
       title.trim().length > 0 ||
@@ -1324,9 +1353,15 @@ setIsPro(plan.includes("pro"));
     else router.push(`/clasificados?lang=${lang}`);
   }
 
-  function handleLeaveSaveDraft() {
-    setShowLeaveConfirmModal(false);
-    router.push(`/clasificados?lang=${lang}`);
+  async function handleLeaveSaveDraft() {
+    setLeaveSaving(true);
+    try {
+      await saveDraftAndImagesForProReturn();
+      setShowLeaveConfirmModal(false);
+      router.push(`/clasificados?lang=${lang}`);
+    } finally {
+      setLeaveSaving(false);
+    }
   }
 
   function handleLeaveDiscard() {
@@ -2053,22 +2088,25 @@ if (isPro && videoFile && !videoError) {
                     <div className="mt-6 flex flex-col gap-3">
                       <button
                         type="button"
-                        onClick={handleLeaveSaveDraft}
-                        className="w-full rounded-xl bg-[#A98C2A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#8f7a24]"
+                        disabled={leaveSaving}
+                        onClick={() => void handleLeaveSaveDraft()}
+                        className="w-full rounded-xl bg-[#A98C2A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#8f7a24] disabled:opacity-70 disabled:cursor-wait"
                       >
-                        {copy.leaveSaveDraft}
+                        {leaveSaving ? (lang === "es" ? "Guardando…" : "Saving…") : copy.leaveSaveDraft}
                       </button>
                       <button
                         type="button"
+                        disabled={leaveSaving}
                         onClick={handleLeaveDiscard}
-                        className="w-full rounded-xl border border-red-600/50 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-100"
+                        className="w-full rounded-xl border border-red-600/50 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-100 disabled:opacity-70"
                       >
                         {copy.leaveDiscard}
                       </button>
                       <button
                         type="button"
+                        disabled={leaveSaving}
                         onClick={() => setShowLeaveConfirmModal(false)}
-                        className="w-full rounded-xl border border-[#111111]/30 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#E8E8E8]"
+                        className="w-full rounded-xl border border-[#111111]/30 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#E8E8E8] disabled:opacity-70"
                       >
                         {copy.leaveKeepEditing}
                       </button>
@@ -2114,6 +2152,23 @@ if (isPro && videoFile && !videoError) {
                   })}
                   </div>
                 </div>
+              </div>
+
+              {/* Guardar progreso — visible on every step, desktop + mobile */}
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <button
+                  type="button"
+                  disabled={saveProgressing}
+                  onClick={() => void handleSaveProgress()}
+                  className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] text-[#111111] font-semibold px-4 py-2.5 text-sm shrink-0 disabled:opacity-70 disabled:cursor-wait"
+                >
+                  {saveProgressing ? (lang === "es" ? "Guardando…" : "Saving…") : copy.saveProgress}
+                </button>
+                {showSaveSuccess && (
+                  <span className="text-sm text-[#0d7a0d] font-medium" role="status">
+                    ✓ {copy.saveProgressSuccess}
+                  </span>
+                )}
               </div>
 
               {/* Visible checklist from same normalized source as preview/publish — pass/fail so form and system stay in sync */}
@@ -2666,8 +2721,8 @@ if (isPro && videoFile && !videoError) {
                         </button>
                         <div className="text-xs text-[#111111]/40">
                           {lang === "es"
-                            ? "Estos detalles se guardan en tu borrador."
-                            : "These details are saved in your draft."}
+                            ? "Estos detalles se guardan automáticamente."
+                            : "These details are saved automatically."}
                         </div>
                       </div>
                     </div>
@@ -3104,8 +3159,8 @@ if (isPro && videoFile && !videoError) {
 
               <div className="mt-6 text-xs text-[#111111]/40 text-center">
                 {lang === "es"
-                  ? `Sesión: ${userId ? userId.slice(0, 8) + "…" : ""} · Borrador: autosave`
-                  : `Session: ${userId ? userId.slice(0, 8) + "…" : ""} · Draft: autosave`}
+                  ? `Sesión: ${userId ? userId.slice(0, 8) + "…" : ""} · Guardado automático activo`
+                  : `Session: ${userId ? userId.slice(0, 8) + "…" : ""} · Autosave active`}
               </div>
             </>
           )}

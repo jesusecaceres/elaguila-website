@@ -39,7 +39,8 @@ export default function EnVentaProPage() {
           price: "$9.99",
           cta: "Completar pago",
           back: "Volver a mi anuncio",
-          integrationNote: "La pasarela de pago se conectará aquí. Tu borrador se conserva.",
+          savedReassurance: "Tu anuncio ha sido guardado. Puedes volver cuando quieras.",
+          integrationNote: "La pasarela de pago se conectará aquí.",
         }
       : {
           title: "LEONIX Pro — For Sale",
@@ -68,7 +69,8 @@ export default function EnVentaProPage() {
           price: "$9.99",
           cta: "Complete payment",
           back: "Back to my listing",
-          integrationNote: "Payment gateway will connect here. Your draft is preserved.",
+          savedReassurance: "Your listing has been saved. You can come back anytime.",
+          integrationNote: "Payment gateway will connect here.",
         };
 
   return (
@@ -128,7 +130,8 @@ export default function EnVentaProPage() {
 
           {/* Price + CTAs */}
           <div className="p-6 pt-2 bg-[#1f1f1f] border-t border-white/10">
-            <p className="text-2xl font-bold text-white">{t.price}</p>
+            <p className="text-sm font-medium text-[#C9B46A]">{t.savedReassurance}</p>
+            <p className="mt-3 text-2xl font-bold text-white">{t.price}</p>
             <p className="mt-1 text-xs text-[#888]">{t.integrationNote}</p>
             <div className="mt-5 flex flex-col gap-3">
               <button
