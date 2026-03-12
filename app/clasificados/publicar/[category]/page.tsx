@@ -82,6 +82,16 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/** Full data URL for an image file. Used in preview draft so images survive navigation (blob URLs are revoked on unmount). */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve((r.result as string) ?? "");
+    r.onerror = () => reject(new Error("File read failed"));
+    r.readAsDataURL(file);
+  });
+}
+
 function formatMoneyMaybe(raw: string, lang: Lang) {
   const cleaned = (raw ?? "").replace(/[^0-9.]/g, "");
   if (!cleaned) return "";
@@ -1870,7 +1880,8 @@ if (isPro && videoFile && !videoError) {
   const coverImage = enVentaSnapshot.images[0] ?? null;
   const extraPreviewImages = enVentaSnapshot.images.slice(1, 5);
 
-  // Full-screen seller preview: pass only normalized snapshot so preview page shows same data as validation/insert.
+  // Full-screen seller preview: one normalized draft with exact ordered media so preview/detail stay in sync.
+  // Use data URLs for imageUrls so they survive navigation (blob URLs are revoked when this page unmounts).
   const openFullPreview = async () => {
     const slug = (enVentaSnapshot.category || "en-venta").trim().toLowerCase();
     const qs = new URLSearchParams(searchParams?.toString() ?? "");
@@ -1889,6 +1900,11 @@ if (isPro && videoFile && !videoError) {
       }
     }
     const snap = enVentaSnapshot;
+    // Exact upload order; data URLs so preview page can show them after navigation (no stale blob URLs).
+    const orderedImageUrls =
+      images.length > 0
+        ? await Promise.all(images.map((f) => fileToDataUrl(f)))
+        : [];
     setPreviewDraft({
       backToEditUrl,
       lang: snap.lang,
@@ -1903,7 +1919,7 @@ if (isPro && videoFile && !videoError) {
       contactMethod: snap.contactMethod,
       contactPhone: formatPhoneDisplay(snap.contactPhone),
       contactEmail: snap.contactEmail,
-      imageUrls: snap.images.length > 0 ? snap.images : [],
+      imageUrls: orderedImageUrls,
       proVideoThumbUrl: snap.proVideoThumbUrl,
       proVideoUrl: snap.proVideoUrl,
       isPro: snap.isPro,

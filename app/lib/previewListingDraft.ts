@@ -1,6 +1,7 @@
 /** SessionStorage key for the listing draft used by /preview-listing */
 export const PREVIEW_LISTING_DRAFT_KEY = "preview-listing-draft";
 
+/** Single normalized draft shape for seller preview. imageUrls = exact upload order (data URLs so they survive navigation). */
 export type PreviewListingDraft = {
   backToEditUrl: string;
   lang: "es" | "en";
@@ -15,6 +16,7 @@ export type PreviewListingDraft = {
   contactMethod: "phone" | "email" | "both";
   contactPhone: string;
   contactEmail: string;
+  /** Ordered media: same order as uploader (cover first). Use data URLs so preview survives navigation. */
   imageUrls: string[];
   proVideoThumbUrl: string | null;
   proVideoUrl: string | null;

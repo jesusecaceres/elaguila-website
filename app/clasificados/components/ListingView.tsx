@@ -51,6 +51,7 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
     return () => clearTimeout(t);
   }, [previewMode]);
 
+  // Same ordered media everywhere: hero (image 1), then Pro video (if any), then remaining images. No placeholder unless zero images.
   const images = useMemo(() => {
     const incoming = listing.images ?? [];
     return Array.isArray(incoming) && incoming.length > 0 ? incoming : ["/logo.png"];
@@ -197,20 +198,28 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             </div>
           )}
 
-          {/* Thumbnail strip */}
-          {images.length >= 1 && (
+          {/* Thumbnail strip: one per media slot (hero, video, remaining images) so arrows and thumbs stay in sync */}
+          {mediaSlots.length >= 1 && (
             <div className="mt-2 flex gap-2 flex-wrap">
-              {images.slice(0, 8).map((src, idx) => (
+              {mediaSlots.slice(0, 8).map((slot, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setMediaIndex(idx)}
                   className={cx(
                     "h-14 w-14 shrink-0 rounded-lg overflow-hidden border-2 bg-[#E8E8E8] flex items-center justify-center",
-                    mediaIndex === idx ? "border-[#C9B46A]/60" : "border-black/10"
+                    safeMediaIndex === idx ? "border-[#C9B46A]/60" : "border-black/10"
                   )}
                 >
-                  <img src={src} alt="" className="object-cover w-full h-full" />
+                  {slot.type === "image" ? (
+                    <img src={slot.url} alt="" className="object-cover w-full h-full" />
+                  ) : (
+                    listing.proVideoThumbUrl ? (
+                      <img src={listing.proVideoThumbUrl} alt="" className="object-cover w-full h-full opacity-90" />
+                    ) : (
+                      <span className="text-2xl" aria-hidden>🎥</span>
+                    )
+                  )}
                 </button>
               ))}
             </div>

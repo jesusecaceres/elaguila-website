@@ -22,6 +22,7 @@ export default function PreviewListingPage() {
     setDraft(getPreviewDraft());
   }, []);
 
+  // Single source: draft from publish page. Do not reconstruct media from partial/stale fields.
   const draftListingData = useMemo((): ListingData | null => {
     if (!draft) return null;
     const imageUrls = draft.imageUrls ?? [];

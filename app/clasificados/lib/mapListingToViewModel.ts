@@ -40,6 +40,7 @@ export type ListingRow = Record<string, unknown> & {
   rama?: string | null;
 };
 
+/** Ordered image URLs from draft/DB. Only use logo placeholder when there are truly zero images. */
 function normalizeImages(row: ListingRow): string[] {
   let raw: unknown =
     row.images ?? row.image_urls ?? row.imageUrls ?? row.photos;
