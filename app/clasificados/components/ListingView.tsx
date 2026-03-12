@@ -40,10 +40,14 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 export type ListingViewProps = {
   listing: ListingData;
+  /** Seller preview (toasts, no real actions). */
   previewMode?: boolean;
+  /** When true, render this same listing as if upgraded to Pro (badge, boost, benefits block). Preview-only; does not change data. */
+  previewProUpgrade?: boolean;
 };
 
-export default function ListingView({ listing, previewMode = false }: ListingViewProps) {
+export default function ListingView({ listing, previewMode = false, previewProUpgrade = false }: ListingViewProps) {
+  const effectiveIsPro = listing.isPro || previewProUpgrade;
   const lang = listing.lang;
   const [viewerCityInput, setViewerCityInput] = useState("");
   const [mediaIndex, setMediaIndex] = useState(0);
@@ -67,17 +71,17 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
   const mediaSlots = useMemo((): MediaSlot[] => {
     const slots: MediaSlot[] = [];
     if (images[0]) slots.push({ type: "image", url: images[0] });
-    if (listing.isPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video" });
+    if (effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video" });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
-    // Seller-only preview: show locked Pro slots so seller sees upgrade value (never on live ad).
-    if (previewMode && !listing.isPro) {
+    // Seller-only preview (free mode): show locked Pro slots so seller sees upgrade value. Pro preview mode shows same media only.
+    if (previewMode && !effectiveIsPro) {
       const extraPhotoSlots = Math.min(2, Math.max(0, 12 - slots.length)); // up to 2 extra photo slots as cue
       for (let i = 0; i < extraPhotoSlots; i++) slots.push({ type: "locked-image" });
       slots.push({ type: "locked-video" });
     }
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [images, listing.isPro, listing.proVideoUrl, listing.proVideoThumbUrl, previewMode]);
+  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, previewMode]);
 
   const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
   const goPrev = useCallback(() => {
@@ -171,7 +175,7 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
         : t.contactBoth;
 
   const currentSlot = mediaSlots[safeMediaIndex];
-  const hasProVideo = listing.isPro && (listing.proVideoUrl || listing.proVideoThumbUrl);
+  const hasProVideo = effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-6 lg:gap-10">
@@ -308,9 +312,43 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
                 );
               })()}
             </div>
-            {listing.isPro ? <ProBadge /> : null}
+            {effectiveIsPro ? <ProBadge /> : null}
+            {previewProUpgrade && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-800 ml-2"
+                aria-hidden
+              >
+                {lang === "es" ? "Mayor visibilidad" : "Boost visibility"}
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Pro preview only: benefits / upgrade teaser block (Phase 1 foundation) */}
+        {previewProUpgrade && (
+          <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#F8F6F0] p-5 sm:p-6">
+            <p className="text-sm font-semibold text-[#111111] mb-2">
+              {lang === "es" ? "Con Pro tu anuncio incluye:" : "With Pro your listing includes:"}
+            </p>
+            <ul className="text-sm text-[#111111]/90 space-y-1 list-disc list-inside">
+              {lang === "es" ? (
+                <>
+                  <li>Más fotos y video</li>
+                  <li>Mayor visibilidad en búsquedas</li>
+                  <li>Insignia Pro en tu anuncio</li>
+                  <li>Vistas y contactos (próximamente)</li>
+                </>
+              ) : (
+                <>
+                  <li>More photos and video</li>
+                  <li>Higher visibility in search</li>
+                  <li>Pro badge on your listing</li>
+                  <li>Views and contacts (coming soon)</li>
+                </>
+              )}
+            </ul>
+          </div>
+        )}
 
         {/* Card 2: CTA section — Guardar, Compartir, contact (preview = toasts only; no real links) */}
         <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-5 sm:p-6" id="listing-buyer-actions">
