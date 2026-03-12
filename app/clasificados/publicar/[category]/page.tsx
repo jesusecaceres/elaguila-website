@@ -26,6 +26,7 @@ import {
 } from "../../lib/listingDraftsDb";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
+import { getStepOrderForCategory } from "../../config/categorySchema";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -737,10 +738,8 @@ export default function PublicarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
-  const isEnVentaFlow = category === "en-venta";
-  const stepOrder: PublishStep[] = isEnVentaFlow
-    ? ["category", "basics", "media"]
-    : ["category", "basics", "details", "media"];
+  const stepOrder: PublishStep[] = getStepOrderForCategory(category || "en-venta");
+  const isEnVentaFlow = stepOrder.length === 3;
   const safeStepForProgress: PublishStep =
     isEnVentaFlow && step === "details" ? "media" : step;
   const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
