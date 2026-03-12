@@ -271,7 +271,7 @@ function NavbarContent() {
     L.myAccount;
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50">
+    <nav className="fixed top-0 left-0 w-full z-50" data-navbar-root>
       {showSignedOutToast && (
         <div
           className="fixed top-20 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-green-600/95 text-white px-4 py-2.5 text-sm font-medium shadow-lg border border-green-500/30"

@@ -838,12 +838,14 @@ export default function PublicarPage() {
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
     if (typeof window === "undefined") return;
 
-    // Navbar-aware offset so first visible content sits clearly below fixed navbar
-    const navbarOffset = 88;
+    const navbarEl = document.querySelector("[data-navbar-root]");
+    const navbarHeight = navbarEl ? navbarEl.getBoundingClientRect().height : 0;
+    const gapBelowNavbar = 12;
+    const offset = navbarHeight > 0 ? navbarHeight + gapBelowNavbar : 72;
 
     if (topAnchorRef.current) {
       const rect = topAnchorRef.current.getBoundingClientRect();
-      const absoluteTop = window.scrollY + rect.top - navbarOffset;
+      const absoluteTop = window.scrollY + rect.top - offset;
       window.scrollTo({
         top: Math.max(0, absoluteTop),
         behavior,
