@@ -7,6 +7,7 @@ import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
 import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
+import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
@@ -34,8 +35,12 @@ export default function PreviewListingPage() {
       contact_email: draft.contactEmail ?? "",
       is_free: draft.isFree,
       price: draft.price?.trim() ? draft.price.trim() : (draft.isFree ? "0" : null),
+      sellerName: draft.sellerName ?? undefined,
     };
-    return mapListingToViewModel(row, draft.lang);
+    const data = mapListingToViewModel(row, draft.lang);
+    if (!data) return null;
+    const categoryLabel = draft.category ? (categoryConfig as Record<string, { label: { es: string; en: string } }>)[draft.category]?.label[draft.lang] : undefined;
+    return { ...data, categoryLabel: categoryLabel ?? undefined, sellerName: data.sellerName ?? draft.sellerName ?? undefined };
   }, [draft]);
 
   const t = useMemo(

@@ -23,6 +23,10 @@ export type ListingData = {
   proVideoThumbUrl: string | null;
   proVideoUrl: string | null;
   lang: "es" | "en";
+  /** Real seller display name when available; fallback to "Tú" / "You" in preview */
+  sellerName?: string | null;
+  /** Optional category label for chip (e.g. "En Venta") */
+  categoryLabel?: string | null;
 };
 
 type MediaSlot = { type: "image"; url: string } | { type: "video" };
@@ -87,6 +91,10 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             guardar: "☆ Guardar",
             compartir: "Compartir",
             contactar: "Contactar vendedor",
+            contactPhoneOnly: "Llamar",
+            contactEmailOnly: "Email",
+            contactBoth: "Llamar / Texto / Email",
+            buyerActionsHelper: "Así podrán contactarte los compradores.",
             postedBy: "Publicado por",
             you: "Tú",
             newSeller: "Nuevo vendedor",
@@ -112,6 +120,10 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
             guardar: "☆ Save",
             compartir: "Share",
             contactar: "Contact seller",
+            contactPhoneOnly: "Call",
+            contactEmailOnly: "Email",
+            contactBoth: "Call / Text / Email",
+            buyerActionsHelper: "This is how buyers will contact you.",
             postedBy: "Posted by",
             you: "You",
             newSeller: "New seller",
@@ -135,15 +147,22 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
     [lang]
   );
 
+  const sellerDisplayName = (listing.sellerName ?? "").trim() || t.you;
+  const contactCtaLabel =
+    listing.contactMethod === "phone"
+      ? t.contactPhoneOnly
+      : listing.contactMethod === "email"
+        ? t.contactEmailOnly
+        : t.contactBoth;
+
   const currentSlot = mediaSlots[safeMediaIndex];
   const hasProVideo = listing.isPro && (listing.proVideoUrl || listing.proVideoThumbUrl);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Left column */}
+      {/* Left: large media gallery only — seller order preserved (hero, video, rest), arrows + thumbnails */}
       <div className="min-w-0">
         <div className="rounded-2xl border border-black/10 bg-[#D9D9D9]/35 backdrop-blur p-6 sm:p-8">
-          {/* Gallery — aspect 4/3, object-cover */}
           {mediaSlots.length > 0 && (
             <div
               className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#E8E8E8]"
@@ -158,11 +177,7 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
               }}
             >
               {currentSlot?.type === "image" ? (
-                <img
-                  src={currentSlot.url}
-                  alt=""
-                  className="object-cover w-full h-full"
-                />
+                <img src={currentSlot.url} alt="" className="object-cover w-full h-full" />
               ) : (
                 hasProVideo && (
                   <video
@@ -197,8 +212,6 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
               )}
             </div>
           )}
-
-          {/* Thumbnail strip: one per media slot (hero, video, remaining images) so arrows and thumbs stay in sync */}
           {mediaSlots.length >= 1 && (
             <div className="mt-2 flex gap-2 flex-wrap">
               {mediaSlots.slice(0, 8).map((slot, idx) => (
@@ -213,169 +226,135 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
                 >
                   {slot.type === "image" ? (
                     <img src={slot.url} alt="" className="object-cover w-full h-full" />
+                  ) : listing.proVideoThumbUrl ? (
+                    <img src={listing.proVideoThumbUrl} alt="" className="object-cover w-full h-full opacity-90" />
                   ) : (
-                    listing.proVideoThumbUrl ? (
-                      <img src={listing.proVideoThumbUrl} alt="" className="object-cover w-full h-full opacity-90" />
-                    ) : (
-                      <span className="text-2xl" aria-hidden>🎥</span>
-                    )
+                    <span className="text-2xl" aria-hidden>🎥</span>
                   )}
                 </button>
               ))}
             </div>
           )}
-
-          {/* Title, Price, Location */}
-          <div className="flex items-start justify-between gap-4 mt-6">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-bold text-[#111111] leading-tight">
-                {listing.title}
-              </h1>
-              <div className="mt-3 text-2xl font-semibold text-[#D4A92A]">
-                {formatListingPrice(listing.priceLabel, { lang })}
-              </div>
-              <div className="mt-4 text-[#111111]">
-                {listing.city} • {listing.todayLabel}
-              </div>
-            </div>
-            <div className="shrink-0 flex flex-col items-end gap-2">
-              {listing.isPro ? <ProBadge /> : null}
-            </div>
-          </div>
-
-          {/* ProPreviewCard — only in preview mode, under Title/Price/Location */}
-          {previewMode && (
-            <div className="mt-6">
-              <ProPreviewCard lang={lang} />
-            </div>
-          )}
-
-          {/* Details card — rounded-xl border p-4 space-y-2 */}
-          {listing.detailPairs.length > 0 && (
-            <div className="mt-6 rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 space-y-2">
-              <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
-                {t.details}
-              </h3>
-              {listing.detailPairs.map((p) => (
-                <div key={p.label} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 text-sm">
-                  <span className="text-[#111111]/70 shrink-0">{p.label}</span>
-                  <span className="font-medium text-[#111111] break-words min-w-0">{p.value}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Description */}
-          <div className="mt-6 rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
-            <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">
-              {listing.description}
-            </div>
-          </div>
-
-          {/* Pro video (standalone when not in gallery) */}
-          {hasProVideo && mediaSlots.length <= 1 && (
-            <div className="mt-6 rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-[#111111]">{t.proVideo}</div>
-                  <div className="mt-1 text-xs text-[#111111]/80">{t.tapToPlay}</div>
-                </div>
-                {!showProVideo && (
-                  <button
-                    type="button"
-                    onClick={() => setShowProVideo(true)}
-                    className="rounded-full border border-[#C9B46A]/70 bg-[#F2EFE8] px-4 py-2 text-xs font-semibold text-[#111111]"
-                  >
-                    {t.play}
-                  </button>
-                )}
-              </div>
-              <div className="mt-4">
-                {!showProVideo && listing.proVideoThumbUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowProVideo(true)}
-                    className="block w-full overflow-hidden rounded-xl border border-black/10"
-                  >
-                    <img
-                      src={listing.proVideoThumbUrl}
-                      alt=""
-                      className="h-auto w-full object-cover opacity-95 hover:opacity-100"
-                    />
-                  </button>
-                ) : listing.proVideoUrl ? (
-                  <video
-                    className="w-full rounded-xl border border-[#C9B46A]/55"
-                    controls
-                    preload="none"
-                    playsInline
-                    poster={listing.proVideoThumbUrl ?? undefined}
-                    src={listing.proVideoUrl}
-                  />
-                ) : null}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Right column — actions, seller, location, contact */}
+      {/* Right: above fold = title, price, city+posted, category chip, buyer actions; below = detalles, descripción, contacto, publicado por; bottom = Pro card */}
       <div className="min-w-0 space-y-6">
-        {/* Action buttons — disabled in preview */}
-        <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
-          <div className="text-xl font-bold text-[#111111]">{t.actionsTitle}</div>
-          <div className="mt-4 space-y-3">
-            <button
-              type="button"
-              onClick={() => previewMode && showPreviewToast(t.previewToastSave)}
-              className="w-full px-5 py-3 rounded-full font-semibold transition border border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
-            >
-              {t.guardar}
-            </button>
-            <button
-              type="button"
-              onClick={() => previewMode && showPreviewToast(t.previewToastShare)}
-              className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
-            >
-              {t.compartir}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (previewMode) {
-                  const parts = [t.previewToastContact];
-                  if (listing.contactPhone) parts.push(`Tel: ${listing.contactPhone}`);
-                  if (listing.contactEmail) parts.push(`Email: ${listing.contactEmail}`);
-                  showPreviewToast(parts.join(" "));
-                }
-              }}
-              className="w-full px-5 py-3 rounded-full font-semibold transition border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55"
-            >
-              {t.contactar}
-            </button>
+        {/* Title, price, city, chip, actions — marketplace-style above the fold */}
+        <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] leading-tight">
+                {listing.title}
+              </h1>
+              <div className="mt-2 text-xl font-semibold text-[#D4A92A]">
+                {formatListingPrice(listing.priceLabel, { lang })}
+              </div>
+              <div className="mt-2 text-sm text-[#111111]">
+                {listing.city} · {listing.todayLabel}
+              </div>
+            </div>
+            {listing.isPro ? <ProBadge /> : null}
+          </div>
+          {listing.categoryLabel ? (
+            <span className="mt-2 inline-block rounded-md border border-black/10 bg-white px-2 py-0.5 text-xs font-medium text-[#111111]/80">
+              {listing.categoryLabel}
+            </span>
+          ) : null}
+
+          {/* Buyer actions row — real method labels; helper copy in preview */}
+          <div className="mt-4" id="listing-buyer-actions">
+            {previewMode && (
+              <p className="text-xs text-[#111111]/70 mb-2">{t.buyerActionsHelper}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => previewMode && showPreviewToast(t.previewToastSave)}
+                className="px-4 py-2 rounded-full font-semibold text-sm border border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55 transition"
+              >
+                {t.guardar}
+              </button>
+              <button
+                type="button"
+                onClick={() => previewMode && showPreviewToast(t.previewToastShare)}
+                className="px-4 py-2 rounded-full font-semibold text-sm border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] hover:bg-[#D9D9D9]/55 transition"
+              >
+                {t.compartir}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (previewMode) {
+                    const parts = [t.previewToastContact];
+                    if (listing.contactPhone) parts.push(`Tel: ${listing.contactPhone}`);
+                    if (listing.contactEmail) parts.push(`Email: ${listing.contactEmail}`);
+                    showPreviewToast(parts.join(" "));
+                  }
+                }}
+                className="px-4 py-2 rounded-full font-semibold text-sm border border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8] transition"
+              >
+                {contactCtaLabel}
+              </button>
+            </div>
+            {/* Toast near CTA region */}
+            {previewMode && previewToast && (
+              <div className="mt-3 rounded-xl bg-[#111111] px-4 py-2.5 text-sm text-[#F5F5F5] shadow-lg" role="status">
+                {previewToast}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Seller card */}
-        <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
-          <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-            {t.postedBy}
-          </h4>
-          <p className="text-sm font-medium text-[#111111]">{t.you}</p>
+        {/* Detalles */}
+        {listing.detailPairs.length > 0 && (
+          <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 space-y-2">
+            <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">{t.details}</h3>
+            {listing.detailPairs.map((p) => (
+              <div key={p.label} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 text-sm">
+                <span className="text-[#111111]/70 shrink-0">{p.label}</span>
+                <span className="font-medium text-[#111111] break-words min-w-0">{p.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Descripción */}
+        <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
+          <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">
+            {listing.description}
+          </div>
+        </div>
+
+        {/* Contacto */}
+        <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
+          <div className="text-lg font-bold text-[#111111]">{t.contactTitle}</div>
+          <div className="mt-2 text-[#111111] text-sm">{t.contactBody}</div>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <ContactActions
+              lang={lang}
+              phone={listing.contactMethod !== "email" ? listing.contactPhone : undefined}
+              text={listing.contactMethod !== "email" ? listing.contactPhone : undefined}
+              email={listing.contactMethod !== "phone" ? listing.contactEmail : undefined}
+              className="flex flex-wrap gap-3"
+            />
+          </div>
+        </div>
+
+        {/* Publicado por — real seller name when available */}
+        <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
+          <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.postedBy}</h4>
+          <p className="text-sm font-medium text-[#111111]">{sellerDisplayName}</p>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
             <span>⭐ {t.newSeller}</span>
             <span>📅 {t.memberSince} {new Date().getFullYear()}</span>
           </div>
         </div>
 
-        {/* Location */}
-        <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
-          <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-            {t.location}
-          </h3>
-          <p className="text-sm text-[#111111] mb-2">
-            {t.sellerLocation} {listing.city}
-          </p>
+        {/* Location / distance */}
+        <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
+          <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.location}</h3>
+          <p className="text-sm text-[#111111] mb-2">{t.sellerLocation} {listing.city}</p>
           <label className="block text-sm text-[#111111]/80 mb-1">{t.distanceLabel}</label>
           <CityAutocomplete
             value={viewerCityInput}
@@ -392,31 +371,34 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
           )}
         </div>
 
-        {/* Contact — single section, Llamar / Texto / Correo, flex flex-wrap gap-3 */}
-        <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
-          <div className="text-xl font-bold text-[#111111]">{t.contactTitle}</div>
-          <div className="mt-3 text-[#111111] text-sm">{t.contactBody}</div>
-          <div className="mt-4 flex flex-wrap gap-3" id="contact-actions">
-            <ContactActions
-              lang={lang}
-              phone={listing.contactMethod !== "email" ? listing.contactPhone : undefined}
-              text={listing.contactMethod !== "email" ? listing.contactPhone : undefined}
-              email={listing.contactMethod !== "phone" ? listing.contactEmail : undefined}
-              className="flex flex-wrap gap-3"
-            />
+        {/* Pro card at bottom — does not interrupt title/price/details flow */}
+        {previewMode && (
+          <div className="mt-6">
+            <ProPreviewCard lang={lang} />
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Preview-only toast */}
-      {previewMode && previewToast && (
-        <div
-          className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-md rounded-xl bg-[#111111] px-4 py-3 text-sm text-[#F5F5F5] shadow-lg sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
-          role="status"
-        >
-          {previewToast}
-        </div>
-      )}
+        {/* Pro video standalone when not in gallery */}
+        {hasProVideo && mediaSlots.length <= 1 && (
+          <div className="rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-6">
+            <div className="text-sm font-semibold text-[#111111]">{t.proVideo}</div>
+            <div className="mt-1 text-xs text-[#111111]/80">{t.tapToPlay}</div>
+            <div className="mt-4">
+              {listing.proVideoThumbUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setShowProVideo(true)}
+                  className="block w-full overflow-hidden rounded-xl border border-black/10"
+                >
+                  <img src={listing.proVideoThumbUrl} alt="" className="h-auto w-full object-cover opacity-95 hover:opacity-100" />
+                </button>
+              ) : listing.proVideoUrl ? (
+                <video className="w-full rounded-xl border border-[#C9B46A]/55" controls preload="none" playsInline poster={listing.proVideoThumbUrl ?? undefined} src={listing.proVideoUrl} />
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

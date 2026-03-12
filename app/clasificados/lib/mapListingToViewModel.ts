@@ -38,6 +38,8 @@ export type ListingRow = Record<string, unknown> & {
   itemType?: string | null;
   condition?: string | null;
   rama?: string | null;
+  sellerName?: string | null;
+  seller_name?: string | null;
 };
 
 /** Ordered image URLs from draft/DB. Only use logo placeholder when there are truly zero images. */
@@ -130,6 +132,7 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
   const isPro = isProListing(row);
   const proVideoThumbUrl = (row.proVideoThumbUrl ?? row.pro_video_thumb_url ?? null) as string | null;
   const proVideoUrl = (row.proVideoUrl ?? row.pro_video_url ?? null) as string | null;
+  const sellerName = (row.sellerName ?? row.seller_name ?? null) as string | null;
 
   return {
     title,
@@ -146,5 +149,6 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
     proVideoThumbUrl: proVideoThumbUrl ?? null,
     proVideoUrl: proVideoUrl ?? null,
     lang: L,
+    sellerName: sellerName ?? undefined,
   };
 }

@@ -21,6 +21,8 @@ export type PreviewListingDraft = {
   proVideoThumbUrl: string | null;
   proVideoUrl: string | null;
   isPro: boolean;
+  /** Real seller display name when available (e.g. from profile) */
+  sellerName?: string | null;
 };
 
 export function getPreviewDraft(): PreviewListingDraft | null {

@@ -676,6 +676,7 @@ export default function PublicarPage() {
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [sellerDisplayName, setSellerDisplayName] = useState<string>("");
   const [authError, setAuthError] = useState<string>("");
   const [isPro, setIsPro] = useState(false);
 
@@ -904,6 +905,8 @@ export default function PublicarPage() {
 
       setUserId(data.user.id);
       setSignedIn(true);
+      const name = (meta.full_name ?? meta.name ?? meta.fullName ?? "").toString().trim();
+      setSellerDisplayName(name || "");
 
 const planRaw =
   (data.user.user_metadata?.leonix_plan as string | undefined) ||
@@ -985,7 +988,7 @@ setIsPro(plan.includes("pro"));
         sendMessageLabel: "Enviar mensaje",
         contactHelperText: "Así verán los usuarios cómo pueden contactarte.",
         draftInProgress: "Tienes una publicación en progreso",
-        continueDraft: "Continuar borrador",
+        continueDraft: "Continuar publicación",
         startNew: "Empezar de nuevo",
         leaveConfirmTitle: "¿Salir de la publicación?",
         leaveSaveDraft: "Guardar borrador",
@@ -1400,15 +1403,15 @@ setIsPro(plan.includes("pro"));
       },
       {
         key: "city",
-        label: lang === "es" ? "Ciudad" : "City",
+        label: lang === "es" ? "Ciudad válida" : "Valid city",
         ok: requirements.cityOk,
         step: "basics",
       },
       ...(category === "en-venta"
         ? [
-            {
-              key: "itemDetails" as const,
-              label: lang === "es" ? "Detalles del artículo" : "Item details",
+      {
+        key: "itemDetails" as const,
+            label: lang === "es" ? "Detalles requeridos" : "Required details",
               ok: requirements.enVentaMetaOk,
               step: "basics" as const,
             },
@@ -1422,18 +1425,7 @@ setIsPro(plan.includes("pro"));
       },
       {
         key: "contact",
-        label:
-          lang === "es"
-            ? contactMethod === "email"
-              ? "Email"
-              : contactMethod === "phone"
-                ? "Teléfono"
-                : "Contacto"
-            : contactMethod === "email"
-              ? "Email"
-              : contactMethod === "phone"
-                ? "Phone"
-                : "Contact",
+        label: lang === "es" ? "Contacto válido" : "Valid contact",
         ok: requirements.phoneOk && requirements.emailOk,
         step: "media",
       },
@@ -1923,6 +1915,7 @@ if (isPro && videoFile && !videoError) {
       proVideoThumbUrl: snap.proVideoThumbUrl,
       proVideoUrl: snap.proVideoUrl,
       isPro: snap.isPro,
+      sellerName: sellerDisplayName || undefined,
     });
     router.push(`/preview-listing?lang=${lang}`);
   };
@@ -1967,7 +1960,7 @@ if (isPro && videoFile && !videoError) {
                   <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 max-w-md w-full shadow-xl">
                     <h2 id="draft-restore-title" className="text-xl font-bold text-[#111111]">{copy.draftInProgress}</h2>
                     <p className="mt-2 text-sm text-[#111111]/80">
-                      {lang === "es" ? "¿Continuar con el borrador guardado o empezar una publicación nueva?" : "Continue with your saved draft or start a new listing?"}
+                      {lang === "es" ? "¿Continuar con lo que guardaste o empezar de nuevo?" : "Continue with what you saved or start over?"}
                     </p>
                     <div className="mt-6 flex flex-col gap-3">
                       <button
@@ -2065,6 +2058,21 @@ if (isPro && videoFile && !videoError) {
                 >
                   {copy.exitLink}
                 </button>
+              </div>
+
+              {/* Visible checklist from same normalized source as preview/publish — pass/fail so form and system stay in sync */}
+              <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-3">
+                <div className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                  {lang === "es" ? "Requisitos para publicar" : "Publish requirements"}
+                </div>
+                <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
+                  {requirementItems.map((item) => (
+                    <li key={item.key} className={cx("flex items-center gap-1.5", item.ok ? "text-[#111111]/80" : "text-red-700")}>
+                      {item.ok ? <span aria-hidden>✓</span> : <span aria-hidden>✗</span>}
+                      <span>{item.label}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               <div className="mt-6 grid gap-6">

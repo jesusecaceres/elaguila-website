@@ -29,6 +29,7 @@ export const NORCAL_CITIES: NorCalCity[] = [
   { name: "Brentwood", lat: 37.9319, lng: -121.6960 },
   { name: "Concord", lat: 37.9780, lng: -122.0311 },
   { name: "San Jose", lat: 37.3382, lng: -121.8863 },
+  { name: "Salinas", lat: 36.6777, lng: -121.6555 },
 ];
 
 /** City names only for autocomplete suggestions */
