@@ -324,7 +324,7 @@ export function MediaUploader({
         {atLimit && !isPro && images.length > 0 && (
           <div className="mt-3 rounded-xl border border-[#A98C2A]/30 bg-[#F8F6F0] p-3 text-sm text-[#111111]">
             {lang === "es"
-              ? "Límite de fotos alcanzado. Actualiza a Pro para hasta 12 fotos y video."
+              ? "Límite de fotos alcanzado. Mejora a Pro para hasta 12 fotos y video."
               : "Photo limit reached. Upgrade to Pro for up to 12 photos and video."}
             <button
               type="button"

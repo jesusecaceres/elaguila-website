@@ -555,6 +555,78 @@ function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, s
   return `\n\n—\n${header}:\n${lines}`.trim();
 }
 
+/** Normalized shape for En Venta (and shared) preview, validation, and insert. Single source of truth. */
+export type EnVentaDraftSnapshot = {
+  category: string;
+  title: string;
+  description: string;
+  city: string;
+  cityCanonical: string | null;
+  priceRaw: string;
+  isFree: boolean;
+  priceLabel: string;
+  images: string[];
+  detailPairs: Array<{ label: string; value: string }>;
+  details: Record<string, string>;
+  contactMethod: "phone" | "email" | "both";
+  contactPhone: string;
+  contactEmail: string;
+  isPro: boolean;
+  proVideoThumbUrl: string | null;
+  proVideoUrl: string | null;
+  lang: Lang;
+};
+
+/** Build normalized snapshot from current form state. Drives preview, validation, and insert. */
+function buildEnVentaDraftSnapshot(params: {
+  title: string;
+  description: string;
+  city: string;
+  price: string;
+  isFree: boolean;
+  details: Record<string, string>;
+  contactMethod: "phone" | "email" | "both";
+  contactPhone: string;
+  contactEmail: string;
+  category: string;
+  lang: Lang;
+  isPro: boolean;
+  imageUrls: string[];
+  proVideoThumbUrl: string | null;
+  proVideoUrl: string | null;
+}): EnVentaDraftSnapshot {
+  const { title, description, city, price, isFree, details, contactMethod, contactPhone, contactEmail, category, lang, isPro, imageUrls, proVideoThumbUrl, proVideoUrl } = params;
+  const cityCanonical = normalizeCity(city) || null;
+  const priceNum = (price ?? "").replace(/[^0-9.]/g, "");
+  const hasPrice = priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0;
+  const priceLabel =
+    isFree
+      ? (lang === "es" ? "Gratis" : "Free")
+      : hasPrice
+        ? (Number(priceNum) === 0 ? (lang === "es" ? "Gratis" : "Free") : `$${Math.round(Number(priceNum))}`)
+        : (lang === "es" ? "(Sin precio)" : "(No price)");
+  const detailPairs = getDetailPairs(category, lang, details);
+  return {
+    category: category.trim(),
+    title: title.trim(),
+    description: description.trim(),
+    city: city.trim(),
+    cityCanonical,
+    priceRaw: price.trim(),
+    isFree,
+    priceLabel,
+    images: imageUrls.filter(Boolean),
+    detailPairs,
+    details: { ...details },
+    contactMethod,
+    contactPhone: contactPhone.trim(),
+    contactEmail: contactEmail.trim(),
+    isPro,
+    proVideoThumbUrl: proVideoThumbUrl ?? null,
+    proVideoUrl: proVideoUrl ?? null,
+    lang,
+  };
+}
 
 export default function PublicarPage() {
   const router = useRouter();
@@ -977,7 +1049,7 @@ setIsPro(plan.includes("pro"));
 
   const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
 
-  // One-time check: if a stored draft exists, show "restore or start new" modal; do NOT auto-load
+  // Draft restore: do not auto-load; show modal so user chooses Continuar borrador or Empezar de nuevo.
   useEffect(() => {
     if (draftKey === "listing_draft_ssr" || draftCheckedRef.current) return;
     draftCheckedRef.current = true;
@@ -991,6 +1063,7 @@ setIsPro(plan.includes("pro"));
     }
   }, [draftKey]);
 
+  /** Restore only form values from draft; step is not restored (avoids random step jumps). */
   function applyDraftToForm(parsed: Partial<DraftV1>) {
     setTitle(typeof parsed.title === "string" ? parsed.title : "");
     setDescription(typeof parsed.description === "string" ? parsed.description : "");
@@ -1197,22 +1270,64 @@ setIsPro(plan.includes("pro"));
     };
   }, [images]);
 
+  // Single normalized snapshot for preview, validation, and insert (same source of truth).
+  const enVentaSnapshot = useMemo(
+    () =>
+      buildEnVentaDraftSnapshot({
+        title,
+        description,
+        city,
+        price,
+        isFree,
+        details,
+        contactMethod,
+        contactPhone,
+        contactEmail,
+        category,
+        lang,
+        isPro,
+        imageUrls: filePreviews,
+        proVideoThumbUrl: proVideoThumbPreviewUrl ?? null,
+        proVideoUrl: proVideoPreviewUrl ?? null,
+      }),
+    [
+      title,
+      description,
+      city,
+      price,
+      isFree,
+      details,
+      contactMethod,
+      contactPhone,
+      contactEmail,
+      category,
+      lang,
+      isPro,
+      filePreviews,
+      proVideoThumbPreviewUrl,
+      proVideoPreviewUrl,
+    ]
+  );
+
+  // Validation from snapshot so we validate what preview/insert use.
   const requirements = useMemo(() => {
-    const categoryOk = !!normalizeCategory(category);
-    const titleOk = title.trim().length >= 5;
-    const descOk = description.trim().length >= 5;
-    const cityOk = Boolean(normalizeCity(city));
-    const priceOk = isFree || Boolean(formatMoneyMaybe(price, lang));
-    const imagesOk = images.length >= 1;
-    const phoneDigits = getPhoneDigits(contactPhone);
-    const phoneOk = contactMethod === "email" ? true : phoneDigits.length === 10;
-    const emailOk = contactMethod === "phone" ? true : /.+@.+\..+/.test(contactEmail.trim());
-    const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(contactEmail.trim());
+    const s = enVentaSnapshot;
+    const categoryOk = !!normalizeCategory(s.category);
+    const titleOk = s.title.length >= 5;
+    const descOk = s.description.length >= 5;
+    const cityOk = Boolean(s.cityCanonical);
+    const priceNum = (s.priceRaw ?? "").replace(/[^0-9.]/g, "");
+    const priceOk = s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
+    const imagesOk = s.images.length >= 1;
+    const phoneDigits = getPhoneDigits(s.contactPhone);
+    const phoneOk = s.contactMethod === "email" ? true : phoneDigits.length === 10;
+    const emailOk = s.contactMethod === "phone" ? true : /.+@.+\..+/.test(s.contactEmail.trim());
+    const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(s.contactEmail.trim());
     const enVentaMetaOk =
-      category !== "en-venta" ||
-      (!!details.rama?.trim() &&
-        !!details.itemType?.trim() &&
-        !!details.condition?.trim());
+      s.category !== "en-venta" ||
+      (!!(s.details.rama ?? "").trim() &&
+        !!(s.details.itemType ?? "").trim() &&
+        !!(s.details.condition ?? "").trim());
     return {
       categoryOk,
       titleOk,
@@ -1236,7 +1351,7 @@ setIsPro(plan.includes("pro"));
         emailOk &&
         enVentaMetaOk,
     };
-  }, [category, title, description, city, isFree, price, details, images.length, contactMethod, contactPhone, contactEmail, lang]);
+  }, [enVentaSnapshot]);
 
   const basicsOk =
     category === "en-venta"
@@ -1504,9 +1619,8 @@ async function publish() {
       return;
     }
 
-    const canonicalCity = normalizeCity(city);
-    if (!canonicalCity) {
-      setPublishError("Selecciona una ciudad válida del Norte de California.");
+    if (!enVentaSnapshot.cityCanonical) {
+      setPublishError(lang === "es" ? "Selecciona una ciudad válida del Norte de California." : "Select a valid city in Northern California.");
       return;
     }
 
@@ -1582,19 +1696,20 @@ async function publish() {
         }
       }
 
-      const finalDescription = (description.trim() + buildDetailsAppendix(category, lang, details)).trim();
-      // Minimal insert aligned to listings schema (owner_id for ownership).
+      const snap = enVentaSnapshot;
+      const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details)).trim();
+      // Insert from same normalized snapshot as preview/validation (DB field names unchanged).
       const insertPayload: any = {
         owner_id: userId,
-        title: title.trim(),
+        title: snap.title,
         description: finalDescription,
-        city: canonicalCity,
-        category: category.trim(),
-        price: isFree ? 0 : Number((price ?? "").replace(/[^0-9.]/g, "")) || 0,
-        is_free: isFree,
-        contact_phone: contactMethod === "email" ? null : (getPhoneDigits(contactPhone).length === 10 ? getPhoneDigits(contactPhone) : null),
-        contact_email: contactMethod === "phone" ? null : contactEmail.trim(),
-        contact_method: contactMethod || null,
+        city: snap.cityCanonical!,
+        category: snap.category,
+        price: snap.isFree ? 0 : Number((snap.priceRaw ?? "").replace(/[^0-9.]/g, "")) || 0,
+        is_free: snap.isFree,
+        contact_phone: snap.contactMethod === "email" ? null : (getPhoneDigits(snap.contactPhone).length === 10 ? getPhoneDigits(snap.contactPhone) : null),
+        contact_email: snap.contactMethod === "phone" ? null : snap.contactEmail.trim(),
+        contact_method: snap.contactMethod || null,
         status: "active",
         is_published: true,
       };
@@ -1740,26 +1855,24 @@ if (isPro && videoFile && !videoError) {
     }
   }, []);
 
-  const previewTitle = title.trim() || (lang === "es" ? "(Sin título)" : "(No title)");
-  const previewDescription = description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)");
-  const previewPrice = !price.trim() && !isFree ? (lang === "es" ? "(Sin precio)" : "(No price)") : formatListingPrice(price, { lang, isFree });
-  const previewCity = city.trim() || (lang === "es" ? "(Ciudad)" : "(City)");
+  // Preview UI strings derived from snapshot so card/preview stay in sync.
+  const previewTitle = enVentaSnapshot.title || (lang === "es" ? "(Sin título)" : "(No title)");
+  const previewDescription = enVentaSnapshot.description || (lang === "es" ? "(Sin descripción)" : "(No description)");
+  const previewPrice = enVentaSnapshot.priceLabel;
+  const previewCity = enVentaSnapshot.city || (lang === "es" ? "(Ciudad)" : "(City)");
   const previewPosted = copy.todayLabel;
-  const previewShortDescription = getShortPreviewText(description, 72);
-  const previewPhone = contactMethod === "email" ? "" : formatPhoneDisplay(contactPhone);
-  const previewEmail = contactMethod === "phone" ? "" : contactEmail.trim();
-  const previewDetailPairs = getDetailPairs(category, lang, details);
-  const coverImage = filePreviews[0] ?? null;
-  const extraPreviewImages = filePreviews.slice(1, 5);
-  const allPreviewImages = useMemo(
-    () => [coverImage, ...extraPreviewImages].filter(Boolean) as string[],
-    [coverImage, extraPreviewImages]
-  );
-  const previewCategoryLabel = category ? categoryConfig[category as CategoryKey]?.label[lang] ?? "" : "";
-  const previewContactMethod = contactMethod;
+  const previewShortDescription = getShortPreviewText(enVentaSnapshot.description, 72);
+  const previewPhone = enVentaSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(enVentaSnapshot.contactPhone);
+  const previewEmail = enVentaSnapshot.contactMethod === "phone" ? "" : enVentaSnapshot.contactEmail;
+  const previewDetailPairs = enVentaSnapshot.detailPairs;
+  const previewCategoryLabel = enVentaSnapshot.category ? categoryConfig[enVentaSnapshot.category as CategoryKey]?.label[lang] ?? "" : "";
+  const previewContactMethod = enVentaSnapshot.contactMethod;
+  const coverImage = enVentaSnapshot.images[0] ?? null;
+  const extraPreviewImages = enVentaSnapshot.images.slice(1, 5);
 
+  // Full-screen seller preview: pass only normalized snapshot so preview page shows same data as validation/insert.
   const openFullPreview = async () => {
-    const slug = (category || "en-venta").trim().toLowerCase();
+    const slug = (enVentaSnapshot.category || "en-venta").trim().toLowerCase();
     const qs = new URLSearchParams(searchParams?.toString() ?? "");
     qs.set("lang", lang);
     qs.set("fromPreview", "1");
@@ -1775,24 +1888,25 @@ if (isPro && videoFile && !videoError) {
         // proceed without image restore
       }
     }
+    const snap = enVentaSnapshot;
     setPreviewDraft({
       backToEditUrl,
-      lang,
+      lang: snap.lang,
       category: slug,
-      title: title.trim() || (lang === "es" ? "(Sin título)" : "(No title)"),
-      description: description.trim() || (lang === "es" ? "(Sin descripción)" : "(No description)"),
-      isFree,
-      price: price.trim(),
-      city: city.trim() || (lang === "es" ? "(Ciudad)" : "(City)"),
+      title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
+      description: snap.description || (lang === "es" ? "(Sin descripción)" : "(No description)"),
+      isFree: snap.isFree,
+      price: snap.priceRaw,
+      city: snap.city || (lang === "es" ? "(Ciudad)" : "(City)"),
       todayLabel: copy.todayLabel,
-      detailPairs: previewDetailPairs,
-      contactMethod,
-      contactPhone: formatPhoneDisplay(contactPhone),
-      contactEmail: contactEmail.trim(),
-      imageUrls: allPreviewImages,
-      proVideoThumbUrl: proVideoThumbPreviewUrl ?? null,
-      proVideoUrl: proVideoPreviewUrl ?? null,
-      isPro,
+      detailPairs: snap.detailPairs,
+      contactMethod: snap.contactMethod,
+      contactPhone: formatPhoneDisplay(snap.contactPhone),
+      contactEmail: snap.contactEmail,
+      imageUrls: snap.images.length > 0 ? snap.images : [],
+      proVideoThumbUrl: snap.proVideoThumbUrl,
+      proVideoUrl: snap.proVideoUrl,
+      isPro: snap.isPro,
     });
     router.push(`/preview-listing?lang=${lang}`);
   };
