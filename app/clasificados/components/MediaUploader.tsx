@@ -430,7 +430,7 @@ export function MediaUploader({
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
                 <li>⭐ {lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
-                <li>🎥 {lang === "es" ? "Video destacado" : "Featured video"}</li>
+                <li>🎥 {lang === "es" ? "Video sobresaliente" : "Featured video"}</li>
                 <li>🚀 {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
                 <li>📅 {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}</li>
                 <li>📈 {lang === "es" ? "Los anuncios con video reciben hasta 3× más visibilidad" : "Listings with video get up to 3× more visibility"}</li>

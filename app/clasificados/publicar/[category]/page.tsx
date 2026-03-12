@@ -1145,6 +1145,28 @@ setIsPro(plan.includes("pro"));
       }
       applyDraftToForm(parsed);
       setShowDraftRestoreModal(false);
+      // Restore images from draft images stash so "Continuar con lo que guardaste" restores everything.
+      try {
+        const imgRaw = sessionStorage.getItem(draftKey + "_images");
+        if (imgRaw) {
+          const { base64: b64List, names, types } = JSON.parse(imgRaw) as { base64: string[]; names: string[]; types: string[] };
+          if (Array.isArray(b64List) && Array.isArray(names) && b64List.length > 0) {
+            const files: File[] = [];
+            for (let i = 0; i < b64List.length; i++) {
+              const b64 = b64List[i];
+              const name = (names && names[i]) || `image-${i + 1}.jpg`;
+              const type = (types && types[i]) || "image/jpeg";
+              const bin = atob(b64);
+              const arr = new Uint8Array(bin.length);
+              for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
+              files.push(new File([new Blob([arr], { type })], name, { type }));
+            }
+            if (files.length) setImages(files);
+          }
+        }
+      } catch {
+        // ignore image restore
+      }
     } catch {
       setShowDraftRestoreModal(false);
     }
@@ -1275,6 +1297,27 @@ setIsPro(plan.includes("pro"));
     };
   }, [draftKey, showDraftRestoreModal, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
 
+  // Persist images with draft (for "Continuar con lo que guardaste" restore); debounced.
+  const draftImagesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (draftKey === "listing_draft_ssr" || showDraftRestoreModal || images.length === 0) return;
+    if (draftImagesTimerRef.current) clearTimeout(draftImagesTimerRef.current);
+    draftImagesTimerRef.current = setTimeout(() => {
+      const key = draftKey + "_images";
+      Promise.all(images.map((f) => fileToBase64(f)))
+        .then((base64) => {
+          const names = images.map((f) => f.name);
+          const types = images.map((f) => f.type || "image/jpeg");
+          sessionStorage.setItem(key, JSON.stringify({ base64, names, types }));
+        })
+        .catch(() => {});
+      draftImagesTimerRef.current = null;
+    }, 400);
+    return () => {
+      if (draftImagesTimerRef.current) clearTimeout(draftImagesTimerRef.current);
+    };
+  }, [draftKey, showDraftRestoreModal, images]);
+
   /** Flush draft and images so when seller returns from Pro page their ad is intact. */
   const saveDraftAndImagesForProReturn = useCallback(async () => {
     if (draftKey === "listing_draft_ssr") return;
@@ -1299,7 +1342,9 @@ setIsPro(plan.includes("pro"));
         const base64 = await Promise.all(images.map((f) => fileToBase64(f)));
         const names = images.map((f) => f.name);
         const types = images.map((f) => f.type || "image/jpeg");
-        sessionStorage.setItem(IMAGES_RESTORE_KEY, JSON.stringify({ base64, names, types }));
+        const payload = JSON.stringify({ base64, names, types });
+        sessionStorage.setItem(IMAGES_RESTORE_KEY, payload);
+        sessionStorage.setItem(draftKey + "_images", payload);
       }
     } catch {
       // ignore
@@ -3067,7 +3112,7 @@ if (isPro && videoFile && !videoError) {
                             {copy.rulesConfirm}
                             {" "}
                             <Link
-                              href={`/clasificados/reglas?lang=${lang}`}
+                              href={`/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(`${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=${step}`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"

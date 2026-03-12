@@ -18,7 +18,7 @@ export default function EnVentaProPage() {
           mediaTitle: "Más impacto para tu anuncio",
           benefits: [
             "Hasta 12 fotos",
-            "Video destacado",
+            "Video sobresaliente",
             "2 impulsos de visibilidad",
             "Duración del anuncio: 30 días",
             "Hasta 3× más visibilidad con video",

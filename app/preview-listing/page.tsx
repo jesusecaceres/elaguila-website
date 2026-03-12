@@ -135,7 +135,7 @@ export default function PreviewListingPage() {
               {t.rulesCheckbox}
               {" "}
               <Link
-                href={`/clasificados/reglas?lang=${lang}`}
+                href={draft?.backToEditUrl ? `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(draft.backToEditUrl)}` : `/clasificados/reglas?lang=${lang}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"

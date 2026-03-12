@@ -15,7 +15,7 @@ export default function ProPreviewCard({ lang = "es", onUpgrade, onContinueFree 
           title: "Mejora tu anuncio con LEONIX Pro",
           benefits: [
             "⭐ Hasta 12 fotos",
-            "🎥 Video destacado",
+            "🎥 Video sobresaliente",
             "🚀 2 impulsos de visibilidad",
             "📅 Duración del anuncio: 30 días",
             "📈 Los anuncios con video reciben hasta 3× más visibilidad",

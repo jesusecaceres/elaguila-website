@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 export default function ReglasPage() {
   const searchParams = useSearchParams();
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
+  const returnUrl = searchParams?.get("return") || `/clasificados/publicar/en-venta?lang=${lang}`;
 
   const t =
     lang === "es"
@@ -45,7 +46,7 @@ export default function ReglasPage() {
           ))}
         </ul>
         <Link
-          href={`/clasificados/publicar/en-venta?lang=${lang}`}
+          href={returnUrl.startsWith("/") ? returnUrl : `/clasificados/publicar/en-venta?lang=${lang}`}
           className="mt-6 inline-block rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]"
         >
           {t.back}

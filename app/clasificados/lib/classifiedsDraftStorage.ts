@@ -45,6 +45,7 @@ export function clearAllClassifiedsDrafts(options?: {
     }
     if (options?.draftKey) {
       localStorage.removeItem(options.draftKey);
+      sessionStorage.removeItem(options.draftKey + "_images");
     }
     if (options?.userId) {
       localStorage.removeItem(`${DRAFT_KEY_PREFIX}${options.userId}`);

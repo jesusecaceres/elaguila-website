@@ -201,7 +201,7 @@ export default function ListingView({ listing, previewMode = false }: ListingVie
                   </span>
                   <span className="text-xs text-white/60">
                     {currentSlot.type === "locked-video"
-                      ? (lang === "es" ? "Video destacado" : "Featured video")
+                      ? (lang === "es" ? "Video sobresaliente" : "Featured video")
                       : (lang === "es" ? "Más fotos" : "More photos")}
                   </span>
                 </div>
