@@ -1519,12 +1519,15 @@ setIsPro(plan.includes("pro"));
         ok: requirements.imagesOk,
         step: "media",
       },
-      {
-        key: "contact",
-        label: lang === "es" ? "Contacto válido" : "Valid contact",
-        ok: requirements.phoneOk && requirements.emailOk,
-        step: "media",
-      },
+      // Contact: show method-specific requirement(s) so seller sees exactly what to fix
+      ...(contactMethod === "both"
+        ? [
+            { key: "contactPhone", label: lang === "es" ? "Teléfono válido (10 dígitos)" : "Valid phone (10 digits)", ok: requirements.phoneOk, step: "media" as PublishStep },
+            { key: "contactEmail", label: lang === "es" ? "Email válido" : "Valid email", ok: requirements.emailOk, step: "media" as PublishStep },
+          ]
+        : contactMethod === "phone"
+          ? [{ key: "contact", label: lang === "es" ? "Contacto válido (teléfono)" : "Valid contact (phone)", ok: requirements.phoneOk, step: "media" as PublishStep }]
+          : [{ key: "contact", label: lang === "es" ? "Contacto válido (email)" : "Valid contact (email)", ok: requirements.emailOk, step: "media" as PublishStep }]),
     ];
     return items;
   }, [requirements, lang, isFree, contactMethod, category]);
@@ -2836,8 +2839,8 @@ if (isPro && videoFile && !videoError) {
                                 className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               />
                               {!requirements.phoneOk && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
-                                  {lang === "es" ? "Agrega un teléfono válido." : "Add a valid phone."}
+                                <div className="mt-1 text-xs text-red-600">
+                                  {lang === "es" ? "Agrega un teléfono válido (10 dígitos)." : "Add a valid phone (10 digits)."}
                                 </div>
                               )}
                             </div>
@@ -2853,7 +2856,7 @@ if (isPro && videoFile && !videoError) {
                                 className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                               />
                               {!requirements.emailOk && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
+                                <div className="mt-1 text-xs text-red-600">
                                   {lang === "es" ? "Agrega un email válido." : "Add a valid email."}
                                 </div>
                               )}
@@ -3060,16 +3063,20 @@ if (isPro && videoFile && !videoError) {
                             onChange={(e) => setRulesConfirmedPersisted(e.target.checked)}
                             className="mt-1 rounded border-black/20"
                           />
-                          <span className="text-sm text-[#111111]">{copy.rulesConfirm}</span>
+                          <span className="text-sm text-[#111111]">
+                            {copy.rulesConfirm}
+                            {" "}
+                            <Link
+                              href={`/clasificados/reglas?lang=${lang}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {lang === "es" ? "Ver reglas" : "View rules"}
+                            </Link>
+                          </span>
                         </label>
-                        <Link
-                          href={`/clasificados/reglas?lang=${lang}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-[#111111]/70 hover:text-[#111111] underline ml-6"
-                        >
-                          {lang === "es" ? "Ver reglas" : "View rules"}
-                        </Link>
                       </div>
 
                       <label className="mt-3 flex items-start gap-3 cursor-pointer">

@@ -131,7 +131,19 @@ export default function PreviewListingPage() {
               onChange={(e) => setRulesConfirmed(e.target.checked)}
               className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
             />
-            <span>{t.rulesCheckbox}</span>
+            <span>
+              {t.rulesCheckbox}
+              {" "}
+              <Link
+                href={`/clasificados/reglas?lang=${lang}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {lang === "es" ? "Ver reglas" : "View rules"}
+              </Link>
+            </span>
           </label>
           <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
             <input
