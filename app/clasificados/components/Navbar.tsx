@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
 
 type Lang = "es" | "en";
 
@@ -269,6 +270,7 @@ function NavbarContent() {
   }, []);
 
   const signOut = useCallback(async () => {
+    clearAllClassifiedsDrafts({ userId: user?.id ?? null });
     const sb = createSupabaseBrowserClient();
     if (sb) {
       await sb.auth.signOut();
@@ -276,7 +278,7 @@ function NavbarContent() {
     setAccountOpen(false);
     setUser(null);
     router.refresh();
-  }, [router]);
+  }, [router, user?.id]);
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);

@@ -16,6 +16,7 @@ import {
 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { setPreviewDraft } from "@/app/lib/previewListingDraft";
+import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY } from "../../lib/classifiedsDraftStorage";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
@@ -725,7 +726,9 @@ export default function PublicarPage() {
   const [publishing, setPublishing] = useState<boolean>(false);
   const [publishedId, setPublishedId] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
-  const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
+  const [showDraftRestoreModal, setShowDraftRestoreModal] = useState<boolean>(false);
+  const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState<boolean>(false);
+  const draftCheckedRef = useRef(false);
   const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem(RULES_CONFIRMED_KEY) === "1";
@@ -899,6 +902,14 @@ setIsPro(plan.includes("pro"));
         fullPreviewTitle: "Vista completa del anuncio",
         sendMessageLabel: "Enviar mensaje",
         contactHelperText: "Así verán los usuarios cómo pueden contactarte.",
+        draftInProgress: "Tienes una publicación en progreso",
+        continueDraft: "Continuar borrador",
+        startNew: "Empezar de nuevo",
+        leaveConfirmTitle: "¿Salir de la publicación?",
+        leaveSaveDraft: "Guardar borrador",
+        leaveDiscard: "Descartar cambios",
+        leaveKeepEditing: "Seguir editando",
+        exitLink: "Salir",
       },
       en: {
         title: "Post your ad",
@@ -951,6 +962,14 @@ setIsPro(plan.includes("pro"));
         fullPreviewTitle: "Full listing preview",
         sendMessageLabel: "Send message",
         contactHelperText: "This is how users will see how to contact you.",
+        draftInProgress: "You have a draft in progress",
+        continueDraft: "Continue draft",
+        startNew: "Start over",
+        leaveConfirmTitle: "Leave publish flow?",
+        leaveSaveDraft: "Save draft",
+        leaveDiscard: "Discard changes",
+        leaveKeepEditing: "Keep editing",
+        exitLink: "Exit",
       },
     }),
     []
@@ -958,33 +977,59 @@ setIsPro(plan.includes("pro"));
 
   const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
 
-  // Load draft when key is ready — restore form data only — restore form data only; always show Category step first (do not restore step)
+  // One-time check: if a stored draft exists, show "restore or start new" modal; do NOT auto-load
   useEffect(() => {
-    if (draftKey === "listing_draft_ssr") return;
+    if (draftKey === "listing_draft_ssr" || draftCheckedRef.current) return;
+    draftCheckedRef.current = true;
     try {
       const raw = localStorage.getItem(draftKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
-      if (parsed.v !== 1) return;
-
-      setTitle(typeof parsed.title === "string" ? parsed.title : "");
-      setDescription(typeof parsed.description === "string" ? parsed.description : "");
-      setIsFree(Boolean(parsed.isFree));
-      setPrice(typeof parsed.price === "string" ? parsed.price : "");
-      const loadedCity = typeof parsed.city === "string" ? parsed.city : "";
-      setCity(loadedCity ? (normalizeCity(loadedCity) || loadedCity.trim()) : "");
-      const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
-      setCategory(draftCat || category);
-      setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
-      const method = parsed.contactMethod === "phone" || parsed.contactMethod === "email" || parsed.contactMethod === "both" ? parsed.contactMethod : "both";
-      setContactMethod(method);
-      setContactPhone(typeof parsed.contactPhone === "string" ? formatPhoneDisplay(parsed.contactPhone) : "");
-      setContactEmail(typeof parsed.contactEmail === "string" ? parsed.contactEmail : "");
+      if (parsed.v === 1) setShowDraftRestoreModal(true);
     } catch {
-      // ignore corrupt drafts
+      // ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey]);
+
+  function applyDraftToForm(parsed: Partial<DraftV1>) {
+    setTitle(typeof parsed.title === "string" ? parsed.title : "");
+    setDescription(typeof parsed.description === "string" ? parsed.description : "");
+    setIsFree(Boolean(parsed.isFree));
+    setPrice(typeof parsed.price === "string" ? parsed.price : "");
+    const loadedCity = typeof parsed.city === "string" ? parsed.city : "";
+    setCity(loadedCity ? (normalizeCity(loadedCity) || loadedCity.trim()) : "");
+    const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
+    if (draftCat) setCategory(draftCat);
+    setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
+    const method = parsed.contactMethod === "phone" || parsed.contactMethod === "email" || parsed.contactMethod === "both" ? parsed.contactMethod : "both";
+    setContactMethod(method);
+    setContactPhone(typeof parsed.contactPhone === "string" ? formatPhoneDisplay(parsed.contactPhone) : "");
+    setContactEmail(typeof parsed.contactEmail === "string" ? parsed.contactEmail : "");
+  }
+
+  function handleContinueDraft() {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) {
+        setShowDraftRestoreModal(false);
+        return;
+      }
+      const parsed = JSON.parse(raw) as Partial<DraftV1>;
+      if (parsed.v !== 1) {
+        setShowDraftRestoreModal(false);
+        return;
+      }
+      applyDraftToForm(parsed);
+      setShowDraftRestoreModal(false);
+    } catch {
+      setShowDraftRestoreModal(false);
+    }
+  }
+
+  function handleStartNewDraft() {
+    clearAllClassifiedsDrafts({ draftKey });
+    setShowDraftRestoreModal(false);
+  }
 
   // Restore images from sessionStorage when returning from preview (prevents form reset)
   useEffect(() => {
@@ -1073,9 +1118,9 @@ setIsPro(plan.includes("pro"));
   }, [signedIn, userId, category]);
 
 
-  // Draft autosave (debounced) — when title, description, price, category, etc. change
+  // Draft autosave (debounced) — when title, description, price, category, etc. change; skip while restore modal is open
   useEffect(() => {
-    if (draftKey === "listing_draft_ssr") return;
+    if (draftKey === "listing_draft_ssr" || showDraftRestoreModal) return;
 
     if (draftTimer.current) window.clearTimeout(draftTimer.current);
     draftTimer.current = window.setTimeout(() => {
@@ -1104,7 +1149,44 @@ setIsPro(plan.includes("pro"));
     return () => {
       if (draftTimer.current) window.clearTimeout(draftTimer.current);
     };
-  }, [draftKey, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
+  }, [draftKey, showDraftRestoreModal, step, title, description, isFree, price, city, category, contactMethod, contactPhone, contactEmail, details]);
+
+  const isFormDirty = useMemo(() => {
+    return (
+      title.trim().length > 0 ||
+      description.trim().length > 0 ||
+      city.trim().length > 0 ||
+      (price.trim().length > 0 && !isFree) ||
+      images.length > 0 ||
+      Object.values(details).some((v) => String(v ?? "").trim().length > 0)
+    );
+  }, [title, description, city, price, isFree, images.length, details]);
+
+  useEffect(() => {
+    if (!isFormDirty || showLeaveConfirmModal) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isFormDirty, showLeaveConfirmModal]);
+
+  function handleExitClick(e: React.MouseEvent) {
+    e.preventDefault();
+    if (isFormDirty) setShowLeaveConfirmModal(true);
+    else router.push(`/clasificados?lang=${lang}`);
+  }
+
+  function handleLeaveSaveDraft() {
+    setShowLeaveConfirmModal(false);
+    router.push(`/clasificados?lang=${lang}`);
+  }
+
+  function handleLeaveDiscard() {
+    clearAllClassifiedsDrafts({ draftKey });
+    setShowLeaveConfirmModal(false);
+    router.push(`/clasificados?lang=${lang}`);
+  }
 
   // Image previews (from images state)
   useEffect(() => {
@@ -1749,10 +1831,71 @@ if (isPro && videoFile && !videoError) {
 
           {!checking && signedIn && !showFormPlaceholder && (
             <>
+              {/* Draft restore: do not auto-load; let user choose */}
+              {showDraftRestoreModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="draft-restore-title">
+                  <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 max-w-md w-full shadow-xl">
+                    <h2 id="draft-restore-title" className="text-xl font-bold text-[#111111]">{copy.draftInProgress}</h2>
+                    <p className="mt-2 text-sm text-[#111111]/80">
+                      {lang === "es" ? "¿Continuar con el borrador guardado o empezar una publicación nueva?" : "Continue with your saved draft or start a new listing?"}
+                    </p>
+                    <div className="mt-6 flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={handleContinueDraft}
+                        className="w-full rounded-xl bg-[#A98C2A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#8f7a24]"
+                      >
+                        {copy.continueDraft}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStartNewDraft}
+                        className="w-full rounded-xl border border-[#111111]/30 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#E8E8E8]"
+                      >
+                        {copy.startNew}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Leave confirmation when user has unsaved changes */}
+              {showLeaveConfirmModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="leave-confirm-title">
+                  <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 max-w-md w-full shadow-xl">
+                    <h2 id="leave-confirm-title" className="text-xl font-bold text-[#111111]">{copy.leaveConfirmTitle}</h2>
+                    <div className="mt-6 flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={handleLeaveSaveDraft}
+                        className="w-full rounded-xl bg-[#A98C2A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#8f7a24]"
+                      >
+                        {copy.leaveSaveDraft}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLeaveDiscard}
+                        className="w-full rounded-xl border border-red-600/50 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-100"
+                      >
+                        {copy.leaveDiscard}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowLeaveConfirmModal(false)}
+                        className="w-full rounded-xl border border-[#111111]/30 bg-white px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#E8E8E8]"
+                      >
+                        {copy.leaveKeepEditing}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div ref={topAnchorRef} aria-hidden className="h-px w-full" />
-              {/* Read-only progress bar (not clickable) */}
-              <div className="mt-6 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={stepOrder.length} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
-                <div className="flex items-center gap-1 sm:gap-2">
+              {/* Progress bar + Salir */}
+              <div className="mt-6 flex items-center gap-3">
+                <div className="flex-1 min-w-0 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={stepOrder.length} aria-label={lang === "es" ? "Progreso de publicación" : "Publish progress"}>
+                  <div className="flex items-center gap-1 sm:gap-2">
                   {stepOrder.map((s, idx) => {
                     const isActive = safeStepForProgress === s;
                     const isPast = stepOrder.indexOf(s) < currentStepIndex;
@@ -1783,11 +1926,16 @@ if (isPro && videoFile && !videoError) {
                       </span>
                     );
                   })}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleExitClick}
+                  className="shrink-0 text-sm font-medium text-[#111111]/70 hover:text-[#111111] underline"
+                >
+                  {copy.exitLink}
+                </button>
               </div>
-
-              
-
 
               <div className="mt-6 grid gap-6">
                 {/* CATEGORY (STEP 1) — icon cards, all real categories, no Más */}

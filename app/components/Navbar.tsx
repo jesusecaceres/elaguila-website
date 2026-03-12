@@ -253,13 +253,15 @@ function NavbarContent() {
   }, []);
 
   const signOut = useCallback(async () => {
+    const { clearAllClassifiedsDrafts } = await import("@/app/clasificados/lib/classifiedsDraftStorage");
+    clearAllClassifiedsDrafts({ userId: user?.id ?? null });
     setMobileOpen(false);
     setAccountOpen(false);
     await supabase.auth.signOut();
     setUser(null);
     router.refresh();
     router.replace(`/home?lang=${lang}&signed_out=1`);
-  }, [router, lang]);
+  }, [router, lang, user?.id]);
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);
