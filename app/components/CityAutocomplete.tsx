@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import { NORCAL_CITY_NAMES } from "@/app/data/norcalCities";
 
-const MAX_SUGGESTIONS = 8;
+const MAX_SUGGESTIONS = 14;
 const BLUR_DELAY_MS = 120;
 
 function toCityKey(s: string): string {
@@ -151,8 +151,8 @@ export default function CityAutocomplete({
     ? "w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
     : "mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30";
   const panelClasses = isDark
-    ? "absolute left-0 right-0 mt-2 z-50 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/95 shadow-xl"
-    : "absolute left-0 right-0 mt-2 z-50 max-h-72 overflow-auto rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl";
+    ? "absolute left-0 right-0 mt-2 z-50 max-h-80 overflow-auto rounded-xl border border-white/10 bg-black/95 shadow-xl"
+    : "absolute left-0 right-0 mt-2 z-50 max-h-80 overflow-auto rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl";
   const optionClasses = isDark
     ? "block w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition"
     : "block w-full text-left px-4 py-3 text-sm text-[#111111] hover:bg-white/80 transition";
