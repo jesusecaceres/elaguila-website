@@ -829,6 +829,7 @@ export default function PublicarPage() {
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
   const categoryActionsRef = useRef<HTMLDivElement | null>(null);
+  const previousStepRef = useRef<PublishStep | null>(null);
   const confirmPublishTriggered = useRef(false);
 
   const draftKey = useMemo(
@@ -868,16 +869,14 @@ export default function PublicarPage() {
     });
   }
 
+  // Step transitions only: scroll form start into view. Initial load is handled by main pt-28.
   useEffect(() => {
-    if (checking) return;
-    if (!signedIn) return;
-    scrollFormToTop("auto");
-  }, [checking, signedIn]);
-
-  useEffect(() => {
-    if (checking) return;
-    if (!signedIn) return;
-    scrollFormToTop("auto");
+    if (checking || !signedIn) return;
+    const prev = previousStepRef.current;
+    previousStepRef.current = step;
+    if (prev != null && prev !== step) {
+      scrollFormToTop("auto");
+    }
   }, [step, checking, signedIn]);
 
   // Session gate
@@ -1936,8 +1935,8 @@ if (isPro && videoFile && !videoError) {
   };
 
   return (
-    <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
-      <div className="max-w-4xl mx-auto px-6 pt-28 pb-16">
+    <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16">
+      <div className="max-w-4xl mx-auto px-6">
         <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111111] text-center">
