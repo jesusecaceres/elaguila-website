@@ -60,6 +60,7 @@ type Listing = {
   images?: string[] | null;
   boostUntil?: string | null;
   owner_id?: string | null;
+  businessName?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -955,11 +956,13 @@ export default function AnuncioDetallePage() {
                   </span>
                 </div>
 
-<p className="mt-3 text-xs text-[#111111]">
-  {lang === "es"
-    ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
-    : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
-</p>
+{listing.category !== "rentas" && (
+  <p className="mt-3 text-xs text-[#111111]">
+    {lang === "es"
+      ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
+      : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
+  </p>
+)}
               </div>
 
               {listing.category === "rentas" && rentasMeta?.facts && rentasMeta.facts.length > 0 && (
@@ -1014,13 +1017,18 @@ export default function AnuncioDetallePage() {
               {listing.category === "rentas" && (
                 <div
                   className={cx(
-                    "mt-6 rounded-2xl border bg-[#F5F5F5] p-4",
+                    "mt-6 rounded-2xl border bg-[#F5F5F5] p-4 sm:p-5",
                     rentasPlanTier === "business_plus" &&
                       "border-yellow-300/50 ring-1 ring-yellow-300/20 shadow-[0_0_0_1px_rgba(250,204,21,0.15)]",
                     rentasPlanTier === "business_standard" && "border-yellow-400/35",
+                    rentasPlanTier === "privado_pro" && "border-emerald-400/25",
                     !rentasPlanTier && "border-black/10"
                   )}
+                  data-section="rentas-trust"
                 >
+                  <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+                    {lang === "es" ? "Quién publica" : "Posted by"}
+                  </h3>
                   {rentasPlanTier === "business_plus" && (
                     <div className="mb-3 flex items-center gap-2">
                       <span
@@ -1034,17 +1042,61 @@ export default function AnuncioDetallePage() {
                       </span>
                     </div>
                   )}
-                  <div className="text-xs text-[#111111]/70">
-                    {lang === "es" ? "Anunciante" : "Posted by"}:{" "}
-                    <span className="font-semibold text-[#111111]">
-                      {listing.sellerType === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Privado (persona)" : "Private (individual)")}
-                    </span>
-                  </div>
-                  {rentasPlanTier === "business_standard" && (
-                    <div className="mt-2 text-[11px] text-[#111111]/80">
-                      {lang === "es" ? "Anuncio profesional con identidad de negocio." : "Professional listing with business identity."}
-                    </div>
+                  {listing.sellerType === "business" ? (
+                    <>
+                      <p className="text-sm font-semibold text-[#111111]">
+                        {lang === "es" ? "Negocio" : "Business"}
+                        {(listing as any).businessName ? ` — ${(listing as any).businessName}` : ""}
+                      </p>
+                      <p className="mt-1.5 text-xs text-[#111111]/80">
+                        {rentasPlanTier === "business_plus"
+                          ? (lang === "es"
+                            ? "Anuncio profesional con presencia Plus: mayor visibilidad e identidad de negocio."
+                            : "Professional listing with Plus presence: stronger visibility and business identity.")
+                          : (lang === "es"
+                            ? "Anuncio profesional con identidad de negocio."
+                            : "Professional listing with business identity.")}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-[#111111]">
+                        {lang === "es" ? "Anunciante privado" : "Private advertiser"}
+                      </p>
+                      <p className="mt-1 text-xs text-[#111111]/80">
+                        {lang === "es" ? "Arrendador o dueño (persona)." : "Landlord or owner (individual)."}
+                      </p>
+                      <p className="mt-2 text-[11px] text-[#111111]/60">
+                        {lang === "es" ? "Respuesta: —" : "Response: —"}
+                      </p>
+                    </>
                   )}
+                </div>
+              )}
+
+              {listing.category === "rentas" && (
+                <div className="mt-4 rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4 sm:p-5" data-section="rentas-safety">
+                  <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                    {lang === "es" ? "Para tu seguridad" : "For your safety"}
+                  </h3>
+                  <ul className="space-y-2 text-sm text-[#111111]/90">
+                    <li className="flex gap-2">
+                      <span className="shrink-0 text-[#111111]/60" aria-hidden>•</span>
+                      <span>{lang === "es" ? "No envíes depósitos sin verificar el inmueble o al anunciante." : "Do not send deposits without verifying the property or the advertiser."}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="shrink-0 text-[#111111]/60" aria-hidden>•</span>
+                      <span>{lang === "es" ? "Confirma detalles (renta, depósito, contrato) antes de pagar." : "Confirm details (rent, deposit, contract) before paying."}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="shrink-0 text-[#111111]/60" aria-hidden>•</span>
+                      <span>{lang === "es" ? "Usa los datos de contacto del anuncio." : "Use the contact information shown in the listing."}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="shrink-0 text-[#111111]/60" aria-hidden>•</span>
+                      <span>{lang === "es" ? "Desconfía de ofertas que parezcan demasiado buenas para ser verdad." : "Be cautious of offers that seem too good to be true."}</span>
+                    </li>
+                  </ul>
                 </div>
               )}
 
@@ -1436,9 +1488,13 @@ export default function AnuncioDetallePage() {
 
             <div className="seller-card rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                {lang === "es" ? "Publicado por" : "Posted by"}
+                {listing.category === "rentas"
+                  ? (lang === "es" ? "Anunciante" : "Advertiser")
+                  : (lang === "es" ? "Publicado por" : "Posted by")}
               </h4>
-              {(listing as any)?.sellerUsername ? (
+              {listing.category === "rentas" && listing.sellerType === "business" && (listing as any).businessName ? (
+                <p className="text-sm font-semibold text-[#111111]">{(listing as any).businessName}</p>
+              ) : (listing as any)?.sellerUsername ? (
                 <Link
                   href={`/vendedor/${encodeURIComponent((listing as any).sellerUsername)}?lang=${lang}`}
                   className="text-sm font-medium text-[#111111] hover:underline"
@@ -1448,6 +1504,11 @@ export default function AnuncioDetallePage() {
               ) : (
                 <p className="text-sm font-medium text-[#111111]">
                   {listing?.sellerName ?? (lang === "es" ? "Vendedor" : "Seller")}
+                </p>
+              )}
+              {listing.category === "rentas" && listing.sellerType === "business" && (
+                <p className="mt-1 text-xs text-[#111111]/70">
+                  {lang === "es" ? "Negocio" : "Business"}
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#111111]/70">
@@ -1501,6 +1562,13 @@ export default function AnuncioDetallePage() {
             <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <div className="text-xl font-bold text-[#111111]">{t.contactTitle}</div>
               <div className="mt-3 text-[#111111]">{t.contactBody}</div>
+              {listing?.category === "rentas" && (
+                <p className="mt-2 text-sm text-[#111111]/85">
+                  {lang === "es"
+                    ? "Llamar, texto y correo son la forma oficial de contactar al anunciante. Úsalos con confianza."
+                    : "Call, text, and email are the official ways to contact the advertiser. Use them with confidence."}
+                </p>
+              )}
 
               
               {listing?.category === "empleos" && jobMeta ? (
