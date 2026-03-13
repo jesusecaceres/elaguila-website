@@ -162,13 +162,24 @@ export default function RentasPrivadoPublishPreview({
     return parts.length ? parts.join(" · ") : null;
   }, [listing.detailPairs, lang]);
 
-  const factPills = useMemo(() => {
-    const fromRental = rentalFacts.filter((f) => {
-      const n = normalizeLabel(f.label);
-      return n !== "renta mensual" && n !== "monthly rent";
-    });
-    return [...fromRental, ...amenities].slice(0, 10).map((f) => ({ label: f.label, value: f.value }));
-  }, [rentalFacts, amenities]);
+  /** Top pills: short category-like only — recámaras, baños, pies cuadrados/metros. No full rental facts. */
+  const shortFactPills = useMemo(() => {
+    const pairs = listing.detailPairs ?? [];
+    const out: Array<{ label: string; value: string }> = [];
+    const beds = pairs.find((p) => /rec[aá]mara|bedroom|bed/i.test(p.label));
+    const baths = pairs.find((p) => /ba[nñ]o|bath/i.test(p.label));
+    const sqft = pairs.find((p) => /pies|metros|sqft|sq\s*ft/i.test(p.label));
+    if (beds?.value) out.push(beds);
+    if (baths?.value) out.push(baths);
+    if (sqft?.value) out.push({ label: sqft.label, value: `${sqft.value} ${lang === "es" ? "pies²" : "sq ft"}` });
+    return out;
+  }, [listing.detailPairs, lang]);
+
+  /** Full rental facts + amenities for right-side characteristics block (checklist-style). */
+  const allCharacteristics = useMemo(
+    () => [...rentalFacts, ...amenities].filter((f) => f.value?.trim()),
+    [rentalFacts, amenities]
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
@@ -217,9 +228,9 @@ export default function RentasPrivadoPublishPreview({
             <div className="mt-2 text-sm text-[#111111]/85">
               {listing.city} · {listing.todayLabel}
             </div>
-            {factPills.length > 0 && (
+            {shortFactPills.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {factPills.map((f) => (
+                {shortFactPills.map((f) => (
                   <span
                     key={`${f.label}-${f.value}`}
                     className="inline-flex items-center rounded-full border border-[#C9B46A]/35 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#111111]"
@@ -310,7 +321,7 @@ export default function RentasPrivadoPublishPreview({
           )}
 
           {/* Description — section of same flow */}
-          <div className="px-5 sm:px-6 py-4 border-b border-[#C9B46A]/15">
+          <div className="px-5 sm:px-6 py-4">
             <h3 className="text-[11px] font-semibold text-[#111111]/60 uppercase tracking-wide mb-2">
               {lang === "es" ? "Descripción" : "Description"}
             </h3>
@@ -318,68 +329,49 @@ export default function RentasPrivadoPublishPreview({
               {listing.description}
             </div>
           </div>
-
-          {/* Characteristics / datos — section of same flow */}
-          {(rentalFacts.length > 0 || amenities.length > 0) && (
-            <div className="px-5 sm:px-6 py-4">
-              <h3 className="text-[11px] font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">
-                {t.caracteristicas}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {rentalFacts.map((f) => (
-                  <div key={f.label} className="flex justify-between items-baseline gap-2 py-1.5 border-b border-[#C9B46A]/10 last:border-0">
-                    <span className="text-xs text-[#111111]/70">{f.label}</span>
-                    <span className="text-sm font-semibold text-[#111111]">{f.value}</span>
-                  </div>
-                ))}
-                {amenities.map((f) => (
-                  <div key={f.label} className="flex justify-between items-baseline gap-2 py-1.5 border-b border-[#C9B46A]/10 last:border-0">
-                    <span className="text-xs text-[#111111]/70">{f.label}</span>
-                    <span className="text-sm font-semibold text-[#111111]">{f.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Right: contact column — warmer, clearer hierarchy, gold CTA tone */}
+      {/* Right: contact block (with announcer merged) + characteristics block */}
       <div className="lg:col-span-3 order-3 space-y-4">
         <div className="rounded-2xl border border-[#C9B46A]/35 bg-[#FDFBF7] p-5 shadow-sm">
           <h4 className="text-sm font-bold text-[#111111] mb-1">
             {lang === "es" ? "Contactar" : "Contact"}
           </h4>
-          <p className="text-xs text-[#111111]/75 mb-4">{t.buyerActionsHelper}</p>
+          <p className="text-xs text-[#111111]/75 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-col gap-2.5">
             <button
               type="button"
               onClick={() => showToast(t.toastSave)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm"
+              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm flex items-center justify-center gap-2"
             >
-              {t.guardar}
+              <span aria-hidden className="text-base">☆</span>
+              {lang === "es" ? "Guardar" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => showToast(t.toastShare)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm"
+              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm flex items-center justify-center gap-2"
             >
-              {t.compartir}
+              <span aria-hidden className="text-sm">↗</span>
+              {lang === "es" ? "Compartir" : "Share"}
             </button>
             {listing.contactMethod !== "email" && (
               <>
                 <button
                   type="button"
                   onClick={() => showToast(t.toastCall)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm flex items-center justify-center gap-2"
                 >
+                  <span aria-hidden className="text-sm">📞</span>
                   {t.llamar}
                 </button>
                 <button
                   type="button"
                   onClick={() => showToast(t.toastText)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm flex items-center justify-center gap-2"
                 >
+                  <span aria-hidden className="text-sm">💬</span>
                   {t.texto}
                 </button>
               </>
@@ -388,11 +380,16 @@ export default function RentasPrivadoPublishPreview({
               <button
                 type="button"
                 onClick={() => showToast(t.toastEmail)}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm"
+                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm flex items-center justify-center gap-2"
               >
+                <span aria-hidden className="text-sm">✉</span>
                 {t.email}
               </button>
             )}
+          </div>
+          <div className="mt-4 pt-4 border-t border-[#C9B46A]/20">
+            <p className="text-sm font-semibold text-[#111111]">{listing.sellerName?.trim() || (lang === "es" ? "Tú" : "You")}</p>
+            <p className="text-xs text-[#111111]/65 mt-0.5">{t.privado}</p>
           </div>
           {previewMode && previewToast && (
             <div className="mt-3 rounded-xl bg-[#111111] px-4 py-3 text-sm text-[#F5F5F5] shadow-lg" role="status">
@@ -401,16 +398,26 @@ export default function RentasPrivadoPublishPreview({
           )}
         </div>
 
-        <div className="rounded-xl border border-[#C9B46A]/25 bg-[#FDFBF7] p-4">
-          <h4 className="text-[11px] font-semibold text-[#111111]/65 uppercase tracking-wide mb-1.5">{t.anunciante}</h4>
-          <p className="text-sm font-semibold text-[#111111]">{listing.sellerName?.trim() || (lang === "es" ? "Tú" : "You")}</p>
-          <p className="text-xs text-[#111111]/65 mt-0.5">{t.privado}</p>
-        </div>
-
-        <div className="rounded-xl border border-[#C9B46A]/25 bg-[#FDFBF7] p-4">
-          <h4 className="text-[11px] font-semibold text-[#111111]/65 uppercase tracking-wide mb-1.5">{t.ubicacion}</h4>
-          <p className="text-sm font-medium text-[#111111]">{listing.city}</p>
-        </div>
+        {/* Right-side characteristics — checklist-style, fuller rental facts + amenities */}
+        {allCharacteristics.length > 0 && (
+          <div className="rounded-2xl border border-[#C9B46A]/35 bg-[#FDFBF7] p-5 shadow-sm">
+            <h4 className="text-sm font-bold text-[#111111] mb-3">
+              {lang === "es" ? "Características del lugar" : "Place details"}
+            </h4>
+            <ul className="space-y-2.5">
+              {allCharacteristics.map((f) => (
+                <li key={`${f.label}-${f.value}`} className="flex items-start gap-2.5">
+                  <span aria-hidden className="mt-0.5 shrink-0 w-4 h-4 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 flex items-center justify-center text-[10px] text-[#8B6914]">✓</span>
+                  <span className="text-sm text-[#111111]">
+                    <span className="font-medium text-[#111111]/85">{f.label}</span>
+                    <span className="text-[#111111]/70"> — </span>
+                    <span className="font-semibold text-[#111111]">{f.value}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
