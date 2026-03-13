@@ -233,7 +233,6 @@ export const RENTAS_FIELDS_COMMERCIAL: RentasDetailField[] = [
   { key: "banos", label: { es: "Baños", en: "Bathrooms" }, type: "text", placeholder: { es: "Ej: 2", en: "e.g. 2" } },
   { key: "servicios_incluidos", label: { es: "Servicios incluidos", en: "Utilities included" }, type: "text", placeholder: { es: "Ej: Agua, luz", en: "e.g. Water, electric" } },
   { key: "disponibilidad", label: { es: "Disponibilidad", en: "Availability" }, type: "text", placeholder: { es: "Ej: Inmediata", en: "e.g. Immediate" } },
-  { key: "plazo_contrato", label: { es: "Plazo del contrato", en: "Lease term" }, type: "text", placeholder: { es: "Ej: 1 año", en: "e.g. 1 year" } },
 ];
 
 /** Alternative housing field group. */

@@ -60,6 +60,8 @@ export type ListingViewProps = {
   proHighlight?: ProHighlightId | string | null;
   /** Called when user clicks a benefit in the Pro list; parent can set proHighlight to scroll/highlight. */
   onProBenefitClick?: (id: ProHighlightId) => void;
+  /** When true, do not render Pro comparison UI (analytics block, benefits panel). Use for Rentas Privado (Pro-only, no upgrade framing). */
+  hideProComparisonUI?: boolean;
 };
 
 export default function ListingView({
@@ -68,6 +70,7 @@ export default function ListingView({
   previewProUpgrade = false,
   proHighlight = null,
   onProBenefitClick,
+  hideProComparisonUI = false,
 }: ListingViewProps) {
   const effectiveIsPro = listing.isPro || previewProUpgrade;
   const lang = listing.lang;
@@ -388,8 +391,8 @@ export default function ListingView({
           )}
         </div>
 
-        {/* Pro preview only: analytics block — preview-only; not part of published ad. Dashboard-style. */}
-        {previewProUpgrade && (
+        {/* Pro preview only: analytics block — preview-only; not part of published ad. Hidden for Rentas Privado (no comparison). */}
+        {previewProUpgrade && !hideProComparisonUI && (
           <div
             ref={(el) => setHighlightRef("analytics", el)}
             data-pro-highlight="analytics"
@@ -483,8 +486,8 @@ export default function ListingView({
           </div>
         </div>
 
-        {/* Pro preview only: interactive benefits zone — real Pro-only benefits; click to highlight. Preview-only; not part of published ad. */}
-        {previewProUpgrade && (
+        {/* Pro preview only: interactive benefits zone — real Pro-only benefits; click to highlight. Hidden for Rentas Privado (no comparison). */}
+        {previewProUpgrade && !hideProComparisonUI && (
           <div
             ref={(el) => setHighlightRef("duration", el)}
             data-pro-highlight="duration"
@@ -616,7 +619,7 @@ export default function ListingView({
           </div>
           <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
           <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
-          {previewProUpgrade && (
+          {previewProUpgrade && !hideProComparisonUI && (
             <p className="mt-3 text-xs font-medium text-[#C9B46A]/90" aria-hidden>
               {t.sellerProCue}
             </p>

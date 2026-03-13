@@ -393,10 +393,29 @@ function getCategoryFields(cat: string, details?: Record<string, string>): Detai
   return DETAIL_FIELDS[cat] ?? [];
 }
 
+const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
+  "mes-a-mes": { es: "Mes a mes", en: "Month to month" },
+  "6-meses": { es: "6 meses", en: "6 months" },
+  "12-meses": { es: "12 meses", en: "12 months" },
+  "1-ano": { es: "1 año", en: "1 year" },
+  "2-anos": { es: "2 años", en: "2 years" },
+};
+
 function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>) {
   const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
+  if (cat === "rentas") {
+    const plazo = (details.plazo_contrato ?? "").trim();
+    if (plazo) {
+      const label = lang === "es" ? "Plazo del contrato" : "Lease term";
+      const value = plazo === "otro"
+        ? (details.plazo_contrato_otro ?? "").trim() || (lang === "es" ? "Otro" : "Other")
+        : (RENTAS_PLAZO_LABELS[plazo]?.[lang] ?? plazo);
+      out.push({ label, value });
+    }
+  }
   for (const f of fields) {
+    if (cat === "rentas" && f.key === "plazo_contrato") continue;
     const raw = (details[f.key] ?? "").toString().trim();
     if (!raw) continue;
 
@@ -634,14 +653,17 @@ export default function PublicarPage() {
   const [images, setImages] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
 
-  const maxImages = isPro ? 12 : 3;
+  /** Rentas Privado is Pro-only; no free/pro comparison. */
+  const isRentasPrivado = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
+  const effectiveIsPro = isPro || isRentasPrivado;
+  const maxImages = effectiveIsPro ? 12 : 3;
 
-  // If plan changes to Free, trim images to Free limit (3).
+  // If plan changes to Free, trim images to Free limit (3). Rentas Privado keeps Pro limits.
   useEffect(() => {
-    if (!isPro && images.length > 3) {
+    if (!effectiveIsPro && images.length > 3) {
       setImages((prev) => prev.slice(0, 3));
     }
-  }, [isPro, images.length]);
+  }, [effectiveIsPro, images.length]);
 
   const proVideoThumbPreviewUrls: [string, string] = useMemo(() => {
     const out: [string, string] = ["", ""];
@@ -1564,7 +1586,7 @@ setIsPro(plan.includes("pro"));
         contactEmail,
         category,
         lang,
-        isPro,
+        isPro: effectiveIsPro,
         imageUrls: filePreviews,
         proVideoThumbUrl: proVideoThumbPreviewUrls[0] || null,
         proVideoUrl: proVideoPreviewUrls[0] || null,
@@ -1583,7 +1605,7 @@ setIsPro(plan.includes("pro"));
       contactEmail,
       category,
       lang,
-      isPro,
+      effectiveIsPro,
       filePreviews,
       proVideoThumbPreviewUrls,
       proVideoPreviewUrls,
@@ -2226,15 +2248,22 @@ for (let vi = 0; vi < 2; vi++) {
     };
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName]);
 
-  // Open in-page full preview modal — free mode (current experience).
+  // Open in-page full preview modal. Rentas Privado: single Pro-style preview, no free/pro comparison.
   const openFullPreview = () => {
-    setFullPreviewVariant("free");
-    setFullPreviewRulesConfirmed(false);
-    setFullPreviewInfoConfirmed(false);
-    setShowFullPreviewModal(true);
+    if (isRentasPrivado) {
+      setFullPreviewVariant("pro");
+      setFullPreviewRulesConfirmed(false);
+      setFullPreviewInfoConfirmed(false);
+      setShowFullPreviewModal(true);
+    } else {
+      setFullPreviewVariant("free");
+      setFullPreviewRulesConfirmed(false);
+      setFullPreviewInfoConfirmed(false);
+      setShowFullPreviewModal(true);
+    }
   };
 
-  // Open same preview in Pro mode (same data; Pro badge, boost, benefits block only).
+  // Open same preview in Pro mode (same data; Pro badge, boost, benefits block only). Not used for Rentas Privado.
   const openProPreview = () => {
     setFullPreviewVariant("pro");
     setShowFullPreviewModal(true);
@@ -2373,25 +2402,81 @@ for (let vi = 0; vi < 2; vi++) {
                       ← {copy.fullPreviewBackToEdit}
                     </button>
                     <span className="text-xs text-[#111111]/50">
-                      {fullPreviewVariant === "pro"
-                        ? copy.proPreviewTitle
-                        : lang === "es"
-                          ? "Vista previa (como la verán los compradores)"
-                          : "Preview (as buyers will see it)"}
+                      {isRentasPrivado
+                        ? (lang === "es" ? "Vista previa" : "Preview")
+                        : fullPreviewVariant === "pro"
+                          ? copy.proPreviewTitle
+                          : lang === "es"
+                            ? "Vista previa (como la verán los compradores)"
+                            : "Preview (as buyers will see it)"}
                     </span>
                   </div>
                   <section className="flex-1 overflow-y-auto max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full">
                     <ListingView
                       listing={fullPreviewListingData}
                       previewMode={true}
-                      previewProUpgrade={fullPreviewVariant === "pro"}
-                      proHighlight={fullPreviewVariant === "pro" ? proHighlightId : null}
-                      onProBenefitClick={fullPreviewVariant === "pro" ? setProHighlightId : undefined}
+                      previewProUpgrade={isRentasPrivado ? true : fullPreviewVariant === "pro"}
+                      proHighlight={!isRentasPrivado && fullPreviewVariant === "pro" ? proHighlightId : null}
+                      onProBenefitClick={!isRentasPrivado && fullPreviewVariant === "pro" ? setProHighlightId : undefined}
+                      hideProComparisonUI={isRentasPrivado}
                     />
                   </section>
                   <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
                     <div className="max-w-md mx-auto space-y-3">
-                      {fullPreviewVariant === "pro" ? (
+                      {isRentasPrivado ? (
+                        <>
+                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                            <input
+                              type="checkbox"
+                              checked={fullPreviewRulesConfirmed}
+                              onChange={(e) => setFullPreviewRulesConfirmed(e.target.checked)}
+                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                            />
+                            <span>
+                              {copy.rulesConfirm}
+                              {" "}
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setShowRulesModal(true); }}
+                                className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                              >
+                                {lang === "es" ? "Ver reglas" : "View rules"}
+                              </button>
+                            </span>
+                          </label>
+                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                            <input
+                              type="checkbox"
+                              checked={fullPreviewInfoConfirmed}
+                              onChange={(e) => setFullPreviewInfoConfirmed(e.target.checked)}
+                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                            />
+                            <span>{copy.fullPreviewInfoConfirm}</span>
+                          </label>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              type="button"
+                              onClick={closeFullPreviewModal}
+                              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+                            >
+                              {copy.fullPreviewBackToEdit}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleFullPreviewConfirmPublish}
+                              disabled={!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed || publishing}
+                              className={cx(
+                                "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+                                fullPreviewRulesConfirmed && fullPreviewInfoConfirmed && !publishing
+                                  ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                                  : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
+                              )}
+                            >
+                              {publishing ? copy.publishing : copy.fullPreviewConfirmPublish}
+                            </button>
+                          </div>
+                        </>
+                      ) : fullPreviewVariant === "pro" ? (
                         <>
                           <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                             <button
@@ -3260,12 +3345,27 @@ for (let vi = 0; vi < 2; vi++) {
                             <label className="text-sm text-[#111111]">
                               {lang === "es" ? "Plazo del contrato" : "Lease term"}
                             </label>
-                            <input
-                              value={details.plazoContrato ?? ""}
-                              onChange={(e) => setDetails((prev) => ({ ...prev, plazoContrato: e.target.value }))}
-                              placeholder={lang === "es" ? "Ej: 1 año, mes a mes" : "e.g. 1 year, month-to-month"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            />
+                            <select
+                              value={details.plazo_contrato ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, plazo_contrato: e.target.value, plazo_contrato_otro: e.target.value === "otro" ? (prev.plazo_contrato_otro ?? "") : "" }))}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            >
+                              <option value="">{lang === "es" ? "Elige…" : "Choose…"}</option>
+                              <option value="mes-a-mes">{lang === "es" ? "Mes a mes" : "Month to month"}</option>
+                              <option value="6-meses">{lang === "es" ? "6 meses" : "6 months"}</option>
+                              <option value="12-meses">{lang === "es" ? "12 meses" : "12 months"}</option>
+                              <option value="1-ano">{lang === "es" ? "1 año" : "1 year"}</option>
+                              <option value="2-anos">{lang === "es" ? "2 años" : "2 years"}</option>
+                              <option value="otro">{lang === "es" ? "Otro" : "Other"}</option>
+                            </select>
+                            {details.plazo_contrato === "otro" && (
+                              <input
+                                value={details.plazo_contrato_otro ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, plazo_contrato_otro: e.target.value }))}
+                                placeholder={lang === "es" ? "Ej: 18 meses" : "e.g. 18 months"}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              />
+                            )}
                           </div>
                           {details.rentasBranch === "negocio" && (
                             <>
@@ -3637,13 +3737,15 @@ for (let vi = 0; vi < 2; vi++) {
                       )}
 
                       <div className="mt-4 flex items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setDetails({})}
-                          className="text-xs text-[#111111] hover:text-[#111111]"
-                        >
-                          {lang === "es" ? "Limpiar detalles" : "Clear details"}
-                        </button>
+                        {category !== "rentas" && (
+                          <button
+                            type="button"
+                            onClick={() => setDetails({})}
+                            className="text-xs text-[#111111] hover:text-[#111111]"
+                          >
+                            {lang === "es" ? "Limpiar detalles" : "Clear details"}
+                          </button>
+                        )}
                         <div className="text-xs text-[#111111]/40">
                           {lang === "es"
                             ? "Estos detalles se guardan automáticamente."
@@ -3711,7 +3813,7 @@ for (let vi = 0; vi < 2; vi++) {
                           setVideoThumbBlobs((prev) => { const n: [Blob | null, Blob | null] = [...prev]; n[idx] = null; return n; });
                           setVideoErrors((prev) => { const n: [string, string] = [...prev]; n[idx] = ""; return n; });
                         }}
-                        isPro={isPro}
+                        isPro={effectiveIsPro}
                         maxImages={maxImages}
                         lang={lang}
                         uploadProgress={uploadProgress}
@@ -3903,20 +4005,32 @@ for (let vi = 0; vi < 2; vi++) {
                             </div>
 
                             <div className="mt-4 pt-3 border-t border-black/10 flex flex-col gap-2">
-                              <button
-                                type="button"
-                                onClick={openFullPreview}
-                                className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                              >
-                                {copy.fullPreviewCta}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={openProPreview}
-                                className="w-full rounded-xl border border-[#111111]/20 bg-white py-2.5 text-sm font-semibold text-[#111111]/90 hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                              >
-                                {copy.proPreviewCta}
-                              </button>
+                              {isRentasPrivado ? (
+                                <button
+                                  type="button"
+                                  onClick={openFullPreview}
+                                  className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                >
+                                  {lang === "es" ? "Vista previa" : "Preview"}
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={openFullPreview}
+                                    className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  >
+                                    {copy.fullPreviewCta}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={openProPreview}
+                                    className="w-full rounded-xl border border-[#111111]/20 bg-white py-2.5 text-sm font-semibold text-[#111111]/90 hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  >
+                                    {copy.proPreviewCta}
+                                  </button>
+                                </>
+                              )}
                             </div>
 
                             {isPro && (videoFiles[0] || videoFiles[1]) && (
