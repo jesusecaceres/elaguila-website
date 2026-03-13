@@ -344,6 +344,53 @@ export default function AnuncioDetallePage() {
     return facts.length ? { facts } : null;
   }, [listing, lang]);
 
+  /** Rental facts block: renta, depósito, plazo, fecha disponible, amueblado, mascotas, estacionamiento, servicios, lavandería, fumar. From detailPairs when available, else rentasMeta + price. */
+  const rentasRentalFacts = useMemo((): Array<{ label: string; value: string }> => {
+    if (!listing || listing.category !== "rentas") return [];
+    const pairs = (listing as any).detailPairs as Array<{ label: string; value: string }> | undefined;
+    const priceVal = listing.priceLabel?.[lang] ?? "";
+    const rentalFactLabels = new Set([
+      "depósito", "deposit", "plazo del contrato", "lease term", "plazo contrato",
+      "fecha disponible", "available date", "available", "disponible",
+      "amueblado", "furnished", "mascotas", "pets", "mascotas permitidas",
+      "estacionamiento", "parking", "servicios incluidos", "utilities included", "utilities",
+      "lavandería", "laundry", "fumar", "smoking", "fumar permitido",
+      "renta mensual", "monthly rent", "renta",
+    ]);
+    const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const out: Array<{ label: string; value: string }> = [];
+    if (priceVal) out.push({ label: lang === "es" ? "Renta mensual" : "Monthly rent", value: priceVal });
+    if (Array.isArray(pairs)) {
+      for (const p of pairs) {
+        const n = normalize(p.label);
+        if (rentalFactLabels.has(n) || /dep[oó]sito|plazo|disponible|amueblado|mascota|estacionamiento|servicio|lavander[ií]a|fumar|renta/i.test(n)) {
+          if (!out.some((o) => normalize(o.label) === n)) out.push(p);
+        }
+      }
+    }
+    if (out.length <= 1 && rentasMeta?.facts) {
+      for (const f of rentasMeta.facts) {
+        if (!out.some((o) => o.label === f.label)) out.push(f);
+      }
+    }
+    return out;
+  }, [listing, lang, rentasMeta]);
+
+  /** Amenities / features: detailPairs not in rental facts (recámaras, baños, tamaño, etc.). */
+  const rentasAmenities = useMemo((): Array<{ label: string; value: string }> => {
+    if (!listing || listing.category !== "rentas") return [];
+    const pairs = (listing as any).detailPairs as Array<{ label: string; value: string }> | undefined;
+    if (!Array.isArray(pairs) || pairs.length === 0) return [];
+    const rentalFactLabels = new Set([
+      "depósito", "deposit", "plazo del contrato", "lease term", "fecha disponible", "available date",
+      "amueblado", "furnished", "mascotas", "pets", "estacionamiento", "parking",
+      "servicios incluidos", "utilities included", "lavandería", "laundry", "fumar", "smoking",
+      "renta mensual", "monthly rent",
+    ]);
+    const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    return pairs.filter((p) => !rentalFactLabels.has(normalize(p.label)));
+  }, [listing]);
+
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
@@ -819,9 +866,20 @@ export default function AnuncioDetallePage() {
                   <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
                     {listing.title[lang]}
                   </h1>
-                  <div className="mt-3 text-2xl font-extrabold text-yellow-200">
-                    {formatListingPrice(listing.priceLabel[lang], { lang })}
-                  </div>
+                  {listing.category === "rentas" ? (
+                    <div className="mt-3">
+                      <div className="text-sm font-medium text-[#111111]/80">
+                        {lang === "es" ? "Renta mensual" : "Monthly rent"}
+                      </div>
+                      <div className="text-2xl font-extrabold text-yellow-200">
+                        {formatListingPrice(listing.priceLabel[lang], { lang })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-2xl font-extrabold text-yellow-200">
+                      {formatListingPrice(listing.priceLabel[lang], { lang })}
+                    </div>
+                  )}
                   {priceDropHours !== null && (
                     <div className="mt-2 text-sm font-semibold text-emerald-600">
                       ⬇ {lang === "es" ? `Precio reducido hace ${priceDropHours} horas` : `Price reduced ${priceDropHours} hours ago`}
@@ -882,9 +940,65 @@ export default function AnuncioDetallePage() {
 </p>
               </div>
 
+              {listing.category === "rentas" && rentasMeta?.facts && rentasMeta.facts.length > 0 && (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {rentasMeta.facts.map((f) => (
+                    <span
+                      key={f.label}
+                      className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]"
+                    >
+                      {f.label}: {f.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {listing.category === "rentas" && rentasRentalFacts.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+                  <h3 className="text-sm font-semibold text-[#111111]">
+                    {lang === "es" ? "Datos del rental" : "Rental details"}
+                  </h3>
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {rentasRentalFacts.map((f) => (
+                      <div key={f.label} className="rounded-xl border border-black/10 bg-white/60 px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-wide text-[#111111]/60">{f.label}</div>
+                        <div className="mt-0.5 text-sm font-semibold text-[#111111]">{f.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-8 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
                 <div className="text-sm text-[#111111]">{listing.blurb[lang]}</div>
               </div>
+
+              {listing.category === "rentas" && rentasAmenities.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+                  <h3 className="text-sm font-semibold text-[#111111]">
+                    {lang === "es" ? "Características y comodidades" : "Features & amenities"}
+                  </h3>
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {rentasAmenities.map((f) => (
+                      <div key={f.label} className="rounded-xl border border-black/10 bg-white/60 px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-wide text-[#111111]/60">{f.label}</div>
+                        <div className="mt-0.5 text-sm font-semibold text-[#111111]">{f.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {listing.category === "rentas" && (
+                <div className="mt-6 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
+                  <div className="text-xs text-[#111111]/70">
+                    {lang === "es" ? "Anunciante" : "Posted by"}:{" "}
+                    <span className="font-semibold text-[#111111]">
+                      {listing.sellerType === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Privado (persona)" : "Private (individual)")}
+                    </span>
+                  </div>
+                </div>
+              )}
 
 
 {proVideoInfos.length > 0 && mediaSlots.length === 0 && (
@@ -1372,7 +1486,11 @@ export default function AnuncioDetallePage() {
               ) : null}
 
               <div className="mt-5" id="contact-actions">
-
+                {listing?.category === "rentas" && (
+                  <h3 className="text-sm font-semibold text-[#111111] mb-3">
+                    {lang === "es" ? "Contactar" : "Contact"}
+                  </h3>
+                )}
                 <ContactActions
                   lang={lang}
                   phone={(listing as any)?.phone}

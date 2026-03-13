@@ -3866,6 +3866,155 @@ function ServiciosResult(x: Listing, lang: Lang) {
   return ServiciosPlusOrPremiumRow(x, lang);
 }
 
+/** Rentas card: rental-first layout (renta mensual, tipo, beds/baths, ciudad/zona, fecha disponible, Pro/business) */
+function RentasCard({
+  x,
+  lang,
+  isFav,
+  onToggleFav,
+  getHref,
+  tier,
+}: {
+  x: Listing;
+  lang: Lang;
+  isFav: boolean;
+  onToggleFav: (id: string) => void;
+  getHref: (x: Listing, lang: Lang) => string;
+  tier: "corona" | "corona-oro" | "joya" | null;
+}) {
+  const href = getHref(x, lang);
+  const rentLabel = x.priceLabel[lang];
+  const micro = microLine(x);
+  const avail = rentasAvailabilityLabel(x, lang);
+  const propertyType = x.propertyType
+    ? String(x.propertyType)
+    : inferRentasFromTitle(x.title[lang]) === "room"
+      ? (lang === "es" ? "Cuarto" : "Room")
+      : inferRentasFromTitle(x.title[lang]) === "studio"
+        ? "Studio"
+        : null;
+  const bedsBaths =
+    typeof x.beds === "number" || typeof x.baths === "number"
+      ? [
+          typeof x.beds === "number" ? (x.beds === 0 ? (lang === "es" ? "Estudio" : "Studio") : `${x.beds} ${lang === "es" ? "rec" : "bd"}`) : null,
+          typeof x.baths === "number" ? `${x.baths} ${lang === "es" ? "baños" : "ba"}` : null,
+        ].filter(Boolean).join(" · ")
+      : null;
+
+  return (
+    <div
+      key={x.id}
+      className={cx(
+        "relative overflow-hidden rounded-2xl border bg-[#F5F5F5] p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out",
+        "hover:scale-[1.03] hover:-translate-y-[1px] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.06)]",
+        tier === "corona-oro"
+          ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
+          : tier === "corona"
+            ? "border-yellow-500/25 bg-[#111111]/6"
+            : tier === "joya"
+              ? "border-emerald-400/22 bg-emerald-500/5"
+              : "border-black/10"
+      )}
+    >
+      {tier ? (
+        <div
+          aria-hidden="true"
+          className={cx(
+            "pointer-events-none absolute inset-x-0 top-0 h-[2px]",
+            tier === "corona-oro"
+              ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+              : tier === "corona"
+                ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+                : tier === "joya"
+                  ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+                  : ""
+          )}
+        />
+      ) : null}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-base sm:text-lg font-semibold tracking-tight text-[#111111] leading-snug">
+                {x.title[lang]}
+              </div>
+            </div>
+            <div className="shrink-0"><TierBadge tier={tier} lang={lang} /></div>
+          </div>
+          <div className="mt-1 font-extrabold text-yellow-200 text-base sm:text-lg">
+            {/\$|\d/.test(rentLabel)
+              ? (lang === "es" ? "Renta: " : "Rent: ") + formatListingPrice(rentLabel, { lang })
+              : formatListingPrice(rentLabel, { lang })}
+            {/\d/.test(rentLabel) && !/\/\s*mes|\/mes|month/i.test(rentLabel) ? (
+              <span className="ml-1 text-sm font-semibold text-[#111111]/80">/ {lang === "es" ? "mes" : "mo"}</span>
+            ) : null}
+          </div>
+          {(propertyType || bedsBaths) && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {propertyType ? (
+                <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[11px] sm:text-xs text-[#111111]">
+                  {propertyType}
+                </span>
+              ) : null}
+              {bedsBaths ? (
+                <span className="text-[11px] sm:text-xs text-[#111111]">{bedsBaths}</span>
+              ) : null}
+            </div>
+          )}
+          {x.sellerType ? (
+            <div className="mt-1 text-[11px] sm:text-xs font-medium text-[#111111]/90">
+              {x.sellerType === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Privado" : "Private")}
+            </div>
+          ) : null}
+          <div className="mt-1 text-xs sm:text-sm text-[#111111]">
+            <span>{x.city}</span>
+            {avail ? (
+              <>
+                <span className="text-[#111111]/60"> · </span>
+                <span>{avail}</span>
+              </>
+            ) : null}
+          </div>
+          <div className="text-[11px] sm:text-xs text-[#111111]/80 mt-0.5">
+            {x.postedAgo[lang]}
+          </div>
+          {micro ? (
+            <div className="mt-1 text-[11px] sm:text-xs text-[#111111] line-clamp-1">
+              {micro}
+            </div>
+          ) : null}
+        </div>
+        <div className="shrink-0 flex flex-col items-end gap-2">
+          <div className="h-16 w-16 sm:h-[72px] sm:w-[72px] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
+            {x.hasImage ? (
+              <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
+            ) : (
+              <div className="h-full w-full bg-[#E8E8E8] flex items-center justify-center text-[#111111]/40 text-xl" aria-hidden>🏠</div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFav(x.id); }}
+            className="rounded-xl border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+            aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
+          >
+            {isFav ? "★" : "☆"}
+          </button>
+        </div>
+      </div>
+      <div className="mt-2 line-clamp-2 text-sm text-[#111111]">
+        {x.blurb[lang]}
+      </div>
+      <a
+        href={href}
+        className="mt-2.5 block rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-center text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+      >
+        {lang === "es" ? "Ver detalle" : "View details"}
+      </a>
+    </div>
+  );
+}
+
 /** En Venta card with hover expansion, mobile tap-to-expand, and engagement indicators */
 function EnVentaCard({
   x,
@@ -4021,6 +4170,7 @@ const ListingCardGrid = (x: Listing) => {
   const isServicios = x.category === "servicios";
   const isComunidad = x.category === "comunidad";
   const isEnVenta = x.category === "en-venta";
+  const isRentas = x.category === "rentas";
   const tier = inferVisualTier(x);
 
   if (isEnVenta) {
@@ -4031,6 +4181,19 @@ const ListingCardGrid = (x: Listing) => {
         isFav={isFav}
         onToggleFav={toggleFav}
         getHref={getListingHref}
+      />
+    );
+  }
+
+  if (isRentas) {
+    return (
+      <RentasCard
+        x={x}
+        lang={lang}
+        isFav={isFav}
+        onToggleFav={toggleFav}
+        getHref={getListingHref}
+        tier={tier}
       />
     );
   }
