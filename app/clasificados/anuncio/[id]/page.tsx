@@ -92,6 +92,40 @@ function parsePriceLabel(label: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** Parse negocioRedes text into renderable social links. Returns null to show raw text. */
+function parseRentasSocialLinks(raw: string | null | undefined): Array<{ label: string; url: string }> | null {
+  const s = (raw ?? "").trim();
+  if (!s) return null;
+  const out: Array<{ label: string; url: string }> = [];
+  const urlLike = /https?:\/\/[^\s,]+/gi;
+  const parts = s.split(/[,;]|\s+-\s+/).map((p) => p.trim()).filter(Boolean);
+  for (const part of parts) {
+    const urlMatch = part.match(urlLike);
+    const url = urlMatch ? urlMatch[0] : "";
+    const labelPart = url ? part.replace(urlLike, "").replace(/^[:\s]+|[:\s]+$/g, "").trim() : part;
+    const label =
+      labelPart.toLowerCase().startsWith("facebook")
+        ? "Facebook"
+        : labelPart.toLowerCase().startsWith("instagram") || labelPart.toLowerCase().startsWith("ig")
+          ? "Instagram"
+          : labelPart.toLowerCase().startsWith("whatsapp") || labelPart.toLowerCase().startsWith("wa")
+            ? "WhatsApp"
+            : labelPart.toLowerCase().startsWith("twitter") || labelPart.toLowerCase().startsWith("x ")
+              ? "X"
+              : labelPart || "Red social";
+    if (url && /^https?:\/\//i.test(url)) {
+      out.push({ label, url });
+    } else if (/^https?:\/\//i.test(part)) {
+      out.push({ label: "Red social", url: part });
+    }
+  }
+  if (out.length === 0 && /https?:\/\//i.test(s)) {
+    const m = s.match(urlLike);
+    if (m) m.forEach((u) => out.push({ label: "Enlace", url: u }));
+  }
+  return out.length > 0 ? out : null;
+}
+
 function formatPostedAgo(createdAt: string | null | undefined, lang: Lang): string {
   if (!createdAt) return "";
   const created = new Date(createdAt).getTime();
@@ -425,6 +459,52 @@ export default function AnuncioDetallePage() {
     }
   }, [listing]);
 
+  /** Display values for Rentas negocio business rail (name, agent, role, phone, website, socials, etc.). */
+  const rentasNegocioDisplay = useMemo(() => {
+    const isBiz =
+      listing?.sellerType === "business" || (listing as any)?.seller_type === "business";
+    if (!listing || listing.category !== "rentas" || !isBiz) return null;
+    const name =
+      (listing as any).business_name ?? (listing as any).businessName ?? rentasBusinessMeta?.negocioNombre ?? "";
+    const meta = rentasBusinessMeta ?? {};
+    const website = meta.negocioSitioWeb?.trim() || "";
+    const rawSocials = meta.negocioRedes?.trim() || "";
+    const socialLinks = parseRentasSocialLinks(rawSocials);
+    return {
+      name: name.trim() || (lang === "es" ? "Negocio" : "Business"),
+      agent: meta.negocioAgente?.trim() || "",
+      role: meta.negocioCargo?.trim() || "",
+      officePhone: meta.negocioTelOficina?.trim() || "",
+      website: website || null,
+      socialLinks,
+      rawSocials: socialLinks ? "" : rawSocials,
+      logoUrl: meta.negocioLogoUrl?.trim() || null,
+      agentPhotoUrl: meta.negocioFotoAgenteUrl?.trim() || null,
+      languages: meta.negocioIdiomas?.trim() || "",
+      hours: meta.negocioHorario?.trim() || "",
+      virtualTourUrl: meta.negocioRecorridoVirtual?.trim() || null,
+      plusMoreListings: meta.negocioPlusMasAnuncios === "si",
+    };
+  }, [listing, rentasBusinessMeta, lang]);
+
+  /** Same-business Rentas listings for Plus "Más anuncios de esta compañía" (when flag set). */
+  const rentasSameCompanyListings = useMemo(() => {
+    if (!listing || listing.category !== "rentas") return [];
+    const tier = inferRentasPlanTier(listing as any);
+    const plusMore = rentasBusinessMeta?.negocioPlusMasAnuncios === "si";
+    if (tier !== "business_plus" || !plusMore) return [];
+    const bizName =
+      ((listing as any).business_name ?? (listing as any).businessName ?? "").trim().toLowerCase();
+    if (!bizName) return [];
+    const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter((l) => {
+      if (l.category !== "rentas" || l.id === listing.id) return false;
+      const otherBiz =
+        ((l as any).business_name ?? (l as any).businessName ?? "").trim().toLowerCase();
+      return otherBiz === bizName;
+    });
+    return list.slice(0, 6);
+  }, [listing, rentasBusinessMeta?.negocioPlusMasAnuncios]);
+
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
@@ -654,7 +734,8 @@ export default function AnuncioDetallePage() {
 
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
-  const isBusiness = listing?.sellerType === "business";
+  const isBusiness =
+    listing?.sellerType === "business" || (listing as any)?.seller_type === "business";
   const isPro = isProListing(listing as any);
   const rentasPlanTier = useMemo(
     () => (listing && listing.category === "rentas" ? inferRentasPlanTier(listing as any) : null),
@@ -1374,6 +1455,46 @@ export default function AnuncioDetallePage() {
               </div>
             )}
 
+            {/* Más anuncios de esta compañía (Rentas Plus only, when flag set) */}
+            {listing.category === "rentas" &&
+              rentasPlanTier === "business_plus" &&
+              rentasNegocioDisplay?.plusMoreListings && (
+                <div className="mt-10" data-section="rentas-mas-anuncios">
+                  <h3 className="text-xl font-bold text-[#111111] mb-4">
+                    {lang === "es" ? "Más anuncios de esta compañía" : "More listings from this company"}
+                  </h3>
+                  {rentasSameCompanyListings.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {rentasSameCompanyListings.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/clasificados/anuncio/${item.id}?lang=${lang}`}
+                          className="block rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 hover:bg-[#EFEFEF] transition"
+                        >
+                          <div className="text-base font-bold text-[#111111] line-clamp-2">
+                            {item.title[lang]}
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-[#111111]">
+                            {formatListingPrice(item.priceLabel[lang], { lang })}
+                          </div>
+                          <div className="mt-1 text-xs text-[#111111]">
+                            {item.city} · {item.postedAgo[lang]}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-5 text-center">
+                      <p className="text-sm text-[#111111]/80">
+                        {lang === "es"
+                          ? "No hay otros anuncios de esta empresa por ahora."
+                          : "No other listings from this company at the moment."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
             {/* También te puede interesar */}
             {relatedListings.length > 0 && (
               <div className="mt-10">
@@ -1505,6 +1626,127 @@ export default function AnuncioDetallePage() {
               </div>
             </div>
 
+            {listing.category === "rentas" && isBusiness && rentasNegocioDisplay ? (
+              <div
+                className={cx(
+                  "rounded-2xl border p-5 sm:p-6",
+                  rentasPlanTier === "business_plus"
+                    ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-sm"
+                    : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
+                )}
+                data-section="rentas-business-rail"
+              >
+                <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+                  {lang === "es" ? "Identidad del negocio" : "Business"}
+                </h4>
+                <div className="flex flex-col gap-4">
+                  {(rentasNegocioDisplay.logoUrl || rentasNegocioDisplay.agentPhotoUrl) && (
+                    <div className="flex items-start gap-3">
+                      {rentasNegocioDisplay.logoUrl && (
+                        <img
+                          src={rentasNegocioDisplay.logoUrl}
+                          alt=""
+                          className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
+                        />
+                      )}
+                      {rentasNegocioDisplay.agentPhotoUrl && (
+                        <img
+                          src={rentasNegocioDisplay.agentPhotoUrl}
+                          alt=""
+                          className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-base font-semibold text-[#111111]">{rentasNegocioDisplay.name}</p>
+                    {rentasNegocioDisplay.agent && (
+                      <p className="mt-0.5 text-sm text-[#111111]/90">{rentasNegocioDisplay.agent}</p>
+                    )}
+                    {rentasNegocioDisplay.role && (
+                      <p className="text-xs text-[#111111]/70">{rentasNegocioDisplay.role}</p>
+                    )}
+                  </div>
+                  {rentasNegocioDisplay.officePhone && (
+                    <p className="text-sm text-[#111111]">
+                      <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
+                      <a href={`tel:${rentasNegocioDisplay.officePhone.replace(/\D/g, "")}`} className="font-medium hover:underline">
+                        {rentasNegocioDisplay.officePhone}
+                      </a>
+                    </p>
+                  )}
+                  {rentasNegocioDisplay.website && (
+                    <a
+                      href={rentasNegocioDisplay.website.startsWith("http") ? rentasNegocioDisplay.website : `https://${rentasNegocioDisplay.website}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-[#111111] hover:underline break-all"
+                    >
+                      {lang === "es" ? "Sitio web" : "Website"} →
+                    </a>
+                  )}
+                  {rentasPlanTier === "business_plus" && rentasNegocioDisplay.socialLinks && rentasNegocioDisplay.socialLinks.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {rentasNegocioDisplay.socialLinks.map((s, i) => (
+                        <a
+                          key={i}
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
+                        >
+                          {s.label} →
+                        </a>
+                      ))}
+                    </div>
+                  ) : rentasPlanTier === "business_standard" && rentasNegocioDisplay.socialLinks && rentasNegocioDisplay.socialLinks.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {rentasNegocioDisplay.socialLinks.slice(0, 2).map((s, i) => (
+                        <a
+                          key={i}
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
+                        >
+                          {s.label} →
+                        </a>
+                      ))}
+                    </div>
+                  ) : rentasNegocioDisplay.rawSocials ? (
+                    <p className="text-xs text-[#111111]/80 break-words">{rentasNegocioDisplay.rawSocials}</p>
+                  ) : null}
+                  {rentasNegocioDisplay.languages && (
+                    <p className="text-xs text-[#111111]/80">
+                      <span className="text-[#111111]/60">{lang === "es" ? "Idiomas:" : "Languages:"} </span>
+                      {rentasNegocioDisplay.languages}
+                    </p>
+                  )}
+                  {rentasNegocioDisplay.hours && (
+                    <p className="text-xs text-[#111111]/80">
+                      <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
+                      {rentasNegocioDisplay.hours}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      className="flex-1 px-4 py-3 rounded-xl font-semibold bg-[#111111] text-[#F5F5F5] hover:opacity-95 transition text-sm"
+                      onClick={handleContactarVendedor}
+                    >
+                      {lang === "es" ? "Solicitar información" : "Request info"}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex-1 px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8] transition text-sm"
+                      onClick={handleContactarVendedor}
+                    >
+                      {lang === "es" ? "Programar visita" : "Schedule visit"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div className="seller-card rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
                 {listing.category === "rentas"
@@ -1550,6 +1792,7 @@ export default function AnuncioDetallePage() {
                 </button>
               </div>
             </div>
+            )}
 
             <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">

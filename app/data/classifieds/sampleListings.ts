@@ -1,4 +1,4 @@
-﻿export const SAMPLE_LISTINGS = [
+export const SAMPLE_LISTINGS = [
       // EN VENTA
       {
         id: "enventa-personal-1",
@@ -66,6 +66,40 @@ hasImage: false,
         hasImage: true,
         condition: "good",
         sellerType: "business",
+        businessName: "Inmobiliaria López",
+        rentasTier: "plus",
+        business_meta: JSON.stringify({
+          negocioAgente: "María García",
+          negocioCargo: "Agente de rentas",
+          negocioTelOficina: "(408) 555-0200",
+          negocioSitioWeb: "https://inmobiliarialopez.example.com",
+          negocioRedes: "Facebook: https://facebook.com/inmobiliarialopez, Instagram: https://instagram.com/inmobiliarialopez",
+          negocioIdiomas: "Español, inglés",
+          negocioHorario: "Lun–Vie 9am–6pm",
+          negocioPlusMasAnuncios: "si",
+        }),
+        phone: "(408) 555-0200",
+        text: "(408) 555-0200",
+        email: "rentas@leonixmedia.com",
+      },
+      {
+        id: "rentas-biz-2",
+        category: "rentas",
+        title: { es: "Departamento 2 recámaras — centro", en: "2-bed apartment — downtown" },
+        priceLabel: { es: "$1,650/mes", en: "$1,650/mo" },
+        city: "San José",
+        postedAgo: { es: "hace 1 día", en: "1 day ago" },
+        blurb: {
+          es: "Amueblado, cerca del transporte.",
+          en: "Furnished, near transit.",
+        },
+        hasImage: true,
+        condition: "good",
+        sellerType: "business",
+        businessName: "Inmobiliaria López",
+        rentasTier: "plus",
+        phone: "(408) 555-0200",
+        email: "rentas@leonixmedia.com",
       },
 
       // AUTOS
