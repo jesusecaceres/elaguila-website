@@ -21,6 +21,9 @@ export type ListingData = {
   isPro: boolean;
   proVideoThumbUrl: string | null;
   proVideoUrl: string | null;
+  /** Second Pro video (2 videos sobresalientes). */
+  proVideoUrl2?: string | null;
+  proVideoThumbUrl2?: string | null;
   lang: "es" | "en";
   /** Real seller display name when available; fallback to "Tú" / "You" in preview */
   sellerName?: string | null;
@@ -30,7 +33,7 @@ export type ListingData = {
 
 type MediaSlot =
   | { type: "image"; url: string }
-  | { type: "video" }
+  | { type: "video"; index: number }
   | { type: "locked-image" }
   | { type: "locked-video" };
 
@@ -91,7 +94,8 @@ export default function ListingView({
   const mediaSlots = useMemo((): MediaSlot[] => {
     const slots: MediaSlot[] = [];
     if (images[0]) slots.push({ type: "image", url: images[0] });
-    if (effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video" });
+    if (effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video", index: 0 });
+    if (effectiveIsPro && (listing.proVideoUrl2 || listing.proVideoThumbUrl2)) slots.push({ type: "video", index: 1 });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
     // Free preview: show locked Pro slots (2 videos sobresalientes = 2 locked-video slots).
     if (previewMode && !effectiveIsPro) {
@@ -100,14 +104,14 @@ export default function ListingView({
       slots.push({ type: "locked-video" });
       slots.push({ type: "locked-video" });
     }
-    // Pro preview: second video slot (structure ready; upload may support 1 for now).
+    // Pro preview: second slot as locked if only one video uploaded.
     if (previewMode && effectiveIsPro) {
       const videoCount = slots.filter((s) => s.type === "video").length;
       if (videoCount < 2) slots.push({ type: "locked-video" });
     }
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, previewMode]);
+  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, listing.proVideoUrl2, listing.proVideoThumbUrl2, previewMode]);
 
   const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
   const goPrev = useCallback(() => {
@@ -221,7 +225,9 @@ export default function ListingView({
         : t.contactBoth;
 
   const currentSlot = mediaSlots[safeMediaIndex];
-  const hasProVideo = effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl);
+  const hasProVideo = effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl || listing.proVideoUrl2 || listing.proVideoThumbUrl2);
+  const getVideoUrl = (index: number) => (index === 0 ? listing.proVideoUrl : listing.proVideoUrl2) ?? null;
+  const getVideoThumbUrl = (index: number) => (index === 0 ? listing.proVideoThumbUrl : listing.proVideoThumbUrl2) ?? null;
 
   const setHighlightRef = useCallback((id: string, el: HTMLElement | null) => {
     highlightRefs.current[id] = el;
@@ -283,23 +289,31 @@ export default function ListingView({
                   </span>
                 </div>
               ) : (
-                hasProVideo && (
-                  <div className="relative w-full h-full">
-                    <video
-                      className="object-contain w-full h-full bg-[#0d0d0d]"
-                      controls
-                      preload="none"
-                      playsInline
-                      poster={listing.proVideoThumbUrl ?? undefined}
-                      src={listing.proVideoUrl ?? undefined}
-                    />
-                    <span
-                      className="absolute bottom-3 left-3 inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-black/60 px-2.5 py-1 text-xs font-semibold text-[#C9B46A] backdrop-blur-sm"
-                      aria-hidden
-                    >
-                      {lang === "es" ? "Video sobresaliente" : "Featured video"}
-                    </span>
-                  </div>
+                currentSlot?.type === "video" && (
+                  (() => {
+                    const idx = currentSlot.index;
+                    const src = getVideoUrl(idx);
+                    const poster = getVideoThumbUrl(idx);
+                    if (!src && !poster) return null;
+                    return (
+                      <div className="relative w-full h-full">
+                        <video
+                          className="object-contain w-full h-full bg-[#0d0d0d]"
+                          controls
+                          preload="none"
+                          playsInline
+                          poster={poster ?? undefined}
+                          src={src ?? undefined}
+                        />
+                        <span
+                          className="absolute bottom-3 left-3 inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-black/60 px-2.5 py-1 text-xs font-semibold text-[#C9B46A] backdrop-blur-sm"
+                          aria-hidden
+                        >
+                          {lang === "es" ? "Video sobresaliente" : "Featured video"}
+                        </span>
+                      </div>
+                    );
+                  })()
                 )
               )}
               {mediaSlots.length > 1 && (
@@ -359,8 +373,12 @@ export default function ListingView({
                       <span className="text-xl" aria-hidden>🎥</span>
                       <span className="text-[10px] font-semibold text-[#C9B46A] uppercase tracking-wide">Pro</span>
                     </div>
-                  ) : listing.proVideoThumbUrl ? (
-                    <img src={listing.proVideoThumbUrl} alt="" className="object-cover w-full h-full opacity-90" />
+                  ) : slot.type === "video" ? (
+                    getVideoThumbUrl(slot.index) ? (
+                      <img src={getVideoThumbUrl(slot.index)!} alt="" className="object-cover w-full h-full opacity-90" />
+                    ) : (
+                      <span className="text-2xl" aria-hidden>🎥</span>
+                    )
                   ) : (
                     <span className="text-2xl" aria-hidden>🎥</span>
                   )}

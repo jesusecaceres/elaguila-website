@@ -24,15 +24,16 @@ const COMPRESSION_OPTS = { maxSizeMB: 1, maxWidthOrHeight: 1920 };
 export type MediaUploaderProps = {
   images: File[];
   onImagesChange: (files: File[]) => void;
-  videoFile: File | null;
-  onVideoChange: (file: File | null) => void;
+  /** Up to 2 Pro videos. */
+  videoFiles: [File | null, File | null];
+  onVideoChange: (index: number, file: File | null) => void;
   isPro: boolean;
   maxImages: number;
   lang: "es" | "en";
   uploadProgress?: { current: number; total: number } | null;
-  videoPreviewUrl?: string;
-  videoError?: string;
-  onVideoRemove?: () => void;
+  videoPreviewUrls?: [string, string];
+  videoErrors?: [string, string];
+  onVideoRemove?: (index: number) => void;
   /** When set (e.g. En Venta flow), upgrade CTA goes here instead of generic membresias */
   proUpgradeHref?: string;
   /** Call before navigating to Pro page so draft/images are persisted for return. */
@@ -120,14 +121,14 @@ function SortableImageItem({
 export function MediaUploader({
   images,
   onImagesChange,
-  videoFile,
+  videoFiles,
   onVideoChange,
   isPro,
   maxImages,
   lang,
   uploadProgress,
-  videoPreviewUrl = "",
-  videoError = "",
+  videoPreviewUrls = ["", ""],
+  videoErrors = ["", ""],
   onVideoRemove,
   proUpgradeHref,
   onBeforeProNavigate,
@@ -137,6 +138,7 @@ export function MediaUploader({
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const videoCameraRef = useRef<HTMLInputElement | null>(null);
   const videoGalleryRef = useRef<HTMLInputElement | null>(null);
+  const videoSlotTargetRef = useRef<number>(0);
   const [showVideoUpgradeModal, setShowVideoUpgradeModal] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [compressing, setCompressing] = useState(false);
@@ -207,7 +209,8 @@ export function MediaUploader({
   const handleVideoSelect = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const f = (event.target.files ?? [])[0] || null;
-      onVideoChange(f);
+      const idx = videoSlotTargetRef.current;
+      onVideoChange(idx, f);
       try {
         (event.target as HTMLInputElement).value = "";
       } catch {}
@@ -220,8 +223,8 @@ export function MediaUploader({
 
   const addImagesLabel = copy.addImages ?? (lang === "es" ? "Agregar fotos" : "Add photos");
   const addVideoLabel = copy.addVideo ?? (lang === "es" ? "Agregar video" : "Add video");
-  const videoLabel = copy.video ?? (lang === "es" ? "Video (Pro)" : "Video (Pro)");
-  const videoHintLabel = copy.videoHint ?? (lang === "es" ? "1 por anuncio" : "1 per listing");
+  const videoLabel = copy.video ?? (lang === "es" ? "Videos (Pro)" : "Videos (Pro)");
+  const videoHintLabel = copy.videoHint ?? (lang === "es" ? "Hasta 2 por anuncio" : "Up to 2 per listing");
 
   return (
     <div className="grid gap-5">
@@ -343,11 +346,10 @@ export function MediaUploader({
         )}
       </div>
 
-      {/* VIDEO */}
+      {/* VIDEO (up to 2, Pro only) */}
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="text-sm text-[#111111]">{videoLabel}</div>
         <div className="mt-1 text-xs text-[#111111]/45">{videoHintLabel}</div>
-        <div className="mt-2 text-sm font-medium text-[#111111]">{addVideoLabel}</div>
 
         <input
           ref={videoCameraRef}
@@ -367,57 +369,66 @@ export function MediaUploader({
           aria-hidden
         />
 
-        <div className="flex gap-3 mt-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (!isPro) {
-                setShowVideoUpgradeModal(true);
-                return;
-              }
-              videoCameraRef.current?.click();
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded"
-          >
-            🎥 {lang === "es" ? "Cámara" : "Camera"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!isPro) {
-                setShowVideoUpgradeModal(true);
-                return;
-              }
-              videoGalleryRef.current?.click();
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-[#111111] rounded"
-          >
-            📁 {lang === "es" ? "Subir video" : "Upload video"}
-          </button>
-        </div>
-
-        {videoError && <div className="mt-3 text-sm text-red-600">{videoError}</div>}
-
-        {videoFile && videoPreviewUrl && !videoError && (
-          <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-[#111111]/75 truncate">{videoFile.name}</span>
-              <button
-                type="button"
-                onClick={onVideoRemove}
-                className="text-xs rounded-lg border border-black/10 bg-[#F5F5F5] hover:bg-white/10 px-3 py-2 text-[#111111]"
-              >
-                {lang === "es" ? "Quitar" : "Remove"}
-              </button>
+        {([0, 1] as const).map((idx) => {
+          const file = videoFiles[idx];
+          const previewUrl = videoPreviewUrls[idx] ?? "";
+          const err = videoErrors[idx] ?? "";
+          const hasFile = file && previewUrl && !err;
+          return (
+            <div key={idx} className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
+              <div className="text-xs font-medium text-[#111111]/70 mb-2">
+                {lang === "es" ? `Video ${idx + 1}` : `Video ${idx + 1}`}
+              </div>
+              {hasFile ? (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-[#111111]/75 truncate">{file!.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => onVideoRemove?.(idx)}
+                      className="text-xs rounded-lg border border-black/10 bg-[#F5F5F5] hover:bg-white/10 px-3 py-2 text-[#111111] min-h-[44px]"
+                    >
+                      {lang === "es" ? "Quitar" : "Remove"}
+                    </button>
+                  </div>
+                  <video src={previewUrl} controls className="rounded-lg mt-3 w-full max-w-md" playsInline />
+                </>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isPro) {
+                        setShowVideoUpgradeModal(true);
+                        return;
+                      }
+                      videoSlotTargetRef.current = idx;
+                      videoCameraRef.current?.click();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded min-h-[44px]"
+                  >
+                    🎥 {lang === "es" ? "Cámara" : "Camera"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isPro) {
+                        setShowVideoUpgradeModal(true);
+                        return;
+                      }
+                      videoSlotTargetRef.current = idx;
+                      videoGalleryRef.current?.click();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-[#111111] rounded min-h-[44px]"
+                  >
+                    📁 {lang === "es" ? "Subir video" : "Upload video"}
+                  </button>
+                </div>
+              )}
+              {err ? <div className="mt-2 text-sm text-red-600">{err}</div> : null}
             </div>
-            <video
-              src={videoPreviewUrl}
-              controls
-              className="rounded-lg mt-3 w-full max-w-md"
-              playsInline
-            />
-          </div>
-        )}
+          );
+        })}
       </div>
 
       {/* Pro upgrade modal — approved copy (Mejora / Continuar, no Actualizar) */}
@@ -430,7 +441,7 @@ export function MediaUploader({
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-[#2B2B2B]">
                 <li>⭐ {lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
-                <li>🎥 {lang === "es" ? "Video sobresaliente" : "Featured video"}</li>
+                <li>🎥 {lang === "es" ? "2 videos sobresalientes" : "2 featured videos"}</li>
                 <li>🚀 {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
                 <li>📅 {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}</li>
                 <li>📈 {lang === "es" ? "Los anuncios con video reciben hasta 3× más visibilidad" : "Listings with video get up to 3× more visibility"}</li>

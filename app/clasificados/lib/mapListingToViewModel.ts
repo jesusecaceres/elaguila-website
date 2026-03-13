@@ -1,5 +1,6 @@
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { isProListing } from "../components/planHelpers";
+import { extractProVideoInfos } from "../components/proVideo";
 import type { ListingData } from "../components/ListingView";
 
 /** DB/draft row shape (snake_case or camelCase). */
@@ -33,6 +34,8 @@ export type ListingRow = Record<string, unknown> & {
   detail_pairs?: Array<{ label: string; value: string }> | null;
   proVideoThumbUrl?: string | null;
   proVideoUrl?: string | null;
+  proVideoThumbUrl2?: string | null;
+  proVideoUrl2?: string | null;
   pro_video_thumb_url?: string | null;
   pro_video_url?: string | null;
   lang?: "es" | "en" | null;
@@ -131,8 +134,11 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
   }
 
   const isPro = isProListing(row);
-  const proVideoThumbUrl = (row.proVideoThumbUrl ?? row.pro_video_thumb_url ?? null) as string | null;
-  const proVideoUrl = (row.proVideoUrl ?? row.pro_video_url ?? null) as string | null;
+  const proVideosFromDesc = extractProVideoInfos(row.description as string | undefined);
+  const proVideoThumbUrl = (proVideosFromDesc[0]?.thumbUrl ?? row.proVideoThumbUrl ?? row.pro_video_thumb_url ?? null) as string | null;
+  const proVideoUrl = (proVideosFromDesc[0]?.url ?? row.proVideoUrl ?? row.pro_video_url ?? null) as string | null;
+  const proVideoThumbUrl2 = (proVideosFromDesc[1]?.thumbUrl ?? row.proVideoThumbUrl2 ?? null) as string | null;
+  const proVideoUrl2 = (proVideosFromDesc[1]?.url ?? row.proVideoUrl2 ?? null) as string | null;
   const sellerName = (row.sellerName ?? row.seller_name ?? null) as string | null;
 
   return {
@@ -149,6 +155,8 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
     isPro,
     proVideoThumbUrl: proVideoThumbUrl ?? null,
     proVideoUrl: proVideoUrl ?? null,
+    proVideoThumbUrl2: proVideoThumbUrl2 ?? null,
+    proVideoUrl2: proVideoUrl2 ?? null,
     lang: L,
     sellerName: sellerName ?? undefined,
   };

@@ -8,7 +8,7 @@ import Navbar from "../../../components/Navbar";
 import newLogo from "../../../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../../../data/classifieds/sampleListings";
-import { extractProVideoInfo } from "../../components/proVideo";
+import { extractProVideoInfos } from "../../components/proVideo";
 import ProBadge from "../../components/ProBadge";
 import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
@@ -577,10 +577,10 @@ export default function AnuncioDetallePage() {
   const isPro = isProListing(listing as any);
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
-  const proVideoInfo = useMemo(() => {
-    if (!listing) return null;
+  const proVideoInfos = useMemo(() => {
+    if (!listing) return [];
     const blob = `${listing.blurb?.[lang] ?? ""}\n${listing.blurb?.[lang === "es" ? "en" : "es"] ?? ""}`;
-    return extractProVideoInfo(blob);
+    return extractProVideoInfos(blob);
   }, [listing, lang]);
 
   const priceDropHours = useMemo(() => {
@@ -617,7 +617,7 @@ export default function AnuncioDetallePage() {
       .catch(() => setDistanceMiles(null));
   }, [viewerCityInput, listing?.city]);
 
-  type MediaSlot = { type: "image"; url: string } | { type: "video" };
+  type MediaSlot = { type: "image"; url: string } | { type: "video"; index: number };
   const mediaSlots = useMemo((): MediaSlot[] => {
     const imgs = listing?.images ?? (listing as any)?.photos;
     const urls = Array.isArray(imgs) ? imgs.filter((u): u is string => typeof u === "string") : [];
@@ -625,14 +625,14 @@ export default function AnuncioDetallePage() {
     const restImages = urls.slice(1);
     const slots: MediaSlot[] = [];
     if (cover) slots.push({ type: "image", url: cover });
-    if (proVideoInfo) slots.push({ type: "video" });
+    proVideoInfos.forEach((_, i) => slots.push({ type: "video", index: i }));
     restImages.forEach((u) => slots.push({ type: "image", url: u }));
-    if (slots.length === 0 && (listing?.hasImage || proVideoInfo)) {
-      if (proVideoInfo) slots.push({ type: "video" });
+    if (slots.length === 0 && (listing?.hasImage || proVideoInfos.length > 0)) {
+      proVideoInfos.forEach((_, i) => slots.push({ type: "video", index: i }));
       if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     }
     return slots;
-  }, [listing?.images, (listing as any)?.photos, listing?.hasImage, proVideoInfo]);
+  }, [listing?.images, (listing as any)?.photos, listing?.hasImage, proVideoInfos]);
 
   const [mediaIndex, setMediaIndex] = useState(0);
   const galleryTouchStartX = useRef(0);
@@ -647,7 +647,7 @@ export default function AnuncioDetallePage() {
     setMediaIndex((i) => (i >= mediaSlots.length - 1 ? 0 : i + 1));
   }, [mediaSlots.length]);
 
-  const [showProVideo, setShowProVideo] = useState(false);
+  const [expandedVideoIndex, setExpandedVideoIndex] = useState<number | null>(null);
 
   // v2 placeholder: wired later to real auth
   const [isAuthed] = useState<boolean>(false);
@@ -775,16 +775,22 @@ export default function AnuncioDetallePage() {
                       className="max-h-full max-w-full w-full object-contain"
                     />
                   ) : (
-                    proVideoInfo && (
-                      <video
-                        className="max-h-full max-w-full w-full object-contain"
-                        controls
-                        preload="none"
-                        playsInline
-                        poster={proVideoInfo.thumbUrl}
-                        src={proVideoInfo.url}
-                      />
-                    )
+                    (() => {
+                      const slot = mediaSlots[safeMediaIndex];
+                      if (slot?.type !== "video") return null;
+                      const info = proVideoInfos[slot.index];
+                      if (!info) return null;
+                      return (
+                        <video
+                          className="max-h-full max-w-full w-full object-contain"
+                          controls
+                          preload="none"
+                          playsInline
+                          poster={info.thumbUrl}
+                          src={info.url}
+                        />
+                      );
+                    })()
                   )}
                   {mediaSlots.length > 1 && (
                     <>
@@ -881,12 +887,12 @@ export default function AnuncioDetallePage() {
               </div>
 
 
-{proVideoInfo && mediaSlots.length === 0 && (
+{proVideoInfos.length > 0 && mediaSlots.length === 0 && (
   <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
     <div className="flex items-center justify-between gap-3">
       <div>
         <div className="text-sm font-semibold text-yellow-200">
-          {lang === "es" ? "Video (Pro)" : "Pro Video"}
+          {lang === "es" ? "Videos (Pro)" : "Pro Videos"}
         </div>
         <div className="mt-1 text-xs text-[#111111]">
           {lang === "es"
@@ -894,10 +900,10 @@ export default function AnuncioDetallePage() {
             : "Tap the thumbnail to play. No autoplay."}
         </div>
       </div>
-      {!showProVideo && (
+      {expandedVideoIndex === null && (
         <button
           type="button"
-          onClick={() => setShowProVideo(true)}
+          onClick={() => setExpandedVideoIndex(0)}
           className="rounded-full border border-[#C9B46A]/70 bg-[#F2EFE8] px-4 py-2 text-xs font-semibold text-yellow-100 hover:bg-[#F2EFE8]"
         >
           {lang === "es" ? "Reproducir" : "Play"}
@@ -906,17 +912,17 @@ export default function AnuncioDetallePage() {
     </div>
 
     <div className="mt-4">
-      {!showProVideo ? (
-        proVideoInfo.thumbUrl ? (
+      {expandedVideoIndex === null ? (
+        proVideoInfos[0]?.thumbUrl ? (
           <button
             type="button"
-            onClick={() => setShowProVideo(true)}
+            onClick={() => setExpandedVideoIndex(0)}
             className="group relative block w-full overflow-hidden rounded-xl border border-black/10"
             aria-label={lang === "es" ? "Reproducir video" : "Play video"}
           >
             {/* Use <img> to avoid Next/Image remote domain config issues */}
             <img
-              src={proVideoInfo.thumbUrl}
+              src={proVideoInfos[0].thumbUrl}
               alt={lang === "es" ? "Miniatura del video" : "Video thumbnail"}
               className="h-auto w-full object-cover opacity-95 group-hover:opacity-100"
               loading="lazy"
@@ -934,16 +940,21 @@ export default function AnuncioDetallePage() {
               : "This listing includes a Pro video. Press “Play” to watch."}
           </div>
         )
-      ) : (
-        <video
-          className="w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
-          controls
-          preload="none"
-          playsInline
-          poster={proVideoInfo.thumbUrl}
-          src={proVideoInfo.url}
-        />
-      )}
+      ) : proVideoInfos[expandedVideoIndex] ? (
+        <>
+          <video
+            className="w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+            controls
+            preload="none"
+            playsInline
+            poster={proVideoInfos[expandedVideoIndex].thumbUrl}
+            src={proVideoInfos[expandedVideoIndex].url}
+          />
+          <button type="button" onClick={() => setExpandedVideoIndex(null)} className="mt-2 text-xs text-[#111111]/70 hover:text-[#111111]">
+            {lang === "es" ? "Cerrar" : "Close"}
+          </button>
+        </>
+      ) : null}
     </div>
   </div>
 )}
