@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import type { ListingData } from "./ListingView";
 
@@ -62,7 +62,14 @@ export default function RentasPrivadoPublishPreview({
   const lang = listing.lang;
   const [mediaIndex, setMediaIndex] = useState(0);
   const [previewToast, setPreviewToast] = useState<string | null>(null);
+  const [enlargedIndex, setEnlargedIndex] = useState<number | null>(null);
   const galleryTouchStartX = useRef(0);
+  const enlargeModalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (enlargedIndex !== null) {
+      enlargeModalRef.current?.focus();
+    }
+  }, [enlargedIndex]);
 
   const showToast = useCallback((msg: string) => {
     if (!previewMode) return;
@@ -227,9 +234,13 @@ export default function RentasPrivadoPublishPreview({
             )}
           </div>
 
-          {/* Hero gallery — part of same flow, soft divider */}
+          {/* Hero gallery — part of same flow, soft divider; tap/click to enlarge */}
           <div
-            className="relative w-full aspect-[4/3] max-h-[380px] overflow-hidden bg-[#1a1a1a] border-y border-[#C9B46A]/20"
+            className="relative w-full aspect-[4/3] max-h-[380px] overflow-hidden bg-[#1a1a1a] border-y border-[#C9B46A]/20 cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onClick={() => setEnlargedIndex(safeMediaIndex)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEnlargedIndex(safeMediaIndex); } }}
             onTouchStart={(e) => { galleryTouchStartX.current = e.touches[0]?.clientX ?? 0; }}
             onTouchEnd={(e) => {
               const endX = e.changedTouches[0]?.clientX ?? 0;
@@ -237,6 +248,7 @@ export default function RentasPrivadoPublishPreview({
               if (dx > 50) goPrev();
               else if (dx < -50) goNext();
             }}
+            aria-label={lang === "es" ? "Ampliar imagen o video" : "Enlarge image or video"}
           >
             {mediaSlots[safeMediaIndex]?.type === "image" ? (
               <img src={mediaSlots[safeMediaIndex].url} alt="" className="w-full h-full object-contain bg-[#0d0d0d]" />
@@ -247,14 +259,20 @@ export default function RentasPrivadoPublishPreview({
                 const poster = getVideoThumbUrl(idx);
                 if (!src && !poster) return null;
                 return (
-                  <video
-                    className="w-full h-full object-contain bg-[#0d0d0d]"
-                    controls
-                    preload="none"
-                    playsInline
-                    poster={poster ?? undefined}
-                    src={src ?? undefined}
-                  />
+                  <>
+                    <video
+                      className="w-full h-full object-contain bg-[#0d0d0d]"
+                      controls
+                      preload="none"
+                      playsInline
+                      poster={poster ?? undefined}
+                      src={src ?? undefined}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center pointer-events-none text-white/90 drop-shadow-lg" aria-hidden>
+                      <span className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center text-3xl">▶</span>
+                    </span>
+                  </>
                 );
               })()
             ) : null}
@@ -264,7 +282,7 @@ export default function RentasPrivadoPublishPreview({
                   type="button"
                   className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold"
                   aria-label={lang === "es" ? "Anterior" : "Previous"}
-                  onClick={goPrev}
+                  onClick={(e) => { e.stopPropagation(); goPrev(); }}
                 >
                   ←
                 </button>
@@ -272,7 +290,7 @@ export default function RentasPrivadoPublishPreview({
                   type="button"
                   className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-xl font-bold"
                   aria-label={lang === "es" ? "Siguiente" : "Next"}
-                  onClick={goNext}
+                  onClick={(e) => { e.stopPropagation(); goNext(); }}
                 >
                   →
                 </button>
@@ -285,9 +303,9 @@ export default function RentasPrivadoPublishPreview({
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setMediaIndex(idx)}
+                  onClick={(e) => { e.stopPropagation(); setMediaIndex(idx); setEnlargedIndex(idx); }}
                   className={cx(
-                    "h-12 w-12 min-w-[3rem] shrink-0 rounded-lg overflow-hidden border-2 transition",
+                    "h-12 w-12 min-w-[3rem] shrink-0 rounded-lg overflow-hidden border-2 transition relative",
                     safeMediaIndex === idx
                       ? "border-[#C9B46A]/70 ring-1 ring-[#C9B46A]/30"
                       : "border-[#C9B46A]/20 hover:border-[#C9B46A]/40"
@@ -296,12 +314,61 @@ export default function RentasPrivadoPublishPreview({
                   {slot.type === "image" ? (
                     <img src={slot.url} alt="" className="w-full h-full object-cover" />
                   ) : getVideoThumbUrl(slot.index) ? (
-                    <img src={getVideoThumbUrl(slot.index)!} alt="" className="w-full h-full object-cover opacity-90" />
+                    <>
+                      <img src={getVideoThumbUrl(slot.index)!} alt="" className="w-full h-full object-cover opacity-90" />
+                      <span className="absolute inset-0 flex items-center justify-center pointer-events-none text-white drop-shadow-md" aria-hidden>
+                        <span className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center text-sm">▶</span>
+                      </span>
+                    </>
                   ) : (
                     <span className="w-full h-full flex items-center justify-center text-xl bg-[#E8E4DD]">🎥</span>
                   )}
                 </button>
               ))}
+            </div>
+          )}
+          {/* Enlarge modal — tap/click on hero opens; layout width unchanged */}
+          {enlargedIndex !== null && mediaSlots[enlargedIndex] && (
+            <div
+              ref={enlargeModalRef}
+              tabIndex={-1}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 outline-none"
+              role="dialog"
+              aria-modal="true"
+              aria-label={lang === "es" ? "Vista ampliada" : "Enlarged view"}
+              onClick={() => setEnlargedIndex(null)}
+              onKeyDown={(e) => { if (e.key === "Escape") setEnlargedIndex(null); }}
+            >
+              <button
+                type="button"
+                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 text-[#111111] flex items-center justify-center text-xl font-bold hover:bg-white"
+                aria-label={lang === "es" ? "Cerrar" : "Close"}
+                onClick={(e) => { e.stopPropagation(); setEnlargedIndex(null); }}
+              >
+                ×
+              </button>
+              <div className="max-w-4xl w-full max-h-[90vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                {mediaSlots[enlargedIndex].type === "image" ? (
+                  <img src={mediaSlots[enlargedIndex].url} alt="" className="max-w-full max-h-[90vh] w-auto h-auto object-contain" />
+                ) : mediaSlots[enlargedIndex].type === "video" ? (
+                  (() => {
+                    const vidIdx = mediaSlots[enlargedIndex].index;
+                    const src = getVideoUrl(vidIdx);
+                    const poster = getVideoThumbUrl(vidIdx);
+                    if (!src && !poster) return null;
+                    return (
+                      <video
+                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
+                        controls
+                        autoPlay
+                        playsInline
+                        poster={poster ?? undefined}
+                        src={src ?? undefined}
+                      />
+                    );
+                  })()
+                ) : null}
+              </div>
             </div>
           )}
 

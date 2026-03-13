@@ -880,7 +880,7 @@ setIsPro(plan.includes("pro"));
         addImages: "Agregar fotos",
         video: "Videos (Pro, hasta 2 por anuncio)",
         addVideo: "Agregar video",
-        videoHint: "Máx 20s, 720p. Sin autoplay en la lista.",
+        videoHint: "Hasta 2 videos por anuncio. Máx 15s, 1080p, ~75MB.",
         videoLocked: "Desbloquea video con LEONIX Pro.",
         contact: "Método de contacto",
         phone: "Teléfono",
@@ -953,7 +953,7 @@ setIsPro(plan.includes("pro"));
         addImages: "Add photos",
         video: "Videos (Pro, up to 2 per listing)",
         addVideo: "Add video",
-        videoHint: "Max 20s, 720p. No autoplay in grid.",
+        videoHint: "Up to 2 videos per listing. Max 15s, 1080p, ~75MB.",
         videoLocked: "Unlock video with LEONIX Pro.",
         contact: "Contact method",
         phone: "Phone",
@@ -1874,6 +1874,7 @@ async function inspectAndThumbVideo(file: File, index: number) {
   });
 
   if (!file.type.startsWith("video/")) {
+    setVideoFiles((prev) => { const n: [File | null, File | null] = [...prev]; n[index] = null; return n; });
     setVideoErrors((prev) => {
       const n: [string, string] = [...prev];
       n[index] = lang === "es" ? "Selecciona un archivo de video." : "Please select a video file.";
@@ -1882,13 +1883,14 @@ async function inspectAndThumbVideo(file: File, index: number) {
     return;
   }
 
-  const maxBytes = 25 * 1024 * 1024; // 25MB
+  const maxBytes = 75 * 1024 * 1024; // ~75MB
   if (file.size > maxBytes) {
+    setVideoFiles((prev) => { const n: [File | null, File | null] = [...prev]; n[index] = null; return n; });
     setVideoErrors((prev) => {
       const n: [string, string] = [...prev];
       n[index] = lang === "es"
-        ? "El video es muy grande. Usa un clip más corto o comprimido (máx ~25MB)."
-        : "Video file is too large. Please use a shorter/compressed clip (max ~25MB).";
+        ? "El video es muy grande. Usa un clip más corto o comprimido (máx ~75MB)."
+        : "Video file is too large. Please use a shorter/compressed clip (max ~75MB).";
       return n;
     });
     return;
@@ -1912,18 +1914,20 @@ async function inspectAndThumbVideo(file: File, index: number) {
       v.onerror = () => { cleanup(); reject(new Error("metadata")); };
     });
 
-    if (info.duration > 20.2) {
+    if (info.duration > 15.2) {
+      setVideoFiles((prev) => { const n: [File | null, File | null] = [...prev]; n[index] = null; return n; });
       setVideoErrors((prev) => {
         const n: [string, string] = [...prev];
-        n[index] = lang === "es" ? "El video debe ser de 20 segundos o menos." : "Video must be 20 seconds or less.";
+        n[index] = lang === "es" ? "El video debe ser de 15 segundos o menos." : "Video must be 15 seconds or less.";
         return n;
       });
       return;
     }
-    if (info.width > 1280 || info.height > 720) {
+    if (info.width > 1920 || info.height > 1080) {
+      setVideoFiles((prev) => { const n: [File | null, File | null] = [...prev]; n[index] = null; return n; });
       setVideoErrors((prev) => {
         const n: [string, string] = [...prev];
-        n[index] = lang === "es" ? "El video debe ser 720p o menos (1280×720)." : "Video must be 720p or less (1280×720).";
+        n[index] = lang === "es" ? "El video debe ser 1080p o menos (1920×1080)." : "Video must be 1080p or less (1920×1080).";
         return n;
       });
       return;
@@ -1955,6 +1959,13 @@ async function inspectAndThumbVideo(file: File, index: number) {
     });
 
     setVideoThumbBlobs((prev) => { const n: [Blob | null, Blob | null] = [...prev]; n[index] = thumb; return n; });
+  } catch {
+    setVideoFiles((prev) => { const n: [File | null, File | null] = [...prev]; n[index] = null; return n; });
+    setVideoErrors((prev) => {
+      const n: [string, string] = [...prev];
+      n[index] = lang === "es" ? "No se pudo leer el video. Prueba otro archivo (máx 15s, 1080p, ~75MB)." : "Could not read video. Try another file (max 15s, 1080p, ~75MB).";
+      return n;
+    });
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -3340,7 +3351,7 @@ for (let vi = 0; vi < 2; vi++) {
                             <input
                               value={details.zonaDireccion ?? ""}
                               onChange={(e) => setDetails((prev) => ({ ...prev, zonaDireccion: e.target.value }))}
-                              placeholder={lang === "es" ? "Ej: King Rd y Story, Centro" : "e.g. King Rd & Story, Downtown"}
+                              placeholder={lang === "es" ? "Ej: Calle A y Calle B, Centro" : "e.g. Street A & Street B, Downtown"}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                           </div>

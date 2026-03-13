@@ -350,6 +350,14 @@ export function MediaUploader({
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="text-sm text-[#111111]">{videoLabel}</div>
         <div className="mt-1 text-xs text-[#111111]/45">{videoHintLabel}</div>
+        {lang === "es" && (
+          <ul className="mt-2 text-xs text-[#111111]/70 space-y-0.5 list-none">
+            <li>Hasta 2 videos por anuncio</li>
+            <li>Máx 15s</li>
+            <li>1080p</li>
+            <li>Máx ~75MB</li>
+          </ul>
+        )}
 
         <input
           ref={videoCameraRef}
@@ -391,7 +399,12 @@ export function MediaUploader({
                       {lang === "es" ? "Quitar" : "Remove"}
                     </button>
                   </div>
-                  <video src={previewUrl} controls className="rounded-lg mt-3 w-full max-w-md" playsInline />
+                  <div className="relative mt-3 w-full max-w-md rounded-lg overflow-hidden bg-[#1a1a1a]">
+                    <video src={previewUrl} controls className="w-full rounded-lg" playsInline />
+                    <span className="absolute inset-0 flex items-center justify-center pointer-events-none text-white/90 drop-shadow-lg" aria-hidden>
+                      <span className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center text-2xl">▶</span>
+                    </span>
+                  </div>
                 </>
               ) : (
                 <div className="flex flex-wrap gap-2">
