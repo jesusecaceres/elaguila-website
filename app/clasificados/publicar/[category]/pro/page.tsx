@@ -18,10 +18,11 @@ export default function EnVentaProPage() {
           mediaTitle: "Más impacto para tu anuncio",
           benefits: [
             "Hasta 12 fotos",
-            "Video sobresaliente",
+            "2 videos sobresalientes",
             "2 impulsos de visibilidad",
+            "Insignia Pro",
+            "Analíticas del anuncio",
             "Duración del anuncio: 30 días",
-            "Hasta 3× más visibilidad con video",
           ],
           analyticsTitle: "Analíticas del anuncio",
           analyticsSub: "Señales para entender si tu anuncio está funcionando.",
@@ -29,12 +30,6 @@ export default function EnVentaProPage() {
             "Vistas del anuncio",
             "Guardados y compartidos",
             "Mejor seguimiento del rendimiento",
-          ],
-          contactTitle: "Más oportunidades de contacto",
-          contactSub: "Tu anuncio con más presencia en el mercado.",
-          contact: [
-            "Los compradores podrán guardar y compartir tu anuncio",
-            "Mejores oportunidades de interacción",
           ],
           price: "$9.99",
           cta: "Completar pago",
@@ -48,10 +43,11 @@ export default function EnVentaProPage() {
           mediaTitle: "More impact for your listing",
           benefits: [
             "Up to 12 photos",
-            "Featured video",
+            "2 featured videos",
             "2 visibility boosts",
+            "Pro badge",
+            "Listing analytics",
             "Listing duration: 30 days",
-            "Up to 3× more visibility with video",
           ],
           analyticsTitle: "Listing analytics",
           analyticsSub: "Signals to understand how your listing is performing.",
@@ -59,12 +55,6 @@ export default function EnVentaProPage() {
             "Listing views",
             "Saves and shares",
             "Better performance tracking",
-          ],
-          contactTitle: "More contact opportunities",
-          contactSub: "Stronger presence for your listing in the marketplace.",
-          contact: [
-            "Buyers can save and share your listing",
-            "Better opportunities for interaction",
           ],
           price: "$9.99",
           cta: "Complete payment",
@@ -100,7 +90,7 @@ export default function EnVentaProPage() {
             </ul>
           </section>
 
-          {/* Analytics */}
+          {/* Analytics (Pro-only) */}
           <section className="p-6 border-b border-white/10 bg-[#2a2a2a]/60">
             <h2 className="text-lg font-bold text-[#C9B46A]">{t.analyticsTitle}</h2>
             <p className="mt-1 text-sm text-[#B0B0B0]">{t.analyticsSub}</p>
@@ -109,20 +99,6 @@ export default function EnVentaProPage() {
                 <li key={i} className="flex items-center gap-2">
                   <span className="text-[#C9B46A]/90">•</span>
                   {a}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Contact / buyer tools */}
-          <section className="p-6">
-            <h2 className="text-lg font-bold text-[#C9B46A]">{t.contactTitle}</h2>
-            <p className="mt-1 text-sm text-[#B0B0B0]">{t.contactSub}</p>
-            <ul className="mt-3 space-y-2 text-sm text-[#E0E0E0]">
-              {t.contact.map((c, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <span className="text-[#C9B46A]/90">•</span>
-                  {c}
                 </li>
               ))}
             </ul>

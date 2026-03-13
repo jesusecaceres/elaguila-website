@@ -38,14 +38,14 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-/** Pro comparison: benefit id passed from parent to highlight the matching UI element. */
+/** Pro comparison: benefit id passed from parent to highlight the matching UI element. Only real Pro-only benefits. */
 export type ProHighlightId =
   | "more-photos"
   | "pro-video"
-  | "visibility-badge"
-  | "save-share"
-  | "contact"
-  | "views-contact";
+  | "visibility-boosts"
+  | "pro-badge"
+  | "analytics"
+  | "duration";
 
 export type ListingViewProps = {
   listing: ListingData;
@@ -93,11 +93,17 @@ export default function ListingView({
     if (images[0]) slots.push({ type: "image", url: images[0] });
     if (effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video" });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
-    // Seller-only preview (free mode): show locked Pro slots so seller sees upgrade value. Pro preview mode shows same media only.
+    // Free preview: show locked Pro slots (2 videos sobresalientes = 2 locked-video slots).
     if (previewMode && !effectiveIsPro) {
-      const extraPhotoSlots = Math.min(2, Math.max(0, 12 - slots.length)); // up to 2 extra photo slots as cue
+      const extraPhotoSlots = Math.min(2, Math.max(0, 12 - slots.length));
       for (let i = 0; i < extraPhotoSlots; i++) slots.push({ type: "locked-image" });
       slots.push({ type: "locked-video" });
+      slots.push({ type: "locked-video" });
+    }
+    // Pro preview: second video slot (structure ready; upload may support 1 for now).
+    if (previewMode && effectiveIsPro) {
+      const videoCount = slots.filter((s) => s.type === "video").length;
+      if (videoCount < 2) slots.push({ type: "locked-video" });
     }
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
@@ -363,20 +369,56 @@ export default function ListingView({
             </div>
           )}
         </div>
+
+        {/* Pro preview only: analytics block — preview-only; not part of published ad. Dashboard-style. */}
+        {previewProUpgrade && (
+          <div
+            ref={(el) => setHighlightRef("analytics", el)}
+            data-pro-highlight="analytics"
+            className={cx(
+              "mt-4 rounded-2xl border border-[#C9B46A]/30 bg-[#252525] p-4 sm:p-5 shadow-sm",
+              isHighlight("analytics") && highlightClass
+            )}
+          >
+            <h3 className="text-xs font-semibold text-[#C9B46A] uppercase tracking-wide mb-3">
+              {lang === "es" ? "Analíticas del anuncio (Pro)" : "Listing analytics (Pro)"}
+            </h3>
+            <p className="text-xs text-white/60 mb-3">
+              {lang === "es" ? "Señales para entender si tu anuncio está funcionando." : "Signals to see how your listing is performing."}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-white/50 mb-1">{lang === "es" ? "Vistas" : "Views"}</p>
+                <p className="text-lg font-bold text-white">—</p>
+                <p className="text-[10px] text-white/40 mt-0.5">{lang === "es" ? "vistas del anuncio" : "listing views"}</p>
+              </div>
+              <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-white/50 mb-1">{lang === "es" ? "Guardados" : "Saves"}</p>
+                <p className="text-lg font-bold text-white">—</p>
+                <p className="text-[10px] text-white/40 mt-0.5">{lang === "es" ? "guardados / compartidos" : "saves / shares"}</p>
+              </div>
+              <div className="rounded-xl bg-[#1a1a1a] border border-white/10 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-white/50 mb-1">{lang === "es" ? "Rendimiento" : "Performance"}</p>
+                <p className="text-lg font-bold text-white">—</p>
+                <p className="text-[10px] text-white/40 mt-0.5">{lang === "es" ? "seguimiento del rendimiento" : "performance tracking"}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right: info stack — title/price/meta first, then CTA, then description/seller/location. Mobile: stacked; lg: right rail. */}
       <div className="min-w-0 space-y-4 sm:space-y-5 order-2">
-        {/* Card 1: Title, price, meta. Pro: premium accent + stronger visibility cue. */}
+        {/* Card 1: Title, price, meta. Pro: premium accent; spacing so title and badge don't collide. */}
         <div
           className={cx(
             "rounded-2xl border p-4 sm:p-5 lg:p-6 shadow-sm",
             effectiveIsPro ? "border-[#C9B46A]/30 border-l-4 border-l-[#C9B46A]/50 bg-[#FAFAF9]" : "border-black/10 bg-white"
           )}
         >
-          <div className="flex flex-wrap items-start gap-3 gap-y-2">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight">
+          <div className="flex flex-wrap items-start gap-x-3 gap-y-3">
+            <div className="min-w-0 flex-1 basis-full sm:basis-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
                 {listing.title}
               </h1>
               <div className="mt-3 text-xl sm:text-2xl font-bold text-[#1a1a1a]">
@@ -400,32 +442,37 @@ export default function ListingView({
                 );
               })()}
             </div>
-            <div
-              ref={(el) => setHighlightRef("visibility-badge", el)}
-              data-pro-highlight="visibility-badge"
-              className={cx("flex flex-wrap items-center gap-2 shrink-0", isHighlight("visibility-badge") && highlightClass)}
-            >
-              {effectiveIsPro ? <ProBadge /> : null}
+            <div className="flex flex-wrap items-center gap-2 shrink-0 sm:ml-auto">
+              {effectiveIsPro ? (
+                <span ref={(el) => setHighlightRef("pro-badge", el)} data-pro-highlight="pro-badge" className={cx("inline-flex", isHighlight("pro-badge") && highlightClass)}>
+                  <ProBadge />
+                </span>
+              ) : null}
               {previewProUpgrade && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 px-3 py-1.5 text-xs font-semibold text-[#8B6914]"
+                  ref={(el) => setHighlightRef("visibility-boosts", el)}
+                  data-pro-highlight="visibility-boosts"
+                  className={cx(
+                    "inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 px-3 py-1.5 text-xs font-semibold text-[#8B6914]",
+                    isHighlight("visibility-boosts") && highlightClass
+                  )}
                   aria-hidden
                 >
-                  {lang === "es" ? "Mayor visibilidad" : "Boost visibility"}
+                  {lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Pro preview only: interactive benefits zone — click to highlight matching UI above. Preview-only; not part of published ad. */}
+        {/* Pro preview only: interactive benefits zone — real Pro-only benefits; click to highlight. Preview-only; not part of published ad. */}
         {previewProUpgrade && (
           <div
-            ref={(el) => setHighlightRef("views-contact", el)}
-            data-pro-highlight="views-contact"
+            ref={(el) => setHighlightRef("duration", el)}
+            data-pro-highlight="duration"
             className={cx(
               "rounded-2xl border border-[#C9B46A]/40 bg-[#F8F6F0] p-4 sm:p-5 lg:p-6 shadow-sm",
-              isHighlight("views-contact") && highlightClass
+              isHighlight("duration") && highlightClass
             )}
           >
             <p className="text-sm font-semibold text-[#111111] mb-1">
@@ -436,24 +483,27 @@ export default function ListingView({
                 ? "Toca un beneficio para ver dónde aparece en la vista previa."
                 : "Tap a benefit to see where it appears in the preview."}
             </p>
-            <p className="text-sm text-[#111111]/90 mb-3">
+            <p className="text-sm text-[#111111]/90 mb-2">
               {lang === "es" ? "Con Pro tu anuncio incluye:" : "With Pro your listing includes:"}
+            </p>
+            <p className="text-xs text-[#111111]/60 mb-3">
+              {lang === "es" ? "Duración del anuncio: 30 días" : "Listing duration: 30 days"}
             </p>
             <ul className="text-sm text-[#111111]/90 space-y-2 list-none">
               {[
-                { id: "more-photos" as const, es: "Más fotos", en: "More photos" },
-                { id: "pro-video" as const, es: "Video sobresaliente", en: "Featured video" },
-                { id: "visibility-badge" as const, es: "Mayor visibilidad e insignia Pro", en: "Higher visibility & Pro badge" },
-                { id: "save-share" as const, es: "Guardar y compartir", en: "Save and share" },
-                { id: "contact" as const, es: "Texto / Email / Llamar", en: "Text / Email / Call" },
-                { id: "views-contact" as const, es: "Vistas y contactos (próximamente)", en: "Views and contacts (coming soon)" },
+                { id: "more-photos" as const, es: "Hasta 12 fotos", en: "Up to 12 photos" },
+                { id: "pro-video" as const, es: "2 videos sobresalientes", en: "2 featured videos" },
+                { id: "visibility-boosts" as const, es: "2 impulsos de visibilidad", en: "2 visibility boosts" },
+                { id: "pro-badge" as const, es: "Insignia Pro", en: "Pro badge" },
+                { id: "analytics" as const, es: "Analíticas del anuncio", en: "Listing analytics" },
+                { id: "duration" as const, es: "Duración del anuncio: 30 días", en: "Listing duration: 30 days" },
               ].map(({ id, es, en }) => (
                 <li key={id}>
                   <button
                     type="button"
                     onClick={() => onProBenefitClick?.(id)}
                     className={cx(
-                      "w-full text-left rounded-xl px-3 py-2 transition",
+                      "w-full text-left rounded-xl px-3 py-2.5 transition min-h-[44px]",
                       isHighlight(id) ? "bg-amber-500/20 ring-1 ring-amber-500/50" : "hover:bg-[#C9B46A]/15"
                     )}
                   >
@@ -465,19 +515,8 @@ export default function ListingView({
           </div>
         )}
 
-        {/* Card 2: CTA section — Guardar, Compartir, contact (preview = toasts only; no real links); Pro comparison: save-share + contact */}
-        <div
-          ref={(el) => {
-            setHighlightRef("save-share", el);
-            setHighlightRef("contact", el);
-          }}
-          data-pro-highlight="save-share"
-          className={cx(
-            "rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-4 sm:p-5 lg:p-6",
-            (isHighlight("save-share") || isHighlight("contact")) && highlightClass
-          )}
-          id="listing-buyer-actions"
-        >
+        {/* Card 2: CTA — Guardar, Compartir, contacto (shared; not Pro-only). */}
+        <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-4 sm:p-5 lg:p-6" id="listing-buyer-actions">
           <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-wrap gap-3">
             <button
