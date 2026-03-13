@@ -36,7 +36,6 @@ import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
   getRentasDetailFields,
-  RENTAS_BRANCH_OPTIONS,
   RENTAS_NEGOCIO_TIER_OPTIONS,
 } from "../../config/rentasTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
@@ -61,7 +60,7 @@ const PUBLICAR_CATEGORIES: Array<{
 ];
 
 type Lang = "es" | "en";
-type PublishStep = "category" | "basics" | "details" | "media";
+type PublishStep = "category" | "rentas-track" | "basics" | "details" | "media";
 
 type DraftV1 = {
   v: 1;
@@ -831,7 +830,7 @@ setIsPro(plan.includes("pro"));
       es: {
         title: "Publicar tu anuncio",
         subtitle: "Publica con claridad. Mientras más completo, más confianza y mejores resultados.",
-        steps: { category: "Categoría", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
+        steps: { category: "Categoría", "rentas-track": "Rama", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
         deleteDraft: "Eliminar progreso guardado",
         basicsTitle: "Básicos",
         categoryTitle: "Elige la categoría",
@@ -904,7 +903,7 @@ setIsPro(plan.includes("pro"));
       en: {
         title: "Post your ad",
         subtitle: "Post with clarity. The more complete it is, the more trust—and better results.",
-        steps: { category: "Category", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
+        steps: { category: "Category", "rentas-track": "Track", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
         deleteDraft: "Delete application",
         basicsTitle: "Basics",
         categoryTitle: "Choose a category",
@@ -983,7 +982,7 @@ setIsPro(plan.includes("pro"));
   /** Restore form + images from DB draft_data payload. */
   function applyDraftPayloadFromDb(payload: DraftDataPayload) {
     applyDraftToForm(payload as Partial<DraftV1>);
-    if (payload.step && ["category", "basics", "details", "media"].includes(payload.step)) {
+    if (payload.step && ["category", "rentas-track", "basics", "details", "media"].includes(payload.step)) {
       setStep(payload.step as PublishStep);
     }
     if (payload.images && Array.isArray(payload.images) && payload.images.length > 0) {
@@ -2533,7 +2532,7 @@ for (let vi = 0; vi < 2; vi++) {
                     const isActive = safeStepForProgress === s;
                     const isPast = stepOrder.indexOf(s) < currentStepIndex;
                     const isUpcoming = !isActive && !isPast;
-                    const label = s === "category" ? copy.steps.category : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
+                    const label = s === "category" ? copy.steps.category : s === "rentas-track" ? copy.steps["rentas-track"] : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
                     return (
                       <span
                         key={s}
@@ -2658,7 +2657,11 @@ for (let vi = 0; vi < 2; vi++) {
                         disabled={!requirements.categoryOk}
                         onClick={() => {
                           if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
-                          setStep("basics");
+                          if (category === "rentas") {
+                            setStep("rentas-track");
+                          } else {
+                            setStep("basics");
+                          }
                           requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
                         }}
                         className={cx(
@@ -2669,6 +2672,116 @@ for (let vi = 0; vi < 2; vi++) {
                         )}
                       >
                         {copy.next}
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                {/* RENTAS TRACK (step 2 for Rentas only): Privado vs Negocio + plan */}
+                {step === "rentas-track" && category === "rentas" && (
+                  <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
+                    <h2 className="text-lg font-semibold text-[#111111]">
+                      {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
+                    </h2>
+                    <p className="mt-2 text-sm text-[#111111]/90">
+                      {lang === "es"
+                        ? "Elige si publicas como persona o como negocio. Esto define las opciones de tu anuncio."
+                        : "Choose whether you post as an individual or as a business. This defines your listing options."}
+                    </p>
+
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDetails((prev) => ({ ...prev, rentasBranch: "privado", rentasTier: "" }));
+                          setStep("basics");
+                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                        }}
+                        className={cx(
+                          "rounded-2xl border p-5 text-left transition-all",
+                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
+                          details.rentasBranch === "privado"
+                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
+                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
+                        )}
+                      >
+                        <span className="block text-base font-bold text-[#111111]">
+                          {lang === "es" ? "Publicar como Privado" : "Post as Private"}
+                        </span>
+                        <p className="mt-2 text-sm text-[#111111]/85">
+                          {lang === "es"
+                            ? "Ideal si publicas tu propio cuarto, apartamento, casa o espacio en renta como persona."
+                            : "Ideal if you list your own room, apartment, house, or space for rent as an individual."}
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDetails((prev) => ({ ...prev, rentasBranch: "negocio" }))}
+                        className={cx(
+                          "rounded-2xl border p-5 text-left transition-all",
+                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
+                          details.rentasBranch === "negocio"
+                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
+                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
+                        )}
+                      >
+                        <span className="block text-base font-bold text-[#111111]">
+                          {lang === "es" ? "Publicar como Negocio" : "Post as Business"}
+                        </span>
+                        <p className="mt-2 text-sm text-[#111111]/85">
+                          {lang === "es"
+                            ? "Ideal para agentes, brokers, administradores de propiedades, oficinas o compañías con presencia comercial."
+                            : "Ideal for agents, brokers, property managers, offices, or companies with a commercial presence."}
+                        </p>
+                      </button>
+                    </div>
+
+                    {details.rentasBranch === "negocio" && (
+                      <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4">
+                        <p className="text-sm font-semibold text-[#111111] mb-3">
+                          {lang === "es" ? "Elige plan de negocio" : "Choose business plan"}
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          {RENTAS_NEGOCIO_TIER_OPTIONS.map((o) => (
+                            <button
+                              key={o.value}
+                              type="button"
+                              onClick={() => {
+                                setDetails((prev) => ({ ...prev, rentasTier: o.value }));
+                                setStep("basics");
+                                requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                              }}
+                              className={cx(
+                                "rounded-xl border px-4 py-3 text-sm font-semibold text-left transition",
+                                details.rentasTier === o.value
+                                  ? "border-[#C9B46A]/60 bg-[#F5F5F5] text-[#111111]"
+                                  : "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5]"
+                              )}
+                            >
+                              {lang === "es" ? o.label.es : o.label.en}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-3 text-xs text-[#111111]/70">
+                          {lang === "es"
+                            ? "Standard: 1 anuncio incluido. Plus: 3 anuncios y 2 impulsos incluidos."
+                            : "Standard: 1 listing included. Plus: 3 listings and 2 boosts included."}
+                          {" "}
+                          <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
+                            {lang === "es" ? "Ver planes" : "View plans"}
+                          </Link>
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setStep("category"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
+                      >
+                        {copy.back}
                       </button>
                     </div>
                   </section>
@@ -2999,61 +3112,27 @@ for (let vi = 0; vi < 2; vi++) {
                                 </div>
                               )}
                             </div>
-                            <div>
-                              <label className="text-sm text-[#111111]">
-                                {lang === "es" ? "Privado o negocio" : "Private or business"}{" *"}
-                              </label>
-                              <select
-                                value={details.rentasBranch ?? ""}
-                                onChange={(e) => setDetails((prev) => ({ ...prev, rentasBranch: e.target.value }))}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            {/* Rentas branch/plan set on previous step (rentas-track); show read-only summary */}
+                            <div className="sm:col-span-2 rounded-xl border border-[#C9B46A]/25 bg-[#F8F6F0]/60 px-4 py-3">
+                              <p className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
+                                {lang === "es" ? "Publicando como" : "Posting as"}
+                              </p>
+                              <p className="mt-1 text-sm font-medium text-[#111111]">
+                                {details.rentasBranch === "negocio"
+                                  ? (lang === "es" ? "Negocio" : "Business") +
+                                    (details.rentasTier
+                                      ? " — " + (RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === details.rentasTier)?.label[lang] ?? details.rentasTier)
+                                      : "")
+                                  : (lang === "es" ? "Privado" : "Private")}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => { setStep("rentas-track"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                                className="mt-1 text-xs text-[#111111]/70 hover:underline"
                               >
-                                <option value="">{lang === "es" ? "Elige…" : "Choose…"}</option>
-                                {RENTAS_BRANCH_OPTIONS.map((o) => (
-                                  <option key={o.value} value={o.value}>
-                                    {lang === "es" ? o.label.es : o.label.en}
-                                  </option>
-                                ))}
-                              </select>
-                              {!details.rentasBranch?.trim() && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
-                                  {lang === "es" ? "Requerido." : "Required."}
-                                </div>
-                              )}
+                                {lang === "es" ? "Cambiar" : "Change"}
+                              </button>
                             </div>
-                            {details.rentasBranch === "negocio" && (
-                              <div className="sm:col-span-2">
-                                <label className="text-sm text-[#111111]">
-                                  {lang === "es" ? "Plan de negocio" : "Business plan"}{" *"}
-                                </label>
-                                <select
-                                  value={details.rentasTier ?? ""}
-                                  onChange={(e) => setDetails((prev) => ({ ...prev, rentasTier: e.target.value }))}
-                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                >
-                                  <option value="">{lang === "es" ? "Elige plan…" : "Choose plan…"}</option>
-                                  {RENTAS_NEGOCIO_TIER_OPTIONS.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                      {lang === "es" ? o.label.es : o.label.en}
-                                    </option>
-                                  ))}
-                                </select>
-                                {!details.rentasTier?.trim() && (
-                                  <div className="mt-1 text-xs text-[#111111]/40">
-                                    {lang === "es" ? "Requerido para negocio." : "Required for business."}
-                                  </div>
-                                )}
-                                <p className="mt-2 text-xs text-[#111111]/70">
-                                  {lang === "es"
-                                    ? "Standard: 1 anuncio incluido; extra $24.99/30 días. Plus: 3 anuncios y 2 impulsos incluidos."
-                                    : "Standard: 1 listing included; extra $24.99/30 days. Plus: 3 listings and 2 boosts included."}
-                                  {" "}
-                                  <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
-                                    {lang === "es" ? "Ver planes" : "View plans"}
-                                  </Link>
-                                </p>
-                              </div>
-                            )}
                           </div>
                           <div>
                             <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
@@ -3448,7 +3527,10 @@ for (let vi = 0; vi < 2; vi++) {
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { setStep("category"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        onClick={() => {
+                          setStep(category === "rentas" ? "rentas-track" : "category");
+                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                        }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}

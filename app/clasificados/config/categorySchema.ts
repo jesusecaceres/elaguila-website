@@ -20,8 +20,8 @@ export type PlanType =
 /** Listing/seller type (e.g. consumer vs dealership vs business). */
 export type ListingType = "consumer" | "dealership" | "business";
 
-/** Posting flow step. Order is fixed: category → basics → (details if applicable) → media. */
-export type PublishStep = "category" | "basics" | "details" | "media";
+/** Posting flow step. Rentas adds "rentas-track" between category and basics. */
+export type PublishStep = "category" | "rentas-track" | "basics" | "details" | "media";
 
 /** Validation rule reference (key only; rules implemented per category/form). */
 export type ValidationRuleKey = string;
@@ -71,6 +71,8 @@ export type CategorySchema = {
 
 const PUBLISH_STEPS_FULL: PublishStep[] = ["category", "basics", "details", "media"];
 const PUBLISH_STEPS_EN_VENTA: PublishStep[] = ["category", "basics", "media"];
+/** Rentas: track selection (Privado vs Negocio + plan) before basics. */
+const PUBLISH_STEPS_RENTAS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
 
 /** En Venta subcategories from taxonomy (single source of truth). */
 const EN_VENTA_SUBCATEGORIES: SubcategoryStub[] = EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY.map((s) => ({
@@ -117,7 +119,7 @@ const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
     validationRules: ["rentas_meta"],
     previewEligible: true,
     proPreviewEligible: true,
-    stepOrder: PUBLISH_STEPS_FULL,
+    stepOrder: PUBLISH_STEPS_RENTAS,
   }),
   autos: schema("autos", {
     plans: ["free", "pro"],
