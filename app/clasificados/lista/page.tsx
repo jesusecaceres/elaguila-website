@@ -30,6 +30,8 @@ import { SAMPLE_LISTINGS } from "../../data/classifieds/sampleListings";
 import RecentlyViewedSection from "../components/RecentlyViewedSection";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { isProListing } from "../components/planHelpers";
+import ProBadge from "../components/ProBadge";
 
 type ServicesTier = "standard" | "plus" | "premium";
 
@@ -3461,6 +3463,20 @@ const inferVisualTier = (x: Listing): VisualTier => {
   return null;
 };
 
+/** Rentas-only plan tier for display (Privado Pro / Negocio Standard / Negocio Plus). */
+type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
+
+function inferRentasPlanTier(x: Listing): RentasPlanTier | null {
+  if (x.category !== "rentas") return null;
+  if (x.sellerType === "personal" && isProListing(x)) return "privado_pro";
+  if (x.sellerType === "business") {
+    const tier = (x as any).rentasTier ?? (x as any).servicesTier;
+    if (tier === "plus" || tier === "premium") return "business_plus";
+    return "business_standard";
+  }
+  return null;
+}
+
 const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
   if (!tier) return null;
 
@@ -3886,6 +3902,7 @@ function RentasCard({
   const rentLabel = x.priceLabel[lang];
   const micro = microLine(x);
   const avail = rentasAvailabilityLabel(x, lang);
+  const rentasPlanTier = inferRentasPlanTier(x);
   const propertyType = x.propertyType
     ? String(x.propertyType)
     : inferRentasFromTitle(x.title[lang]) === "room"
@@ -3901,34 +3918,49 @@ function RentasCard({
         ].filter(Boolean).join(" · ")
       : null;
 
+  const cardBorderStyles =
+    rentasPlanTier === "business_plus"
+      ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
+      : rentasPlanTier === "business_standard"
+        ? "border-yellow-500/25 bg-[#111111]/6"
+        : rentasPlanTier === "privado_pro"
+          ? "border-emerald-400/22 bg-emerald-500/5"
+          : tier === "corona-oro"
+            ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
+            : tier === "corona"
+              ? "border-yellow-500/25 bg-[#111111]/6"
+              : tier === "joya"
+                ? "border-emerald-400/22 bg-emerald-500/5"
+                : "border-black/10";
+
+  const topBarGradient =
+    rentasPlanTier === "business_plus"
+      ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+      : rentasPlanTier === "business_standard"
+        ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+        : rentasPlanTier === "privado_pro"
+          ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+          : tier === "corona-oro"
+            ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+            : tier === "corona"
+              ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+              : tier === "joya"
+                ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+                : "";
+
   return (
     <div
       key={x.id}
       className={cx(
         "relative overflow-hidden rounded-2xl border bg-[#F5F5F5] p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out",
         "hover:scale-[1.03] hover:-translate-y-[1px] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.06)]",
-        tier === "corona-oro"
-          ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
-          : tier === "corona"
-            ? "border-yellow-500/25 bg-[#111111]/6"
-            : tier === "joya"
-              ? "border-emerald-400/22 bg-emerald-500/5"
-              : "border-black/10"
+        cardBorderStyles
       )}
     >
-      {tier ? (
+      {(rentasPlanTier || tier) ? (
         <div
           aria-hidden="true"
-          className={cx(
-            "pointer-events-none absolute inset-x-0 top-0 h-[2px]",
-            tier === "corona-oro"
-              ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
-              : tier === "corona"
-                ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
-                : tier === "joya"
-                  ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
-                  : ""
-          )}
+          className={cx("pointer-events-none absolute inset-x-0 top-0 h-[2px]", topBarGradient)}
         />
       ) : null}
       <div className="flex items-start justify-between gap-3">
@@ -3939,7 +3971,33 @@ function RentasCard({
                 {x.title[lang]}
               </div>
             </div>
-            <div className="shrink-0"><TierBadge tier={tier} lang={lang} /></div>
+            <div className="shrink-0 flex flex-wrap items-center gap-1.5 justify-end">
+              {rentasPlanTier === "privado_pro" && <ProBadge className="shrink-0" />}
+              {rentasPlanTier === "business_plus" && (
+                <span
+                  className={cx(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold tracking-wide leading-tight whitespace-nowrap",
+                    "border-yellow-300/80 bg-gradient-to-r from-yellow-500/18 to-yellow-300/14 text-yellow-50"
+                  )}
+                  title={lang === "es" ? "Negocio Plus" : "Business Plus"}
+                >
+                  <span aria-hidden="true">🔑</span>
+                  {lang === "es" ? "Negocio Plus" : "Business Plus"}
+                </span>
+              )}
+              {rentasPlanTier === "business_standard" && (
+                <span
+                  className={cx(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold leading-tight whitespace-nowrap",
+                    "border-yellow-400/32 bg-[#111111]/10 text-yellow-50"
+                  )}
+                  title={lang === "es" ? "Perfil profesional" : "Professional profile"}
+                >
+                  {lang === "es" ? "Negocio" : "Business"}
+                </span>
+              )}
+              {!rentasPlanTier && tier ? <TierBadge tier={tier} lang={lang} /> : null}
+            </div>
           </div>
           <div className="mt-1 font-extrabold text-yellow-200 text-base sm:text-lg">
             {/\$|\d/.test(rentLabel)
@@ -3961,6 +4019,13 @@ function RentasCard({
               ) : null}
             </div>
           )}
+          {rentasPlanTier === "privado_pro" ? (
+            <div className="mt-1.5 text-[11px] sm:text-xs text-[#111111]/85">
+              {lang === "es"
+                ? "12 fotos · 2 videos sobresalientes · 2 impulsos · 30 días"
+                : "12 photos · 2 featured videos · 2 visibility boosts · 30 days"}
+            </div>
+          ) : null}
           {x.sellerType ? (
             <div className="mt-1 text-[11px] sm:text-xs font-medium text-[#111111]/90">
               {x.sellerType === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Privado" : "Private")}

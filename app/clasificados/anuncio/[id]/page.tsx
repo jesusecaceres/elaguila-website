@@ -66,6 +66,20 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+/** Rentas-only plan tier for display (Privado Pro / Negocio Standard / Negocio Plus). */
+type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
+
+function inferRentasPlanTier(listing: { category?: string; sellerType?: string } & Record<string, unknown>): RentasPlanTier | null {
+  if (listing?.category !== "rentas") return null;
+  if (listing.sellerType === "personal" && isProListing(listing)) return "privado_pro";
+  if (listing.sellerType === "business") {
+    const tier = listing.rentasTier ?? listing.servicesTier;
+    if (tier === "plus" || tier === "premium") return "business_plus";
+    return "business_standard";
+  }
+  return null;
+}
+
 function parsePriceLabel(label: string): number | null {
   const m = (label || "").replace(/,/g, "").match(/(\d+(\.\d+)?)/);
   return m ? Number(m[1]) : null;
@@ -622,6 +636,10 @@ export default function AnuncioDetallePage() {
   const isSold = status === "sold";
   const isBusiness = listing?.sellerType === "business";
   const isPro = isProListing(listing as any);
+  const rentasPlanTier = useMemo(
+    () => (listing && listing.category === "rentas" ? inferRentasPlanTier(listing as any) : null),
+    [listing]
+  );
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
   const proVideoInfos = useMemo(() => {
@@ -799,7 +817,11 @@ export default function AnuncioDetallePage() {
             <div
               className={cx(
                 "rounded-2xl border bg-[#D9D9D9]/35 backdrop-blur p-8",
-                isBusiness ? "border-yellow-400/45" : "border-black/10"
+                rentasPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
+                rentasPlanTier === "business_standard" && "border-yellow-400/45",
+                rentasPlanTier === "privado_pro" && "border-emerald-400/30",
+                !rentasPlanTier && isBusiness && "border-yellow-400/45",
+                !rentasPlanTier && !isBusiness && "border-black/10"
               )}
             >
               {mediaSlots.length > 0 && (
@@ -990,13 +1012,57 @@ export default function AnuncioDetallePage() {
               )}
 
               {listing.category === "rentas" && (
-                <div className="mt-6 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
+                <div
+                  className={cx(
+                    "mt-6 rounded-2xl border bg-[#F5F5F5] p-4",
+                    rentasPlanTier === "business_plus" &&
+                      "border-yellow-300/50 ring-1 ring-yellow-300/20 shadow-[0_0_0_1px_rgba(250,204,21,0.15)]",
+                    rentasPlanTier === "business_standard" && "border-yellow-400/35",
+                    !rentasPlanTier && "border-black/10"
+                  )}
+                >
+                  {rentasPlanTier === "business_plus" && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <span
+                        className={cx(
+                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                          "border-yellow-300/80 bg-gradient-to-r from-yellow-500/18 to-yellow-300/14 text-yellow-100"
+                        )}
+                      >
+                        <span aria-hidden="true">🔑</span>
+                        {lang === "es" ? "Negocio Plus" : "Business Plus"}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-xs text-[#111111]/70">
                     {lang === "es" ? "Anunciante" : "Posted by"}:{" "}
                     <span className="font-semibold text-[#111111]">
                       {listing.sellerType === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Privado (persona)" : "Private (individual)")}
                     </span>
                   </div>
+                  {rentasPlanTier === "business_standard" && (
+                    <div className="mt-2 text-[11px] text-[#111111]/80">
+                      {lang === "es" ? "Anuncio profesional con identidad de negocio." : "Professional listing with business identity."}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {listing.category === "rentas" && rentasPlanTier === "privado_pro" && (
+                <div className="mt-6 rounded-2xl border border-emerald-400/25 bg-emerald-500/5 p-5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ProBadge />
+                    <span className="text-sm font-semibold text-[#111111]">
+                      {lang === "es" ? "Incluido con Pro" : "Included with Pro"}
+                    </span>
+                  </div>
+                  <ul className="mt-3 space-y-1.5 text-xs sm:text-sm text-[#111111]/90">
+                    <li>{lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
+                    <li>{lang === "es" ? "2 videos sobresalientes" : "2 featured videos"}</li>
+                    <li>{lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
+                    <li>{lang === "es" ? "Duración de 30 días" : "30-day listing duration"}</li>
+                    <li>{lang === "es" ? "Analíticas del anuncio" : "Listing analytics"}</li>
+                  </ul>
                 </div>
               )}
 
