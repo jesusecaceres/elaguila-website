@@ -178,9 +178,9 @@ export default function ListingView({ listing, previewMode = false, previewProUp
   const hasProVideo = effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-6 lg:gap-10">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10">
       {/* Left: media dominates — hero fills area, thumbnail rail intentional, minimal gray */}
-      <div className="min-w-0 lg:min-w-0">
+      <div className="min-w-0 lg:min-w-0 order-1">
         <div className="rounded-2xl overflow-hidden bg-[#1a1a1a] shadow-lg">
           {mediaSlots.length > 0 && (
             <div
@@ -282,11 +282,11 @@ export default function ListingView({ listing, previewMode = false, previewProUp
         </div>
       </div>
 
-      {/* Right: info stack — title/price/meta first, then CTA, then description/seller/location */}
-      <div className="min-w-0 space-y-5">
-        {/* Card 1: Title, price, city+posted, compact meta (details inline) */}
-        <div className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
+      {/* Right: info stack — title/price/meta first, then CTA, then description/seller/location. Mobile: stacked; lg: right rail. */}
+      <div className="min-w-0 space-y-4 sm:space-y-5 order-2">
+        {/* Card 1: Title, price, city+posted, compact meta (details inline). Pro: badge + visibility cue. */}
+        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 lg:p-6 shadow-sm">
+          <div className="flex flex-wrap items-start gap-3 gap-y-2">
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight">
                 {listing.title}
@@ -312,25 +312,30 @@ export default function ListingView({ listing, previewMode = false, previewProUp
                 );
               })()}
             </div>
-            {effectiveIsPro ? <ProBadge /> : null}
-            {previewProUpgrade && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-800 ml-2"
-                aria-hidden
-              >
-                {lang === "es" ? "Mayor visibilidad" : "Boost visibility"}
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {effectiveIsPro ? <ProBadge /> : null}
+              {previewProUpgrade && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                  aria-hidden
+                >
+                  {lang === "es" ? "Mayor visibilidad" : "Boost visibility"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Pro preview only: benefits / upgrade teaser block (Phase 1 foundation) */}
+        {/* Pro preview only: value messaging + benefits. Product-like, not salesy. */}
         {previewProUpgrade && (
-          <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#F8F6F0] p-5 sm:p-6">
-            <p className="text-sm font-semibold text-[#111111] mb-2">
+          <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#F8F6F0] p-4 sm:p-5 lg:p-6 shadow-sm">
+            <p className="text-sm font-semibold text-[#111111] mb-1">
+              {lang === "es" ? "Tu anuncio con Pro llega a más compradores." : "Your Pro listing reaches more buyers."}
+            </p>
+            <p className="text-sm text-[#111111]/90 mb-3">
               {lang === "es" ? "Con Pro tu anuncio incluye:" : "With Pro your listing includes:"}
             </p>
-            <ul className="text-sm text-[#111111]/90 space-y-1 list-disc list-inside">
+            <ul className="text-sm text-[#111111]/90 space-y-1.5 list-disc list-inside">
               {lang === "es" ? (
                 <>
                   <li>Más fotos y video</li>
@@ -351,7 +356,7 @@ export default function ListingView({ listing, previewMode = false, previewProUp
         )}
 
         {/* Card 2: CTA section — Guardar, Compartir, contact (preview = toasts only; no real links) */}
-        <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-5 sm:p-6" id="listing-buyer-actions">
+        <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-4 sm:p-5 lg:p-6" id="listing-buyer-actions">
           <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -416,14 +421,14 @@ export default function ListingView({ listing, previewMode = false, previewProUp
         </div>
 
         {/* Descripción */}
-        <div className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6 shadow-sm">
+        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 lg:p-6 shadow-sm">
           <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">
             {listing.description}
           </div>
         </div>
 
         {/* Publicado por */}
-        <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
           <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
           <p className="text-base font-medium text-[#111111]">{sellerDisplayName}</p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#111111]/60">
@@ -432,8 +437,18 @@ export default function ListingView({ listing, previewMode = false, previewProUp
           </div>
         </div>
 
+        {/* Seller trust placeholder — structure for future trust signals; lightweight, reusable across categories */}
+        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm" data-section="seller-trust">
+          <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
+            {lang === "es" ? "Confianza del vendedor" : "Seller trust"}
+          </h4>
+          <p className="text-xs text-[#111111]/50">
+            {lang === "es" ? "Sección de confianza (próximamente)." : "Trust signals (coming soon)."}
+          </p>
+        </div>
+
         {/* Ubicación */}
-        <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
           <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
           <p className="text-sm text-[#111111] mb-2">{t.sellerLocation} {listing.city}</p>
           <label className="block text-sm text-[#111111]/70 mb-1">{t.distanceLabel}</label>
@@ -454,7 +469,7 @@ export default function ListingView({ listing, previewMode = false, previewProUp
 
         {/* Contacto — live only uses real links; preview uses CTA card above */}
         {!previewMode && (
-          <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
             <div className="text-base font-bold text-[#111111]">{t.contactTitle}</div>
             <div className="mt-2 text-[#111111]/80 text-sm">{t.contactBody}</div>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -471,7 +486,7 @@ export default function ListingView({ listing, previewMode = false, previewProUp
 
         {/* Pro video standalone when not in gallery */}
         {hasProVideo && mediaSlots.length <= 1 && (
-          <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
             <div className="text-sm font-semibold text-[#111111]">{t.proVideo}</div>
             <div className="mt-1 text-xs text-[#111111]/70">{t.tapToPlay}</div>
             <div className="mt-4">
