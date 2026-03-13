@@ -148,21 +148,7 @@ export default function RentasPrivadoPublishPreview({
     [lang]
   );
 
-  const heroUrl = images[0] ?? "/logo.png";
-  const quickFacts = useMemo(() => {
-    const pairs = listing.detailPairs ?? [];
-    const beds = pairs.find((p) => /rec[aá]mara|bedroom|bed/i.test(p.label));
-    const baths = pairs.find((p) => /ba[nñ]o|bath/i.test(p.label));
-    const sqft = pairs.find((p) => /pies|metros|sqft|sq\s*ft/i.test(p.label));
-    const parts = [
-      beds?.value,
-      baths?.value,
-      sqft?.value ? `${sqft.value} ${lang === "es" ? "pies²" : "sq ft"}` : null,
-    ].filter(Boolean);
-    return parts.length ? parts.join(" · ") : null;
-  }, [listing.detailPairs, lang]);
-
-  /** Top pills: short category-like only — recámaras, baños, pies cuadrados/metros. No full rental facts. */
+  /** Top pills: short category-like only — recámaras, baños, pies cuadrados. No full rental facts. U.S.-focused: "Pies cuadrados" only, no metros. */
   const shortFactPills = useMemo(() => {
     const pairs = listing.detailPairs ?? [];
     const out: Array<{ label: string; value: string }> = [];
@@ -171,7 +157,12 @@ export default function RentasPrivadoPublishPreview({
     const sqft = pairs.find((p) => /pies|metros|sqft|sq\s*ft/i.test(p.label));
     if (beds?.value) out.push(beds);
     if (baths?.value) out.push(baths);
-    if (sqft?.value) out.push({ label: sqft.label, value: `${sqft.value} ${lang === "es" ? "pies²" : "sq ft"}` });
+    if (sqft?.value) {
+      out.push({
+        label: lang === "es" ? "Pies cuadrados" : "Square feet",
+        value: `${sqft.value} ${lang === "es" ? "pies²" : "sq ft"}`,
+      });
+    }
     return out;
   }, [listing.detailPairs, lang]);
 
@@ -181,38 +172,26 @@ export default function RentasPrivadoPublishPreview({
     [rentalFacts, amenities]
   );
 
+  /** Normalize display label for characteristics: U.S. rental — "Pies cuadrados" only, no metros. */
+  const displayCharacteristic = useCallback(
+    (f: { label: string; value: string }) => {
+      const n = normalizeLabel(f.label);
+      if (/pies|metros|sqft|sq\s*ft/i.test(n)) {
+        const val = f.value.replace(/\s*(metros?|m²|m2)\s*$/i, "").trim();
+        return {
+          label: lang === "es" ? "Pies cuadrados" : "Square feet",
+          value: val ? `${val} ${lang === "es" ? "pies²" : "sq ft"}` : f.value,
+        };
+      }
+      return f;
+    },
+    [lang]
+  );
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
-      {/* Left: mini result card preview — reads as "how it appears in list", not a main card */}
-      <div className="lg:col-span-3 order-2 lg:order-1">
-        <p className="text-[11px] font-medium text-[#111111]/50 uppercase tracking-wide mb-2 px-0.5">
-          {lang === "es" ? "Así se verá en la lista" : "How it appears in search"}
-        </p>
-        <div className="rounded-xl border border-[#C9B46A]/25 bg-[#FDFBF7] shadow-sm overflow-hidden sticky top-4 max-w-[220px] lg:max-w-none">
-          <div className="aspect-[4/3] w-full overflow-hidden bg-[#EDE9E2]">
-            <img src={heroUrl} alt="" className="h-full w-full object-cover" />
-          </div>
-          <div className="p-2.5">
-            <div className="text-base font-extrabold text-[#111111] leading-tight">
-              {/\$|\d/.test(listing.priceLabel)
-                ? (lang === "es" ? "Renta " : "Rent ") + formatListingPrice(listing.priceLabel, { lang })
-                : formatListingPrice(listing.priceLabel, { lang })}
-              {/\d/.test(listing.priceLabel) && !/\/\s*mes|\/mes|month/i.test(listing.priceLabel) ? (
-                <span className="ml-0.5 text-xs font-semibold text-[#111111]/65">/ {lang === "es" ? "mes" : "mo"}</span>
-              ) : null}
-            </div>
-            {quickFacts && <div className="mt-0.5 text-[11px] text-[#111111]/75">{quickFacts}</div>}
-            <h3 className="mt-1.5 line-clamp-2 text-xs font-semibold text-[#111111] leading-snug">
-              {listing.title}
-            </h3>
-            <div className="mt-0.5 text-[11px] text-[#111111]/80">{listing.city}</div>
-            <span className="inline-block mt-1 text-[10px] font-medium text-[#111111]/60">{t.privado}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Center: ONE unified listing flow — title → price → location → pills → hero → description → characteristics */}
-      <div className="lg:col-span-6 order-1 lg:order-2">
+      {/* Main: ONE unified listing flow — title → price → location → pills → hero → description (expanded width) */}
+      <div className="lg:col-span-8">
         <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FAF8F5] shadow-sm overflow-hidden">
           {/* Top block: title, rent, location, fact pills — single visual unit */}
           <div className="p-5 sm:p-6 pb-4">
@@ -333,7 +312,7 @@ export default function RentasPrivadoPublishPreview({
       </div>
 
       {/* Right: contact block (with announcer merged) + characteristics block */}
-      <div className="lg:col-span-3 order-3 space-y-4">
+      <div className="lg:col-span-4 space-y-4">
         <div className="rounded-2xl border border-[#C9B46A]/35 bg-[#FDFBF7] p-5 shadow-sm">
           <h4 className="text-sm font-bold text-[#111111] mb-1">
             {lang === "es" ? "Contactar" : "Contact"}
@@ -405,16 +384,19 @@ export default function RentasPrivadoPublishPreview({
               {lang === "es" ? "Características del lugar" : "Place details"}
             </h4>
             <ul className="space-y-2.5">
-              {allCharacteristics.map((f) => (
-                <li key={`${f.label}-${f.value}`} className="flex items-start gap-2.5">
-                  <span aria-hidden className="mt-0.5 shrink-0 w-4 h-4 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 flex items-center justify-center text-[10px] text-[#8B6914]">✓</span>
-                  <span className="text-sm text-[#111111]">
-                    <span className="font-medium text-[#111111]/85">{f.label}</span>
-                    <span className="text-[#111111]/70"> — </span>
-                    <span className="font-semibold text-[#111111]">{f.value}</span>
-                  </span>
-                </li>
-              ))}
+              {allCharacteristics.map((f) => {
+                const { label, value } = displayCharacteristic(f);
+                return (
+                  <li key={`${f.label}-${f.value}`} className="flex items-start gap-2.5">
+                    <span aria-hidden className="mt-0.5 shrink-0 w-4 h-4 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 flex items-center justify-center text-[10px] text-[#8B6914]">✓</span>
+                    <span className="text-sm text-[#111111]">
+                      <span className="font-medium text-[#111111]/85">{label}</span>
+                      <span className="text-[#111111]/70"> — </span>
+                      <span className="font-semibold text-[#111111]">{value}</span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
