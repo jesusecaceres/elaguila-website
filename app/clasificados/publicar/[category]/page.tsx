@@ -42,6 +42,7 @@ import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
 import ListingView, { type ListingData } from "../../components/ListingView";
+import RentasPrivadoPublishPreview from "../../components/RentasPrivadoPublishPreview";
 
 /** Real categories for publicar (no "all", no "Más"). Same order and icons as lista explorer. */
 const PUBLICAR_CATEGORIES: Array<{
@@ -2412,14 +2413,21 @@ for (let vi = 0; vi < 2; vi++) {
                     </span>
                   </div>
                   <section className="flex-1 overflow-y-auto max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full">
-                    <ListingView
-                      listing={fullPreviewListingData}
-                      previewMode={true}
-                      previewProUpgrade={isRentasPrivado ? true : fullPreviewVariant === "pro"}
-                      proHighlight={!isRentasPrivado && fullPreviewVariant === "pro" ? proHighlightId : null}
-                      onProBenefitClick={!isRentasPrivado && fullPreviewVariant === "pro" ? setProHighlightId : undefined}
-                      hideProComparisonUI={isRentasPrivado}
-                    />
+                    {isRentasPrivado ? (
+                      <RentasPrivadoPublishPreview
+                        listing={fullPreviewListingData}
+                        previewMode={true}
+                      />
+                    ) : (
+                      <ListingView
+                        listing={fullPreviewListingData}
+                        previewMode={true}
+                        previewProUpgrade={fullPreviewVariant === "pro"}
+                        proHighlight={fullPreviewVariant === "pro" ? proHighlightId : null}
+                        onProBenefitClick={fullPreviewVariant === "pro" ? setProHighlightId : undefined}
+                        hideProComparisonUI={false}
+                      />
+                    )}
                   </section>
                   <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
                     <div className="max-w-md mx-auto space-y-3">
