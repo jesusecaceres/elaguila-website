@@ -1142,6 +1142,13 @@ export default function AnuncioDetallePage() {
                       </span>
                     </div>
                   )}
+                  {rentasPlanTier === "business_standard" && (listing.sellerType === "business" || (listing as any).seller_type === "business") && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-yellow-400/40 bg-[#111111]/05 px-2.5 py-1 text-[11px] font-semibold text-[#111111]/90">
+                        {lang === "es" ? "Negocio" : "Business"}
+                      </span>
+                    </div>
+                  )}
                   {listing.sellerType === "business" ? (
                     <>
                       <p className="text-sm font-semibold text-[#111111]">
@@ -1659,7 +1666,9 @@ export default function AnuncioDetallePage() {
                     </div>
                   )}
                   <div>
-                    <p className="text-base font-semibold text-[#111111]">{rentasNegocioDisplay.name}</p>
+                    <p className="text-base font-semibold text-[#111111]">
+                      {rentasNegocioDisplay.name || (lang === "es" ? "Negocio" : "Business")}
+                    </p>
                     {rentasNegocioDisplay.agent && (
                       <p className="mt-0.5 text-sm text-[#111111]/90">{rentasNegocioDisplay.agent}</p>
                     )}
@@ -1683,6 +1692,16 @@ export default function AnuncioDetallePage() {
                       className="text-sm font-medium text-[#111111] hover:underline break-all"
                     >
                       {lang === "es" ? "Sitio web" : "Website"} →
+                    </a>
+                  )}
+                  {rentasPlanTier === "business_plus" && rentasNegocioDisplay.virtualTourUrl && (
+                    <a
+                      href={rentasNegocioDisplay.virtualTourUrl.startsWith("http") ? rentasNegocioDisplay.virtualTourUrl : `https://${rentasNegocioDisplay.virtualTourUrl}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-[#111111] hover:underline break-all"
+                    >
+                      {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
                     </a>
                   )}
                   {rentasPlanTier === "business_plus" && rentasNegocioDisplay.socialLinks && rentasNegocioDisplay.socialLinks.length > 0 ? (

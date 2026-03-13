@@ -191,7 +191,7 @@ export default function MembresiasPage() {
         rentasCompExtraPlus: "$19.99",
         rentasBoostTitle: "Impulsos de visibilidad (Rentas)",
         rentasBoost7Day: "Impulso 7 días — $14.99",
-        rentasBoost30Day: "Impulso destacado 30 días — $39.99",
+        rentasBoost30Day: "Impulso 30 días — $39.99",
         rentasBoostPlusIncluded: "Plus incluye 2 impulsos por ciclo de facturación.",
         rentasUpgradeToPlus: "Subir a Plus",
         rentasAddExtraListing: "Agregar anuncio extra",
@@ -450,7 +450,7 @@ export default function MembresiasPage() {
         rentasCompExtraPlus: "$19.99",
         rentasBoostTitle: "Visibility boosts (Rentals)",
         rentasBoost7Day: "7-day boost — $14.99",
-        rentasBoost30Day: "30-day featured boost — $39.99",
+        rentasBoost30Day: "30-day boost — $39.99",
         rentasBoostPlusIncluded: "Plus includes 2 boosts per billing cycle.",
         rentasUpgradeToPlus: "Upgrade to Plus",
         rentasAddExtraListing: "Add extra listing",
@@ -888,22 +888,24 @@ export default function MembresiasPage() {
                 <p className="text-xs text-[#111111]/70 mb-2">{L.pricingRuleBusiness}</p>
                 <p className="text-xs text-[#111111]/60 mb-3">{L.rentasNegocioPricingNote}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                  <div className="rounded-xl border border-yellow-400/40 bg-white p-4">
+                  <div className="rounded-xl border border-yellow-400/40 bg-white p-4 min-h-[120px] sm:min-h-[130px] flex flex-col">
                     <h4 className="font-bold text-[#111111]">{L.standardTitle}</h4>
                     <p className="mt-1 text-sm font-semibold text-[#111111]">{L.rentasStandardPrice}</p>
-                    <p className="mt-2 text-xs text-[#111111]/85">{L.rentasStandardSummary}</p>
+                    <p className="mt-2 text-xs text-[#111111]/85 flex-1">{L.rentasStandardSummary}</p>
                   </div>
-                  <div className="rounded-xl border border-yellow-300/60 bg-[#FEFCE8]/50 p-4">
+                  <div className="rounded-xl border border-yellow-300/60 bg-[#FEFCE8]/50 p-4 min-h-[120px] sm:min-h-[130px] flex flex-col">
                     <h4 className="font-bold text-[#111111]">{L.plusTitle}</h4>
                     <p className="mt-1 text-sm font-semibold text-[#111111]">{L.rentasPlusPrice}</p>
-                    <p className="mt-2 text-xs text-[#111111]/85">{L.rentasPlusSummary}</p>
+                    <p className="mt-2 text-xs text-[#111111]/85 flex-1">{L.rentasPlusSummary}</p>
                   </div>
                 </div>
                 <ComparisonMatrix
                   intro={L.rentasNegocioNote}
-                  col0Name={`${L.standardTitle} — ${L.rentasStandardPrice}`}
-                  col1Name={`${L.plusTitle} — ${L.rentasPlusPrice}`}
+                  col0Name={L.standardTitle}
+                  col1Name={L.plusTitle}
                   rows={rentasBusinessMatrixRows}
+                  footer0={L.rentasStandardPrice}
+                  footer1={L.rentasPlusPrice}
                 />
                 <div className="mt-6 rounded-2xl border border-[#C9B46A]/25 bg-[#F8F6F0] p-4">
                   <h4 className="font-semibold text-[#111111] mb-3">{L.rentasBoostTitle}</h4>
