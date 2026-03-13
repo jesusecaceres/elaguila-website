@@ -130,6 +130,14 @@ export default function ListingView({ listing, previewMode = false, previewProUp
             previewToastText: "Vista previa: aquí el comprador podrá enviarte texto",
             previewToastEmail: "Vista previa: aquí el comprador podrá enviarte correo",
             previewToastContact: "Vista previa: contacto —",
+            memberLabel: "Miembro",
+            responsePlaceholder: "Respuesta: —",
+            verifiedPlaceholder: "Verificado (próximamente)",
+            sellerProCue: "Con Pro tu perfil tiene mayor visibilidad.",
+            trustSignalsTitle: "Señales de confianza",
+            quickResponseLabel: "Respuesta rápida",
+            verifiedSellerLabel: "Vendedor verificado",
+            comingSoon: "próximamente",
           }
         : {
             actionsTitle: "Actions",
@@ -162,11 +170,23 @@ export default function ListingView({ listing, previewMode = false, previewProUp
             previewToastText: "Preview: buyer would text you here",
             previewToastEmail: "Preview: buyer would email you here",
             previewToastContact: "Preview: contact —",
+            memberLabel: "Member",
+            responsePlaceholder: "Response: —",
+            verifiedPlaceholder: "Verified (coming soon)",
+            sellerProCue: "With Pro your profile gets more visibility.",
+            trustSignalsTitle: "Trust signals",
+            quickResponseLabel: "Quick response",
+            verifiedSellerLabel: "Verified seller",
+            comingSoon: "coming soon",
           },
     [lang]
   );
 
   const sellerDisplayName = (listing.sellerName ?? "").trim() || t.you;
+
+  /** Reusable detail card style for right column — category-agnostic; same pattern for seller, trust, location, etc. */
+  const detailCardClass = "rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm";
+
   const contactCtaLabel =
     listing.contactMethod === "phone"
       ? t.contactPhoneOnly
@@ -427,28 +447,41 @@ export default function ListingView({ listing, previewMode = false, previewProUp
           </div>
         </div>
 
-        {/* Publicado por */}
-        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
+        {/* Seller / profile block — reusable across categories; placeholders where real data not yet available */}
+        <div className={detailCardClass} data-section="seller-profile">
           <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
-          <p className="text-base font-medium text-[#111111]">{sellerDisplayName}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#111111]/60">
+          <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
+          <span className="inline-block mt-1 text-xs text-[#111111]/60 font-medium">{t.memberLabel}</span>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#111111]/60">
             <span>⭐ {t.newSeller}</span>
             <span>📅 {t.memberSince} {new Date().getFullYear()}</span>
           </div>
+          <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
+          <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
+          {previewProUpgrade && (
+            <p className="mt-3 text-xs font-medium text-[#C9B46A]/90" aria-hidden>
+              {t.sellerProCue}
+            </p>
+          )}
         </div>
 
-        {/* Seller trust placeholder — structure for future trust signals; lightweight, reusable across categories */}
-        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm" data-section="seller-trust">
-          <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
-            {lang === "es" ? "Confianza del vendedor" : "Seller trust"}
-          </h4>
-          <p className="text-xs text-[#111111]/50">
-            {lang === "es" ? "Sección de confianza (próximamente)." : "Trust signals (coming soon)."}
-          </p>
+        {/* Trust signals block — modular, reusable; placeholders only; no full reviews yet */}
+        <div className={detailCardClass} data-section="trust-signals">
+          <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-3">{t.trustSignalsTitle}</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-[#111111]/90">{t.quickResponseLabel}</span>
+              <span className="text-xs text-[#111111]/50">— ({t.comingSoon})</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-[#111111]/90">{t.verifiedSellerLabel}</span>
+              <span className="text-xs text-[#111111]/50">({t.comingSoon})</span>
+            </div>
+          </div>
         </div>
 
         {/* Ubicación */}
-        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
+        <div className={detailCardClass}>
           <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
           <p className="text-sm text-[#111111] mb-2">{t.sellerLocation} {listing.city}</p>
           <label className="block text-sm text-[#111111]/70 mb-1">{t.distanceLabel}</label>
@@ -469,7 +502,7 @@ export default function ListingView({ listing, previewMode = false, previewProUp
 
         {/* Contacto — live only uses real links; preview uses CTA card above */}
         {!previewMode && (
-          <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
+          <div className={detailCardClass}>
             <div className="text-base font-bold text-[#111111]">{t.contactTitle}</div>
             <div className="mt-2 text-[#111111]/80 text-sm">{t.contactBody}</div>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -486,7 +519,7 @@ export default function ListingView({ listing, previewMode = false, previewProUp
 
         {/* Pro video standalone when not in gallery */}
         {hasProVideo && mediaSlots.length <= 1 && (
-          <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 shadow-sm">
+          <div className={detailCardClass}>
             <div className="text-sm font-semibold text-[#111111]">{t.proVideo}</div>
             <div className="mt-1 text-xs text-[#111111]/70">{t.tapToPlay}</div>
             <div className="mt-4">
