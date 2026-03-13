@@ -37,6 +37,7 @@ import {
   getTipoOptionsForSubcategory,
   getRentasDetailFields,
   RENTAS_BRANCH_OPTIONS,
+  RENTAS_NEGOCIO_TIER_OPTIONS,
 } from "../../config/rentasTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -1612,12 +1613,24 @@ setIsPro(plan.includes("pro"));
       (!!(s.details.rama ?? "").trim() &&
         !!(s.details.itemType ?? "").trim() &&
         !!(s.details.condition ?? "").trim());
+    const rentasBranch = (s.details.rentasBranch ?? "").trim();
+    const rentasNegocio = s.category === "rentas" && rentasBranch === "negocio";
+    const rentasNegocioNameOk = !rentasNegocio || !!(s.details.negocioNombre ?? "").trim();
+    const rentasNegocioTierOk = !rentasNegocio || !!(s.details.rentasTier ?? "").trim();
+    const negocioOfficePhone = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
+    const rentasNegocioContactOk =
+      !rentasNegocio ||
+      contactOk ||
+      negocioOfficePhone.length === 10;
     const rentasMetaOk =
       s.category !== "rentas" ||
       (!!(s.details.rentasSubcategoria ?? "").trim() &&
         !!(s.details.tipoPropiedad ?? "").trim() &&
-        !!(s.details.rentasBranch ?? "").trim() &&
-        !!(s.details.fechaDisponible ?? "").trim());
+        !!rentasBranch &&
+        !!(s.details.fechaDisponible ?? "").trim() &&
+        rentasNegocioNameOk &&
+        rentasNegocioTierOk &&
+        rentasNegocioContactOk);
     return {
       categoryOk,
       titleOk,
@@ -1712,7 +1725,10 @@ setIsPro(plan.includes("pro"));
           ? [
               {
                 key: "rentasDetails" as const,
-                label: lang === "es" ? "Subcategoría, tipo, rama y fecha disponible" : "Subcategory, type, branch & availability",
+                label:
+                  lang === "es"
+                    ? "Subcategoría, tipo, rama, fecha disponible" + (details.rentasBranch === "negocio" ? ", plan y nombre del negocio" : "")
+                    : "Subcategory, type, branch, availability" + (details.rentasBranch === "negocio" ? ", plan & business name" : ""),
                 ok: requirements.rentasMetaOk,
                 step: "basics" as const,
               },
@@ -1735,7 +1751,7 @@ setIsPro(plan.includes("pro"));
           : [{ key: "contact", label: lang === "es" ? "Contacto válido (email)" : "Valid contact (email)", ok: requirements.emailOk, step: "media" as PublishStep }]),
     ];
     return items;
-  }, [requirements, lang, isFree, contactMethod, category]);
+  }, [requirements, lang, isFree, contactMethod, category, details.rentasBranch]);
 
   const missingRequirementsText = useMemo(() => {
     const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
@@ -2006,6 +2022,8 @@ async function publish() {
 
       const snap = enVentaSnapshot;
       const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details)).trim();
+      const rentasBranch = (snap.details.rentasBranch ?? "").trim();
+      const isRentasNegocio = snap.category === "rentas" && rentasBranch === "negocio";
       // Insert from same normalized snapshot as preview/validation (DB field names unchanged).
       const insertPayload: any = {
         owner_id: userId,
@@ -2020,6 +2038,23 @@ async function publish() {
         status: "active",
         is_published: true,
       };
+      if (snap.category === "rentas") {
+        insertPayload.seller_type = rentasBranch === "negocio" ? "business" : "personal";
+        if (isRentasNegocio) {
+          const tier = (snap.details.rentasTier ?? "").trim();
+          insertPayload.rentas_tier = tier === "business_plus" ? "plus" : "standard";
+          insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
+          const businessMeta: Record<string, string> = {};
+          const negocioKeys = ["negocioAgente", "negocioCargo", "negocioTelOficina", "negocioSitioWeb", "negocioRedes", "negocioLogoUrl", "negocioFotoAgenteUrl", "negocioIdiomas", "negocioHorario", "negocioRecorridoVirtual", "negocioPlusMasAnuncios"];
+          for (const k of negocioKeys) {
+            const v = (snap.details[k] ?? "").trim();
+            if (v) businessMeta[k] = v;
+          }
+          if (Object.keys(businessMeta).length > 0) {
+            insertPayload.business_meta = JSON.stringify(businessMeta);
+          }
+        }
+      }
 
       const { data, error } = await supabase
         .from("listings")
@@ -2986,6 +3021,30 @@ for (let vi = 0; vi < 2; vi++) {
                                 </div>
                               )}
                             </div>
+                            {details.rentasBranch === "negocio" && (
+                              <div className="sm:col-span-2">
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Plan de negocio" : "Business plan"}{" *"}
+                                </label>
+                                <select
+                                  value={details.rentasTier ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, rentasTier: e.target.value }))}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                >
+                                  <option value="">{lang === "es" ? "Elige plan…" : "Choose plan…"}</option>
+                                  {RENTAS_NEGOCIO_TIER_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {lang === "es" ? o.label.es : o.label.en}
+                                    </option>
+                                  ))}
+                                </select>
+                                {!details.rentasTier?.trim() && (
+                                  <div className="mt-1 text-xs text-[#111111]/40">
+                                    {lang === "es" ? "Requerido para negocio." : "Required for business."}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div>
                             <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
@@ -3120,6 +3179,163 @@ for (let vi = 0; vi < 2; vi++) {
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                           </div>
+                          {details.rentasBranch === "negocio" && (
+                            <>
+                              <div className="sm:col-span-2 mt-4 pt-4 border-t border-black/10">
+                                <h4 className="text-sm font-semibold text-[#111111] mb-3">
+                                  {lang === "es" ? "Identidad del negocio" : "Business identity"}
+                                </h4>
+                                <p className="text-xs text-[#111111]/70 mb-3">
+                                  {lang === "es"
+                                    ? "Nombre del negocio es obligatorio. El resto ayuda a dar confianza."
+                                    : "Business name is required. The rest helps build trust."}
+                                </p>
+                              </div>
+                              <div className="sm:col-span-2">
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Nombre del negocio" : "Business name"}{" *"}
+                                </label>
+                                <input
+                                  value={details.negocioNombre ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioNombre: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Inmobiliaria López" : "e.g. Lopez Realty"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                                {!details.negocioNombre?.trim() && (
+                                  <div className="mt-1 text-xs text-[#111111]/40">
+                                    {lang === "es" ? "Requerido para negocio." : "Required for business."}
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Nombre del agente" : "Agent name"}
+                                </label>
+                                <input
+                                  value={details.negocioAgente ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioAgente: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: María García" : "e.g. Maria Garcia"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Cargo / rol" : "Role / title"}
+                                </label>
+                                <input
+                                  value={details.negocioCargo ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Agente de rentas" : "e.g. Rental agent"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Teléfono de oficina" : "Office phone"}
+                                </label>
+                                <input
+                                  value={details.negocioTelOficina ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioTelOficina: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: (408) 555-0100" : "e.g. (408) 555-0100"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Sitio web" : "Website"}
+                                </label>
+                                <input
+                                  type="url"
+                                  value={details.negocioSitioWeb ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioSitioWeb: e.target.value }))}
+                                  placeholder="https://"
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div className="sm:col-span-2">
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Redes sociales" : "Social links"}
+                                </label>
+                                <input
+                                  value={details.negocioRedes ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioRedes: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Facebook: url, Instagram: url" : "e.g. Facebook: url, Instagram: url"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Logo (URL)" : "Logo (URL)"}
+                                </label>
+                                <input
+                                  type="url"
+                                  value={details.negocioLogoUrl ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioLogoUrl: e.target.value }))}
+                                  placeholder="https://"
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Foto del agente (URL)" : "Agent photo (URL)"}
+                                </label>
+                                <input
+                                  type="url"
+                                  value={details.negocioFotoAgenteUrl ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioFotoAgenteUrl: e.target.value }))}
+                                  placeholder="https://"
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Idiomas" : "Languages"}
+                                </label>
+                                <input
+                                  value={details.negocioIdiomas ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioIdiomas: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Español, inglés" : "e.g. Spanish, English"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Horario de atención" : "Business hours"}
+                                </label>
+                                <input
+                                  value={details.negocioHorario ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioHorario: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Lun–Vie 9am–6pm" : "e.g. Mon–Fri 9am–6pm"}
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#111111]">
+                                  {lang === "es" ? "Recorrido virtual (URL)" : "Virtual tour (URL)"}
+                                </label>
+                                <input
+                                  type="url"
+                                  value={details.negocioRecorridoVirtual ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioRecorridoVirtual: e.target.value }))}
+                                  placeholder="https://"
+                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                />
+                              </div>
+                              {details.rentasTier === "business_plus" && (
+                                <div className="sm:col-span-2">
+                                  <label className="flex items-center gap-2 text-sm text-[#111111]">
+                                    <input
+                                      type="checkbox"
+                                      checked={(details.negocioPlusMasAnuncios ?? "") === "si"}
+                                      onChange={(e) => setDetails((prev) => ({ ...prev, negocioPlusMasAnuncios: e.target.checked ? "si" : "" }))}
+                                      className="rounded border-black/20"
+                                    />
+                                    {lang === "es" ? "Más anuncios de esta empresa" : "More listings from this company"}
+                                  </label>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </>
                       ) : (
                         <>

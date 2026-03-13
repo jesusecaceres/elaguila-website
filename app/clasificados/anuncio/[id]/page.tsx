@@ -61,6 +61,11 @@ type Listing = {
   boostUntil?: string | null;
   owner_id?: string | null;
   businessName?: string | null;
+  business_name?: string | null;
+  rentasTier?: string | null;
+  rentas_tier?: string | null;
+  servicesTier?: string | null;
+  business_meta?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -70,11 +75,12 @@ function cx(...classes: Array<string | false | null | undefined>) {
 /** Rentas-only plan tier for display (Privado Pro / Negocio Standard / Negocio Plus). */
 type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
 
-function inferRentasPlanTier(listing: { category?: string; sellerType?: string } & Record<string, unknown>): RentasPlanTier | null {
+function inferRentasPlanTier(listing: { category?: string; sellerType?: string; seller_type?: string } & Record<string, unknown>): RentasPlanTier | null {
   if (listing?.category !== "rentas") return null;
-  if (listing.sellerType === "personal" && isProListing(listing)) return "privado_pro";
-  if (listing.sellerType === "business") {
-    const tier = listing.rentasTier ?? listing.servicesTier;
+  const sellerType = listing.sellerType ?? listing.seller_type ?? "personal";
+  if (sellerType === "personal" && isProListing(listing)) return "privado_pro";
+  if (sellerType === "business") {
+    const tier = listing.rentasTier ?? listing.rentas_tier ?? listing.servicesTier;
     if (tier === "plus" || tier === "premium") return "business_plus";
     return "business_standard";
   }
@@ -404,6 +410,19 @@ export default function AnuncioDetallePage() {
     ]);
     const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
     return pairs.filter((p) => !rentalFactLabels.has(normalize(p.label)));
+  }, [listing]);
+
+  /** Parsed business identity for Rentas negocio (from business_meta JSON). Ready for future detail render. */
+  const rentasBusinessMeta = useMemo((): Record<string, string> | null => {
+    if (!listing || listing.category !== "rentas") return null;
+    const raw = (listing as any).business_meta;
+    if (typeof raw !== "string" || !raw.trim()) return null;
+    try {
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
   }, [listing]);
 
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
@@ -1046,7 +1065,7 @@ export default function AnuncioDetallePage() {
                     <>
                       <p className="text-sm font-semibold text-[#111111]">
                         {lang === "es" ? "Negocio" : "Business"}
-                        {(listing as any).businessName ? ` — ${(listing as any).businessName}` : ""}
+                        {(listing as any).businessName ?? (listing as any).business_name ? ` — ${(listing as any).businessName ?? (listing as any).business_name}` : ""}
                       </p>
                       <p className="mt-1.5 text-xs text-[#111111]/80">
                         {rentasPlanTier === "business_plus"
@@ -1492,8 +1511,8 @@ export default function AnuncioDetallePage() {
                   ? (lang === "es" ? "Anunciante" : "Advertiser")
                   : (lang === "es" ? "Publicado por" : "Posted by")}
               </h4>
-              {listing.category === "rentas" && listing.sellerType === "business" && (listing as any).businessName ? (
-                <p className="text-sm font-semibold text-[#111111]">{(listing as any).businessName}</p>
+              {listing.category === "rentas" && (listing.sellerType === "business" || (listing as any).seller_type === "business") && ((listing as any).businessName ?? (listing as any).business_name) ? (
+                <p className="text-sm font-semibold text-[#111111]">{(listing as any).businessName ?? (listing as any).business_name}</p>
               ) : (listing as any)?.sellerUsername ? (
                 <Link
                   href={`/vendedor/${encodeURIComponent((listing as any).sellerUsername)}?lang=${lang}`}
@@ -1506,7 +1525,7 @@ export default function AnuncioDetallePage() {
                   {listing?.sellerName ?? (lang === "es" ? "Vendedor" : "Seller")}
                 </p>
               )}
-              {listing.category === "rentas" && listing.sellerType === "business" && (
+              {listing.category === "rentas" && (listing.sellerType === "business" || (listing as any).seller_type === "business") && (
                 <p className="mt-1 text-xs text-[#111111]/70">
                   {lang === "es" ? "Negocio" : "Business"}
                 </p>

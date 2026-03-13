@@ -167,6 +167,8 @@ export default function MembresiasPage() {
         rentasPersonaCta: "Ver opciones de publicación",
         rentasNegocioNote:
           "Si publicas como realtor, administrador o presencia profesional recurrente, te conviene la ruta de negocio.",
+        rentasStandardPrice: "Standard: $24.99/semana o $89.99/mes",
+        rentasPlusPrice: "Plus: $49.99/semana o $179.99/mes",
 
         empleosCard: "Publicación de empleo (LEONIX Pro)",
         empleosPrice: "$24.99 por anuncio",
@@ -396,6 +398,8 @@ export default function MembresiasPage() {
         rentasPersonaCta: "See posting options",
         rentasNegocioNote:
           "If you post as a realtor, manager, or recurring professional presence, the business path fits you better.",
+        rentasStandardPrice: "Standard: $24.99/week or $89.99/month",
+        rentasPlusPrice: "Plus: $49.99/week or $179.99/month",
 
         empleosCard: "Job posting (LEONIX Pro)",
         empleosPrice: "$24.99 per listing",
@@ -822,8 +826,8 @@ export default function MembresiasPage() {
                   col0Name={L.standardTitle}
                   col1Name={L.plusTitle}
                   rows={businessMatrixRows}
-                  footer0={L.standardLine}
-                  footer1={L.plusLine}
+                  footer0={L.rentasStandardPrice}
+                  footer1={L.rentasPlusPrice}
                 />
               </>
             )}

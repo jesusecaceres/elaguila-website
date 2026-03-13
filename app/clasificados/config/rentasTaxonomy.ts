@@ -120,6 +120,30 @@ export const RENTAS_BRANCH_OPTIONS: RentasTipoOption[] = [
   { value: "negocio", label: { es: "Negocio", en: "Business" } },
 ];
 
+/** Rentas negocio plan tier (when branch = negocio). Stored in details.rentasTier. */
+export type RentasNegocioTier = "business_standard" | "business_plus";
+
+export const RENTAS_NEGOCIO_TIER_OPTIONS: RentasTipoOption[] = [
+  { value: "business_standard", label: { es: "Business Standard", en: "Business Standard" } },
+  { value: "business_plus", label: { es: "Business Plus", en: "Business Plus" } },
+];
+
+/** Detail-page / listing shape: keys for Rentas negocio business identity (stored in details or listing_meta). */
+export const RENTAS_NEGOCIO_DETAIL_KEYS = [
+  "negocioNombre",
+  "negocioAgente",
+  "negocioCargo",
+  "negocioTelOficina",
+  "negocioSitioWeb",
+  "negocioRedes",
+  "negocioLogoUrl",
+  "negocioFotoAgenteUrl",
+  "negocioIdiomas",
+  "negocioHorario",
+  "negocioRecorridoVirtual",
+  "negocioPlusMasAnuncios",
+] as const;
+
 /** Detail field shape for Rentas (matches publish page DetailField). */
 export type RentasDetailField = {
   key: string;
