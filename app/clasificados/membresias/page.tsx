@@ -169,6 +169,34 @@ export default function MembresiasPage() {
           "Si publicas como realtor, administrador o presencia profesional recurrente, te conviene la ruta de negocio.",
         rentasStandardPrice: "Standard: $24.99/semana o $89.99/mes",
         rentasPlusPrice: "Plus: $49.99/semana o $179.99/mes",
+        rentasStandardSummary: "Presencia profesional con 1 anuncio activo. Sitio web y redes opcionales. Sin video ni recorrido virtual. Sin impulsos incluidos.",
+        rentasPlusSummary: "Hasta 3 anuncios activos, sitio web y redes en tu perfil, video y recorrido virtual, 2 impulsos incluidos por ciclo y módulo «Más anuncios de esta compañía».",
+        rentasCompListings: "Anuncios activos incluidos",
+        rentasCompListingsStandard: "1",
+        rentasCompListingsPlus: "3",
+        rentasCompWebsiteSocial: "Sitio web y redes en perfil",
+        rentasCompWebsiteStandard: "Opcional / limitado",
+        rentasCompWebsitePlus: "Completo",
+        rentasCompVideoVirtual: "Video y recorrido virtual",
+        rentasCompVideoStandard: "No",
+        rentasCompVideoPlus: "Sí",
+        rentasCompSameCompany: "Módulo «Más anuncios de esta compañía»",
+        rentasCompSameCompanyNo: "No",
+        rentasCompSameCompanyYes: "Sí",
+        rentasCompBoostsIncluded: "Impulsos incluidos por ciclo",
+        rentasCompBoostsStandard: "0",
+        rentasCompBoostsPlus: "2",
+        rentasCompExtraListing: "Anuncio extra (30 días)",
+        rentasCompExtraStandard: "$24.99",
+        rentasCompExtraPlus: "$19.99",
+        rentasBoostTitle: "Impulsos de visibilidad (Rentas)",
+        rentasBoost7Day: "Impulso 7 días — $14.99",
+        rentasBoost30Day: "Impulso destacado 30 días — $39.99",
+        rentasBoostPlusIncluded: "Plus incluye 2 impulsos por ciclo de facturación.",
+        rentasUpgradeToPlus: "Subir a Plus",
+        rentasAddExtraListing: "Agregar anuncio extra",
+        rentasAddBoost: "Comprar impulso",
+        rentasNegocioPricingNote: "Precio semanal como referencia; facturación mensual disponible.",
 
         empleosCard: "Publicación de empleo (LEONIX Pro)",
         empleosPrice: "$24.99 por anuncio",
@@ -400,6 +428,34 @@ export default function MembresiasPage() {
           "If you post as a realtor, manager, or recurring professional presence, the business path fits you better.",
         rentasStandardPrice: "Standard: $24.99/week or $89.99/month",
         rentasPlusPrice: "Plus: $49.99/week or $179.99/month",
+        rentasStandardSummary: "Professional presence with 1 active listing. Website and social optional. No video or virtual tour. No boosts included.",
+        rentasPlusSummary: "Up to 3 active listings, website and social on your profile, video and virtual tour, 2 boosts included per billing cycle, and «More from this company» module.",
+        rentasCompListings: "Active listings included",
+        rentasCompListingsStandard: "1",
+        rentasCompListingsPlus: "3",
+        rentasCompWebsiteSocial: "Website and social on profile",
+        rentasCompWebsiteStandard: "Optional / limited",
+        rentasCompWebsitePlus: "Full",
+        rentasCompVideoVirtual: "Video and virtual tour",
+        rentasCompVideoStandard: "No",
+        rentasCompVideoPlus: "Yes",
+        rentasCompSameCompany: "«More from this company» module",
+        rentasCompSameCompanyNo: "No",
+        rentasCompSameCompanyYes: "Yes",
+        rentasCompBoostsIncluded: "Boosts included per cycle",
+        rentasCompBoostsStandard: "0",
+        rentasCompBoostsPlus: "2",
+        rentasCompExtraListing: "Extra listing (30 days)",
+        rentasCompExtraStandard: "$24.99",
+        rentasCompExtraPlus: "$19.99",
+        rentasBoostTitle: "Visibility boosts (Rentals)",
+        rentasBoost7Day: "7-day boost — $14.99",
+        rentasBoost30Day: "30-day featured boost — $39.99",
+        rentasBoostPlusIncluded: "Plus includes 2 boosts per billing cycle.",
+        rentasUpgradeToPlus: "Upgrade to Plus",
+        rentasAddExtraListing: "Add extra listing",
+        rentasAddBoost: "Buy boost",
+        rentasNegocioPricingNote: "Weekly price for reference; monthly billing available.",
 
         empleosCard: "Job posting (LEONIX Pro)",
         empleosPrice: "$24.99 per listing",
@@ -655,6 +711,15 @@ export default function MembresiasPage() {
     { feature: L.compGenerarCandidatos, col0: L.compBasica, col1: L.compMejorada },
   ];
 
+  const rentasBusinessMatrixRows: MatrixRow[] = [
+    { feature: L.rentasCompListings, col0: L.rentasCompListingsStandard, col1: L.rentasCompListingsPlus },
+    { feature: L.rentasCompWebsiteSocial, col0: L.rentasCompWebsiteStandard, col1: L.rentasCompWebsitePlus },
+    { feature: L.rentasCompVideoVirtual, col0: L.rentasCompVideoStandard, col1: L.rentasCompVideoPlus },
+    { feature: L.rentasCompSameCompany, col0: L.rentasCompSameCompanyNo, col1: L.rentasCompSameCompanyYes },
+    { feature: L.rentasCompBoostsIncluded, col0: L.rentasCompBoostsStandard, col1: L.rentasCompBoostsPlus },
+    { feature: L.rentasCompExtraListing, col0: L.rentasCompExtraStandard, col1: L.rentasCompExtraPlus },
+  ];
+
   const selectorCards: { key: CategoryKey; label: string; help: string }[] = [
     { key: "rentas", label: L.rentas, help: L.rentasHelp },
     { key: "en-venta", label: L.enVenta, help: L.enVentaHelp },
@@ -821,14 +886,53 @@ export default function MembresiasPage() {
             {rentasSub === "negocio" && (
               <>
                 <p className="text-xs text-[#111111]/70 mb-2">{L.pricingRuleBusiness}</p>
+                <p className="text-xs text-[#111111]/60 mb-3">{L.rentasNegocioPricingNote}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="rounded-xl border border-yellow-400/40 bg-white p-4">
+                    <h4 className="font-bold text-[#111111]">{L.standardTitle}</h4>
+                    <p className="mt-1 text-sm font-semibold text-[#111111]">{L.rentasStandardPrice}</p>
+                    <p className="mt-2 text-xs text-[#111111]/85">{L.rentasStandardSummary}</p>
+                  </div>
+                  <div className="rounded-xl border border-yellow-300/60 bg-[#FEFCE8]/50 p-4">
+                    <h4 className="font-bold text-[#111111]">{L.plusTitle}</h4>
+                    <p className="mt-1 text-sm font-semibold text-[#111111]">{L.rentasPlusPrice}</p>
+                    <p className="mt-2 text-xs text-[#111111]/85">{L.rentasPlusSummary}</p>
+                  </div>
+                </div>
                 <ComparisonMatrix
                   intro={L.rentasNegocioNote}
-                  col0Name={L.standardTitle}
-                  col1Name={L.plusTitle}
-                  rows={businessMatrixRows}
-                  footer0={L.rentasStandardPrice}
-                  footer1={L.rentasPlusPrice}
+                  col0Name={`${L.standardTitle} — ${L.rentasStandardPrice}`}
+                  col1Name={`${L.plusTitle} — ${L.rentasPlusPrice}`}
+                  rows={rentasBusinessMatrixRows}
                 />
+                <div className="mt-6 rounded-2xl border border-[#C9B46A]/25 bg-[#F8F6F0] p-4">
+                  <h4 className="font-semibold text-[#111111] mb-3">{L.rentasBoostTitle}</h4>
+                  <ul className="space-y-2 text-sm text-[#111111]/90">
+                    <li>{L.rentasBoost7Day}</li>
+                    <li>{L.rentasBoost30Day}</li>
+                    <li className="font-medium text-[#111111]">{L.rentasBoostPlusIncluded}</li>
+                  </ul>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={withLang(L.routeCuenta)}
+                    className="inline-flex items-center rounded-xl bg-[#111111] text-[#F5F5F5] font-semibold py-2.5 px-4 text-sm hover:opacity-95 transition"
+                  >
+                    {L.rentasUpgradeToPlus}
+                  </Link>
+                  <Link
+                    href={withLang(L.routeCuenta)}
+                    className="inline-flex items-center rounded-xl border border-[#C9B46A]/60 bg-[#F5F5F5] text-[#111111] font-semibold py-2.5 px-4 text-sm hover:bg-[#EFEFEF] transition"
+                  >
+                    {L.rentasAddExtraListing}
+                  </Link>
+                  <Link
+                    href={withLang(L.routeCuenta)}
+                    className="inline-flex items-center rounded-xl border border-[#C9B46A]/60 bg-[#F5F5F5] text-[#111111] font-semibold py-2.5 px-4 text-sm hover:bg-[#EFEFEF] transition"
+                  >
+                    {L.rentasAddBoost}
+                  </Link>
+                </div>
               </>
             )}
           </section>

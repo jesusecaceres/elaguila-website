@@ -3043,6 +3043,15 @@ for (let vi = 0; vi < 2; vi++) {
                                     {lang === "es" ? "Requerido para negocio." : "Required for business."}
                                   </div>
                                 )}
+                                <p className="mt-2 text-xs text-[#111111]/70">
+                                  {lang === "es"
+                                    ? "Standard: 1 anuncio incluido; extra $24.99/30 días. Plus: 3 anuncios y 2 impulsos incluidos."
+                                    : "Standard: 1 listing included; extra $24.99/30 days. Plus: 3 listings and 2 boosts included."}
+                                  {" "}
+                                  <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
+                                    {lang === "es" ? "Ver planes" : "View plans"}
+                                  </Link>
+                                </p>
                               </div>
                             )}
                           </div>

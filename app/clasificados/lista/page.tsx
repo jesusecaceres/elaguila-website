@@ -3468,9 +3468,10 @@ type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
 
 function inferRentasPlanTier(x: Listing): RentasPlanTier | null {
   if (x.category !== "rentas") return null;
-  if (x.sellerType === "personal" && isProListing(x)) return "privado_pro";
-  if (x.sellerType === "business") {
-    const tier = (x as any).rentasTier ?? (x as any).servicesTier;
+  const sellerType = x.sellerType ?? (x as any).seller_type ?? "personal";
+  if (sellerType === "personal" && isProListing(x)) return "privado_pro";
+  if (sellerType === "business") {
+    const tier = (x as any).rentasTier ?? (x as any).rentas_tier ?? (x as any).servicesTier;
     if (tier === "plus" || tier === "premium") return "business_plus";
     return "business_standard";
   }
@@ -3882,7 +3883,7 @@ function ServiciosResult(x: Listing, lang: Lang) {
   return ServiciosPlusOrPremiumRow(x, lang);
 }
 
-/** Rentas card: rental-first layout (renta mensual, tipo, beds/baths, ciudad/zona, fecha disponible, Pro/business) */
+/** Rentas card: image-first, premium rental layout (hero → price → facts → title → location → business/trust). */
 function RentasCard({
   x,
   lang,
@@ -3900,183 +3901,199 @@ function RentasCard({
 }) {
   const href = getHref(x, lang);
   const rentLabel = x.priceLabel[lang];
-  const micro = microLine(x);
   const avail = rentasAvailabilityLabel(x, lang);
   const rentasPlanTier = inferRentasPlanTier(x);
-  const propertyType = x.propertyType
-    ? String(x.propertyType)
-    : inferRentasFromTitle(x.title[lang]) === "room"
-      ? (lang === "es" ? "Cuarto" : "Room")
-      : inferRentasFromTitle(x.title[lang]) === "studio"
-        ? "Studio"
-        : null;
-  const bedsBaths =
-    typeof x.beds === "number" || typeof x.baths === "number"
-      ? [
-          typeof x.beds === "number" ? (x.beds === 0 ? (lang === "es" ? "Estudio" : "Studio") : `${x.beds} ${lang === "es" ? "rec" : "bd"}`) : null,
-          typeof x.baths === "number" ? `${x.baths} ${lang === "es" ? "baños" : "ba"}` : null,
-        ].filter(Boolean).join(" · ")
+  const isNegocio = x.sellerType === "business" || (x as any).seller_type === "business";
+  const businessName = (x.businessName ?? (x as any).business_name ?? "").trim();
+
+  const images = (x as any).images ?? (x as any).photos;
+  const imageUrls = Array.isArray(images) ? images.filter((u): u is string => typeof u === "string") : [];
+  const heroUrl = imageUrls[0];
+  const mediaCount = imageUrls.length;
+  const hasVideo = Boolean((x as any).hasVideo ?? (x as any).proVideoId);
+
+  const detailPairs = (x as any).detailPairs as Array<{ label: string; value: string }> | undefined;
+  const sqftFromPairs = Array.isArray(detailPairs)
+    ? detailPairs.find((p) => /pies|metros|sqft|sq\s*ft/i.test(p.label))?.value
+    : null;
+  const beds =
+    typeof x.beds === "number"
+      ? x.beds === 0
+        ? (lang === "es" ? "Estudio" : "Studio")
+        : `${x.beds} ${lang === "es" ? "rec" : "bd"}`
       : null;
+  const baths = typeof x.baths === "number" ? `${x.baths} ${lang === "es" ? "ba" : "ba"}` : null;
+  const sqft = x.sqft ? `${x.sqft} ${lang === "es" ? "pies²" : "sq ft"}` : sqftFromPairs ?? null;
+  const quickFacts = [beds, baths, sqft].filter(Boolean).join(" · ") || null;
 
   const cardBorderStyles =
     rentasPlanTier === "business_plus"
-      ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
+      ? "border-yellow-300/50 ring-1 ring-yellow-300/20 bg-white shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08),0_0_0_1px_rgba(250,204,21,0.12)]"
       : rentasPlanTier === "business_standard"
-        ? "border-yellow-500/25 bg-[#111111]/6"
+        ? "border-yellow-400/30 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)]"
         : rentasPlanTier === "privado_pro"
-          ? "border-emerald-400/22 bg-emerald-500/5"
+          ? "border-emerald-400/25 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)]"
           : tier === "corona-oro"
-            ? "border-yellow-300/60 ring-1 ring-yellow-300/25 bg-gradient-to-b from-yellow-500/12 via-black/25 to-black/25 shadow-[0_0_0_1px_rgba(250,204,21,0.18),0_16px_46px_-20px_rgba(0,0,0,0.86)]"
+            ? "border-yellow-300/50 ring-1 ring-yellow-300/20 bg-white shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)]"
             : tier === "corona"
-              ? "border-yellow-500/25 bg-[#111111]/6"
+              ? "border-yellow-400/30 bg-white"
               : tier === "joya"
-                ? "border-emerald-400/22 bg-emerald-500/5"
-                : "border-black/10";
+                ? "border-emerald-400/25 bg-white"
+                : "border-black/10 bg-[#F5F5F5]";
 
   const topBarGradient =
     rentasPlanTier === "business_plus"
-      ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+      ? "bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent"
       : rentasPlanTier === "business_standard"
-        ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+        ? "bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent"
         : rentasPlanTier === "privado_pro"
-          ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+          ? "bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
           : tier === "corona-oro"
-            ? "bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent"
+            ? "bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent"
             : tier === "corona"
-              ? "bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent"
+              ? "bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent"
               : tier === "joya"
-                ? "bg-gradient-to-r from-transparent via-emerald-400/55 to-transparent"
+                ? "bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
                 : "";
 
   return (
-    <div
+    <a
       key={x.id}
+      href={href}
       className={cx(
-        "relative overflow-hidden rounded-2xl border bg-[#F5F5F5] p-2 sm:p-3 md:p-4 transition-all duration-200 ease-out",
-        "hover:scale-[1.03] hover:-translate-y-[1px] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.06)]",
+        "group relative block overflow-hidden rounded-2xl border text-left transition-all duration-200 ease-out",
+        "hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.04)] hover:-translate-y-0.5",
         cardBorderStyles
       )}
     >
       {(rentasPlanTier || tier) ? (
         <div
           aria-hidden="true"
-          className={cx("pointer-events-none absolute inset-x-0 top-0 h-[2px]", topBarGradient)}
+          className={cx("pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px]", topBarGradient)}
         />
       ) : null}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-base sm:text-lg font-semibold tracking-tight text-[#111111] leading-snug">
-                {x.title[lang]}
-              </div>
-            </div>
-            <div className="shrink-0 flex flex-wrap items-center gap-1.5 justify-end">
-              {rentasPlanTier === "privado_pro" && <ProBadge className="shrink-0" />}
-              {rentasPlanTier === "business_plus" && (
-                <span
-                  className={cx(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold tracking-wide leading-tight whitespace-nowrap",
-                    "border-yellow-300/80 bg-gradient-to-r from-yellow-500/18 to-yellow-300/14 text-yellow-50"
-                  )}
-                  title={lang === "es" ? "Negocio Plus" : "Business Plus"}
-                >
-                  <span aria-hidden="true">🔑</span>
-                  {lang === "es" ? "Negocio Plus" : "Business Plus"}
-                </span>
-              )}
-              {rentasPlanTier === "business_standard" && (
-                <span
-                  className={cx(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold leading-tight whitespace-nowrap",
-                    "border-yellow-400/32 bg-[#111111]/10 text-yellow-50"
-                  )}
-                  title={lang === "es" ? "Perfil profesional" : "Professional profile"}
-                >
-                  {lang === "es" ? "Negocio" : "Business"}
-                </span>
-              )}
-              {!rentasPlanTier && tier ? <TierBadge tier={tier} lang={lang} /> : null}
-            </div>
+
+      {/* Hero image */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E8E8E8]">
+        {heroUrl ? (
+          <img
+            src={heroUrl}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+          />
+        ) : x.hasImage ? (
+          <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center text-[#111111]/30 text-3xl" aria-hidden>🏠</div>
+        )}
+        {(mediaCount > 1 || hasVideo) && (
+          <div className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2 py-1 text-[10px] font-medium text-white">
+            {mediaCount > 1 && hasVideo
+              ? `${mediaCount} ${lang === "es" ? "fotos" : "photos"} · ${lang === "es" ? "Video" : "Video"}`
+              : mediaCount > 1
+                ? `${mediaCount} ${lang === "es" ? "fotos" : "photos"}`
+                : lang === "es"
+                  ? "Video"
+                  : "Video"}
           </div>
-          <div className="mt-1 font-extrabold text-yellow-200 text-base sm:text-lg">
-            {/\$|\d/.test(rentLabel)
-              ? (lang === "es" ? "Renta: " : "Rent: ") + formatListingPrice(rentLabel, { lang })
-              : formatListingPrice(rentLabel, { lang })}
-            {/\d/.test(rentLabel) && !/\/\s*mes|\/mes|month/i.test(rentLabel) ? (
-              <span className="ml-1 text-sm font-semibold text-[#111111]/80">/ {lang === "es" ? "mes" : "mo"}</span>
-            ) : null}
-          </div>
-          {(propertyType || bedsBaths) && (
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              {propertyType ? (
-                <span className="rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[11px] sm:text-xs text-[#111111]">
-                  {propertyType}
-                </span>
-              ) : null}
-              {bedsBaths ? (
-                <span className="text-[11px] sm:text-xs text-[#111111]">{bedsBaths}</span>
-              ) : null}
-            </div>
-          )}
-          {rentasPlanTier === "privado_pro" ? (
-            <div className="mt-1.5 text-[11px] sm:text-xs text-[#111111]/85">
-              {lang === "es"
-                ? "12 fotos · 2 videos sobresalientes · 2 impulsos · 30 días"
-                : "12 photos · 2 featured videos · 2 visibility boosts · 30 days"}
-            </div>
-          ) : null}
-          {x.sellerType ? (
-            <div className="mt-1 text-[11px] sm:text-xs font-medium text-[#111111]/90">
-              {x.sellerType === "business" ? (lang === "es" ? "Negocio" : "Business") : (lang === "es" ? "Privado" : "Private")}
-            </div>
-          ) : null}
-          <div className="mt-1 text-xs sm:text-sm text-[#111111]">
-            <span>{x.city}</span>
-            {avail ? (
-              <>
-                <span className="text-[#111111]/60"> · </span>
-                <span>{avail}</span>
-              </>
-            ) : null}
-          </div>
-          <div className="text-[11px] sm:text-xs text-[#111111]/80 mt-0.5">
-            {x.postedAgo[lang]}
-          </div>
-          {micro ? (
-            <div className="mt-1 text-[11px] sm:text-xs text-[#111111] line-clamp-1">
-              {micro}
-            </div>
-          ) : null}
-        </div>
-        <div className="shrink-0 flex flex-col items-end gap-2">
-          <div className="h-16 w-16 sm:h-[72px] sm:w-[72px] overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5]">
-            {x.hasImage ? (
-              <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
-            ) : (
-              <div className="h-full w-full bg-[#E8E8E8] flex items-center justify-center text-[#111111]/40 text-xl" aria-hidden>🏠</div>
-            )}
-          </div>
+        )}
+        <div className="absolute top-2 right-2 flex items-center gap-1.5">
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFav(x.id); }}
-            className="rounded-xl border border-black/10 bg-[#F5F5F5] px-2.5 py-1.5 text-sm text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+            className="rounded-full bg-white/95 p-2 shadow-sm hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40"
             aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
           >
             {isFav ? "★" : "☆"}
           </button>
         </div>
       </div>
-      <div className="mt-2 line-clamp-2 text-sm text-[#111111]">
-        {x.blurb[lang]}
+
+      <div className="p-3 sm:p-4">
+        {/* Price */}
+        <div className="font-extrabold text-[#111111] text-lg sm:text-xl">
+          {/\$|\d/.test(rentLabel)
+            ? (lang === "es" ? "Renta " : "Rent ") + formatListingPrice(rentLabel, { lang })
+            : formatListingPrice(rentLabel, { lang })}
+          {/\d/.test(rentLabel) && !/\/\s*mes|\/mes|month/i.test(rentLabel) ? (
+            <span className="ml-1 text-sm font-semibold text-[#111111]/70">/ {lang === "es" ? "mes" : "mo"}</span>
+          ) : null}
+        </div>
+
+        {/* Quick facts */}
+        {quickFacts && (
+          <div className="mt-1.5 text-xs text-[#111111]/80">
+            {quickFacts}
+          </div>
+        )}
+
+        {/* Title */}
+        <h3 className="mt-2 line-clamp-2 text-base font-semibold tracking-tight text-[#111111] leading-snug">
+          {x.title[lang]}
+        </h3>
+
+        {/* Location + availability */}
+        <div className="mt-1.5 text-sm text-[#111111]/90">
+          <span>{x.city}</span>
+          {avail ? (
+            <>
+              <span className="text-[#111111]/50"> · </span>
+              <span>{avail}</span>
+            </>
+          ) : null}
+        </div>
+
+        {/* Business / trust line */}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {rentasPlanTier === "privado_pro" && <ProBadge className="shrink-0" />}
+          {rentasPlanTier === "business_plus" && (
+            <span
+              className={cx(
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap",
+                "border-yellow-300/70 bg-yellow-500/12 text-[#111111]"
+              )}
+              title={lang === "es" ? "Negocio Plus" : "Business Plus"}
+            >
+              <span aria-hidden="true">🔑</span>
+              {lang === "es" ? "Plus" : "Plus"}
+            </span>
+          )}
+          {rentasPlanTier === "business_standard" && (
+            <span
+              className="inline-flex items-center rounded-full border border-yellow-400/40 bg-[#111111]/05 px-2 py-0.5 text-[10px] font-semibold text-[#111111]/90 whitespace-nowrap"
+              title={lang === "es" ? "Perfil profesional" : "Professional profile"}
+            >
+              {lang === "es" ? "Negocio" : "Business"}
+            </span>
+          )}
+          {!rentasPlanTier && tier ? <TierBadge tier={tier} lang={lang} /> : null}
+          {isNegocio && businessName && (
+            <span className="text-xs font-medium text-[#111111]/80 truncate max-w-[140px] sm:max-w-[180px]" title={businessName}>
+              {businessName}
+            </span>
+          )}
+          {!isNegocio && (x.sellerType === "personal" || !x.sellerType) && (
+            <span className="text-xs text-[#111111]/70">{lang === "es" ? "Privado" : "Private"}</span>
+          )}
+        </div>
+
+        <div className="mt-2 text-[11px] text-[#111111]/60">
+          {x.postedAgo[lang]}
+        </div>
+
+        <p className="mt-2 line-clamp-1 text-sm text-[#111111]/85">
+          {x.blurb[lang]}
+        </p>
+
+        <span
+          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[#111111] group-hover:underline"
+          aria-hidden
+        >
+          {lang === "es" ? "Ver detalle" : "View details"}
+          <span className="opacity-70">→</span>
+        </span>
       </div>
-      <a
-        href={href}
-        className="mt-2.5 block rounded-xl border border-black/10 bg-[#F5F5F5] px-4 py-2 text-center text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
-      >
-        {lang === "es" ? "Ver detalle" : "View details"}
-      </a>
-    </div>
+    </a>
   );
 }
 
