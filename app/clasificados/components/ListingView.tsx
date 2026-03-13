@@ -234,9 +234,14 @@ export default function ListingView({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10">
-      {/* Left: media dominates — hero fills area, thumbnail rail intentional, minimal gray */}
+      {/* Left: media — Pro gets premium framing; free layout unchanged. Reusable across categories. */}
       <div className="min-w-0 lg:min-w-0 order-1">
-        <div className="rounded-2xl overflow-hidden bg-[#1a1a1a] shadow-lg">
+        <div
+          className={cx(
+            "rounded-2xl overflow-hidden bg-[#1a1a1a]",
+            effectiveIsPro ? "shadow-xl ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#D9D9D9]" : "shadow-lg"
+          )}
+        >
           {mediaSlots.length > 0 && (
             <div
               ref={(el) => setHighlightRef("pro-video", el)}
@@ -255,27 +260,40 @@ export default function ListingView({
               {currentSlot?.type === "image" ? (
                 <img src={currentSlot.url} alt="" className="object-contain w-full h-full bg-[#0d0d0d]" />
               ) : currentSlot?.type === "locked-image" || currentSlot?.type === "locked-video" ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-[#1a1a1a] border border-[#C9B46A]/30 rounded-xl p-6">
-                  <span className="text-4xl opacity-80" aria-hidden>{currentSlot.type === "locked-video" ? "🎥" : "🖼️"}</span>
-                  <span className="text-sm font-medium text-[#C9B46A]">
-                    {lang === "es" ? "Disponible con Pro" : "Available with Pro"}
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-[#1f1f1f] to-[#151515] border border-[#C9B46A]/40 rounded-xl p-6 sm:p-8">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 px-3 py-1 text-xs font-semibold text-[#C9B46A]">
+                    Pro
                   </span>
-                  <span className="text-xs text-white/60">
+                  <span className="text-5xl sm:text-6xl opacity-90" aria-hidden>{currentSlot.type === "locked-video" ? "🎥" : "🖼️"}</span>
+                  <span className="text-base font-semibold text-white/95">
                     {currentSlot.type === "locked-video"
                       ? (lang === "es" ? "Video sobresaliente" : "Featured video")
                       : (lang === "es" ? "Más fotos" : "More photos")}
                   </span>
+                  <span className="text-sm text-white/60">
+                    {currentSlot.type === "locked-video"
+                      ? (lang === "es" ? "Disponible con Pro" : "Available with Pro")
+                      : (lang === "es" ? "Hasta 12 fotos con Pro" : "Up to 12 photos with Pro")}
+                  </span>
                 </div>
               ) : (
                 hasProVideo && (
-                  <video
-                    className="object-contain w-full h-full bg-[#0d0d0d]"
-                    controls
-                    preload="none"
-                    playsInline
-                    poster={listing.proVideoThumbUrl ?? undefined}
-                    src={listing.proVideoUrl ?? undefined}
-                  />
+                  <div className="relative w-full h-full">
+                    <video
+                      className="object-contain w-full h-full bg-[#0d0d0d]"
+                      controls
+                      preload="none"
+                      playsInline
+                      poster={listing.proVideoThumbUrl ?? undefined}
+                      src={listing.proVideoUrl ?? undefined}
+                    />
+                    <span
+                      className="absolute bottom-3 left-3 inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-black/60 px-2.5 py-1 text-xs font-semibold text-[#C9B46A] backdrop-blur-sm"
+                      aria-hidden
+                    >
+                      {lang === "es" ? "Video sobresaliente" : "Featured video"}
+                    </span>
+                  </div>
                 )
               )}
               {mediaSlots.length > 1 && (
@@ -300,12 +318,16 @@ export default function ListingView({
               )}
             </div>
           )}
-          {/* Thumbnail rail — clear selected state, premium feel; Pro comparison: more-photos highlight */}
+          {/* Thumbnail rail — Pro: premium border; locked slots more valuable; good tap targets on mobile */}
           {mediaSlots.length >= 1 && (
             <div
               ref={(el) => setHighlightRef("more-photos", el)}
               data-pro-highlight="more-photos"
-              className={cx("flex gap-2 p-3 bg-[#1a1a1a] border-t border-white/10 overflow-x-auto", isHighlight("more-photos") && highlightClass)}
+              className={cx(
+                "flex gap-2 p-3 sm:p-3.5 bg-[#1a1a1a] overflow-x-auto",
+                effectiveIsPro ? "border-t border-[#C9B46A]/25" : "border-t border-white/10",
+                isHighlight("more-photos") && highlightClass
+              )}
             >
               {mediaSlots.slice(0, 8).map((slot, idx) => (
                 <button
@@ -313,7 +335,7 @@ export default function ListingView({
                   type="button"
                   onClick={() => setMediaIndex(idx)}
                   className={cx(
-                    "h-16 w-16 shrink-0 rounded-lg overflow-hidden flex items-center justify-center border-2 transition",
+                    "h-16 w-16 min-w-[4rem] shrink-0 rounded-lg overflow-hidden flex items-center justify-center border-2 transition",
                     safeMediaIndex === idx
                       ? "border-[#C9B46A] ring-2 ring-[#C9B46A]/40 ring-offset-2 ring-offset-[#1a1a1a]"
                       : "border-white/20 hover:border-white/40 opacity-80 hover:opacity-100"
@@ -322,14 +344,14 @@ export default function ListingView({
                   {slot.type === "image" ? (
                     <img src={slot.url} alt="" className="object-cover w-full h-full" />
                   ) : slot.type === "locked-image" ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#252525] border border-[#C9B46A]/40 rounded-lg">
-                      <span className="text-lg" aria-hidden>🖼️</span>
-                      <span className="text-[10px] text-[#C9B46A] font-medium mt-0.5">Pro</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#2a2a2a] to-[#1f1f1f] border-0 rounded-lg gap-0.5">
+                      <span className="text-xl" aria-hidden>🖼️</span>
+                      <span className="text-[10px] font-semibold text-[#C9B46A] uppercase tracking-wide">Pro</span>
                     </div>
                   ) : slot.type === "locked-video" ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#252525] border border-[#C9B46A]/40 rounded-lg">
-                      <span className="text-lg" aria-hidden>🎥</span>
-                      <span className="text-[10px] text-[#C9B46A] font-medium mt-0.5">Pro</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#2a2a2a] to-[#1f1f1f] border-0 rounded-lg gap-0.5">
+                      <span className="text-xl" aria-hidden>🎥</span>
+                      <span className="text-[10px] font-semibold text-[#C9B46A] uppercase tracking-wide">Pro</span>
                     </div>
                   ) : listing.proVideoThumbUrl ? (
                     <img src={listing.proVideoThumbUrl} alt="" className="object-cover w-full h-full opacity-90" />
@@ -345,8 +367,13 @@ export default function ListingView({
 
       {/* Right: info stack — title/price/meta first, then CTA, then description/seller/location. Mobile: stacked; lg: right rail. */}
       <div className="min-w-0 space-y-4 sm:space-y-5 order-2">
-        {/* Card 1: Title, price, city+posted, compact meta (details inline). Pro: badge + visibility cue. */}
-        <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-5 lg:p-6 shadow-sm">
+        {/* Card 1: Title, price, meta. Pro: premium accent + stronger visibility cue. */}
+        <div
+          className={cx(
+            "rounded-2xl border p-4 sm:p-5 lg:p-6 shadow-sm",
+            effectiveIsPro ? "border-[#C9B46A]/30 border-l-4 border-l-[#C9B46A]/50 bg-[#FAFAF9]" : "border-black/10 bg-white"
+          )}
+        >
           <div className="flex flex-wrap items-start gap-3 gap-y-2">
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight">
@@ -381,7 +408,7 @@ export default function ListingView({
               {effectiveIsPro ? <ProBadge /> : null}
               {previewProUpgrade && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                  className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#C9B46A]/15 px-3 py-1.5 text-xs font-semibold text-[#8B6914]"
                   aria-hidden
                 >
                   {lang === "es" ? "Mayor visibilidad" : "Boost visibility"}
