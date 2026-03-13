@@ -8,6 +8,7 @@
 
 import { categoryConfig, type CategoryKey } from "./categoryConfig";
 import { EN_VENTA_SUBCATEGORIES as EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY } from "./enVentaTaxonomy";
+import { RENTAS_SUBCATEGORIES as RENTAS_SUBCATEGORIES_FROM_TAXONOMY } from "./rentasTaxonomy";
 
 /** Plan types for listing/seller eligibility. */
 export type PlanType =
@@ -77,6 +78,12 @@ const EN_VENTA_SUBCATEGORIES: SubcategoryStub[] = EN_VENTA_SUBCATEGORIES_FROM_TA
   label: s.label,
 }));
 
+/** Rentas subcategories from taxonomy. */
+const RENTAS_SUBCATEGORIES: SubcategoryStub[] = RENTAS_SUBCATEGORIES_FROM_TAXONOMY.map((s) => ({
+  key: s.key,
+  label: s.label,
+}));
+
 /** Build schema entry for a category; label from categoryConfig. */
 function schema(
   key: CategoryKey,
@@ -106,6 +113,8 @@ const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
     plans: ["pro", "business_standard", "business_plus"],
     businessBranchEligible: true,
     formFieldGroupKey: "rentas",
+    subcategories: RENTAS_SUBCATEGORIES,
+    validationRules: ["rentas_meta"],
     previewEligible: true,
     proPreviewEligible: true,
     stepOrder: PUBLISH_STEPS_FULL,

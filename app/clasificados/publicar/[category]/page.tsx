@@ -32,6 +32,12 @@ import {
   getArticuloOptionsForSubcategory,
   getArticuloLabel,
 } from "../../config/enVentaTaxonomy";
+import {
+  RENTAS_SUBCATEGORIES,
+  getTipoOptionsForSubcategory,
+  getRentasDetailFields,
+  RENTAS_BRANCH_OPTIONS,
+} from "../../config/rentasTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -309,55 +315,8 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
       ],
     },
   ],
-  rentas: [
-    {
-      key: "beds",
-      label: { es: "Recámaras", en: "Bedrooms" },
-      type: "select",
-      options: [
-        { value: "studio", label: { es: "Estudio", en: "Studio" } },
-        { value: "1", label: { es: "1", en: "1" } },
-        { value: "2", label: { es: "2", en: "2" } },
-        { value: "3", label: { es: "3", en: "3" } },
-        { value: "4+", label: { es: "4+", en: "4+" } },
-        { value: "room", label: { es: "Cuarto (Room)", en: "Room" } },
-      ],
-    },
-    {
-      key: "baths",
-      label: { es: "Baños", en: "Bathrooms" },
-      type: "select",
-      options: [
-        { value: "1", label: { es: "1", en: "1" } },
-        { value: "1.5", label: { es: "1.5", en: "1.5" } },
-        { value: "2", label: { es: "2", en: "2" } },
-        { value: "2.5", label: { es: "2.5", en: "2.5" } },
-        { value: "3+", label: { es: "3+", en: "3+" } },
-      ],
-    },
-    { key: "deposit", label: { es: "Depósito", en: "Deposit" }, type: "text", placeholder: { es: "Ej: $1500 / 1 mes", en: "e.g. $1500 / 1 month" } },
-    { key: "available", label: { es: "Disponible", en: "Available" }, type: "text", placeholder: { es: "Ej: Inmediato / 1 de Marzo", en: "e.g. Now / Mar 1" } },
-    {
-      key: "furnished",
-      label: { es: "Amueblado", en: "Furnished" },
-      type: "select",
-      options: [
-        { value: "yes", label: { es: "Sí", en: "Yes" } },
-        { value: "no", label: { es: "No", en: "No" } },
-      ],
-    },
-    {
-      key: "pets",
-      label: { es: "Mascotas", en: "Pets" },
-      type: "select",
-      options: [
-        { value: "allowed", label: { es: "Permitidas", en: "Allowed" } },
-        { value: "no", label: { es: "No", en: "No" } },
-        { value: "cats", label: { es: "Solo gatos", en: "Cats only" } },
-        { value: "dogs", label: { es: "Solo perros", en: "Dogs only" } },
-      ],
-    },
-  ],
+  /** Rentas uses getCategoryFields("rentas", details) for dynamic field groups by subcategoría/tipo. */
+  rentas: [],
   empleos: [
     { key: "company", label: { es: "Empresa", en: "Company" }, type: "text", placeholder: { es: "Nombre de la empresa", en: "Company name" } },
     {
@@ -424,12 +383,18 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
 
 };
 
-function getCategoryFields(cat: string): DetailField[] {
+function getCategoryFields(cat: string, details?: Record<string, string>): DetailField[] {
+  if (cat === "rentas" && details) {
+    const sub = (details.rentasSubcategoria ?? "").trim();
+    const tipo = (details.tipoPropiedad ?? "").trim();
+    if (!sub || !tipo) return [];
+    return getRentasDetailFields(sub, tipo) as DetailField[];
+  }
   return DETAIL_FIELDS[cat] ?? [];
 }
 
 function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>) {
-  const fields = getCategoryFields(cat);
+  const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
   for (const f of fields) {
     const raw = (details[f.key] ?? "").toString().trim();
@@ -1633,7 +1598,10 @@ setIsPro(plan.includes("pro"));
     const descOk = s.description.length >= 5;
     const cityOk = Boolean(s.cityCanonical);
     const priceNum = (s.priceRaw ?? "").replace(/[^0-9.]/g, "");
-    const priceOk = s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
+    const priceOk =
+      s.category === "rentas"
+        ? priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0
+        : s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
     const imagesOk = s.images.length >= 1;
     const phoneDigits = getPhoneDigits(s.contactPhone);
     const phoneOk = s.contactMethod === "email" ? true : phoneDigits.length === 10;
@@ -1644,6 +1612,12 @@ setIsPro(plan.includes("pro"));
       (!!(s.details.rama ?? "").trim() &&
         !!(s.details.itemType ?? "").trim() &&
         !!(s.details.condition ?? "").trim());
+    const rentasMetaOk =
+      s.category !== "rentas" ||
+      (!!(s.details.rentasSubcategoria ?? "").trim() &&
+        !!(s.details.tipoPropiedad ?? "").trim() &&
+        !!(s.details.rentasBranch ?? "").trim() &&
+        !!(s.details.fechaDisponible ?? "").trim());
     return {
       categoryOk,
       titleOk,
@@ -1655,6 +1629,7 @@ setIsPro(plan.includes("pro"));
       emailOk,
       contactOk,
       enVentaMetaOk,
+      rentasMetaOk,
       allOk:
         categoryOk &&
         titleOk &&
@@ -1665,7 +1640,8 @@ setIsPro(plan.includes("pro"));
         contactOk &&
         phoneOk &&
         emailOk &&
-        enVentaMetaOk,
+        enVentaMetaOk &&
+        rentasMetaOk,
     };
   }, [enVentaSnapshot]);
 
@@ -1676,7 +1652,13 @@ setIsPro(plan.includes("pro"));
         requirements.descOk &&
         requirements.priceOk &&
         requirements.cityOk
-      : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
+      : category === "rentas"
+        ? requirements.rentasMetaOk &&
+          requirements.titleOk &&
+          requirements.descOk &&
+          requirements.priceOk &&
+          requirements.cityOk
+        : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
 
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
@@ -1700,7 +1682,14 @@ setIsPro(plan.includes("pro"));
       },
       {
         key: "price",
-        label: lang === "es" ? (isFree ? "Gratis" : "Precio") : (isFree ? "Free" : "Price"),
+        label:
+          category === "rentas"
+            ? lang === "es"
+              ? "Renta mensual"
+              : "Monthly rent"
+            : lang === "es"
+              ? (isFree ? "Gratis" : "Precio")
+              : (isFree ? "Free" : "Price"),
         ok: requirements.priceOk,
         step: "basics",
       },
@@ -1712,14 +1701,23 @@ setIsPro(plan.includes("pro"));
       },
       ...(category === "en-venta"
         ? [
-      {
-        key: "itemDetails" as const,
-            label: lang === "es" ? "Detalles requeridos" : "Required details",
+            {
+              key: "itemDetails" as const,
+              label: lang === "es" ? "Detalles requeridos" : "Required details",
               ok: requirements.enVentaMetaOk,
               step: "basics" as const,
             },
           ]
-        : []),
+        : category === "rentas"
+          ? [
+              {
+                key: "rentasDetails" as const,
+                label: lang === "es" ? "Subcategoría, tipo, rama y fecha disponible" : "Subcategory, type, branch & availability",
+                ok: requirements.rentasMetaOk,
+                step: "basics" as const,
+              },
+            ]
+          : []),
       {
         key: "images",
         label: lang === "es" ? "1+ foto" : "1+ photo",
@@ -2913,6 +2911,214 @@ for (let vi = 0; vi < 2; vi++) {
                             )}
                           </div>
                         </>
+                      ) : category === "rentas" ? (
+                        <>
+                          <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-sm text-[#111111]">
+                                {lang === "es" ? "Subcategoría" : "Subcategory"}{" *"}
+                              </label>
+                              <select
+                                value={details.rentasSubcategoria ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setDetails((prev) => ({ ...prev, rentasSubcategoria: v, tipoPropiedad: "" }));
+                                }}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                <option value="">{lang === "es" ? "Elige una subcategoría…" : "Choose one…"}</option>
+                                {RENTAS_SUBCATEGORIES.map((s) => (
+                                  <option key={s.key} value={s.key}>
+                                    {lang === "es" ? s.label.es : s.label.en}
+                                  </option>
+                                ))}
+                              </select>
+                              {!details.rentasSubcategoria?.trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Requerido." : "Required."}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-sm text-[#111111]">
+                                {lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}
+                              </label>
+                              <select
+                                value={details.tipoPropiedad ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, tipoPropiedad: e.target.value }))}
+                                disabled={!details.rentasSubcategoria?.trim()}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                              >
+                                <option value="">{lang === "es" ? "Elige tipo…" : "Choose type…"}</option>
+                                {getTipoOptionsForSubcategory(details.rentasSubcategoria ?? "").map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {lang === "es" ? o.label.es : o.label.en}
+                                  </option>
+                                ))}
+                              </select>
+                              {!details.tipoPropiedad?.trim() && details.rentasSubcategoria?.trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Requerido." : "Required."}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-sm text-[#111111]">
+                                {lang === "es" ? "Privado o negocio" : "Private or business"}{" *"}
+                              </label>
+                              <select
+                                value={details.rentasBranch ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, rentasBranch: e.target.value }))}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                <option value="">{lang === "es" ? "Elige…" : "Choose…"}</option>
+                                {RENTAS_BRANCH_OPTIONS.map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {lang === "es" ? o.label.es : o.label.en}
+                                  </option>
+                                ))}
+                              </select>
+                              {!details.rentasBranch?.trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Requerido." : "Required."}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">
+                              {lang === "es"
+                                ? "Un título claro ayuda a que te encuentren."
+                                : "A clear title helps people find you."}
+                            </p>
+                            <input
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: Apartamento 2 recámaras cerca del centro" : "Ex: 2-bed apartment near downtown"}
+                              spellCheck
+                              autoCorrect="on"
+                              autoCapitalize="sentences"
+                              lang={lang === "es" ? "es" : "en"}
+                              inputMode="text"
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.titleOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldDesc}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">
+                              {lang === "es"
+                                ? "Describe el espacio, servicios incluidos y condiciones."
+                                : "Describe the space, utilities included, and conditions."}
+                            </p>
+                            <textarea
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder={
+                                lang === "es"
+                                  ? "Estado del inmueble, qué incluye la renta, reglas, etc."
+                                  : "Condition, what's included, rules, etc."
+                              }
+                              spellCheck
+                              autoCorrect="on"
+                              autoCapitalize="sentences"
+                              lang={lang === "es" ? "es" : "en"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.descOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Renta mensual" : "Monthly rent"}{" *"}
+                            </label>
+                            <input
+                              value={price}
+                              onChange={(e) => setPrice(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: 1500" : "Ex: 1500"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.priceOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Agrega la renta mensual." : "Add monthly rent."}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Depósito" : "Deposit"}
+                            </label>
+                            <input
+                              value={details.deposito ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, deposito: e.target.value }))}
+                              placeholder={lang === "es" ? "Ej: $1500 / 1 mes" : "e.g. $1500 / 1 month"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldCity}{" *"}</label>
+                            <CityAutocomplete
+                              value={city}
+                              onChange={setCity}
+                              placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
+                              lang={lang}
+                              label=""
+                              variant="light"
+                              className="mt-2"
+                            />
+                            {!requirements.cityOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Zona o dirección aproximada" : "Area or approximate address"}
+                            </label>
+                            <input
+                              value={details.zonaDireccion ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, zonaDireccion: e.target.value }))}
+                              placeholder={lang === "es" ? "Ej: Centro, cerca del parque" : "e.g. Downtown, near park"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Fecha disponible" : "Available date"}{" *"}
+                            </label>
+                            <input
+                              value={details.fechaDisponible ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, fechaDisponible: e.target.value }))}
+                              placeholder={lang === "es" ? "Ej: Inmediato / 1 de marzo" : "e.g. Immediate / Mar 1"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!details.fechaDisponible?.trim() && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Requerido." : "Required."}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#111111]">
+                              {lang === "es" ? "Plazo del contrato" : "Lease term"}
+                            </label>
+                            <input
+                              value={details.plazoContrato ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, plazoContrato: e.target.value }))}
+                              placeholder={lang === "es" ? "Ej: 1 año, mes a mes" : "e.g. 1 year, month-to-month"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                          </div>
+                        </>
                       ) : (
                         <>
                           <div>
@@ -3068,7 +3274,7 @@ for (let vi = 0; vi < 2; vi++) {
                         <span className="text-[#111111]/90 font-semibold">{category}</span>
                       </div>
 
-                      {getCategoryFields(category).length === 0 ? (
+                      {getCategoryFields(category, details).length === 0 ? (
                         <div className="mt-3 text-sm text-[#111111]/55">
                           {lang === "es"
                             ? "Por ahora no hay campos extra para esta categoría."
@@ -3076,7 +3282,7 @@ for (let vi = 0; vi < 2; vi++) {
                         </div>
                       ) : (
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {getCategoryFields(category).map((f) => {
+                          {getCategoryFields(category, details).map((f) => {
                             const v = details[f.key] ?? "";
                             const label = f.label[lang];
                             const placeholder = f.placeholder ? f.placeholder[lang] : undefined;
