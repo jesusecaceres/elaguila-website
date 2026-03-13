@@ -904,7 +904,7 @@ setIsPro(plan.includes("pro"));
         saveLabel: "Guardar",
         shareLabel: "Compartir",
         contactLabel: "Contactar",
-        fullPreviewCta: "Ver anuncio completo",
+        fullPreviewCta: "Ver versión gratis",
         fullPreviewTitle: "Vista completa del anuncio",
         fullPreviewBackToEdit: "Volver a editar",
         fullPreviewInfoConfirm: "Confirmo que la información es correcta.",
@@ -978,7 +978,7 @@ setIsPro(plan.includes("pro"));
         saveLabel: "Save",
         shareLabel: "Share",
         contactLabel: "Contact",
-        fullPreviewCta: "Open full listing preview",
+        fullPreviewCta: "View free version",
         fullPreviewTitle: "Full listing preview",
         fullPreviewBackToEdit: "Back to edit",
         fullPreviewInfoConfirm: "I confirm the information is correct.",
@@ -2419,6 +2419,13 @@ if (isPro && videoFile && !videoError) {
                               className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
                             >
                               {copy.fullPreviewBackToEdit}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFullPreviewVariant("pro")}
+                              className="flex-1 w-full max-w-full rounded-xl border border-[#111111]/20 bg-white text-[#111111] font-semibold py-3.5 text-center hover:bg-[#F5F5F5] transition"
+                            >
+                              {copy.proPreviewCta}
                             </button>
                             <button
                               type="button"
