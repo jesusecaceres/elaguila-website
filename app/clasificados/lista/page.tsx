@@ -3932,7 +3932,7 @@ function RentasCard({
       : rentasPlanTier === "business_standard"
         ? "border-yellow-400/30 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)]"
         : rentasPlanTier === "privado_pro"
-          ? "border-emerald-400/25 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)]"
+          ? "border-stone-300/50 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]"
           : tier === "corona-oro"
             ? "border-yellow-300/50 ring-1 ring-yellow-300/20 bg-white shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)]"
             : tier === "corona"
@@ -3947,7 +3947,7 @@ function RentasCard({
       : rentasPlanTier === "business_standard"
         ? "bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent"
         : rentasPlanTier === "privado_pro"
-          ? "bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
+          ? ""
           : tier === "corona-oro"
             ? "bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent"
             : tier === "corona"
@@ -3966,7 +3966,7 @@ function RentasCard({
         cardBorderStyles
       )}
     >
-      {(rentasPlanTier || tier) ? (
+      {(rentasPlanTier === "privado_pro" ? false : (rentasPlanTier || tier)) ? (
         <div
           aria-hidden="true"
           className={cx("pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px]", topBarGradient)}
@@ -4009,9 +4009,12 @@ function RentasCard({
         </div>
       </div>
 
-      <div className="p-3 sm:p-4">
-        {/* Price */}
-        <div className="font-extrabold text-[#111111] text-lg sm:text-xl">
+      <div className={cx("p-3 sm:p-4", rentasPlanTier === "privado_pro" && "sm:p-4")}>
+        {/* Price — prominent for privado */}
+        <div className={cx(
+          "font-extrabold text-[#111111]",
+          rentasPlanTier === "privado_pro" ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"
+        )}>
           {/\$|\d/.test(rentLabel)
             ? (lang === "es" ? "Renta " : "Rent ") + formatListingPrice(rentLabel, { lang })
             : formatListingPrice(rentLabel, { lang })}
@@ -4022,13 +4025,16 @@ function RentasCard({
 
         {/* Quick facts */}
         {quickFacts && (
-          <div className="mt-1.5 text-xs text-[#111111]/80">
+          <div className={cx("mt-1.5 text-xs text-[#111111]/80", rentasPlanTier === "privado_pro" && "mt-2")}>
             {quickFacts}
           </div>
         )}
 
         {/* Title */}
-        <h3 className="mt-2 line-clamp-2 text-base font-semibold tracking-tight text-[#111111] leading-snug">
+        <h3 className={cx(
+          "mt-2 line-clamp-2 font-semibold tracking-tight text-[#111111] leading-snug",
+          rentasPlanTier === "privado_pro" ? "text-base sm:text-lg mt-2.5" : "text-base"
+        )}>
           {x.title[lang]}
         </h3>
 
@@ -4043,9 +4049,13 @@ function RentasCard({
           ) : null}
         </div>
 
-        {/* Business / trust line */}
+        {/* Business / trust line — privado: soft "Privado" only; no business pills */}
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {rentasPlanTier === "privado_pro" && <ProBadge className="shrink-0" />}
+          {rentasPlanTier === "privado_pro" && (
+            <span className="text-xs font-medium text-[#111111]/70" title={lang === "es" ? "Anunciante privado" : "Private advertiser"}>
+              {lang === "es" ? "Privado" : "Private"}
+            </span>
+          )}
           {rentasPlanTier === "business_plus" && (
             <span
               className={cx(
@@ -4072,7 +4082,7 @@ function RentasCard({
               {businessName}
             </span>
           )}
-          {!isNegocio && (x.sellerType === "personal" || !x.sellerType) && (
+          {!rentasPlanTier && !isNegocio && (x.sellerType === "personal" || !x.sellerType) && (
             <span className="text-xs text-[#111111]/70">{lang === "es" ? "Privado" : "Private"}</span>
           )}
         </div>

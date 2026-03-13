@@ -254,7 +254,7 @@ export default function ListingView({
         <div
           className={cx(
             "rounded-2xl overflow-hidden bg-[#1a1a1a]",
-            effectiveIsPro ? "shadow-xl ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#D9D9D9]" : "shadow-lg"
+            hideProComparisonUI ? "shadow-lg border border-stone-300/40" : effectiveIsPro ? "shadow-xl ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#D9D9D9]" : "shadow-lg"
           )}
         >
           {mediaSlots.length > 0 && (
@@ -348,7 +348,7 @@ export default function ListingView({
               data-pro-highlight="more-photos"
               className={cx(
                 "flex gap-2 p-3 sm:p-3.5 bg-[#1a1a1a] overflow-x-auto",
-                effectiveIsPro ? "border-t border-[#C9B46A]/25" : "border-t border-white/10",
+                hideProComparisonUI ? "border-t border-white/10" : effectiveIsPro ? "border-t border-[#C9B46A]/25" : "border-t border-white/10",
                 isHighlight("more-photos") && highlightClass
               )}
             >
@@ -434,7 +434,7 @@ export default function ListingView({
         <div
           className={cx(
             "rounded-2xl border p-4 sm:p-5 lg:p-6 shadow-sm",
-            effectiveIsPro ? "border-[#C9B46A]/30 border-l-4 border-l-[#C9B46A]/50 bg-[#FAFAF9]" : "border-black/10 bg-white"
+            hideProComparisonUI ? "border-stone-300/50 bg-white" : effectiveIsPro ? "border-[#C9B46A]/30 border-l-4 border-l-[#C9B46A]/50 bg-[#FAFAF9]" : "border-black/10 bg-white"
           )}
         >
           <div className="flex flex-wrap items-start gap-x-3 gap-y-3">
@@ -464,12 +464,12 @@ export default function ListingView({
               })()}
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0 sm:ml-auto">
-              {effectiveIsPro ? (
+              {effectiveIsPro && !hideProComparisonUI ? (
                 <span ref={(el) => setHighlightRef("pro-badge", el)} data-pro-highlight="pro-badge" className={cx("inline-flex", isHighlight("pro-badge") && highlightClass)}>
                   <ProBadge />
                 </span>
               ) : null}
-              {previewProUpgrade && (
+              {previewProUpgrade && !hideProComparisonUI && (
                 <span
                   ref={(el) => setHighlightRef("visibility-boosts", el)}
                   data-pro-highlight="visibility-boosts"
@@ -536,8 +536,11 @@ export default function ListingView({
           </div>
         )}
 
-        {/* Card 2: CTA — Guardar, Compartir, contacto (shared; not Pro-only). */}
-        <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-4 sm:p-5 lg:p-6" id="listing-buyer-actions">
+        {/* Card 2: CTA — Guardar, Compartir, contacto (shared). Private preview: lighter border. */}
+        <div className={cx(
+          "rounded-2xl border p-4 sm:p-5 lg:p-6",
+          hideProComparisonUI ? "border-stone-300/50 bg-[#FAFAF9]" : "border-[#C9B46A]/40 bg-[#FAF9F6]"
+        )} id="listing-buyer-actions">
           <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-wrap gap-3">
             <button

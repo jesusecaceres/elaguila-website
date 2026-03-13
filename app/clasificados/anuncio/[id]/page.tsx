@@ -920,14 +920,19 @@ export default function AnuncioDetallePage() {
                 "rounded-2xl border bg-[#D9D9D9]/35 backdrop-blur p-8",
                 rentasPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
                 rentasPlanTier === "business_standard" && "border-yellow-400/45",
-                rentasPlanTier === "privado_pro" && "border-emerald-400/30",
+                rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
                 !rentasPlanTier && isBusiness && "border-yellow-400/45",
                 !rentasPlanTier && !isBusiness && "border-black/10"
               )}
             >
               {mediaSlots.length > 0 && (
                 <div
-                  className="relative rounded-xl border border-black/10 overflow-hidden bg-[#E8E8E8] max-h-[360px] min-h-[200px] flex items-center justify-center mb-6"
+                  className={cx(
+                    "relative rounded-xl overflow-hidden bg-[#E8E8E8] flex items-center justify-center mb-6",
+                    rentasPlanTier === "privado_pro"
+                      ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-stone-200/80"
+                      : "border border-black/10 max-h-[360px] min-h-[200px]"
+                  )}
                   onTouchStart={(e) => {
                     galleryTouchStartX.current = e.touches[0]?.clientX ?? 0;
                   }}
@@ -991,10 +996,13 @@ export default function AnuncioDetallePage() {
                   </h1>
                   {listing.category === "rentas" ? (
                     <div className="mt-3">
-                      <div className="text-sm font-medium text-[#111111]/80">
+                      <div className={cx("font-medium text-[#111111]/80", rentasPlanTier === "privado_pro" ? "text-sm" : "text-sm")}>
                         {lang === "es" ? "Renta mensual" : "Monthly rent"}
                       </div>
-                      <div className="text-2xl font-extrabold text-yellow-200">
+                      <div className={cx(
+                        "font-extrabold",
+                        rentasPlanTier === "privado_pro" ? "text-2xl sm:text-3xl text-[#111111]" : "text-2xl text-yellow-200"
+                      )}>
                         {formatListingPrice(listing.priceLabel[lang], { lang })}
                       </div>
                     </div>
@@ -1031,7 +1039,12 @@ export default function AnuncioDetallePage() {
                     {isBusiness ? t.sellerBusiness : t.sellerPersonal}
                   </span>
 
-                  {isPro ? <ProBadge /> : null}
+                  {isPro && rentasPlanTier !== "privado_pro" ? <ProBadge /> : null}
+                  {rentasPlanTier === "privado_pro" && (
+                    <span className="px-3 py-1 rounded-full text-xs font-medium border border-stone-300/60 text-[#111111]/85 bg-[#FAFAF9]">
+                      {lang === "es" ? "Privado" : "Private"}
+                    </span>
+                  )}
 
                   
                     {verifiedSeller ? (
@@ -1079,7 +1092,12 @@ export default function AnuncioDetallePage() {
               )}
 
               {listing.category === "rentas" && rentasRentalFacts.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+                <div className={cx(
+                  "mt-6 rounded-2xl p-6",
+                  rentasPlanTier === "privado_pro"
+                    ? "border border-stone-200/80 bg-[#FAFAF9]"
+                    : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+                )}>
                   <h3 className="text-sm font-semibold text-[#111111]">
                     {lang === "es" ? "Datos del rental" : "Rental details"}
                   </h3>
@@ -1094,12 +1112,22 @@ export default function AnuncioDetallePage() {
                 </div>
               )}
 
-              <div className="mt-8 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
-                <div className="text-sm text-[#111111]">{listing.blurb[lang]}</div>
+              <div className={cx(
+                "mt-8 rounded-2xl p-6",
+                listing.category === "rentas" && rentasPlanTier === "privado_pro"
+                  ? "border border-stone-200/80 bg-[#FAFAF9]"
+                  : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+              )}>
+                <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
               </div>
 
               {listing.category === "rentas" && rentasAmenities.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+                <div className={cx(
+                  "mt-6 rounded-2xl p-6",
+                  rentasPlanTier === "privado_pro"
+                    ? "border border-stone-200/80 bg-[#FAFAF9]"
+                    : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+                )}>
                   <h3 className="text-sm font-semibold text-[#111111]">
                     {lang === "es" ? "Características y comodidades" : "Features & amenities"}
                   </h3>
@@ -1117,12 +1145,12 @@ export default function AnuncioDetallePage() {
               {listing.category === "rentas" && (
                 <div
                   className={cx(
-                    "mt-6 rounded-2xl border bg-[#F5F5F5] p-4 sm:p-5",
+                    "mt-6 rounded-2xl border p-4 sm:p-5",
                     rentasPlanTier === "business_plus" &&
-                      "border-yellow-300/50 ring-1 ring-yellow-300/20 shadow-[0_0_0_1px_rgba(250,204,21,0.15)]",
-                    rentasPlanTier === "business_standard" && "border-yellow-400/35",
-                    rentasPlanTier === "privado_pro" && "border-emerald-400/25",
-                    !rentasPlanTier && "border-black/10"
+                      "border-yellow-300/50 bg-[#F5F5F5] ring-1 ring-yellow-300/20 shadow-[0_0_0_1px_rgba(250,204,21,0.15)]",
+                    rentasPlanTier === "business_standard" && "border-yellow-400/35 bg-[#F5F5F5]",
+                    rentasPlanTier === "privado_pro" && "border-stone-200/80 bg-[#FAFAF9]",
+                    !rentasPlanTier && "border-black/10 bg-[#F5F5F5]"
                   )}
                   data-section="rentas-trust"
                 >
@@ -1207,24 +1235,7 @@ export default function AnuncioDetallePage() {
                 </div>
               )}
 
-              {listing.category === "rentas" && rentasPlanTier === "privado_pro" && (
-                <div className="mt-6 rounded-2xl border border-emerald-400/25 bg-emerald-500/5 p-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <ProBadge />
-                    <span className="text-sm font-semibold text-[#111111]">
-                      {lang === "es" ? "Incluido con Pro" : "Included with Pro"}
-                    </span>
-                  </div>
-                  <ul className="mt-3 space-y-1.5 text-xs sm:text-sm text-[#111111]/90">
-                    <li>{lang === "es" ? "Hasta 12 fotos" : "Up to 12 photos"}</li>
-                    <li>{lang === "es" ? "2 videos sobresalientes" : "2 featured videos"}</li>
-                    <li>{lang === "es" ? "2 impulsos de visibilidad" : "2 visibility boosts"}</li>
-                    <li>{lang === "es" ? "Duración de 30 días" : "30-day listing duration"}</li>
-                    <li>{lang === "es" ? "Analíticas del anuncio" : "Listing analytics"}</li>
-                  </ul>
-                </div>
-              )}
-
+              {/* Rentas Privado: no Pro teaser block — keep page as listing-only, human/direct */}
 
 {proVideoInfos.length > 0 && mediaSlots.length === 0 && (
   <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
@@ -1534,7 +1545,10 @@ export default function AnuncioDetallePage() {
           {/* Right rail */}
           <div className="lg:col-span-4 space-y-6">
             {viewCount !== null && (
-              <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-4 space-y-1">
+              <div className={cx(
+                "rounded-2xl border p-4 space-y-1",
+                rentasPlanTier === "privado_pro" ? "border-stone-200/80 bg-[#FAFAF9]" : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+              )}>
                 <p className="text-sm text-[#111111]">
                   👁 {viewCount} {lang === "es" ? "personas vieron este anuncio" : "people viewed this listing"}
                 </p>
@@ -1545,7 +1559,10 @@ export default function AnuncioDetallePage() {
                 )}
               </div>
             )}
-            <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+            <div className={cx(
+              "rounded-2xl border p-6",
+              rentasPlanTier === "privado_pro" ? "border-stone-200/80 bg-[#FAFAF9]" : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+            )}>
               <div className="text-xl font-bold text-[#111111]">{t.actionsTitle}</div>
 
               <div className="mt-4 space-y-3">
@@ -1766,7 +1783,12 @@ export default function AnuncioDetallePage() {
                 </div>
               </div>
             ) : (
-            <div className="seller-card rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+            <div className={cx(
+              "seller-card rounded-2xl border p-6",
+              listing.category === "rentas" && rentasPlanTier === "privado_pro"
+                ? "border-stone-200/80 bg-[#FAFAF9]"
+                : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+            )}>
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
                 {listing.category === "rentas"
                   ? (lang === "es" ? "Anunciante" : "Advertiser")
@@ -1813,7 +1835,10 @@ export default function AnuncioDetallePage() {
             </div>
             )}
 
-            <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+            <div className={cx(
+              "rounded-2xl border p-6",
+              rentasPlanTier === "privado_pro" ? "border-stone-200/80 bg-[#FAFAF9]" : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+            )}>
               <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
                 {lang === "es" ? "Ubicación" : "Location"}
               </h3>
@@ -1840,7 +1865,10 @@ export default function AnuncioDetallePage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
+            <div className={cx(
+              "rounded-2xl border p-6",
+              rentasPlanTier === "privado_pro" ? "border-stone-200/80 bg-[#FAFAF9]" : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+            )}>
               <div className="text-xl font-bold text-[#111111]">{t.contactTitle}</div>
               <div className="mt-3 text-[#111111]">{t.contactBody}</div>
               {listing?.category === "rentas" && (
