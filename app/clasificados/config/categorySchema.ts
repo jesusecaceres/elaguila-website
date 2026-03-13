@@ -7,6 +7,7 @@
  */
 
 import { categoryConfig, type CategoryKey } from "./categoryConfig";
+import { EN_VENTA_SUBCATEGORIES as EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY } from "./enVentaTaxonomy";
 
 /** Plan types for listing/seller eligibility. */
 export type PlanType =
@@ -70,21 +71,11 @@ export type CategorySchema = {
 const PUBLISH_STEPS_FULL: PublishStep[] = ["category", "basics", "details", "media"];
 const PUBLISH_STEPS_EN_VENTA: PublishStep[] = ["category", "basics", "media"];
 
-/** En Venta ramas (subcategories) — first production template. */
-const EN_VENTA_SUBCATEGORIES: SubcategoryStub[] = [
-  { key: "electronicos", label: { es: "Electrónicos", en: "Electronics" } },
-  { key: "hogar", label: { es: "Hogar", en: "Home" } },
-  { key: "muebles", label: { es: "Muebles", en: "Furniture" } },
-  { key: "ropa-accesorios", label: { es: "Ropa y accesorios", en: "Clothing & accessories" } },
-  { key: "bebes-ninos", label: { es: "Bebés y niños", en: "Babies & kids" } },
-  { key: "herramientas", label: { es: "Herramientas", en: "Tools" } },
-  { key: "auto-partes", label: { es: "Auto partes", en: "Auto parts" } },
-  { key: "deportes", label: { es: "Deportes", en: "Sports" } },
-  { key: "juguetes-juegos", label: { es: "Juguetes y juegos", en: "Toys & games" } },
-  { key: "coleccionables", label: { es: "Coleccionables", en: "Collectibles" } },
-  { key: "musica-foto-video", label: { es: "Música / foto / video", en: "Music / photo / video" } },
-  { key: "otros", label: { es: "Otros", en: "Other" } },
-];
+/** En Venta subcategories from taxonomy (single source of truth). */
+const EN_VENTA_SUBCATEGORIES: SubcategoryStub[] = EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY.map((s) => ({
+  key: s.key,
+  label: s.label,
+}));
 
 /** Build schema entry for a category; label from categoryConfig. */
 function schema(

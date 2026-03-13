@@ -27,6 +27,11 @@ import {
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { getStepOrderForCategory } from "../../config/categorySchema";
+import {
+  EN_VENTA_SUBCATEGORIES,
+  getArticuloOptionsForSubcategory,
+  getArticuloLabel,
+} from "../../config/enVentaTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -262,22 +267,6 @@ function getStableSessionId(userId: string | null): string {
   return id;
 }
 
-/** En Venta: rama principal (taxonomy-first Basics). */
-const EN_VENTA_RAMAS: Array<{ value: string; labelEs: string; labelEn: string }> = [
-  { value: "electronicos", labelEs: "Electrónicos", labelEn: "Electronics" },
-  { value: "hogar", labelEs: "Hogar", labelEn: "Home" },
-  { value: "muebles", labelEs: "Muebles", labelEn: "Furniture" },
-  { value: "ropa-accesorios", labelEs: "Ropa y accesorios", labelEn: "Clothing & accessories" },
-  { value: "bebes-ninos", labelEs: "Bebés y niños", labelEn: "Babies & kids" },
-  { value: "herramientas", labelEs: "Herramientas", labelEn: "Tools" },
-  { value: "auto-partes", labelEs: "Auto partes", labelEn: "Auto parts" },
-  { value: "deportes", labelEs: "Deportes", labelEn: "Sports" },
-  { value: "juguetes-juegos", labelEs: "Juguetes y juegos", labelEn: "Toys & games" },
-  { value: "coleccionables", labelEs: "Coleccionables", labelEn: "Collectibles" },
-  { value: "musica-foto-video", labelEs: "Música / foto / video", labelEn: "Music / photo / video" },
-  { value: "otros", labelEs: "Otros", labelEn: "Other" },
-];
-
 /** Condición options for En Venta (Basics). */
 const EN_VENTA_CONDICION: Array<{ value: string; labelEs: string; labelEn: string }> = [
   { value: "new", labelEs: "Nuevo", labelEn: "New" },
@@ -402,11 +391,11 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   "en-venta": [
     {
       key: "rama",
-      label: { es: "Categoría", en: "Category" },
+      label: { es: "Subcategoría", en: "Subcategory" },
       type: "select",
-      options: EN_VENTA_RAMAS.map((r) => ({ value: r.value, label: { es: r.labelEs, en: r.labelEn } })),
+      options: EN_VENTA_SUBCATEGORIES.map((s) => ({ value: s.key, label: s.label })),
     },
-    { key: "itemType", label: { es: "Tipo de artículo", en: "Item type" }, type: "text", placeholder: { es: "Definido en Básicos", en: "Set in Basics" } },
+    { key: "itemType", label: { es: "Artículo", en: "Item type" }, type: "text", placeholder: { es: "Definido por subcategoría", en: "Set by subcategory" } },
     {
       key: "condition",
       label: { es: "Condición", en: "Condition" },
@@ -435,107 +424,6 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
 
 };
 
-/** En Venta: tipo de artículo por rama. */
-const EN_VENTA_TIPO_BY_RAMA: Record<string, Array<{ value: string; labelEs: string; labelEn: string }>> = {
-  electronicos: [
-    { value: "celular", labelEs: "Celular", labelEn: "Phone" },
-    { value: "laptop", labelEs: "Laptop", labelEn: "Laptop" },
-    { value: "tablet", labelEs: "Tablet", labelEn: "Tablet" },
-    { value: "tv", labelEs: "TV", labelEn: "TV" },
-    { value: "bocina", labelEs: "Bocina", labelEn: "Speaker" },
-    { value: "audifonos", labelEs: "Audífonos", labelEn: "Headphones" },
-    { value: "camara", labelEs: "Cámara", labelEn: "Camera" },
-    { value: "videojuego-consola", labelEs: "Videojuego / consola", labelEn: "Video game / console" },
-    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  hogar: [
-    { value: "electrodomestico", labelEs: "Electrodoméstico", labelEn: "Appliance" },
-    { value: "decoracion", labelEs: "Decoración", labelEn: "Decor" },
-    { value: "cocina", labelEs: "Cocina", labelEn: "Kitchen" },
-    { value: "organizacion", labelEs: "Organización", labelEn: "Organization" },
-    { value: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  muebles: [
-    { value: "sofa", labelEs: "Sofá", labelEn: "Sofa" },
-    { value: "mesa", labelEs: "Mesa", labelEn: "Table" },
-    { value: "silla", labelEs: "Silla", labelEn: "Chair" },
-    { value: "cama", labelEs: "Cama", labelEn: "Bed" },
-    { value: "comoda", labelEs: "Cómoda", labelEn: "Dresser" },
-    { value: "escritorio", labelEs: "Escritorio", labelEn: "Desk" },
-    { value: "estante", labelEs: "Estante", labelEn: "Shelf" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  "ropa-accesorios": [
-    { value: "camisa", labelEs: "Camisa", labelEn: "Shirt" },
-    { value: "pantalon", labelEs: "Pantalón", labelEn: "Pants" },
-    { value: "zapatos", labelEs: "Zapatos", labelEn: "Shoes" },
-    { value: "bolsa", labelEs: "Bolsa", labelEn: "Bag" },
-    { value: "joyeria", labelEs: "Joyería", labelEn: "Jewelry" },
-    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  "bebes-ninos": [
-    { value: "ropa", labelEs: "Ropa", labelEn: "Clothing" },
-    { value: "juguete", labelEs: "Juguete", labelEn: "Toy" },
-    { value: "carriola", labelEs: "Carriola", labelEn: "Stroller" },
-    { value: "cuna", labelEs: "Cuna", labelEn: "Crib" },
-    { value: "silla-carro", labelEs: "Silla para carro", labelEn: "Car seat" },
-    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  herramientas: [
-    { value: "taladro", labelEs: "Taladro", labelEn: "Drill" },
-    { value: "caja-herramientas", labelEs: "Caja de herramientas", labelEn: "Toolbox" },
-    { value: "sierra", labelEs: "Sierra", labelEn: "Saw" },
-    { value: "generador", labelEs: "Generador", labelEn: "Generator" },
-    { value: "jardineria", labelEs: "Jardinería", labelEn: "Gardening" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  "auto-partes": [
-    { value: "llantas", labelEs: "Llantas", labelEn: "Tires" },
-    { value: "rines", labelEs: "Rines", labelEn: "Rims" },
-    { value: "bateria", labelEs: "Batería", labelEn: "Battery" },
-    { value: "luces", labelEs: "Luces", labelEn: "Lights" },
-    { value: "estereo", labelEs: "Estéreo", labelEn: "Stereo" },
-    { value: "accesorios", labelEs: "Accesorios", labelEn: "Accessories" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  deportes: [
-    { value: "bicicleta", labelEs: "Bicicleta", labelEn: "Bicycle" },
-    { value: "pesas", labelEs: "Pesas", labelEn: "Weights" },
-    { value: "equipo", labelEs: "Equipo", labelEn: "Equipment" },
-    { value: "ropa-deportiva", labelEs: "Ropa deportiva", labelEn: "Sportswear" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  "juguetes-juegos": [
-    { value: "juguetes", labelEs: "Juguetes", labelEn: "Toys" },
-    { value: "juegos-mesa", labelEs: "Juegos de mesa", labelEn: "Board games" },
-    { value: "consola", labelEs: "Consola", labelEn: "Console" },
-    { value: "videojuego", labelEs: "Videojuego", labelEn: "Video game" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  coleccionables: [
-    { value: "monedas", labelEs: "Monedas", labelEn: "Coins" },
-    { value: "tarjetas", labelEs: "Tarjetas", labelEn: "Cards" },
-    { value: "antiguedades", labelEs: "Antigüedades", labelEn: "Antiques" },
-    { value: "figuras", labelEs: "Figuras", labelEn: "Figures" },
-    { value: "memorabilia", labelEs: "Memorabilia", labelEn: "Memorabilia" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  "musica-foto-video": [
-    { value: "instrumento", labelEs: "Instrumento", labelEn: "Instrument" },
-    { value: "microfono", labelEs: "Micrófono", labelEn: "Microphone" },
-    { value: "camara", labelEs: "Cámara", labelEn: "Camera" },
-    { value: "lente", labelEs: "Lente", labelEn: "Lens" },
-    { value: "iluminacion", labelEs: "Iluminación", labelEn: "Lighting" },
-    { value: "audio", labelEs: "Audio", labelEn: "Audio" },
-    { value: "otro", labelEs: "Otro", labelEn: "Other" },
-  ],
-  otros: [{ value: "otro", labelEs: "Otro", labelEn: "Other" }],
-};
-
 function getCategoryFields(cat: string): DetailField[] {
   return DETAIL_FIELDS[cat] ?? [];
 }
@@ -555,9 +443,8 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
 
     if (cat === "en-venta" && f.key === "itemType") {
       const rama = (details.rama ?? "").trim();
-      const tipos = EN_VENTA_TIPO_BY_RAMA[rama] ?? [];
-      const t = tipos.find((o) => o.value === raw);
-      out.push({ label: f.label[lang], value: t ? (lang === "es" ? t.labelEs : t.labelEn) : raw });
+      const label = getArticuloLabel(rama, raw, lang);
+      out.push({ label: f.label[lang], value: label });
       continue;
     }
 
@@ -2805,53 +2692,67 @@ if (isPro && videoFile && !videoError) {
                           <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <label className="text-sm text-[#111111]">
-                                {lang === "es" ? "Categoría" : "Category"}{" *"}
+                                {lang === "es" ? "Subcategoría" : "Subcategory"}{" *"}
                               </label>
-                            <select
-                              value={details.rama ?? ""}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setDetails((prev) => ({ ...prev, rama: v, itemType: "" }));
-                              }}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            >
-                              <option value="">{lang === "es" ? "Elige una categoría…" : "Choose one…"}</option>
-                              {EN_VENTA_RAMAS.map((r) => (
-                                <option key={r.value} value={r.value}>
-                                  {lang === "es" ? r.labelEs : r.labelEn}
-                                </option>
-                              ))}
-                            </select>
-                            {!details.rama?.trim() && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Requerido." : "Required."}
-                              </div>
-                            )}
-                          </div>
+                              <select
+                                value={details.rama ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setDetails((prev) => ({ ...prev, rama: v, itemType: "" }));
+                                }}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                <option value="">{lang === "es" ? "Elige una subcategoría…" : "Choose one…"}</option>
+                                {EN_VENTA_SUBCATEGORIES.map((s) => (
+                                  <option key={s.key} value={s.key}>
+                                    {lang === "es" ? s.label.es : s.label.en}
+                                  </option>
+                                ))}
+                              </select>
+                              {!details.rama?.trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Requerido." : "Required."}
+                                </div>
+                              )}
+                            </div>
 
-                          <div>
-                            <label className="text-sm text-[#111111]">
-                              {lang === "es" ? "Tipo de artículo" : "Item type"}{" *"}
-                            </label>
-                            <select
-                              value={details.itemType ?? ""}
-                              onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
-                              disabled={!details.rama?.trim()}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
-                            >
-                              <option value="">{lang === "es" ? "Elige el tipo…" : "Choose type…"}</option>
-                              {(EN_VENTA_TIPO_BY_RAMA[details.rama ?? ""] ?? []).map((t) => (
-                                <option key={t.value} value={t.value}>
-                                  {lang === "es" ? t.labelEs : t.labelEn}
-                                </option>
-                              ))}
-                            </select>
-                            {!details.itemType?.trim() && details.rama?.trim() && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Requerido." : "Required."}
-                              </div>
-                            )}
-                          </div>
+                            <div>
+                              <label className="text-sm text-[#111111]">
+                                {lang === "es" ? "Artículo" : "Item type"}{" *"}
+                              </label>
+                              <select
+                                value={details.itemType ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
+                                disabled={!details.rama?.trim()}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                              >
+                                <option value="">{lang === "es" ? "Elige el artículo…" : "Choose type…"}</option>
+                                {(() => {
+                                  const result = getArticuloOptionsForSubcategory(details.rama ?? "");
+                                  if (result.type === "grouped") {
+                                    return result.groups.map((g) => (
+                                      <optgroup key={g.groupLabel.es} label={lang === "es" ? g.groupLabel.es : g.groupLabel.en}>
+                                        {g.options.map((o) => (
+                                          <option key={o.value} value={o.value}>
+                                            {lang === "es" ? o.label.es : o.label.en}
+                                          </option>
+                                        ))}
+                                      </optgroup>
+                                    ));
+                                  }
+                                  return result.options.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {lang === "es" ? o.label.es : o.label.en}
+                                    </option>
+                                  ));
+                                })()}
+                              </select>
+                              {!details.itemType?.trim() && details.rama?.trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Requerido." : "Required."}
+                                </div>
+                              )}
+                            </div>
 
                           <div>
                             <label className="text-sm text-[#111111]">
