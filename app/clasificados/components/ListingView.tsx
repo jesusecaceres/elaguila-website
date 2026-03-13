@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ContactActions from "./ContactActions";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
@@ -38,15 +38,34 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+/** Pro comparison: benefit id passed from parent to highlight the matching UI element. */
+export type ProHighlightId =
+  | "more-photos"
+  | "pro-video"
+  | "visibility-badge"
+  | "save-share"
+  | "contact"
+  | "views-contact";
+
 export type ListingViewProps = {
   listing: ListingData;
   /** Seller preview (toasts, no real actions). */
   previewMode?: boolean;
   /** When true, render this same listing as if upgraded to Pro (badge, boost, benefits block). Preview-only; does not change data. */
   previewProUpgrade?: boolean;
+  /** Pro comparison: which benefit to highlight in the preview (clickable list). */
+  proHighlight?: ProHighlightId | string | null;
+  /** Called when user clicks a benefit in the Pro list; parent can set proHighlight to scroll/highlight. */
+  onProBenefitClick?: (id: ProHighlightId) => void;
 };
 
-export default function ListingView({ listing, previewMode = false, previewProUpgrade = false }: ListingViewProps) {
+export default function ListingView({
+  listing,
+  previewMode = false,
+  previewProUpgrade = false,
+  proHighlight = null,
+  onProBenefitClick,
+}: ListingViewProps) {
   const effectiveIsPro = listing.isPro || previewProUpgrade;
   const lang = listing.lang;
   const [viewerCityInput, setViewerCityInput] = useState("");
@@ -54,6 +73,7 @@ export default function ListingView({ listing, previewMode = false, previewProUp
   const [showProVideo, setShowProVideo] = useState(false);
   const [previewToast, setPreviewToast] = useState<string | null>(null);
   const galleryTouchStartX = useRef(0);
+  const highlightRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const showPreviewToast = useCallback((msg: string) => {
     if (!previewMode) return;
@@ -197,6 +217,21 @@ export default function ListingView({ listing, previewMode = false, previewProUp
   const currentSlot = mediaSlots[safeMediaIndex];
   const hasProVideo = effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl);
 
+  const setHighlightRef = useCallback((id: string, el: HTMLElement | null) => {
+    highlightRefs.current[id] = el;
+  }, []);
+
+  useEffect(() => {
+    if (!proHighlight) return;
+    const el = highlightRefs.current[proHighlight];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [proHighlight]);
+
+  const highlightClass = "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#D9D9D9] transition";
+  const isHighlight = (id: string) => proHighlight === id;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10">
       {/* Left: media dominates — hero fills area, thumbnail rail intentional, minimal gray */}
@@ -204,7 +239,9 @@ export default function ListingView({ listing, previewMode = false, previewProUp
         <div className="rounded-2xl overflow-hidden bg-[#1a1a1a] shadow-lg">
           {mediaSlots.length > 0 && (
             <div
-              className="relative w-full aspect-[4/3] overflow-hidden"
+              ref={(el) => setHighlightRef("pro-video", el)}
+              data-pro-highlight="pro-video"
+              className={cx("relative w-full aspect-[4/3] overflow-hidden", isHighlight("pro-video") && highlightClass)}
               onTouchStart={(e) => {
                 galleryTouchStartX.current = e.touches[0]?.clientX ?? 0;
               }}
@@ -263,9 +300,13 @@ export default function ListingView({ listing, previewMode = false, previewProUp
               )}
             </div>
           )}
-          {/* Thumbnail rail — clear selected state, premium feel */}
+          {/* Thumbnail rail — clear selected state, premium feel; Pro comparison: more-photos highlight */}
           {mediaSlots.length >= 1 && (
-            <div className="flex gap-2 p-3 bg-[#1a1a1a] border-t border-white/10 overflow-x-auto">
+            <div
+              ref={(el) => setHighlightRef("more-photos", el)}
+              data-pro-highlight="more-photos"
+              className={cx("flex gap-2 p-3 bg-[#1a1a1a] border-t border-white/10 overflow-x-auto", isHighlight("more-photos") && highlightClass)}
+            >
               {mediaSlots.slice(0, 8).map((slot, idx) => (
                 <button
                   key={idx}
@@ -332,7 +373,11 @@ export default function ListingView({ listing, previewMode = false, previewProUp
                 );
               })()}
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div
+              ref={(el) => setHighlightRef("visibility-badge", el)}
+              data-pro-highlight="visibility-badge"
+              className={cx("flex flex-wrap items-center gap-2 shrink-0", isHighlight("visibility-badge") && highlightClass)}
+            >
               {effectiveIsPro ? <ProBadge /> : null}
               {previewProUpgrade && (
                 <span
@@ -346,37 +391,66 @@ export default function ListingView({ listing, previewMode = false, previewProUp
           </div>
         </div>
 
-        {/* Pro preview only: value messaging + benefits. Product-like, not salesy. */}
+        {/* Pro preview only: interactive benefits zone — click to highlight matching UI above. Preview-only; not part of published ad. */}
         {previewProUpgrade && (
-          <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#F8F6F0] p-4 sm:p-5 lg:p-6 shadow-sm">
+          <div
+            ref={(el) => setHighlightRef("views-contact", el)}
+            data-pro-highlight="views-contact"
+            className={cx(
+              "rounded-2xl border border-[#C9B46A]/40 bg-[#F8F6F0] p-4 sm:p-5 lg:p-6 shadow-sm",
+              isHighlight("views-contact") && highlightClass
+            )}
+          >
             <p className="text-sm font-semibold text-[#111111] mb-1">
               {lang === "es" ? "Tu anuncio con Pro llega a más compradores." : "Your Pro listing reaches more buyers."}
+            </p>
+            <p className="text-xs text-[#111111]/70 mb-2">
+              {lang === "es"
+                ? "Toca un beneficio para ver dónde aparece en la vista previa."
+                : "Tap a benefit to see where it appears in the preview."}
             </p>
             <p className="text-sm text-[#111111]/90 mb-3">
               {lang === "es" ? "Con Pro tu anuncio incluye:" : "With Pro your listing includes:"}
             </p>
-            <ul className="text-sm text-[#111111]/90 space-y-1.5 list-disc list-inside">
-              {lang === "es" ? (
-                <>
-                  <li>Más fotos y video</li>
-                  <li>Mayor visibilidad en búsquedas</li>
-                  <li>Insignia Pro en tu anuncio</li>
-                  <li>Vistas y contactos (próximamente)</li>
-                </>
-              ) : (
-                <>
-                  <li>More photos and video</li>
-                  <li>Higher visibility in search</li>
-                  <li>Pro badge on your listing</li>
-                  <li>Views and contacts (coming soon)</li>
-                </>
-              )}
+            <ul className="text-sm text-[#111111]/90 space-y-2 list-none">
+              {[
+                { id: "more-photos" as const, es: "Más fotos", en: "More photos" },
+                { id: "pro-video" as const, es: "Video sobresaliente", en: "Featured video" },
+                { id: "visibility-badge" as const, es: "Mayor visibilidad e insignia Pro", en: "Higher visibility & Pro badge" },
+                { id: "save-share" as const, es: "Guardar y compartir", en: "Save and share" },
+                { id: "contact" as const, es: "Texto / Email / Llamar", en: "Text / Email / Call" },
+                { id: "views-contact" as const, es: "Vistas y contactos (próximamente)", en: "Views and contacts (coming soon)" },
+              ].map(({ id, es, en }) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => onProBenefitClick?.(id)}
+                    className={cx(
+                      "w-full text-left rounded-xl px-3 py-2 transition",
+                      isHighlight(id) ? "bg-amber-500/20 ring-1 ring-amber-500/50" : "hover:bg-[#C9B46A]/15"
+                    )}
+                  >
+                    {lang === "es" ? es : en}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         )}
 
-        {/* Card 2: CTA section — Guardar, Compartir, contact (preview = toasts only; no real links) */}
-        <div className="rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-4 sm:p-5 lg:p-6" id="listing-buyer-actions">
+        {/* Card 2: CTA section — Guardar, Compartir, contact (preview = toasts only; no real links); Pro comparison: save-share + contact */}
+        <div
+          ref={(el) => {
+            setHighlightRef("save-share", el);
+            setHighlightRef("contact", el);
+          }}
+          data-pro-highlight="save-share"
+          className={cx(
+            "rounded-2xl border border-[#C9B46A]/40 bg-[#FAF9F6] p-4 sm:p-5 lg:p-6",
+            (isHighlight("save-share") || isHighlight("contact")) && highlightClass
+          )}
+          id="listing-buyer-actions"
+        >
           <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-wrap gap-3">
             <button

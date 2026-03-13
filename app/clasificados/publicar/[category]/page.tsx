@@ -708,6 +708,8 @@ export default function PublicarPage() {
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showFullPreviewModal, setShowFullPreviewModal] = useState<boolean>(false);
   const [fullPreviewVariant, setFullPreviewVariant] = useState<"free" | "pro">("free");
+  /** Pro comparison: which benefit is highlighted in the preview (e.g. "more-photos", "pro-video"). */
+  const [proHighlightId, setProHighlightId] = useState<string | null>(null);
   const [fullPreviewRulesConfirmed, setFullPreviewRulesConfirmed] = useState<boolean>(false);
   const [fullPreviewInfoConfirmed, setFullPreviewInfoConfirmed] = useState<boolean>(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
@@ -913,6 +915,7 @@ setIsPro(plan.includes("pro"));
         proPreviewTitle: "Vista previa Pro",
         proPreviewUpgradeCta: "Mejorar a Pro",
         proPreviewBackToListing: "Volver a mi anuncio",
+        proPreviewViewFreeCta: "Ver versión gratis",
         sendMessageLabel: "Enviar mensaje",
         contactHelperText: "Así verán los usuarios cómo pueden contactarte.",
         draftInProgress: "Tienes una aplicación en progreso",
@@ -987,6 +990,7 @@ setIsPro(plan.includes("pro"));
         proPreviewTitle: "Pro preview",
         proPreviewUpgradeCta: "Upgrade to Pro",
         proPreviewBackToListing: "Back to my listing",
+        proPreviewViewFreeCta: "View free version",
         sendMessageLabel: "Send message",
         contactHelperText: "This is how users will see how to contact you.",
         draftInProgress: "You have an application in progress",
@@ -2218,7 +2222,10 @@ if (isPro && videoFile && !videoError) {
     setShowFullPreviewModal(true);
   };
 
-  const closeFullPreviewModal = () => setShowFullPreviewModal(false);
+  const closeFullPreviewModal = () => {
+    setShowFullPreviewModal(false);
+    setProHighlightId(null);
+  };
 
   const handleFullPreviewConfirmPublish = () => {
     if (!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed) return;
@@ -2229,8 +2236,8 @@ if (isPro && videoFile && !videoError) {
   };
 
   return (
-    <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16">
-      <div className="max-w-4xl mx-auto px-6">
+    <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16 [overflow-anchor:auto]">
+      <div className="max-w-4xl mx-auto px-6" style={{ overflowAnchor: "none" } as React.CSSProperties}>
         <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111111] text-center">
@@ -2360,23 +2367,32 @@ if (isPro && videoFile && !videoError) {
                       listing={fullPreviewListingData}
                       previewMode={true}
                       previewProUpgrade={fullPreviewVariant === "pro"}
+                      proHighlight={fullPreviewVariant === "pro" ? proHighlightId : null}
+                      onProBenefitClick={fullPreviewVariant === "pro" ? setProHighlightId : undefined}
                     />
                   </section>
                   <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
                     <div className="max-w-md mx-auto space-y-3">
                       {fullPreviewVariant === "pro" ? (
                         <>
-                          <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={closeFullPreviewModal}
-                              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+                              className="flex-1 min-w-0 w-full sm:max-w-none rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
                             >
                               {copy.proPreviewBackToListing}
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => { setFullPreviewVariant("free"); setProHighlightId(null); }}
+                              className="flex-1 min-w-0 w-full sm:max-w-none rounded-xl border border-[#111111]/20 bg-white text-[#111111] font-semibold py-3.5 text-center hover:bg-[#F5F5F5] transition"
+                            >
+                              {copy.proPreviewViewFreeCta}
+                            </button>
                             <Link
                               href={category === "en-venta" ? `/clasificados/publicar/en-venta/pro?lang=${lang}` : `/clasificados/membresias?lang=${lang}`}
-                              className="flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                              className="flex-1 min-w-0 w-full sm:max-w-none rounded-xl font-semibold py-3.5 text-center transition bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                             >
                               {copy.proPreviewUpgradeCta}
                             </Link>
