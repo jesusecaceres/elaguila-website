@@ -29,6 +29,8 @@ export type ListingData = {
   sellerName?: string | null;
   /** Optional category label for chip (e.g. "En Venta") */
   categoryLabel?: string | null;
+  /** Optional approximate area / main streets for Rentas (e.g. "King Rd y Story") */
+  approximateArea?: string | null;
 };
 
 type MediaSlot =

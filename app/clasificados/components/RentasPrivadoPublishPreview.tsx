@@ -204,8 +204,14 @@ export default function RentasPrivadoPublishPreview({
                 {formatListingPrice(listing.priceLabel, { lang })}
               </div>
             </div>
-            <div className="mt-2 text-sm text-[#111111]/85">
-              {listing.city} · {listing.todayLabel}
+            <div className="mt-2 text-sm text-[#111111]/85 flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex shrink-0" aria-hidden>📍</span>
+              <span>
+                {listing.city}
+                {listing.approximateArea?.trim() ? ` · ${listing.approximateArea.trim()}` : ""}
+                {" · "}
+                {listing.todayLabel}
+              </span>
             </div>
             {shortFactPills.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -322,7 +328,7 @@ export default function RentasPrivadoPublishPreview({
             <button
               type="button"
               onClick={() => showToast(t.toastSave)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A] hover:bg-[#B8A35A] border border-[#A98C2A]/40 shadow-sm transition text-sm flex items-center justify-center gap-2"
             >
               <span aria-hidden className="text-base">☆</span>
               {lang === "es" ? "Guardar" : "Save"}
@@ -330,7 +336,7 @@ export default function RentasPrivadoPublishPreview({
             <button
               type="button"
               onClick={() => showToast(t.toastShare)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl font-medium text-[#111111]/85 border border-[#C9B46A]/35 bg-white/80 hover:bg-[#F8F6F0] transition text-sm flex items-center justify-center gap-2"
             >
               <span aria-hidden className="text-sm">↗</span>
               {lang === "es" ? "Compartir" : "Share"}
@@ -340,7 +346,7 @@ export default function RentasPrivadoPublishPreview({
                 <button
                   type="button"
                   onClick={() => showToast(t.toastCall)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/80 hover:bg-[#C9B46A]/95 transition text-sm flex items-center justify-center gap-2"
                 >
                   <span aria-hidden className="text-sm">📞</span>
                   {t.llamar}
@@ -348,7 +354,7 @@ export default function RentasPrivadoPublishPreview({
                 <button
                   type="button"
                   onClick={() => showToast(t.toastText)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/80 hover:bg-[#C9B46A]/95 transition text-sm flex items-center justify-center gap-2"
                 >
                   <span aria-hidden className="text-sm">💬</span>
                   {t.texto}
@@ -359,7 +365,7 @@ export default function RentasPrivadoPublishPreview({
               <button
                 type="button"
                 onClick={() => showToast(t.toastEmail)}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/80 hover:bg-[#C9B46A]/95 transition text-sm flex items-center justify-center gap-2"
               >
                 <span aria-hidden className="text-sm">✉</span>
                 {t.email}

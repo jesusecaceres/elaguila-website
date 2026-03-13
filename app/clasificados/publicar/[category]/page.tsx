@@ -414,6 +414,13 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
         : (RENTAS_PLAZO_LABELS[plazo]?.[lang] ?? plazo);
       out.push({ label, value });
     }
+    const fechaDisp = (details.fechaDisponible ?? "").trim();
+    if (fechaDisp) {
+      out.push({
+        label: lang === "es" ? "Fecha disponible" : "Available date",
+        value: fechaDisp,
+      });
+    }
   }
   for (const f of fields) {
     if (cat === "rentas" && f.key === "plazo_contrato") continue;
@@ -2246,8 +2253,9 @@ for (let vi = 0; vi < 2; vi++) {
       lang,
       sellerName: sellerDisplayName || undefined,
       categoryLabel: previewCategoryLabel || undefined,
+      approximateArea: category === "rentas" && snap.details?.zonaDireccion?.trim() ? snap.details.zonaDireccion.trim() : undefined,
     };
-  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName]);
+  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
 
   // Open in-page full preview modal. Rentas Privado: single Pro-style preview, no free/pro comparison.
   const openFullPreview = () => {
@@ -2414,25 +2422,12 @@ for (let vi = 0; vi < 2; vi++) {
                   </div>
                   <section className="flex-1 overflow-y-auto max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full">
                     {isRentasPrivado ? (
-                      <RentasPrivadoPublishPreview
-                        listing={fullPreviewListingData}
-                        previewMode={true}
-                      />
-                    ) : (
-                      <ListingView
-                        listing={fullPreviewListingData}
-                        previewMode={true}
-                        previewProUpgrade={fullPreviewVariant === "pro"}
-                        proHighlight={fullPreviewVariant === "pro" ? proHighlightId : null}
-                        onProBenefitClick={fullPreviewVariant === "pro" ? setProHighlightId : undefined}
-                        hideProComparisonUI={false}
-                      />
-                    )}
-                  </section>
-                  <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
-                    <div className="max-w-md mx-auto space-y-3">
-                      {isRentasPrivado ? (
-                        <>
+                      <>
+                        <RentasPrivadoPublishPreview
+                          listing={fullPreviewListingData}
+                          previewMode={true}
+                        />
+                        <div className="mt-10 pt-8 border-t border-black/10 max-w-2xl mx-auto space-y-3">
                           <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
                             <input
                               type="checkbox"
@@ -2483,8 +2478,23 @@ for (let vi = 0; vi < 2; vi++) {
                               {publishing ? copy.publishing : copy.fullPreviewConfirmPublish}
                             </button>
                           </div>
-                        </>
-                      ) : fullPreviewVariant === "pro" ? (
+                        </div>
+                      </>
+                    ) : (
+                      <ListingView
+                        listing={fullPreviewListingData}
+                        previewMode={true}
+                        previewProUpgrade={fullPreviewVariant === "pro"}
+                        proHighlight={fullPreviewVariant === "pro" ? proHighlightId : null}
+                        onProBenefitClick={fullPreviewVariant === "pro" ? setProHighlightId : undefined}
+                        hideProComparisonUI={false}
+                      />
+                    )}
+                  </section>
+                  {!isRentasPrivado && (
+                  <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
+                    <div className="max-w-md mx-auto space-y-3">
+                      {fullPreviewVariant === "pro" ? (
                         <>
                           <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                             <button
@@ -2572,6 +2582,7 @@ for (let vi = 0; vi < 2; vi++) {
                       )}
                     </div>
                   </div>
+                )}
                 </div>
               )}
 
@@ -3324,12 +3335,12 @@ for (let vi = 0; vi < 2; vi++) {
                           </div>
                           <div>
                             <label className="text-sm text-[#111111]">
-                              {lang === "es" ? "Zona o dirección aproximada" : "Area or approximate address"}
+                              {lang === "es" ? "Calles principales o dirección aproximada" : "Main streets or approximate address"}
                             </label>
                             <input
                               value={details.zonaDireccion ?? ""}
                               onChange={(e) => setDetails((prev) => ({ ...prev, zonaDireccion: e.target.value }))}
-                              placeholder={lang === "es" ? "Ej: Centro, cerca del parque" : "e.g. Downtown, near park"}
+                              placeholder={lang === "es" ? "Ej: King Rd y Story, Centro" : "e.g. King Rd & Story, Downtown"}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                           </div>
