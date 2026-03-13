@@ -162,45 +162,78 @@ export default function RentasPrivadoPublishPreview({
     return parts.length ? parts.join(" · ") : null;
   }, [listing.detailPairs, lang]);
 
+  const factPills = useMemo(() => {
+    const fromRental = rentalFacts.filter((f) => {
+      const n = normalizeLabel(f.label);
+      return n !== "renta mensual" && n !== "monthly rent";
+    });
+    return [...fromRental, ...amenities].slice(0, 10).map((f) => ({ label: f.label, value: f.value }));
+  }, [rentalFacts, amenities]);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-      {/* Left: mini results card (private listing card preview) */}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
+      {/* Left: mini result card preview — reads as "how it appears in list", not a main card */}
       <div className="lg:col-span-3 order-2 lg:order-1">
-        <div className="rounded-2xl border border-stone-300/50 bg-white shadow-sm overflow-hidden sticky top-4">
-          <div className="aspect-[4/3] w-full overflow-hidden bg-[#E8E8E8]">
-            <img
-              src={heroUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+        <p className="text-[11px] font-medium text-[#111111]/50 uppercase tracking-wide mb-2 px-0.5">
+          {lang === "es" ? "Así se verá en la lista" : "How it appears in search"}
+        </p>
+        <div className="rounded-xl border border-[#C9B46A]/25 bg-[#FDFBF7] shadow-sm overflow-hidden sticky top-4 max-w-[220px] lg:max-w-none">
+          <div className="aspect-[4/3] w-full overflow-hidden bg-[#EDE9E2]">
+            <img src={heroUrl} alt="" className="h-full w-full object-cover" />
           </div>
-          <div className="p-3">
-            <div className="text-lg font-extrabold text-[#111111]">
+          <div className="p-2.5">
+            <div className="text-base font-extrabold text-[#111111] leading-tight">
               {/\$|\d/.test(listing.priceLabel)
                 ? (lang === "es" ? "Renta " : "Rent ") + formatListingPrice(listing.priceLabel, { lang })
                 : formatListingPrice(listing.priceLabel, { lang })}
               {/\d/.test(listing.priceLabel) && !/\/\s*mes|\/mes|month/i.test(listing.priceLabel) ? (
-                <span className="ml-1 text-sm font-semibold text-[#111111]/70">/ {lang === "es" ? "mes" : "mo"}</span>
+                <span className="ml-0.5 text-xs font-semibold text-[#111111]/65">/ {lang === "es" ? "mes" : "mo"}</span>
               ) : null}
             </div>
-            {quickFacts && <div className="mt-1 text-xs text-[#111111]/80">{quickFacts}</div>}
-            <h3 className="mt-2 line-clamp-2 text-sm font-semibold text-[#111111] leading-snug">
+            {quickFacts && <div className="mt-0.5 text-[11px] text-[#111111]/75">{quickFacts}</div>}
+            <h3 className="mt-1.5 line-clamp-2 text-xs font-semibold text-[#111111] leading-snug">
               {listing.title}
             </h3>
-            <div className="mt-1 text-xs text-[#111111]/90">{listing.city}</div>
-            <div className="mt-2">
-              <span className="text-xs font-medium text-[#111111]/70">{t.privado}</span>
-            </div>
+            <div className="mt-0.5 text-[11px] text-[#111111]/80">{listing.city}</div>
+            <span className="inline-block mt-1 text-[10px] font-medium text-[#111111]/60">{t.privado}</span>
           </div>
         </div>
       </div>
 
-      {/* Center: main private open-ad (hero gallery, summary, facts, description, characteristics) */}
-      <div className="lg:col-span-6 order-1 lg:order-2 space-y-6">
-        <div className="rounded-2xl border border-stone-300/50 bg-white/95 shadow-sm overflow-hidden">
-          {/* Hero gallery */}
+      {/* Center: ONE unified listing flow — title → price → location → pills → hero → description → characteristics */}
+      <div className="lg:col-span-6 order-1 lg:order-2">
+        <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FAF8F5] shadow-sm overflow-hidden">
+          {/* Top block: title, rent, location, fact pills — single visual unit */}
+          <div className="p-5 sm:p-6 pb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] leading-tight tracking-tight">
+              {listing.title}
+            </h1>
+            <div className="mt-3">
+              <span className="text-xs font-medium text-[#111111]/70 uppercase tracking-wide">{t.rentaMensual}</span>
+              <div className="mt-0.5 text-xl sm:text-2xl font-extrabold text-[#111111]">
+                {formatListingPrice(listing.priceLabel, { lang })}
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-[#111111]/85">
+              {listing.city} · {listing.todayLabel}
+            </div>
+            {factPills.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {factPills.map((f) => (
+                  <span
+                    key={`${f.label}-${f.value}`}
+                    className="inline-flex items-center rounded-full border border-[#C9B46A]/35 bg-white/80 px-3 py-1.5 text-xs font-medium text-[#111111]"
+                  >
+                    {f.label}: {f.value}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Hero gallery — part of same flow, soft divider */}
           <div
-            className="relative w-full aspect-[4/3] max-h-[400px] overflow-hidden bg-[#E8E8E8] border-b border-stone-200/80"
+            className="relative w-full aspect-[4/3] max-h-[380px] overflow-hidden bg-[#1a1a1a] border-y border-[#C9B46A]/20"
             onTouchStart={(e) => { galleryTouchStartX.current = e.touches[0]?.clientX ?? 0; }}
             onTouchEnd={(e) => {
               const endX = e.changedTouches[0]?.clientX ?? 0;
@@ -210,11 +243,7 @@ export default function RentasPrivadoPublishPreview({
             }}
           >
             {mediaSlots[safeMediaIndex]?.type === "image" ? (
-              <img
-                src={mediaSlots[safeMediaIndex].url}
-                alt=""
-                className="w-full h-full object-contain bg-[#0d0d0d]"
-              />
+              <img src={mediaSlots[safeMediaIndex].url} alt="" className="w-full h-full object-contain bg-[#0d0d0d]" />
             ) : mediaSlots[safeMediaIndex]?.type === "video" ? (
               (() => {
                 const idx = mediaSlots[safeMediaIndex].index;
@@ -254,17 +283,18 @@ export default function RentasPrivadoPublishPreview({
               </>
             )}
           </div>
-          {/* Thumbnail strip */}
           {mediaSlots.length > 1 && (
-            <div className="flex gap-2 p-2 bg-white border-t border-stone-200/80 overflow-x-auto">
+            <div className="flex gap-1.5 p-2 bg-[#F5F2ED] border-b border-[#C9B46A]/15 overflow-x-auto">
               {mediaSlots.slice(0, 8).map((slot, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setMediaIndex(idx)}
                   className={cx(
-                    "h-14 w-14 min-w-[3.5rem] shrink-0 rounded-lg overflow-hidden border-2 transition",
-                    safeMediaIndex === idx ? "border-stone-400 ring-1 ring-stone-300" : "border-stone-200 hover:border-stone-300"
+                    "h-12 w-12 min-w-[3rem] shrink-0 rounded-lg overflow-hidden border-2 transition",
+                    safeMediaIndex === idx
+                      ? "border-[#C9B46A]/70 ring-1 ring-[#C9B46A]/30"
+                      : "border-[#C9B46A]/20 hover:border-[#C9B46A]/40"
                   )}
                 >
                   {slot.type === "image" ? (
@@ -272,103 +302,83 @@ export default function RentasPrivadoPublishPreview({
                   ) : getVideoThumbUrl(slot.index) ? (
                     <img src={getVideoThumbUrl(slot.index)!} alt="" className="w-full h-full object-cover opacity-90" />
                   ) : (
-                    <span className="w-full h-full flex items-center justify-center text-2xl bg-stone-200">🎥</span>
+                    <span className="w-full h-full flex items-center justify-center text-xl bg-[#E8E4DD]">🎥</span>
                   )}
                 </button>
               ))}
             </div>
           )}
-        </div>
 
-        {/* Summary: title, rent, location */}
-        <div className="rounded-2xl border border-stone-300/50 bg-white p-5 shadow-sm">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] leading-tight">
-            {listing.title}
-          </h1>
-          <div className="mt-3">
-            <div className="text-sm font-medium text-[#111111]/80">{t.rentaMensual}</div>
-            <div className="text-xl sm:text-2xl font-extrabold text-[#111111]">
-              {formatListingPrice(listing.priceLabel, { lang })}
+          {/* Description — section of same flow */}
+          <div className="px-5 sm:px-6 py-4 border-b border-[#C9B46A]/15">
+            <h3 className="text-[11px] font-semibold text-[#111111]/60 uppercase tracking-wide mb-2">
+              {lang === "es" ? "Descripción" : "Description"}
+            </h3>
+            <div className="text-sm text-[#111111] leading-relaxed whitespace-pre-wrap">
+              {listing.description}
             </div>
           </div>
-          <div className="mt-3 text-sm text-[#111111]/90">
-            {listing.city} · {listing.todayLabel}
-          </div>
-        </div>
 
-        {/* Rental facts */}
-        {rentalFacts.length > 0 && (
-          <div className="rounded-2xl border border-stone-200/80 bg-[#FAFAF9] p-5">
-            <h3 className="text-sm font-semibold text-[#111111]">{t.datosRental}</h3>
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {rentalFacts.map((f) => (
-                <div key={f.label} className="rounded-xl border border-stone-200/80 bg-white px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-wide text-[#111111]/60">{f.label}</div>
-                  <div className="mt-0.5 text-sm font-semibold text-[#111111]">{f.value}</div>
-                </div>
-              ))}
+          {/* Characteristics / datos — section of same flow */}
+          {(rentalFacts.length > 0 || amenities.length > 0) && (
+            <div className="px-5 sm:px-6 py-4">
+              <h3 className="text-[11px] font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">
+                {t.caracteristicas}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {rentalFacts.map((f) => (
+                  <div key={f.label} className="flex justify-between items-baseline gap-2 py-1.5 border-b border-[#C9B46A]/10 last:border-0">
+                    <span className="text-xs text-[#111111]/70">{f.label}</span>
+                    <span className="text-sm font-semibold text-[#111111]">{f.value}</span>
+                  </div>
+                ))}
+                {amenities.map((f) => (
+                  <div key={f.label} className="flex justify-between items-baseline gap-2 py-1.5 border-b border-[#C9B46A]/10 last:border-0">
+                    <span className="text-xs text-[#111111]/70">{f.label}</span>
+                    <span className="text-sm font-semibold text-[#111111]">{f.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Description */}
-        <div className="rounded-2xl border border-stone-200/80 bg-[#FAFAF9] p-5">
-          <div className="text-sm text-[#111111] leading-relaxed whitespace-pre-wrap">
-            {listing.description}
-          </div>
+          )}
         </div>
-
-        {/* Characteristics / amenities */}
-        {amenities.length > 0 && (
-          <div className="rounded-2xl border border-stone-200/80 bg-[#FAFAF9] p-5">
-            <h3 className="text-sm font-semibold text-[#111111]">{t.caracteristicas}</h3>
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {amenities.map((f) => (
-                <div key={f.label} className="rounded-xl border border-stone-200/80 bg-white px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-wide text-[#111111]/60">{f.label}</div>
-                  <div className="mt-0.5 text-sm font-semibold text-[#111111]">{f.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Right: lighter contact / CTA column */}
+      {/* Right: contact column — warmer, clearer hierarchy, gold CTA tone */}
       <div className="lg:col-span-3 order-3 space-y-4">
-        <div className="rounded-2xl border border-stone-200/80 bg-[#FAFAF9] p-5 shadow-sm">
-          <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
-          <div className="flex flex-col gap-2">
+        <div className="rounded-2xl border border-[#C9B46A]/35 bg-[#FDFBF7] p-5 shadow-sm">
+          <h4 className="text-sm font-bold text-[#111111] mb-1">
+            {lang === "es" ? "Contactar" : "Contact"}
+          </h4>
+          <p className="text-xs text-[#111111]/75 mb-4">{t.buyerActionsHelper}</p>
+          <div className="flex flex-col gap-2.5">
             <button
               type="button"
               onClick={() => showToast(t.toastSave)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-stone-300/60 bg-white hover:bg-stone-50 transition text-sm"
+              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm"
             >
               {t.guardar}
             </button>
             <button
               type="button"
               onClick={() => showToast(t.toastShare)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-stone-300/60 bg-white hover:bg-stone-50 transition text-sm"
+              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm"
             >
               {t.compartir}
             </button>
-            <span className="text-xs text-[#111111]/60 font-medium pt-1">
-              {lang === "es" ? "Contactar" : "Contact"}
-            </span>
             {listing.contactMethod !== "email" && (
               <>
                 <button
                   type="button"
                   onClick={() => showToast(t.toastCall)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-stone-300/60 bg-white hover:bg-stone-50 transition text-sm"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm"
                 >
                   {t.llamar}
                 </button>
                 <button
                   type="button"
                   onClick={() => showToast(t.toastText)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-stone-300/60 bg-white hover:bg-stone-50 transition text-sm"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition text-sm"
                 >
                   {t.texto}
                 </button>
@@ -378,7 +388,7 @@ export default function RentasPrivadoPublishPreview({
               <button
                 type="button"
                 onClick={() => showToast(t.toastEmail)}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] border border-stone-300/60 bg-white hover:bg-stone-50 transition text-sm"
+                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/90 hover:bg-[#C9B46A] transition text-sm shadow-sm"
               >
                 {t.email}
               </button>
@@ -391,15 +401,15 @@ export default function RentasPrivadoPublishPreview({
           )}
         </div>
 
-        <div className="rounded-2xl border border-stone-200/80 bg-[#FAFAF9] p-4">
-          <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.anunciante}</h4>
-          <p className="text-sm font-medium text-[#111111]">{listing.sellerName?.trim() || (lang === "es" ? "Tú" : "You")}</p>
-          <p className="mt-1 text-xs text-[#111111]/70">{t.privado}</p>
+        <div className="rounded-xl border border-[#C9B46A]/25 bg-[#FDFBF7] p-4">
+          <h4 className="text-[11px] font-semibold text-[#111111]/65 uppercase tracking-wide mb-1.5">{t.anunciante}</h4>
+          <p className="text-sm font-semibold text-[#111111]">{listing.sellerName?.trim() || (lang === "es" ? "Tú" : "You")}</p>
+          <p className="text-xs text-[#111111]/65 mt-0.5">{t.privado}</p>
         </div>
 
-        <div className="rounded-2xl border border-stone-200/80 bg-[#FAFAF9] p-4">
-          <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">{t.ubicacion}</h4>
-          <p className="text-sm text-[#111111]">{listing.city}</p>
+        <div className="rounded-xl border border-[#C9B46A]/25 bg-[#FDFBF7] p-4">
+          <h4 className="text-[11px] font-semibold text-[#111111]/65 uppercase tracking-wide mb-1.5">{t.ubicacion}</h4>
+          <p className="text-sm font-medium text-[#111111]">{listing.city}</p>
         </div>
       </div>
     </div>
