@@ -2542,14 +2542,16 @@ for (let vi = 0; vi < 2; vi++) {
                   ))}
                 </ul>
               </div>
-              {(saveProgressing || showSaveSuccess || dbSaveStatus === "saved" || dbSaveStatus === "error") && (
-                <div className="mt-2 text-sm" role="status">
-                  {showSaveSuccess && <span className="text-[#0d7a0d] font-medium">✓ {copy.saveProgressSuccess}</span>}
-                  {saveProgressing && !showSaveSuccess && <span className="text-[#111111]/70">{lang === "es" ? "Guardando…" : "Saving…"}</span>}
-                  {dbSaveStatus === "saved" && !showSaveSuccess && <span className="text-[#0d7a0d] font-medium">{lang === "es" ? "Guardado" : "Saved"}</span>}
-                  {dbSaveStatus === "error" && <span className="text-red-600" role="alert">{lang === "es" ? "Error al guardar. Reintenta." : "Error saving. Try again."}</span>}
-                </div>
-              )}
+              {/* Always reserve one line so status toggles do not cause layout shift while typing */}
+              <div className="mt-2 min-h-[1.5rem] text-sm flex items-center" role="status" aria-live="polite">
+                {showSaveSuccess && <span className="text-[#0d7a0d] font-medium">✓ {copy.saveProgressSuccess}</span>}
+                {saveProgressing && !showSaveSuccess && <span className="text-[#111111]/70">{lang === "es" ? "Guardando…" : "Saving…"}</span>}
+                {dbSaveStatus === "saved" && !showSaveSuccess && <span className="text-[#0d7a0d] font-medium">{lang === "es" ? "Guardado" : "Saved"}</span>}
+                {dbSaveStatus === "error" && <span className="text-red-600" role="alert">{lang === "es" ? "Error al guardar. Reintenta." : "Error saving. Try again."}</span>}
+                {!saveProgressing && !showSaveSuccess && dbSaveStatus !== "saved" && dbSaveStatus !== "error" && (
+                  <span className="invisible select-none text-[#111111]/70" aria-hidden>.</span>
+                )}
+              </div>
 
               <div className="mt-6 grid gap-6">
                 {/* CATEGORY (STEP 1) — icon cards, all real categories, no Más */}
