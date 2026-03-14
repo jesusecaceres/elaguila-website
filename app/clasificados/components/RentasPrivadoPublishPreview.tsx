@@ -87,11 +87,10 @@ export default function RentasPrivadoPublishPreview({
     const slots: MediaSlot[] = [];
     if (images[0]) slots.push({ type: "image", url: images[0] });
     if (listing.proVideoUrl || listing.proVideoThumbUrl) slots.push({ type: "video", index: 0 });
-    if (listing.proVideoUrl2 || listing.proVideoThumbUrl2) slots.push({ type: "video", index: 1 });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [images, listing.proVideoUrl, listing.proVideoThumbUrl, listing.proVideoUrl2, listing.proVideoThumbUrl2]);
+  }, [images, listing.proVideoUrl, listing.proVideoThumbUrl]);
 
   const { rentalFacts, amenities } = useMemo(
     () => splitRentasDetails(listing.detailPairs ?? [], listing.priceLabel, lang),
@@ -395,7 +394,7 @@ export default function RentasPrivadoPublishPreview({
             <button
               type="button"
               onClick={() => showToast(t.toastSave)}
-              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A] hover:bg-[#B8A35A] border border-[#A98C2A]/40 shadow-sm transition text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A] hover:bg-[#B8A35A] border border-[#A98C2A]/50 shadow-md transition text-sm flex items-center justify-center gap-2 ring-1 ring-[#A98C2A]/20"
             >
               <span aria-hidden className="text-base">☆</span>
               {lang === "es" ? "Guardar" : "Save"}
@@ -403,7 +402,7 @@ export default function RentasPrivadoPublishPreview({
             <button
               type="button"
               onClick={() => showToast(t.toastShare)}
-              className="w-full px-4 py-3 rounded-xl font-medium text-[#111111]/85 border border-[#C9B46A]/35 bg-white/80 hover:bg-[#F8F6F0] transition text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl font-medium text-[#111111]/80 border border-[#C9B46A]/30 bg-[#FAF8F5] hover:bg-[#F5F2ED] transition text-sm flex items-center justify-center gap-2"
             >
               <span aria-hidden className="text-sm">↗</span>
               {lang === "es" ? "Compartir" : "Share"}
@@ -413,7 +412,7 @@ export default function RentasPrivadoPublishPreview({
                 <button
                   type="button"
                   onClick={() => showToast(t.toastCall)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/80 hover:bg-[#C9B46A]/95 transition text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/90 transition text-sm flex items-center justify-center gap-2"
                 >
                   <span aria-hidden className="text-sm">📞</span>
                   {t.llamar}
@@ -421,7 +420,7 @@ export default function RentasPrivadoPublishPreview({
                 <button
                   type="button"
                   onClick={() => showToast(t.toastText)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/80 hover:bg-[#C9B46A]/95 transition text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/90 transition text-sm flex items-center justify-center gap-2"
                 >
                   <span aria-hidden className="text-sm">💬</span>
                   {t.texto}
@@ -432,7 +431,7 @@ export default function RentasPrivadoPublishPreview({
               <button
                 type="button"
                 onClick={() => showToast(t.toastEmail)}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/80 hover:bg-[#C9B46A]/95 transition text-sm flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/90 transition text-sm flex items-center justify-center gap-2"
               >
                 <span aria-hidden className="text-sm">✉</span>
                 {t.email}

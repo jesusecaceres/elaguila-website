@@ -24,11 +24,13 @@ const COMPRESSION_OPTS = { maxSizeMB: 1, maxWidthOrHeight: 1920 };
 export type MediaUploaderProps = {
   images: File[];
   onImagesChange: (files: File[]) => void;
-  /** Up to 2 Pro videos. */
+  /** Up to 2 Pro videos (or 1 for Rentas private). */
   videoFiles: [File | null, File | null];
   onVideoChange: (index: number, file: File | null) => void;
   isPro: boolean;
   maxImages: number;
+  /** Number of video slots to show (1 = Rentas private, 2 = default). */
+  maxVideos?: number;
   lang: "es" | "en";
   uploadProgress?: { current: number; total: number } | null;
   videoPreviewUrls?: [string, string];
@@ -125,6 +127,7 @@ export function MediaUploader({
   onVideoChange,
   isPro,
   maxImages,
+  maxVideos = 2,
   lang,
   uploadProgress,
   videoPreviewUrls = ["", ""],
@@ -134,6 +137,7 @@ export function MediaUploader({
   onBeforeProNavigate,
   copy = {},
 }: MediaUploaderProps) {
+  const videoSlotIndices = maxVideos === 1 ? ([0] as const) : ([0, 1] as const);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const videoCameraRef = useRef<HTMLInputElement | null>(null);
@@ -346,13 +350,13 @@ export function MediaUploader({
         )}
       </div>
 
-      {/* VIDEO (up to 2, Pro only) */}
+      {/* VIDEO (Pro only; 1 slot for Rentas private, 2 for others) */}
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="text-sm text-[#111111]">{videoLabel}</div>
         <div className="mt-1 text-xs text-[#111111]/45">{videoHintLabel}</div>
         {lang === "es" && (
           <ul className="mt-2 text-xs text-[#111111]/70 space-y-0.5 list-none">
-            <li>Hasta 2 videos por anuncio</li>
+            <li>{maxVideos === 1 ? "Hasta 1 video por anuncio" : "Hasta 2 videos por anuncio"}</li>
             <li>Máx 15s</li>
             <li>1080p</li>
             <li>Máx ~75MB</li>
@@ -377,7 +381,7 @@ export function MediaUploader({
           aria-hidden
         />
 
-        {([0, 1] as const).map((idx) => {
+        {videoSlotIndices.map((idx) => {
           const file = videoFiles[idx];
           const previewUrl = videoPreviewUrls[idx] ?? "";
           const err = videoErrors[idx] ?? "";
@@ -385,7 +389,7 @@ export function MediaUploader({
           return (
             <div key={idx} className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3">
               <div className="text-xs font-medium text-[#111111]/70 mb-2">
-                {lang === "es" ? `Video ${idx + 1}` : `Video ${idx + 1}`}
+                {maxVideos === 1 ? (lang === "es" ? "Video" : "Video") : (lang === "es" ? `Video ${idx + 1}` : `Video ${idx + 1}`)}
               </div>
               {hasFile ? (
                 <>

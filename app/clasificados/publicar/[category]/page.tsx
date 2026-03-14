@@ -664,7 +664,7 @@ export default function PublicarPage() {
   /** Rentas Privado is Pro-only; no free/pro comparison. */
   const isRentasPrivado = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
   const effectiveIsPro = isPro || isRentasPrivado;
-  const maxImages = effectiveIsPro ? 12 : 3;
+  const maxImages = isRentasPrivado ? 15 : (effectiveIsPro ? 12 : 3);
 
   // If plan changes to Free, trim images to Free limit (3). Rentas Privado keeps Pro limits.
   useEffect(() => {
@@ -881,6 +881,8 @@ setIsPro(plan.includes("pro"));
         video: "Videos (Pro, hasta 2 por anuncio)",
         addVideo: "Agregar video",
         videoHint: "Hasta 2 videos por anuncio. Máx 15s, 1080p, ~75MB.",
+        rentasPrivadoVideo: "Video (Pro, hasta 1 por anuncio)",
+        rentasPrivadoVideoHint: "Hasta 1 video. Máx 15s, 1080p, ~75MB.",
         videoLocked: "Desbloquea video con LEONIX Pro.",
         contact: "Método de contacto",
         phone: "Teléfono",
@@ -954,6 +956,8 @@ setIsPro(plan.includes("pro"));
         video: "Videos (Pro, up to 2 per listing)",
         addVideo: "Add video",
         videoHint: "Up to 2 videos per listing. Max 15s, 1080p, ~75MB.",
+        rentasPrivadoVideo: "Video (Pro, up to 1 per listing)",
+        rentasPrivadoVideoHint: "Up to 1 video. Max 15s, 1080p, ~75MB.",
         videoLocked: "Unlock video with LEONIX Pro.",
         contact: "Contact method",
         phone: "Phone",
@@ -1580,28 +1584,9 @@ setIsPro(plan.includes("pro"));
   }, [images]);
 
   // Single normalized snapshot for preview, validation, and insert (same source of truth).
-  const enVentaSnapshot = useMemo(
-    () =>
-      buildEnVentaDraftSnapshot({
-        title,
-        description,
-        city,
-        price,
-        isFree,
-        details,
-        contactMethod,
-        contactPhone,
-        contactEmail,
-        category,
-        lang,
-        isPro: effectiveIsPro,
-        imageUrls: filePreviews,
-        proVideoThumbUrl: proVideoThumbPreviewUrls[0] || null,
-        proVideoUrl: proVideoPreviewUrls[0] || null,
-        proVideoThumbUrl2: proVideoThumbPreviewUrls[1] || null,
-        proVideoUrl2: proVideoPreviewUrls[1] || null,
-      }),
-    [
+  const enVentaSnapshot = useMemo(() => {
+    const isPrivate = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
+    return buildEnVentaDraftSnapshot({
       title,
       description,
       city,
@@ -1613,12 +1598,30 @@ setIsPro(plan.includes("pro"));
       contactEmail,
       category,
       lang,
-      effectiveIsPro,
-      filePreviews,
-      proVideoThumbPreviewUrls,
-      proVideoPreviewUrls,
-    ]
-  );
+      isPro: effectiveIsPro,
+      imageUrls: filePreviews,
+      proVideoThumbUrl: proVideoThumbPreviewUrls[0] || null,
+      proVideoUrl: proVideoPreviewUrls[0] || null,
+      proVideoThumbUrl2: isPrivate ? null : (proVideoThumbPreviewUrls[1] || null),
+      proVideoUrl2: isPrivate ? null : (proVideoPreviewUrls[1] || null),
+    });
+  }, [
+    title,
+    description,
+    city,
+    price,
+    isFree,
+    details,
+    contactMethod,
+    contactPhone,
+    contactEmail,
+    category,
+    lang,
+    effectiveIsPro,
+    filePreviews,
+    proVideoThumbPreviewUrls,
+    proVideoPreviewUrls,
+  ]);
 
   // Validation from snapshot so we validate what preview/insert use.
   const requirements = useMemo(() => {
@@ -3857,11 +3860,12 @@ for (let vi = 0; vi < 2; vi++) {
                             : undefined
                         }
                         onBeforeProNavigate={category === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
+                        maxVideos={isRentasPrivado ? 1 : 2}
                         copy={{
                           addImages: copy.addImages,
                           addVideo: copy.addVideo,
-                          video: copy.video,
-                          videoHint: copy.videoHint,
+                          video: isRentasPrivado ? (copy as { rentasPrivadoVideo?: string }).rentasPrivadoVideo : copy.video,
+                          videoHint: isRentasPrivado ? (copy as { rentasPrivadoVideoHint?: string }).rentasPrivadoVideoHint : copy.videoHint,
                           images: copy.images,
                         }}
                       />
@@ -4063,7 +4067,7 @@ for (let vi = 0; vi < 2; vi++) {
                               )}
                             </div>
 
-                            {isPro && (videoFiles[0] || videoFiles[1]) && (
+                            {isPro && (videoFiles[0] || (!isRentasPrivado && videoFiles[1])) && (
                               <div className="mt-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
                                 <div className="text-sm font-semibold text-yellow-200">
                                   {lang === "es" ? "Videos (Pro)" : "Pro Videos"}
@@ -4074,7 +4078,7 @@ for (let vi = 0; vi < 2; vi++) {
                                     : "Tap the thumbnail to play. No autoplay."}
                                 </div>
                                 <div className="mt-3 space-y-3">
-                                  {([0, 1] as const).map((idx) => {
+                                  {(isRentasPrivado ? [0] : [0, 1]).map((idx) => {
                                     if (!videoFiles[idx] || videoErrors[idx]) return null;
                                     const thumb = proVideoThumbPreviewUrls[idx];
                                     const src = proVideoPreviewUrls[idx];
@@ -4096,7 +4100,7 @@ for (let vi = 0; vi < 2; vi++) {
                                         ) : (
                                           <button
                                             type="button"
-                                            onClick={() => setExpandedVideoIndex(idx)}
+                                            onClick={() => setExpandedVideoIndex(idx as 0 | 1)}
                                             className="group relative block w-full overflow-hidden rounded-b-xl border-0"
                                             aria-label={lang === "es" ? "Reproducir video" : "Play video"}
                                           >
