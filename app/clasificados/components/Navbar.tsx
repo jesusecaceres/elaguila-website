@@ -194,12 +194,15 @@ function NavbarContent() {
   }, [pathname, searchParams]);
 
   const goToLogin = useCallback(() => {
-    // If user hit login while on the posting flow, send them back to Clasificados after auth.
-    const safePath = currentPathWithQuery?.startsWith("/clasificados/publicar")
-      ? `/clasificados?lang=${lang}`
-      : (currentPathWithQuery || `/home?lang=${lang}`);
-    const redirect = encodeURIComponent(safePath);
-    router.push(`/login?redirect=${redirect}`);
+    const onPublicar = currentPathWithQuery?.startsWith("/clasificados/publicar");
+    if (onPublicar) {
+      const redirect = encodeURIComponent(currentPathWithQuery || `/clasificados/publicar/en-venta?lang=${lang}`);
+      router.push(`/login?mode=post&lang=${lang}&redirect=${redirect}`);
+    } else {
+      const safePath = currentPathWithQuery || `/home?lang=${lang}`;
+      const redirect = encodeURIComponent(safePath);
+      router.push(`/login?mode=login&lang=${lang}&redirect=${redirect}`);
+    }
   }, [currentPathWithQuery, lang, router]);
 
   // Load + subscribe to auth state

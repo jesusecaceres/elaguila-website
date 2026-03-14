@@ -72,7 +72,7 @@ export default function LoginPage() {
     if (mode === "signup")
       return `/dashboard/perfil?onboarding=1&lang=${defaultLang}`;
     if (mode === "post")
-      return `/dashboard/perfil?require=post&lang=${defaultLang}`;
+      return `/clasificados/publicar/en-venta?lang=${defaultLang}`;
     return `/clasificados?lang=${defaultLang}`;
   }, [redirectParam, defaultLang, mode]);
 

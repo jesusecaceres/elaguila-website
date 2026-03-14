@@ -786,7 +786,7 @@ export default function PublicarPage() {
     }
   }, [step, checking, signedIn]);
 
-  // Session gate
+  // Session gate: redirect to login (mode=post) if not authenticated; no stuck "Verificando sesión"
   useEffect(() => {
     let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
     try {
@@ -805,47 +805,56 @@ export default function PublicarPage() {
     let mounted = true;
 
     async function check() {
-      const { data } = await supabase!.auth.getUser();
-      if (!mounted) return;
+      try {
+        const { data } = await supabase!.auth.getUser();
+        if (!mounted) return;
 
-      if (!data.user) {
-        const next = `/login?redirect=${encodeURIComponent(redirectForLogin)}`;
+        if (!data.user) {
+          setChecking(false);
+          const next = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(redirectForLogin)}`;
+          router.replace(next);
+          return;
+        }
+
+        const meta = data.user.user_metadata || {};
+        const profilePhoneDigits = (meta.phone || meta.contact_phone || "").toString().replace(/\D/g, "");
+        const profileCityCanonical = normalizeCity((meta.city || meta.location || "").toString().trim());
+        const profileCompleteForPost = profilePhoneDigits.length === 10 && Boolean(profileCityCanonical);
+        if (!profileCompleteForPost) {
+          setChecking(false);
+          const perfilUrl = `/dashboard/perfil?lang=${lang}&require=post&redirect=${encodeURIComponent(redirectForLogin)}`;
+          router.replace(perfilUrl);
+          return;
+        }
+
+        setUserId(data.user.id);
+        setSignedIn(true);
+        const name = (meta.full_name ?? meta.name ?? meta.fullName ?? "").toString().trim();
+        setSellerDisplayName(name || "");
+
+        const planRaw =
+          (data.user.user_metadata?.leonix_plan as string | undefined) ||
+          (data.user.user_metadata?.plan as string | undefined) ||
+          (data.user.app_metadata?.plan as string | undefined) ||
+          "";
+        const plan = String(planRaw).toLowerCase();
+        setIsPro(plan.includes("pro"));
+
+        const gm = (data.user.user_metadata as any)?.garage_mode_en_venta || null;
+        const lastUsed = (gm && (gm.lastUsedAt || gm.last_used_at || gm.last_used)) ? String(gm.lastUsedAt || gm.last_used_at || gm.last_used) : "";
+        const expires = (gm && (gm.expiresAt || gm.expires_at || gm.expires)) ? String(gm.expiresAt || gm.expires_at || gm.expires) : "";
+        setGarageLastUsedAt(lastUsed);
+        setGarageExpiresAt(expires);
+        const expD = parseIsoMaybe(expires);
+        setGarageActive(!!(expD && expD.getTime() > Date.now()));
+
+        setChecking(false);
+      } catch {
+        if (!mounted) return;
+        setChecking(false);
+        const next = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(redirectForLogin)}`;
         router.replace(next);
-        return;
       }
-
-      const meta = data.user.user_metadata || {};
-      const profilePhoneDigits = (meta.phone || meta.contact_phone || "").toString().replace(/\D/g, "");
-      const profileCityCanonical = normalizeCity((meta.city || meta.location || "").toString().trim());
-      const profileCompleteForPost = profilePhoneDigits.length === 10 && Boolean(profileCityCanonical);
-      if (!profileCompleteForPost) {
-        const perfilUrl = `/dashboard/perfil?lang=${lang}&require=post&redirect=${encodeURIComponent(redirectForLogin)}`;
-        router.replace(perfilUrl);
-        return;
-      }
-
-      setUserId(data.user.id);
-      setSignedIn(true);
-      const name = (meta.full_name ?? meta.name ?? meta.fullName ?? "").toString().trim();
-      setSellerDisplayName(name || "");
-
-const planRaw =
-  (data.user.user_metadata?.leonix_plan as string | undefined) ||
-  (data.user.user_metadata?.plan as string | undefined) ||
-  (data.user.app_metadata?.plan as string | undefined) ||
-  "";
-const plan = String(planRaw).toLowerCase();
-setIsPro(plan.includes("pro"));
-
-      const gm = (data.user.user_metadata as any)?.garage_mode_en_venta || null;
-      const lastUsed = (gm && (gm.lastUsedAt || gm.last_used_at || gm.last_used)) ? String(gm.lastUsedAt || gm.last_used_at || gm.last_used) : "";
-      const expires = (gm && (gm.expiresAt || gm.expires_at || gm.expires)) ? String(gm.expiresAt || gm.expires_at || gm.expires) : "";
-      setGarageLastUsedAt(lastUsed);
-      setGarageExpiresAt(expires);
-      const expD = parseIsoMaybe(expires);
-      setGarageActive(!!(expD && expD.getTime() > Date.now()));
-
-      setChecking(false);
     }
 
     check();
