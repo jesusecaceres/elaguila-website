@@ -1069,49 +1069,59 @@ export default function PublicarPage() {
     }
   }, [searchParams, draftKey, userId]);
 
-  // Re-entry: when a saved application exists, always show the chooser modal (do not auto-apply).
+  // Re-entry: for signed-in users, DB is primary (one active draft per category). Hydrate from DB when found; only fall back to local + modal when no DB draft or not signed in.
   useEffect(() => {
-    if (draftKey === "listing_draft_ssr" || draftCheckedRef.current || !signedIn || !userId) return;
+    if (draftKey === "listing_draft_ssr" || draftCheckedRef.current) return;
     if (searchParams?.get("fromPro") === "1") return;
+
+    if (!signedIn || !userId) {
+      // Not signed in: keep current behavior — local/session only, show modal if local has draft (do not set draftCheckedRef so that when user signs in we run DB resolution)
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as Partial<DraftV1>;
+          if (parsed.v === 1) setShowDraftRestoreModal(true);
+        } catch {
+          // ignore
+        }
+      }
+      return;
+    }
+
     let cancelled = false;
+    draftCheckedRef.current = true; // prevent duplicate in-flight resolution
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const draftIdParam = searchParams?.get("draftId");
-        const storedId = getStoredDraftId(userId);
-
-        if (draftIdParam || storedId) {
-          const id = draftIdParam || storedId;
-          const row = await getDraft(supabase, id!, userId);
-          if (cancelled) return;
-          if (row?.draft_data) {
-            draftCheckedRef.current = true;
-            setDraftId(row.id);
-            setStoredDraftId(userId, row.id);
-            setShowDraftRestoreModal(true);
-            return;
-          }
-        }
-
         const categoryForQuery = categoryFromUrl || undefined;
         const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
         if (cancelled) return;
-        if (latest) {
-          draftCheckedRef.current = true;
+        if (latest?.draft_data) {
+          applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
           setDraftId(latest.id);
           setStoredDraftId(userId, latest.id);
-          setShowDraftRestoreModal(true);
           return;
         }
 
+        // No DB draft for this category: fall back to local; show modal if local has draft
         const raw = localStorage.getItem(draftKey);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<DraftV1>;
           if (parsed.v === 1) setShowDraftRestoreModal(true);
         }
-        draftCheckedRef.current = true;
       } catch {
-        if (!cancelled) draftCheckedRef.current = true;
+        if (!cancelled) {
+          const raw = localStorage.getItem(draftKey);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw) as Partial<DraftV1>;
+              if (parsed.v === 1) setShowDraftRestoreModal(true);
+            } catch {
+              // ignore
+            }
+          }
+          draftCheckedRef.current = true;
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -1389,7 +1399,7 @@ export default function PublicarPage() {
     };
   }, [step, category, title, description, isFree, price, city, details, contactMethod, contactPhone, contactEmail, images]);
 
-  /** Persist draft to DB (create or update) and localStorage fallback. */
+  /** Persist draft to DB (one active draft per category per user: update existing or create). Then localStorage fallback. */
   const performDbSave = useCallback(async () => {
     if (draftKey === "listing_draft_ssr" || !userId || showDraftRestoreModal) return;
     try {
@@ -1405,6 +1415,7 @@ export default function PublicarPage() {
 
       setDbSaveStatus("saving");
       const supabase = createSupabaseBrowserClient();
+      const categorySlug = payload.category || "en-venta";
 
       if (draftId) {
         const result = await updateDraft(supabase, draftId, userId, payload);
@@ -1419,18 +1430,36 @@ export default function PublicarPage() {
           setDbSaveStatus("error");
         }
       } else {
-        const created = await createDraft(supabase, userId, payload.category || "en-venta", payload);
-        if (created) {
-          setDraftId(created.id);
-          setStoredDraftId(userId, created.id);
-          setDbSaveStatus("saved");
-          if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
-          dbSaveSuccessTimerRef.current = setTimeout(() => {
-            setDbSaveStatus("idle");
-            dbSaveSuccessTimerRef.current = null;
-          }, 2000);
+        // One active draft per category per user: reuse existing if present
+        const existing = await getLatestDraftForCategory(supabase, userId, categorySlug);
+        if (existing) {
+          const result = await updateDraft(supabase, existing.id, userId, payload);
+          if (result.ok) {
+            setDraftId(existing.id);
+            setStoredDraftId(userId, existing.id);
+            setDbSaveStatus("saved");
+            if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
+            dbSaveSuccessTimerRef.current = setTimeout(() => {
+              setDbSaveStatus("idle");
+              dbSaveSuccessTimerRef.current = null;
+            }, 2000);
+          } else {
+            setDbSaveStatus("error");
+          }
         } else {
-          setDbSaveStatus("error");
+          const created = await createDraft(supabase, userId, categorySlug, payload);
+          if (created) {
+            setDraftId(created.id);
+            setStoredDraftId(userId, created.id);
+            setDbSaveStatus("saved");
+            if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
+            dbSaveSuccessTimerRef.current = setTimeout(() => {
+              setDbSaveStatus("idle");
+              dbSaveSuccessTimerRef.current = null;
+            }, 2000);
+          } else {
+            setDbSaveStatus("error");
+          }
         }
       }
 
