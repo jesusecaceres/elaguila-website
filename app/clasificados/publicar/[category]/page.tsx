@@ -21,8 +21,10 @@ import {
   updateDraft,
   getDraft,
   getLatestDraftForCategory,
+  getLatestDraftForRentasBranch,
   deleteDraftInDb,
   type DraftDataPayload,
+  type ListingDraftRow,
 } from "../../lib/listingDraftsDb";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
@@ -1049,25 +1051,63 @@ export default function PublicarPage() {
     }
   }
 
-  // When returning from Pro page: auto-restore draft and step so seller lands back on same ad (no modal).
+  // When returning from Pro page: auto-restore draft and step. For signed-in users, prefer DB over localStorage.
   useEffect(() => {
     if (searchParams?.get("fromPro") !== "1" || draftKey === "listing_draft_ssr") return;
-    try {
-      const raw = localStorage.getItem(draftKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<DraftV1>;
-      if (parsed.v !== 1) return;
+    const raw = localStorage.getItem(draftKey);
+    const parsed = raw ? (() => { try { return JSON.parse(raw) as Partial<DraftV1>; } catch { return null; } })() : null;
+    if (!parsed || parsed.v !== 1) return;
+
+    let cancelled = false;
+    if (signedIn && userId) {
       draftCheckedRef.current = true;
-      applyDraftToForm(parsed);
-      setStep("media");
-      if (userId) {
-        const stored = getStoredDraftId(userId);
-        if (stored) setDraftId(stored);
-      }
-    } catch {
-      // ignore
+      (async () => {
+        try {
+          const supabase = createSupabaseBrowserClient();
+          const categoryForQuery = categoryFromUrl || undefined;
+          if (categoryForQuery === "rentas") {
+            const branch = ((parsed as any)?.details as Record<string, string> | undefined)?.rentasBranch?.trim().toLowerCase();
+            if (branch === "privado" || branch === "negocio") {
+              const latest = await getLatestDraftForRentasBranch(supabase, userId, branch);
+              if (!cancelled && latest?.draft_data) {
+                applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
+                setDraftId(latest.id);
+                setStoredDraftId(userId, latest.id);
+                setStep("media");
+                return;
+              }
+            }
+          } else {
+            const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
+            if (!cancelled && latest?.draft_data) {
+              applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
+              setDraftId(latest.id);
+              setStoredDraftId(userId, latest.id);
+              setStep("media");
+              return;
+            }
+          }
+        } catch {
+          // fall through to localStorage fallback
+        }
+        if (!cancelled) {
+          applyDraftToForm(parsed);
+          setStep("media");
+          const stored = getStoredDraftId(userId);
+          if (stored) setDraftId(stored);
+        }
+      })();
+      return () => { cancelled = true; };
     }
-  }, [searchParams, draftKey, userId]);
+
+    draftCheckedRef.current = true;
+    applyDraftToForm(parsed);
+    setStep("media");
+    if (userId) {
+      const stored = getStoredDraftId(userId);
+      if (stored) setDraftId(stored);
+    }
+  }, [searchParams, draftKey, userId, signedIn, categoryFromUrl]);
 
   // Re-entry: for signed-in users, DB is primary (one active draft per category). Hydrate from DB when found; only fall back to local + modal when no DB draft or not signed in.
   useEffect(() => {
@@ -1094,16 +1134,65 @@ export default function PublicarPage() {
       try {
         const supabase = createSupabaseBrowserClient();
         const categoryForQuery = categoryFromUrl || undefined;
-        const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
-        if (cancelled) return;
-        if (latest?.draft_data) {
-          applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
-          setDraftId(latest.id);
-          setStoredDraftId(userId, latest.id);
-          return;
+
+        if (categoryForQuery === "rentas") {
+          // Rentas: one active draft per user per branch (privado | negocio)
+          const raw = localStorage.getItem(draftKey);
+          let branchHint: string | null = null;
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw) as Partial<DraftV1>;
+              const d = (parsed as any)?.details as Record<string, string> | undefined;
+              const b = (d?.rentasBranch ?? "").trim().toLowerCase();
+              if (b === "privado" || b === "negocio") branchHint = b;
+            } catch {
+              // ignore
+            }
+          }
+          if (branchHint) {
+            const latest = await getLatestDraftForRentasBranch(supabase, userId, branchHint);
+            if (cancelled) return;
+            if (latest?.draft_data) {
+              applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
+              setDraftId(latest.id);
+              setStoredDraftId(userId, latest.id);
+              return;
+            }
+          } else {
+            const [privado, negocio] = await Promise.all([
+              getLatestDraftForRentasBranch(supabase, userId, "privado"),
+              getLatestDraftForRentasBranch(supabase, userId, "negocio"),
+            ]);
+            if (cancelled) return;
+            const withUpdated = [
+              privado ? { row: privado, at: privado.updated_at } : null,
+              negocio ? { row: negocio, at: negocio.updated_at } : null,
+            ].filter(Boolean) as Array<{ row: ListingDraftRow; at: string }>;
+            const latest =
+              withUpdated.length === 1
+                ? withUpdated[0].row
+                : withUpdated.length === 2
+                  ? (withUpdated[0].at >= withUpdated[1].at ? withUpdated[0].row : withUpdated[1].row)
+                  : null;
+            if (latest?.draft_data) {
+              applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
+              setDraftId(latest.id);
+              setStoredDraftId(userId, latest.id);
+              return;
+            }
+          }
+        } else {
+          const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
+          if (cancelled) return;
+          if (latest?.draft_data) {
+            applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
+            setDraftId(latest.id);
+            setStoredDraftId(userId, latest.id);
+            return;
+          }
         }
 
-        // No DB draft for this category: fall back to local; show modal if local has draft
+        // No DB draft for this category (and branch): fall back to local; show modal if local has draft
         const raw = localStorage.getItem(draftKey);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<DraftV1>;
@@ -1399,7 +1488,7 @@ export default function PublicarPage() {
     };
   }, [step, category, title, description, isFree, price, city, details, contactMethod, contactPhone, contactEmail, images]);
 
-  /** Persist draft to DB (one active draft per category per user: update existing or create). Then localStorage fallback. */
+  /** Persist draft to DB (one active draft per category per user; for rentas, per branch). Then localStorage fallback. */
   const performDbSave = useCallback(async () => {
     if (draftKey === "listing_draft_ssr" || !userId || showDraftRestoreModal) return;
     try {
@@ -1413,9 +1502,17 @@ export default function PublicarPage() {
         Object.values(payload.details || {}).some((v) => (v || "").trim());
       if (!draftId && !hasContent) return;
 
+      const categorySlug = payload.category || "en-venta";
+      const rentasBranch = (payload.details?.rentasBranch ?? "").trim().toLowerCase();
+      if (categorySlug === "rentas" && rentasBranch !== "privado" && rentasBranch !== "negocio") {
+        // Don't write to DB until branch is chosen; keep local autosave only
+        const { images: _img, ...rest } = payload;
+        localStorage.setItem(draftKey, JSON.stringify(rest as Partial<DraftV1>));
+        return;
+      }
+
       setDbSaveStatus("saving");
       const supabase = createSupabaseBrowserClient();
-      const categorySlug = payload.category || "en-venta";
 
       if (draftId) {
         const result = await updateDraft(supabase, draftId, userId, payload);
@@ -1430,8 +1527,11 @@ export default function PublicarPage() {
           setDbSaveStatus("error");
         }
       } else {
-        // One active draft per category per user: reuse existing if present
-        const existing = await getLatestDraftForCategory(supabase, userId, categorySlug);
+        // One active draft per category per user (for rentas: per branch)
+        const isRentasWithBranch = categorySlug === "rentas" && (rentasBranch === "privado" || rentasBranch === "negocio");
+        const existing = isRentasWithBranch
+          ? await getLatestDraftForRentasBranch(supabase, userId, rentasBranch)
+          : await getLatestDraftForCategory(supabase, userId, categorySlug);
         if (existing) {
           const result = await updateDraft(supabase, existing.id, userId, payload);
           if (result.ok) {

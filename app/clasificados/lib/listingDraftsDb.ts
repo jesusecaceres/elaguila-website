@@ -126,6 +126,39 @@ export async function getLatestDraftForCategory(
   return data as ListingDraftRow;
 }
 
+/** Fetch draft rows for a category (used for rentas to filter by branch in app). */
+export async function getDraftsForCategory(
+  supabase: SupabaseClient,
+  userId: string,
+  category: string,
+  limit = 20
+): Promise<ListingDraftRow[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("user_id", userId)
+    .eq("category", category)
+    .eq("status", STATUS_DRAFT)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as ListingDraftRow[]) || [];
+}
+
+/** One active draft per user per rentas branch (privado | negocio). */
+export async function getLatestDraftForRentasBranch(
+  supabase: SupabaseClient,
+  userId: string,
+  branch: string
+): Promise<ListingDraftRow | null> {
+  const rows = await getDraftsForCategory(supabase, userId, "rentas", 20);
+  const normalized = (branch || "").trim().toLowerCase();
+  const found = rows.find(
+    (row) => (row.draft_data?.details as Record<string, string> | undefined)?.rentasBranch?.trim().toLowerCase() === normalized
+  );
+  return found ?? null;
+}
+
 export async function deleteDraftInDb(
   supabase: SupabaseClient,
   draftId: string,
