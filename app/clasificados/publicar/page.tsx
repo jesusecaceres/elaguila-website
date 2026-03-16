@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 
 /**
  * Lightweight auth gate for /clasificados/publicar.
@@ -24,7 +24,10 @@ export default function PublicarRootPage() {
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withAuthTimeout(
+          supabase.auth.getSession(),
+          AUTH_CHECK_TIMEOUT_MS
+        );
         if (!mounted) return;
         if (session?.user) {
           router.replace(publicarUrl);

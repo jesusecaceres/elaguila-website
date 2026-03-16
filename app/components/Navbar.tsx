@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
 
@@ -190,12 +190,24 @@ function NavbarContent() {
 
   useEffect(() => {
     let mounted = true;
+    let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+    try {
+      supabase = createSupabaseBrowserClient();
+    } catch {
+      setUser(null);
+      setMembershipBadge("free");
+      setAuthLoading(false);
+      return;
+    }
 
     async function loadSession() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data } = await withAuthTimeout(
+          supabase!.auth.getUser(),
+          AUTH_CHECK_TIMEOUT_MS
+        );
         if (!mounted) return;
-        const u = session?.user;
+        const u = data.user;
         if (!u) {
           setUser(null);
           setMembershipBadge("free");
@@ -217,7 +229,7 @@ function NavbarContent() {
           avatarUrl,
         });
         try {
-          const { data: pData, error: pErr } = await supabase
+          const { data: pData, error: pErr } = await supabase!
             .from("profiles")
             .select("membership_tier, account_type")
             .eq("id", u.id)
@@ -242,7 +254,7 @@ function NavbarContent() {
 
     loadSession();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+    const { data: sub } = supabase!.auth.onAuthStateChange(() => {
       void loadSession();
     });
 
@@ -258,7 +270,8 @@ function NavbarContent() {
     setMobileOpen(false);
     setAccountOpen(false);
     try {
-      await supabase.auth.signOut();
+      const sb = createSupabaseBrowserClient();
+      await sb.auth.signOut();
     } catch (e) {
       console.error("[auth] signOut failed", e);
     } finally {

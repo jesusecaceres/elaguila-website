@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
-import { createSupabaseBrowserClient } from "../lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
 type LoginMode = "login" | "signup" | "post";
@@ -120,18 +120,39 @@ export default function LoginPage() {
     router.replace(target);
   }
 
+  const OAUTH_INIT_TIMEOUT_MS = 15000;
+
   async function continueWithGoogle() {
     setMsg(null);
     setLoading("google");
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: callbackUrl,
-        },
-      });
-      if (error) setMsg(error.message);
+      const result = await withAuthTimeout(
+        supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: callbackUrl },
+        }),
+        OAUTH_INIT_TIMEOUT_MS
+      );
+      if (result.error) {
+        setMsg(result.error.message);
+        return;
+      }
+      // Success: Supabase redirects; loading stays until navigation. If redirect fails (e.g. 522), user returns to login and loading was cleared on next mount.
+    } catch (e: unknown) {
+      const isTimeout = (e as { message?: string })?.message === "auth_timeout";
+      const isNetwork =
+        (e as { message?: string })?.message?.toLowerCase().includes("fetch") ||
+        (e as { message?: string })?.message?.toLowerCase().includes("network");
+      if (isTimeout || isNetwork) {
+        setMsg(
+          lang === "es"
+            ? "El servicio de inicio de sesión no está disponible. Intenta de nuevo en unos minutos."
+            : "Sign-in service is temporarily unavailable. Please try again in a few minutes."
+        );
+      } else {
+        setMsg((e as { message?: string })?.message ?? (lang === "es" ? "Error al conectar." : "Connection error."));
+      }
     } finally {
       setLoading(null);
     }

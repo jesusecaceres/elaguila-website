@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout } from "../../lib/supabase/browser";
 
 type Lang = "es" | "en";
 
@@ -51,8 +51,17 @@ export default function AuthCallbackPage() {
   const [status, setStatus] = useState<"working" | "error">("working");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const CALLBACK_TIMEOUT_MS = 12000;
+
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
+    let supabase: ReturnType<typeof createSupabaseBrowserClient>;
+    try {
+      supabase = createSupabaseBrowserClient();
+    } catch (e) {
+      setStatus("error");
+      setErrorMsg((e as { message?: string })?.message ?? "Configuration error");
+      return;
+    }
 
     async function finalizeSessionFromUrl() {
       const code = searchParams?.get("code");
@@ -118,13 +127,25 @@ export default function AuthCallbackPage() {
 
     async function run() {
       try {
-        await finalizeSessionFromUrl();
-        await decideWhereToGo();
+        await withAuthTimeout(
+          (async () => {
+            await finalizeSessionFromUrl();
+            await decideWhereToGo();
+          })(),
+          CALLBACK_TIMEOUT_MS
+        );
       } catch (e: unknown) {
         stripHashFromUrl();
         console.error("[auth] callback failed", e);
         setStatus("error");
-        setErrorMsg((e as { message?: string })?.message ?? "Unknown error");
+        const msg = (e as { message?: string })?.message;
+        setErrorMsg(
+          msg === "auth_timeout"
+            ? (redirectLang === "es"
+                ? "El servicio tardó demasiado. Intenta de nuevo."
+                : "Service took too long. Please try again.")
+            : msg ?? "Unknown error"
+        );
       }
     }
 

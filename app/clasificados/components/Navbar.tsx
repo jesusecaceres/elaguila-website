@@ -3,29 +3,12 @@
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
 
 type Lang = "es" | "en";
 
 type Plan = "free" | "pro";
-function createSupabaseBrowserClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("Supabase env vars missing: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY");
-    }
-    return null;
-  }
-  return createClient(url, anonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
-}
 
 function normalizePlan(raw: unknown): Plan {
   const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
@@ -205,23 +188,26 @@ function NavbarContent() {
     }
   }, [currentPathWithQuery, lang, router]);
 
-  // Load + subscribe to auth state
+  // Load + subscribe to auth state. Timeout so we never show stale logged-in state when auth is unavailable.
   useEffect(() => {
-    const sb = createSupabaseBrowserClient();
-    if (!sb) {
-      // If env vars are missing, we still want the site to build and render.
+    let sb: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+    try {
+      sb = createSupabaseBrowserClient();
+    } catch {
       setUser(null);
       setPlan("free");
       setAuthLoading(false);
-      setAccountOpen(false);
       return;
     }
 
     let mounted = true;
 
-    async function load(client: SupabaseClient) {
+    async function load() {
       try {
-        const { data } = await client.auth.getUser();
+        const { data } = await withAuthTimeout(
+          sb!.auth.getUser(),
+          AUTH_CHECK_TIMEOUT_MS
+        );
         if (!mounted) return;
 
         const u = data.user;
@@ -249,7 +235,6 @@ function NavbarContent() {
           avatarUrl,
         });
 
-        // TEMP: Until membership is wired, default authenticated users to "free"
         setPlan("free");
         setAuthLoading(false);
       } catch {
@@ -260,10 +245,10 @@ function NavbarContent() {
       }
     }
 
-    load(sb);
+    load();
 
-    const { data: sub } = sb.auth.onAuthStateChange(() => {
-      load(sb);
+    const { data: sub } = sb!.auth.onAuthStateChange(() => {
+      load();
     });
 
     return () => {
@@ -278,7 +263,7 @@ function NavbarContent() {
     setUser(null);
     try {
       const sb = createSupabaseBrowserClient();
-      if (sb) await sb.auth.signOut();
+      await sb.auth.signOut();
     } catch (e) {
       console.error("[auth] signOut failed", e);
     } finally {

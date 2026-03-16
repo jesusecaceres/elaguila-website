@@ -14,7 +14,7 @@ import {
   FiUsers,
   FiMapPin,
 } from "react-icons/fi";
-import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../../../lib/supabase/browser";
 import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
 import {
   createDraft,
@@ -843,7 +843,10 @@ export default function PublicarPage() {
 
     async function check() {
       try {
-        const { data } = await supabase!.auth.getUser();
+        const { data } = await withAuthTimeout(
+          supabase!.auth.getUser(),
+          AUTH_CHECK_TIMEOUT_MS
+        );
         if (!mounted) return;
         if (sessionGateTimeoutRef.current) {
           clearTimeout(sessionGateTimeoutRef.current);
