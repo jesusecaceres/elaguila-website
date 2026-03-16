@@ -84,8 +84,29 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState<"google" | "email" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [authCheckDone, setAuthCheckDone] = useState(false);
 
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          router.replace(redirectTo);
+          return;
+        }
+        setAuthCheckDone(true);
+      } catch {
+        if (!mounted) return;
+        setAuthCheckDone(true);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [router, redirectTo]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -274,6 +295,25 @@ export default function LoginPage() {
   const common = copy.common[lang];
 
   const isLoading = loading !== null;
+
+  if (!authCheckDone) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
+        <div
+          className="fixed inset-0 bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] pointer-events-none"
+          aria-hidden
+        />
+        <Navbar />
+        <div className="relative max-w-md mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
+          <div className="rounded-3xl border border-white/10 bg-[#141414]/95 shadow-2xl p-6 sm:p-8 flex items-center justify-center min-h-[200px]">
+            <p className="text-white/80 text-sm">
+              {defaultLang === "es" ? "Verificando sesión…" : "Checking session…"}
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
