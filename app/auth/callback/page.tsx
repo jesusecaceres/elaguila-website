@@ -122,6 +122,7 @@ export default function AuthCallbackPage() {
         await decideWhereToGo();
       } catch (e: unknown) {
         stripHashFromUrl();
+        console.error("[auth] callback failed", e);
         setStatus("error");
         setErrorMsg((e as { message?: string })?.message ?? "Unknown error");
       }

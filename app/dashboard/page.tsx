@@ -177,17 +177,18 @@ export default function DashboardPage() {
     let mounted = true;
 
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
 
-      if (!session?.user) {
-        setHasSession(false);
-        setLoading(false);
-        return;
-      }
+        if (!session?.user) {
+          setHasSession(false);
+          setLoading(false);
+          return;
+        }
 
-      setHasSession(true);
-      const u = session.user;
+        setHasSession(true);
+        const u = session.user;
       setUserId(u.id);
 
       const inferredName =
@@ -286,6 +287,13 @@ export default function DashboardPage() {
       }
 
       if (mounted) setLoading(false);
+      } catch (e) {
+        if (mounted) {
+          setLoading(false);
+          setHasSession(false);
+          console.error("[auth] dashboard session load failed", e);
+        }
+      }
     }
 
     void load();

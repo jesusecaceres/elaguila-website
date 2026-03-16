@@ -257,10 +257,15 @@ function NavbarContent() {
     clearAllClassifiedsDrafts({ userId: user?.id ?? null });
     setMobileOpen(false);
     setAccountOpen(false);
-    await supabase.auth.signOut();
-    setUser(null);
-    router.refresh();
-    router.replace(`/home?lang=${lang}&signed_out=1`);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("[auth] signOut failed", e);
+    } finally {
+      setUser(null);
+      router.refresh();
+      router.replace(`/home?lang=${lang}&signed_out=1`);
+    }
   }, [router, lang, user?.id]);
 
   const accountLabel = user?.fullName || user?.email || "User";

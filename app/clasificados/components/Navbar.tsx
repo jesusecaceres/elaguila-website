@@ -274,14 +274,18 @@ function NavbarContent() {
 
   const signOut = useCallback(async () => {
     clearAllClassifiedsDrafts({ userId: user?.id ?? null });
-    const sb = createSupabaseBrowserClient();
-    if (sb) {
-      await sb.auth.signOut();
-    }
     setAccountOpen(false);
     setUser(null);
-    router.refresh();
-  }, [router, user?.id]);
+    try {
+      const sb = createSupabaseBrowserClient();
+      if (sb) await sb.auth.signOut();
+    } catch (e) {
+      console.error("[auth] signOut failed", e);
+    } finally {
+      router.refresh();
+      router.replace(`/clasificados?lang=${lang}`);
+    }
+  }, [router, lang, user?.id]);
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);
