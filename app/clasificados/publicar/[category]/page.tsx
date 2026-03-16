@@ -569,6 +569,19 @@ export default function PublicarPage() {
     return safeInternalRedirect(here) || `/clasificados/publicar/${slug}?lang=${lang}`;
   }, [lang, searchParams, categoryFromUrl]);
 
+  /** Sync draftId in URL (canonical source for which draft is being edited). Preserves lang and other params. */
+  const syncDraftIdInUrl = useCallback(
+    (draftId: string | null) => {
+      const p = new URLSearchParams(searchParams?.toString() ?? "");
+      if (draftId) p.set("draftId", draftId);
+      else p.delete("draftId");
+      const qs = p.toString();
+      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
+      router.replace(qs ? `${path}?${qs}` : path);
+    },
+    [router, pathname, searchParams, categoryFromUrl]
+  );
+
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [userId, setUserId] = useState<string>("");
@@ -1073,6 +1086,7 @@ export default function PublicarPage() {
                 applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
                 setDraftId(latest.id);
                 setStoredDraftId(userId, latest.id);
+                syncDraftIdInUrl(latest.id);
                 setStep("media");
                 return;
               }
@@ -1083,6 +1097,7 @@ export default function PublicarPage() {
               applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
               setDraftId(latest.id);
               setStoredDraftId(userId, latest.id);
+              syncDraftIdInUrl(latest.id);
               setStep("media");
               return;
             }
@@ -1107,15 +1122,15 @@ export default function PublicarPage() {
       const stored = getStoredDraftId(userId);
       if (stored) setDraftId(stored);
     }
-  }, [searchParams, draftKey, userId, signedIn, categoryFromUrl]);
+  }, [searchParams, draftKey, userId, signedIn, categoryFromUrl, syncDraftIdInUrl]);
 
-  // Re-entry: for signed-in users, DB is primary (one active draft per category). Hydrate from DB when found; only fall back to local + modal when no DB draft or not signed in.
+  // Re-entry: URL is source of truth for draft. First try draftId from URL (owned by user); then show restore modal if latest exists and URL has no draftId (no auto-hydrate).
   useEffect(() => {
     if (draftKey === "listing_draft_ssr" || draftCheckedRef.current) return;
     if (searchParams?.get("fromPro") === "1") return;
 
     if (!signedIn || !userId) {
-      // Not signed in: keep current behavior — local/session only, show modal if local has draft (do not set draftCheckedRef so that when user signs in we run DB resolution)
+      // Not signed in: keep current behavior — local/session only, show modal if local has draft
       const raw = localStorage.getItem(draftKey);
       if (raw) {
         try {
@@ -1129,14 +1144,30 @@ export default function PublicarPage() {
     }
 
     let cancelled = false;
-    draftCheckedRef.current = true; // prevent duplicate in-flight resolution
+    draftCheckedRef.current = true;
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
         const categoryForQuery = categoryFromUrl || undefined;
 
+        // 1) URL draftId first: load exact draft if present and owned
+        const urlDraftId = searchParams?.get("draftId")?.trim();
+        if (urlDraftId) {
+          const row = await getDraft(supabase, urlDraftId, userId);
+          if (cancelled) return;
+          if (row?.draft_data) {
+            applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
+            setDraftId(row.id);
+            setStoredDraftId(userId, row.id);
+            syncDraftIdInUrl(row.id);
+            return;
+          }
+          // Invalid or not owned: strip from URL and fall through
+          syncDraftIdInUrl(null);
+        }
+
+        // 2) No draftId in URL: if latest draft exists, show restore modal (do not hydrate)
         if (categoryForQuery === "rentas") {
-          // Rentas: one active draft per user per branch (privado | negocio)
           const raw = localStorage.getItem(draftKey);
           let branchHint: string | null = null;
           if (raw) {
@@ -1153,9 +1184,9 @@ export default function PublicarPage() {
             const latest = await getLatestDraftForRentasBranch(supabase, userId, branchHint);
             if (cancelled) return;
             if (latest?.draft_data) {
-              applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
               setDraftId(latest.id);
               setStoredDraftId(userId, latest.id);
+              setShowDraftRestoreModal(true);
               return;
             }
           } else {
@@ -1175,9 +1206,9 @@ export default function PublicarPage() {
                   ? (withUpdated[0].at >= withUpdated[1].at ? withUpdated[0].row : withUpdated[1].row)
                   : null;
             if (latest?.draft_data) {
-              applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
               setDraftId(latest.id);
               setStoredDraftId(userId, latest.id);
+              setShowDraftRestoreModal(true);
               return;
             }
           }
@@ -1185,14 +1216,14 @@ export default function PublicarPage() {
           const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
           if (cancelled) return;
           if (latest?.draft_data) {
-            applyDraftPayloadFromDb(latest.draft_data as DraftDataPayload);
             setDraftId(latest.id);
             setStoredDraftId(userId, latest.id);
+            setShowDraftRestoreModal(true);
             return;
           }
         }
 
-        // No DB draft for this category (and branch): fall back to local; show modal if local has draft
+        // 3) No DB draft: fall back to local; show modal if local has draft
         const raw = localStorage.getItem(draftKey);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<DraftV1>;
@@ -1200,6 +1231,7 @@ export default function PublicarPage() {
         }
       } catch {
         if (!cancelled) {
+          syncDraftIdInUrl(null);
           const raw = localStorage.getItem(draftKey);
           if (raw) {
             try {
@@ -1214,7 +1246,7 @@ export default function PublicarPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams]);
+  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl]);
 
   /** Restore only form values from draft; step is not restored (avoids random step jumps). */
   function applyDraftToForm(parsed: Partial<DraftV1>) {
@@ -1262,6 +1294,7 @@ export default function PublicarPage() {
         const row = await getDraft(supabase, draftId, userId);
         if (row?.draft_data) {
           applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
+          syncDraftIdInUrl(draftId);
           return;
         }
       }
@@ -1301,6 +1334,7 @@ export default function PublicarPage() {
     if (userId) clearStoredDraftId(userId);
     resetFormToEmpty();
     setShowDraftRestoreModal(false);
+    syncDraftIdInUrl(null);
   }
 
   async function handleDeleteCurrentDraft() {
@@ -1317,6 +1351,7 @@ export default function PublicarPage() {
     clearAllClassifiedsDrafts({ draftKey, userId });
     resetFormToEmpty();
     setShowDraftRestoreModal(false);
+    syncDraftIdInUrl(null);
   }
 
   // Restore images from sessionStorage when returning from preview (prevents form reset)
@@ -1537,6 +1572,7 @@ export default function PublicarPage() {
           if (result.ok) {
             setDraftId(existing.id);
             setStoredDraftId(userId, existing.id);
+            syncDraftIdInUrl(existing.id);
             setDbSaveStatus("saved");
             if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
             dbSaveSuccessTimerRef.current = setTimeout(() => {
@@ -1551,6 +1587,7 @@ export default function PublicarPage() {
           if (created) {
             setDraftId(created.id);
             setStoredDraftId(userId, created.id);
+            syncDraftIdInUrl(created.id);
             setDbSaveStatus("saved");
             if (dbSaveSuccessTimerRef.current) clearTimeout(dbSaveSuccessTimerRef.current);
             dbSaveSuccessTimerRef.current = setTimeout(() => {
@@ -1584,6 +1621,7 @@ export default function PublicarPage() {
     draftId,
     showDraftRestoreModal,
     buildPayloadAsync,
+    syncDraftIdInUrl,
   ]);
 
   // DB autosave — immediate for step, category, contactMethod, isFree, images
