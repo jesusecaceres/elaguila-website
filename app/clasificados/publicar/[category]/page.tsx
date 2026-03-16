@@ -738,6 +738,7 @@ export default function PublicarPage() {
   const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dbSaveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDbSaveRef = useRef<ReturnType<typeof setTimeout> | number | null>(null);
+  const sessionGateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem(RULES_CONFIRMED_KEY) === "1";
@@ -805,7 +806,8 @@ export default function PublicarPage() {
     }
   }, [step, checking, signedIn]);
 
-  // Session gate: redirect to login (mode=post) if not authenticated; no stuck "Verificando sesión"
+  // Session gate: redirect to login if not authenticated; fail-safe timeout so "Verificando sesión…" never hangs.
+  const SESSION_GATE_TIMEOUT_MS = 8000;
   useEffect(() => {
     let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
     try {
@@ -822,16 +824,35 @@ export default function PublicarPage() {
     }
 
     let mounted = true;
+    const loginUrl = () => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(redirectForLogin)}`;
+
+    const clearTimeoutAndRedirectToLogin = () => {
+      if (sessionGateTimeoutRef.current) {
+        clearTimeout(sessionGateTimeoutRef.current);
+        sessionGateTimeoutRef.current = null;
+      }
+      setChecking(false);
+      router.replace(loginUrl());
+    };
+
+    sessionGateTimeoutRef.current = setTimeout(() => {
+      sessionGateTimeoutRef.current = null;
+      if (!mounted) return;
+      clearTimeoutAndRedirectToLogin();
+    }, SESSION_GATE_TIMEOUT_MS);
 
     async function check() {
       try {
         const { data } = await supabase!.auth.getUser();
         if (!mounted) return;
+        if (sessionGateTimeoutRef.current) {
+          clearTimeout(sessionGateTimeoutRef.current);
+          sessionGateTimeoutRef.current = null;
+        }
 
         if (!data.user) {
           setChecking(false);
-          const next = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(redirectForLogin)}`;
-          router.replace(next);
+          router.replace(loginUrl());
           return;
         }
 
@@ -870,9 +891,12 @@ export default function PublicarPage() {
         setChecking(false);
       } catch {
         if (!mounted) return;
+        if (sessionGateTimeoutRef.current) {
+          clearTimeout(sessionGateTimeoutRef.current);
+          sessionGateTimeoutRef.current = null;
+        }
         setChecking(false);
-        const next = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(redirectForLogin)}`;
-        router.replace(next);
+        router.replace(loginUrl());
       }
     }
 
@@ -880,6 +904,10 @@ export default function PublicarPage() {
 
     return () => {
       mounted = false;
+      if (sessionGateTimeoutRef.current) {
+        clearTimeout(sessionGateTimeoutRef.current);
+        sessionGateTimeoutRef.current = null;
+      }
     };
   }, [router, redirectForLogin, lang]);
 

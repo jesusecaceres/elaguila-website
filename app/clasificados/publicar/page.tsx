@@ -2,11 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 /**
- * Pure redirect for /clasificados/publicar.
- * No auth check here — the category route [category]/page.tsx is the single session gate.
- * Immediately redirect to the publish flow with lang preserved.
+ * Lightweight auth gate for /clasificados/publicar.
+ * Logged-out users go straight to login (mode=post); logged-in users proceed into the publish flow.
+ * Prevents unauthenticated users from landing on [category] and getting stuck on "Verificando sesión…".
  */
 export default function PublicarRootPage() {
   const router = useRouter();
@@ -16,7 +17,26 @@ export default function PublicarRootPage() {
     const lang = searchParams?.get("lang") ?? "es";
     const qs = searchParams?.toString() ?? "";
     const queryString = qs ? `?${qs}` : `?lang=${lang}`;
-    router.replace(`/clasificados/publicar/en-venta${queryString}`);
+    const publicarUrl = `/clasificados/publicar/en-venta${queryString}`;
+    const loginUrl = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(publicarUrl)}`;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          router.replace(publicarUrl);
+        } else {
+          router.replace(loginUrl);
+        }
+      } catch {
+        if (!mounted) return;
+        router.replace(loginUrl);
+      }
+    })();
+    return () => { mounted = false; };
   }, [router, searchParams]);
 
   return null;
