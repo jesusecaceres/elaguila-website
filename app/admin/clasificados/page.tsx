@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import AdminListingsTable from "./AdminListingsTable";
 
+/** Prevent static generation: admin page must fetch live data at request time. */
+export const dynamic = "force-dynamic";
+
 export default async function AdminClasificadosPage() {
   const supabase = getAdminSupabase();
   const { data: listings, error } = await supabase
