@@ -731,6 +731,10 @@ export default function PublicarPage() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [dbSaveStatus, setDbSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const draftCheckedRef = useRef(false);
+  /** Rentas: branches we already ran restore check for (so we don’t re-fetch). */
+  const checkedRentasBranchesRef = useRef<Set<string>>(new Set());
+  /** Rentas: user chose "Start new" for this branch this session; don’t show restore modal again. */
+  const startNewRentasBranchesRef = useRef<Set<string>>(new Set());
   const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dbSaveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDbSaveRef = useRef<ReturnType<typeof setTimeout> | number | null>(null);
@@ -1189,29 +1193,9 @@ export default function PublicarPage() {
               setShowDraftRestoreModal(true);
               return;
             }
-          } else {
-            const [privado, negocio] = await Promise.all([
-              getLatestDraftForRentasBranch(supabase, userId, "privado"),
-              getLatestDraftForRentasBranch(supabase, userId, "negocio"),
-            ]);
-            if (cancelled) return;
-            const withUpdated = [
-              privado ? { row: privado, at: privado.updated_at } : null,
-              negocio ? { row: negocio, at: negocio.updated_at } : null,
-            ].filter(Boolean) as Array<{ row: ListingDraftRow; at: string }>;
-            const latest =
-              withUpdated.length === 1
-                ? withUpdated[0].row
-                : withUpdated.length === 2
-                  ? (withUpdated[0].at >= withUpdated[1].at ? withUpdated[0].row : withUpdated[1].row)
-                  : null;
-            if (latest?.draft_data) {
-              setDraftId(latest.id);
-              setStoredDraftId(userId, latest.id);
-              setShowDraftRestoreModal(true);
-              return;
-            }
           }
+          // No branch chosen yet: do not offer a random rentas draft; wait for branch selection (see effect below)
+          return;
         } else {
           const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
           if (cancelled) return;
@@ -1247,6 +1231,33 @@ export default function PublicarPage() {
     })();
     return () => { cancelled = true; };
   }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl]);
+
+  // Rentas: when user selects a branch, run restore check for that branch only (no modal before branch is chosen).
+  useEffect(() => {
+    if (categoryFromUrl !== "rentas" || !signedIn || !userId || searchParams?.get("draftId")?.trim()) return;
+    const branch = (details.rentasBranch ?? "").trim().toLowerCase();
+    if (branch !== "privado" && branch !== "negocio") return;
+    if (checkedRentasBranchesRef.current.has(branch) || startNewRentasBranchesRef.current.has(branch)) return;
+
+    let cancelled = false;
+    checkedRentasBranchesRef.current.add(branch);
+    (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const latest = await getLatestDraftForRentasBranch(supabase, userId, branch);
+        if (cancelled) return;
+        if (startNewRentasBranchesRef.current.has(branch)) return;
+        if (latest?.draft_data) {
+          setDraftId(latest.id);
+          setStoredDraftId(userId, latest.id);
+          setShowDraftRestoreModal(true);
+        }
+      } catch {
+        // leave modal closed
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [categoryFromUrl, signedIn, userId, details.rentasBranch, searchParams]);
 
   /** Restore only form values from draft; step is not restored (avoids random step jumps). */
   function applyDraftToForm(parsed: Partial<DraftV1>) {
@@ -1330,6 +1341,10 @@ export default function PublicarPage() {
   }
 
   function handleCreateNewAd() {
+    if (categoryFromUrl === "rentas") {
+      const b = (details.rentasBranch ?? "").trim().toLowerCase();
+      if (b === "privado" || b === "negocio") startNewRentasBranchesRef.current.add(b);
+    }
     setDraftId(null);
     if (userId) clearStoredDraftId(userId);
     resetFormToEmpty();
