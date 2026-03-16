@@ -10,7 +10,7 @@ export default function ClasificadosLoginRedirect() {
 
   const redirectTo = useMemo(() => {
     const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-    return searchParams?.get("redirect") || `/clasificados/publicar/en-venta?lang=${lang}`;
+    return searchParams?.get("redirect") || `/dashboard/perfil?require=post&lang=${lang}`;
   }, [searchParams]);
 
   useEffect(() => {

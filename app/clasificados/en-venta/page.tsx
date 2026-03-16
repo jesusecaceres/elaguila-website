@@ -95,7 +95,7 @@ export default function Page() {
   const chips = lang === "es" ? EN_VENTA_CHIPS_ES : EN_VENTA_CHIPS_EN;
 
   const listaHref = useMemo(() => buildListaUrl(CATEGORY, lang), [lang]);
-  const postHref = useMemo(() => `/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`, [lang]);
+  const postHref = useMemo(() => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`, [lang]);
   const membershipsHref = useMemo(() => `/clasificados/membresias?lang=${lang}`, [lang]);
 
   return (

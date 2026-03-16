@@ -165,13 +165,15 @@ export default function TravelPage() {
     [lang]
   );
 
+  const postEntryHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?lang=${lang}&cat=travel`)}`;
+
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <Navbar />
 
       <div className="sticky top-14 z-30 border-b border-black/10 bg-[#D9D9D9]/90 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2">
-          <Link href={`${t.postHref}?lang=${lang}&cat=travel`} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
+          <Link href={postEntryHref} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
             {t.secondary}
           </Link>
           <Link href={baseHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
@@ -268,7 +270,7 @@ export default function TravelPage() {
               {t.primary}
             </a>
             <a
-              href={`${t.postHref}?lang=${lang}&cat=travel`}
+              href={postEntryHref}
               className="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-[#F5F5F5] px-6 py-3 text-sm font-bold text-[#111111] transition hover:bg-white/10"
             >
               {t.secondary}

@@ -22,7 +22,7 @@ export default function EmptyCategory() {
           Ver anuncios
         </Link>
         <Link
-          href="/clasificados/publicar"
+          href={`/login?mode=post&lang=es&redirect=${encodeURIComponent("/clasificados/publicar/en-venta?lang=es")}`}
           className="inline-flex items-center justify-center rounded-xl border border-yellow-500/45 bg-yellow-500/12 px-5 py-2.5 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/18"
         >
           Publicar anuncio

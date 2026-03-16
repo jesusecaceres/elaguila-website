@@ -65,7 +65,7 @@ export default async function Page({
 
 
   const listaHref = `/clasificados/lista?cat=restaurantes&lang=${lang}`;
-  const postHref = `/clasificados/publicar?cat=restaurantes&lang=${lang}`;
+  const postHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=restaurantes&lang=${lang}`)}`;
   const membershipsHref = `/clasificados/membresias?lang=${lang}`;
   const cuisineChips = lang === "es"
     ? ["Mexicana", "Italiana", "Americana", "Asiática", "Mariscos", "Otro"]

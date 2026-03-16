@@ -39,6 +39,8 @@ export default function MembresiasPage() {
     return `${path}${joiner}lang=${lang}`;
   };
 
+  const postEntryHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
+
   const isBusinessPath =
     selectedCategory === "servicios" ||
     selectedCategory === "restaurantes" ||
@@ -876,7 +878,7 @@ export default function MembresiasPage() {
                   <p className="mt-2 text-sm text-[#111111]/90">{L.rentasPersonalExplain}</p>
                 </div>
                 <Link
-                  href={withLang(L.routePost)}
+                  href={postEntryHref}
                   className="inline-flex justify-center w-full sm:w-auto rounded-xl bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-5 text-sm hover:opacity-95 transition"
                 >
                   {L.rentasPersonaCta}
@@ -1128,7 +1130,7 @@ export default function MembresiasPage() {
         </section>
 
         <section className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center">
-          <Link href={withLang(L.routePost)} className="w-full sm:w-auto inline-flex justify-center items-center rounded-full bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-5 text-sm hover:opacity-95 transition">
+          <Link href={postEntryHref} className="w-full sm:w-auto inline-flex justify-center items-center rounded-full bg-[#111111] text-[#F5F5F5] font-semibold py-3 px-5 text-sm hover:opacity-95 transition">
             {L.ctaPost}
           </Link>
           <Link href={withLang(L.routeList)} className="w-full sm:w-auto inline-flex justify-center items-center rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold py-3 px-5 text-sm hover:bg-[#EFEFEF] transition">

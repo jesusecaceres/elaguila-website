@@ -289,10 +289,11 @@ function NavbarContent() {
         <div className="hidden md:flex flex-wrap gap-x-3 gap-y-2 text-white text-[14px] font-semibold tracking-tight">
           {navLinks.map((item, i) => {
             const active = isActive(item.href);
+            const href = item.href === "/advertise" ? `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}` : buildLink(item.href);
             return (
               <Link
                 key={i}
-                href={buildLink(item.href)}
+                href={href}
                 className={cx(
                   "transition px-2 py-1 rounded-lg border border-transparent hover:bg-white/10 hover:border-white/10",
                   item.gold
@@ -449,7 +450,7 @@ function NavbarContent() {
             {navLinks.map((item, i) => (
               <Link
                 key={i}
-                href={buildLink(item.href)}
+                href={item.href === "/advertise" ? `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}` : buildLink(item.href)}
                 onClick={() => setMobileOpen(false)}
                 className={cx(
                   "text-base font-semibold",

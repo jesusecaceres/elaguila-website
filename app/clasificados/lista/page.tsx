@@ -4814,7 +4814,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <div className="sticky top-[56px] z-40 border-b border-black/10 bg-[#D9D9D9]/85 backdrop-blur">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-center gap-2 px-4 py-2">
           <a
-            href={`/clasificados/publicar?lang=${lang}`}
+            href={`/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`}
             className="rounded-full bg-[#111111] px-3 py-1.5 text-xs font-semibold text-[#F5F5F5] hover:opacity-95 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Publicar anuncio" : "Post listing"}

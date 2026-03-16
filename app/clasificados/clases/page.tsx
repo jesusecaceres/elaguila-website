@@ -67,7 +67,7 @@ export default function Page() {
   const t = COPY[lang];
 
   const listaHref = useMemo(() => buildListaUrl(CATEGORY, lang), [lang]);
-  const postHref = useMemo(() => `/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`, [lang]);
+  const postHref = useMemo(() => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`, [lang]);
   const membershipsHref = useMemo(() => `/clasificados/membresias?lang=${lang}`, [lang]);
 
   return (

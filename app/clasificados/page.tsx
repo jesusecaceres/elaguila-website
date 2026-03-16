@@ -256,6 +256,8 @@ export default function ClasificadosPage() {
     return hash ? `${withParam}#${hash}` : withParam;
   };
 
+  const postEntryHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
+
   const withCategoryRoute = (cat: CategoryKey) => {
     return withLang(`/clasificados/lista?cat=${cat}`);
   };
@@ -479,7 +481,7 @@ export default function ClasificadosPage() {
 
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
-              href={withLang(t.routePost)}
+              href={postEntryHref}
               className="px-5 py-2.5 text-sm rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
             >
               {t.ctaPost}
