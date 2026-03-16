@@ -391,38 +391,41 @@ export default function RentasPrivadoPublishPreview({
           </h4>
           <p className="text-xs text-[#111111]/75 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-col gap-2.5">
+            {/* Guardar — strongest primary: richest gold fill, bright star, highly readable */}
             <button
               type="button"
               onClick={() => showToast(t.toastSave)}
               className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A] hover:bg-[#B8A35A] border border-[#A98C2A]/50 shadow-md transition text-sm flex items-center justify-center gap-2 ring-1 ring-[#A98C2A]/20"
             >
-              <span aria-hidden className="text-base">☆</span>
+              <span aria-hidden className="text-base text-[#F5E6A3] drop-shadow-sm">☆</span>
               {lang === "es" ? "Guardar" : "Save"}
             </button>
+            {/* Compartir — secondary: soft warm tint, noticeable icon, clearly below Guardar */}
             <button
               type="button"
               onClick={() => showToast(t.toastShare)}
-              className="w-full px-4 py-3 rounded-xl font-medium text-[#111111]/80 border border-[#C9B46A]/30 bg-[#FAF8F5] hover:bg-[#F5F2ED] transition text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl font-medium text-[#111111]/90 border border-[#C9B46A]/40 bg-[#F5F0E6] hover:bg-[#EDE6D9] transition text-sm flex items-center justify-center gap-2"
             >
-              <span aria-hidden className="text-sm">↗</span>
+              <span aria-hidden className="text-sm text-[#A98C2A]">↗</span>
               {lang === "es" ? "Compartir" : "Share"}
             </button>
+            {/* Llamar / Texto / Email — one family, subtle downward progression: medium → lighter → lightest */}
             {listing.contactMethod !== "email" && (
               <>
                 <button
                   type="button"
                   onClick={() => showToast(t.toastCall)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/90 transition text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/88 border border-[#C9B46A]/25 transition text-sm flex items-center justify-center gap-2"
                 >
-                  <span aria-hidden className="text-sm">📞</span>
+                  <span aria-hidden className="text-sm opacity-90">📞</span>
                   {t.llamar}
                 </button>
                 <button
                   type="button"
                   onClick={() => showToast(t.toastText)}
-                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/90 transition text-sm flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/60 hover:bg-[#C9B46A]/78 border border-[#C9B46A]/20 transition text-sm flex items-center justify-center gap-2"
                 >
-                  <span aria-hidden className="text-sm">💬</span>
+                  <span aria-hidden className="text-sm opacity-90">💬</span>
                   {t.texto}
                 </button>
               </>
@@ -431,9 +434,9 @@ export default function RentasPrivadoPublishPreview({
               <button
                 type="button"
                 onClick={() => showToast(t.toastEmail)}
-                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/75 hover:bg-[#C9B46A]/90 transition text-sm flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 rounded-xl font-semibold text-[#111111] bg-[#C9B46A]/48 hover:bg-[#C9B46A]/65 border border-[#C9B46A]/15 transition text-sm flex items-center justify-center gap-2"
               >
-                <span aria-hidden className="text-sm">✉</span>
+                <span aria-hidden className="text-sm opacity-90">✉</span>
                 {t.email}
               </button>
             )}
