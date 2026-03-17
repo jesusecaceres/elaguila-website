@@ -2615,7 +2615,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
   const fullPreviewListingData = useMemo((): ListingData => {
     const snap = enVentaSnapshot;
     const imgs = snap.images?.length ? snap.images : ["/logo.png"];
-    return {
+    const base: ListingData = {
       title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
       priceLabel: snap.priceLabel,
       city: (snap.cityCanonical ?? snap.city) || (lang === "es" ? "Ciudad" : "City"),
@@ -2636,6 +2636,38 @@ for (let vi = 0; vi < videoLimit; vi++) {
       categoryLabel: previewCategoryLabel || undefined,
       approximateArea: category === "rentas" && snap.details?.zonaDireccion?.trim() ? snap.details.zonaDireccion.trim() : undefined,
     };
+    // BR negocio: add business rail so full preview matches open card (company name, agent, logo, photo, phone, website, socials, availability).
+    if (category === "bienes-raices" && (snap.details?.bienesRaicesBranch ?? "").trim() === "negocio") {
+      const d = snap.details;
+      let availabilityRows: Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }> = [];
+      try {
+        const raw = (d.negocioDisponibilidadPrecios ?? "").trim();
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) availabilityRows = parsed;
+        }
+      } catch { /* ignore */ }
+      base.category = "bienes-raices";
+      base.businessRailTier = (d.rentasTier ?? "").trim() === "business_plus" ? "business_plus" : "business_standard";
+      base.businessRail = {
+        name: (d.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business"),
+        agent: (d.negocioAgente ?? "").trim(),
+        role: (d.negocioCargo ?? "").trim(),
+        officePhone: (d.negocioTelOficina ?? "").trim(),
+        website: (d.negocioSitioWeb ?? "").trim() || null,
+        socialLinks: [],
+        rawSocials: (d.negocioRedes ?? "").trim(),
+        logoUrl: (d.negocioLogoUrl ?? "").trim() || null,
+        agentPhotoUrl: (d.negocioFotoAgenteUrl ?? "").trim() || null,
+        languages: (d.negocioIdiomas ?? "").trim(),
+        hours: (d.negocioHorario ?? "").trim(),
+        virtualTourUrl: (d.negocioRecorridoVirtual ?? "").trim() || null,
+        plusMoreListings: (d.negocioPlusMasAnuncios ?? "") === "si",
+        businessDescription: (d.negocioDescripcion ?? "").trim() || undefined,
+        availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,
+      };
+    }
+    return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
 
   // Open in-page full preview modal. Rentas Privado / BR negocio Plus: single Pro-style preview. BR negocio Standard: Standard look. Others: free/pro.
