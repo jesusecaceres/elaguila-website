@@ -49,6 +49,29 @@ const EN_VENTA_BR_PROPERTY_TYPES: Array<{ value: string; label: { es: string; en
   { value: "edificio", label: { es: "Edificio", en: "Building" } },
   { value: "proyecto-nuevo", label: { es: "Proyecto nuevo", en: "New development" } },
 ];
+
+/** BR Privado: property type groups for conditional fields. Do not add to negocio in this pass. */
+const BR_RESIDENTIAL_TYPES = ["casa", "apartamento", "condo", "townhouse", "finca"];
+const BR_LOTE_TYPES = ["lote"];
+const BR_COMERCIAL_TYPES = ["oficina", "local-comercial"];
+const BR_EDIFICIO_TYPES = ["edificio"];
+const BR_PROYECTO_NUEVO_TYPES = ["proyecto-nuevo"];
+
+function isBrPrivadoResidential(propertyType: string): boolean {
+  return BR_RESIDENTIAL_TYPES.includes((propertyType ?? "").trim().toLowerCase());
+}
+function isBrPrivadoLote(propertyType: string): boolean {
+  return BR_LOTE_TYPES.includes((propertyType ?? "").trim().toLowerCase());
+}
+function isBrPrivadoComercial(propertyType: string): boolean {
+  return BR_COMERCIAL_TYPES.includes((propertyType ?? "").trim().toLowerCase());
+}
+function isBrPrivadoEdificio(propertyType: string): boolean {
+  return BR_EDIFICIO_TYPES.includes((propertyType ?? "").trim().toLowerCase());
+}
+function isBrPrivadoProyectoNuevo(propertyType: string): boolean {
+  return BR_PROYECTO_NUEVO_TYPES.includes((propertyType ?? "").trim().toLowerCase());
+}
 import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
@@ -433,6 +456,15 @@ function getCategoryFields(cat: string, details?: Record<string, string>): Detai
     if (!sub || !tipo) return [];
     return getRentasDetailFields(sub, tipo) as DetailField[];
   }
+  if (cat === "bienes-raices" && details) {
+    const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
+    const pt = (details.enVentaPropertyType ?? "").trim();
+    if (brBranch === "negocio") return DETAIL_FIELDS["bienes-raices"] ?? [];
+    if (brBranch === "privado") {
+      if (isBrPrivadoResidential(pt)) return DETAIL_FIELDS["bienes-raices"] ?? [];
+      if (isBrPrivadoLote(pt) || isBrPrivadoComercial(pt) || isBrPrivadoEdificio(pt) || isBrPrivadoProyectoNuevo(pt)) return [];
+    }
+  }
   return DETAIL_FIELDS[cat] ?? [];
 }
 
@@ -457,23 +489,33 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     const subtype = (details.enVentaPropertySubtype ?? "").trim();
     if (subtype) out.push({ label: lang === "es" ? "Subtipo" : "Subtype", value: subtype });
     const zone = (details.enVentaZone ?? "").trim();
-    if (zone) out.push({ label: lang === "es" ? "Zona" : "Zone", value: zone });
+    if (zone) out.push({ label: lang === "es" ? "Nombre de la vecindad" : "Neighborhood name", value: zone });
     const addr = (details.enVentaAddress ?? "").trim();
     if (addr) out.push({ label: lang === "es" ? "Dirección" : "Address", value: addr });
-    const br = (details.enVentaBedrooms ?? "").trim();
-    if (br) out.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: br });
-    const ba = (details.enVentaBathrooms ?? "").trim();
-    if (ba) out.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: ba });
-    const hb = (details.enVentaHalfBathrooms ?? "").trim();
-    if (hb) out.push({ label: lang === "es" ? "Medios baños" : "Half bathrooms", value: hb });
+    if (isBrPrivadoResidential(pt) || (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
+      const br = (details.enVentaBedrooms ?? "").trim();
+      if (br) out.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: br });
+      const ba = (details.enVentaBathrooms ?? "").trim();
+      if (ba) out.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: ba });
+      const hb = (details.enVentaHalfBathrooms ?? "").trim();
+      if (hb) out.push({ label: lang === "es" ? "Medios baños" : "Half bathrooms", value: hb });
+    }
     const sq = (details.enVentaSquareFeet ?? "").trim();
-    if (sq) out.push({ label: lang === "es" ? "Pies cuadrados" : "Square feet", value: sq });
+    if (sq) out.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sq });
     const lot = (details.enVentaLotSize ?? "").trim();
     if (lot) out.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lot });
     const lv = (details.enVentaLevels ?? "").trim();
     if (lv) out.push({ label: lang === "es" ? "Niveles" : "Levels", value: lv });
     const pk = (details.enVentaParkingSpaces ?? "").trim();
-    if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking spaces", value: pk });
+    if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pk });
+    const videoUrl = (details.enVentaVideoUrl ?? "").trim();
+    if (videoUrl) out.push({ label: lang === "es" ? "Video de la propiedad" : "Property video", value: videoUrl });
+    const virtualTour = (details.enVentaVirtualTourUrl ?? "").trim();
+    if (virtualTour) out.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: virtualTour });
+    const yearBuilt = (details.enVentaYearBuilt ?? "").trim();
+    if (yearBuilt) out.push({ label: lang === "es" ? "Año de construcción" : "Year built", value: yearBuilt });
+    const zoning = (details.enVentaZoning ?? "").trim();
+    if (zoning) out.push({ label: lang === "es" ? "Zonificación" : "Zoning", value: zoning });
     const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
     if (brBranch === "negocio") {
       const negocioNombre = (details.negocioNombre ?? "").trim() || (details.enVentaBusinessName ?? "").trim();
@@ -2080,17 +2122,31 @@ export default function PublicarPage() {
     const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
     const brTier = (s.details.rentasTier ?? "").trim();
     const brDescription = (s.details.enVentaFullDescription ?? "").trim();
+    const brPt = (s.details.enVentaPropertyType ?? "").trim();
+    const brPrivadoCoreOk = !!(s.details.enVentaPropertyType ?? "").trim() && brDescription.length >= 5;
+    const brPrivadoTypeOk =
+      isBrPrivadoResidential(brPt)
+        ? !!(s.details.enVentaBedrooms ?? "").trim() && !!(s.details.enVentaBathrooms ?? "").trim() && !!(s.details.enVentaSquareFeet ?? "").trim()
+        : isBrPrivadoLote(brPt)
+          ? !!(s.details.enVentaLotSize ?? "").trim()
+          : isBrPrivadoComercial(brPt) || isBrPrivadoEdificio(brPt)
+            ? !!(s.details.enVentaSquareFeet ?? "").trim()
+            : isBrPrivadoProyectoNuevo(brPt)
+              ? true
+              : true;
     const bienesRaicesMetaOk =
       s.category !== "bienes-raices" ||
       (
         ["privado", "negocio"].includes(bienesRaicesBranch) &&
-        !!(s.details.enVentaPropertyType ?? "").trim() &&
-        !!(s.details.enVentaBedrooms ?? "").trim() &&
-        !!(s.details.enVentaBathrooms ?? "").trim() &&
-        !!(s.details.enVentaSquareFeet ?? "").trim() &&
+        !!brPt &&
         brDescription.length >= 5 &&
-        (bienesRaicesBranch !== "negocio" ||
-          (!!(s.details.enVentaBusinessName ?? "").trim() && (brTier === "business_standard" || brTier === "business_plus")))
+        (bienesRaicesBranch === "negocio"
+          ? !!(s.details.enVentaBedrooms ?? "").trim() &&
+            !!(s.details.enVentaBathrooms ?? "").trim() &&
+            !!(s.details.enVentaSquareFeet ?? "").trim() &&
+            !!(s.details.enVentaBusinessName ?? "").trim() &&
+            (brTier === "business_standard" || brTier === "business_plus")
+          : brPrivadoTypeOk)
       );
     return {
       categoryOk,
@@ -3878,30 +3934,239 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </div>
                             </div>
                           </div>
-                          <div className="rounded-xl border border-black/10 bg-white/80 p-4">
-                            <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos" : "Quick facts"}</h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label>
-                                <input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                {!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
-                              </div>
-                              <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label>
-                                <input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                {!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
-                              </div>
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                              <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label>
-                                <input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                {!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
-                              </div>
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                          {/* Shared optional fields for all BR (Privado and Negocio) */}
+                          <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                            <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Datos opcionales de la propiedad" : "Optional property info"}</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad" : "Property video URL"}</label><input value={details.enVentaVideoUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual" : "Virtual tour URL"}</label><input value={details.enVentaVirtualTourUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVirtualTourUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.enVentaYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} placeholder={lang === "es" ? "Ej: R-1, comercial" : "e.g. R-1, commercial"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales" : "Special conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Servicios en la propiedad" : "Utilities for property"}</label><input value={details.enVentaUtilitiesForProperty ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaUtilitiesForProperty: e.target.value }))} placeholder={lang === "es" ? "Ej: Agua municipal, drenaje, CFE" : "e.g. City water, sewer, electric"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                             </div>
                           </div>
+                          {/* Property-type–conditional sections: BR Privado only. Negocio keeps single Quick facts block. */}
+                          {details.bienesRaicesBranch === "negocio" ? (
+                            <div className="rounded-xl border border-black/10 bg-white/80 p-4">
+                              <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos" : "Quick facts"}</h4>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              </div>
+                            </div>
+                          ) : (() => {
+                            const pt = (details.enVentaPropertyType ?? "").trim();
+                            if (isBrPrivadoResidential(pt)) {
+                              return (
+                                <>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4">
+                                    <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos residenciales" : "Residential quick facts"}</h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Interior y distribución" : "Interior & layout"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Tipos de habitaciones" : "Room types"}</label><input value={details.enVentaRoomTypes ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoomTypes: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámara principal" : "Primary bedroom features"}</label><input value={details.enVentaPrimaryBedroomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPrimaryBedroomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baño principal" : "Primary bathroom features"}</label><input value={details.enVentaPrimaryBathroomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPrimaryBathroomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Comedor" : "Dining room features"}</label><input value={details.enVentaDiningRoomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaDiningRoomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cocina" : "Kitchen features"}</label><input value={details.enVentaKitchenFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaKitchenFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Sistemas y equipamiento" : "Systems & equipment"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Calefacción" : "Heating"}</label><input value={details.enVentaHeating ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHeating: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Enfriamiento" : "Cooling"}</label><input value={details.enVentaCooling ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaCooling: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Electrodomésticos incluidos" : "Appliances included"}</label><input value={details.enVentaAppliancesIncluded ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAppliancesIncluded: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Lavandería" : "Laundry features"}</label><input value={details.enVentaLaundryFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLaundryFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Acabados e interior" : "Finishes & interior"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pisos" : "Flooring"}</label><input value={details.enVentaFlooring ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFlooring: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de chimeneas" : "Fireplace count"}</label><input value={details.enVentaFireplaceCount ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFireplaceCount: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles de chimenea" : "Fireplace features"}</label><input value={details.enVentaFireplaceFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFireplaceFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Estacionamiento y acceso" : "Parking & access"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento (detalles)" : "Parking features"}</label><input value={details.enVentaParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cocheras cubiertas" : "Attached garage spaces"}</label><input value={details.enVentaAttachedGarageSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAttachedGarageSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Espacios descubiertos" : "Uncovered spaces"}</label><input value={details.enVentaUncoveredSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaUncoveredSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.enVentaAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior y terreno" : "Exterior & lot"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cercado" : "Fencing"}</label><input value={details.enVentaFencing ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFencing: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Características del terreno" : "Lot features"}</label><input value={details.enVentaLotFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Patio / portal" : "Patio & porch features"}</label><input value={details.enVentaPatioPorchFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPatioPorchFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.enVentaExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción y legal" : "Construction & legal"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estilo arquitectónico" : "Architectural style"}</label><input value={details.enVentaArchitecturalStyle ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaArchitecturalStyle: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.enVentaMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.enVentaFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Construcción nueva" : "New construction"}</label><input value={details.enVentaNewConstruction ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaNewConstruction: e.target.value }))} placeholder={lang === "es" ? "Sí/No" : "Yes/No"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            }
+                            if (isBrPrivadoLote(pt)) {
+                              return (
+                                <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                  <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Terreno" : "Land"}</h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno (tamaño)" : "Lot size"}{" *"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaLotSize?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                    <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Características del terreno" : "Lot features"}</label><input value={details.enVentaLotFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cercado" : "Fencing"}</label><input value={details.enVentaFencing ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFencing: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales" : "Special conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Descripción de acceso" : "Access description"}</label><input value={details.enVentaAccessDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessDescription: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            if (isBrPrivadoComercial(pt)) {
+                              return (
+                                <>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Espacio comercial" : "Commercial space"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking spaces"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles estacionamiento" : "Parking features"}</label><input value={details.enVentaParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.enVentaAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Uso y legal" : "Use & legal"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales" : "Special conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción" : "Construction"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.enVentaYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.enVentaMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.enVentaFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior / acceso" : "Exterior / access"}</h4>
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.enVentaExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Descripción de acceso" : "Access description"}</label><input value={details.enVentaAccessDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessDescription: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            }
+                            if (isBrPrivadoEdificio(pt)) {
+                              return (
+                                <>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Datos del edificio" : "Building data"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 5000" : "e.g. 5000"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking spaces"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles estacionamiento" : "Parking features"}</label><input value={details.enVentaParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Legal y uso" : "Legal & use"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales" : "Special conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción" : "Construction"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.enVentaYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.enVentaMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.enVentaFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
+                                    <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior" : "Exterior"}</h4>
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.enVentaExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            }
+                            if (isBrPrivadoProyectoNuevo(pt)) {
+                              return null;
+                            }
+                            return null;
+                          })()}
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción de la propiedad" : "Property description"}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Descripción completa del anuncio. Se usará en la ficha y para búsquedas (mín. 5 caracteres)." : "Full listing description for the listing page and search (min 5 characters)."}</p>
