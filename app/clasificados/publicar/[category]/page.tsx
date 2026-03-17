@@ -2021,19 +2021,21 @@ export default function PublicarPage() {
     const emailOk = s.contactMethod === "phone" ? true : /.+@.+\..+/.test(s.contactEmail.trim());
     const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(s.contactEmail.trim());
     const enVentaAdvertiser = (s.details.enVentaAdvertiserType ?? "").trim();
+    const enVentaShort = (s.details.enVentaShortDescription ?? "").trim();
+    const enVentaFull = (s.details.enVentaFullDescription ?? "").trim();
     const enVentaMetaOk =
       s.category !== "en-venta" ||
       (
         ["privado", "negocio"].includes(enVentaAdvertiser) &&
         !!(s.details.enVentaPropertyType ?? "").trim() &&
         !!(s.details.enVentaZone ?? "").trim() &&
-        (!!(s.details.enVentaBedrooms ?? "").trim() ||
-          !!(s.details.enVentaBathrooms ?? "").trim() ||
-          !!(s.details.enVentaSquareFeet ?? "").trim()) &&
-        (((s.details.enVentaShortDescription ?? "").trim().length >= 5 ||
-          (s.details.enVentaFullDescription ?? "").trim().length >= 5) ||
-          ((s.details.enVentaShortDescription ?? "").trim() + (s.details.enVentaFullDescription ?? "").trim()).length >= 10) &&
-        (enVentaAdvertiser !== "negocio" || !!(s.details.enVentaBusinessName ?? "").trim())
+        !!(s.details.enVentaBedrooms ?? "").trim() &&
+        !!(s.details.enVentaBathrooms ?? "").trim() &&
+        !!(s.details.enVentaSquareFeet ?? "").trim() &&
+        enVentaShort.length >= 5 &&
+        (enVentaFull.length >= 5 || (enVentaShort + enVentaFull).length >= 10) &&
+        (enVentaAdvertiser !== "negocio" ||
+          (!!(s.details.enVentaBusinessName ?? "").trim() && !!(s.details.enVentaBusinessTier ?? "").trim()))
       );
     const rentasBranch = (s.details.rentasBranch ?? "").trim();
     const rentasNegocio = s.category === "rentas" && rentasBranch === "negocio";
@@ -2156,7 +2158,9 @@ export default function PublicarPage() {
         ? [
             {
               key: "itemDetails" as const,
-              label: lang === "es" ? "Detalles requeridos" : "Required details",
+              label: lang === "es"
+                ? "Datos de propiedad (tipo, zona, recámaras, baños, pies², descripciones)"
+                : "Property data (type, zone, beds, baths, sq ft, descriptions)",
               ok: requirements.enVentaMetaOk,
               step: "basics" as const,
             },
@@ -3655,7 +3659,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                           </div>
 
-                          {/* 2. Business tier (only when negocio) */}
+                          {/* 2. Business tier (only when negocio) - required for negocio */}
                           {(details.enVentaAdvertiserType ?? "") === "negocio" && (
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Plan del negocio" : "Business plan"}{" *"}</label>
@@ -3675,6 +3679,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   {lang === "es" ? "Plus" : "Plus"}
                                 </button>
                               </div>
+                              {!requirements.enVentaMetaOk && !(details.enVentaBusinessTier ?? "").trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Elige Standard o Plus." : "Choose Standard or Plus."}</div>
+                              )}
                             </div>
                           )}
 
@@ -3773,33 +3780,45 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           <div className="rounded-xl border border-black/10 bg-white/80 p-4">
                             <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos" : "Quick facts"}</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}</label><input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}</label><input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label>
+                                <input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                {!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label>
+                                <input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                {!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              </div>
                               <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                              <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label>
+                                <input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                {!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              </div>
                               <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                               <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                               <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                             </div>
-                            {!details.enVentaBedrooms?.trim() && !details.enVentaBathrooms?.trim() && !details.enVentaSquareFeet?.trim() && (
-                              <div className="mt-2 text-xs text-[#111111]/50">{lang === "es" ? "Indica al menos recámaras, baños o pies²." : "Enter at least bedrooms, bathrooms or sq ft."}</div>
+                          </div>
+
+                          {/* 9. Short description - required */}
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción corta" : "Short description"}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Resumen breve para listados y búsquedas (mín. 5 caracteres)." : "Brief summary for listings and search (min 5 characters)."}</p>
+                            <textarea value={details.enVentaShortDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaShortDescription: e.target.value }))} placeholder={lang === "es" ? "Ej: Casa amplia con jardín, lista para mudarse." : "e.g. Spacious house with garden, move-in ready."} rows={3} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            {!requirements.enVentaMetaOk && (details.enVentaShortDescription ?? "").trim().length < 5 && (
+                              <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>
                             )}
                           </div>
 
-                          {/* 9. Short description */}
+                          {/* 10. Full description - required */}
                           <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción corta" : "Short description"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Resumen breve para listados y búsquedas." : "Brief summary for listings and search."}</p>
-                            <textarea value={details.enVentaShortDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaShortDescription: e.target.value }))} placeholder={lang === "es" ? "Ej: Casa amplia con jardín, lista para mudarse." : "e.g. Spacious house with garden, move-in ready."} rows={2} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                          </div>
-
-                          {/* 10. Full description */}
-                          <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción completa" : "Full description"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Detalles, características y lo que hace especial la propiedad." : "Details, features and what makes the property special."}</p>
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción completa" : "Full description"}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Detalles, características y lo que hace especial la propiedad. Si la corta es corta, completa aquí (mín. 5 caracteres o texto combinado suficiente)." : "Details, features and what makes the property special. If short is brief, add more here (min 5 characters or enough combined text)."}</p>
                             <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={lang === "es" ? "Describa la propiedad, acabados, ubicación, etc." : "Describe the property, finishes, location, etc."} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.descOk && (details.enVentaShortDescription ?? "").trim().length < 5 && (details.enVentaFullDescription ?? "").trim().length < 5 && (
-                              <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Escribe al menos una descripción corta o completa (mín. 5 caracteres)." : "Enter at least a short or full description (min 5 characters)."}</div>
+                            {!requirements.enVentaMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && ((details.enVentaShortDescription ?? "").trim() + (details.enVentaFullDescription ?? "").trim()).length < 10 && (
+                              <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido: descripción completa con al menos 5 caracteres, o texto combinado mínimo 10." : "Required: full description with at least 5 characters, or combined text min 10."}</div>
                             )}
                           </div>
 
