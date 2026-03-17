@@ -21,6 +21,7 @@ import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { parseBusinessMeta } from "../../config/businessListingContract";
 
 type Lang = "es" | "en";
 
@@ -446,17 +447,10 @@ export default function AnuncioDetallePage() {
     return pairs.filter((p) => !rentalFactLabels.has(normalize(p.label)));
   }, [listing]);
 
-  /** Parsed business identity for Rentas negocio (from business_meta JSON). Ready for future detail render. */
+  /** Parsed business identity (from business_meta). Shared contract: rentas = business rentals; en-venta = future business sales. */
   const rentasBusinessMeta = useMemo((): Record<string, string> | null => {
     if (!listing || listing.category !== "rentas") return null;
-    const raw = (listing as any).business_meta;
-    if (typeof raw !== "string" || !raw.trim()) return null;
-    try {
-      const parsed = JSON.parse(raw) as Record<string, string>;
-      return parsed && typeof parsed === "object" ? parsed : null;
-    } catch {
-      return null;
-    }
+    return parseBusinessMeta((listing as any).business_meta);
   }, [listing]);
 
   /** Display values for Rentas negocio business rail (name, agent, role, phone, website, socials, etc.). */

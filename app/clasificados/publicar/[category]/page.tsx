@@ -40,6 +40,7 @@ import {
   getRentasDetailFields,
   RENTAS_NEGOCIO_TIER_OPTIONS,
 } from "../../config/rentasTaxonomy";
+import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -2340,8 +2341,7 @@ async function publish() {
           insertPayload.rentas_tier = tier === "business_plus" ? "plus" : "standard";
           insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
           const businessMeta: Record<string, string> = {};
-          const negocioKeys = ["negocioAgente", "negocioCargo", "negocioTelOficina", "negocioSitioWeb", "negocioRedes", "negocioLogoUrl", "negocioFotoAgenteUrl", "negocioIdiomas", "negocioHorario", "negocioRecorridoVirtual", "negocioPlusMasAnuncios"];
-          for (const k of negocioKeys) {
+          for (const k of BUSINESS_META_KEYS) {
             const v = (snap.details[k] ?? "").trim();
             if (v) businessMeta[k] = v;
           }

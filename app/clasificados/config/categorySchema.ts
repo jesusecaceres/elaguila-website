@@ -2,8 +2,13 @@
  * Category schema/config layer for Clasificados.
  * Drives: plan eligibility, posting steps, form field groups, subcategories,
  * preview/pro preview, business branch, lifecycle, moderation.
- * En Venta is the first production template; other categories have eligibility
- * and stubs ready for future wiring.
+ *
+ * REAL ESTATE ARCHITECTURE:
+ * - RENTAS = rentals only (individuals, agents, companies all post rentals; renta mensual, depósito, etc.).
+ *   Business branch here = "business posting rentals" (not the sales lane).
+ * - EN VENTA = will host professional real-estate SALES (homes, condos, multifamily, land, commercial,
+ *   industrial, business presence). Same business contract (seller_type, business_name, business_meta)
+ *   will be reused there when the sales lane is built.
  */
 
 import { categoryConfig, type CategoryKey } from "./categoryConfig";
@@ -20,7 +25,7 @@ export type PlanType =
 /** Listing/seller type (e.g. consumer vs dealership vs business). */
 export type ListingType = "consumer" | "dealership" | "business";
 
-/** Posting flow step. Rentas adds "rentas-track" between category and basics. */
+/** Posting flow step. Rentas adds "rentas-track" (privado vs negocio = business posting rentals) between category and basics. */
 export type PublishStep = "category" | "rentas-track" | "basics" | "details" | "media";
 
 /** Validation rule reference (key only; rules implemented per category/form). */
@@ -108,12 +113,12 @@ const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
     validationRules: ["en_venta_meta"],
     previewEligible: true,
     proPreviewEligible: true,
-    businessBranchEligible: false,
+    businessBranchEligible: false, // future: true for real-estate sales lane (same business contract as rentas)
     stepOrder: PUBLISH_STEPS_EN_VENTA,
   }),
   rentas: schema("rentas", {
     plans: ["pro", "business_standard", "business_plus"],
-    businessBranchEligible: true,
+    businessBranchEligible: true, // business posting RENTALS only (not sales)
     formFieldGroupKey: "rentas",
     subcategories: RENTAS_SUBCATEGORIES,
     validationRules: ["rentas_meta"],

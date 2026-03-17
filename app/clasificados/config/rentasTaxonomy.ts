@@ -2,6 +2,10 @@
  * Rentas taxonomy: subcategorías, tipo de propiedad by subcategoría,
  * and field groups (residential, room/temporary, commercial, alternative).
  * Single source of truth for Rentas publish form. Clean Spanish; no slang.
+ *
+ * PRODUCT: RENTAS = RENTALS ONLY. All listings here are for rent (renta mensual, depósito, etc.).
+ * "Negocio" = business/agent/company posting a RENTAL (not the professional real-estate sales lane).
+ * Professional real-estate SALES (homes for sale, commercial for sale, etc.) belong under En Venta.
  */
 
 export type RentasSubcategoryOption = {
@@ -112,12 +116,12 @@ export function getRentasFieldGroupForTipo(
   return byTipo[tipoValue] ?? null;
 }
 
-/** Branch: privado = Pro only; negocio = Business Standard / Business Plus. */
+/** Branch: privado = Pro only; negocio = Business posting rentals (Standard / Plus). */
 export type RentasBranch = "privado" | "negocio";
 
 export const RENTAS_BRANCH_OPTIONS: RentasTipoOption[] = [
   { value: "privado", label: { es: "Privado (persona)", en: "Private (individual)" } },
-  { value: "negocio", label: { es: "Negocio", en: "Business" } },
+  { value: "negocio", label: { es: "Negocio (solo rentas)", en: "Business (rentals only)" } },
 ];
 
 /** Rentas negocio plan tier (when branch = negocio). Stored in details.rentasTier. */
@@ -128,7 +132,7 @@ export const RENTAS_NEGOCIO_TIER_OPTIONS: RentasTipoOption[] = [
   { value: "business_plus", label: { es: "Business Plus", en: "Business Plus" } },
 ];
 
-/** Detail-page / listing shape: keys for Rentas negocio business identity (stored in details or listing_meta). */
+/** Detail form keys for Rentas negocio. negocioNombre → listing.business_name; rest → business_meta (see businessListingContract). */
 export const RENTAS_NEGOCIO_DETAIL_KEYS = [
   "negocioNombre",
   "negocioAgente",
