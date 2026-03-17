@@ -513,7 +513,7 @@ function getSearchPlaceholder(category: CategoryKey, lang: Lang) {
     case "travel":
       return es ? "Buscar: vuelos, hotel, agente…" : "Search: flights, hotel, agent…";
     case "bienes-raices":
-      return es ? "Buscar: casa, residencial, comercial, precio…" : "Search: house, residential, commercial, price…";
+      return es ? "Zona, colonia o palabra clave…" : "Area, neighborhood or keyword…";
     case "clases":
       return es ? "Buscar: inglés, guitarra, tutoría…" : "Search: English, guitar, tutoring…";
     case "comunidad":
@@ -5423,7 +5423,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                 </div>
               ) : (
                 <div ref={searchBoxRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
-                  <label className="block text-[11px] font-semibold text-[#111111]">{UI.search[lang]}</label>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{category === "bienes-raices" ? (lang === "es" ? "Propiedad o zona" : "Property or area") : UI.search[lang]}</label>
                   <div className="relative mt-1 w-full min-w-0">
                     <div className="grid w-full grid-cols-[minmax(0,1fr)_180px] gap-1.5 overflow-hidden rounded-lg border border-black/10 bg-[#F5F5F5]">
                       <div className="min-w-0 w-full">
@@ -5432,7 +5432,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                           onChange={(e) => setQ(e.target.value)}
                           placeholder={getSearchPlaceholder(category, lang)}
                           className="w-full min-w-0 bg-transparent px-2 py-1.5 text-sm text-[#111111] outline-none placeholder:text-[#111111]/80 focus:ring-0"
-                          aria-label={UI.search[lang]}
+                          aria-label={category === "bienes-raices" ? (lang === "es" ? "Buscar propiedad, zona o colonia" : "Search property, area or neighborhood") : UI.search[lang]}
                         />
                       </div>
                       <div className="flex min-w-[180px] shrink-0 items-stretch">
@@ -5610,7 +5610,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   }}
                   placeholder={getSearchPlaceholder(category, lang)}
                   className="w-full rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] py-3 pl-10 pr-4 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20"
-                  aria-label={UI.search[lang]}
+                  aria-label={category === "bienes-raices" ? (lang === "es" ? "Buscar propiedad, zona o colonia" : "Search property, area or neighborhood") : UI.search[lang]}
                 />
                 {suggestionsOpen && suggestions.length ? (
                   <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl">
