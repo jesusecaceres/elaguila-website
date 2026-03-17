@@ -1996,7 +1996,7 @@ export default function PublicarPage() {
     const isPrivate = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
     const descriptionForSnapshot =
       category === "bienes-raices"
-        ? [details.enVentaShortDescription, details.enVentaFullDescription].filter(Boolean).join("\n\n").trim() || ""
+        ? (details.enVentaFullDescription ?? "").trim() || ""
         : description;
     return buildEnVentaDraftSnapshot({
       title,
@@ -2078,22 +2078,19 @@ export default function PublicarPage() {
         rentasNegocioContactOk);
     const bienesRaicesBranch = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
     const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
-    const brAdvertiser = (s.details.enVentaAdvertiserType ?? "").trim();
-    const brShort = (s.details.enVentaShortDescription ?? "").trim();
-    const brFull = (s.details.enVentaFullDescription ?? "").trim();
+    const brTier = (s.details.rentasTier ?? "").trim();
+    const brDescription = (s.details.enVentaFullDescription ?? "").trim();
     const bienesRaicesMetaOk =
       s.category !== "bienes-raices" ||
       (
-        ["privado", "negocio"].includes(brAdvertiser) &&
+        ["privado", "negocio"].includes(bienesRaicesBranch) &&
         !!(s.details.enVentaPropertyType ?? "").trim() &&
-        !!(s.details.enVentaZone ?? "").trim() &&
         !!(s.details.enVentaBedrooms ?? "").trim() &&
         !!(s.details.enVentaBathrooms ?? "").trim() &&
         !!(s.details.enVentaSquareFeet ?? "").trim() &&
-        brShort.length >= 5 &&
-        (brFull.length >= 5 || (brShort + brFull).length >= 10) &&
-        (brAdvertiser !== "negocio" ||
-          (!!(s.details.enVentaBusinessName ?? "").trim() && !!(s.details.enVentaBusinessTier ?? "").trim()))
+        brDescription.length >= 5 &&
+        (bienesRaicesBranch !== "negocio" ||
+          (!!(s.details.enVentaBusinessName ?? "").trim() && (brTier === "business_standard" || brTier === "business_plus")))
       );
     return {
       categoryOk,
@@ -2210,8 +2207,8 @@ export default function PublicarPage() {
                 {
                   key: "bienesRaicesSubcat" as const,
                   label: lang === "es"
-                    ? "Datos de propiedad (tipo, zona, recámaras, baños, pies², descripciones)"
-                    : "Property data (type, zone, beds, baths, sq ft, descriptions)",
+                    ? "Datos de propiedad (tipo, recámaras, baños, pies², descripción)"
+                    : "Property data (type, beds, baths, sq ft, description)",
                   ok: requirements.bienesRaicesMetaOk,
                   step: "basics" as const,
                 },
@@ -3799,24 +3796,31 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         </>
                       ) : category === "bienes-raices" ? (
                         <>
-                          {/* Bienes Raíces: full BR Basics (Privado/Negocio, property type, zone, quick facts, descriptions, business identity) */}
-                          <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de anunciante" : "Advertiser type"}{" *"}</label>
-                            <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
-                              <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaAdvertiserType: "privado", enVentaBusinessTier: "" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaAdvertiserType ?? "") === "privado" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Privado" : "Private"}</button>
-                              <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaAdvertiserType: "negocio" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaAdvertiserType ?? "") === "negocio" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Negocio" : "Business"}</button>
-                            </div>
-                          </div>
-                          {(details.enVentaAdvertiserType ?? "") === "negocio" && (
+                          {/* Bienes Raíces: read-only advertiser summary (set in previous step); Cambiar goes back to bienes-raices-track */}
+                          <div className="rounded-xl border border-[#C9B46A]/25 bg-[#F8F6F0]/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div>
-                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Plan del negocio" : "Business plan"}{" *"}</label>
-                              <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
-                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaBusinessTier: "standard" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaBusinessTier ?? "") === "standard" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Standard" : "Standard"}</button>
-                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaBusinessTier: "plus" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaBusinessTier ?? "") === "plus" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Plus" : "Plus"}</button>
-                              </div>
-                              {!requirements.bienesRaicesMetaOk && !(details.enVentaBusinessTier ?? "").trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Elige Standard o Plus." : "Choose Standard or Plus."}</div>}
+                              <p className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
+                                {lang === "es" ? "Publicando como" : "Posting as"}
+                              </p>
+                              <p className="mt-1 text-sm font-medium text-[#111111]">
+                                {details.bienesRaicesBranch === "negocio"
+                                  ? (lang === "es" ? "Negocio" : "Business") +
+                                    (details.rentasTier === "business_plus"
+                                      ? " — Plus"
+                                      : details.rentasTier === "business_standard"
+                                        ? " — Standard"
+                                        : "")
+                                  : (lang === "es" ? "Privado" : "Private")}
+                              </p>
                             </div>
-                          )}
+                            <button
+                              type="button"
+                              onClick={() => { setStep("bienes-raices-track"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                              className="text-sm font-semibold text-[#111111]/80 hover:text-[#111111] underline"
+                            >
+                              {lang === "es" ? "Cambiar" : "Change"}
+                            </button>
+                          </div>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
                             <select value={details.enVentaPropertyType ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertyType: e.target.value }))} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30">
@@ -3857,9 +3861,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               {!requirements.cityOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
                             </div>
                             <div>
-                              <label className="text-xs text-[#111111]/80">{lang === "es" ? "Zona o barrio" : "Zone or area"}{" *"}</label>
-                              <input value={details.enVentaZone ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZone: e.target.value }))} placeholder={lang === "es" ? "Ej: Escazú, Rohrmoser" : "e.g. Downtown, North"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                              {!details.enVentaZone?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre de la vecindad" : "Neighborhood name"}</label>
+                              <input value={details.enVentaZone ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZone: e.target.value }))} placeholder={lang === "es" ? "Ej: Rose Garden, Downtown, Little Portugal, Willow Glen" : "e.g. Rose Garden, Downtown, Little Portugal, Willow Glen"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                             </div>
                             <div>
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Dirección (opcional)" : "Address (optional)"}</label>
@@ -3898,18 +3901,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción corta" : "Short description"}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Resumen breve para listados y búsquedas (mín. 5 caracteres)." : "Brief summary for listings and search (min 5 characters)."}</p>
-                            <textarea value={details.enVentaShortDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaShortDescription: e.target.value }))} placeholder={lang === "es" ? "Ej: Casa amplia con jardín, lista para mudarse." : "e.g. Spacious house with garden, move-in ready."} rows={3} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.bienesRaicesMetaOk && (details.enVentaShortDescription ?? "").trim().length < 5 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>}
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción de la propiedad" : "Property description"}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Descripción completa del anuncio. Se usará en la ficha y para búsquedas (mín. 5 caracteres)." : "Full listing description for the listing page and search (min 5 characters)."}</p>
+                            <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={lang === "es" ? "Describa la propiedad, ubicación, acabados, características, etc." : "Describe the property, location, finishes, features, etc."} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            {!requirements.bienesRaicesMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>}
                           </div>
-                          <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción completa" : "Full description"}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Detalles, características y lo que hace especial la propiedad." : "Details, features and what makes the property special."}</p>
-                            <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={lang === "es" ? "Describa la propiedad, acabados, ubicación, etc." : "Describe the property, finishes, location, etc."} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.bienesRaicesMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && ((details.enVentaShortDescription ?? "").trim() + (details.enVentaFullDescription ?? "").trim()).length < 10 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido: descripción completa o texto combinado mínimo 10." : "Required: full description or combined text min 10."}</div>}
-                          </div>
-                          {(details.enVentaAdvertiserType ?? "") === "negocio" && (
+                          {details.bienesRaicesBranch === "negocio" && (
                             <div className="rounded-xl border border-black/10 bg-[#F8F6F0]/80 p-4 space-y-3">
                               <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Identidad del negocio" : "Business identity"}</h4>
                               <div>
