@@ -714,6 +714,14 @@ export default function PublicarPage() {
     setCategory(categoryFromUrl);
   }, [categoryFromUrl]);
 
+  // Keep routing strict: invalid slug → redirect to canonical en-venta so no wrong UX leaks.
+  useEffect(() => {
+    if (slugFromUrl === "" || normalizeCategory(params?.category ?? "") !== "") return;
+    const p = new URLSearchParams(searchParams?.toString() ?? "");
+    if (!p.has("lang")) p.set("lang", lang);
+    router.replace(`/clasificados/publicar/en-venta?${p.toString()}`);
+  }, [slugFromUrl, params?.category, searchParams, lang, router]);
+
   useEffect(() => {
     if (searchParams?.get("fromPreview") === "1") setPreviewViewed(true);
   }, [searchParams]);
@@ -889,9 +897,10 @@ export default function PublicarPage() {
   const previousStepRef = useRef<PublishStep | null>(null);
   const confirmPublishTriggered = useRef(false);
 
+  /** Category-scoped so BR draft never overwrites En Venta draft (and vice versa). */
   const draftKey = useMemo(
-    () => `listing_draft_${getStableSessionId(userId || null)}`,
-    [userId]
+    () => `listing_draft_${getStableSessionId(userId || null)}_${categoryFromUrl || "unknown"}`,
+    [userId, categoryFromUrl]
   );
 
   function scrollFormToTop(behavior: ScrollBehavior = "smooth") {
@@ -1297,12 +1306,15 @@ export default function PublicarPage() {
     if (searchParams?.get("fromPro") === "1") return;
 
     if (!signedIn || !userId) {
-      // Not signed in: keep current behavior — local/session only, show modal if local has draft
+      // Not signed in: local/session only; show modal only if local draft is for this category
       const raw = localStorage.getItem(draftKey);
       if (raw) {
         try {
           const parsed = JSON.parse(raw) as Partial<DraftV1>;
-          if (parsed.v === 1) setShowDraftRestoreModal(true);
+          if (parsed.v === 1) {
+            const parsedCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
+            if (parsedCat === categoryFromUrl) setShowDraftRestoreModal(true);
+          }
         } catch {
           // ignore
         }
@@ -1317,12 +1329,21 @@ export default function PublicarPage() {
         const supabase = createSupabaseBrowserClient();
         const categoryForQuery = categoryFromUrl || undefined;
 
-        // 1) URL draftId first: load exact draft if present and owned
+        // 1) URL draftId first: load exact draft if present and owned. Stay category-scoped: if draft is for another category, redirect to that route.
         const urlDraftId = searchParams?.get("draftId")?.trim();
         if (urlDraftId) {
           const row = await getDraft(supabase, urlDraftId, userId);
           if (cancelled) return;
           if (row?.draft_data) {
+            const payload = row.draft_data as DraftDataPayload & { category?: string };
+            const draftCat = typeof payload?.category === "string" ? normalizeCategory(payload.category) : "";
+            if (draftCat && draftCat !== categoryForQuery) {
+              const p = new URLSearchParams(searchParams?.toString() ?? "");
+              p.set("draftId", row.id);
+              if (!p.has("lang")) p.set("lang", lang);
+              router.replace(`/clasificados/publicar/${draftCat}?${p.toString()}`);
+              return;
+            }
             applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
             setDraftId(row.id);
             setStoredDraftId(userId, row.id);
@@ -1370,11 +1391,14 @@ export default function PublicarPage() {
           }
         }
 
-        // 3) No DB draft: fall back to local; show modal if local has draft
+        // 3) No DB draft: fall back to local; show modal only if local draft is for this category
         const raw = localStorage.getItem(draftKey);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<DraftV1>;
-          if (parsed.v === 1) setShowDraftRestoreModal(true);
+          if (parsed.v === 1) {
+            const parsedCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
+            if (parsedCat === categoryFromUrl) setShowDraftRestoreModal(true);
+          }
         }
       } catch {
         if (!cancelled) {
@@ -1393,7 +1417,7 @@ export default function PublicarPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl]);
+  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl, router, lang]);
 
   // Rentas: when user selects a branch, run restore check for that branch only (no modal before branch is chosen).
   useEffect(() => {
@@ -1473,6 +1497,15 @@ export default function PublicarPage() {
         const supabase = createSupabaseBrowserClient();
         const row = await getDraft(supabase, draftId, userId);
         if (row?.draft_data) {
+          const payload = row.draft_data as DraftDataPayload & { category?: string };
+          const draftCat = typeof payload?.category === "string" ? normalizeCategory(payload.category) : "";
+          if (draftCat && draftCat !== categoryFromUrl) {
+            const p = new URLSearchParams(searchParams?.toString() ?? "");
+            p.set("draftId", draftId);
+            if (!p.has("lang")) p.set("lang", lang);
+            router.replace(`/clasificados/publicar/${draftCat}?${p.toString()}`);
+            return;
+          }
           applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
           syncDraftIdInUrl(draftId);
           setRecoveredDraftMessage(lang === "es" ? "Progreso guardado recuperado." : "Recovered saved progress.");
@@ -1483,6 +1516,13 @@ export default function PublicarPage() {
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
       if (parsed.v !== 1) return;
+      const parsedCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
+      if (parsedCat && parsedCat !== categoryFromUrl) {
+        const p = new URLSearchParams(searchParams?.toString() ?? "");
+        if (!p.has("lang")) p.set("lang", lang);
+        router.replace(`/clasificados/publicar/${parsedCat}?${p.toString()}`);
+        return;
+      }
       applyDraftToForm(parsed);
       setStep("basics");
       try {
