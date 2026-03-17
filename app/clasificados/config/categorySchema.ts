@@ -26,8 +26,8 @@ export type PlanType =
 /** Listing/seller type (e.g. consumer vs dealership vs business). */
 export type ListingType = "consumer" | "dealership" | "business";
 
-/** Posting flow step. Rentas adds "rentas-track" (privado vs negocio = business posting rentals) between category and basics. */
-export type PublishStep = "category" | "rentas-track" | "basics" | "details" | "media";
+/** Posting flow step. Rentas adds "rentas-track"; Bienes Raíces adds "bienes-raices-track" (privado vs negocio/profesional). */
+export type PublishStep = "category" | "rentas-track" | "bienes-raices-track" | "basics" | "details" | "media";
 
 /** Validation rule reference (key only; rules implemented per category/form). */
 export type ValidationRuleKey = string;
@@ -77,8 +77,8 @@ export type CategorySchema = {
 
 const PUBLISH_STEPS_FULL: PublishStep[] = ["category", "basics", "details", "media"];
 const PUBLISH_STEPS_EN_VENTA: PublishStep[] = ["category", "basics", "media"];
-/** Bienes Raíces: foundation shell (sales lane); same 3-step flow as En Venta, no details step. */
-const PUBLISH_STEPS_BIENES_RAICES: PublishStep[] = ["category", "basics", "media"];
+/** Bienes Raíces: track (privado vs negocio/profesional) then basics → media. Reuses business contract for negocio. */
+const PUBLISH_STEPS_BIENES_RAICES: PublishStep[] = ["category", "bienes-raices-track", "basics", "media"];
 /** Rentas: track selection (Privado vs Negocio + plan) before basics. */
 const PUBLISH_STEPS_RENTAS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
 

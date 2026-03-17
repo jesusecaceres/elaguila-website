@@ -67,7 +67,7 @@ const PUBLICAR_CATEGORIES: Array<{
 ];
 
 type Lang = "es" | "en";
-type PublishStep = "category" | "rentas-track" | "basics" | "details" | "media";
+type PublishStep = "category" | "rentas-track" | "bienes-raices-track" | "basics" | "details" | "media";
 
 type DraftV1 = {
   v: 1;
@@ -420,6 +420,18 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
         label: lang === "es" ? "Tipo de propiedad" : "Property type",
         value: getBienesRaicesSubcategoryLabel(subKey, lang),
       });
+    }
+    const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
+    if (brBranch === "negocio") {
+      const negocioNombre = (details.negocioNombre ?? "").trim();
+      if (negocioNombre) out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
+      const rentasTier = (details.rentasTier ?? "").trim();
+      if (rentasTier) {
+        const tierOpt = RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === rentasTier);
+        out.push({ label: lang === "es" ? "Plan" : "Plan", value: tierOpt ? (lang === "es" ? tierOpt.label.es : tierOpt.label.en) : rentasTier });
+      }
+      const negocioAgente = (details.negocioAgente ?? "").trim();
+      if (negocioAgente) out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
     }
   }
   if (cat === "rentas") {
@@ -954,7 +966,7 @@ export default function PublicarPage() {
       es: {
         title: "Publicar tu anuncio",
         subtitle: "Publica con claridad. Mientras más completo, más confianza y mejores resultados.",
-        steps: { category: "Categoría", "rentas-track": "Rama", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
+        steps: { category: "Categoría", "rentas-track": "Rama", "bienes-raices-track": "Tipo de anunciante", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
         deleteDraft: "Eliminar progreso guardado",
         basicsTitle: "Básicos",
         categoryTitle: "Elige la categoría",
@@ -1029,7 +1041,7 @@ export default function PublicarPage() {
       en: {
         title: "Post your ad",
         subtitle: "Post with clarity. The more complete it is, the more trust—and better results.",
-        steps: { category: "Category", "rentas-track": "Track", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
+        steps: { category: "Category", "rentas-track": "Track", "bienes-raices-track": "Seller type", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
         deleteDraft: "Delete application",
         basicsTitle: "Basics",
         categoryTitle: "Choose a category",
@@ -1107,7 +1119,7 @@ export default function PublicarPage() {
 
   const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
 
-  const VALID_STEPS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
+  const VALID_STEPS: PublishStep[] = ["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"];
 
   /** Restore form + images from DB draft_data payload. Restores saved step; fallback to basics (not category) for existing draft resume. */
   function applyDraftPayloadFromDb(payload: DraftDataPayload) {
@@ -1630,8 +1642,14 @@ export default function PublicarPage() {
 
       const categorySlug = payload.category || "en-venta";
       const rentasBranch = (payload.details?.rentasBranch ?? "").trim().toLowerCase();
+      const bienesRaicesBranch = (payload.details?.bienesRaicesBranch ?? "").trim().toLowerCase();
       if (categorySlug === "rentas" && rentasBranch !== "privado" && rentasBranch !== "negocio") {
         // Don't write to DB until branch is chosen; keep local autosave only
+        const { images: _img, ...rest } = payload;
+        localStorage.setItem(draftKey, JSON.stringify(rest as Partial<DraftV1>));
+        return;
+      }
+      if (categorySlug === "bienes-raices" && bienesRaicesBranch !== "privado" && bienesRaicesBranch !== "negocio") {
         const { images: _img, ...rest } = payload;
         localStorage.setItem(draftKey, JSON.stringify(rest as Partial<DraftV1>));
         return;
@@ -1930,9 +1948,16 @@ export default function PublicarPage() {
         rentasNegocioNameOk &&
         rentasNegocioTierOk &&
         rentasNegocioContactOk);
+    const bienesRaicesBranch = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
+    const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
+    const bienesRaicesSubcatOk = !!(s.details.bienesRaicesSubcategoria ?? "").trim();
+    const bienesRaicesNegocioNameOk = !isBienesRaicesNegocio || !!(s.details.negocioNombre ?? "").trim();
+    const bienesRaicesNegocioTierOk = !isBienesRaicesNegocio || !!(s.details.rentasTier ?? "").trim();
+    const brNegocioPhone = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
+    const bienesRaicesNegocioContactOk = !isBienesRaicesNegocio || brNegocioPhone.length === 10 || contactOk;
     const bienesRaicesMetaOk =
       s.category !== "bienes-raices" ||
-      !!(s.details.bienesRaicesSubcategoria ?? "").trim();
+      (bienesRaicesSubcatOk && bienesRaicesNegocioNameOk && bienesRaicesNegocioTierOk && bienesRaicesNegocioContactOk);
     return {
       categoryOk,
       titleOk,
@@ -2353,7 +2378,9 @@ async function publish() {
       const snap = enVentaSnapshot;
       const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details)).trim();
       const rentasBranch = (snap.details.rentasBranch ?? "").trim();
+      const bienesRaicesBranch = (snap.details.bienesRaicesBranch ?? "").trim().toLowerCase();
       const isRentasNegocio = snap.category === "rentas" && rentasBranch === "negocio";
+      const isBienesRaicesNegocio = snap.category === "bienes-raices" && bienesRaicesBranch === "negocio";
       // Insert from same normalized snapshot as preview/validation (DB field names unchanged).
       const insertPayload: any = {
         owner_id: userId,
@@ -2371,6 +2398,22 @@ async function publish() {
       if (snap.category === "rentas") {
         insertPayload.seller_type = rentasBranch === "negocio" ? "business" : "personal";
         if (isRentasNegocio) {
+          const tier = (snap.details.rentasTier ?? "").trim();
+          insertPayload.rentas_tier = tier === "business_plus" ? "plus" : "standard";
+          insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
+          const businessMeta: Record<string, string> = {};
+          for (const k of BUSINESS_META_KEYS) {
+            const v = (snap.details[k] ?? "").trim();
+            if (v) businessMeta[k] = v;
+          }
+          if (Object.keys(businessMeta).length > 0) {
+            insertPayload.business_meta = JSON.stringify(businessMeta);
+          }
+        }
+      }
+      if (snap.category === "bienes-raices") {
+        insertPayload.seller_type = bienesRaicesBranch === "negocio" ? "business" : "personal";
+        if (isBienesRaicesNegocio) {
           const tier = (snap.details.rentasTier ?? "").trim();
           insertPayload.rentas_tier = tier === "business_plus" ? "plus" : "standard";
           insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
@@ -2941,7 +2984,7 @@ for (let vi = 0; vi < 2; vi++) {
                     const isActive = safeStepForProgress === s;
                     const isPast = stepOrder.indexOf(s) < currentStepIndex;
                     const isUpcoming = !isActive && !isPast;
-                    const label = s === "category" ? copy.steps.category : s === "rentas-track" ? copy.steps["rentas-track"] : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
+                    const label = s === "category" ? copy.steps.category : s === "rentas-track" ? copy.steps["rentas-track"] : s === "bienes-raices-track" ? copy.steps["bienes-raices-track"] : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
                     return (
                       <span
                         key={s}
@@ -3068,6 +3111,8 @@ for (let vi = 0; vi < 2; vi++) {
                           if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
                           if (category === "rentas") {
                             setStep("rentas-track");
+                          } else if (category === "bienes-raices") {
+                            setStep("bienes-raices-track");
                           } else {
                             setStep("basics");
                           }
@@ -3177,6 +3222,112 @@ for (let vi = 0; vi < 2; vi++) {
                             ? "Standard: 1 anuncio incluido. Plus: 3 anuncios y 2 impulsos incluidos."
                             : "Standard: 1 listing included. Plus: 3 listings and 2 boosts included."}
                           {" "}
+                          <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
+                            {lang === "es" ? "Ver planes" : "View plans"}
+                          </Link>
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setStep("category"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
+                      >
+                        {copy.back}
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                {/* BIENES RAÍCES TRACK: Privado vs Negocio/Profesional */}
+                {step === "bienes-raices-track" && category === "bienes-raices" && (
+                  <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
+                    <h2 className="text-lg font-semibold text-[#111111]">
+                      {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
+                    </h2>
+                    <p className="mt-2 text-sm text-[#111111]/90">
+                      {lang === "es"
+                        ? "Elige si publicas como persona o como negocio/profesional inmobiliario."
+                        : "Choose whether you post as an individual or as a business/professional."}
+                    </p>
+
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDetails((prev) => ({ ...prev, bienesRaicesBranch: "privado", rentasTier: "" }));
+                          setStep("basics");
+                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                        }}
+                        className={cx(
+                          "rounded-2xl border p-5 text-left transition-all",
+                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
+                          details.bienesRaicesBranch === "privado"
+                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
+                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
+                        )}
+                      >
+                        <span className="block text-base font-bold text-[#111111]">
+                          {lang === "es" ? "Privado" : "Private"}
+                        </span>
+                        <p className="mt-2 text-sm text-[#111111]/85">
+                          {lang === "es"
+                            ? "Vendo mi propia propiedad como persona."
+                            : "Selling my own property as an individual."}
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDetails((prev) => ({ ...prev, bienesRaicesBranch: "negocio" }))}
+                        className={cx(
+                          "rounded-2xl border p-5 text-left transition-all",
+                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
+                          details.bienesRaicesBranch === "negocio"
+                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
+                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
+                        )}
+                      >
+                        <span className="block text-base font-bold text-[#111111]">
+                          {lang === "es" ? "Negocio / Profesional" : "Business / Professional"}
+                        </span>
+                        <p className="mt-2 text-sm text-[#111111]/85">
+                          {lang === "es"
+                            ? "Agentes, brokers, inmobiliarias, desarrolladores o empresas."
+                            : "Agents, brokers, offices, developers, or commercial real estate."}
+                        </p>
+                      </button>
+                    </div>
+
+                    {details.bienesRaicesBranch === "negocio" && (
+                      <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4">
+                        <p className="text-sm font-semibold text-[#111111] mb-3">
+                          {lang === "es" ? "Elige plan" : "Choose plan"}
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          {RENTAS_NEGOCIO_TIER_OPTIONS.map((o) => (
+                            <button
+                              key={o.value}
+                              type="button"
+                              onClick={() => {
+                                setDetails((prev) => ({ ...prev, rentasTier: o.value }));
+                                setStep("basics");
+                                requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                              }}
+                              className={cx(
+                                "rounded-xl border px-4 py-3 text-sm font-semibold text-left transition",
+                                details.rentasTier === o.value
+                                  ? "border-[#C9B46A]/60 bg-[#F5F5F5] text-[#111111]"
+                                  : "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5]"
+                              )}
+                            >
+                              {lang === "es" ? o.label.es : o.label.en}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-3 text-xs text-[#111111]/70">
                           <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
                             {lang === "es" ? "Ver planes" : "View plans"}
                           </Link>
@@ -3578,6 +3729,104 @@ for (let vi = 0; vi < 2; vi++) {
                               </div>
                             )}
                           </div>
+
+                          {details.bienesRaicesBranch === "negocio" && (
+                            <>
+                              <div className="mt-6 pt-4 border-t border-black/10">
+                                <h4 className="text-sm font-semibold text-[#111111] mb-3">
+                                  {lang === "es" ? "Identidad del negocio" : "Business identity"}
+                                </h4>
+                                <p className="text-xs text-[#111111]/70 mb-3">
+                                  {lang === "es"
+                                    ? "Nombre del negocio y teléfono de oficina son obligatorios."
+                                    : "Business name and office phone are required."}
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Nombre del negocio" : "Business name"}{" *"}</label>
+                                  <input
+                                    value={details.negocioNombre ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioNombre: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: Inmobiliaria López" : "e.g. Lopez Realty"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                  {!details.negocioNombre?.trim() && (
+                                    <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>
+                                  )}
+                                </div>
+                                <div>
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Nombre del agente" : "Agent name"}</label>
+                                  <input
+                                    value={details.negocioAgente ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioAgente: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: María García" : "e.g. Maria Garcia"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Cargo / rol" : "Role / title"}</label>
+                                  <input
+                                    value={details.negocioCargo ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: Agente de ventas" : "e.g. Sales agent"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Teléfono de oficina" : "Office phone"}{" *"}</label>
+                                  <input
+                                    value={details.negocioTelOficina ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioTelOficina: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: (408) 555-0100" : "e.g. (408) 555-0100"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                  {(details.negocioTelOficina ?? "").replace(/\D/g, "").length !== 10 && (details.negocioTelOficina ?? "").length > 0 && (
+                                    <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "10 dígitos." : "10 digits."}</div>
+                                  )}
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Sitio web" : "Website"}</label>
+                                  <input
+                                    type="url"
+                                    value={details.negocioSitioWeb ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioSitioWeb: e.target.value }))}
+                                    placeholder="https://"
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Logo (URL)" : "Logo (URL)"}</label>
+                                  <input
+                                    type="url"
+                                    value={details.negocioLogoUrl ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioLogoUrl: e.target.value }))}
+                                    placeholder="https://"
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Foto del agente (URL)" : "Agent photo (URL)"}</label>
+                                  <input
+                                    type="url"
+                                    value={details.negocioFotoAgenteUrl ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioFotoAgenteUrl: e.target.value }))}
+                                    placeholder="https://"
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Redes sociales" : "Social links"}</label>
+                                  <input
+                                    value={details.negocioRedes ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioRedes: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: Facebook: url, Instagram: url" : "e.g. Facebook: url, Instagram: url"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </>
                       ) : category === "rentas" ? (
                         <>
@@ -4067,7 +4316,7 @@ for (let vi = 0; vi < 2; vi++) {
                       <button
                         type="button"
                         onClick={() => {
-                          setStep(category === "rentas" ? "rentas-track" : "category");
+                          setStep(category === "rentas" ? "rentas-track" : category === "bienes-raices" ? "bienes-raices-track" : "category");
                           requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
                         }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
