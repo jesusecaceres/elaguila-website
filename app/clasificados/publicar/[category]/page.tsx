@@ -408,6 +408,25 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
   const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
   if (cat === "rentas") {
+    const rentasBranch = (details.rentasBranch ?? "").trim().toLowerCase();
+    if (rentasBranch === "negocio") {
+      const negocioNombre = (details.negocioNombre ?? "").trim();
+      if (negocioNombre) {
+        out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
+      }
+      const rentasTier = (details.rentasTier ?? "").trim();
+      if (rentasTier) {
+        const tierOpt = RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === rentasTier);
+        out.push({
+          label: lang === "es" ? "Plan" : "Plan",
+          value: tierOpt ? (lang === "es" ? tierOpt.label.es : tierOpt.label.en) : rentasTier,
+        });
+      }
+      const negocioAgente = (details.negocioAgente ?? "").trim();
+      if (negocioAgente) {
+        out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
+      }
+    }
     const plazo = (details.plazo_contrato ?? "").trim();
     if (plazo) {
       const label = lang === "es" ? "Plazo del contrato" : "Lease term";
@@ -730,6 +749,7 @@ export default function PublicarPage() {
   const [leaveSaving, setLeaveSaving] = useState<boolean>(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [dbSaveStatus, setDbSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [recoveredDraftMessage, setRecoveredDraftMessage] = useState<string | null>(null);
   const draftCheckedRef = useRef(false);
   /** Rentas: branches we already ran restore check for (so we don’t re-fetch). */
   const checkedRentasBranchesRef = useRef<Set<string>>(new Set());
@@ -1072,11 +1092,15 @@ export default function PublicarPage() {
 
   const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";
 
-  /** Restore form + images from DB draft_data payload. */
+  const VALID_STEPS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
+
+  /** Restore form + images from DB draft_data payload. Restores saved step; fallback to basics (not category) for existing draft resume. */
   function applyDraftPayloadFromDb(payload: DraftDataPayload) {
     applyDraftToForm(payload as Partial<DraftV1>);
-    if (payload.step && ["category", "rentas-track", "basics", "details", "media"].includes(payload.step)) {
+    if (payload.step && VALID_STEPS.includes(payload.step as PublishStep)) {
       setStep(payload.step as PublishStep);
+    } else {
+      setStep("basics");
     }
     if (payload.images && Array.isArray(payload.images) && payload.images.length > 0) {
       const files: File[] = [];
@@ -1122,7 +1146,6 @@ export default function PublicarPage() {
                 setDraftId(latest.id);
                 setStoredDraftId(userId, latest.id);
                 syncDraftIdInUrl(latest.id);
-                setStep("media");
                 return;
               }
             }
@@ -1133,7 +1156,6 @@ export default function PublicarPage() {
               setDraftId(latest.id);
               setStoredDraftId(userId, latest.id);
               syncDraftIdInUrl(latest.id);
-              setStep("media");
               return;
             }
           }
@@ -1142,7 +1164,7 @@ export default function PublicarPage() {
         }
         if (!cancelled) {
           applyDraftToForm(parsed);
-          setStep("media");
+          setStep("basics");
           const stored = getStoredDraftId(userId);
           if (stored) setDraftId(stored);
         }
@@ -1152,7 +1174,7 @@ export default function PublicarPage() {
 
     draftCheckedRef.current = true;
     applyDraftToForm(parsed);
-    setStep("media");
+    setStep("basics");
     if (userId) {
       const stored = getStoredDraftId(userId);
       if (stored) setDraftId(stored);
@@ -1328,6 +1350,12 @@ export default function PublicarPage() {
     setCategory(categoryFromUrl);
   }
 
+  useEffect(() => {
+    if (!recoveredDraftMessage) return;
+    const t = setTimeout(() => setRecoveredDraftMessage(null), 3000);
+    return () => clearTimeout(t);
+  }, [recoveredDraftMessage]);
+
   async function handleContinueDraft() {
     setShowDraftRestoreModal(false);
     try {
@@ -1337,6 +1365,7 @@ export default function PublicarPage() {
         if (row?.draft_data) {
           applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
           syncDraftIdInUrl(draftId);
+          setRecoveredDraftMessage(lang === "es" ? "Progreso guardado recuperado." : "Recovered saved progress.");
           return;
         }
       }
@@ -1345,6 +1374,7 @@ export default function PublicarPage() {
       const parsed = JSON.parse(raw) as Partial<DraftV1>;
       if (parsed.v !== 1) return;
       applyDraftToForm(parsed);
+      setStep("basics");
       try {
         const imgRaw = sessionStorage.getItem(draftKey + "_images");
         if (imgRaw) {
@@ -2543,6 +2573,11 @@ for (let vi = 0; vi < 2; vi++) {
                 {authError}
               </div>
             )}
+            {recoveredDraftMessage && (
+              <p className="mt-2 text-sm text-[#111111]/70" role="status">
+                {recoveredDraftMessage}
+              </p>
+            )}
           </div>
 
           {!checking && signedIn && showFormPlaceholder && (
@@ -3675,6 +3710,7 @@ for (let vi = 0; vi < 2; vi++) {
                               <div>
                                 <label className="text-sm text-[#111111]">
                                   {lang === "es" ? "Teléfono de oficina" : "Office phone"}
+                                  {details.rentasBranch === "negocio" ? " *" : ""}
                                 </label>
                                 <input
                                   value={details.negocioTelOficina ?? ""}
@@ -3682,6 +3718,11 @@ for (let vi = 0; vi < 2; vi++) {
                                   placeholder={lang === "es" ? "Ej: (408) 555-0100" : "e.g. (408) 555-0100"}
                                   className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                                 />
+                                {details.rentasBranch === "negocio" && (details.negocioTelOficina ?? "").replace(/\D/g, "").length !== 10 && (details.negocioTelOficina ?? "").length > 0 && (
+                                  <div className="mt-1 text-xs text-[#111111]/40">
+                                    {lang === "es" ? "Requerido: 10 dígitos." : "Required: 10 digits."}
+                                  </div>
+                                )}
                               </div>
                               <div>
                                 <label className="text-sm text-[#111111]">
