@@ -18,6 +18,7 @@ import {
 } from "react-icons/fi";
 import Navbar from "../../components/Navbar";
 import { serviciosDrawerFilters } from "../config/categoryConfig";
+import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../config/bienesRaicesTaxonomy";
 import newLogo from "../../../public/logo.png";
 
 import {
@@ -511,6 +512,8 @@ function getSearchPlaceholder(category: CategoryKey, lang: Lang) {
       return es ? "Buscar: tacos, pupusas, mariscos…" : "Search: tacos, pupusas, seafood…";
     case "travel":
       return es ? "Buscar: vuelos, hotel, agente…" : "Search: flights, hotel, agent…";
+    case "bienes-raices":
+      return es ? "Buscar: casa, residencial, comercial, precio…" : "Search: house, residential, commercial, price…";
     case "clases":
       return es ? "Buscar: inglés, guitarra, tutoría…" : "Search: English, guitar, tutoring…";
     case "comunidad":
@@ -833,6 +836,42 @@ function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
       if (!st || st !== seller) return false;
     }
 
+    return true;
+  });
+}
+
+/** Bienes Raíces filter params (subcategoría, price range). Seller type is global (sellerType). */
+type BienesRaicesParams = {
+  subcategoria: string;
+  priceMin: string;
+  priceMax: string;
+};
+
+const EMPTY_BIENES_RAICES_PARAMS: BienesRaicesParams = {
+  subcategoria: "",
+  priceMin: "",
+  priceMax: "",
+};
+
+function applyBienesRaicesParams(list: Listing[], p: BienesRaicesParams): Listing[] {
+  const subcatKey = (p.subcategoria ?? "").trim();
+  const pmin = (p.priceMin ?? "").trim() ? parseNumLoose(p.priceMin) : null;
+  const pmax = (p.priceMax ?? "").trim() ? parseNumLoose(p.priceMax) : null;
+
+  return list.filter((it) => {
+    if (subcatKey) {
+      const pairs = (it as any).detailPairs as Array<{ label: string; value: string }> | undefined;
+      const tipoPair = Array.isArray(pairs) ? pairs.find((pr) => /tipo\s*de\s*propiedad|property\s*type/i.test(pr.label)) : undefined;
+      const value = (tipoPair?.value ?? "").trim();
+      const valueNorm = value.toLowerCase().replace(/\s+/g, " ");
+      const labelEs = getBienesRaicesSubcategoryLabel(subcatKey, "es").toLowerCase().replace(/\s+/g, " ");
+      const labelEn = getBienesRaicesSubcategoryLabel(subcatKey, "en").toLowerCase().replace(/\s+/g, " ");
+      const keyNorm = subcatKey.toLowerCase().replace(/-/g, " ");
+      if (!valueNorm || (valueNorm !== labelEs && valueNorm !== labelEn && !valueNorm.includes(keyNorm))) return false;
+    }
+    const price = parsePriceLabel((it as any).priceLabel?.en ?? (it as any).priceLabel?.es ?? "") ?? null;
+    if (pmin != null && price != null && price < pmin) return false;
+    if (pmax != null && price != null && price > pmax) return false;
     return true;
   });
 }
@@ -1798,6 +1837,8 @@ useEffect(() => {
   // ✓ Travel param state (only used when cat=travel)
   const [travelParams, setTravelParams] = useState<TravelParams>(EMPTY_TRAVEL_PARAMS);
 
+  // ✓ Bienes Raíces param state (only used when cat=bienes-raices)
+  const [brParams, setBrParams] = useState<BienesRaicesParams>(EMPTY_BIENES_RAICES_PARAMS);
 
   // ✓ Hydrate state from URL params (deep-links + refresh + back/forward)
   useEffect(() => {
@@ -2099,6 +2140,10 @@ useEffect(() => {
       setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
     }
 
+    // ✓ Bienes Raíces params: reset when not in bienes-raices (URL sync for BR filters can be added later)
+    if (pCat !== "bienes-raices") {
+      setBrParams(EMPTY_BIENES_RAICES_PARAMS);
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
@@ -2639,6 +2684,7 @@ useEffect(() => {
     if (category === "clases") catApplied = applyClasesParams(base, clasesParams);
     if (category === "comunidad") catApplied = applyComunidadParams(base, comunidadParams);
     if (category === "travel") catApplied = applyTravelParams(base, travelParams);
+    if (category === "bienes-raices") catApplied = applyBienesRaicesParams(base, brParams);
 
     const now = Date.now();
     const engagementScore = (x: any) => (Number(x?.views) || 0) + 2 * (Number(x?.saves) || 0) + (Number(x?.shares) || 0);
@@ -2676,7 +2722,7 @@ useEffect(() => {
     });
 
     return sorted;
-  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, effectiveServiciosParams, ventaParams, clasesParams, comunidadParams, travelParams]);
+  }, [listings, qSmart, category, sellerType, onlyWithImage, anchor, radiusMi, sort, rentasParams, autosParams, empleosParams, serviciosParams, effectiveServiciosParams, ventaParams, clasesParams, comunidadParams, travelParams, brParams]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const pageClamped = Math.min(Math.max(1, page), totalPages);
@@ -2684,7 +2730,7 @@ useEffect(() => {
   useEffect(() => {
     setPage(1);
     setInfiniteScrollLimit(20);
-  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
+  }, [q, city, zip, radiusMi, category, sort, sellerType, onlyWithImage, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams, brParams]);
 
   
   // ------------------------------------------------------------
@@ -2986,6 +3032,13 @@ const visible = useMemo(() => {
       if (ventaParams.vpostedToday) chips.push({ key: "vpostedToday", text: lang === "es" ? "Publicado hoy" : "Posted today", clear: () => setVentaParams((p) => ({ ...p, vpostedToday: false })) });
     }
 
+    // ✓ Bienes Raíces chips (only show when in bienes-raices + has params)
+    if (category === "bienes-raices") {
+      if (brParams.subcategoria) chips.push({ key: "brSub", text: `${lang === "es" ? "Tipo" : "Type"}: ${getBienesRaicesSubcategoryLabel(brParams.subcategoria, lang)}`, clear: () => setBrParams((p) => ({ ...p, subcategoria: "" })) });
+      if (brParams.priceMin) chips.push({ key: "brPmin", text: `${lang === "es" ? "Precio mín" : "Price min"}: $${brParams.priceMin}`, clear: () => setBrParams((p) => ({ ...p, priceMin: "" })) });
+      if (brParams.priceMax) chips.push({ key: "brPmax", text: `${lang === "es" ? "Precio máx" : "Price max"}: $${brParams.priceMax}`, clear: () => setBrParams((p) => ({ ...p, priceMax: "" })) });
+    }
+
     // ✓ Clases chips (only show when in clases + has params)
     if (category === "clases") {
       if (clasesParams.csub) chips.push({ key: "csub", text: `${lang === "es" ? "Materia" : "Subject"}: ${claseSubjectLabel(clasesParams.csub as any, lang)}`, clear: () => setClasesParams((p) => ({ ...p, csub: "" })) });
@@ -3109,6 +3162,7 @@ const visible = useMemo(() => {
     setVentaParams(EMPTY_VENTA_PARAMS);
     setClasesParams(EMPTY_CLASES_PARAMS);
     setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
+    setBrParams(EMPTY_BIENES_RAICES_PARAMS);
   };
 
   const handleSaveSearch = async () => {
@@ -3217,8 +3271,6 @@ function applyTravelParams(list: Listing[], p: TravelParams): Listing[] {
     return true;
   });
 }
-
-
 
 function normalizeSpace(s: string) {
   return s.replace(/\s+/g, " ").trim();
@@ -5361,8 +5413,21 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       onClick={() => setCategoryFiltersOpen(true)}
                       className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
                     >
-                      ☰ {lang === "es" ? "Todo" : "All"}
+                      ☰ {category === "bienes-raices" ? (lang === "es" ? "Filtros" : "Filters") : (lang === "es" ? "Todo" : "All")}
                     </button>
+                    {category === "bienes-raices" && BIENES_RAICES_SUBCATEGORIES.slice(0, 4).map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => { setBrParams((p) => ({ ...p, subcategoria: p.subcategoria === opt.key ? "" : opt.key })); setPage(1); }}
+                        className={cx(
+                          "shrink-0 rounded-full border px-2 py-1 text-[11px] text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30",
+                          brParams.subcategoria === opt.key ? "border-[#C9B46A]/60 bg-[#F8F6F0]" : "border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF]"
+                        )}
+                      >
+                        {lang === "es" ? opt.label.es : opt.label.en}
+                      </button>
+                    ))}
                     {category === "en-venta" && EN_VENTA_CHIPS[lang].map((label) => (
                       <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
                         {label}
@@ -5983,7 +6048,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
         </div>
       ) : null}
 
-      {/* Category-native filters panel (Todo button; no sidebar) */}
+      {/* Category-native filters panel (Filtros for BR; Todo for others) */}
       {categoryFiltersOpen && !isServicios ? (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/20" onClick={() => setCategoryFiltersOpen(false)} aria-hidden />
@@ -5992,12 +6057,72 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               <span className="text-xs font-semibold text-[#111111]">{lang === "es" ? "Filtros" : "Filters"}</span>
               <button type="button" onClick={() => setCategoryFiltersOpen(false)} className="rounded-lg border border-black/10 bg-white px-2 py-1 text-xs text-[#111111] hover:bg-[#EFEFEF]" aria-label={UI.close[lang]}>{UI.close[lang]}</button>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-[#111111]">{UI.radius[lang]}</label>
-              <select value={String(radiusMi)} onChange={(e) => setRadiusMi(Number(e.target.value) as any)} className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none">
-                {[10, 25, 40, 50].map((m) => <option key={m} value={String(m)}>{m} mi</option>)}
-              </select>
-            </div>
+            {category === "bienes-raices" ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}</label>
+                  <select
+                    value={brParams.subcategoria}
+                    onChange={(e) => { setBrParams((p) => ({ ...p, subcategoria: e.target.value })); setPage(1); }}
+                    className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
+                  >
+                    <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                    {BIENES_RAICES_SUBCATEGORIES.map((opt) => (
+                      <option key={opt.key} value={opt.key}>{lang === "es" ? opt.label.es : opt.label.en}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Precio mín" : "Price min"}</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={brParams.priceMin}
+                      onChange={(e) => { setBrParams((p) => ({ ...p, priceMin: e.target.value })); setPage(1); }}
+                      placeholder="0"
+                      className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Precio máx" : "Price max"}</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={brParams.priceMax}
+                      onChange={(e) => { setBrParams((p) => ({ ...p, priceMax: e.target.value })); setPage(1); }}
+                      placeholder="—"
+                      className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{UI.seller[lang]}</label>
+                  <select
+                    value={sellerType ?? "all"}
+                    onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as "personal" | "business"))}
+                    className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
+                  >
+                    <option value="all">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                    <option value="personal">{SELLER_LABELS.personal[lang]}</option>
+                    <option value="business">{SELLER_LABELS.business[lang]}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{UI.radius[lang]}</label>
+                  <select value={String(radiusMi)} onChange={(e) => setRadiusMi(Number(e.target.value) as any)} className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none">
+                    {[10, 25, 40, 50].map((m) => <option key={m} value={String(m)}>{m} mi</option>)}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-[11px] font-semibold text-[#111111]">{UI.radius[lang]}</label>
+                <select value={String(radiusMi)} onChange={(e) => setRadiusMi(Number(e.target.value) as any)} className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none">
+                  {[10, 25, 40, 50].map((m) => <option key={m} value={String(m)}>{m} mi</option>)}
+                </select>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
