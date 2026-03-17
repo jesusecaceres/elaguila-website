@@ -4344,13 +4344,13 @@ function BienesRaicesCard({
           {x.city}
         </div>
 
-        {/* Quick facts strip */}
+        {/* Quick facts strip (warm accent for BR continuity with open card) */}
         {facts.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {facts.slice(0, 5).map((p, i) => (
               <span
                 key={`${p.label}-${i}`}
-                className="rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-[#111111]"
+                className="rounded-full border border-[#C9B46A]/25 bg-[#F8F6F0] px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-[#111111]"
               >
                 {p.label}: {p.value}
               </span>
@@ -5282,7 +5282,10 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 
         {/* TOP QUICK FILTERS (compact — Servicios-style master shell) */}
         <section className="mt-2">
-          <div className="rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 ring-1 ring-[#C9B46A]/20">
+          <div className={cx(
+            "rounded-xl border bg-[#F5F5F5] px-3 py-2 ring-1",
+            category === "bienes-raices" ? "border-[#C9B46A]/20 ring-[#C9B46A]/25" : "border-black/10 ring-[#C9B46A]/20"
+          )}>
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
               {isServicios ? (
                 <div ref={serviciosTypeRef} className="w-full min-w-0 xl:col-span-12 xl:self-start">
@@ -5716,7 +5719,12 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       key={c.key}
                       type="button"
                       onClick={c.clear}
-                      className="whitespace-nowrap rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs text-[#111111] hover:bg-[#EFEFEF] transition"
+                      className={cx(
+                        "whitespace-nowrap rounded-full border px-3 py-1.5 text-xs text-[#111111] transition",
+                        category === "bienes-raices"
+                          ? "border-[#C9B46A]/30 bg-[#F8F6F0] hover:bg-[#F0EDE5]"
+                          : "border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF]"
+                      )}
                       aria-label={lang === "es" ? "Quitar filtro" : "Remove filter"}
                     >
                       {c.text} <span className="ml-1 opacity-80">×</span>
@@ -5967,18 +5975,36 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               )}
             </div>
           ) : view === "grid" ? (
-            <div
-              className={cx(
-                "grid gap-2.5 sm:gap-3 md:gap-4",
-                "md:grid-cols-3 lg:grid-cols-4"
+            <>
+              {category === "bienes-raices" && (
+                <p className="mb-3 text-sm font-medium text-[#111111]/90">
+                  {lang === "es"
+                    ? `${visible.length} ${visible.length === 1 ? "propiedad" : "propiedades"}`
+                    : `${visible.length} ${visible.length === 1 ? "property" : "properties"}`}
+                </p>
               )}
-            >
-              {visible.map(ListingCardGrid)}
-            </div>
+              <div
+                className={cx(
+                  "grid gap-2.5 sm:gap-3 md:gap-4",
+                  "md:grid-cols-3 lg:grid-cols-4"
+                )}
+              >
+                {visible.map(ListingCardGrid)}
+              </div>
+            </>
           ) : (
-            <div className="flex flex-col gap-2.5 sm:gap-3">
-              {visible.map((x) => ListingRow(x, view === "list-img"))}
-            </div>
+            <>
+              {category === "bienes-raices" && (
+                <p className="mb-3 text-sm font-medium text-[#111111]/90">
+                  {lang === "es"
+                    ? `${visible.length} ${visible.length === 1 ? "propiedad" : "propiedades"}`
+                    : `${visible.length} ${visible.length === 1 ? "property" : "properties"}`}
+                </p>
+              )}
+              <div className="flex flex-col gap-2.5 sm:gap-3">
+                {visible.map((x) => ListingRow(x, view === "list-img"))}
+              </div>
+            </>
           )}
         </section>
 

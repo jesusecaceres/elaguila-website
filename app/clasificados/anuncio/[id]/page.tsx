@@ -1067,6 +1067,14 @@ export default function AnuncioDetallePage() {
               )}
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
+                  {listing.category === "bienes-raices" && (
+                    <span
+                      className="inline-block rounded-full border border-[#C9B46A]/30 bg-[#F8F6F0] px-2.5 py-1 text-xs font-medium text-[#111111]/90 mb-3"
+                      aria-hidden
+                    >
+                      {lang === "es" ? "Bienes Raíces" : "Real Estate"}
+                    </span>
+                  )}
                   <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
                     {listing.title[lang]}
                   </h1>
@@ -1172,7 +1180,7 @@ export default function AnuncioDetallePage() {
                   {bienesRaicesFacts.map((f) => (
                     <span
                       key={`${f.label}-${f.value}`}
-                      className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]"
+                      className="rounded-full border border-[#C9B46A]/25 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]"
                     >
                       {f.label}: {f.value}
                     </span>
