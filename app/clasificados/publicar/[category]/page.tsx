@@ -42,6 +42,7 @@ import {
   RENTAS_NEGOCIO_TIER_OPTIONS,
 } from "../../config/rentasTaxonomy";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
+import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -412,6 +413,15 @@ const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
 function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>) {
   const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
+  if (cat === "bienes-raices") {
+    const subKey = (details.bienesRaicesSubcategoria ?? "").trim();
+    if (subKey) {
+      out.push({
+        label: lang === "es" ? "Tipo de propiedad" : "Property type",
+        value: getBienesRaicesSubcategoryLabel(subKey, lang),
+      });
+    }
+  }
   if (cat === "rentas") {
     const rentasBranch = (details.rentasBranch ?? "").trim().toLowerCase();
     if (rentasBranch === "negocio") {
@@ -1889,7 +1899,7 @@ export default function PublicarPage() {
     const cityOk = Boolean(s.cityCanonical);
     const priceNum = (s.priceRaw ?? "").replace(/[^0-9.]/g, "");
     const priceOk =
-      s.category === "rentas"
+      s.category === "rentas" || s.category === "bienes-raices"
         ? priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0
         : s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
     const imagesOk = s.images.length >= 1;
@@ -1920,6 +1930,9 @@ export default function PublicarPage() {
         rentasNegocioNameOk &&
         rentasNegocioTierOk &&
         rentasNegocioContactOk);
+    const bienesRaicesMetaOk =
+      s.category !== "bienes-raices" ||
+      !!(s.details.bienesRaicesSubcategoria ?? "").trim();
     return {
       categoryOk,
       titleOk,
@@ -1932,6 +1945,7 @@ export default function PublicarPage() {
       contactOk,
       enVentaMetaOk,
       rentasMetaOk,
+      bienesRaicesMetaOk,
       allOk:
         categoryOk &&
         titleOk &&
@@ -1943,7 +1957,8 @@ export default function PublicarPage() {
         phoneOk &&
         emailOk &&
         enVentaMetaOk &&
-        rentasMetaOk,
+        rentasMetaOk &&
+        bienesRaicesMetaOk,
     };
   }, [enVentaSnapshot]);
 
@@ -1960,7 +1975,13 @@ export default function PublicarPage() {
           requirements.descOk &&
           requirements.priceOk &&
           requirements.cityOk
-        : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
+        : category === "bienes-raices"
+          ? requirements.bienesRaicesMetaOk &&
+            requirements.titleOk &&
+            requirements.descOk &&
+            requirements.priceOk &&
+            requirements.cityOk
+          : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
 
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
@@ -2022,7 +2043,16 @@ export default function PublicarPage() {
                 step: "basics" as const,
               },
             ]
-          : []),
+          : category === "bienes-raices"
+            ? [
+                {
+                  key: "bienesRaicesSubcat" as const,
+                  label: lang === "es" ? "Tipo de propiedad" : "Property type",
+                  ok: requirements.bienesRaicesMetaOk,
+                  step: "basics" as const,
+                },
+              ]
+            : []),
       {
         key: "images",
         label: lang === "es" ? "1+ foto" : "1+ photo",
@@ -3436,6 +3466,115 @@ for (let vi = 0; vi < 2; vi++) {
                             {!requirements.cityOk && (
                               <div className="mt-1 text-xs text-[#111111]/40">
                                 {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : category === "bienes-raices" ? (
+                        <>
+                          <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-sm text-[#111111]">
+                                {lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}
+                              </label>
+                              <select
+                                value={details.bienesRaicesSubcategoria ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, bienesRaicesSubcategoria: e.target.value }))}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
+                                {BIENES_RAICES_SUBCATEGORIES.map((s) => (
+                                  <option key={s.key} value={s.key}>
+                                    {lang === "es" ? s.label.es : s.label.en}
+                                  </option>
+                                ))}
+                              </select>
+                              {!details.bienesRaicesSubcategoria?.trim() && (
+                                <div className="mt-1 text-xs text-[#111111]/40">
+                                  {lang === "es" ? "Requerido." : "Required."}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">
+                              {lang === "es"
+                                ? "Título claro que describa la propiedad."
+                                : "Clear title that describes the property."}
+                            </p>
+                            <input
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "Ex: 3-bed house in central area"}
+                              spellCheck
+                              autoCorrect="on"
+                              autoCapitalize="sentences"
+                              lang={lang === "es" ? "es" : "en"}
+                              inputMode="text"
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.titleOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldDesc}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">
+                              {lang === "es"
+                                ? "Describe la propiedad: ubicación, características, condición."
+                                : "Describe the property: location, features, condition."}
+                            </p>
+                            <textarea
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: Ubicación, metros, acabados, estacionamiento." : "e.g. Location, sq ft, finishes, parking."}
+                              spellCheck
+                              autoCorrect="on"
+                              autoCapitalize="sentences"
+                              lang={lang === "es" ? "es" : "en"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.descOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldPrice}{" *"}</label>
+                            <input
+                              value={price}
+                              onChange={(e) => setPrice(e.target.value)}
+                              placeholder={lang === "es" ? "Ej: 450000" : "Ex: 450000"}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.priceOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Agrega el precio de venta." : "Add the sale price."}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="text-sm text-[#111111]">{copy.fieldCity}{" *"}</label>
+                            <CityAutocomplete
+                              value={city}
+                              onChange={setCity}
+                              placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
+                              lang={lang}
+                              label=""
+                              variant="light"
+                              className="mt-2"
+                            />
+                            {!requirements.cityOk && (
+                              <div className="mt-1 text-xs text-[#111111]/40">
+                                {lang === "es" ? "Agrega la ciudad." : "Add the city."}
                               </div>
                             )}
                           </div>

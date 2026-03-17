@@ -12,6 +12,7 @@
  */
 
 import { categoryConfig, type CategoryKey } from "./categoryConfig";
+import { BIENES_RAICES_SUBCATEGORIES as BIENES_RAICES_SUBCATEGORIES_FROM_TAXONOMY } from "./bienesRaicesTaxonomy";
 import { EN_VENTA_SUBCATEGORIES as EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY } from "./enVentaTaxonomy";
 import { RENTAS_SUBCATEGORIES as RENTAS_SUBCATEGORIES_FROM_TAXONOMY } from "./rentasTaxonomy";
 
@@ -93,6 +94,12 @@ const RENTAS_SUBCATEGORIES: SubcategoryStub[] = RENTAS_SUBCATEGORIES_FROM_TAXONO
   label: s.label,
 }));
 
+/** Bienes Raíces subcategories from taxonomy. */
+const BIENES_RAICES_SUBCATEGORIES: SubcategoryStub[] = BIENES_RAICES_SUBCATEGORIES_FROM_TAXONOMY.map((s) => ({
+  key: s.key,
+  label: s.label,
+}));
+
 /** Build schema entry for a category; label from categoryConfig. */
 function schema(
   key: CategoryKey,
@@ -110,7 +117,7 @@ function schema(
 const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
   "bienes-raices": schema("bienes-raices", {
     plans: ["free", "pro"],
-    subcategories: [], // foundation shell; real-estate subcategories in a later pass
+    subcategories: BIENES_RAICES_SUBCATEGORIES,
     formFieldGroupKey: "bienes-raices",
     validationRules: [],
     previewEligible: true,
