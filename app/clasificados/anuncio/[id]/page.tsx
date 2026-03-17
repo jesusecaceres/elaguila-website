@@ -89,6 +89,16 @@ function inferRentasPlanTier(listing: { category?: string; sellerType?: string; 
   return null;
 }
 
+/** Bienes Raíces business plan tier (Standard vs Plus). Same contract as Rentas negocio. */
+function inferBienesRaicesPlanTier(listing: { category?: string; sellerType?: string; seller_type?: string } & Record<string, unknown>): "business_standard" | "business_plus" | null {
+  if (listing?.category !== "bienes-raices") return null;
+  const sellerType = listing.sellerType ?? listing.seller_type ?? "personal";
+  if (sellerType !== "business") return null;
+  const tier = listing.rentasTier ?? listing.rentas_tier ?? listing.servicesTier;
+  if (tier === "plus" || tier === "premium") return "business_plus";
+  return "business_standard";
+}
+
 function parsePriceLabel(label: string): number | null {
   const m = (label || "").replace(/,/g, "").match(/(\d+(\.\d+)?)/);
   return m ? Number(m[1]) : null;
@@ -501,6 +511,65 @@ export default function AnuncioDetallePage() {
     return list.slice(0, 6);
   }, [listing, rentasBusinessMeta?.negocioPlusMasAnuncios]);
 
+  /** Parsed business_meta for Bienes Raíces (same contract as Rentas). */
+  const bienesRaicesBusinessMeta = useMemo((): Record<string, string> | null => {
+    if (!listing || listing.category !== "bienes-raices") return null;
+    return parseBusinessMeta((listing as any).business_meta);
+  }, [listing]);
+
+  /** Display values for Bienes Raíces negocio business rail (reuses same keys as Rentas). */
+  const brNegocioDisplay = useMemo(() => {
+    const isBiz =
+      listing?.sellerType === "business" || (listing as any)?.seller_type === "business";
+    if (!listing || listing.category !== "bienes-raices" || !isBiz) return null;
+    const name =
+      (listing as any).business_name ?? (listing as any).businessName ?? bienesRaicesBusinessMeta?.negocioNombre ?? "";
+    const meta = bienesRaicesBusinessMeta ?? {};
+    const website = meta.negocioSitioWeb?.trim() || "";
+    const rawSocials = meta.negocioRedes?.trim() || "";
+    const socialLinks = parseRentasSocialLinks(rawSocials);
+    return {
+      name: name.trim() || (lang === "es" ? "Negocio" : "Business"),
+      agent: meta.negocioAgente?.trim() || "",
+      role: meta.negocioCargo?.trim() || "",
+      officePhone: meta.negocioTelOficina?.trim() || "",
+      website: website || null,
+      socialLinks,
+      rawSocials: socialLinks ? "" : rawSocials,
+      logoUrl: meta.negocioLogoUrl?.trim() || null,
+      agentPhotoUrl: meta.negocioFotoAgenteUrl?.trim() || null,
+      languages: meta.negocioIdiomas?.trim() || "",
+      hours: meta.negocioHorario?.trim() || "",
+      virtualTourUrl: meta.negocioRecorridoVirtual?.trim() || null,
+      plusMoreListings: meta.negocioPlusMasAnuncios === "si",
+    };
+  }, [listing, bienesRaicesBusinessMeta, lang]);
+
+  /** Same-business Bienes Raíces listings for Plus "Más anuncios de esta compañía" (when flag set). */
+  const bienesRaicesSameCompanyListings = useMemo(() => {
+    if (!listing || listing.category !== "bienes-raices") return [];
+    const tier = inferBienesRaicesPlanTier(listing as any);
+    const plusMore = bienesRaicesBusinessMeta?.negocioPlusMasAnuncios === "si";
+    if (tier !== "business_plus" || !plusMore) return [];
+    const bizName =
+      ((listing as any).business_name ?? (listing as any).businessName ?? "").trim().toLowerCase();
+    if (!bizName) return [];
+    const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter((l) => {
+      if (l.category !== "bienes-raices" || l.id === listing.id) return false;
+      const otherBiz =
+        ((l as any).business_name ?? (l as any).businessName ?? "").trim().toLowerCase();
+      return otherBiz === bizName;
+    });
+    return list.slice(0, 6);
+  }, [listing, bienesRaicesBusinessMeta?.negocioPlusMasAnuncios]);
+
+  /** Quick facts strip for Bienes Raíces (from detailPairs: tipo, recámaras, baños, etc.). */
+  const bienesRaicesFacts = useMemo((): Array<{ label: string; value: string }> => {
+    if (!listing || listing.category !== "bienes-raices") return [];
+    const pairs = (listing as any).detailPairs as Array<{ label: string; value: string }> | undefined;
+    return Array.isArray(pairs) ? pairs : [];
+  }, [listing]);
+
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
@@ -737,6 +806,10 @@ export default function AnuncioDetallePage() {
     () => (listing && listing.category === "rentas" ? inferRentasPlanTier(listing as any) : null),
     [listing]
   );
+  const bienesRaicesPlanTier = useMemo(
+    () => (listing && listing.category === "bienes-raices" ? inferBienesRaicesPlanTier(listing as any) : null),
+    [listing]
+  );
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
   const proVideoInfos = useMemo(() => {
@@ -917,8 +990,11 @@ export default function AnuncioDetallePage() {
                 rentasPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
                 rentasPlanTier === "business_standard" && "border-yellow-400/45",
                 rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
-                !rentasPlanTier && isBusiness && "border-yellow-400/45",
-                !rentasPlanTier && !isBusiness && "border-black/10"
+                !rentasPlanTier && isBusiness && listing?.category === "rentas" && "border-yellow-400/45",
+                bienesRaicesPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
+                bienesRaicesPlanTier === "business_standard" && "border-yellow-400/45",
+                listing?.category === "bienes-raices" && !bienesRaicesPlanTier && "border-black/10",
+                !rentasPlanTier && !bienesRaicesPlanTier && "border-black/10"
               )}
             >
               {mediaSlots.length > 0 && (
@@ -927,7 +1003,9 @@ export default function AnuncioDetallePage() {
                     "relative rounded-xl overflow-hidden bg-[#E8E8E8] flex items-center justify-center mb-6",
                     rentasPlanTier === "privado_pro"
                       ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-stone-200/80"
-                      : (rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard")
+                      : (rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard" || bienesRaicesPlanTier === "business_plus" || bienesRaicesPlanTier === "business_standard")
+                        ? "aspect-[4/3] max-h-[480px] min-h-[280px] border border-black/10"
+                      : listing?.category === "bienes-raices"
                         ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-black/10"
                         : "border border-black/10 max-h-[360px] min-h-[200px]"
                   )}
@@ -1089,6 +1167,19 @@ export default function AnuncioDetallePage() {
                 </div>
               )}
 
+              {listing.category === "bienes-raices" && bienesRaicesFacts.length > 0 && (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {bienesRaicesFacts.map((f) => (
+                    <span
+                      key={`${f.label}-${f.value}`}
+                      className="rounded-full border border-black/10 bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111]"
+                    >
+                      {f.label}: {f.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {listing.category === "rentas" && rentasRentalFacts.length > 0 && (
                 <div className={cx(
                   "mt-6 rounded-2xl p-6",
@@ -1118,6 +1209,37 @@ export default function AnuncioDetallePage() {
               )}>
                 <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
               </div>
+
+              {listing.category === "bienes-raices" && isBusiness && brNegocioDisplay && (
+                <div
+                  className={cx(
+                    "mt-6 rounded-2xl border p-4 sm:p-5 lg:hidden",
+                    bienesRaicesPlanTier === "business_plus"
+                      ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20"
+                      : "border-[#C9B46A]/45 bg-[#F5F5F5] ring-1 ring-[#C9B46A]/25"
+                  )}
+                  data-section="bienes-raices-business-block"
+                >
+                  <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+                    {lang === "es" ? "Información del negocio" : "Business"}
+                  </h3>
+                  <p className="text-base font-semibold text-[#111111]">{brNegocioDisplay.name}</p>
+                  {brNegocioDisplay.agent && <p className="mt-0.5 text-sm text-[#111111]/90">{brNegocioDisplay.agent}</p>}
+                  {brNegocioDisplay.role && <p className="text-xs text-[#111111]/70">{brNegocioDisplay.role}</p>}
+                  {brNegocioDisplay.officePhone && (
+                    <p className="mt-2 text-sm">
+                      <a href={`tel:${brNegocioDisplay.officePhone.replace(/\D/g, "")}`} className="font-medium hover:underline">{brNegocioDisplay.officePhone}</a>
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    className="mt-3 w-full px-4 py-3 rounded-xl font-semibold bg-[#111111] text-[#F5F5F5] hover:opacity-95 text-sm"
+                    onClick={handleContactarVendedor}
+                  >
+                    {lang === "es" ? "Solicitar información" : "Request info"}
+                  </button>
+                </div>
+              )}
 
               {listing.category === "rentas" && rentasAmenities.length > 0 && (
                 <div className={cx(
@@ -1511,6 +1633,46 @@ export default function AnuncioDetallePage() {
                 </div>
               )}
 
+            {/* Más anuncios de esta compañía (Bienes Raíces Plus only, when flag set) */}
+            {listing.category === "bienes-raices" &&
+              bienesRaicesPlanTier === "business_plus" &&
+              brNegocioDisplay?.plusMoreListings && (
+                <div className="mt-10" data-section="bienes-raices-mas-anuncios">
+                  <h3 className="text-xl font-bold text-[#111111] mb-4">
+                    {lang === "es" ? "Más anuncios de esta compañía" : "More listings from this company"}
+                  </h3>
+                  {bienesRaicesSameCompanyListings.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {bienesRaicesSameCompanyListings.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/clasificados/anuncio/${item.id}?lang=${lang}`}
+                          className="block rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 hover:bg-[#EFEFEF] transition"
+                        >
+                          <div className="text-base font-bold text-[#111111] line-clamp-2">
+                            {item.title[lang]}
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-[#111111]">
+                            {formatListingPrice(item.priceLabel[lang], { lang })}
+                          </div>
+                          <div className="mt-1 text-xs text-[#111111]">
+                            {item.city} · {item.postedAgo[lang]}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-5 text-center">
+                      <p className="text-sm text-[#111111]/80">
+                        {lang === "es"
+                          ? "No hay otros anuncios de esta empresa por ahora."
+                          : "No other listings from this company at the moment."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
             {/* También te puede interesar */}
             {relatedListings.length > 0 && (
               <div className="mt-10">
@@ -1540,156 +1702,162 @@ export default function AnuncioDetallePage() {
             )}
           </div>
 
-          {/* Right rail: for Rentas Negocio, business identity + contact first (open-card reference). */}
+          {/* Right rail: for Rentas or Bienes Raíces Negocio, business identity + contact first (open-card reference). */}
           <div className="lg:col-span-4 space-y-6">
-            {listing.category === "rentas" && isBusiness && rentasNegocioDisplay ? (
-              <div
-                className={cx(
-                  "rounded-2xl border p-5 sm:p-6",
-                  rentasPlanTier === "business_plus"
-                    ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-sm"
-                    : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
-                )}
-                data-section="rentas-business-rail"
-              >
-                <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
-                  {lang === "es" ? "Identidad del negocio" : "Business"}
-                </h4>
-                <div className="flex flex-col gap-4">
-                  {(rentasNegocioDisplay.logoUrl || rentasNegocioDisplay.agentPhotoUrl) && (
-                    <div className="flex items-start gap-3">
-                      {rentasNegocioDisplay.logoUrl && (
-                        <img
-                          src={rentasNegocioDisplay.logoUrl}
-                          alt=""
-                          className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
-                        />
-                      )}
-                      {rentasNegocioDisplay.agentPhotoUrl && (
-                        <img
-                          src={rentasNegocioDisplay.agentPhotoUrl}
-                          alt=""
-                          className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
-                        />
-                      )}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-base font-semibold text-[#111111]">
-                      {rentasNegocioDisplay.name || (lang === "es" ? "Negocio" : "Business")}
-                    </p>
-                    {rentasNegocioDisplay.agent && (
-                      <p className="mt-0.5 text-sm text-[#111111]/90">{rentasNegocioDisplay.agent}</p>
+            {((listing.category === "rentas" && isBusiness && rentasNegocioDisplay) || (listing.category === "bienes-raices" && isBusiness && brNegocioDisplay)) ? (
+              (() => {
+                const railDisplay = listing.category === "rentas" ? rentasNegocioDisplay! : brNegocioDisplay!;
+                const railTier = listing.category === "rentas" ? rentasPlanTier : bienesRaicesPlanTier;
+                return (
+                  <div
+                    className={cx(
+                      "rounded-2xl border p-5 sm:p-6",
+                      railTier === "business_plus"
+                        ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-sm"
+                        : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
                     )}
-                    {rentasNegocioDisplay.role && (
-                      <p className="text-xs text-[#111111]/70">{rentasNegocioDisplay.role}</p>
-                    )}
-                  </div>
-                  {rentasNegocioDisplay.officePhone && (
-                    <p className="text-sm text-[#111111]">
-                      <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
-                      <a href={`tel:${rentasNegocioDisplay.officePhone.replace(/\D/g, "")}`} className="font-medium hover:underline">
-                        {rentasNegocioDisplay.officePhone}
-                      </a>
-                    </p>
-                  )}
-                  {rentasNegocioDisplay.website && (
-                    <a
-                      href={rentasNegocioDisplay.website.startsWith("http") ? rentasNegocioDisplay.website : `https://${rentasNegocioDisplay.website}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-[#111111] hover:underline break-all"
-                    >
-                      {lang === "es" ? "Sitio web" : "Website"} →
-                    </a>
-                  )}
-                  {(rentasNegocioDisplay.virtualTourUrl && (rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard")) && (
-                    <a
-                      href={rentasNegocioDisplay.virtualTourUrl.startsWith("http") ? rentasNegocioDisplay.virtualTourUrl : `https://${rentasNegocioDisplay.virtualTourUrl}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-[#111111] hover:underline break-all"
-                    >
-                      {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
-                    </a>
-                  )}
-                  {rentasPlanTier === "business_plus" && rentasNegocioDisplay.socialLinks && rentasNegocioDisplay.socialLinks.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {rentasNegocioDisplay.socialLinks.map((s, i) => (
+                    data-section={listing.category === "rentas" ? "rentas-business-rail" : "bienes-raices-business-rail"}
+                  >
+                    <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+                      {lang === "es" ? "Identidad del negocio" : "Business"}
+                    </h4>
+                    <div className="flex flex-col gap-4">
+                      {(railDisplay.logoUrl || railDisplay.agentPhotoUrl) && (
+                        <div className="flex items-start gap-3">
+                          {railDisplay.logoUrl && (
+                            <img
+                              src={railDisplay.logoUrl}
+                              alt=""
+                              className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
+                            />
+                          )}
+                          {railDisplay.agentPhotoUrl && (
+                            <img
+                              src={railDisplay.agentPhotoUrl}
+                              alt=""
+                              className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
+                            />
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-base font-semibold text-[#111111]">
+                          {railDisplay.name || (lang === "es" ? "Negocio" : "Business")}
+                        </p>
+                        {railDisplay.agent && (
+                          <p className="mt-0.5 text-sm text-[#111111]/90">{railDisplay.agent}</p>
+                        )}
+                        {railDisplay.role && (
+                          <p className="text-xs text-[#111111]/70">{railDisplay.role}</p>
+                        )}
+                      </div>
+                      {railDisplay.officePhone && (
+                        <p className="text-sm text-[#111111]">
+                          <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
+                          <a href={`tel:${railDisplay.officePhone.replace(/\D/g, "")}`} className="font-medium hover:underline">
+                            {railDisplay.officePhone}
+                          </a>
+                        </p>
+                      )}
+                      {railDisplay.website && (
                         <a
-                          key={i}
-                          href={s.url}
+                          href={railDisplay.website.startsWith("http") ? railDisplay.website : `https://${railDisplay.website}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
+                          className="text-sm font-medium text-[#111111] hover:underline break-all"
                         >
-                          {s.label} →
+                          {lang === "es" ? "Sitio web" : "Website"} →
                         </a>
-                      ))}
-                    </div>
-                  ) : rentasPlanTier === "business_standard" && rentasNegocioDisplay.socialLinks && rentasNegocioDisplay.socialLinks.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {rentasNegocioDisplay.socialLinks.slice(0, 2).map((s, i) => (
+                      )}
+                      {(railDisplay.virtualTourUrl && (railTier === "business_plus" || railTier === "business_standard")) && (
                         <a
-                          key={i}
-                          href={s.url}
+                          href={railDisplay.virtualTourUrl.startsWith("http") ? railDisplay.virtualTourUrl : `https://${railDisplay.virtualTourUrl}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
+                          className="text-sm font-medium text-[#111111] hover:underline break-all"
                         >
-                          {s.label} →
+                          {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
                         </a>
-                      ))}
+                      )}
+                      {railTier === "business_plus" && railDisplay.socialLinks && railDisplay.socialLinks.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {railDisplay.socialLinks.map((s, i) => (
+                            <a
+                              key={i}
+                              href={s.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
+                            >
+                              {s.label} →
+                            </a>
+                          ))}
+                        </div>
+                      ) : railTier === "business_standard" && railDisplay.socialLinks && railDisplay.socialLinks.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {railDisplay.socialLinks.slice(0, 2).map((s, i) => (
+                            <a
+                              key={i}
+                              href={s.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#F5F5F5]"
+                            >
+                              {s.label} →
+                            </a>
+                          ))}
+                        </div>
+                      ) : railDisplay.rawSocials ? (
+                        <p className="text-xs text-[#111111]/80 break-words">{railDisplay.rawSocials}</p>
+                      ) : null}
+                      {railDisplay.languages && (
+                        <p className="text-xs text-[#111111]/80">
+                          <span className="text-[#111111]/60">{lang === "es" ? "Idiomas:" : "Languages:"} </span>
+                          {railDisplay.languages}
+                        </p>
+                      )}
+                      {railDisplay.hours && (
+                        <p className="text-xs text-[#111111]/80">
+                          <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
+                          {railDisplay.hours}
+                        </p>
+                      )}
+                      <div className="mt-3 flex flex-col gap-2">
+                        <button
+                          type="button"
+                          className="w-full px-4 py-3 rounded-xl font-semibold bg-[#111111] text-[#F5F5F5] hover:opacity-95 transition text-sm"
+                          onClick={handleContactarVendedor}
+                        >
+                          {lang === "es" ? "Solicitar información" : "Request info"}
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8] transition text-sm"
+                          onClick={handleContactarVendedor}
+                        >
+                          {lang === "es" ? "Programar visita" : "Schedule visit"}
+                        </button>
+                        {(railDisplay.officePhone || (listing as any)?.contact_phone) && (
+                          <a
+                            href={`tel:${(railDisplay.officePhone || (listing as any)?.contact_phone || "").replace(/\D/g, "")}`}
+                            className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
+                          >
+                            {lang === "es" ? "Llamar" : "Call"}
+                          </a>
+                        )}
+                        {(listing as any)?.contact_email && (
+                          <a
+                            href={`mailto:${(listing as any).contact_email}`}
+                            className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
+                          >
+                            {lang === "es" ? "Enviar mensaje" : "Send message"}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  ) : rentasNegocioDisplay.rawSocials ? (
-                    <p className="text-xs text-[#111111]/80 break-words">{rentasNegocioDisplay.rawSocials}</p>
-                  ) : null}
-                  {rentasNegocioDisplay.languages && (
-                    <p className="text-xs text-[#111111]/80">
-                      <span className="text-[#111111]/60">{lang === "es" ? "Idiomas:" : "Languages:"} </span>
-                      {rentasNegocioDisplay.languages}
-                    </p>
-                  )}
-                  {rentasNegocioDisplay.hours && (
-                    <p className="text-xs text-[#111111]/80">
-                      <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
-                      {rentasNegocioDisplay.hours}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-col gap-2">
-                    <button
-                      type="button"
-                      className="w-full px-4 py-3 rounded-xl font-semibold bg-[#111111] text-[#F5F5F5] hover:opacity-95 transition text-sm"
-                      onClick={handleContactarVendedor}
-                    >
-                      {lang === "es" ? "Solicitar información" : "Request info"}
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8] transition text-sm"
-                      onClick={handleContactarVendedor}
-                    >
-                      {lang === "es" ? "Programar visita" : "Schedule visit"}
-                    </button>
-                    {(rentasNegocioDisplay.officePhone || (listing as any)?.contact_phone) && (
-                      <a
-                        href={`tel:${(rentasNegocioDisplay.officePhone || (listing as any)?.contact_phone || "").replace(/\D/g, "")}`}
-                        className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
-                      >
-                        {lang === "es" ? "Llamar" : "Call"}
-                      </a>
-                    )}
-                    {(listing as any)?.contact_email && (
-                      <a
-                        href={`mailto:${(listing as any).contact_email}`}
-                        className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
-                      >
-                        {lang === "es" ? "Enviar mensaje" : "Send message"}
-                      </a>
-                    )}
                   </div>
-                </div>
-              </div>
+                );
+              })()
             ) : null}
             {viewCount !== null && (
               <div className={cx(
@@ -1797,7 +1965,7 @@ export default function AnuncioDetallePage() {
               </div>
             </div>
 
-            {!(listing.category === "rentas" && isBusiness && rentasNegocioDisplay) && (
+            {!(listing.category === "rentas" && isBusiness && rentasNegocioDisplay) && !(listing.category === "bienes-raices" && isBusiness && brNegocioDisplay) && (
             <div className={cx(
               "seller-card rounded-2xl border p-6",
               listing.category === "rentas" && rentasPlanTier === "privado_pro"
@@ -1951,10 +2119,10 @@ export default function AnuncioDetallePage() {
                 )}
                 <ContactActions
                   lang={lang}
-                  phone={rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
+                  phone={rentasNegocioDisplay?.officePhone ?? brNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
                   text={(listing as any)?.text}
                   email={(listing as any)?.contact_email ?? (listing as any)?.email}
-                  website={rentasNegocioDisplay?.website ?? (listing as any)?.website}
+                  website={rentasNegocioDisplay?.website ?? brNegocioDisplay?.website ?? (listing as any)?.website}
                   mapsUrl={(listing as any)?.mapsUrl}
                   onContact={listing ? () => trackEvent(listing.id, "message_sent") : undefined}
                 />
