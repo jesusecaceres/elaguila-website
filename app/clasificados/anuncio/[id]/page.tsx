@@ -27,6 +27,7 @@ type Lang = "es" | "en";
 
 type CategoryKey =
   | "en-venta"
+  | "bienes-raices"
   | "rentas"
   | "autos"
   | "servicios"
@@ -244,6 +245,7 @@ export default function AnuncioDetallePage() {
   const categoryLabel = useMemo(() => {
     const map: Record<CategoryKey, { es: string; en: string }> = {
       "en-venta": { es: "En Venta", en: "For Sale" },
+      "bienes-raices": { es: "Bienes Raíces", en: "Real Estate" },
       rentas: { es: "Rentas", en: "Rentals" },
       autos: { es: "Autos", en: "Autos" },
       servicios: { es: "Servicios", en: "Services" },

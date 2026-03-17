@@ -6,6 +6,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   FiShoppingCart,
   FiHome,
+  FiLayers,
   FiTruck,
   FiCoffee,
   FiTool,
@@ -285,6 +286,7 @@ type Lang = "es" | "en";
 type CategoryKey =
   | "all"
   | "en-venta"
+  | "bienes-raices"
   | "rentas"
   | "autos"
   | "servicios"
@@ -351,6 +353,7 @@ type Listing = {
 const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
   all: { es: "Todos", en: "All" },
   "en-venta": { es: "En Venta", en: "For Sale" },
+  "bienes-raices": { es: "Bienes Raíces", en: "Real Estate" },
   rentas: { es: "Rentas", en: "Rentals" },
   autos: { es: "Autos", en: "Autos" },
   servicios: { es: "Servicios", en: "Services" },
@@ -364,6 +367,7 @@ const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
 const CATEGORY_ORDER: CategoryKey[] = [
   "all",
   "en-venta",
+  "bienes-raices",
   "rentas",
   "autos",
   "restaurantes",
@@ -377,6 +381,7 @@ const CATEGORY_ORDER: CategoryKey[] = [
 /** Pills only: real categories, no Todos. */
 const CATEGORY_PILL_ORDER: CategoryKey[] = [
   "en-venta",
+  "bienes-raices",
   "rentas",
   "autos",
   "restaurantes",
@@ -395,6 +400,7 @@ const MOBILE_CATEGORY_GRID: Array<{
   Icon: React.ComponentType<{ className?: string }>;
 }> = [
   { key: "en-venta", labelEs: "En Venta", labelEn: "For Sale", Icon: FiShoppingCart },
+  { key: "bienes-raices", labelEs: "Bienes Raíces", labelEn: "Real Estate", Icon: FiLayers },
   { key: "rentas", labelEs: "Rentas", labelEn: "Rentals", Icon: FiHome },
   { key: "autos", labelEs: "Autos", labelEn: "Autos", Icon: FiTruck },
   { key: "restaurantes", labelEs: "Restaurantes", labelEn: "Restaurants", Icon: FiCoffee },
@@ -414,6 +420,7 @@ const QUICK_PICKS: Array<{ key: CategoryKey | "more"; icon: string; labelEs: str
   { key: "empleos", icon: "💼", labelEs: CATEGORY_LABELS.empleos.es, labelEn: CATEGORY_LABELS.empleos.en },
   { key: "autos", icon: "🚗", labelEs: CATEGORY_LABELS.autos.es, labelEn: CATEGORY_LABELS.autos.en },
   { key: "en-venta", icon: "🛒", labelEs: CATEGORY_LABELS["en-venta"].es, labelEn: CATEGORY_LABELS["en-venta"].en },
+  { key: "bienes-raices", icon: "🏢", labelEs: CATEGORY_LABELS["bienes-raices"].es, labelEn: CATEGORY_LABELS["bienes-raices"].en },
   { key: "restaurantes", icon: "🍽️", labelEs: CATEGORY_LABELS.restaurantes.es, labelEn: CATEGORY_LABELS.restaurantes.en },
   { key: "clases", icon: "📚", labelEs: CATEGORY_LABELS.clases.es, labelEn: CATEGORY_LABELS.clases.en },
   { key: "comunidad", icon: "👥", labelEs: CATEGORY_LABELS.comunidad.es, labelEn: CATEGORY_LABELS.comunidad.en },
@@ -594,6 +601,7 @@ function isCategoryKey(v: string): v is CategoryKey {
   return (
     v === "all" ||
     v === "en-venta" ||
+    v === "bienes-raices" ||
     v === "rentas" ||
     v === "autos" ||
     v === "servicios" ||
@@ -2479,6 +2487,7 @@ useEffect(() => {
       "empleos",
       "servicios",
       "en-venta",
+      "bienes-raices",
       "clases",
       "comunidad",
     ];

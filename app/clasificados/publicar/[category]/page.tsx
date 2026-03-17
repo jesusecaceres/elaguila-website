@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   FiShoppingCart,
   FiHome,
+  FiLayers,
   FiTruck,
   FiCoffee,
   FiTool,
@@ -53,6 +54,7 @@ const PUBLICAR_CATEGORIES: Array<{
   Icon: React.ComponentType<{ className?: string }>;
 }> = [
   { key: "en-venta", Icon: FiShoppingCart },
+  { key: "bienes-raices", Icon: FiLayers },
   { key: "rentas", Icon: FiHome },
   { key: "autos", Icon: FiTruck },
   { key: "restaurantes", Icon: FiCoffee },
@@ -321,6 +323,8 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   ],
   /** Rentas uses getCategoryFields("rentas", details) for dynamic field groups by subcategoría/tipo. */
   rentas: [],
+  /** Bienes Raíces: foundation shell; no extra detail fields yet. */
+  "bienes-raices": [],
   empleos: [
     { key: "company", label: { es: "Empresa", en: "Company" }, type: "text", placeholder: { es: "Nombre de la empresa", en: "Company name" } },
     {
@@ -664,7 +668,7 @@ export default function PublicarPage() {
   const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
 
   useEffect(() => {
-    if (category === "en-venta" && step === "details") {
+    if ((category === "en-venta" || category === "bienes-raices") && step === "details") {
       setStep("media");
     }
   }, [category, step]);

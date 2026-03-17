@@ -14,6 +14,7 @@ type Lang = "es" | "en";
 
 type CategoryKey =
   | "en-venta"
+  | "bienes-raices"
   | "rentas"
   | "autos"
   | "servicios"
@@ -40,6 +41,7 @@ type Listing = {
 const CATEGORY_ORDER: CategoryKey[] = [
   "rentas",
   "en-venta",
+  "bienes-raices",
   "empleos",
   "servicios",
   "restaurantes",
@@ -81,6 +83,7 @@ export default function ClasificadosPage() {
         cat: {
           rentas: { label: "Rentas", hint: "Casas, cuartos y propiedades." },
           "en-venta": { label: "En venta", hint: "Compra y vende local." },
+          "bienes-raices": { label: "Bienes Raíces", hint: "Venta de propiedades e inmuebles." },
           empleos: { label: "Empleos", hint: "Oportunidades cerca de ti." },
           servicios: {
             label: "Servicios",
@@ -178,6 +181,7 @@ export default function ClasificadosPage() {
         cat: {
           rentas: { label: "Rentals", hint: "Homes, rooms, and properties." },
           "en-venta": { label: "For sale", hint: "Buy and sell locally." },
+          "bienes-raices": { label: "Real Estate", hint: "Properties and real estate for sale." },
           empleos: { label: "Jobs", hint: "Opportunities near you." },
           servicios: { label: "Services", hint: "Trusted pros and businesses." },
           autos: { label: "Autos", hint: "Cars and dealer inventory." },
@@ -293,12 +297,14 @@ export default function ClasificadosPage() {
     return {
       rentas: isMobile ? big3Mobile : big3Desktop,
       "en-venta": isMobile ? big3Mobile : big3Desktop,
+      "bienes-raices": isMobile ? otherMobile : otherDesktop,
       empleos: isMobile ? big3Mobile : big3Desktop,
       servicios: isMobile ? otherMobile : otherDesktop,
       travel: isMobile ? otherMobile : otherDesktop,
       autos: isMobile ? otherMobile : otherDesktop,
       clases: isMobile ? 2 : 4,
       comunidad: isMobile ? 2 : 4,
+      restaurantes: isMobile ? otherMobile : otherDesktop,
     } as const;
   }, [isMobile]);
 
@@ -306,6 +312,7 @@ export default function ClasificadosPage() {
     const out: Record<CategoryKey, Listing[]> = {
       rentas: [],
       "en-venta": [],
+      "bienes-raices": [],
       empleos: [],
       servicios: [],
       travel: [],

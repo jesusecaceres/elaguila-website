@@ -76,6 +76,8 @@ export type CategorySchema = {
 
 const PUBLISH_STEPS_FULL: PublishStep[] = ["category", "basics", "details", "media"];
 const PUBLISH_STEPS_EN_VENTA: PublishStep[] = ["category", "basics", "media"];
+/** Bienes Raíces: foundation shell (sales lane); same 3-step flow as En Venta, no details step. */
+const PUBLISH_STEPS_BIENES_RAICES: PublishStep[] = ["category", "basics", "media"];
 /** Rentas: track selection (Privado vs Negocio + plan) before basics. */
 const PUBLISH_STEPS_RENTAS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
 
@@ -106,6 +108,16 @@ function schema(
 
 /** Category schemas: En Venta = first production template; others = eligibility + stubs. */
 const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
+  "bienes-raices": schema("bienes-raices", {
+    plans: ["free", "pro"],
+    subcategories: [], // foundation shell; real-estate subcategories in a later pass
+    formFieldGroupKey: "bienes-raices",
+    validationRules: [],
+    previewEligible: true,
+    proPreviewEligible: true,
+    businessBranchEligible: false, // future: true when business sales flow is built (same contract as rentas)
+    stepOrder: PUBLISH_STEPS_BIENES_RAICES,
+  }),
   "en-venta": schema("en-venta", {
     plans: ["free", "pro"],
     subcategories: EN_VENTA_SUBCATEGORIES,
