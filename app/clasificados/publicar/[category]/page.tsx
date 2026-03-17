@@ -3302,34 +3302,116 @@ for (let vi = 0; vi < 2; vi++) {
                     </div>
 
                     {details.bienesRaicesBranch === "negocio" && (
-                      <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4">
-                        <p className="text-sm font-semibold text-[#111111] mb-3">
-                          {lang === "es" ? "Elige plan" : "Choose plan"}
+                      <div className="mt-8">
+                        <h3 className="text-base font-semibold text-[#111111] mb-1">
+                          {lang === "es" ? "Elige tu plan" : "Choose your plan"}
+                        </h3>
+                        <p className="text-sm text-[#111111]/80 mb-4">
+                          {lang === "es"
+                            ? "Mismo producto para agentes y profesionales inmobiliarios. Plus incluye más visibilidad y el módulo de más anuncios de tu compañía."
+                            : "Same product for agents and real estate professionals. Plus includes stronger visibility and the same-company listings module."}
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          {RENTAS_NEGOCIO_TIER_OPTIONS.map((o) => (
-                            <button
-                              key={o.value}
-                              type="button"
-                              onClick={() => {
-                                setDetails((prev) => ({ ...prev, rentasTier: o.value }));
-                                setStep("basics");
-                                requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
-                              }}
-                              className={cx(
-                                "rounded-xl border px-4 py-3 text-sm font-semibold text-left transition",
-                                details.rentasTier === o.value
-                                  ? "border-[#C9B46A]/60 bg-[#F5F5F5] text-[#111111]"
-                                  : "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5]"
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Negocio Standard */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDetails((prev) => ({ ...prev, rentasTier: "business_standard" }));
+                              setStep("basics");
+                              requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                            }}
+                            className={cx(
+                              "rounded-2xl border p-5 text-left transition-all",
+                              "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
+                              details.rentasTier === "business_standard"
+                                ? "border-yellow-400/50 bg-[#FAFAF8] ring-1 ring-yellow-400/25 shadow-sm"
+                                : "border-black/12 bg-white hover:border-yellow-400/30 hover:bg-[#FAFAFA] hover:shadow-sm"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-lg font-bold text-[#111111]">
+                                {lang === "es" ? "Negocio Standard" : "Business Standard"}
+                              </span>
+                              {details.rentasTier === "business_standard" && (
+                                <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
+                                  {lang === "es" ? "Seleccionado" : "Selected"}
+                                </span>
                               )}
-                            >
-                              {lang === "es" ? o.label.es : o.label.en}
-                            </button>
-                          ))}
+                            </div>
+                            <p className="mt-2 text-base font-semibold text-[#111111]">
+                              {lang === "es" ? "$24.99/semana o $89.99/mes" : "$24.99/week or $89.99/month"}
+                            </p>
+                            <ul className="mt-3 space-y-1.5 text-sm text-[#111111]/85">
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "Identidad de negocio en el anuncio (nombre, agente, contacto)" : "Business identity on listing (name, agent, contact)"}
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "Ficha profesional en resultados y en la página del anuncio" : "Professional card in results and on the listing page"}
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "1 anuncio activo incluido" : "1 active listing included"}
+                              </li>
+                            </ul>
+                          </button>
+                          {/* Negocio Plus */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDetails((prev) => ({ ...prev, rentasTier: "business_plus" }));
+                              setStep("basics");
+                              requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                            }}
+                            className={cx(
+                              "rounded-2xl border p-5 text-left transition-all",
+                              "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
+                              details.rentasTier === "business_plus"
+                                ? "border-yellow-300/60 bg-[#FAFAF8] ring-1 ring-yellow-300/30 shadow-[0_0_0_1px_rgba(250,204,21,0.15)]"
+                                : "border-black/12 bg-white hover:border-yellow-300/40 hover:bg-[#FAFAFA] hover:shadow-sm"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-lg font-bold text-[#111111]">
+                                {lang === "es" ? "Negocio Plus" : "Business Plus"}
+                              </span>
+                              {details.rentasTier === "business_plus" ? (
+                                <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
+                                  {lang === "es" ? "Seleccionado" : "Selected"}
+                                </span>
+                              ) : (
+                                <span className="rounded-full border border-yellow-400/50 bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
+                                  {lang === "es" ? "Más completo" : "Premium"}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-2 text-base font-semibold text-[#111111]">
+                              {lang === "es" ? "$49.99/semana o $179.99/mes" : "$49.99/week or $179.99/month"}
+                            </p>
+                            <ul className="mt-3 space-y-1.5 text-sm text-[#111111]/85">
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "Todo lo de Standard" : "Everything in Standard"}
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "Módulo «Más anuncios de esta compañía» en tu ficha" : "“More listings from this company” module on your listing"}
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "Presentación premium en listados y ficha abierta" : "Premium presentation on result cards and open listing"}
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
+                                {lang === "es" ? "Hasta 3 anuncios activos, 2 impulsos por ciclo" : "Up to 3 active listings, 2 boosts per cycle"}
+                              </li>
+                            </ul>
+                          </button>
                         </div>
-                        <p className="mt-3 text-xs text-[#111111]/70">
+                        <p className="mt-4 text-xs text-[#111111]/70">
                           <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
-                            {lang === "es" ? "Ver planes" : "View plans"}
+                            {lang === "es" ? "Ver todos los planes y comparativa" : "View all plans and comparison"}
                           </Link>
                         </p>
                       </div>
