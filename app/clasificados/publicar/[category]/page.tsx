@@ -447,7 +447,8 @@ const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
 function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>) {
   const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
-  if (cat === "en-venta") {
+  // En Venta: item-selling details come from fields (rama, itemType, condition) only.
+  if (cat === "bienes-raices") {
     const pt = (details.enVentaPropertyType ?? "").trim();
     if (pt) {
       const opt = EN_VENTA_BR_PROPERTY_TYPES.find((o) => o.value === pt);
@@ -473,25 +474,16 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     if (lv) out.push({ label: lang === "es" ? "Niveles" : "Levels", value: lv });
     const pk = (details.enVentaParkingSpaces ?? "").trim();
     if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking spaces", value: pk });
-  }
-  if (cat === "bienes-raices") {
-    const subKey = (details.bienesRaicesSubcategoria ?? "").trim();
-    if (subKey) {
-      out.push({
-        label: lang === "es" ? "Tipo de propiedad" : "Property type",
-        value: getBienesRaicesSubcategoryLabel(subKey, lang),
-      });
-    }
     const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
     if (brBranch === "negocio") {
-      const negocioNombre = (details.negocioNombre ?? "").trim();
+      const negocioNombre = (details.negocioNombre ?? "").trim() || (details.enVentaBusinessName ?? "").trim();
       if (negocioNombre) out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
       const rentasTier = (details.rentasTier ?? "").trim();
       if (rentasTier) {
         const tierOpt = RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === rentasTier);
         out.push({ label: lang === "es" ? "Plan" : "Plan", value: tierOpt ? (lang === "es" ? tierOpt.label.es : tierOpt.label.en) : rentasTier });
       }
-      const negocioAgente = (details.negocioAgente ?? "").trim();
+      const negocioAgente = (details.negocioAgente ?? "").trim() || (details.enVentaAgentName ?? "").trim();
       if (negocioAgente) out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
     }
   }
@@ -1963,7 +1955,7 @@ export default function PublicarPage() {
   const enVentaSnapshot = useMemo(() => {
     const isPrivate = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
     const descriptionForSnapshot =
-      category === "en-venta"
+      category === "bienes-raices"
         ? [details.enVentaShortDescription, details.enVentaFullDescription].filter(Boolean).join("\n\n").trim() || ""
         : description;
     return buildEnVentaDraftSnapshot({
@@ -1971,7 +1963,7 @@ export default function PublicarPage() {
       description: descriptionForSnapshot,
       city,
       price,
-      isFree: category === "en-venta" ? false : isFree,
+      isFree: category === "en-venta" || category === "bienes-raices" ? false : isFree,
       details,
       contactMethod,
       contactPhone,
@@ -2020,23 +2012,12 @@ export default function PublicarPage() {
     const phoneOk = s.contactMethod === "email" ? true : phoneDigits.length === 10;
     const emailOk = s.contactMethod === "phone" ? true : /.+@.+\..+/.test(s.contactEmail.trim());
     const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(s.contactEmail.trim());
-    const enVentaAdvertiser = (s.details.enVentaAdvertiserType ?? "").trim();
-    const enVentaShort = (s.details.enVentaShortDescription ?? "").trim();
-    const enVentaFull = (s.details.enVentaFullDescription ?? "").trim();
+    // En Venta: item-selling metadata (subcategoría, artículo, condición).
     const enVentaMetaOk =
       s.category !== "en-venta" ||
-      (
-        ["privado", "negocio"].includes(enVentaAdvertiser) &&
-        !!(s.details.enVentaPropertyType ?? "").trim() &&
-        !!(s.details.enVentaZone ?? "").trim() &&
-        !!(s.details.enVentaBedrooms ?? "").trim() &&
-        !!(s.details.enVentaBathrooms ?? "").trim() &&
-        !!(s.details.enVentaSquareFeet ?? "").trim() &&
-        enVentaShort.length >= 5 &&
-        (enVentaFull.length >= 5 || (enVentaShort + enVentaFull).length >= 10) &&
-        (enVentaAdvertiser !== "negocio" ||
-          (!!(s.details.enVentaBusinessName ?? "").trim() && !!(s.details.enVentaBusinessTier ?? "").trim()))
-      );
+      (!!(s.details.rama ?? "").trim() &&
+        !!(s.details.itemType ?? "").trim() &&
+        !!(s.details.condition ?? "").trim());
     const rentasBranch = (s.details.rentasBranch ?? "").trim();
     const rentasNegocio = s.category === "rentas" && rentasBranch === "negocio";
     const rentasNegocioNameOk = !rentasNegocio || !!(s.details.negocioNombre ?? "").trim();
@@ -2057,14 +2038,23 @@ export default function PublicarPage() {
         rentasNegocioContactOk);
     const bienesRaicesBranch = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
     const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
-    const bienesRaicesSubcatOk = !!(s.details.bienesRaicesSubcategoria ?? "").trim();
-    const bienesRaicesNegocioNameOk = !isBienesRaicesNegocio || !!(s.details.negocioNombre ?? "").trim();
-    const bienesRaicesNegocioTierOk = !isBienesRaicesNegocio || !!(s.details.rentasTier ?? "").trim();
-    const brNegocioPhone = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
-    const bienesRaicesNegocioContactOk = !isBienesRaicesNegocio || brNegocioPhone.length === 10 || contactOk;
+    const brAdvertiser = (s.details.enVentaAdvertiserType ?? "").trim();
+    const brShort = (s.details.enVentaShortDescription ?? "").trim();
+    const brFull = (s.details.enVentaFullDescription ?? "").trim();
     const bienesRaicesMetaOk =
       s.category !== "bienes-raices" ||
-      (bienesRaicesSubcatOk && bienesRaicesNegocioNameOk && bienesRaicesNegocioTierOk && bienesRaicesNegocioContactOk);
+      (
+        ["privado", "negocio"].includes(brAdvertiser) &&
+        !!(s.details.enVentaPropertyType ?? "").trim() &&
+        !!(s.details.enVentaZone ?? "").trim() &&
+        !!(s.details.enVentaBedrooms ?? "").trim() &&
+        !!(s.details.enVentaBathrooms ?? "").trim() &&
+        !!(s.details.enVentaSquareFeet ?? "").trim() &&
+        brShort.length >= 5 &&
+        (brFull.length >= 5 || (brShort + brFull).length >= 10) &&
+        (brAdvertiser !== "negocio" ||
+          (!!(s.details.enVentaBusinessName ?? "").trim() && !!(s.details.enVentaBusinessTier ?? "").trim()))
+      );
     return {
       categoryOk,
       titleOk,
@@ -2158,9 +2148,7 @@ export default function PublicarPage() {
         ? [
             {
               key: "itemDetails" as const,
-              label: lang === "es"
-                ? "Datos de propiedad (tipo, zona, recámaras, baños, pies², descripciones)"
-                : "Property data (type, zone, beds, baths, sq ft, descriptions)",
+              label: lang === "es" ? "Subcategoría, artículo y condición" : "Subcategory, item type and condition",
               ok: requirements.enVentaMetaOk,
               step: "basics" as const,
             },
@@ -2181,7 +2169,9 @@ export default function PublicarPage() {
             ? [
                 {
                   key: "bienesRaicesSubcat" as const,
-                  label: lang === "es" ? "Tipo de propiedad" : "Property type",
+                  label: lang === "es"
+                    ? "Datos de propiedad (tipo, zona, recámaras, baños, pies², descripciones)"
+                    : "Property data (type, zone, beds, baths, sq ft, descriptions)",
                   ok: requirements.bienesRaicesMetaOk,
                   step: "basics" as const,
                 },
@@ -3638,107 +3628,177 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-4 grid gap-4">
                       {category === "en-venta" ? (
                         <>
-                          {/* 1. Advertiser type */}
-                          <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de anunciante" : "Advertiser type"}{" *"}</label>
-                            <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
-                              <button
-                                type="button"
-                                onClick={() => setDetails((prev) => ({ ...prev, enVentaAdvertiserType: "privado", enVentaBusinessTier: "" }))}
-                                className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaAdvertiserType ?? "") === "privado" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}
-                              >
-                                {lang === "es" ? "Privado" : "Private"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDetails((prev) => ({ ...prev, enVentaAdvertiserType: "negocio" }))}
-                                className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaAdvertiserType ?? "") === "negocio" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}
-                              >
-                                {lang === "es" ? "Negocio" : "Business"}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* 2. Business tier (only when negocio) - required for negocio */}
-                          {(details.enVentaAdvertiserType ?? "") === "negocio" && (
+                          {/* En Venta: item-selling Basics (subcategoría, artículo, condición, title, description, price, city) */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Plan del negocio" : "Business plan"}{" *"}</label>
-                              <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
-                                <button
-                                  type="button"
-                                  onClick={() => setDetails((prev) => ({ ...prev, enVentaBusinessTier: "standard" }))}
-                                  className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaBusinessTier ?? "") === "standard" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}
-                                >
-                                  {lang === "es" ? "Standard" : "Standard"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDetails((prev) => ({ ...prev, enVentaBusinessTier: "plus" }))}
-                                  className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaBusinessTier ?? "") === "plus" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}
-                                >
-                                  {lang === "es" ? "Plus" : "Plus"}
-                                </button>
-                              </div>
-                              {!requirements.enVentaMetaOk && !(details.enVentaBusinessTier ?? "").trim() && (
-                                <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Elige Standard o Plus." : "Choose Standard or Plus."}</div>
-                              )}
+                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subcategoría" : "Subcategory"}{" *"}</label>
+                              <select
+                                value={details.rama ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, rama: e.target.value, itemType: "" }))}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                <option value="">{lang === "es" ? "Elige subcategoría…" : "Choose subcategory…"}</option>
+                                {EN_VENTA_SUBCATEGORIES.map((s) => (
+                                  <option key={s.key} value={s.key}>{lang === "es" ? s.label.es : s.label.en}</option>
+                                ))}
+                              </select>
+                              {!details.rama?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
                             </div>
-                          )}
-
-                          {/* 3. Property type */}
-                          <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
-                            <select
-                              value={details.enVentaPropertyType ?? ""}
-                              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertyType: e.target.value }))}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            >
-                              <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
-                              {EN_VENTA_BR_PROPERTY_TYPES.map((o) => (
-                                <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>
-                              ))}
-                            </select>
-                            {!details.enVentaPropertyType?.trim() && (
-                              <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>
-                            )}
+                            <div>
+                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Artículo" : "Item type"}{" *"}</label>
+                              {(() => {
+                                const articuloResult = getArticuloOptionsForSubcategory(details.rama ?? "");
+                                const disabled = !(details.rama ?? "").trim();
+                                if (articuloResult.type === "grouped") {
+                                  return (
+                                    <select
+                                      value={details.itemType ?? ""}
+                                      onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
+                                      disabled={disabled}
+                                      className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                                    >
+                                      <option value="">{disabled ? (lang === "es" ? "Elige subcategoría primero" : "Choose subcategory first") : (lang === "es" ? "Elige artículo…" : "Choose item…")}</option>
+                                      {articuloResult.groups.map((g) => (
+                                        <optgroup key={g.groupLabel.es} label={lang === "es" ? g.groupLabel.es : g.groupLabel.en}>
+                                          {g.options.map((o) => (
+                                            <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>
+                                          ))}
+                                        </optgroup>
+                                      ))}
+                                    </select>
+                                  );
+                                }
+                                return (
+                                  <select
+                                    value={details.itemType ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
+                                    disabled={disabled}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                                  >
+                                    <option value="">{disabled ? (lang === "es" ? "Elige subcategoría primero" : "Choose subcategory first") : (lang === "es" ? "Elige artículo…" : "Choose item…")}</option>
+                                    {articuloResult.options.map((o) => (
+                                      <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>
+                                    ))}
+                                  </select>
+                                );
+                              })()}
+                              {!details.itemType?.trim() && details.rama?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Condición" : "Condition"}{" *"}</label>
+                              <select
+                                value={details.condition ?? ""}
+                                onChange={(e) => setDetails((prev) => ({ ...prev, condition: e.target.value }))}
+                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              >
+                                <option value="">{lang === "es" ? "Elige condición…" : "Choose condition…"}</option>
+                                {EN_VENTA_CONDICION.map((c) => (
+                                  <option key={c.value} value={c.value}>{lang === "es" ? c.labelEs : c.labelEn}</option>
+                                ))}
+                              </select>
+                              {!details.condition?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                            </div>
                           </div>
-
-                          {/* 4. Property subtype */}
                           <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subtipo de propiedad" : "Property subtype"}</label>
-                            <input
-                              value={details.enVentaPropertySubtype ?? ""}
-                              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))}
-                              placeholder={lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            />
-                          </div>
-
-                          {/* 5. Title */}
-                          <div>
-                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Título del anuncio" : "Listing title"}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro que describa la propiedad." : "A clear title that describes the property."}</p>
+                            <label className="text-sm font-medium text-[#111111]">{copy.fieldTitle}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro ayuda a que te encuentren." : "A clear title helps people find your listing."}</p>
                             <input
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
-                              placeholder={lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "e.g. 3-bed house in central area"}
+                              placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "e.g. Great-condition sofa"}
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                             {!requirements.titleOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
                           </div>
-
-                          {/* 6. Price + display mode */}
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{copy.fieldDesc}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Describe el estado, medidas, entrega, etc." : "Describe condition, size, pickup/delivery, etc."}</p>
+                            <textarea
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder={lang === "es" ? "Describe el estado, medidas, entrega, etc." : "Describe condition, size, pickup/delivery, etc."}
+                              rows={5}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            />
+                            {!requirements.descOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                              <label className="text-sm font-medium text-[#111111]">{copy.fieldPrice}{" *"}</label>
+                              <input
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                disabled={isFree}
+                                placeholder={lang === "es" ? "Ej: 120" : "e.g. 120"}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
+                                  isFree ? "border-white/5 bg-[#F5F5F5] text-[#111111]" : "border-black/10 bg-white/90 focus:ring-yellow-400/30"
+                                )}
+                              />
+                              {!requirements.priceOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}</div>}
+                            </div>
+                            <div className="sm:col-span-1">
+                              <label className="text-sm font-medium text-[#111111]">{copy.freeToggle}</label>
+                              <button
+                                type="button"
+                                onClick={() => { setIsFree((v) => !v); if (!isFree) setPrice(""); }}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
+                                  isFree ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]" : "border-black/10 bg-white/90 text-[#111111] hover:bg-white/12"
+                                )}
+                              >
+                                {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : (lang === "es" ? "No" : "No")}
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{copy.fieldCity}{" *"}</label>
+                            <CityAutocomplete value={city} onChange={setCity} placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"} lang={lang} label="" variant="light" className="mt-2" />
+                            {!requirements.cityOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Agrega tu ciudad." : "Add your city."}</div>}
+                          </div>
+                        </>
+                      ) : category === "bienes-raices" ? (
+                        <>
+                          {/* Bienes Raíces: full BR Basics (Privado/Negocio, property type, zone, quick facts, descriptions, business identity) */}
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de anunciante" : "Advertiser type"}{" *"}</label>
+                            <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
+                              <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaAdvertiserType: "privado", enVentaBusinessTier: "" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaAdvertiserType ?? "") === "privado" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Privado" : "Private"}</button>
+                              <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaAdvertiserType: "negocio" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaAdvertiserType ?? "") === "negocio" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Negocio" : "Business"}</button>
+                            </div>
+                          </div>
+                          {(details.enVentaAdvertiserType ?? "") === "negocio" && (
+                            <div>
+                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Plan del negocio" : "Business plan"}{" *"}</label>
+                              <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
+                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaBusinessTier: "standard" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaBusinessTier ?? "") === "standard" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Standard" : "Standard"}</button>
+                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaBusinessTier: "plus" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaBusinessTier ?? "") === "plus" ? "bg-[#C9B46A]/40 text-[#111111] border border-[#C9B46A]/50" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Plus" : "Plus"}</button>
+                              </div>
+                              {!requirements.bienesRaicesMetaOk && !(details.enVentaBusinessTier ?? "").trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Elige Standard o Plus." : "Choose Standard or Plus."}</div>}
+                            </div>
+                          )}
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
+                            <select value={details.enVentaPropertyType ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertyType: e.target.value }))} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30">
+                              <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
+                              {EN_VENTA_BR_PROPERTY_TYPES.map((o) => <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>)}
+                            </select>
+                            {!details.enVentaPropertyType?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subtipo de propiedad" : "Property subtype"}</label>
+                            <input value={details.enVentaPropertySubtype ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))} placeholder={lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex"} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Título del anuncio" : "Listing title"}{" *"}</label>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro que describa la propiedad." : "A clear title that describes the property."}</p>
+                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "e.g. 3-bed house in central area"} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            {!requirements.titleOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
+                          </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Precio" : "Price"}{" *"}</label>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
-                                placeholder={lang === "es" ? "Ej: 250000" : "e.g. 250000"}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                              />
+                              <input type="text" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder={lang === "es" ? "Ej: 250000" : "e.g. 250000"} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
                               {!requirements.priceOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Indica el precio." : "Enter price."}</div>}
                             </div>
                             <div>
@@ -3749,8 +3809,6 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </div>
                             </div>
                           </div>
-
-                          {/* 7. Location: city, zone, address, display mode */}
                           <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                             <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Ubicación" : "Location"}</h4>
                             <div>
@@ -3775,8 +3833,6 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </div>
                             </div>
                           </div>
-
-                          {/* 8. Quick facts */}
                           <div className="rounded-xl border border-black/10 bg-white/80 p-4">
                             <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos" : "Quick facts"}</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -3801,28 +3857,18 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                             </div>
                           </div>
-
-                          {/* 9. Short description - required */}
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción corta" : "Short description"}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Resumen breve para listados y búsquedas (mín. 5 caracteres)." : "Brief summary for listings and search (min 5 characters)."}</p>
                             <textarea value={details.enVentaShortDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaShortDescription: e.target.value }))} placeholder={lang === "es" ? "Ej: Casa amplia con jardín, lista para mudarse." : "e.g. Spacious house with garden, move-in ready."} rows={3} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.enVentaMetaOk && (details.enVentaShortDescription ?? "").trim().length < 5 && (
-                              <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>
-                            )}
+                            {!requirements.bienesRaicesMetaOk && (details.enVentaShortDescription ?? "").trim().length < 5 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>}
                           </div>
-
-                          {/* 10. Full description - required */}
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción completa" : "Full description"}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Detalles, características y lo que hace especial la propiedad. Si la corta es corta, completa aquí (mín. 5 caracteres o texto combinado suficiente)." : "Details, features and what makes the property special. If short is brief, add more here (min 5 characters or enough combined text)."}</p>
+                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Detalles, características y lo que hace especial la propiedad." : "Details, features and what makes the property special."}</p>
                             <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={lang === "es" ? "Describa la propiedad, acabados, ubicación, etc." : "Describe the property, finishes, location, etc."} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.enVentaMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && ((details.enVentaShortDescription ?? "").trim() + (details.enVentaFullDescription ?? "").trim()).length < 10 && (
-                              <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido: descripción completa con al menos 5 caracteres, o texto combinado mínimo 10." : "Required: full description with at least 5 characters, or combined text min 10."}</div>
-                            )}
+                            {!requirements.bienesRaicesMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && ((details.enVentaShortDescription ?? "").trim() + (details.enVentaFullDescription ?? "").trim()).length < 10 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido: descripción completa o texto combinado mínimo 10." : "Required: full description or combined text min 10."}</div>}
                           </div>
-
-                          {/* 11. Business identity (only when negocio) */}
                           {(details.enVentaAdvertiserType ?? "") === "negocio" && (
                             <div className="rounded-xl border border-black/10 bg-[#F8F6F0]/80 p-4 space-y-3">
                               <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Identidad del negocio" : "Business identity"}</h4>
@@ -3840,307 +3886,6 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 <input value={details.enVentaAgentRole ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAgentRole: e.target.value }))} placeholder={lang === "es" ? "Ej: Agente de ventas" : "e.g. Sales agent"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                             </div>
-                          )}
-                        </>
-                      ) : category === "bienes-raices" ? (
-                        <>
-                          <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm text-[#111111]">
-                                {lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}
-                              </label>
-                              <select
-                                value={details.bienesRaicesSubcategoria ?? ""}
-                                onChange={(e) => setDetails((prev) => ({ ...prev, bienesRaicesSubcategoria: e.target.value }))}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                              >
-                                <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
-                                {BIENES_RAICES_SUBCATEGORIES.map((s) => (
-                                  <option key={s.key} value={s.key}>
-                                    {lang === "es" ? s.label.es : s.label.en}
-                                  </option>
-                                ))}
-                              </select>
-                              {!details.bienesRaicesSubcategoria?.trim() && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
-                                  {lang === "es" ? "Requerido." : "Required."}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">
-                              {lang === "es"
-                                ? "Título claro que describa la propiedad."
-                                : "Clear title that describes the property."}
-                            </p>
-                            <input
-                              value={title}
-                              onChange={(e) => setTitle(e.target.value)}
-                              placeholder={lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "Ex: 3-bed house in central area"}
-                              spellCheck
-                              autoCorrect="on"
-                              autoCapitalize="sentences"
-                              lang={lang === "es" ? "es" : "en"}
-                              inputMode="text"
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            />
-                            {!requirements.titleOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className="text-sm text-[#111111]">{copy.fieldDesc}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">
-                              {lang === "es"
-                                ? "Describe la propiedad: ubicación, características, condición."
-                                : "Describe the property: location, features, condition."}
-                            </p>
-                            <textarea
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
-                              placeholder={lang === "es" ? "Ej: Ubicación, metros, acabados, estacionamiento." : "e.g. Location, sq ft, finishes, parking."}
-                              spellCheck
-                              autoCorrect="on"
-                              autoCapitalize="sentences"
-                              lang={lang === "es" ? "es" : "en"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            />
-                            {!requirements.descOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className="text-sm text-[#111111]">{copy.fieldPrice}{" *"}</label>
-                            <input
-                              value={price}
-                              onChange={(e) => setPrice(e.target.value)}
-                              placeholder={lang === "es" ? "Ej: 450000" : "Ex: 450000"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                            />
-                            {!requirements.priceOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Agrega el precio de venta." : "Add the sale price."}
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className="text-sm text-[#111111]">{copy.fieldCity}{" *"}</label>
-                            <CityAutocomplete
-                              value={city}
-                              onChange={setCity}
-                              placeholder={lang === "es" ? "Ej: San José" : "Ex: San Jose"}
-                              lang={lang}
-                              label=""
-                              variant="light"
-                              className="mt-2"
-                            />
-                            {!requirements.cityOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
-                                {lang === "es" ? "Agrega la ciudad." : "Add the city."}
-                              </div>
-                            )}
-                          </div>
-
-                          {details.bienesRaicesBranch === "negocio" && (
-                            <>
-                              <div className="mt-6 pt-4 border-t border-black/10">
-                                <h4 className="text-sm font-semibold text-[#111111] mb-3">
-                                  {lang === "es" ? "Identidad del negocio" : "Business identity"}
-                                </h4>
-                                <p className="text-xs text-[#111111]/70 mb-3">
-                                  {lang === "es"
-                                    ? "Nombre del negocio y teléfono de oficina son obligatorios."
-                                    : "Business name and office phone are required."}
-                                </p>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Nombre del negocio" : "Business name"}{" *"}</label>
-                                  <input
-                                    value={details.negocioNombre ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioNombre: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: Inmobiliaria López" : "e.g. Lopez Realty"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                  {!details.negocioNombre?.trim() && (
-                                    <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>
-                                  )}
-                                </div>
-                                <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Nombre del agente" : "Agent name"}</label>
-                                  <input
-                                    value={details.negocioAgente ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioAgente: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: María García" : "e.g. Maria Garcia"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Cargo / rol" : "Role / title"}</label>
-                                  <input
-                                    value={details.negocioCargo ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: Agente de ventas" : "e.g. Sales agent"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Teléfono de oficina" : "Office phone"}{" *"}</label>
-                                  <input
-                                    value={details.negocioTelOficina ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioTelOficina: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: (408) 555-0100" : "e.g. (408) 555-0100"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                  {(details.negocioTelOficina ?? "").replace(/\D/g, "").length !== 10 && (details.negocioTelOficina ?? "").length > 0 && (
-                                    <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "10 dígitos." : "10 digits."}</div>
-                                  )}
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Sitio web" : "Website"}</label>
-                                  <input
-                                    type="url"
-                                    value={details.negocioSitioWeb ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioSitioWeb: e.target.value }))}
-                                    placeholder="https://"
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Logo del negocio" : "Business logo"}</label>
-                                  <div className="mt-2 flex items-center gap-3">
-                                    <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
-                                      {logoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
-                                      <input type="file" accept="image/*" className="sr-only" disabled={logoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "logo"); e.target.value = ""; }} />
-                                    </label>
-                                    {details.negocioLogoUrl ? <img src={details.negocioLogoUrl} alt="" className="h-14 w-14 rounded-lg border border-black/10 object-cover bg-white" /> : null}
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Foto del agente" : "Agent photo"}</label>
-                                  <div className="mt-2 flex items-center gap-3">
-                                    <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
-                                      {agentPhotoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
-                                      <input type="file" accept="image/*" className="sr-only" disabled={agentPhotoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "agent"); e.target.value = ""; }} />
-                                    </label>
-                                    {details.negocioFotoAgenteUrl ? <img src={details.negocioFotoAgenteUrl} alt="" className="h-14 w-14 rounded-lg border border-black/10 object-cover bg-white" /> : null}
-                                  </div>
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Redes sociales" : "Social links"}</label>
-                                  <input
-                                    value={details.negocioRedes ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioRedes: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: Facebook: url, Instagram: url" : "e.g. Facebook: url, Instagram: url"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Idiomas" : "Languages"}</label>
-                                  <input
-                                    value={details.negocioIdiomas ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioIdiomas: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: Español, Inglés" : "e.g. Spanish, English"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Horario de oficina" : "Office hours"}</label>
-                                  <input
-                                    value={details.negocioHorario ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioHorario: e.target.value }))}
-                                    placeholder={lang === "es" ? "Ej: Lun–Vie 9am–6pm" : "e.g. Mon–Fri 9am–6pm"}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Recorrido virtual (URL)" : "Virtual tour (URL)"}</label>
-                                  <input
-                                    type="url"
-                                    value={details.negocioRecorridoVirtual ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioRecorridoVirtual: e.target.value }))}
-                                    placeholder="https://"
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={(details.negocioPlusMasAnuncios ?? "") === "si"}
-                                      onChange={(e) => setDetails((prev) => ({ ...prev, negocioPlusMasAnuncios: e.target.checked ? "si" : "" }))}
-                                      className="rounded border-black/20"
-                                    />
-                                    <span className="text-sm text-[#111111]">{lang === "es" ? "Mostrar «Más anuncios de esta compañía» (Plus)" : "Show «More listings from this company» (Plus)"}</span>
-                                  </label>
-                                </div>
-                                <div className="sm:col-span-2">
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Descripción del negocio" : "Business description"}</label>
-                                  <textarea
-                                    value={details.negocioDescripcion ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioDescripcion: e.target.value }))}
-                                    placeholder={lang === "es" ? "Breve descripción de tu negocio o servicios" : "Brief description of your business or services"}
-                                    rows={3}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
-                                </div>
-                                <div className="sm:col-span-2 mt-4 pt-4 border-t border-black/10">
-                                  <h4 className="text-sm font-semibold text-[#111111] mb-1">{lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}</h4>
-                                  <p className="text-xs text-[#111111]/70 mb-3">
-                                    {lang === "es"
-                                      ? "Añade una fila por unidad o oferta (ej. Depa 2BR, $1,200, 950 pies²). El botón y enlace son opcionales."
-                                      : "Add one row per unit or offer (e.g. 2BR unit, $1,200, 950 sq ft). Button text and link are optional."}
-                                  </p>
-                                  {(() => {
-                                    type Row = { title: string; price: string; size: string; ctaText: string; ctaLink: string };
-                                    let rows: Row[] = [];
-                                    try {
-                                      const raw = (details.negocioDisponibilidadPrecios ?? "").trim();
-                                      if (raw) rows = JSON.parse(raw) as Row[];
-                                      if (!Array.isArray(rows)) rows = [];
-                                    } catch { rows = []; }
-                                    const updateRows = (next: Row[]) => setDetails((prev) => ({ ...prev, negocioDisponibilidadPrecios: JSON.stringify(next) }));
-                                    return (
-                                      <div className="space-y-3">
-                                        {rows.length > 0 && (
-                                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-1 text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide">
-                                            <div className="sm:col-span-3">{lang === "es" ? "Unidad / título" : "Unit / title"}</div>
-                                            <div className="sm:col-span-2">{lang === "es" ? "Precio" : "Price"}</div>
-                                            <div className="sm:col-span-2">{lang === "es" ? "Tamaño" : "Size"}</div>
-                                            <div className="sm:col-span-2">{lang === "es" ? "Texto botón" : "Button text"}</div>
-                                            <div className="sm:col-span-2">URL</div>
-                                            <div className="w-14" aria-hidden />
-                                          </div>
-                                        )}
-                                        {rows.map((r, i) => (
-                                          <div key={i} className="rounded-xl border border-black/10 bg-white/80 p-3 grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                                            <input value={r.title} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], title: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ej: Depa 2BR" : "e.g. 2BR unit"} className="sm:col-span-3 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Unidad o título" : "Unit or title"} />
-                                            <input value={r.price} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], price: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ej: $1,200" : "e.g. $1,200"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Precio" : "Price"} />
-                                            <input value={r.size} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], size: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ej: 950 pies²" : "e.g. 950 sq ft"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Tamaño" : "Size"} />
-                                            <input value={r.ctaText} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaText: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ver más" : "View more"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Texto del botón (opcional)" : "Button text (optional)"} />
-                                            <input value={r.ctaLink} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaLink: e.target.value }; updateRows(n); }} placeholder="https://" className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label="URL (opcional)" />
-                                            <button type="button" onClick={() => updateRows(rows.filter((_, j) => j !== i))} className="rounded-lg border border-red-200 bg-red-50/80 px-2 py-2 text-xs font-medium text-red-800 hover:bg-red-100 min-w-[4rem]" aria-label={lang === "es" ? "Quitar fila" : "Remove row"}>{lang === "es" ? "Quitar" : "Remove"}</button>
-                                          </div>
-                                        ))}
-                                        <button type="button" onClick={() => updateRows([...rows, { title: "", price: "", size: "", ctaText: "", ctaLink: "" }])} className="w-full sm:w-auto rounded-xl border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0]/80 px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] hover:border-[#C9B46A]/70 transition">
-                                          {lang === "es" ? "+ Agregar fila" : "+ Add row"}
-                                        </button>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            </>
                           )}
                         </>
                       ) : category === "rentas" ? (
