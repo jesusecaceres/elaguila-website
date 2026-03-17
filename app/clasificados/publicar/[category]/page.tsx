@@ -724,7 +724,9 @@ export default function PublicarPage() {
 
   /** Rentas Privado is Pro-only; no free/pro comparison. */
   const isRentasPrivado = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
-  const effectiveIsPro = isPro || isRentasPrivado;
+  /** Bienes Raíces negocio gets premium media (12 images, 1 video) like Rentas premium. */
+  const isBienesRaicesNegocio = category === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim() === "negocio";
+  const effectiveIsPro = isPro || isRentasPrivado || isBienesRaicesNegocio;
   const maxImages = isRentasPrivado ? 15 : (effectiveIsPro ? 12 : 3);
 
   // If plan changes to Free, trim images to Free limit (3). Rentas Privado keeps Pro limits.
@@ -791,6 +793,8 @@ export default function PublicarPage() {
     return sessionStorage.getItem(RULES_CONFIRMED_KEY) === "1";
   });
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [agentPhotoUploading, setAgentPhotoUploading] = useState(false);
 
   const setRulesConfirmedPersisted = (value: boolean) => {
     setRulesConfirmed(value);
@@ -799,6 +803,32 @@ export default function PublicarPage() {
       else sessionStorage.removeItem(RULES_CONFIRMED_KEY);
     }
   };
+
+  /** Upload business logo or agent photo to listing-images; store public URL in details. Used by BR negocio and Rentas negocio. */
+  const uploadBusinessImage = useCallback(
+    async (file: File, kind: "logo" | "agent") => {
+      if (!userId) return;
+      const setBusy = kind === "logo" ? setLogoUploading : setAgentPhotoUploading;
+      const key = kind === "logo" ? "negocioLogoUrl" : "negocioFotoAgenteUrl";
+      setBusy(true);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const rawExt = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const ext = /^[a-z0-9]+$/.test(rawExt) ? rawExt : "jpg";
+        const path = `${userId}/drafts/business-${kind}-${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from("listing-images").upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+        if (error) throw error;
+        const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+        setDetails((prev) => ({ ...prev, [key]: url }));
+      } catch (e: unknown) {
+        console.warn("business image upload failed", e);
+        if (typeof window !== "undefined") alert(lang === "es" ? "No se pudo subir la imagen. Intenta de nuevo." : "Upload failed. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [userId, lang]
+  );
 
   const draftTimer = useRef<number | null>(null);
   const topAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -2496,8 +2526,9 @@ async function publish() {
       }
 
 
-// Pro video upload (optional, Pro-only). Up to 2 videos; store URLs in description.
-for (let vi = 0; vi < 2; vi++) {
+// Pro video upload (optional, Pro-only). BR negocio: 1 video; others: up to 2.
+const videoLimit = isBienesRaicesNegocio ? 1 : 2;
+for (let vi = 0; vi < videoLimit; vi++) {
   const videoFile = videoFiles[vi];
   const videoThumbBlob = videoThumbBlobs[vi];
   const videoError = videoErrors[vi];
@@ -2600,9 +2631,14 @@ for (let vi = 0; vi < 2; vi++) {
     };
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
 
-  // Open in-page full preview modal. Rentas Privado: single Pro-style preview, no free/pro comparison.
+  // Open in-page full preview modal. Rentas Privado / BR negocio Plus: single Pro-style preview. BR negocio Standard: Standard look. Others: free/pro.
   const openFullPreview = () => {
     if (isRentasPrivado) {
+      setFullPreviewVariant("pro");
+      setFullPreviewRulesConfirmed(false);
+      setFullPreviewInfoConfirmed(false);
+      setShowFullPreviewModal(true);
+    } else if (isBienesRaicesNegocio && (details.rentasTier ?? "").trim() === "business_plus") {
       setFullPreviewVariant("pro");
       setFullPreviewRulesConfirmed(false);
       setFullPreviewInfoConfirmed(false);
@@ -2615,9 +2651,11 @@ for (let vi = 0; vi < 2; vi++) {
     }
   };
 
-  // Open same preview in Pro mode (same data; Pro badge, boost, benefits block only). Not used for Rentas Privado.
+  // Open same preview in Pro/Plus mode (same data; Pro badge or Plus styling). Used for En Venta Pro comparison and BR negocio "See Plus".
   const openProPreview = () => {
     setFullPreviewVariant("pro");
+    setFullPreviewRulesConfirmed(false);
+    setFullPreviewInfoConfirmed(false);
     setShowFullPreviewModal(true);
   };
 
@@ -3878,24 +3916,24 @@ for (let vi = 0; vi < 2; vi++) {
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Logo (URL)" : "Logo (URL)"}</label>
-                                  <input
-                                    type="url"
-                                    value={details.negocioLogoUrl ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioLogoUrl: e.target.value }))}
-                                    placeholder="https://"
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Logo del negocio" : "Business logo"}</label>
+                                  <div className="mt-2 flex items-center gap-3">
+                                    <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                                      {logoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
+                                      <input type="file" accept="image/*" className="sr-only" disabled={logoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "logo"); e.target.value = ""; }} />
+                                    </label>
+                                    {details.negocioLogoUrl ? <img src={details.negocioLogoUrl} alt="" className="h-14 w-14 rounded-lg border border-black/10 object-cover bg-white" /> : null}
+                                  </div>
                                 </div>
                                 <div>
-                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Foto del agente (URL)" : "Agent photo (URL)"}</label>
-                                  <input
-                                    type="url"
-                                    value={details.negocioFotoAgenteUrl ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioFotoAgenteUrl: e.target.value }))}
-                                    placeholder="https://"
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  />
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Foto del agente" : "Agent photo"}</label>
+                                  <div className="mt-2 flex items-center gap-3">
+                                    <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                                      {agentPhotoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
+                                      <input type="file" accept="image/*" className="sr-only" disabled={agentPhotoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "agent"); e.target.value = ""; }} />
+                                    </label>
+                                    {details.negocioFotoAgenteUrl ? <img src={details.negocioFotoAgenteUrl} alt="" className="h-14 w-14 rounded-lg border border-black/10 object-cover bg-white" /> : null}
+                                  </div>
                                 </div>
                                 <div className="sm:col-span-2">
                                   <label className="text-sm text-[#111111]">{lang === "es" ? "Redes sociales" : "Social links"}</label>
@@ -4222,28 +4260,24 @@ for (let vi = 0; vi < 2; vi++) {
                                 />
                               </div>
                               <div>
-                                <label className="text-sm text-[#111111]">
-                                  {lang === "es" ? "Logo (URL)" : "Logo (URL)"}
-                                </label>
-                                <input
-                                  type="url"
-                                  value={details.negocioLogoUrl ?? ""}
-                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioLogoUrl: e.target.value }))}
-                                  placeholder="https://"
-                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                />
+                                <label className="text-sm text-[#111111]">{lang === "es" ? "Logo del negocio" : "Business logo"}</label>
+                                <div className="mt-2 flex items-center gap-3">
+                                  <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                                    {logoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
+                                    <input type="file" accept="image/*" className="sr-only" disabled={logoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "logo"); e.target.value = ""; }} />
+                                  </label>
+                                  {details.negocioLogoUrl ? <img src={details.negocioLogoUrl} alt="" className="h-14 w-14 rounded-lg border border-black/10 object-cover bg-white" /> : null}
+                                </div>
                               </div>
                               <div>
-                                <label className="text-sm text-[#111111]">
-                                  {lang === "es" ? "Foto del agente (URL)" : "Agent photo (URL)"}
-                                </label>
-                                <input
-                                  type="url"
-                                  value={details.negocioFotoAgenteUrl ?? ""}
-                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioFotoAgenteUrl: e.target.value }))}
-                                  placeholder="https://"
-                                  className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                />
+                                <label className="text-sm text-[#111111]">{lang === "es" ? "Foto del agente" : "Agent photo"}</label>
+                                <div className="mt-2 flex items-center gap-3">
+                                  <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                                    {agentPhotoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
+                                    <input type="file" accept="image/*" className="sr-only" disabled={agentPhotoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "agent"); e.target.value = ""; }} />
+                                  </label>
+                                  {details.negocioFotoAgenteUrl ? <img src={details.negocioFotoAgenteUrl} alt="" className="h-14 w-14 rounded-lg border border-black/10 object-cover bg-white" /> : null}
+                                </div>
                               </div>
                               <div>
                                 <label className="text-sm text-[#111111]">
@@ -4597,7 +4631,7 @@ for (let vi = 0; vi < 2; vi++) {
                             : undefined
                         }
                         onBeforeProNavigate={category === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
-                        maxVideos={isRentasPrivado ? 1 : 2}
+                        maxVideos={isBienesRaicesNegocio ? 1 : (isRentasPrivado ? 1 : 2)}
                         copy={{
                           addImages: copy.addImages,
                           addVideo: copy.addVideo,
@@ -4740,6 +4774,12 @@ for (let vi = 0; vi < 2; vi++) {
                                 {previewCategoryLabel}
                               </span>
                             ) : null}
+                            {category === "bienes-raices" && (details.bienesRaicesSubcategoria ?? "").trim() ? (
+                              <p className="mt-2 text-xs font-medium text-[#111111]">
+                                {lang === "es" ? "Tipo de propiedad:" : "Property type:"}{" "}
+                                <span className="font-semibold">{getBienesRaicesSubcategoryLabel(details.bienesRaicesSubcategoria.trim(), lang)}</span>
+                              </p>
+                            ) : null}
 
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#111111]">
@@ -4784,6 +4824,25 @@ for (let vi = 0; vi < 2; vi++) {
                                 >
                                   {lang === "es" ? "Vista previa" : "Preview"}
                                 </button>
+                              ) : isBienesRaicesNegocio ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={openFullPreview}
+                                    className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  >
+                                    {lang === "es" ? "Vista previa" : "Preview"}
+                                  </button>
+                                  {(details.rentasTier ?? "").trim() !== "business_plus" && (
+                                    <button
+                                      type="button"
+                                      onClick={openProPreview}
+                                      className="w-full rounded-xl border border-[#111111]/20 bg-white py-2.5 text-sm font-semibold text-[#111111]/90 hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                    >
+                                      {lang === "es" ? "Ver plan Plus" : "See Plus plan"}
+                                    </button>
+                                  )}
+                                </>
                               ) : (
                                 <>
                                   <button
