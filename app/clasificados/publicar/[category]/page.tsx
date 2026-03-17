@@ -324,8 +324,14 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   ],
   /** Rentas uses getCategoryFields("rentas", details) for dynamic field groups by subcategoría/tipo. */
   rentas: [],
-  /** Bienes Raíces: foundation shell; no extra detail fields yet. */
-  "bienes-raices": [],
+  /** Bienes Raíces: property details for preview and final ad. */
+  "bienes-raices": [
+    { key: "recamaras", label: { es: "Recámaras", en: "Bedrooms" }, type: "number", placeholder: { es: "Ej: 3", en: "e.g. 3" } },
+    { key: "banos", label: { es: "Baños", en: "Bathrooms" }, type: "number", placeholder: { es: "Ej: 2", en: "e.g. 2" } },
+    { key: "piesCuadrados", label: { es: "Pies cuadrados", en: "Square feet" }, type: "text", placeholder: { es: "Ej: 1,200", en: "e.g. 1,200" } },
+    { key: "comodidades", label: { es: "Comodidades / características", en: "Amenities / features" }, type: "text", placeholder: { es: "Ej: Estacionamiento, jardín, AC", en: "e.g. Parking, garden, AC" } },
+    { key: "direccionPropiedad", label: { es: "Dirección o zona", en: "Address or area" }, type: "text", placeholder: { es: "Ej: Calle Principal 123, San José", en: "e.g. 123 Main St, San Jose" } },
+  ],
   empleos: [
     { key: "company", label: { es: "Empresa", en: "Company" }, type: "text", placeholder: { es: "Nombre de la empresa", en: "Company name" } },
     {
@@ -2424,6 +2430,7 @@ async function publish() {
         contact_email: snap.contactMethod === "phone" ? null : snap.contactEmail.trim(),
         status: "active",
         is_published: true,
+        detail_pairs: Array.isArray(snap.detailPairs) && snap.detailPairs.length > 0 ? snap.detailPairs : null,
       };
       if (snap.category === "rentas") {
         insertPayload.seller_type = rentasBranch === "negocio" ? "business" : "personal";
@@ -3943,6 +3950,86 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     placeholder={lang === "es" ? "Ej: Facebook: url, Instagram: url" : "e.g. Facebook: url, Instagram: url"}
                                     className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                                   />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Idiomas" : "Languages"}</label>
+                                  <input
+                                    value={details.negocioIdiomas ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioIdiomas: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: Español, Inglés" : "e.g. Spanish, English"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Horario de oficina" : "Office hours"}</label>
+                                  <input
+                                    value={details.negocioHorario ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioHorario: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: Lun–Vie 9am–6pm" : "e.g. Mon–Fri 9am–6pm"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Recorrido virtual (URL)" : "Virtual tour (URL)"}</label>
+                                  <input
+                                    type="url"
+                                    value={details.negocioRecorridoVirtual ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioRecorridoVirtual: e.target.value }))}
+                                    placeholder="https://"
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={(details.negocioPlusMasAnuncios ?? "") === "si"}
+                                      onChange={(e) => setDetails((prev) => ({ ...prev, negocioPlusMasAnuncios: e.target.checked ? "si" : "" }))}
+                                      className="rounded border-black/20"
+                                    />
+                                    <span className="text-sm text-[#111111]">{lang === "es" ? "Mostrar «Más anuncios de esta compañía» (Plus)" : "Show «More listings from this company» (Plus)"}</span>
+                                  </label>
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-sm text-[#111111]">{lang === "es" ? "Descripción del negocio" : "Business description"}</label>
+                                  <textarea
+                                    value={details.negocioDescripcion ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioDescripcion: e.target.value }))}
+                                    placeholder={lang === "es" ? "Breve descripción de tu negocio o servicios" : "Brief description of your business or services"}
+                                    rows={3}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                </div>
+                                <div className="sm:col-span-2 mt-4 pt-4 border-t border-black/10">
+                                  <h4 className="text-sm font-semibold text-[#111111] mb-2">{lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}</h4>
+                                  <p className="text-xs text-[#111111]/70 mb-3">{lang === "es" ? "Añade filas para unidades o precios (ej. tipo de unidad, precio, tamaño)." : "Add rows for units or prices (e.g. unit type, price, size)."}</p>
+                                  {(() => {
+                                    type Row = { title: string; price: string; size: string; ctaText: string; ctaLink: string };
+                                    let rows: Row[] = [];
+                                    try {
+                                      const raw = (details.negocioDisponibilidadPrecios ?? "").trim();
+                                      if (raw) rows = JSON.parse(raw) as Row[];
+                                      if (!Array.isArray(rows)) rows = [];
+                                    } catch { rows = []; }
+                                    const updateRows = (next: Row[]) => setDetails((prev) => ({ ...prev, negocioDisponibilidadPrecios: JSON.stringify(next) }));
+                                    return (
+                                      <div className="space-y-3">
+                                        {rows.map((r, i) => (
+                                          <div key={i} className="rounded-xl border border-black/10 bg-white/80 p-3 grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                                            <input value={r.title} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], title: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Unidad / título" : "Unit / title"} className="sm:col-span-3 rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                            <input value={r.price} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], price: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Precio" : "Price"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                            <input value={r.size} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], size: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Tamaño" : "Size"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                            <input value={r.ctaText} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaText: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "CTA texto" : "CTA text"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                            <input value={r.ctaLink} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaLink: e.target.value }; updateRows(n); }} placeholder="URL" className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                            <button type="button" onClick={() => updateRows(rows.filter((_, j) => j !== i))} className="rounded-lg border border-red-200 bg-red-50/80 px-2 py-2 text-xs font-medium text-red-800 hover:bg-red-100">{lang === "es" ? "Quitar" : "Remove"}</button>
+                                          </div>
+                                        ))}
+                                        <button type="button" onClick={() => updateRows([...rows, { title: "", price: "", size: "", ctaText: "", ctaLink: "" }])} className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]">
+                                          {lang === "es" ? "Agregar fila" : "Add row"}
+                                        </button>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </>

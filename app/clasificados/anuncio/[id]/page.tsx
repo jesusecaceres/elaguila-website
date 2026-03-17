@@ -528,6 +528,14 @@ export default function AnuncioDetallePage() {
     const website = meta.negocioSitioWeb?.trim() || "";
     const rawSocials = meta.negocioRedes?.trim() || "";
     const socialLinks = parseRentasSocialLinks(rawSocials);
+    let availabilityRows: Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }> = [];
+    try {
+      const raw = meta.negocioDisponibilidadPrecios?.trim();
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) availabilityRows = parsed;
+      }
+    } catch { /* ignore */ }
     return {
       name: name.trim() || (lang === "es" ? "Negocio" : "Business"),
       agent: meta.negocioAgente?.trim() || "",
@@ -542,6 +550,8 @@ export default function AnuncioDetallePage() {
       hours: meta.negocioHorario?.trim() || "",
       virtualTourUrl: meta.negocioRecorridoVirtual?.trim() || null,
       plusMoreListings: meta.negocioPlusMasAnuncios === "si",
+      businessDescription: meta.negocioDescripcion?.trim() || "",
+      availabilityRows,
     };
   }, [listing, bienesRaicesBusinessMeta, lang]);
 
@@ -563,10 +573,10 @@ export default function AnuncioDetallePage() {
     return list.slice(0, 6);
   }, [listing, bienesRaicesBusinessMeta?.negocioPlusMasAnuncios]);
 
-  /** Quick facts strip for Bienes Raíces (from detailPairs: tipo, recámaras, baños, etc.). */
+  /** Quick facts strip for Bienes Raíces (from detailPairs / detail_pairs: tipo, recámaras, baños, etc.). */
   const bienesRaicesFacts = useMemo((): Array<{ label: string; value: string }> => {
     if (!listing || listing.category !== "bienes-raices") return [];
-    const pairs = (listing as any).detailPairs as Array<{ label: string; value: string }> | undefined;
+    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
     return Array.isArray(pairs) ? pairs : [];
   }, [listing]);
 
@@ -1853,6 +1863,36 @@ export default function AnuncioDetallePage() {
                           <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
                           {railDisplay.hours}
                         </p>
+                      )}
+                      {(railDisplay as any).businessDescription && (
+                        <p className="text-xs text-[#111111]/80 whitespace-pre-wrap">
+                          {(railDisplay as any).businessDescription}
+                        </p>
+                      )}
+                      {(railDisplay as any).availabilityRows?.length > 0 && (
+                        <div className="mt-3 rounded-xl border border-black/10 bg-white/60 p-3">
+                          <p className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
+                            {lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}
+                          </p>
+                          <div className="space-y-2">
+                            {((railDisplay as any).availabilityRows as Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }>).map((row, i) => (
+                              <div key={i} className="flex flex-wrap items-center gap-2 text-xs">
+                                {row.title && <span className="font-medium text-[#111111]">{row.title}</span>}
+                                {row.price && <span className="text-[#111111]/90">{row.price}</span>}
+                                {row.size && <span className="text-[#111111]/70">{row.size}</span>}
+                                {row.ctaLink && row.ctaText ? (
+                                  <a href={row.ctaLink.startsWith("http") ? row.ctaLink : `https://${row.ctaLink}`} target="_blank" rel="noreferrer" className="font-medium text-[#111111] hover:underline">
+                                    {row.ctaText} →
+                                  </a>
+                                ) : row.ctaLink ? (
+                                  <a href={row.ctaLink.startsWith("http") ? row.ctaLink : `https://${row.ctaLink}`} target="_blank" rel="noreferrer" className="font-medium text-[#111111] hover:underline">
+                                    {lang === "es" ? "Ver" : "View"} →
+                                  </a>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                       <div className="mt-3 flex flex-col gap-2">
                         <button

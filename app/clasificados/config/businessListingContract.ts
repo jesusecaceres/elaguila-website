@@ -23,6 +23,8 @@ export const BUSINESS_META_KEYS = [
   "negocioHorario",
   "negocioRecorridoVirtual",
   "negocioPlusMasAnuncios",
+  "negocioDescripcion",
+  "negocioDisponibilidadPrecios",
 ] as const;
 
 export type BusinessMetaKey = (typeof BUSINESS_META_KEYS)[number];
