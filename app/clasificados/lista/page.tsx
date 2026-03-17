@@ -840,23 +840,29 @@ function applyRentasParams(list: Listing[], rp: RentasParams): Listing[] {
   });
 }
 
-/** Bienes Raíces filter params (subcategoría, price range). Seller type is global (sellerType). */
+/** Bienes Raíces filter params (subcategoría, price, beds, baths). Seller type is global (sellerType). */
 type BienesRaicesParams = {
   subcategoria: string;
   priceMin: string;
   priceMax: string;
+  beds: string;   // "" | "studio" | "1" | "2" | "3" | "4+"
+  baths: string; // "" | "1" | "2" | "3" | "4+"
 };
 
 const EMPTY_BIENES_RAICES_PARAMS: BienesRaicesParams = {
   subcategoria: "",
   priceMin: "",
   priceMax: "",
+  beds: "",
+  baths: "",
 };
 
 function applyBienesRaicesParams(list: Listing[], p: BienesRaicesParams): Listing[] {
   const subcatKey = (p.subcategoria ?? "").trim();
   const pmin = (p.priceMin ?? "").trim() ? parseNumLoose(p.priceMin) : null;
   const pmax = (p.priceMax ?? "").trim() ? parseNumLoose(p.priceMax) : null;
+  const bedsKey = (p.beds ?? "").trim();
+  const bathsKey = (p.baths ?? "").trim();
 
   return list.filter((it) => {
     if (subcatKey) {
@@ -872,6 +878,21 @@ function applyBienesRaicesParams(list: Listing[], p: BienesRaicesParams): Listin
     const price = parsePriceLabel((it as any).priceLabel?.en ?? (it as any).priceLabel?.es ?? "") ?? null;
     if (pmin != null && price != null && price < pmin) return false;
     if (pmax != null && price != null && price > pmax) return false;
+    if (bedsKey && typeof (it as any).beds === "number") {
+      const b = (it as any).beds as number;
+      if (bedsKey === "studio" && b !== 0) return false;
+      if (bedsKey === "4+" && b < 4) return false;
+      if (!["studio", "4+"].includes(bedsKey)) {
+        const n = Number(bedsKey);
+        if (Number.isFinite(n) && b !== n) return false;
+      }
+    }
+    if (bathsKey && typeof (it as any).baths === "number") {
+      const b = (it as any).baths as number;
+      if (bathsKey === "4+" && b < 4) return false;
+      const n = Number(bathsKey);
+      if (Number.isFinite(n) && b < n) return false;
+    }
     return true;
   });
 }
@@ -1989,6 +2010,8 @@ useEffect(() => {
           subcategoria: get("brSub"),
           priceMin: get("brPmin"),
           priceMax: get("brPmax"),
+          beds: get("brBeds"),
+          baths: get("brBaths"),
         });
       } else {
         setBrParams(EMPTY_BIENES_RAICES_PARAMS);
@@ -2156,6 +2179,8 @@ useEffect(() => {
         subcategoria: params?.get("brSub") ?? "",
         priceMin: params?.get("brPmin") ?? "",
         priceMax: params?.get("brPmax") ?? "",
+        beds: params?.get("brBeds") ?? "",
+        baths: params?.get("brBaths") ?? "",
       });
     } else {
       setBrParams(EMPTY_BIENES_RAICES_PARAMS);
@@ -3053,6 +3078,8 @@ const visible = useMemo(() => {
       if (brParams.subcategoria) chips.push({ key: "brSub", text: `${lang === "es" ? "Tipo" : "Type"}: ${getBienesRaicesSubcategoryLabel(brParams.subcategoria, lang)}`, clear: () => setBrParams((p) => ({ ...p, subcategoria: "" })) });
       if (brParams.priceMin) chips.push({ key: "brPmin", text: `${lang === "es" ? "Precio mín" : "Price min"}: $${brParams.priceMin}`, clear: () => setBrParams((p) => ({ ...p, priceMin: "" })) });
       if (brParams.priceMax) chips.push({ key: "brPmax", text: `${lang === "es" ? "Precio máx" : "Price max"}: $${brParams.priceMax}`, clear: () => setBrParams((p) => ({ ...p, priceMax: "" })) });
+      if (brParams.beds) chips.push({ key: "brBeds", text: `${lang === "es" ? "Recámaras" : "Beds"}: ${brParams.beds === "studio" ? (lang === "es" ? "Estudio" : "Studio") : brParams.beds}`, clear: () => setBrParams((p) => ({ ...p, beds: "" })) });
+      if (brParams.baths) chips.push({ key: "brBaths", text: `${lang === "es" ? "Baños" : "Baths"}: ${brParams.baths}`, clear: () => setBrParams((p) => ({ ...p, baths: "" })) });
     }
 
     // ✓ Clases chips (only show when in clases + has params)
@@ -3159,6 +3186,8 @@ const visible = useMemo(() => {
       brSub: category === "bienes-raices" && brParams.subcategoria ? brParams.subcategoria : null,
       brPmin: category === "bienes-raices" && brParams.priceMin ? brParams.priceMin : null,
       brPmax: category === "bienes-raices" && brParams.priceMax ? brParams.priceMax : null,
+      brBeds: category === "bienes-raices" && brParams.beds ? brParams.beds : null,
+      brBaths: category === "bienes-raices" && brParams.baths ? brParams.baths : null,
     });
   }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams, brParams]);
 
@@ -6115,6 +6144,37 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                       placeholder="—"
                       className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
                     />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Recámaras" : "Bedrooms"}</label>
+                    <select
+                      value={brParams.beds}
+                      onChange={(e) => { setBrParams((p) => ({ ...p, beds: e.target.value })); setPage(1); }}
+                      className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
+                    >
+                      <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                      <option value="studio">{lang === "es" ? "Estudio" : "Studio"}</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4+">4+</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#111111]">{lang === "es" ? "Baños" : "Bathrooms"}</label>
+                    <select
+                      value={brParams.baths}
+                      onChange={(e) => { setBrParams((p) => ({ ...p, baths: e.target.value })); setPage(1); }}
+                      className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
+                    >
+                      <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4+">4+</option>
+                    </select>
                   </div>
                 </div>
                 <div>
