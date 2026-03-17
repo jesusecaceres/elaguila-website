@@ -1223,14 +1223,22 @@ export default function AnuncioDetallePage() {
                   className={cx(
                     "mt-6 rounded-2xl border p-4 sm:p-5 lg:hidden",
                     bienesRaicesPlanTier === "business_plus"
-                      ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20"
+                      ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.10)]"
                       : "border-[#C9B46A]/45 bg-[#F5F5F5] ring-1 ring-[#C9B46A]/25"
                   )}
                   data-section="bienes-raices-business-block"
                 >
-                  <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
-                    {lang === "es" ? "Información del negocio" : "Business"}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
+                      {lang === "es" ? "Información del negocio" : "Business"}
+                    </h3>
+                    {bienesRaicesPlanTier === "business_plus" && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
+                        <span aria-hidden="true">🔑</span>
+                        {lang === "es" ? "Plus" : "Plus"}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-base font-semibold text-[#111111]">{brNegocioDisplay.name}</p>
                   {brNegocioDisplay.agent && <p className="mt-0.5 text-sm text-[#111111]/90">{brNegocioDisplay.agent}</p>}
                   {brNegocioDisplay.role && <p className="text-xs text-[#111111]/70">{brNegocioDisplay.role}</p>}
@@ -1241,7 +1249,12 @@ export default function AnuncioDetallePage() {
                   )}
                   <button
                     type="button"
-                    className="mt-3 w-full px-4 py-3 rounded-xl font-semibold bg-[#111111] text-[#F5F5F5] hover:opacity-95 text-sm"
+                    className={cx(
+                      "mt-3 w-full px-4 py-3 rounded-xl font-semibold text-sm",
+                      bienesRaicesPlanTier === "business_plus"
+                        ? "bg-[#A98C2A] text-white hover:bg-[#8f7a24]"
+                        : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                    )}
                     onClick={handleContactarVendedor}
                   >
                     {lang === "es" ? "Solicitar información" : "Request info"}
@@ -1721,14 +1734,25 @@ export default function AnuncioDetallePage() {
                     className={cx(
                       "rounded-2xl border p-5 sm:p-6",
                       railTier === "business_plus"
-                        ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-sm"
+                        ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.12)]"
                         : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
                     )}
                     data-section={listing.category === "rentas" ? "rentas-business-rail" : "bienes-raices-business-rail"}
                   >
-                    <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
-                      {lang === "es" ? "Identidad del negocio" : "Business"}
-                    </h4>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
+                        {lang === "es" ? "Identidad del negocio" : "Business"}
+                      </h4>
+                      {listing.category === "bienes-raices" && railTier === "business_plus" && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]"
+                          aria-hidden
+                        >
+                          <span aria-hidden="true">🔑</span>
+                          {lang === "es" ? "Plus" : "Plus"}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-col gap-4">
                       {(railDisplay.logoUrl || railDisplay.agentPhotoUrl) && (
                         <div className="flex items-start gap-3">
@@ -1833,14 +1857,24 @@ export default function AnuncioDetallePage() {
                       <div className="mt-3 flex flex-col gap-2">
                         <button
                           type="button"
-                          className="w-full px-4 py-3 rounded-xl font-semibold bg-[#111111] text-[#F5F5F5] hover:opacity-95 transition text-sm"
+                          className={cx(
+                            "w-full px-4 py-3 rounded-xl font-semibold transition text-sm",
+                            listing.category === "bienes-raices" && railTier === "business_plus"
+                              ? "bg-[#A98C2A] text-white hover:bg-[#8f7a24] border border-[#A98C2A]"
+                              : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                          )}
                           onClick={handleContactarVendedor}
                         >
                           {lang === "es" ? "Solicitar información" : "Request info"}
                         </button>
                         <button
                           type="button"
-                          className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8] transition text-sm"
+                          className={cx(
+                            "w-full px-4 py-3 rounded-xl font-semibold border transition text-sm",
+                            listing.category === "bienes-raices" && railTier === "business_plus"
+                              ? "border-[#A98C2A]/60 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
+                              : "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
+                          )}
                           onClick={handleContactarVendedor}
                         >
                           {lang === "es" ? "Programar visita" : "Schedule visit"}

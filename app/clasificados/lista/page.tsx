@@ -4263,16 +4263,16 @@ function BienesRaicesCard({
 
   const cardBorderStyles =
     brPlanTier === "business_plus"
-      ? "border-yellow-300/50 ring-1 ring-yellow-300/20 bg-white shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08),0_0_0_1px_rgba(250,204,21,0.12)]"
+      ? "border-yellow-300/55 ring-1 ring-yellow-300/25 bg-white shadow-[0_4px_16px_-4px_rgba(0,0,0,0.10),0_0_0_1px_rgba(250,204,21,0.15)]"
       : brPlanTier === "business_standard"
         ? "border-yellow-400/30 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)]"
         : "border-black/10 bg-[#F5F5F5]";
 
   const topBarGradient =
     brPlanTier === "business_plus"
-      ? "bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent"
+      ? "bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent h-[3px]"
       : brPlanTier === "business_standard"
-        ? "bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent"
+        ? "bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent h-[2px]"
         : "";
 
   return (
@@ -4288,7 +4288,7 @@ function BienesRaicesCard({
       {brPlanTier ? (
         <div
           aria-hidden="true"
-          className={cx("pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px]", topBarGradient)}
+          className={cx("pointer-events-none absolute inset-x-0 top-0 z-10", topBarGradient)}
         />
       ) : null}
 
@@ -4369,19 +4369,19 @@ function BienesRaicesCard({
             {brPlanTier === "business_plus" && (
               <span
                 className={cx(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap",
-                  "border-yellow-300/70 bg-yellow-500/12 text-[#111111]"
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide whitespace-nowrap",
+                  "border-yellow-300/70 bg-gradient-to-r from-yellow-500/15 to-yellow-400/10 text-[#111111]"
                 )}
                 title={lang === "es" ? "Negocio Plus" : "Business Plus"}
               >
                 <span aria-hidden="true">🔑</span>
-                {lang === "es" ? "Plus" : "Plus"}
+                {lang === "es" ? "Negocio Plus" : "Plus"}
               </span>
             )}
             {brPlanTier === "business_standard" && (
               <span
                 className="inline-flex items-center rounded-full border border-yellow-400/40 bg-[#111111]/05 px-2 py-0.5 text-[10px] font-semibold text-[#111111]/90 whitespace-nowrap"
-                title={lang === "es" ? "Perfil profesional" : "Professional profile"}
+                title={lang === "es" ? "Negocio Estándar" : "Business Standard"}
               >
                 {lang === "es" ? "Negocio" : "Business"}
               </span>
