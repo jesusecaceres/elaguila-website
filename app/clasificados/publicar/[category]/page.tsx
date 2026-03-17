@@ -751,7 +751,7 @@ export default function PublicarPage() {
   const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
 
   useEffect(() => {
-    if ((category === "en-venta" || category === "bienes-raices") && step === "details") {
+    if ((categoryFromUrl === "en-venta" || categoryFromUrl === "bienes-raices") && step === "details") {
       setStep("media");
     }
   }, [category, step]);
@@ -784,9 +784,9 @@ export default function PublicarPage() {
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
 
   /** Rentas Privado is Pro-only; no free/pro comparison. */
-  const isRentasPrivado = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
+  const isRentasPrivado = categoryFromUrl === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
   /** Bienes Raíces negocio gets premium media (12 images, 1 video) like Rentas premium. */
-  const isBienesRaicesNegocio = category === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim() === "negocio";
+  const isBienesRaicesNegocio = categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim() === "negocio";
   const effectiveIsPro = isPro || isRentasPrivado || isBienesRaicesNegocio;
   const maxImages = isRentasPrivado ? 15 : (effectiveIsPro ? 12 : 3);
 
@@ -1446,7 +1446,7 @@ export default function PublicarPage() {
     return () => { cancelled = true; };
   }, [categoryFromUrl, signedIn, userId, details.rentasBranch, searchParams]);
 
-  /** Restore only form values from draft; step is not restored (avoids random step jumps). */
+  /** Restore only form values from draft; step is not restored (avoids random step jumps). Never sync category from draft when it would differ from URL (route must be updated elsewhere first). */
   function applyDraftToForm(parsed: Partial<DraftV1>) {
     setTitle(typeof parsed.title === "string" ? parsed.title : "");
     setDescription(typeof parsed.description === "string" ? parsed.description : "");
@@ -1455,7 +1455,7 @@ export default function PublicarPage() {
     const loadedCity = typeof parsed.city === "string" ? parsed.city : "";
     setCity(loadedCity ? (normalizeCity(loadedCity) || loadedCity.trim()) : "");
     const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
-    if (draftCat) setCategory(draftCat);
+    if (draftCat && draftCat === categoryFromUrl) setCategory(draftCat);
     setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
     const method = parsed.contactMethod === "phone" || parsed.contactMethod === "email" || parsed.contactMethod === "both" ? parsed.contactMethod : "both";
     setContactMethod(method);
@@ -2122,19 +2122,19 @@ export default function PublicarPage() {
   }, [enVentaSnapshot]);
 
   const basicsOk =
-    category === "en-venta"
+    categoryFromUrl === "en-venta"
       ? requirements.enVentaMetaOk &&
         requirements.titleOk &&
         requirements.descOk &&
         requirements.priceOk &&
         requirements.cityOk
-      : category === "rentas"
+      : categoryFromUrl === "rentas"
         ? requirements.rentasMetaOk &&
           requirements.titleOk &&
           requirements.descOk &&
           requirements.priceOk &&
           requirements.cityOk
-        : category === "bienes-raices"
+        : categoryFromUrl === "bienes-raices"
           ? requirements.bienesRaicesMetaOk &&
             requirements.titleOk &&
             requirements.descOk &&
@@ -2165,7 +2165,7 @@ export default function PublicarPage() {
       {
         key: "price",
         label:
-          category === "rentas"
+          categoryFromUrl === "rentas"
             ? lang === "es"
               ? "Renta mensual"
               : "Monthly rent"
@@ -2181,7 +2181,7 @@ export default function PublicarPage() {
         ok: requirements.cityOk,
         step: "basics",
       },
-      ...(category === "en-venta"
+      ...(categoryFromUrl === "en-venta"
         ? [
             {
               key: "itemDetails" as const,
@@ -2190,7 +2190,7 @@ export default function PublicarPage() {
               step: "basics" as const,
             },
           ]
-        : category === "rentas"
+        : categoryFromUrl === "rentas"
           ? [
               {
                 key: "rentasDetails" as const,
@@ -2202,7 +2202,7 @@ export default function PublicarPage() {
                 step: "basics" as const,
               },
             ]
-          : category === "bienes-raices"
+          : categoryFromUrl === "bienes-raices"
             ? [
                 {
                   key: "bienesRaicesSubcat" as const,
@@ -2231,7 +2231,7 @@ export default function PublicarPage() {
           : [{ key: "contact", label: lang === "es" ? "Contacto válido (email)" : "Valid contact (email)", ok: requirements.emailOk, step: "media" as PublishStep }]),
     ];
     return items;
-  }, [requirements, lang, isFree, contactMethod, category, details.rentasBranch]);
+  }, [requirements, lang, isFree, contactMethod, categoryFromUrl, details.rentasBranch]);
 
   const missingRequirementsText = useMemo(() => {
     const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
@@ -2450,7 +2450,7 @@ async function publish() {
     setPublishing(true);
     try {
       // Garage Mode enforcement (Free-only, En Venta only).
-      if (!isPro && category === "en-venta" && typeof enVentaActiveCount === "number") {
+      if (!isPro && categoryFromUrl === "en-venta" && typeof enVentaActiveCount === "number") {
         const now = new Date();
         const expD = parseIsoMaybe(garageExpiresAt);
         const lastD = parseIsoMaybe(garageLastUsedAt);
@@ -2628,7 +2628,7 @@ async function publish() {
         setUploadProgress(null);
       }
       // Optimistic local count update for Free En Venta caps (keeps UI in sync without extra fetch).
-      if (!isPro && category === "en-venta" && typeof enVentaActiveCount === "number") {
+      if (!isPro && categoryFromUrl === "en-venta" && typeof enVentaActiveCount === "number") {
         setEnVentaActiveCount((prev) => (typeof prev === "number" ? prev + 1 : prev));
       }
 
@@ -3037,7 +3037,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               {copy.proPreviewViewFreeCta}
                             </button>
                             <Link
-                              href={category === "en-venta" ? `/clasificados/publicar/en-venta/pro?lang=${lang}` : `/clasificados/membresias?lang=${lang}`}
+                              href={categoryFromUrl === "en-venta" ? `/clasificados/publicar/en-venta/pro?lang=${lang}` : `/clasificados/membresias?lang=${lang}`}
                               className="flex-1 min-w-0 w-full sm:max-w-none rounded-xl font-semibold py-3.5 text-center transition bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                             >
                               {copy.proPreviewUpgradeCta}
@@ -3232,6 +3232,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             key={key}
                             type="button"
                             onClick={() => {
+                              const qs = searchParams?.toString() || `lang=${lang}`;
+                              router.replace(`/clasificados/publicar/${key}?${qs}`);
                               setCategory(key);
                               scrollCategoryActionsIntoView();
                             }}
@@ -3285,10 +3287,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         type="button"
                         disabled={!requirements.categoryOk}
                         onClick={() => {
-                          if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
-                          if (category === "rentas") {
+                          if (categoryFromUrl === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
+                          if (categoryFromUrl === "rentas") {
                             setStep("rentas-track");
-                          } else if (category === "bienes-raices") {
+                          } else if (categoryFromUrl === "bienes-raices") {
                             setStep("bienes-raices-track");
                           } else {
                             setStep("basics");
@@ -3309,7 +3311,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 )}
 
                 {/* RENTAS TRACK (step 2 for Rentas only): Privado vs Negocio + plan */}
-                {step === "rentas-track" && category === "rentas" && (
+                {step === "rentas-track" && categoryFromUrl === "rentas" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">
                       {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
@@ -3419,7 +3421,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 )}
 
                 {/* BIENES RAÍCES TRACK: Privado vs Negocio/Profesional */}
-                {step === "bienes-raices-track" && category === "bienes-raices" && (
+                {step === "bienes-raices-track" && categoryFromUrl === "bienes-raices" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">
                       {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
@@ -3610,7 +3612,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 {step === "basics" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.basicsTitle}</h2>
-                    {false && !isPro && category === "en-venta" && (
+                    {false && !isPro && categoryFromUrl === "en-venta" && (
                       <div className="mt-4 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                           <div>
@@ -3663,7 +3665,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
 
                     <div className="mt-4 grid gap-4">
-                      {category === "en-venta" ? (
+                      {categoryFromUrl === "en-venta" ? (
                         <>
                           {/* En Venta: item-selling Basics (subcategoría, artículo, condición, title, description, price, city) */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3794,7 +3796,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             {!requirements.cityOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Agrega tu ciudad." : "Add your city."}</div>}
                           </div>
                         </>
-                      ) : category === "bienes-raices" ? (
+                      ) : categoryFromUrl === "bienes-raices" ? (
                         <>
                           {/* Bienes Raíces: read-only advertiser summary (set in previous step); Cambiar goes back to bienes-raices-track */}
                           <div className="rounded-xl border border-[#C9B46A]/25 bg-[#F8F6F0]/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -3925,7 +3927,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                           )}
                         </>
-                      ) : category === "rentas" ? (
+                      ) : categoryFromUrl === "rentas" ? (
                         <>
                           <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
@@ -4409,7 +4411,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       <button
                         type="button"
                         onClick={() => {
-                          setStep(category === "rentas" ? "rentas-track" : category === "bienes-raices" ? "bienes-raices-track" : "category");
+                          setStep(categoryFromUrl === "rentas" ? "rentas-track" : categoryFromUrl === "bienes-raices" ? "bienes-raices-track" : "category");
                           requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
                         }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
@@ -4461,15 +4463,15 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-4 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
                       <div className="text-sm text-[#111111]">
                         {lang === "es" ? "Categoría:" : "Category:"}{" "}
-                        <span className="text-[#111111]/90 font-semibold">{category}</span>
+                        <span className="text-[#111111]/90 font-semibold">{categoryFromUrl}</span>
                       </div>
-                      {category === "bienes-raices" && (
+                      {categoryFromUrl === "bienes-raices" && (
                         <p className="mt-2 text-xs text-[#111111]/70">
                           {lang === "es" ? "Detalles de la propiedad para que tu anuncio destaque." : "Property details so your listing stands out."}
                         </p>
                       )}
 
-                      {getCategoryFields(category, details).length === 0 ? (
+                      {getCategoryFields(categoryFromUrl, details).length === 0 ? (
                         <div className="mt-3 text-sm text-[#111111]/55">
                           {lang === "es"
                             ? "Por ahora no hay campos extra para esta categoría."
@@ -4477,7 +4479,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         </div>
                       ) : (
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {getCategoryFields(category, details).map((f) => {
+                          {getCategoryFields(categoryFromUrl, details).map((f) => {
                             const v = details[f.key] ?? "";
                             const label = f.label[lang];
                             const placeholder = f.placeholder ? f.placeholder[lang] : undefined;
@@ -4504,7 +4506,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               );
                             }
 
-                            if (category === "bienes-raices" && f.key === "comodidades") {
+                            if (categoryFromUrl === "bienes-raices" && f.key === "comodidades") {
                               const parts = (v || "").split(/,/).map((s) => s.trim()).filter(Boolean);
                               const toggle = (opt: { es: string; en: string }) => {
                                 const token = opt[lang];
@@ -4653,13 +4655,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         videoPreviewUrls={proVideoPreviewUrls}
                         videoErrors={videoErrors}
                         proUpgradeHref={
-                          category === "en-venta"
+                          categoryFromUrl === "en-venta"
                             ? `/clasificados/publicar/en-venta/pro?lang=${lang}&return=${encodeURIComponent(
                                 `${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=media&fromPro=1`
                               )}`
                             : undefined
                         }
-                        onBeforeProNavigate={category === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
+                        onBeforeProNavigate={categoryFromUrl === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
                         maxVideos={isBienesRaicesNegocio ? 1 : (isRentasPrivado ? 1 : 2)}
                         copy={{
                           addImages: copy.addImages,
@@ -4803,7 +4805,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 {previewCategoryLabel}
                               </span>
                             ) : null}
-                            {category === "bienes-raices" && (details.bienesRaicesSubcategoria ?? "").trim() ? (
+                            {categoryFromUrl === "bienes-raices" && (details.bienesRaicesSubcategoria ?? "").trim() ? (
                               <p className="mt-2 text-xs font-medium text-[#111111]">
                                 {lang === "es" ? "Tipo de propiedad:" : "Property type:"}{" "}
                                 <span className="font-semibold">{getBienesRaicesSubcategoryLabel(details.bienesRaicesSubcategoria.trim(), lang)}</span>
