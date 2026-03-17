@@ -1983,6 +1983,16 @@ useEffect(() => {
       } else {
         setTravelParams(EMPTY_TRAVEL_PARAMS);
       }
+
+      if (cat0 === "bienes-raices") {
+        setBrParams({
+          subcategoria: get("brSub"),
+          priceMin: get("brPmin"),
+          priceMax: get("brPmax"),
+        });
+      } else {
+        setBrParams(EMPTY_BIENES_RAICES_PARAMS);
+      }
     };
 
     if (!didHydrateRef.current) {
@@ -2140,8 +2150,14 @@ useEffect(() => {
       setComunidadParams(EMPTY_COMUNIDAD_PARAMS);
     }
 
-    // ✓ Bienes Raíces params: reset when not in bienes-raices (URL sync for BR filters can be added later)
-    if (pCat !== "bienes-raices") {
+    // ✓ Bienes Raíces params: hydrate from URL when cat=bienes-raices; reset when not
+    if (pCat === "bienes-raices") {
+      setBrParams({
+        subcategoria: params?.get("brSub") ?? "",
+        priceMin: params?.get("brPmin") ?? "",
+        priceMax: params?.get("brPmax") ?? "",
+      });
+    } else {
       setBrParams(EMPTY_BIENES_RAICES_PARAMS);
     }
 
@@ -3138,8 +3154,13 @@ const visible = useMemo(() => {
 
       // ✓ Comunidad params are preserved in URL only when cat=comunidad
       gtype: category === "comunidad" && comunidadParams.gtype ? comunidadParams.gtype : null,
+
+      // ✓ Bienes Raíces params are preserved in URL only when cat=bienes-raices
+      brSub: category === "bienes-raices" && brParams.subcategoria ? brParams.subcategoria : null,
+      brPmin: category === "bienes-raices" && brParams.priceMin ? brParams.priceMin : null,
+      brPmax: category === "bienes-raices" && brParams.priceMax ? brParams.priceMax : null,
     });
-  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams]);
+  }, [lang, q, category, sort, view, radiusMi, zipMode, zipClean, city, rentasParams, autosParams, empleosParams, serviciosParams, ventaParams, clasesParams, comunidadParams, brParams]);
 
   const resetAllFilters = () => {
     setQ("");
