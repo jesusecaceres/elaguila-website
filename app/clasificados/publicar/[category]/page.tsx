@@ -329,7 +329,7 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
     { key: "recamaras", label: { es: "Recámaras", en: "Bedrooms" }, type: "number", placeholder: { es: "Ej: 3", en: "e.g. 3" } },
     { key: "banos", label: { es: "Baños", en: "Bathrooms" }, type: "number", placeholder: { es: "Ej: 2", en: "e.g. 2" } },
     { key: "piesCuadrados", label: { es: "Pies cuadrados", en: "Square feet" }, type: "text", placeholder: { es: "Ej: 1,200", en: "e.g. 1,200" } },
-    { key: "comodidades", label: { es: "Comodidades / características", en: "Amenities / features" }, type: "text", placeholder: { es: "Ej: Estacionamiento, jardín, AC", en: "e.g. Parking, garden, AC" } },
+    { key: "comodidades", label: { es: "Comodidades / características", en: "Amenities / features" }, type: "text", placeholder: { es: "Otras (opcional)", en: "Other (optional)" } },
     { key: "direccionPropiedad", label: { es: "Dirección o zona", en: "Address or area" }, type: "text", placeholder: { es: "Ej: Calle Principal 123, San José", en: "e.g. 123 Main St, San Jose" } },
   ],
   empleos: [
@@ -397,6 +397,20 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   ],
 
 };
+
+/** Common amenities for BR; click to add/remove from comodidades (comma-separated). */
+const BR_COMODIDADES_OPTIONS: Array<{ es: string; en: string }> = [
+  { es: "Estacionamiento", en: "Parking" },
+  { es: "Jardín", en: "Garden" },
+  { es: "A/C", en: "A/C" },
+  { es: "Calefacción", en: "Heating" },
+  { es: "Lavandería", en: "Laundry" },
+  { es: "Seguridad 24h", en: "24h security" },
+  { es: "Gimnasio", en: "Gym" },
+  { es: "Alberca", en: "Pool" },
+  { es: "Área de juegos", en: "Playground" },
+  { es: "Mascotas permitidas", en: "Pets allowed" },
+];
 
 function getCategoryFields(cat: string, details?: Record<string, string>): DetailField[] {
   if (cat === "rentas" && details) {
@@ -4033,8 +4047,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   />
                                 </div>
                                 <div className="sm:col-span-2 mt-4 pt-4 border-t border-black/10">
-                                  <h4 className="text-sm font-semibold text-[#111111] mb-2">{lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}</h4>
-                                  <p className="text-xs text-[#111111]/70 mb-3">{lang === "es" ? "Añade filas para unidades o precios (ej. tipo de unidad, precio, tamaño)." : "Add rows for units or prices (e.g. unit type, price, size)."}</p>
+                                  <h4 className="text-sm font-semibold text-[#111111] mb-1">{lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}</h4>
+                                  <p className="text-xs text-[#111111]/70 mb-3">
+                                    {lang === "es"
+                                      ? "Añade una fila por unidad o oferta (ej. Depa 2BR, $1,200, 950 pies²). El botón y enlace son opcionales."
+                                      : "Add one row per unit or offer (e.g. 2BR unit, $1,200, 950 sq ft). Button text and link are optional."}
+                                  </p>
                                   {(() => {
                                     type Row = { title: string; price: string; size: string; ctaText: string; ctaLink: string };
                                     let rows: Row[] = [];
@@ -4046,18 +4064,28 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     const updateRows = (next: Row[]) => setDetails((prev) => ({ ...prev, negocioDisponibilidadPrecios: JSON.stringify(next) }));
                                     return (
                                       <div className="space-y-3">
+                                        {rows.length > 0 && (
+                                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-1 text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide">
+                                            <div className="sm:col-span-3">{lang === "es" ? "Unidad / título" : "Unit / title"}</div>
+                                            <div className="sm:col-span-2">{lang === "es" ? "Precio" : "Price"}</div>
+                                            <div className="sm:col-span-2">{lang === "es" ? "Tamaño" : "Size"}</div>
+                                            <div className="sm:col-span-2">{lang === "es" ? "Texto botón" : "Button text"}</div>
+                                            <div className="sm:col-span-2">URL</div>
+                                            <div className="w-14" aria-hidden />
+                                          </div>
+                                        )}
                                         {rows.map((r, i) => (
                                           <div key={i} className="rounded-xl border border-black/10 bg-white/80 p-3 grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                                            <input value={r.title} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], title: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Unidad / título" : "Unit / title"} className="sm:col-span-3 rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                            <input value={r.price} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], price: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Precio" : "Price"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                            <input value={r.size} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], size: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Tamaño" : "Size"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                            <input value={r.ctaText} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaText: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "CTA texto" : "CTA text"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                            <input value={r.ctaLink} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaLink: e.target.value }; updateRows(n); }} placeholder="URL" className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                            <button type="button" onClick={() => updateRows(rows.filter((_, j) => j !== i))} className="rounded-lg border border-red-200 bg-red-50/80 px-2 py-2 text-xs font-medium text-red-800 hover:bg-red-100">{lang === "es" ? "Quitar" : "Remove"}</button>
+                                            <input value={r.title} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], title: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ej: Depa 2BR" : "e.g. 2BR unit"} className="sm:col-span-3 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Unidad o título" : "Unit or title"} />
+                                            <input value={r.price} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], price: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ej: $1,200" : "e.g. $1,200"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Precio" : "Price"} />
+                                            <input value={r.size} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], size: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ej: 950 pies²" : "e.g. 950 sq ft"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Tamaño" : "Size"} />
+                                            <input value={r.ctaText} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaText: e.target.value }; updateRows(n); }} placeholder={lang === "es" ? "Ver más" : "View more"} className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label={lang === "es" ? "Texto del botón (opcional)" : "Button text (optional)"} />
+                                            <input value={r.ctaLink} onChange={(e) => { const n = [...rows]; n[i] = { ...n[i], ctaLink: e.target.value }; updateRows(n); }} placeholder="https://" className="sm:col-span-2 rounded-lg border border-black/10 px-3 py-2 text-sm placeholder:text-[#111111]/40" aria-label="URL (opcional)" />
+                                            <button type="button" onClick={() => updateRows(rows.filter((_, j) => j !== i))} className="rounded-lg border border-red-200 bg-red-50/80 px-2 py-2 text-xs font-medium text-red-800 hover:bg-red-100 min-w-[4rem]" aria-label={lang === "es" ? "Quitar fila" : "Remove row"}>{lang === "es" ? "Quitar" : "Remove"}</button>
                                           </div>
                                         ))}
-                                        <button type="button" onClick={() => updateRows([...rows, { title: "", price: "", size: "", ctaText: "", ctaLink: "" }])} className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8]">
-                                          {lang === "es" ? "Agregar fila" : "Add row"}
+                                        <button type="button" onClick={() => updateRows([...rows, { title: "", price: "", size: "", ctaText: "", ctaLink: "" }])} className="w-full sm:w-auto rounded-xl border-2 border-dashed border-[#C9B46A]/50 bg-[#F8F6F0]/80 px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] hover:border-[#C9B46A]/70 transition">
+                                          {lang === "es" ? "+ Agregar fila" : "+ Add row"}
                                         </button>
                                       </div>
                                     );
@@ -4605,6 +4633,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         {lang === "es" ? "Categoría:" : "Category:"}{" "}
                         <span className="text-[#111111]/90 font-semibold">{category}</span>
                       </div>
+                      {category === "bienes-raices" && (
+                        <p className="mt-2 text-xs text-[#111111]/70">
+                          {lang === "es" ? "Detalles de la propiedad para que tu anuncio destaque." : "Property details so your listing stands out."}
+                        </p>
+                      )}
 
                       {getCategoryFields(category, details).length === 0 ? (
                         <div className="mt-3 text-sm text-[#111111]/55">
@@ -4638,6 +4671,53 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     ))}
                                   </select>
                                 </label>
+                              );
+                            }
+
+                            if (category === "bienes-raices" && f.key === "comodidades") {
+                              const parts = (v || "").split(/,/).map((s) => s.trim()).filter(Boolean);
+                              const toggle = (opt: { es: string; en: string }) => {
+                                const token = opt[lang];
+                                const has = parts.some((p) => p.toLowerCase() === token.toLowerCase());
+                                const next = has ? parts.filter((p) => p.toLowerCase() !== token.toLowerCase()) : [...parts, token];
+                                setDetails((prev) => ({ ...prev, comodidades: next.join(", ") }));
+                              };
+                              return (
+                                <div key={f.key} className="sm:col-span-2">
+                                  <div className="text-xs text-[#111111] mb-1">{label}</div>
+                                  <p className="text-[10px] text-[#111111]/60 mb-2">
+                                    {lang === "es" ? "Toca para agregar o quitar." : "Tap to add or remove."}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 mb-2">
+                                    {BR_COMODIDADES_OPTIONS.map((opt) => {
+                                      const token = opt[lang];
+                                      const selected = parts.some((p) => p.toLowerCase() === token.toLowerCase());
+                                      return (
+                                        <button
+                                          key={token}
+                                          type="button"
+                                          onClick={() => toggle(opt)}
+                                          className={cx(
+                                            "rounded-lg border px-3 py-1.5 text-xs font-medium transition",
+                                            selected
+                                              ? "border-[#C9B46A]/60 bg-[#F8F6F0] text-[#111111]"
+                                              : "border-black/15 bg-white/80 text-[#111111]/70 hover:border-black/25 hover:bg-white"
+                                          )}
+                                        >
+                                          {token}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <input
+                                    value={v}
+                                    onChange={(e) =>
+                                      setDetails((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                    }
+                                    placeholder={placeholder}
+                                    className="w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-sm text-[#111111] placeholder:text-[#111111]/30 outline-none focus:border-white/20"
+                                  />
+                                </div>
                               );
                             }
 
