@@ -687,6 +687,247 @@ function buildEnVentaDraftSnapshot(params: {
   };
 }
 
+/** Dedicated full-preview content for private bienes-raices (no ListingView). Matches mockup: Leonix shell, section nav, hero gallery, main info, private seller card, then confirm block. */
+function PrivateBrPreviewContent(props: {
+  lang: Lang;
+  previewPrice: string;
+  previewTitle: string;
+  previewCity: string;
+  details: Record<string, string>;
+  previewDetailPairs: Array<{ label: string; value: string }>;
+  images: string[];
+  sellerDisplayName: string;
+  previewPhone: string;
+  previewEmail: string;
+  formatMoneyMaybe: (raw: string, lang: Lang) => string;
+  copyRulesConfirm: string;
+  copyFullPreviewInfoConfirm: string;
+  copyFullPreviewBackToEdit: string;
+  copyFullPreviewConfirmPublish: string;
+  copyPublishing: string;
+  fullPreviewRulesConfirmed: boolean;
+  setFullPreviewRulesConfirmed: (v: boolean) => void;
+  fullPreviewInfoConfirmed: boolean;
+  setFullPreviewInfoConfirmed: (v: boolean) => void;
+  setShowRulesModal: (v: boolean) => void;
+  closeFullPreviewModal: () => void;
+  handleFullPreviewConfirmPublish: () => void;
+  publishing: boolean;
+}) {
+  const {
+    lang,
+    previewPrice,
+    previewTitle,
+    previewCity,
+    details,
+    previewDetailPairs,
+    images,
+    sellerDisplayName,
+    previewPhone,
+    previewEmail,
+    formatMoneyMaybe,
+    copyRulesConfirm,
+    copyFullPreviewInfoConfirm,
+    copyFullPreviewBackToEdit,
+    copyFullPreviewConfirmPublish,
+    copyPublishing,
+    fullPreviewRulesConfirmed,
+    setFullPreviewRulesConfirmed,
+    fullPreviewInfoConfirmed,
+    setFullPreviewInfoConfirmed,
+    setShowRulesModal,
+    closeFullPreviewModal,
+    handleFullPreviewConfirmPublish,
+    publishing,
+  } = props;
+
+  const addr = (details.enVentaAddress ?? "").trim();
+  const zone = (details.enVentaZone ?? "").trim();
+  const mainLine = addr || previewCity;
+  const br = (details.enVentaBedrooms ?? "").trim();
+  const ba = (details.enVentaBathrooms ?? "").trim();
+  const sqRaw = (details.enVentaSquareFeet ?? "").trim();
+  const sqDisplay = sqRaw && /^\d+$/.test(sqRaw.replace(/,/g, ""))
+    ? Number(sqRaw.replace(/,/g, "")).toLocaleString(lang === "es" ? "es-US" : "en-US")
+    : sqRaw;
+  const quickFacts = [
+    br && { label: lang === "es" ? "Recámaras" : "Bedrooms", value: br },
+    ba && { label: lang === "es" ? "Baños" : "Bathrooms", value: ba },
+    sqRaw && { label: lang === "es" ? "Pies²" : "Sq ft", value: sqDisplay },
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+  const featureLabels = [/piscina|pool/i, /lavander[ií]a|laundry/i, /estacionamiento|parking|garage/i, /jard[ií]n|garden/i];
+  const featureTags = previewDetailPairs
+    .filter((p) => featureLabels.some((re) => re.test(p.label ?? "")) && (p.value ?? "").trim() && !(p.value ?? "").trim().startsWith("http"))
+    .map((p) => (p.label ?? "").trim())
+    .slice(0, 6);
+  const primaryImage = images[0];
+  const restImages = images.slice(1, 4);
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      {/* A. Leonix shell */}
+      <header className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] overflow-hidden mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <span className="text-base font-bold text-[#111111]">{lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}</span>
+          <div className="flex-1 min-w-0 max-w-xs mx-auto">
+            <div className="rounded-lg border border-[#C9B46A]/30 bg-white/90 px-3 py-2 text-sm text-[#111111]/50">
+              {lang === "es" ? "Buscar anuncios…" : "Search listings…"}
+            </div>
+          </div>
+          <span className="rounded-lg bg-[#2D5016] text-white px-3 py-2 text-sm font-semibold">{lang === "es" ? "Publicar" : "Post"}</span>
+        </div>
+      </header>
+      {/* B. Section nav */}
+      <nav className="flex flex-wrap gap-2 mb-6" aria-label={lang === "es" ? "Secciones" : "Sections"}>
+        {[
+          { id: "resumen", es: "Resumen", en: "Summary" },
+          { id: "interior", es: "Interior", en: "Interior" },
+          { id: "exterior", es: "Exterior", en: "Exterior" },
+          { id: "detalles", es: "Detalles", en: "Details" },
+          { id: "ubicacion", es: "Ubicación", en: "Location" },
+          { id: "contacto", es: "Contacto", en: "Contact" },
+        ].map(({ id, es, en }) => (
+          <span key={id} className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0]/80 px-2.5 py-1.5 text-xs font-medium text-[#111111]/90">
+            {lang === "es" ? es : en}
+          </span>
+        ))}
+      </nav>
+      {/* C + D + E: grid hero+info | seller card */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 space-y-4">
+          {/* C. Hero gallery */}
+          <div id="resumen">
+            {primaryImage ? (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
+                <div className="md:col-span-8 rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[180px]">
+                  <img src={primaryImage} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="md:col-span-4 flex flex-col gap-2">
+                  {restImages.slice(0, 3).map((url, i) => (
+                    <div key={i} className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[70px]">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  {restImages.length === 0 && <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[70px]" aria-hidden />}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[16/10] flex items-center justify-center">
+                <span className="text-[#111111]/50 text-sm">{lang === "es" ? "Sin imagen" : "No image"}</span>
+              </div>
+            )}
+          </div>
+          {/* D. Main info */}
+          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-4">
+            <div className="text-2xl font-extrabold text-[#111111]">
+              {formatMoneyMaybe(previewPrice, lang) || previewPrice}
+            </div>
+            <h2 className="mt-2 text-xl font-bold text-[#111111] leading-tight">{previewTitle}</h2>
+            {mainLine && <p className="mt-2 text-sm text-[#111111]/85 font-medium">{mainLine}</p>}
+            {zone && <p className="mt-0.5 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}</p>}
+            {quickFacts.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {quickFacts.map((f) => (
+                  <span key={f.label} className="rounded-full border border-[#C9B46A]/35 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                    {f.label}: {f.value}
+                  </span>
+                ))}
+              </div>
+            )}
+            {featureTags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {featureTags.map((tag, i) => (
+                  <span key={i} className="rounded-lg border border-[#C9B46A]/25 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* E. Right private seller card */}
+        <div className="lg:col-span-4">
+          <div id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-4 shadow-sm">
+            <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+              {lang === "es" ? "Contactar" : "Contact"}
+            </h4>
+            <p className="text-base font-semibold text-[#111111]">
+              {sellerDisplayName || (lang === "es" ? "Propietario" : "Owner")}
+            </p>
+            {previewPhone && (
+              <p className="mt-2 text-sm text-[#111111]">
+                <a href={`tel:${previewPhone.replace(/\D/g, "")}`} className="font-medium hover:underline">{previewPhone}</a>
+              </p>
+            )}
+            {previewEmail && (
+              <p className="mt-1 text-sm text-[#111111]">
+                <a href={`mailto:${previewEmail}`} className="font-medium hover:underline break-all">{previewEmail}</a>
+              </p>
+            )}
+            <div className="mt-4 flex flex-col gap-2">
+              <button type="button" className="w-full rounded-xl bg-[#2D5016] text-white px-4 py-3 text-sm font-semibold hover:bg-[#244012] transition">
+                {lang === "es" ? "Solicitar información" : "Request info"}
+              </button>
+              <button type="button" className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] px-4 py-3 text-sm font-semibold hover:bg-[#EFE7D8] transition">
+                {lang === "es" ? "Programar visita" : "Schedule visit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Confirm block */}
+      <div className="mt-10 pt-8 border-t border-black/10 max-w-2xl space-y-3">
+        <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+          <input
+            type="checkbox"
+            checked={fullPreviewRulesConfirmed}
+            onChange={(e) => setFullPreviewRulesConfirmed(e.target.checked)}
+            className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+          />
+          <span>
+            {copyRulesConfirm}
+            {" "}
+            <button type="button" onClick={() => setShowRulesModal(true)} className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium">
+              {lang === "es" ? "Ver reglas" : "View rules"}
+            </button>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+          <input
+            type="checkbox"
+            checked={fullPreviewInfoConfirmed}
+            onChange={(e) => setFullPreviewInfoConfirmed(e.target.checked)}
+            className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+          />
+          <span>{copyFullPreviewInfoConfirm}</span>
+        </label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            type="button"
+            onClick={closeFullPreviewModal}
+            className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+          >
+            {copyFullPreviewBackToEdit}
+          </button>
+          <button
+            type="button"
+            onClick={handleFullPreviewConfirmPublish}
+            disabled={!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed || publishing}
+            className={cx(
+              "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+              fullPreviewRulesConfirmed && fullPreviewInfoConfirmed && !publishing
+                ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
+            )}
+          >
+            {publishing ? copyPublishing : copyFullPreviewConfirmPublish}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PublicarPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -3289,68 +3530,32 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         </div>
                       </>
                     ) : isBienesRaicesPrivado ? (
-                      <>
-                        <ListingView
-                          listing={fullPreviewListingData}
-                          previewMode={true}
-                          previewProUpgrade={false}
-                          proHighlight={null}
-                          onProBenefitClick={undefined}
-                          hideProComparisonUI={true}
-                        />
-                        <div className="mt-10 pt-8 border-t border-black/10 max-w-2xl mx-auto space-y-3">
-                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
-                            <input
-                              type="checkbox"
-                              checked={fullPreviewRulesConfirmed}
-                              onChange={(e) => setFullPreviewRulesConfirmed(e.target.checked)}
-                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
-                            />
-                            <span>
-                              {copy.rulesConfirm}
-                              {" "}
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setShowRulesModal(true); }}
-                                className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
-                              >
-                                {lang === "es" ? "Ver reglas" : "View rules"}
-                              </button>
-                            </span>
-                          </label>
-                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
-                            <input
-                              type="checkbox"
-                              checked={fullPreviewInfoConfirmed}
-                              onChange={(e) => setFullPreviewInfoConfirmed(e.target.checked)}
-                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
-                            />
-                            <span>{copy.fullPreviewInfoConfirm}</span>
-                          </label>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <button
-                              type="button"
-                              onClick={closeFullPreviewModal}
-                              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
-                            >
-                              {copy.fullPreviewBackToEdit}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleFullPreviewConfirmPublish}
-                              disabled={!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed || publishing}
-                              className={cx(
-                                "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
-                                fullPreviewRulesConfirmed && fullPreviewInfoConfirmed && !publishing
-                                  ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
-                                  : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
-                              )}
-                            >
-                              {publishing ? copy.publishing : copy.fullPreviewConfirmPublish}
-                            </button>
-                          </div>
-                        </div>
-                      </>
+                      <PrivateBrPreviewContent
+                        lang={lang}
+                        previewPrice={previewPrice}
+                        previewTitle={previewTitle}
+                        previewCity={previewCity}
+                        details={details}
+                        previewDetailPairs={previewDetailPairs}
+                        images={enVentaSnapshot.images ?? []}
+                        sellerDisplayName={sellerDisplayName}
+                        previewPhone={previewPhone}
+                        previewEmail={previewEmail}
+                        formatMoneyMaybe={formatMoneyMaybe}
+                        copyRulesConfirm={copy.rulesConfirm}
+                        copyFullPreviewInfoConfirm={copy.fullPreviewInfoConfirm}
+                        copyFullPreviewBackToEdit={copy.fullPreviewBackToEdit}
+                        copyFullPreviewConfirmPublish={copy.fullPreviewConfirmPublish}
+                        copyPublishing={copy.publishing}
+                        fullPreviewRulesConfirmed={fullPreviewRulesConfirmed}
+                        setFullPreviewRulesConfirmed={setFullPreviewRulesConfirmed}
+                        fullPreviewInfoConfirmed={fullPreviewInfoConfirmed}
+                        setFullPreviewInfoConfirmed={setFullPreviewInfoConfirmed}
+                        setShowRulesModal={setShowRulesModal}
+                        closeFullPreviewModal={closeFullPreviewModal}
+                        handleFullPreviewConfirmPublish={handleFullPreviewConfirmPublish}
+                        publishing={publishing}
+                      />
                     ) : (
                       <ListingView
                         listing={fullPreviewListingData}
