@@ -76,8 +76,10 @@ import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
   getRentasDetailFields,
-  RENTAS_NEGOCIO_TIER_OPTIONS,
 } from "../../config/rentasTaxonomy";
+
+/** Rentas Negocio: price per post (30 days). Replace with final price. */
+const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
@@ -546,14 +548,7 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
       if (negocioNombre) {
         out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
       }
-      const rentasTier = (details.rentasTier ?? "").trim();
-      if (rentasTier) {
-        const tierOpt = RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === rentasTier);
-        out.push({
-          label: lang === "es" ? "Plan" : "Plan",
-          value: tierOpt ? (lang === "es" ? tierOpt.label.es : tierOpt.label.en) : rentasTier,
-        });
-      }
+      out.push({ label: lang === "es" ? "Plan" : "Plan", value: lang === "es" ? "Negocio" : "Business" });
       const negocioAgente = (details.negocioAgente ?? "").trim();
       if (negocioAgente) {
         out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
@@ -2748,7 +2743,7 @@ async function publish() {
         insertPayload.seller_type = rentasBranch === "negocio" ? "business" : "personal";
         if (isRentasNegocio) {
           const tier = (snap.details.rentasTier ?? "").trim();
-          insertPayload.rentas_tier = tier === "business_plus" ? "plus" : "standard";
+          insertPayload.rentas_tier = (tier === "business_plus" || tier === "negocio") ? "plus" : "standard";
           insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
           const businessMeta: Record<string, string> = {};
           for (const k of BUSINESS_META_KEYS) {
@@ -2981,7 +2976,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
 
-  // Open in-page full preview modal. Rentas Privado / BR negocio Plus: single Pro-style preview. BR negocio Standard: Standard look. Others: free/pro.
+  // Open in-page full preview modal. Rentas Privado / BR negocio: Pro-style preview. Others: free/pro.
   const openFullPreview = () => {
     if (isRentasPrivado) {
       setFullPreviewVariant("pro");
@@ -3001,7 +2996,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     }
   };
 
-  // Open same preview in Pro/Plus mode (same data; Pro badge or Plus styling). Used for En Venta Pro comparison and BR negocio "See Plus".
+  // Open same preview in Pro mode (same data; Pro badge styling). Used for En Venta Pro comparison.
   const openProPreview = () => {
     setFullPreviewVariant("pro");
     setFullPreviewRulesConfirmed(false);
@@ -3555,7 +3550,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
                       <button
                         type="button"
-                        onClick={() => setDetails((prev) => ({ ...prev, rentasBranch: "negocio" }))}
+                        onClick={() => {
+                          setDetails((prev) => ({ ...prev, rentasBranch: "negocio", rentasTier: "negocio" }));
+                          goToStep("basics");
+                        }}
                         className={cx(
                           "rounded-2xl border p-5 text-left transition-all",
                           "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
@@ -3572,45 +3570,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             ? "Ideal para agentes, brokers, administradores de propiedades, oficinas o compañías con presencia comercial."
                             : "Ideal for agents, brokers, property managers, offices, or companies with a commercial presence."}
                         </p>
+                        <p className="mt-2 text-sm font-semibold text-[#111111]">
+                          {RENTAS_NEGOCIO_PRICE_PER_POST} {lang === "es" ? "por anuncio" : "per post"} · {lang === "es" ? "30 días" : "30 days"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#111111]/70">
+                          {lang === "es" ? "Cada propiedad se cobra por separado." : "Each property billed separately."}
+                        </p>
                       </button>
                     </div>
-
-                    {details.rentasBranch === "negocio" && (
-                      <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-4">
-                        <p className="text-sm font-semibold text-[#111111] mb-3">
-                          {lang === "es" ? "Elige plan de negocio" : "Choose business plan"}
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          {RENTAS_NEGOCIO_TIER_OPTIONS.map((o) => (
-                            <button
-                              key={o.value}
-                              type="button"
-                              onClick={() => {
-                                setDetails((prev) => ({ ...prev, rentasTier: o.value }));
-                                goToStep("basics");
-                              }}
-                              className={cx(
-                                "rounded-xl border px-4 py-3 text-sm font-semibold text-left transition",
-                                details.rentasTier === o.value
-                                  ? "border-[#C9B46A]/60 bg-[#F5F5F5] text-[#111111]"
-                                  : "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5]"
-                              )}
-                            >
-                              {lang === "es" ? o.label.es : o.label.en}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="mt-3 text-xs text-[#111111]/70">
-                          {lang === "es"
-                            ? "Standard: 1 anuncio incluido. Plus: 3 anuncios y 2 impulsos incluidos."
-                            : "Standard: 1 listing included. Plus: 3 listings and 2 boosts included."}
-                          {" "}
-                          <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
-                            {lang === "es" ? "Ver planes" : "View plans"}
-                          </Link>
-                        </p>
-                      </div>
-                    )}
 
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
@@ -4409,10 +4376,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </p>
                               <p className="mt-1 text-sm font-medium text-[#111111]">
                                 {details.rentasBranch === "negocio"
-                                  ? (lang === "es" ? "Negocio" : "Business") +
-                                    (details.rentasTier
-                                      ? " — " + (RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === details.rentasTier)?.label[lang] ?? details.rentasTier)
-                                      : "")
+                                  ? (lang === "es" ? "Negocio" : "Business")
                                   : (lang === "es" ? "Privado" : "Private")}
                               </p>
                               <button
@@ -4716,7 +4680,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                                 />
                               </div>
-                              {((details.rentasTier ?? "").trim() === "business_plus" || (details.bienesRaicesBranch ?? "").trim() === "negocio") && (
+                              {((details.rentasTier ?? "").trim() === "business_plus" || (details.rentasTier ?? "").trim() === "negocio" || (details.bienesRaicesBranch ?? "").trim() === "negocio") && (
                                 <div className="sm:col-span-2">
                                   <label className="flex items-center gap-2 text-sm text-[#111111]">
                                     <input
