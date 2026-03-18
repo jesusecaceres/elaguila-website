@@ -5169,8 +5169,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     </div>
                                   )}
                                 </div>
-                                <div className="p-3">
-                                  <div className="rounded-lg bg-[#F8F6F0]/70 px-2.5 py-1.5">
+                                <div className="p-4">
+                                  <div className="rounded-lg bg-[#F8F6F0]/70 px-2.5 py-2 mb-3">
                                     <div className="text-lg font-extrabold text-[#111111] leading-tight tracking-tight">
                                       {formatMoneyMaybe(previewPrice, lang) || formatListingPrice(previewPrice, { lang, isFree: false })}
                                     </div>
@@ -5188,10 +5188,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     if (sq) parts.push({ num: sq, label: lang === "es" ? "pies²" : "sq ft" });
                                     parts.push("posted");
                                     return parts.length > 0 ? (
-                                      <p className="mt-2 text-[11px] text-[#111111]/80 flex flex-wrap items-baseline gap-x-0.5">
+                                      <p className="py-1 text-[11px] text-[#111111]/80 leading-relaxed flex flex-wrap items-baseline gap-x-1 gap-y-1">
                                         {parts.map((p, i) => (
                                           <span key={i} className="inline-flex items-baseline">
-                                            {i > 0 && <span className="text-[#111111]/40 mx-0.5" aria-hidden>·</span>}
+                                            {i > 0 && <span className="text-[#111111]/40 mx-0.5 select-none" aria-hidden>·</span>}
                                             {p === "posted" ? (
                                               <span className="text-[#111111]/75">{previewPosted}</span>
                                             ) : (
@@ -5202,7 +5202,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       </p>
                                     ) : null;
                                   })()}
-                                  <p className="mt-1.5 text-[11px] font-medium text-[#111111]/85">{previewCity}</p>
+                                  <p className="mt-2.5 text-[11px] font-medium text-[#111111]/65">{previewCity}</p>
                                 </div>
                               </article>
                             </div>
