@@ -5171,7 +5171,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   )}
                                 </div>
                                 <div className="p-4">
-                                  <div className="rounded-lg bg-[#F8F6F0]/70 px-2.5 py-2.5 mb-4">
+                                  <div className="rounded-lg bg-[#F8F6F0]/70 pl-0 pr-2.5 py-2.5 mb-4">
                                     <div className="text-lg font-extrabold text-[#111111] leading-tight tracking-tight">
                                       {formatMoneyMaybe(previewPrice, lang) || formatListingPrice(previewPrice, { lang, isFree: false })}
                                     </div>
@@ -5215,10 +5215,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     const addr = (details.enVentaAddress ?? "").trim();
                                     const zone = (details.enVentaZone ?? "").trim();
                                     const city = previewCity;
-                                    const mainLine = addr ? (city ? `${addr}, ${city}` : addr) : (zone ? `${zone}, ${city}` : city);
+                                    const mainLine = addr ? addr : (zone ? `${zone}, ${city}` : city);
                                     if (!mainLine) return null;
                                     return (
-                                      <div className="mt-3 space-y-0.5">
+                                      <div className="mt-1.5 space-y-0.5">
                                         <p className="text-[11px] font-medium text-[#111111]/70 leading-snug">{mainLine}</p>
                                         {zone ? (
                                           <p className="text-[10px] text-[#111111]/55 leading-snug">
