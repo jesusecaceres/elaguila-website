@@ -566,12 +566,30 @@ export default function AnuncioDetallePage() {
     return list.slice(0, 6);
   }, [listing, bienesRaicesBusinessMeta?.negocioPlusMasAnuncios]);
 
-  /** Quick facts strip for Bienes Raíces (from detailPairs / detail_pairs: tipo, recámaras, baños, etc.). */
+  /** Quick facts strip for Bienes Raíces. Excludes URL values (video/tour) so mobile summary stays clean; use badges for those. */
   const bienesRaicesFacts = useMemo((): Array<{ label: string; value: string }> => {
     if (!listing || listing.category !== "bienes-raices") return [];
     const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    return Array.isArray(pairs) ? pairs : [];
+    if (!Array.isArray(pairs)) return [];
+    return pairs.filter((p) => {
+      const v = (p.value ?? "").trim();
+      if (v.startsWith("http://") || v.startsWith("https://")) return false;
+      return true;
+    });
   }, [listing]);
+
+  /** BR: virtual tour URL for badge (Negocio from rail; Privado from details/detail_pairs). */
+  const brVirtualTourUrl = useMemo((): string | null => {
+    if (!listing || listing.category !== "bienes-raices") return null;
+    const fromRail = brNegocioDisplay?.virtualTourUrl?.trim();
+    if (fromRail) return fromRail;
+    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
+    if (Array.isArray(pairs)) {
+      const tour = pairs.find((p) => /tour|recorrido|virtual/i.test(p.label ?? "") && /^https?:\/\//i.test((p.value ?? "").trim()));
+      return tour?.value?.trim() || null;
+    }
+    return null;
+  }, [listing, brNegocioDisplay?.virtualTourUrl]);
 
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
   const [viewCount, setViewCount] = useState<number | null>(null);
@@ -1190,6 +1208,25 @@ export default function AnuncioDetallePage() {
                   ))}
                 </div>
               )}
+              {listing.category === "bienes-raices" && (proVideoInfos.length > 0 || brVirtualTourUrl) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {proVideoInfos.length > 0 && (
+                    <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                      {lang === "es" ? "Video disponible" : "Video available"}
+                    </span>
+                  )}
+                  {brVirtualTourUrl && (
+                    <a
+                      href={brVirtualTourUrl.startsWith("http") ? brVirtualTourUrl : `https://${brVirtualTourUrl}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFE7D8]"
+                    >
+                      {lang === "es" ? "Tour virtual" : "Virtual tour"}
+                    </a>
+                  )}
+                </div>
+              )}
 
               {listing.category === "rentas" && rentasRentalFacts.length > 0 && (
                 <div className={cx(
@@ -1295,22 +1332,9 @@ export default function AnuncioDetallePage() {
                   <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
                     {lang === "es" ? "Quién publica" : "Posted by"}
                   </h3>
-                  {rentasPlanTier === "business_plus" && (
+                  {(rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard") && (listing.sellerType === "business" || (listing as any).seller_type === "business") && (
                     <div className="mb-3 flex items-center gap-2">
-                      <span
-                        className={cx(
-                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-                          "border-yellow-300/80 bg-gradient-to-r from-yellow-500/18 to-yellow-300/14 text-yellow-100"
-                        )}
-                      >
-                        <span aria-hidden="true">🔑</span>
-                        {lang === "es" ? "Negocio Plus" : "Business Plus"}
-                      </span>
-                    </div>
-                  )}
-                  {rentasPlanTier === "business_standard" && (listing.sellerType === "business" || (listing as any).seller_type === "business") && (
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-yellow-400/40 bg-[#111111]/05 px-2.5 py-1 text-[11px] font-semibold text-[#111111]/90">
+                      <span className="inline-flex items-center rounded-full border border-yellow-400/50 bg-[#F5F5F5] px-2.5 py-1 text-[11px] font-semibold text-[#111111]/90">
                         {lang === "es" ? "Negocio" : "Business"}
                       </span>
                     </div>
@@ -1322,13 +1346,9 @@ export default function AnuncioDetallePage() {
                         {(listing as any).businessName ?? (listing as any).business_name ? ` — ${(listing as any).businessName ?? (listing as any).business_name}` : ""}
                       </p>
                       <p className="mt-1.5 text-xs text-[#111111]/80">
-                        {rentasPlanTier === "business_plus"
-                          ? (lang === "es"
-                            ? "Anuncio profesional con presencia Plus: mayor visibilidad e identidad de negocio."
-                            : "Professional listing with Plus presence: stronger visibility and business identity.")
-                          : (lang === "es"
-                            ? "Anuncio profesional con identidad de negocio."
-                            : "Professional listing with business identity.")}
+                        {lang === "es"
+                          ? "Anuncio profesional con identidad de negocio."
+                          : "Professional listing with business identity."}
                       </p>
                     </>
                   ) : (
@@ -1740,16 +1760,7 @@ export default function AnuncioDetallePage() {
                       <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
                         {lang === "es" ? "Identidad del negocio" : "Business"}
                       </h4>
-                      {/* No Plus badge for BR — single Negocio lane. Rentas can keep tier badge. */}
-                      {listing.category === "rentas" && railTier === "business_plus" && (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]"
-                          aria-hidden
-                        >
-                          <span aria-hidden="true">🔑</span>
-                          {lang === "es" ? "Plus" : "Plus"}
-                        </span>
-                      )}
+                      {/* No Plus/Standard badges — single Negocio lane for BR and Rentas. */}
                     </div>
                     <div className="flex flex-col gap-4">
                       {(railDisplay.logoUrl || railDisplay.agentPhotoUrl) && (

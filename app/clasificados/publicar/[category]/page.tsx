@@ -78,8 +78,14 @@ import {
   getRentasDetailFields,
 } from "../../config/rentasTaxonomy";
 
-/** Rentas Negocio: price per post (30 days). Replace with final price. */
+/** Rentas Negocio: price per post (30 days). Single source of truth. */
 const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
+
+/** BR Privado: price per post. */
+const BR_PRIVADO_PRICE_PER_POST = "$49.99";
+/** BR Negocio: weekly or monthly. */
+const BR_NEGOCIO_PRICE_WEEKLY = "$89.99";
+const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
@@ -1694,10 +1700,11 @@ export default function PublicarPage() {
             return;
           }
           applyDraftPayloadFromDb(payload);
-          syncDraftIdInUrl(draftId);
           const restoredStep = (categoryFromUrl === "bienes-raices" && payload.step === "details")
             ? "media"
             : (payload.step && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(payload.step as PublishStep) && stepsForCategory.includes(payload.step as PublishStep)) ? (payload.step as PublishStep) : "basics";
+          setStep(restoredStep);
+          syncDraftIdInUrl(draftId);
           const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
           const branchOpt = (brBranch === "privado" || brBranch === "negocio") ? { branch: brBranch as "privado" | "negocio" } : undefined;
           syncStepInUrl(restoredStep, branchOpt);
@@ -1760,9 +1767,17 @@ export default function PublicarPage() {
     if (userId) clearStoredDraftId(userId);
     resetFormToEmpty();
     setShowDraftRestoreModal(false);
-    setStep("category");
     syncDraftIdInUrl(null);
-    syncStepInUrl("category");
+    if (categoryFromUrl === "rentas") {
+      setStep("rentas-track");
+      syncStepInUrl("rentas-track");
+    } else if (categoryFromUrl === "bienes-raices") {
+      setStep("bienes-raices-track");
+      syncStepInUrl("bienes-raices-track");
+    } else {
+      setStep("category");
+      syncStepInUrl("category");
+    }
   }
 
   async function handleDeleteCurrentDraft() {
@@ -3636,7 +3651,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             : "Selling my own property as an individual."}
                         </p>
                         <p className="mt-2 text-sm font-semibold text-[#111111]">
-                          {lang === "es" ? "$49.99 por anuncio" : "$49.99 per post"}
+                          {BR_PRIVADO_PRICE_PER_POST} {lang === "es" ? "por anuncio" : "per post"}
                         </p>
                       </button>
 
@@ -3663,7 +3678,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             : "Agents, brokers, offices, developers, or commercial real estate."}
                         </p>
                         <p className="mt-2 text-sm font-semibold text-[#111111]">
-                          {lang === "es" ? "$89.99/semana o $329.99/mes" : "$89.99/week or $329.99/month"}
+                          {lang === "es" ? `${BR_NEGOCIO_PRICE_WEEKLY}/semana o ${BR_NEGOCIO_PRICE_MONTHLY}/mes` : `${BR_NEGOCIO_PRICE_WEEKLY}/week or ${BR_NEGOCIO_PRICE_MONTHLY}/month`}
                         </p>
                       </button>
                     </div>

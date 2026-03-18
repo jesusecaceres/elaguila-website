@@ -475,13 +475,7 @@ export default function ListingView({
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
                 {lang === "es" ? "Identidad del negocio" : "Business"}
               </h4>
-              {/* No Plus badge for BR — single Negocio lane. Rentas can keep tier badge if needed. */}
-              {!isBienesRaices && listing.category === "rentas" && listing.businessRailTier === "business_plus" && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]" aria-hidden>
-                  <span aria-hidden>🔑</span>
-                  {lang === "es" ? "Plus" : "Plus"}
-                </span>
-              )}
+              {/* No Plus/Standard badges — single Negocio lane for BR and Rentas. */}
             </div>
             <div className="flex flex-col gap-4">
               {(listing.businessRail.logoUrl || listing.businessRail.agentPhotoUrl) && (
