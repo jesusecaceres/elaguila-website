@@ -690,6 +690,7 @@ function buildEnVentaDraftSnapshot(params: {
 /** Dedicated full-preview content for private bienes-raices (no ListingView). Uses raw form fields; only shows placeholders when field is truly blank. */
 function PrivateBrPreviewContent(props: {
   lang: Lang;
+  description: string;
   rawPrice: string;
   rawTitle: string;
   rawCity: string;
@@ -716,6 +717,7 @@ function PrivateBrPreviewContent(props: {
 }) {
   const {
     lang,
+    description,
     rawPrice,
     rawTitle,
     rawCity,
@@ -744,6 +746,7 @@ function PrivateBrPreviewContent(props: {
   const confirmSectionRef = useRef<HTMLDivElement>(null);
   const [heroStartIndex, setHeroStartIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxZoomIndex, setLightboxZoomIndex] = useState<number | null>(null);
   const n = images.length;
   const canCycle = n > 3;
   const maxStart = Math.max(0, n - 3);
@@ -942,6 +945,118 @@ function PrivateBrPreviewContent(props: {
         </div>
       </div>
       </div>
+      {/* Bottom: Descripción + Detalles de la propiedad (private BR only) */}
+      <div className="mt-8 space-y-8 max-w-2xl">
+        <section>
+          <h3 className="text-lg font-bold text-[#111111] mb-3 border-b border-[#C9B46A]/25 pb-2">
+            {lang === "es" ? "Descripción" : "About this property"}
+          </h3>
+          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5 text-[#111111] leading-relaxed whitespace-pre-wrap">
+            {(description ?? "").trim() ? description.trim() : (lang === "es" ? "Sin descripción." : "No description.")}
+          </div>
+        </section>
+        <section>
+          <h3 className="text-lg font-bold text-[#111111] mb-3 border-b border-[#C9B46A]/25 pb-2">
+            {lang === "es" ? "Detalles de la propiedad" : "Property details"}
+          </h3>
+          <div className="space-y-5">
+            {(() => {
+              const interiorRows: Array<{ label: string; value: string }> = [];
+              const brVal = (details.enVentaBedrooms ?? "").trim();
+              if (brVal) interiorRows.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: brVal });
+              const baVal = (details.enVentaBathrooms ?? "").trim();
+              if (baVal) interiorRows.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: baVal });
+              const sqVal = (details.enVentaSquareFeet ?? "").trim();
+              if (sqVal) interiorRows.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sqVal });
+              const lvVal = (details.enVentaLevels ?? "").trim();
+              if (lvVal) interiorRows.push({ label: lang === "es" ? "Niveles" : "Levels", value: lvVal });
+              const exteriorRows: Array<{ label: string; value: string }> = [];
+              const lotVal = (details.enVentaLotSize ?? "").trim();
+              if (lotVal) exteriorRows.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
+              const pkVal = (details.enVentaParkingSpaces ?? "").trim();
+              if (pkVal) exteriorRows.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pkVal });
+              const zoneVal = (details.enVentaZone ?? "").trim();
+              if (zoneVal) exteriorRows.push({ label: lang === "es" ? "Vecindad" : "Neighborhood", value: zoneVal });
+              const extraRows: Array<{ label: string; value: string }> = [];
+              const ptVal = (details.enVentaPropertyType ?? "").trim();
+              if (ptVal) extraRows.push({ label: lang === "es" ? "Tipo de propiedad" : "Property type", value: ptVal });
+              const stVal = (details.enVentaPropertySubtype ?? "").trim();
+              if (stVal) extraRows.push({ label: lang === "es" ? "Subtipo" : "Subtype", value: stVal });
+              const ybVal = (details.enVentaYearBuilt ?? "").trim();
+              if (ybVal) extraRows.push({ label: lang === "es" ? "Año de construcción" : "Year built", value: ybVal });
+              const utilVal = (details.enVentaUtilitiesForProperty ?? "").trim();
+              if (utilVal) extraRows.push({ label: lang === "es" ? "Servicios disponibles" : "Utilities", value: utilVal });
+              const zonVal = (details.enVentaZoning ?? "").trim();
+              if (zonVal) extraRows.push({ label: lang === "es" ? "Zonificación" : "Zoning", value: zonVal });
+              const multiRows: Array<{ label: string; value: string }> = [];
+              const vtVal = (details.enVentaVirtualTourUrl ?? "").trim();
+              if (vtVal) multiRows.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: vtVal });
+              const vUrlVal = (details.enVentaVideoUrl ?? "").trim();
+              if (vUrlVal) multiRows.push({ label: lang === "es" ? "Video" : "Video", value: vUrlVal });
+              const hasAny = interiorRows.length > 0 || exteriorRows.length > 0 || extraRows.length > 0 || multiRows.length > 0;
+              if (!hasAny) return <p className="text-sm text-[#111111]/70">{lang === "es" ? "Sin detalles adicionales." : "No additional details."}</p>;
+              return (
+                <>
+                  {interiorRows.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Interior" : "Interior"}</h4>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {interiorRows.map((r) => (
+                          <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
+                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                            <dd className="text-sm font-medium text-[#111111]">{r.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+                  {exteriorRows.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Exterior / Terreno" : "Exterior / Lot"}</h4>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {exteriorRows.map((r) => (
+                          <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
+                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                            <dd className="text-sm font-medium text-[#111111]">{r.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+                  {extraRows.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Información adicional" : "Additional info"}</h4>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {extraRows.map((r) => (
+                          <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
+                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                            <dd className="text-sm font-medium text-[#111111] break-all">{r.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+                  {multiRows.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Multimedia" : "Multimedia"}</h4>
+                      <dl className="grid grid-cols-1 gap-2">
+                        {multiRows.map((r) => (
+                          <div key={r.label} className="rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
+                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                            <dd className="text-sm font-medium text-[#111111] mt-0.5 break-all">
+                              <a href={r.value} target="_blank" rel="noopener noreferrer" className="text-[#A98C2A] hover:underline">{r.value}</a>
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </section>
+      </div>
       {/* Lightbox: all photos inside preview modal */}
       {lightboxOpen && n > 0 && (
         <div
@@ -949,24 +1064,71 @@ function PrivateBrPreviewContent(props: {
           role="dialog"
           aria-modal="true"
           aria-label={lang === "es" ? "Galería de fotos" : "Photo gallery"}
-          onClick={() => setLightboxOpen(false)}
+          onClick={() => { setLightboxZoomIndex(null); setLightboxOpen(false); }}
         >
           <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 z-10 rounded-full bg-white/90 text-[#111111] w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-white"
-            aria-label={lang === "es" ? "Cerrar" : "Close"}
-          >
-            ×
-          </button>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl w-full">
-            {images.map((url, i) => (
-              <div key={i} className="rounded-lg overflow-hidden bg-[#222] aspect-square">
-                <img src={url} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => { setLightboxZoomIndex(null); setLightboxOpen(false); }}
+              className="absolute top-4 right-4 z-10 rounded-full bg-white/90 text-[#111111] w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-white"
+              aria-label={lang === "es" ? "Cerrar" : "Close"}
+            >
+              ×
+            </button>
+            {lightboxZoomIndex !== null ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative w-full max-h-[85vh] flex items-center justify-center bg-black/40 rounded-xl overflow-hidden">
+                  <img
+                    src={images[lightboxZoomIndex]}
+                    alt=""
+                    className="max-w-full max-h-[80vh] w-auto h-auto object-contain"
+                  />
+                  {n > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setLightboxZoomIndex((prev) => (prev === 0 ? n - 1 : (prev ?? 0) - 1)); }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-2xl font-bold"
+                        aria-label={lang === "es" ? "Anterior" : "Previous"}
+                      >
+                        ←
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setLightboxZoomIndex((prev) => ((prev ?? 0) + 1) % n); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-2xl font-bold"
+                        aria-label={lang === "es" ? "Siguiente" : "Next"}
+                      >
+                        →
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="text-sm text-white/90">
+                  {lightboxZoomIndex + 1} {lang === "es" ? "de" : "of"} {n}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLightboxZoomIndex(null)}
+                  className="rounded-lg bg-white/90 text-[#111111] px-4 py-2 text-sm font-medium hover:bg-white"
+                >
+                  {lang === "es" ? "Ver todas" : "View all"}
+                </button>
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl w-full">
+                {images.map((url, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setLightboxZoomIndex(i)}
+                    className="rounded-lg overflow-hidden bg-[#222] aspect-square focus:ring-2 ring-white/50"
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -3627,6 +3789,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     ) : isBienesRaicesPrivado ? (
                       <PrivateBrPreviewContent
                         lang={lang}
+                        description={enVentaSnapshot.description ?? ""}
                         rawPrice={price}
                         rawTitle={title}
                         rawCity={city}
@@ -4379,6 +4542,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           {/* Shared optional fields for all BR (Privado and Negocio) */}
                           <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                             <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Datos opcionales de la propiedad" : "Optional property info"}</h4>
+                            {(details.bienesRaicesBranch ?? "").trim().toLowerCase() === "privado" && (
+                              <p className="text-[11px] text-[#111111]/65">{lang === "es" ? "Todos opcionales. Completa solo lo que conozcas." : "All optional. Fill in only what you know."}</p>
+                            )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div className="sm:col-span-2">
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad" : "Property video"}</label>
@@ -4450,6 +4616,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                           ) : (() => {
                             const pt = (details.enVentaPropertyType ?? "").trim();
+                            const hideBrPrivateTechnical = (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "privado";
                             if (isBrPrivadoResidential(pt)) {
                               return (
                                 <>
@@ -4499,6 +4666,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       </div>
                                     </div>
                                   </div>
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Sistemas y equipamiento" : "Systems & equipment"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4524,6 +4692,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       </div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Acabados e interior" : "Finishes & interior"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4540,6 +4710,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       </div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Estacionamiento y acceso" : "Parking & access"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4553,6 +4725,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.enVentaAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior y terreno" : "Exterior & lot"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4563,6 +4737,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción y legal" : "Construction & legal"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4574,6 +4750,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4582,6 +4760,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
                                 </>
                               );
                             }
@@ -4653,6 +4832,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela / APN" : "Parcel / APN"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción" : "Construction"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4662,6 +4842,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4670,6 +4852,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior / acceso" : "Exterior / access"}</h4>
                                     <div className="grid grid-cols-1 gap-3">
@@ -4701,6 +4884,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción" : "Construction"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4710,6 +4894,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
+                                  {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4718,6 +4904,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
+                                  )}
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior" : "Exterior"}</h4>
                                     <div className="grid grid-cols-1 gap-3">
