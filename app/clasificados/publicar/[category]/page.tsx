@@ -907,7 +907,8 @@ function PrivateBrPreviewContent(props: {
       <div className="rounded-2xl border border-[#C9B46A]/15 bg-[#F8F4EE] shadow-sm p-4 sm:p-6 min-h-[60vh] space-y-6 sm:space-y-5">
         {/* A. Header: brand + Publicar (no search) */}
         <header className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/25 bg-white/80 px-4 py-2 text-base font-bold text-[#111111] shadow-sm">
+          <span className="inline-flex items-center gap-2 rounded-xl border border-[#C9B46A]/45 bg-gradient-to-b from-[#FDFBF7] to-[#F8F4EE] px-5 py-2.5 text-base font-extrabold tracking-tight text-[#1a1510] shadow-sm">
+            <span className="h-5 w-0.5 rounded-full bg-[#C9B46A]/70" aria-hidden />
             {lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}
           </span>
           <button
@@ -1299,8 +1300,8 @@ function PrivateBrPreviewContent(props: {
           </div>
         </div>
       )}
-      {/* Contact chooser: desktop-friendly (Gmail, Yahoo, Copy) + phone options */}
-      {contactSheet && (hasPhone || hasEmail) && (() => {
+      {/* Contact chooser: always open when either CTA is clicked; show options when phone/email exist */}
+      {contactSheet && (() => {
         const msg = contactSheet === "solicitar" ? msgSolicitar : msgVisita;
         const emailAddr = (previewEmail ?? "").trim();
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailAddr)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(msg)}`;
@@ -1335,6 +1336,11 @@ function PrivateBrPreviewContent(props: {
                   ? (lang === "es" ? "Solicitar información" : "Request info")
                   : (lang === "es" ? "Programar visita" : "Schedule visit")}
               </p>
+              {!(hasPhone || hasEmail) ? (
+                <p className="text-sm text-[#111111]/80">
+                  {lang === "es" ? "Añade tu teléfono o correo en el formulario para que los compradores puedan contactarte." : "Add your phone or email in the form so buyers can contact you."}
+                </p>
+              ) : null}
               {hasEmail && (
                 <div>
                   <p className="text-xs font-medium text-[#111111]/70 mb-2">{lang === "es" ? "Email" : "Email"}</p>
@@ -3728,6 +3734,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
   const previewPhone = enVentaSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(enVentaSnapshot.contactPhone);
   const previewEmail = enVentaSnapshot.contactMethod === "phone" ? "" : enVentaSnapshot.contactEmail;
   const previewDetailPairs = enVentaSnapshot.detailPairs;
+  const compactBrPrivateDetailPairs = useMemo(() => {
+    if (categoryFromUrl !== "bienes-raices" || !isBienesRaicesPrivado || !previewDetailPairs.length) return [];
+    const order = lang === "es"
+      ? ["Tipo de propiedad", "Dirección", "Recámaras", "Baños", "Pies²"]
+      : ["Property type", "Address", "Bedrooms", "Bathrooms", "Sq ft"];
+    const byLabel = new Map(previewDetailPairs.map((p) => [p.label, p]));
+    return order.map((label) => byLabel.get(label)).filter(Boolean) as Array<{ label: string; value: string }>;
+  }, [categoryFromUrl, isBienesRaicesPrivado, previewDetailPairs, lang]);
   const previewCategoryLabel = enVentaSnapshot.category ? categoryConfig[enVentaSnapshot.category as CategoryKey]?.label[lang] ?? "" : "";
   const previewContactMethod = enVentaSnapshot.contactMethod;
   const coverImage = enVentaSnapshot.images[0] ?? null;
@@ -6185,7 +6199,38 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </span>
                             </div>
 
-                            {previewDetailPairs.length > 0 && (
+                            {previewDetailPairs.length > 0 && (categoryFromUrl === "bienes-raices" && isBienesRaicesPrivado ? (
+                              <>
+                                {compactBrPrivateDetailPairs.length > 0 && (
+                                  <div className="mt-3 rounded-lg border border-black/10 bg-white p-3 sm:hidden space-y-2.5">
+                                    <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide">
+                                      {lang === "es" ? "Resumen" : "Summary"}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                      {compactBrPrivateDetailPairs.map((p) => (
+                                        <div key={p.label} className="flex flex-col gap-0.5">
+                                          <span className="text-[10px] text-[#111111]/55">{p.label}</span>
+                                          <span className="text-xs font-medium text-[#111111]">{p.value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5 hidden sm:block">
+                                  <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
+                                    {lang === "es" ? "Detalles" : "Details"}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                                    {previewDetailPairs.map((p) => (
+                                      <div key={p.label}>
+                                        <span className="text-[#111111]/55">{p.label}</span>
+                                        <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
                               <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
                                 <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
                                   {lang === "es" ? "Detalles" : "Details"}
@@ -6199,7 +6244,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   ))}
                                 </div>
                               </div>
-                            )}
+                            ))}
 
                             <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
                               <p className="text-xs text-[#111111] line-clamp-3 whitespace-pre-wrap">
