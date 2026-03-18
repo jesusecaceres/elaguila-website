@@ -755,11 +755,15 @@ function PrivateBrPreviewContent(props: {
     ba && { label: lang === "es" ? "Baños" : "Bathrooms", value: ba },
     sqRaw && { label: lang === "es" ? "Pies²" : "Sq ft", value: sqDisplay },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
-  const featureLabels = [/piscina|pool/i, /lavander[ií]a|laundry/i, /estacionamiento|parking|garage/i, /jard[ií]n|garden/i];
-  const featureTags = previewDetailPairs
-    .filter((p) => featureLabels.some((re) => re.test(p.label ?? "")) && (p.value ?? "").trim() && !(p.value ?? "").trim().startsWith("http"))
-    .map((p) => (p.label ?? "").trim())
-    .slice(0, 6);
+  const featureTagsFromDetails: Array<{ label: string; value: string }> = [];
+  const zoneVal = (details.enVentaZone ?? "").trim();
+  if (zoneVal) featureTagsFromDetails.push({ label: lang === "es" ? "Vecindad" : "Neighborhood", value: zoneVal });
+  const parkingVal = (details.enVentaParkingSpaces ?? "").trim();
+  if (parkingVal) featureTagsFromDetails.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: parkingVal });
+  const lotVal = (details.enVentaLotSize ?? "").trim();
+  if (lotVal) featureTagsFromDetails.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
+  const levelsVal = (details.enVentaLevels ?? "").trim();
+  if (levelsVal) featureTagsFromDetails.push({ label: lang === "es" ? "Niveles" : "Levels", value: levelsVal });
   const primaryImage = images[0];
   const restImages = images.slice(1, 3);
   const hasPrice = rawPrice.trim() !== "" && /[\d]/.test(rawPrice.replace(/,/g, ""));
@@ -845,11 +849,11 @@ function PrivateBrPreviewContent(props: {
                 ))}
               </div>
             )}
-            {featureTags.length > 0 && (
+            {featureTagsFromDetails.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {featureTags.map((tag, i) => (
+                {featureTagsFromDetails.map((item, i) => (
                   <span key={i} className="rounded-lg border border-[#C9B46A]/25 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90">
-                    {tag}
+                    {item.label}: {item.value}
                   </span>
                 ))}
               </div>
@@ -1218,12 +1222,12 @@ export default function PublicarPage() {
   const effectiveIsPro = isPro || isRentasPrivado || isBienesRaicesNegocio;
   const maxImages = isRentasPrivado ? 15 : (categoryFromUrl === "bienes-raices" ? 12 : (effectiveIsPro ? 12 : 3));
 
-  // If plan changes to Free, trim images to Free limit (3). Rentas Privado keeps Pro limits.
+  // If plan changes to Free, trim images to Free limit (3). Rentas Privado and private BR keep higher limits.
   useEffect(() => {
-    if (!effectiveIsPro && images.length > 3) {
+    if (!effectiveIsPro && !isBienesRaicesPrivado && images.length > 3) {
       setImages((prev) => prev.slice(0, 3));
     }
-  }, [effectiveIsPro, images.length]);
+  }, [effectiveIsPro, isBienesRaicesPrivado, images.length]);
 
   const proVideoThumbPreviewUrls: [string, string] = useMemo(() => {
     const out: [string, string] = ["", ""];
