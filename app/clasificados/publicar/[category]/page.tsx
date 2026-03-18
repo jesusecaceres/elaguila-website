@@ -737,6 +737,42 @@ export default function PublicarPage() {
     [router, pathname, searchParams, categoryFromUrl]
   );
 
+  const [step, setStep] = useState<PublishStep>(() => {
+    const cat = categoryFromUrl || "en-venta";
+    const steps: PublishStep[] = cat === "en-venta" ? ["category", "basics", "media"] : cat === "rentas" ? ["category", "rentas-track", "basics", "details", "media"] : cat === "bienes-raices" ? ["category", "bienes-raices-track", "basics", "details", "media"] : ["category", "basics", "details", "media"];
+    const s = searchParams?.get("step")?.trim();
+    if (s && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(s as PublishStep) && steps.includes(s as PublishStep)) return s as PublishStep;
+    return "category";
+  });
+  const [category, setCategory] = useState<CategoryKey | "">(() => categoryFromUrl);
+
+  /** Full step order for current category (includes details for BR and Rentas). Used for Back and URL sync. */
+  const stepsForCategory = useMemo((): PublishStep[] => {
+    const cat = categoryFromUrl || "en-venta";
+    if (cat === "en-venta") return ["category", "basics", "media"];
+    if (cat === "rentas") return ["category", "rentas-track", "basics", "details", "media"];
+    if (cat === "bienes-raices") return ["category", "bienes-raices-track", "basics", "details", "media"];
+    return ["category", "basics", "details", "media"];
+  }, [categoryFromUrl]);
+
+  /** Previous logical step for in-app Back. Returns null only when already at category. */
+  const getPreviousStep = useCallback((): PublishStep | null => {
+    const idx = stepsForCategory.indexOf(step);
+    if (idx <= 0) return null;
+    return stepsForCategory[idx - 1];
+  }, [stepsForCategory, step]);
+
+  /** Sync step into URL query (preserves lang, draftId, etc.). Browser Back will change URL; we read step from URL in effect. */
+  const syncStepInUrl = useCallback(
+    (newStep: PublishStep) => {
+      const p = new URLSearchParams(searchParams?.toString() ?? "");
+      p.set("step", newStep);
+      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
+      router.replace(`${path}?${p.toString()}`);
+    },
+    [router, pathname, searchParams, categoryFromUrl]
+  );
+
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [userId, setUserId] = useState<string>("");
@@ -763,9 +799,6 @@ export default function PublicarPage() {
   const [expandedVideoIndex, setExpandedVideoIndex] = useState<0 | 1 | null>(null);
   const [previewViewed, setPreviewViewed] = useState(false);
 
-  const [step, setStep] = useState<PublishStep>("category");
-  const [category, setCategory] = useState<CategoryKey | "">(() => categoryFromUrl);
-
   useEffect(() => {
     setCategory(categoryFromUrl);
   }, [categoryFromUrl]);
@@ -782,10 +815,22 @@ export default function PublicarPage() {
     if (searchParams?.get("fromPreview") === "1") setPreviewViewed(true);
   }, [searchParams]);
 
+  // Derive step from URL when it changes (initial load and browser Back/Forward). Keeps app step and URL in sync.
+  const stepsForCategoryRef = useRef(stepsForCategory);
+  stepsForCategoryRef.current = stepsForCategory;
   useEffect(() => {
-    const s = searchParams?.get("step");
-    if (s === "media") setStep("media");
+    const urlStep = searchParams?.get("step")?.trim();
+    if (!urlStep || !VALID_STEPS.includes(urlStep as PublishStep)) return;
+    const steps = stepsForCategoryRef.current;
+    if (!steps.includes(urlStep as PublishStep)) return;
+    setStep(urlStep as PublishStep);
   }, [searchParams]);
+
+  // When step changes in-app, push step to URL so browser Back reflects the flow.
+  useEffect(() => {
+    if (searchParams?.get("step") === step) return;
+    syncStepInUrl(step);
+  }, [step, searchParams, syncStepInUrl]);
 
   type ServicesPackage = "" | "standard" | "plus";
   const [servicesPackage, setServicesPackage] = useState<ServicesPackage>("");
@@ -979,6 +1024,15 @@ export default function PublicarPage() {
 
     window.scrollTo({ top: 0, behavior });
   }
+
+  /** Navigate to a step (URL sync happens via effect); scrolls form to top. Use for all in-app step changes. */
+  const goToStep = useCallback(
+    (newStep: PublishStep) => {
+      setStep(newStep);
+      requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+    },
+    []
+  );
 
   function scrollCategoryActionsIntoView() {
     if (typeof window === "undefined") return;
@@ -1562,8 +1616,10 @@ export default function PublicarPage() {
             router.replace(`/clasificados/publicar/${draftCat}?${p.toString()}`);
             return;
           }
-          applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
+          applyDraftPayloadFromDb(payload);
           syncDraftIdInUrl(draftId);
+          const restoredStep = (payload.step && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(payload.step as PublishStep) && stepsForCategory.includes(payload.step as PublishStep)) ? (payload.step as PublishStep) : "basics";
+          syncStepInUrl(restoredStep);
           setRecoveredDraftMessage(lang === "es" ? "Progreso guardado recuperado." : "Recovered saved progress.");
           return;
         }
@@ -1581,6 +1637,7 @@ export default function PublicarPage() {
       }
       applyDraftToForm(parsed);
       setStep("basics");
+      syncStepInUrl("basics");
       try {
         const imgRaw = sessionStorage.getItem(draftKey + "_images");
         if (imgRaw) {
@@ -1616,7 +1673,9 @@ export default function PublicarPage() {
     if (userId) clearStoredDraftId(userId);
     resetFormToEmpty();
     setShowDraftRestoreModal(false);
+    setStep("category");
     syncDraftIdInUrl(null);
+    syncStepInUrl("category");
   }
 
   async function handleDeleteCurrentDraft() {
@@ -1633,7 +1692,9 @@ export default function PublicarPage() {
     clearAllClassifiedsDrafts({ draftKey, userId });
     resetFormToEmpty();
     setShowDraftRestoreModal(false);
+    setStep("category");
     syncDraftIdInUrl(null);
+    syncStepInUrl("category");
   }
 
   // Restore images from sessionStorage when returning from preview (prevents form reset)
@@ -3358,14 +3419,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         disabled={!requirements.categoryOk}
                         onClick={() => {
                           if (categoryFromUrl === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
-                          if (categoryFromUrl === "rentas") {
-                            setStep("rentas-track");
-                          } else if (categoryFromUrl === "bienes-raices") {
-                            setStep("bienes-raices-track");
-                          } else {
-                            setStep("basics");
-                          }
-                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                          if (categoryFromUrl === "rentas") goToStep("rentas-track");
+                          else if (categoryFromUrl === "bienes-raices") goToStep("bienes-raices-track");
+                          else goToStep("basics");
                         }}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
@@ -3397,8 +3453,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         type="button"
                         onClick={() => {
                           setDetails((prev) => ({ ...prev, rentasBranch: "privado", rentasTier: "" }));
-                          setStep("basics");
-                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                          goToStep("basics");
                         }}
                         className={cx(
                           "rounded-2xl border p-5 text-left transition-all",
@@ -3452,8 +3507,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               type="button"
                               onClick={() => {
                                 setDetails((prev) => ({ ...prev, rentasTier: o.value }));
-                                setStep("basics");
-                                requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                                goToStep("basics");
                               }}
                               className={cx(
                                 "rounded-xl border px-4 py-3 text-sm font-semibold text-left transition",
@@ -3481,7 +3535,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { setStep("category"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -3507,8 +3561,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         type="button"
                         onClick={() => {
                           setDetails((prev) => ({ ...prev, bienesRaicesBranch: "privado", rentasTier: "" }));
-                          setStep("basics");
-                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                          goToStep("basics");
                         }}
                         className={cx(
                           "rounded-2xl border p-5 text-left transition-all",
@@ -3566,8 +3619,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             type="button"
                             onClick={() => {
                               setDetails((prev) => ({ ...prev, rentasTier: "business_standard" }));
-                              setStep("basics");
-                              requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                              goToStep("basics");
                             }}
                             className={cx(
                               "rounded-2xl border p-5 text-left transition-all",
@@ -3610,8 +3662,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             type="button"
                             onClick={() => {
                               setDetails((prev) => ({ ...prev, rentasTier: "business_plus" }));
-                              setStep("basics");
-                              requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                              goToStep("basics");
                             }}
                             className={cx(
                               "rounded-2xl border p-5 text-left transition-all",
@@ -3669,7 +3720,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { setStep("category"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -3887,7 +3938,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                             <button
                               type="button"
-                              onClick={() => { setStep("bienes-raices-track"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                              onClick={() => goToStep("bienes-raices-track")}
                               className="text-sm font-semibold text-[#111111]/80 hover:text-[#111111] underline"
                             >
                               {lang === "es" ? "Cambiar" : "Change"}
@@ -4396,7 +4447,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </p>
                               <button
                                 type="button"
-                                onClick={() => { setStep("rentas-track"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                                onClick={() => goToStep("rentas-track")}
                                 className="mt-1 text-xs text-[#111111]/70 hover:underline"
                               >
                                 {lang === "es" ? "Cambiar" : "Change"}
@@ -4813,10 +4864,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => {
-                          setStep(categoryFromUrl === "rentas" ? "rentas-track" : categoryFromUrl === "bienes-raices" ? "bienes-raices-track" : "category");
-                          requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
-                        }}
+                        onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -4839,7 +4887,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       <button
                         type="button"
                         disabled={!basicsOk}
-                        onClick={() => { if (basicsOk) { setStep(isEnVentaFlow ? "media" : "details"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); } }}
+                        onClick={() => { if (basicsOk) goToStep(isEnVentaFlow ? "media" : "details"); }}
                         className={cx(
                           "rounded-xl font-semibold px-5 py-3",
                           basicsOk
@@ -4995,7 +5043,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
 <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } setStep("basics"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } const prev = getPreviousStep(); if (prev) goToStep(prev); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -5017,7 +5065,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setStep("media"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                        onClick={() => goToStep("media")}
                         className="rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3"
                       >
                         {copy.next}
@@ -5414,7 +5462,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => { setStep(isEnVentaFlow ? "basics" : "details"); requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto"))); }}
+                          onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
                           className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                         >
                           {copy.back}
@@ -5523,8 +5571,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                   onClick={() => {
                     setServicesPackage("standard");
                     setShowServicesGate(false);
-                    setStep("basics");
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                    goToStep("basics");
                   }}
                   className="rounded-2xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] p-4 text-left"
                 >
@@ -5542,8 +5589,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                   onClick={() => {
                     setServicesPackage("plus");
                     setShowServicesGate(false);
-                    setStep("basics");
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+                    goToStep("basics");
                   }}
                   className="rounded-2xl border border-[#A98C2A]/60 bg-[#F2EFE8] hover:bg-[#EFE7D8] p-4 text-left"
                 >
