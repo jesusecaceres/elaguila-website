@@ -1024,6 +1024,8 @@ export default function PublicarPage() {
   const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dbSaveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDbSaveRef = useRef<ReturnType<typeof setTimeout> | number | null>(null);
+  /** When true, session gate must NOT redirect to login (preview is open; keep user on publish flow). */
+  const fullPreviewModalOpenRef = useRef<boolean>(false);
   const sessionGateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -1156,6 +1158,13 @@ export default function PublicarPage() {
     const loginUrl = () => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(redirectForLogin)}`;
 
     const clearTimeoutAndRedirectToLogin = () => {
+      if (fullPreviewModalOpenRef.current) {
+        if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
+          console.log("[publish session gate] skip redirect: preview modal is open");
+        }
+        return;
+      }
       if (sessionGateTimeoutRef.current) {
         clearTimeout(sessionGateTimeoutRef.current);
         sessionGateTimeoutRef.current = null;
@@ -1183,6 +1192,13 @@ export default function PublicarPage() {
         }
 
         if (!data.user) {
+          if (fullPreviewModalOpenRef.current) {
+            if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+              // eslint-disable-next-line no-console
+              console.log("[publish session gate] skip redirect (no user): preview modal is open");
+            }
+            return;
+          }
           setChecking(false);
           router.replace(loginUrl());
           return;
@@ -1193,6 +1209,13 @@ export default function PublicarPage() {
         const profileCityCanonical = normalizeCity((meta.city || meta.location || "").toString().trim());
         const profileCompleteForPost = profilePhoneDigits.length === 10 && Boolean(profileCityCanonical);
         if (!profileCompleteForPost) {
+          if (fullPreviewModalOpenRef.current) {
+            if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+              // eslint-disable-next-line no-console
+              console.log("[publish session gate] skip redirect (profile): preview modal is open");
+            }
+            return;
+          }
           setChecking(false);
           const perfilUrl = `/dashboard/perfil?lang=${lang}&require=post&redirect=${encodeURIComponent(redirectForLogin)}`;
           router.replace(perfilUrl);
@@ -1223,6 +1246,13 @@ export default function PublicarPage() {
         setChecking(false);
       } catch {
         if (!mounted) return;
+        if (fullPreviewModalOpenRef.current) {
+          if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+            // eslint-disable-next-line no-console
+            console.log("[publish session gate] skip redirect (catch): preview modal is open");
+          }
+          return;
+        }
         if (sessionGateTimeoutRef.current) {
           clearTimeout(sessionGateTimeoutRef.current);
           sessionGateTimeoutRef.current = null;
@@ -3005,8 +3035,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
     return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
 
-  // Open in-page full preview modal. Rentas Privado / BR negocio / BR privado: single full preview. Others: free/pro.
-  const openFullPreview = () => {
+  // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
+  const openFullPreview = useCallback(() => {
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
+      console.log("[publish preview] openFullPreview called", { isBienesRaicesPrivado, draftId, step });
+    }
+    if (userId && typeof performDbSave === "function") {
+      void performDbSave();
+    }
+    fullPreviewModalOpenRef.current = true;
     if (isRentasPrivado) {
       setFullPreviewVariant("pro");
       setFullPreviewRulesConfirmed(false);
@@ -3028,7 +3066,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       setFullPreviewInfoConfirmed(false);
       setShowFullPreviewModal(true);
     }
-  };
+  }, [isRentasPrivado, isBienesRaicesNegocio, isBienesRaicesPrivado, userId, performDbSave, draftId, step]);
 
   // Open same preview in Pro mode (same data; Pro badge styling). Used for En Venta Pro comparison.
   const openProPreview = () => {
@@ -3038,10 +3076,15 @@ for (let vi = 0; vi < videoLimit; vi++) {
     setShowFullPreviewModal(true);
   };
 
-  const closeFullPreviewModal = () => {
+  const closeFullPreviewModal = useCallback(() => {
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
+      console.log("[publish preview] closeFullPreviewModal called");
+    }
+    fullPreviewModalOpenRef.current = false;
     setShowFullPreviewModal(false);
     setProHighlightId(null);
-  };
+  }, []);
 
   const handleFullPreviewConfirmPublish = () => {
     if (!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed) return;
@@ -5419,7 +5462,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               ) : isBienesRaicesPrivado ? (
                                 <button
                                   type="button"
-                                  onClick={openFullPreview}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openFullPreview();
+                                  }}
                                   className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                                 >
                                   {(copy as { viewYourListingCta?: string }).viewYourListingCta ?? (lang === "es" ? "Ver tu anuncio" : "View your listing")}
