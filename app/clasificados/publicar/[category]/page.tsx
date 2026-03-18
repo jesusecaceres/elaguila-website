@@ -5170,7 +5170,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   )}
                                 </div>
                                 <div className="p-4">
-                                  <div className="rounded-lg bg-[#F8F6F0]/70 px-2.5 py-2 mb-3">
+                                  <div className="rounded-lg bg-[#F8F6F0]/70 px-2.5 py-2.5 mb-4">
                                     <div className="text-lg font-extrabold text-[#111111] leading-tight tracking-tight">
                                       {formatMoneyMaybe(previewPrice, lang) || formatListingPrice(previewPrice, { lang, isFree: false })}
                                     </div>
@@ -5181,28 +5181,46 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     const br = (d.enVentaBedrooms ?? "").trim();
                                     if (br) parts.push({ num: br, label: lang === "es" ? "rec" : "bed" });
                                     const ba = (d.enVentaBathrooms ?? "").trim();
-                                    const hb = (d.enVentaHalfBathrooms ?? "").trim();
                                     if (ba) parts.push({ num: ba, label: lang === "es" ? "ba" : "ba" });
-                                    if (hb) parts.push({ num: hb, label: lang === "es" ? "medio baño" : "half ba" });
-                                    const sq = (d.enVentaSquareFeet ?? "").trim();
-                                    if (sq) parts.push({ num: sq, label: lang === "es" ? "pies²" : "sq ft" });
+                                    const sqRaw = (d.enVentaSquareFeet ?? "").trim();
+                                    if (sqRaw) {
+                                      const sqNum = sqRaw.replace(/[^0-9]/g, "");
+                                      const sqDisplay = sqNum && Number.isFinite(Number(sqNum)) ? Number(sqNum).toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
+                                      parts.push({ num: sqDisplay, label: lang === "es" ? "pies²" : "sq ft" });
+                                    }
                                     parts.push("posted");
                                     return parts.length > 0 ? (
-                                      <p className="py-1 text-[11px] text-[#111111]/80 leading-relaxed flex flex-wrap items-baseline gap-x-1 gap-y-1">
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 py-1.5 text-[11px] leading-relaxed">
                                         {parts.map((p, i) => (
-                                          <span key={i} className="inline-flex items-baseline">
-                                            {i > 0 && <span className="text-[#111111]/40 mx-0.5 select-none" aria-hidden>·</span>}
+                                          <span key={i} className="inline-flex items-center gap-0.5">
+                                            {i > 0 && <span className="text-[#111111]/35 select-none" aria-hidden>·</span>}
                                             {p === "posted" ? (
-                                              <span className="text-[#111111]/75">{previewPosted}</span>
+                                              <span className="text-[#111111]/70">{previewPosted}</span>
                                             ) : (
-                                              <><span className="font-bold text-[#111111]">{p.num}</span> {p.label}</>
+                                              <><span className="font-bold text-[#111111]">{p.num}</span><span className="text-[#111111]/75">{p.label}</span></>
                                             )}
                                           </span>
                                         ))}
-                                      </p>
+                                      </div>
                                     ) : null;
                                   })()}
-                                  <p className="mt-2.5 text-[11px] font-medium text-[#111111]/65">{previewCity}</p>
+                                  {(() => {
+                                    const addr = (details.enVentaAddress ?? "").trim();
+                                    const zone = (details.enVentaZone ?? "").trim();
+                                    const city = previewCity;
+                                    const mainLine = addr ? (city ? `${addr}, ${city}` : addr) : (zone ? `${zone}, ${city}` : city);
+                                    if (!mainLine) return null;
+                                    return (
+                                      <div className="mt-3 space-y-0.5">
+                                        <p className="text-[11px] font-medium text-[#111111]/70 leading-snug">{mainLine}</p>
+                                        {zone ? (
+                                          <p className="text-[10px] text-[#111111]/55 leading-snug">
+                                            {lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </article>
                             </div>
