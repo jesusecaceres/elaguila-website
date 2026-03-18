@@ -5155,32 +5155,76 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         </div>
 
                         <div className="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
-                          {/* Left: compact feed card */}
-                          <div className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm max-w-[280px] lg:max-w-none">
-                            <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
-                            <div className="relative rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] h-48 flex items-center justify-center">
-                              {coverImage ? (
-                                <img src={coverImage} alt="" className="max-h-full max-w-full w-full object-contain" />
-                              ) : (
-                                <div className="flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center h-full">
-                                  {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
+                          {/* Left: compact feed card — Zillow-style for BR private only */}
+                          {categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio" ? (
+                            <div className="max-w-[280px] lg:max-w-none">
+                              <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
+                              <article className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm">
+                                <div className="relative h-32 w-full overflow-hidden bg-[#E8E8E8] flex items-center justify-center">
+                                  {coverImage ? (
+                                    <img src={coverImage} alt="" className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="flex items-center justify-center text-[#111111]/45 text-xs px-2 text-center">
+                                      {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                              <span className="absolute top-1.5 right-1.5 rounded-full border border-black/10 bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-[#111111]">
-                                {copy.saveLabel}
-                              </span>
+                                <div className="p-2.5">
+                                  <div className="text-base font-bold text-[#111111] leading-tight">
+                                    {formatListingPrice(previewPrice, { lang, isFree: false })}
+                                  </div>
+                                  {(() => {
+                                    const d = details;
+                                    const parts: string[] = [];
+                                    const br = (d.enVentaBedrooms ?? "").trim();
+                                    if (br) parts.push(lang === "es" ? `${br} rec` : `${br} bed`);
+                                    const ba = (d.enVentaBathrooms ?? "").trim();
+                                    const hb = (d.enVentaHalfBathrooms ?? "").trim();
+                                    if (ba) parts.push(lang === "es" ? `${ba} ba` : `${ba} ba`);
+                                    if (hb) parts.push(lang === "es" ? `${hb} medio baño` : `${hb} half ba`);
+                                    const sq = (d.enVentaSquareFeet ?? "").trim();
+                                    if (sq) parts.push(lang === "es" ? `${sq} pies²` : `${sq} sq ft`);
+                                    parts.push(previewPosted);
+                                    return parts.length > 0 ? (
+                                      <p className="mt-1 text-[11px] text-[#111111]/70">
+                                        {parts.join(" · ")}
+                                      </p>
+                                    ) : null;
+                                  })()}
+                                  <p className="mt-1 text-[11px] text-[#111111]/80">{previewCity}</p>
+                                  {previewShortDescription ? (
+                                    <p className="mt-1 text-[11px] text-[#111111]/75 line-clamp-2 leading-snug">{previewShortDescription}</p>
+                                  ) : null}
+                                </div>
+                              </article>
                             </div>
-                            <div className="p-2">
-                              <div className="text-sm font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaSnapshot.isFree })}</div>
-                              <h3 className="mt-0.5 text-xs font-semibold text-[#111111] line-clamp-2 leading-tight">{previewTitle}</h3>
-                              <div className="mt-0.5 text-[10px] text-[#111111]/55">
-                                {previewCity} · {previewPosted}
+                          ) : (
+                            <div className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm max-w-[280px] lg:max-w-none">
+                              <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
+                              <div className="relative rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] h-48 flex items-center justify-center">
+                                {coverImage ? (
+                                  <img src={coverImage} alt="" className="max-h-full max-w-full w-full object-contain" />
+                                ) : (
+                                  <div className="flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center h-full">
+                                    {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
+                                  </div>
+                                )}
+                                <span className="absolute top-1.5 right-1.5 rounded-full border border-black/10 bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-[#111111]">
+                                  {copy.saveLabel}
+                                </span>
                               </div>
-                              {previewShortDescription ? (
-                                <p className="mt-1.5 text-[10px] text-[#111111]/75 line-clamp-2">{previewShortDescription}</p>
-                              ) : null}
+                              <div className="p-2">
+                                <div className="text-sm font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaSnapshot.isFree })}</div>
+                                <h3 className="mt-0.5 text-xs font-semibold text-[#111111] line-clamp-2 leading-tight">{previewTitle}</h3>
+                                <div className="mt-0.5 text-[10px] text-[#111111]/55">
+                                  {previewCity} · {previewPosted}
+                                </div>
+                                {previewShortDescription ? (
+                                  <p className="mt-1.5 text-[10px] text-[#111111]/75 line-clamp-2">{previewShortDescription}</p>
+                                ) : null}
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Right: summary + launcher */}
                           <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 flex flex-col">
