@@ -89,6 +89,80 @@ const BR_NEGOCIO_PRICE_WEEKLY = "$89.99";
 const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
+
+/** BR private: 6-bucket subcategory keys (source of truth for type-aware copy). */
+type BrSubcategoriaKey = "residencial" | "condos-townhomes" | "multifamiliar" | "terrenos" | "comercial" | "industrial";
+
+/** Derive 6-bucket subcategory from property type value. Used when bienesRaicesSubcategoria is not set. */
+function getBrSubcategoriaFromPropertyType(propertyType: string): BrSubcategoriaKey {
+  const pt = (propertyType ?? "").trim().toLowerCase();
+  if (["casa", "apartamento", "finca"].includes(pt)) return "residencial";
+  if (["condo", "townhouse"].includes(pt)) return "condos-townhomes";
+  if (["edificio"].includes(pt)) return "multifamiliar";
+  if (["lote"].includes(pt)) return "terrenos";
+  if (["oficina", "local-comercial"].includes(pt)) return "comercial";
+  if (["proyecto-nuevo"].includes(pt)) return "residencial";
+  return "residencial";
+}
+
+/** BR private: copy profile per subcategory. Drives placeholders, helpers, and field emphasis. */
+const BR_PRIVATE_COPY_PROFILES: Record<BrSubcategoriaKey, {
+  titlePlaceholder: { es: string; en: string };
+  subtypePlaceholder: { es: string; en: string };
+  descriptionHelper: { es: string; en: string };
+  descriptionPlaceholder: { es: string; en: string };
+  emphasize: string[];
+  hideOrOptional: string[];
+}> = {
+  residencial: {
+    titlePlaceholder: { es: "Ej: Casa 3 recámaras en zona tranquila", en: "e.g. 3-bedroom home in a quiet area" },
+    subtypePlaceholder: { es: "Ej: Casa independiente, Duplex", en: "e.g. Single-family home, Duplex" },
+    descriptionHelper: { es: "Describe la propiedad, su ubicación y características principales.", en: "Describe the property, location, and main features." },
+    descriptionPlaceholder: { es: "Ej: Casa amplia con jardín, 3 recámaras, zona tranquila.", en: "e.g. Spacious home with garden, 3 bedrooms, quiet area." },
+    emphasize: ["recámaras", "baños", "pies²", "niveles", "estacionamiento", "terreno"],
+    hideOrOptional: [],
+  },
+  "condos-townhomes": {
+    titlePlaceholder: { es: "Ej: Condo 2 recámaras cerca del centro", en: "e.g. 2-bedroom condo near downtown" },
+    subtypePlaceholder: { es: "Ej: Condominio, Townhome", en: "e.g. Condo, Townhome" },
+    descriptionHelper: { es: "Describe la unidad, ubicación y amenidades importantes.", en: "Describe the unit, location, and key amenities." },
+    descriptionPlaceholder: { es: "Ej: Condo con área de asador, estacionamiento incluido.", en: "e.g. Condo with BBQ area, parking included." },
+    emphasize: ["recámaras", "baños", "pies²", "estacionamiento"],
+    hideOrOptional: ["terreno"],
+  },
+  multifamiliar: {
+    titlePlaceholder: { es: "Ej: Propiedad multifamiliar con 2 unidades", en: "e.g. Multi-family property with 2 units" },
+    subtypePlaceholder: { es: "Ej: Duplex, Triplex, Fourplex", en: "e.g. Duplex, Triplex, Fourplex" },
+    descriptionHelper: { es: "Describe la propiedad, cantidad de unidades y sus características principales.", en: "Describe the property, number of units, and main features." },
+    descriptionPlaceholder: { es: "Ej: Duplex con 2 unidades de 2 recámaras cada una.", en: "e.g. Duplex with 2 units, 2 bedrooms each." },
+    emphasize: ["recámaras", "baños", "pies²", "estacionamiento"],
+    hideOrOptional: [],
+  },
+  terrenos: {
+    titlePlaceholder: { es: "Ej: Terreno residencial en buena ubicación", en: "e.g. Residential lot in a great location" },
+    subtypePlaceholder: { es: "Ej: Lote residencial, Parcela", en: "e.g. Residential lot, Parcel" },
+    descriptionHelper: { es: "Describe el terreno, ubicación, tamaño y usos posibles.", en: "Describe the lot, location, size, and possible uses." },
+    descriptionPlaceholder: { es: "Ej: Terreno plano, servicios en la calle, zona residencial.", en: "e.g. Flat lot, utilities at street, residential zone." },
+    emphasize: ["terreno", "zonificación", "servicios disponibles", "ubicación"],
+    hideOrOptional: ["recámaras", "baños", "niveles"],
+  },
+  comercial: {
+    titlePlaceholder: { es: "Ej: Oficina en zona comercial", en: "e.g. Office space in a commercial area" },
+    subtypePlaceholder: { es: "Ej: Oficina, Local comercial", en: "e.g. Office, Retail space" },
+    descriptionHelper: { es: "Describe el espacio, ubicación, tamaño y uso ideal.", en: "Describe the space, location, size, and ideal use." },
+    descriptionPlaceholder: { es: "Ej: Oficina 800 pies², baño, estacionamiento.", en: "e.g. 800 sq ft office, restroom, parking." },
+    emphasize: ["pies²", "estacionamiento", "zonificación", "ubicación"],
+    hideOrOptional: ["recámaras"],
+  },
+  industrial: {
+    titlePlaceholder: { es: "Ej: Bodega industrial con amplio espacio", en: "e.g. Industrial warehouse with ample space" },
+    subtypePlaceholder: { es: "Ej: Bodega, Nave industrial, Taller", en: "e.g. Warehouse, Industrial space, Workshop" },
+    descriptionHelper: { es: "Describe el espacio, tamaño, acceso y uso industrial.", en: "Describe the space, size, access, and industrial use." },
+    descriptionPlaceholder: { es: "Ej: Bodega 5,000 pies², carga y descarga fácil.", en: "e.g. 5,000 sq ft warehouse, easy loading." },
+    emphasize: ["pies²", "terreno", "estacionamiento", "zonificación"],
+    hideOrOptional: ["recámaras"],
+  },
+};
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -797,14 +871,16 @@ function PrivateBrPreviewContent(props: {
   const zone = (details.enVentaZone ?? "").trim();
   const hasRealCity = rawCity.trim() !== "" && rawCity !== (lang === "es" ? "(Ciudad)" : "(City)");
   const mainLine = addr ? addr : hasRealCity ? rawCity.trim() : "";
+  const brSubcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.enVentaPropertyType ?? "").trim());
   const br = (details.enVentaBedrooms ?? "").trim();
   const ba = (details.enVentaBathrooms ?? "").trim();
   const sqRaw = (details.enVentaSquareFeet ?? "").trim();
   const sqNum = sqRaw ? Number(sqRaw.replace(/,/g, "").replace(/\s/g, "").trim()) : NaN;
   const sqDisplay = Number.isFinite(sqNum) ? sqNum.toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
+  const hideBedrooms = brSubcat === "terrenos" || brSubcat === "comercial" || brSubcat === "industrial";
   const quickFacts = [
-    br && { label: lang === "es" ? "Recámaras" : "Bedrooms", value: br },
-    ba && { label: lang === "es" ? "Baños" : "Bathrooms", value: ba },
+    !hideBedrooms && br && { label: lang === "es" ? "Recámaras" : "Bedrooms", value: br },
+    brSubcat !== "terrenos" && ba && { label: lang === "es" ? "Baños" : "Bathrooms", value: ba },
     sqRaw && { label: lang === "es" ? "Pies²" : "Sq ft", value: sqDisplay },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
   const featureTagsFromDetails: Array<{ label: string; value: string }> = [];
@@ -1032,15 +1108,19 @@ function PrivateBrPreviewContent(props: {
           </h3>
           <div className="space-y-5">
             {(() => {
+              const subcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.enVentaPropertyType ?? "").trim());
+              const showResidentialInterior = subcat === "residencial" || subcat === "condos-townhomes" || subcat === "multifamiliar";
               const interiorRows: Array<{ label: string; value: string }> = [];
-              const brVal = (details.enVentaBedrooms ?? "").trim();
-              if (brVal) interiorRows.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: brVal });
+              if (showResidentialInterior) {
+                const brVal = (details.enVentaBedrooms ?? "").trim();
+                if (brVal) interiorRows.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: brVal });
+              }
               const baVal = (details.enVentaBathrooms ?? "").trim();
-              if (baVal) interiorRows.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: baVal });
+              if (baVal && subcat !== "terrenos") interiorRows.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: baVal });
               const sqVal = (details.enVentaSquareFeet ?? "").trim();
               if (sqVal) interiorRows.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sqVal });
               const lvVal = (details.enVentaLevels ?? "").trim();
-              if (lvVal) interiorRows.push({ label: lang === "es" ? "Niveles" : "Levels", value: lvVal });
+              if (lvVal && subcat !== "terrenos") interiorRows.push({ label: lang === "es" ? "Niveles" : "Levels", value: lvVal });
               const exteriorRows: Array<{ label: string; value: string }> = [];
               const lotVal = (details.enVentaLotSize ?? "").trim();
               if (lotVal) exteriorRows.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
@@ -2994,17 +3074,22 @@ export default function PublicarPage() {
     const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
     const brDescription = (s.details.enVentaFullDescription ?? "").trim();
     const brPt = (s.details.enVentaPropertyType ?? "").trim();
+    const brSubcat = (s.details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType(brPt);
     const brPrivadoCoreOk = !!(s.details.enVentaPropertyType ?? "").trim() && brDescription.length >= 5;
     const brPrivadoTypeOk =
-      isBrPrivadoResidential(brPt)
-        ? !!(s.details.enVentaBedrooms ?? "").trim() && !!(s.details.enVentaBathrooms ?? "").trim() && !!(s.details.enVentaSquareFeet ?? "").trim()
-        : isBrPrivadoLote(brPt)
-          ? !!(s.details.enVentaLotSize ?? "").trim()
-          : isBrPrivadoComercial(brPt) || isBrPrivadoEdificio(brPt)
-            ? !!(s.details.enVentaSquareFeet ?? "").trim()
-            : isBrPrivadoProyectoNuevo(brPt)
-              ? true
-              : true;
+      brSubcat === "terrenos"
+        ? !!(s.details.enVentaLotSize ?? "").trim()
+        : brSubcat === "comercial" || brSubcat === "industrial"
+          ? !!(s.details.enVentaSquareFeet ?? "").trim()
+          : (brSubcat === "residencial" || brSubcat === "condos-townhomes" || brSubcat === "multifamiliar")
+            ? !!(s.details.enVentaBedrooms ?? "").trim() && !!(s.details.enVentaBathrooms ?? "").trim() && !!(s.details.enVentaSquareFeet ?? "").trim()
+            : isBrPrivadoLote(brPt)
+              ? !!(s.details.enVentaLotSize ?? "").trim()
+              : isBrPrivadoComercial(brPt) || isBrPrivadoEdificio(brPt)
+                ? !!(s.details.enVentaSquareFeet ?? "").trim()
+                : isBrPrivadoProyectoNuevo(brPt)
+                  ? true
+                  : true;
     const bienesRaicesMetaOk =
       s.category !== "bienes-raices" ||
       (
@@ -3046,6 +3131,14 @@ export default function PublicarPage() {
         bienesRaicesMetaOk,
     };
   }, [enVentaSnapshot]);
+
+  /** BR private: type-aware copy profile for placeholders and helpers. Uses bienesRaicesSubcategoria or derives from enVentaPropertyType. */
+  const brPrivateCopyProfile = useMemo(() => {
+    if (categoryFromUrl !== "bienes-raices" || (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "privado") return null;
+    const subcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType(details.enVentaPropertyType ?? "");
+    const key = (["residencial", "condos-townhomes", "multifamiliar", "terrenos", "comercial", "industrial"] as const).includes(subcat as BrSubcategoriaKey) ? subcat as BrSubcategoriaKey : "residencial";
+    return BR_PRIVATE_COPY_PROFILES[key];
+  }, [categoryFromUrl, details.bienesRaicesBranch, details.bienesRaicesSubcategoria, details.enVentaPropertyType]);
 
   const basicsOk =
     categoryFromUrl === "en-venta"
@@ -4660,7 +4753,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           </div>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
-                            <select value={details.enVentaPropertyType ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertyType: e.target.value }))} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30">
+                            <select
+                              value={details.enVentaPropertyType ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setDetails((prev) => ({ ...prev, enVentaPropertyType: v, bienesRaicesSubcategoria: getBrSubcategoriaFromPropertyType(v) }));
+                              }}
+                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                            >
                               <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
                               {EN_VENTA_BR_PROPERTY_TYPES.map((o) => <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>)}
                             </select>
@@ -4668,12 +4768,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           </div>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subtipo de propiedad" : "Property subtype"}</label>
-                            <input value={details.enVentaPropertySubtype ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))} placeholder={lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex"} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            <input value={details.enVentaPropertySubtype ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.subtypePlaceholder.es : brPrivateCopyProfile.subtypePlaceholder.en) : (lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex")} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
                           </div>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Título del anuncio" : "Listing title"}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro que describa la propiedad." : "A clear title that describes the property."}</p>
-                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "e.g. 3-bed house in central area"} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.titlePlaceholder.es : brPrivateCopyProfile.titlePlaceholder.en) : (lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "e.g. 3-bed house in central area")} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
                             {!requirements.titleOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -5096,8 +5196,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           })()}
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción de la propiedad" : "Property description"}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Descripción completa del anuncio. Se usará en la ficha y para búsquedas (mín. 5 caracteres)." : "Full listing description for the listing page and search (min 5 characters)."}</p>
-                            <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={lang === "es" ? "Describa la propiedad, ubicación, acabados, características, etc." : "Describe the property, location, finishes, features, etc."} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            <p className="mt-1 text-xs text-[#111111]/60">{brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionHelper.es : brPrivateCopyProfile.descriptionHelper.en) : (lang === "es" ? "Descripción completa del anuncio. Se usará en la ficha y para búsquedas (mín. 5 caracteres)." : "Full listing description for the listing page and search (min 5 characters).")}</p>
+                            <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionPlaceholder.es : brPrivateCopyProfile.descriptionPlaceholder.en) : (lang === "es" ? "Describa la propiedad, ubicación, acabados, características, etc." : "Describe the property, location, finishes, features, etc.")} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
                             {!requirements.bienesRaicesMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>}
                           </div>
                           {details.bienesRaicesBranch === "negocio" && (
