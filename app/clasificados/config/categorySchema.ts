@@ -116,13 +116,13 @@ function schema(
 /** Category schemas: En Venta = first production template; others = eligibility + stubs. */
 const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
   "bienes-raices": schema("bienes-raices", {
-    plans: ["free", "pro"],
+    plans: ["free"],
     subcategories: BIENES_RAICES_SUBCATEGORIES,
     formFieldGroupKey: "bienes-raices",
     validationRules: [],
     previewEligible: true,
-    proPreviewEligible: true,
-    businessBranchEligible: false, // future: true when business sales flow is built (same contract as rentas)
+    proPreviewEligible: false,
+    businessBranchEligible: true,
     stepOrder: PUBLISH_STEPS_BIENES_RAICES,
   }),
   "en-venta": schema("en-venta", {

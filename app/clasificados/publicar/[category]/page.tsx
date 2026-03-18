@@ -542,6 +542,7 @@ function getCategoryFields(cat: string, details?: Record<string, string>): Detai
   if (cat === "bienes-raices" && details) {
     const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
     const pt = (details.enVentaPropertyType ?? "").trim();
+    // BR application branches by sub property type (bienesRaicesSubcategoria / enVentaPropertyType); taxonomy is source of truth.
     if (brBranch === "negocio") return DETAIL_FIELDS["bienes-raices"] ?? [];
     if (brBranch === "privado") {
       if (isBrPrivadoResidential(pt)) return DETAIL_FIELDS["bienes-raices"] ?? [];
@@ -4110,10 +4111,63 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       />
                     )}
                   </section>
-                  {!isRentasPrivado && !isBienesRaicesPrivado && (
+                  {(!isRentasPrivado && !isBienesRaicesPrivado && categoryFromUrl !== "bienes-raices") || (categoryFromUrl === "bienes-raices" && isBienesRaicesNegocio) ? (
                   <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
                     <div className="max-w-md mx-auto space-y-3">
-                      {fullPreviewVariant === "pro" ? (
+                      {categoryFromUrl === "bienes-raices" ? (
+                        <>
+                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                            <input
+                              type="checkbox"
+                              checked={fullPreviewRulesConfirmed}
+                              onChange={(e) => setFullPreviewRulesConfirmed(e.target.checked)}
+                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                            />
+                            <span>
+                              {copy.rulesConfirm}
+                              {" "}
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setShowRulesModal(true); }}
+                                className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                              >
+                                {lang === "es" ? "Ver reglas" : "View rules"}
+                              </button>
+                            </span>
+                          </label>
+                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                            <input
+                              type="checkbox"
+                              checked={fullPreviewInfoConfirmed}
+                              onChange={(e) => setFullPreviewInfoConfirmed(e.target.checked)}
+                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                            />
+                            <span>{copy.fullPreviewInfoConfirm}</span>
+                          </label>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              type="button"
+                              onClick={closeFullPreviewModal}
+                              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+                            >
+                              {copy.fullPreviewBackToEdit}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleFullPreviewConfirmPublish}
+                              disabled={!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed || publishing}
+                              className={cx(
+                                "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+                                fullPreviewRulesConfirmed && fullPreviewInfoConfirmed && !publishing
+                                  ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                                  : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
+                              )}
+                            >
+                              {publishing ? copy.publishing : copy.fullPreviewConfirmPublish}
+                            </button>
+                          </div>
+                        </>
+                      ) : fullPreviewVariant === "pro" ? (
                         <>
                           <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                             <button
@@ -4201,7 +4255,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       )}
                     </div>
                   </div>
-                )}
+                ) : null}
                 </div>
               )}
 
