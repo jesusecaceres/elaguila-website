@@ -5160,7 +5160,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             <div className="max-w-[280px] lg:max-w-none">
                               <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
                               <article className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm">
-                                <div className="relative h-32 w-full overflow-hidden bg-[#E8E8E8] flex items-center justify-center">
+                                <div className="relative h-36 w-full overflow-hidden bg-[#E8E8E8] flex items-center justify-center rounded-t-xl">
                                   {coverImage ? (
                                     <img src={coverImage} alt="" className="h-full w-full object-cover" />
                                   ) : (
@@ -5169,32 +5169,40 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     </div>
                                   )}
                                 </div>
-                                <div className="p-2.5">
-                                  <div className="text-base font-bold text-[#111111] leading-tight">
-                                    {formatListingPrice(previewPrice, { lang, isFree: false })}
+                                <div className="p-3">
+                                  <div className="rounded-lg bg-[#F8F6F0]/70 px-2.5 py-1.5">
+                                    <div className="text-lg font-extrabold text-[#111111] leading-tight tracking-tight">
+                                      {formatMoneyMaybe(previewPrice, lang) || formatListingPrice(previewPrice, { lang, isFree: false })}
+                                    </div>
                                   </div>
                                   {(() => {
                                     const d = details;
-                                    const parts: string[] = [];
+                                    const parts: Array<{ num: string; label: string } | "posted"> = [];
                                     const br = (d.enVentaBedrooms ?? "").trim();
-                                    if (br) parts.push(lang === "es" ? `${br} rec` : `${br} bed`);
+                                    if (br) parts.push({ num: br, label: lang === "es" ? "rec" : "bed" });
                                     const ba = (d.enVentaBathrooms ?? "").trim();
                                     const hb = (d.enVentaHalfBathrooms ?? "").trim();
-                                    if (ba) parts.push(lang === "es" ? `${ba} ba` : `${ba} ba`);
-                                    if (hb) parts.push(lang === "es" ? `${hb} medio baño` : `${hb} half ba`);
+                                    if (ba) parts.push({ num: ba, label: lang === "es" ? "ba" : "ba" });
+                                    if (hb) parts.push({ num: hb, label: lang === "es" ? "medio baño" : "half ba" });
                                     const sq = (d.enVentaSquareFeet ?? "").trim();
-                                    if (sq) parts.push(lang === "es" ? `${sq} pies²` : `${sq} sq ft`);
-                                    parts.push(previewPosted);
+                                    if (sq) parts.push({ num: sq, label: lang === "es" ? "pies²" : "sq ft" });
+                                    parts.push("posted");
                                     return parts.length > 0 ? (
-                                      <p className="mt-1 text-[11px] text-[#111111]/70">
-                                        {parts.join(" · ")}
+                                      <p className="mt-2 text-[11px] text-[#111111]/80 flex flex-wrap items-baseline gap-x-0.5">
+                                        {parts.map((p, i) => (
+                                          <span key={i} className="inline-flex items-baseline">
+                                            {i > 0 && <span className="text-[#111111]/40 mx-0.5" aria-hidden>·</span>}
+                                            {p === "posted" ? (
+                                              <span className="text-[#111111]/75">{previewPosted}</span>
+                                            ) : (
+                                              <><span className="font-bold text-[#111111]">{p.num}</span> {p.label}</>
+                                            )}
+                                          </span>
+                                        ))}
                                       </p>
                                     ) : null;
                                   })()}
-                                  <p className="mt-1 text-[11px] text-[#111111]/80">{previewCity}</p>
-                                  {previewShortDescription ? (
-                                    <p className="mt-1 text-[11px] text-[#111111]/75 line-clamp-2 leading-snug">{previewShortDescription}</p>
-                                  ) : null}
+                                  <p className="mt-1.5 text-[11px] font-medium text-[#111111]/85">{previewCity}</p>
                                 </div>
                               </article>
                             </div>
