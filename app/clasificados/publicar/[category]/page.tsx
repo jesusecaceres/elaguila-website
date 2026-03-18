@@ -756,7 +756,7 @@ export default function PublicarPage() {
   /** Options for step URL sync when category is bienes-raices (branch in query). */
   type StepSyncOptions = { branch?: "privado" | "negocio" };
 
-  /** Sync step into URL query (preserves lang, draftId, etc.). For BR, includes branch= when set. Replace = no new history entry. */
+  /** Sync step into URL query (preserves lang, draftId, etc.). For BR, includes branch= when set. Replace = no new history entry. scroll: false to avoid double scroll. */
   const syncStepInUrl = useCallback(
     (newStep: PublishStep, options?: StepSyncOptions) => {
       const p = new URLSearchParams(searchParams?.toString() ?? "");
@@ -767,12 +767,12 @@ export default function PublicarPage() {
         else p.delete("branch");
       }
       const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
-      router.replace(`${path}?${p.toString()}`);
+      router.replace(`${path}?${p.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams, categoryFromUrl]
   );
 
-  /** Push step to URL so browser Back has a previous step in the flow. For BR, includes branch= when set. Use when user navigates forward (goToStep). */
+  /** Push step to URL so browser Back has a previous step in the flow. For BR, includes branch= when set. Use when user navigates forward (goToStep). scroll: false so we scroll once in goToStep. */
   const syncStepInUrlPush = useCallback(
     (newStep: PublishStep, options?: StepSyncOptions) => {
       const p = new URLSearchParams(searchParams?.toString() ?? "");
@@ -783,7 +783,7 @@ export default function PublicarPage() {
         else p.delete("branch");
       }
       const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
-      router.push(`${path}?${p.toString()}`);
+      router.push(`${path}?${p.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams, categoryFromUrl]
   );
@@ -848,7 +848,7 @@ export default function PublicarPage() {
     if (searchParams?.get("fromPreview") === "1") setPreviewViewed(true);
   }, [searchParams]);
 
-  // Derive step from URL when it changes (initial load and browser Back/Forward). Keeps app step and URL in sync.
+  // Derive step from URL when it changes (initial load and browser Back/Forward). Keeps app step and URL in sync. Skip step->URL effect so we don't replace again (no loop, no extra scroll).
   const stepsForCategoryRef = useRef(stepsForCategory);
   stepsForCategoryRef.current = stepsForCategory;
   useEffect(() => {
@@ -856,6 +856,7 @@ export default function PublicarPage() {
     if (!urlStep || !VALID_STEPS.includes(urlStep as PublishStep)) return;
     const steps = stepsForCategoryRef.current;
     if (!steps.includes(urlStep as PublishStep)) return;
+    skipStepSyncRef.current = true;
     setStep(urlStep as PublishStep);
   }, [searchParams]);
 
@@ -871,7 +872,7 @@ export default function PublicarPage() {
     });
   }, [categoryFromUrl, searchParams]);
 
-  // When step changes in-app, sync step to URL (replace). Skip when we just pushed in goToStep.
+  // When step changes in-app, sync step to URL (replace). Skip when we just pushed in goToStep or when URL already matches (avoids re-run on searchParams change and double sync).
   useEffect(() => {
     if (skipStepSyncRef.current) {
       skipStepSyncRef.current = false;
@@ -879,7 +880,9 @@ export default function PublicarPage() {
     }
     if (searchParams?.get("step") === step) return;
     syncStepInUrl(step);
-  }, [step, searchParams, syncStepInUrl]);
+    // Intentionally omit searchParams from deps so we don't re-run when replace() updates the URL and causes a jump.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, syncStepInUrl]);
 
   type ServicesPackage = "" | "standard" | "plus";
   const [servicesPackage, setServicesPackage] = useState<ServicesPackage>("");
@@ -900,11 +903,12 @@ export default function PublicarPage() {
     isEnVentaFlow && step === "details" ? "media" : step;
   const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
 
+  // En Venta has no "details" step; normalize invalid ?step=details to media. Do not run for BR (BR has a valid details step).
   useEffect(() => {
-    if ((categoryFromUrl === "en-venta" || categoryFromUrl === "bienes-raices") && step === "details") {
+    if (categoryFromUrl === "en-venta" && step === "details") {
       setStep("media");
     }
-  }, [category, step]);
+  }, [categoryFromUrl, step]);
 
   // Details (category-specific structured fields)
   const [details, setDetails] = useState<Record<string, string>>(() => {
@@ -1086,17 +1090,15 @@ export default function PublicarPage() {
     [syncStepInUrlPush]
   );
 
-  /** In-app Atrás: browser back when there is history, else set step + replace URL so we stay in flow. */
+  /** In-app Atrás: always go to the real previous step in the flow (setStep + replace URL). Never router.back() so we never leave the publish flow. */
   const handleBack = useCallback(() => {
     const prev = getPreviousStep();
     if (!prev) return;
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      setStep(prev);
-      syncStepInUrl(prev);
-    }
-  }, [getPreviousStep, router, setStep, syncStepInUrl]);
+    skipStepSyncRef.current = true;
+    setStep(prev);
+    syncStepInUrl(prev);
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
+  }, [getPreviousStep, setStep, syncStepInUrl]);
 
   function scrollCategoryActionsIntoView() {
     if (typeof window === "undefined") return;
@@ -1109,15 +1111,8 @@ export default function PublicarPage() {
     });
   }
 
-  // Step transitions only: scroll form start into view. Initial load is handled by main pt-28.
-  useEffect(() => {
-    if (checking || !signedIn) return;
-    const prev = previousStepRef.current;
-    previousStepRef.current = step;
-    if (prev != null && prev !== step) {
-      scrollFormToTop("auto");
-    }
-  }, [step, checking, signedIn]);
+  // Scroll only in goToStep and handleBack to avoid double scroll and passive URL-restore scroll.
+  // (previousStepRef kept for any future use; no scroll-on-step-change here.)
 
   // Session gate: redirect to login if not authenticated; fail-safe timeout so "Verificando sesión…" never hangs.
   const SESSION_GATE_TIMEOUT_MS = 8000;
