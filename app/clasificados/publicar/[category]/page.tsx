@@ -961,6 +961,8 @@ export default function PublicarPage() {
   const isRentasPrivado = categoryFromUrl === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
   /** Bienes Raíces negocio gets premium media (12 images, 1 video) like Rentas premium. */
   const isBienesRaicesNegocio = categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim() === "negocio";
+  /** Private BR: sale-by-owner; single preview CTA, no free/pro comparison. */
+  const isBienesRaicesPrivado = categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "privado";
   const effectiveIsPro = isPro || isRentasPrivado || isBienesRaicesNegocio;
   const maxImages = isRentasPrivado ? 15 : (categoryFromUrl === "bienes-raices" ? 12 : (effectiveIsPro ? 12 : 3));
 
@@ -1293,6 +1295,7 @@ export default function PublicarPage() {
         shareLabel: "Compartir",
         contactLabel: "Contactar",
         fullPreviewCta: "Ver versión gratis",
+        viewYourListingCta: "Ver tu anuncio",
         fullPreviewTitle: "Vista completa del anuncio",
         fullPreviewBackToEdit: "Volver a editar",
         fullPreviewInfoConfirm: "Confirmo que la información es correcta.",
@@ -1370,6 +1373,7 @@ export default function PublicarPage() {
         shareLabel: "Share",
         contactLabel: "Contact",
         fullPreviewCta: "View free version",
+        viewYourListingCta: "View your listing",
         fullPreviewTitle: "Full listing preview",
         fullPreviewBackToEdit: "Back to edit",
         fullPreviewInfoConfirm: "I confirm the information is correct.",
@@ -3001,7 +3005,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
 
-  // Open in-page full preview modal. Rentas Privado / BR negocio: Pro-style preview. Others: free/pro.
+  // Open in-page full preview modal. Rentas Privado / BR negocio / BR privado: single full preview. Others: free/pro.
   const openFullPreview = () => {
     if (isRentasPrivado) {
       setFullPreviewVariant("pro");
@@ -3009,6 +3013,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
       setFullPreviewInfoConfirmed(false);
       setShowFullPreviewModal(true);
     } else if (isBienesRaicesNegocio) {
+      setFullPreviewVariant("pro");
+      setFullPreviewRulesConfirmed(false);
+      setFullPreviewInfoConfirmed(false);
+      setShowFullPreviewModal(true);
+    } else if (isBienesRaicesPrivado) {
       setFullPreviewVariant("pro");
       setFullPreviewRulesConfirmed(false);
       setFullPreviewInfoConfirmed(false);
@@ -3167,7 +3176,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       ← {copy.fullPreviewBackToEdit}
                     </button>
                     <span className="text-xs text-[#111111]/50">
-                      {isRentasPrivado
+                      {isRentasPrivado || isBienesRaicesPrivado
                         ? (lang === "es" ? "Vista previa" : "Preview")
                         : fullPreviewVariant === "pro"
                           ? copy.proPreviewTitle
@@ -3236,6 +3245,69 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           </div>
                         </div>
                       </>
+                    ) : isBienesRaicesPrivado ? (
+                      <>
+                        <ListingView
+                          listing={fullPreviewListingData}
+                          previewMode={true}
+                          previewProUpgrade={false}
+                          proHighlight={null}
+                          onProBenefitClick={undefined}
+                          hideProComparisonUI={true}
+                        />
+                        <div className="mt-10 pt-8 border-t border-black/10 max-w-2xl mx-auto space-y-3">
+                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                            <input
+                              type="checkbox"
+                              checked={fullPreviewRulesConfirmed}
+                              onChange={(e) => setFullPreviewRulesConfirmed(e.target.checked)}
+                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                            />
+                            <span>
+                              {copy.rulesConfirm}
+                              {" "}
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setShowRulesModal(true); }}
+                                className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                              >
+                                {lang === "es" ? "Ver reglas" : "View rules"}
+                              </button>
+                            </span>
+                          </label>
+                          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+                            <input
+                              type="checkbox"
+                              checked={fullPreviewInfoConfirmed}
+                              onChange={(e) => setFullPreviewInfoConfirmed(e.target.checked)}
+                              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+                            />
+                            <span>{copy.fullPreviewInfoConfirm}</span>
+                          </label>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              type="button"
+                              onClick={closeFullPreviewModal}
+                              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+                            >
+                              {copy.fullPreviewBackToEdit}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleFullPreviewConfirmPublish}
+                              disabled={!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed || publishing}
+                              className={cx(
+                                "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+                                fullPreviewRulesConfirmed && fullPreviewInfoConfirmed && !publishing
+                                  ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                                  : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
+                              )}
+                            >
+                              {publishing ? copy.publishing : copy.fullPreviewConfirmPublish}
+                            </button>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <ListingView
                         listing={fullPreviewListingData}
@@ -3247,7 +3319,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       />
                     )}
                   </section>
-                  {!isRentasPrivado && (
+                  {!isRentasPrivado && !isBienesRaicesPrivado && (
                   <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
                     <div className="max-w-md mx-auto space-y-3">
                       {fullPreviewVariant === "pro" ? (
@@ -5343,6 +5415,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                                 >
                                   {lang === "es" ? "Vista previa" : "Preview"}
+                                </button>
+                              ) : isBienesRaicesPrivado ? (
+                                <button
+                                  type="button"
+                                  onClick={openFullPreview}
+                                  className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                >
+                                  {(copy as { viewYourListingCta?: string }).viewYourListingCta ?? (lang === "es" ? "Ver tu anuncio" : "View your listing")}
                                 </button>
                               ) : (
                                 <>
