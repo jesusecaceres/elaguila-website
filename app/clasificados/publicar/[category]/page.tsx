@@ -911,7 +911,6 @@ function PrivateBrPreviewContent(props: {
               )}
             </div>
           </div>
-        </div>
         {/* E. Right private seller card */}
         <div className="lg:col-span-4">
           <div id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm">
