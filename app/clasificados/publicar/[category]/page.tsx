@@ -730,19 +730,20 @@ export default function PublicarPage() {
 
   const [step, setStep] = useState<PublishStep>(() => {
     const cat = categoryFromUrl || "en-venta";
-    const steps: PublishStep[] = cat === "en-venta" ? ["category", "basics", "media"] : cat === "rentas" ? ["category", "rentas-track", "basics", "details", "media"] : cat === "bienes-raices" ? ["category", "bienes-raices-track", "basics", "details", "media"] : ["category", "basics", "details", "media"];
+    const steps: PublishStep[] = cat === "en-venta" ? ["category", "basics", "media"] : cat === "rentas" ? ["category", "rentas-track", "basics", "details", "media"] : cat === "bienes-raices" ? ["category", "bienes-raices-track", "basics", "media"] : ["category", "basics", "details", "media"];
     const s = searchParams?.get("step")?.trim();
     if (s && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(s as PublishStep) && steps.includes(s as PublishStep)) return s as PublishStep;
+    if (cat === "bienes-raices" && s === "details") return "media";
     return "category";
   });
   const [category, setCategory] = useState<CategoryKey | "">(() => categoryFromUrl);
 
-  /** Full step order for current category (includes details for BR and Rentas). Used for Back and URL sync. */
+  /** Full step order for current category. BR has no details step (category → bienes-raices-track → basics → media). */
   const stepsForCategory = useMemo((): PublishStep[] => {
     const cat = categoryFromUrl || "en-venta";
     if (cat === "en-venta") return ["category", "basics", "media"];
     if (cat === "rentas") return ["category", "rentas-track", "basics", "details", "media"];
-    if (cat === "bienes-raices") return ["category", "bienes-raices-track", "basics", "details", "media"];
+    if (cat === "bienes-raices") return ["category", "bienes-raices-track", "basics", "media"];
     return ["category", "basics", "details", "media"];
   }, [categoryFromUrl]);
 
@@ -900,15 +901,26 @@ export default function PublicarPage() {
   const stepOrder: PublishStep[] = getStepOrderForCategory(category || "en-venta");
   const isEnVentaFlow = stepOrder.length === 3;
   const safeStepForProgress: PublishStep =
-    isEnVentaFlow && step === "details" ? "media" : step;
+    (isEnVentaFlow && step === "details") || (categoryFromUrl === "bienes-raices" && step === "details") ? "media" : step;
   const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
 
-  // En Venta has no "details" step; normalize invalid ?step=details to media. Do not run for BR (BR has a valid details step).
+  // En Venta has no "details" step; normalize invalid ?step=details to media.
   useEffect(() => {
     if (categoryFromUrl === "en-venta" && step === "details") {
       setStep("media");
     }
   }, [categoryFromUrl, step]);
+
+  // BR has no details step; normalize ?step=details or stray step state to media so BR never lands on the legacy details screen.
+  useEffect(() => {
+    if (categoryFromUrl !== "bienes-raices") return;
+    const urlStep = searchParams?.get("step")?.trim();
+    if (urlStep === "details" || step === "details") {
+      skipStepSyncRef.current = true;
+      setStep("media");
+      syncStepInUrl("media");
+    }
+  }, [categoryFromUrl, searchParams, step, syncStepInUrl]);
 
   // Details (category-specific structured fields)
   const [details, setDetails] = useState<Record<string, string>>(() => {
@@ -1683,7 +1695,9 @@ export default function PublicarPage() {
           }
           applyDraftPayloadFromDb(payload);
           syncDraftIdInUrl(draftId);
-          const restoredStep = (payload.step && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(payload.step as PublishStep) && stepsForCategory.includes(payload.step as PublishStep)) ? (payload.step as PublishStep) : "basics";
+          const restoredStep = (categoryFromUrl === "bienes-raices" && payload.step === "details")
+            ? "media"
+            : (payload.step && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(payload.step as PublishStep) && stepsForCategory.includes(payload.step as PublishStep)) ? (payload.step as PublishStep) : "basics";
           const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
           const branchOpt = (brBranch === "privado" || brBranch === "negocio") ? { branch: brBranch as "privado" | "negocio" } : undefined;
           syncStepInUrl(restoredStep, branchOpt);
@@ -4830,8 +4844,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                   </section>
                 )}
 
-                {/* DETAILS */}
-                {step === "details" && !isEnVentaFlow && (
+                {/* DETAILS — only for categories that include details in their step flow (e.g. Rentas). BR has no details step. */}
+                {step === "details" && stepsForCategory.includes("details") && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.detailsTitle}</h2>
                     <p className="mt-2 text-sm text-[#111111]">
@@ -4845,11 +4859,6 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         {lang === "es" ? "Categoría:" : "Category:"}{" "}
                         <span className="text-[#111111]/90 font-semibold">{categoryFromUrl}</span>
                       </div>
-                      {categoryFromUrl === "bienes-raices" && (
-                        <p className="mt-2 text-xs text-[#111111]/70">
-                          {lang === "es" ? "Detalles de la propiedad para que tu anuncio destaque." : "Property details so your listing stands out."}
-                        </p>
-                      )}
 
                       {getCategoryFields(categoryFromUrl, details).length === 0 ? (
                         <div className="mt-3 text-sm text-[#111111]/55">
