@@ -832,15 +832,19 @@ function PrivateBrPreviewContent(props: {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxZoomIndex, setLightboxZoomIndex] = useState<number | null>(null);
   const [contactSheet, setContactSheet] = useState<"solicitar" | "visita" | null>(null);
-  const [saveFeedback, setSaveFeedback] = useState(false);
+  const [saveFeedbackMessage, setSaveFeedbackMessage] = useState<"saved" | "signin" | null>(null);
   const [shareFeedback, setShareFeedback] = useState(false);
   const n = images.length;
   const handleSave = useCallback(() => {
     if (typeof onSave === "function") {
+      setSaveFeedbackMessage(null);
       void Promise.resolve(onSave()).then(() => {
-        setSaveFeedback(true);
-        setTimeout(() => setSaveFeedback(false), 2000);
+        setSaveFeedbackMessage("saved");
+        setTimeout(() => setSaveFeedbackMessage(null), 2000);
       });
+    } else {
+      setSaveFeedbackMessage("signin");
+      setTimeout(() => setSaveFeedbackMessage(null), 2500);
     }
   }, [onSave]);
   const handleShare = useCallback(() => {
@@ -854,8 +858,11 @@ function PrivateBrPreviewContent(props: {
   const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const msgSolicitar = lang === "es" ? "Hola, me interesa tu propiedad. ¿Podrías compartirme más información?" : "Hi, I'm interested in your property. Could you share more information with me?";
-  const msgVisita = lang === "es" ? "Hola, me interesa tu propiedad. ¿Sería posible programar una visita?" : "Hi, I'm interested in your property. Would it be possible to schedule a visit?";
+  const addr = (details.enVentaAddress ?? "").trim();
+  const zone = (details.enVentaZone ?? "").trim();
+  const addressForMessage = (addr || rawTitle.trim() || zone || (lang === "es" ? "esta propiedad" : "this property")).trim() || (lang === "es" ? "esta propiedad" : "this property");
+  const msgSolicitar = lang === "es" ? `Hola, me interesa tu propiedad en ${addressForMessage}. La vi en Leonix Media y me gustaría recibir más información.` : `Hi, I'm interested in your property at ${addressForMessage}. I saw it on Leonix Media and would like more information.`;
+  const msgVisita = lang === "es" ? `Hola, me interesa mucho tu propiedad en ${addressForMessage}. La vi en Leonix Media y quería saber cuándo sería posible programar una visita.` : `Hi, I'm very interested in your property at ${addressForMessage}. I saw it on Leonix Media and wanted to know when it might be possible to schedule a visit.`;
   const emailSubject = lang === "es" ? "Consulta sobre tu propiedad" : "Question about your property";
   const phoneDigits = (previewPhone ?? "").replace(/\D/g, "");
   const hasPhone = phoneDigits.length >= 10;
@@ -866,9 +873,6 @@ function PrivateBrPreviewContent(props: {
   const primaryImage = n ? images[safeStart] : null;
   const side1 = n > 1 ? images[(safeStart + 1) % n] : null;
   const side2 = n > 2 ? images[(safeStart + 2) % n] : null;
-
-  const addr = (details.enVentaAddress ?? "").trim();
-  const zone = (details.enVentaZone ?? "").trim();
   const hasRealCity = rawCity.trim() !== "" && rawCity !== (lang === "es" ? "(Ciudad)" : "(City)");
   const mainLine = addr ? addr : hasRealCity ? rawCity.trim() : "";
   const brSubcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.enVentaPropertyType ?? "").trim());
@@ -898,9 +902,9 @@ function PrivateBrPreviewContent(props: {
   const titleDisplay = hasTitle ? rawTitle.trim() : (lang === "es" ? "(Sin título)" : "(No title)");
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-1 sm:px-0">
       {/* Full-page warm canvas: wraps entire preview content */}
-      <div className="rounded-2xl border border-[#C9B46A]/15 bg-[#F8F4EE] shadow-sm p-5 sm:p-6 min-h-[60vh]">
+      <div className="rounded-2xl border border-[#C9B46A]/15 bg-[#F8F4EE] shadow-sm p-4 sm:p-6 min-h-[60vh] space-y-6 sm:space-y-5">
         {/* A. Header: brand + Publicar (no search) */}
         <header className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/25 bg-white/80 px-4 py-2 text-base font-bold text-[#111111] shadow-sm">
@@ -935,8 +939,8 @@ function PrivateBrPreviewContent(props: {
           ))}
         </nav>
         {/* C + D + E */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-6">
+          <div className="lg:col-span-8 space-y-5 sm:space-y-5">
             {/* C. Hero gallery: main + two side slots; cycle when >3 images */}
             <div ref={resumenRef} id="resumen" className="relative scroll-mt-4">
               {primaryImage ? (
@@ -1033,15 +1037,15 @@ function PrivateBrPreviewContent(props: {
               )}
             </div>
           </div>
-        {/* E. Right private seller card: info + 2x2 action grid */}
+        {/* E. Right private seller card: info + 2x2 action grid (Guardar, Compartir | Solicitar, Programar visita) */}
         <div className="lg:col-span-4">
-          <div ref={contactoRef} id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm scroll-mt-4 space-y-5">
+          <div ref={contactoRef} id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-4 sm:p-5 shadow-sm scroll-mt-4 space-y-5">
             <div>
               <h4 className="text-sm font-bold text-[#111111] mb-1 flex items-center gap-2">
                 <span className="w-1 h-5 rounded-full bg-[#C9B46A]/50" aria-hidden />
                 {lang === "es" ? "Contactar" : "Contact"}
               </h4>
-              <p className="text-base font-semibold text-[#111111] mt-2">
+              <p className="text-base font-semibold text-[#111111] mt-2 leading-snug">
                 {sellerDisplayName.trim() || (lang === "es" ? "Propietario" : "Owner")}
               </p>
               {previewPhone && (
@@ -1050,24 +1054,24 @@ function PrivateBrPreviewContent(props: {
                 </p>
               )}
               {previewEmail && (
-                <p className="mt-1 text-sm text-[#111111]">
-                  <a href={`mailto:${previewEmail}`} className="font-medium hover:underline break-all">{previewEmail}</a>
+                <p className="mt-1 text-sm text-[#111111] break-all">
+                  <a href={`mailto:${previewEmail}`} className="font-medium hover:underline">{previewEmail}</a>
                 </p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3 sm:gap-2 min-h-[44px]">
               <button
                 type="button"
                 onClick={handleSave}
-                className="rounded-xl bg-[#B8860B]/90 text-white px-3 py-2.5 text-xs font-semibold hover:bg-[#A0780A] transition border border-[#C9B46A]/40 shadow-sm"
+                className="rounded-xl bg-[#B8860B]/90 text-white px-4 py-3.5 sm:py-2.5 text-sm sm:text-xs font-semibold hover:bg-[#A0780A] transition border border-[#C9B46A]/40 shadow-sm min-h-[44px] leading-tight"
                 title={lang === "es" ? "Guardar progreso" : "Save progress"}
               >
-                {saveFeedback ? (lang === "es" ? "Guardado" : "Saved") : (lang === "es" ? "Guardar" : "Save")}
+                {saveFeedbackMessage === "saved" ? (lang === "es" ? "Guardado" : "Saved") : saveFeedbackMessage === "signin" ? (lang === "es" ? "Inicia sesión para guardar" : "Sign in to save") : (lang === "es" ? "Guardar" : "Save")}
               </button>
               <button
                 type="button"
                 onClick={handleShare}
-                className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F4EE] text-[#111111] px-3 py-2.5 text-xs font-semibold hover:bg-[#EFE7D8] transition"
+                className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F4EE] text-[#111111] px-4 py-3.5 sm:py-2.5 text-sm sm:text-xs font-semibold hover:bg-[#EFE7D8] transition min-h-[44px] leading-tight"
                 title={lang === "es" ? "Compartir enlace" : "Share link"}
               >
                 {shareFeedback ? (lang === "es" ? "¡Copiado!" : "Copied!") : (lang === "es" ? "Compartir" : "Share")}
@@ -1075,14 +1079,14 @@ function PrivateBrPreviewContent(props: {
               <button
                 type="button"
                 onClick={() => setContactSheet("solicitar")}
-                className="rounded-xl bg-[#2D5016] text-white px-3 py-2.5 text-xs font-semibold hover:bg-[#244012] transition border border-[#2D5016]/80 min-w-0"
+                className="rounded-xl bg-[#2D5016] text-white px-4 py-3.5 sm:py-2.5 text-sm sm:text-xs font-semibold hover:bg-[#244012] transition border border-[#2D5016]/80 min-w-0 min-h-[44px] leading-tight"
               >
                 {lang === "es" ? "Solicitar información" : "Request info"}
               </button>
               <button
                 type="button"
                 onClick={() => setContactSheet("visita")}
-                className="rounded-xl border-2 border-[#2D5016]/70 bg-[#2D5016]/08 text-[#2D5016] px-3 py-2.5 text-xs font-semibold hover:bg-[#2D5016]/15 transition min-w-0"
+                className="rounded-xl border-2 border-[#2D5016]/70 bg-[#2D5016]/08 text-[#2D5016] px-4 py-3.5 sm:py-2.5 text-sm sm:text-xs font-semibold hover:bg-[#2D5016]/15 transition min-w-0 min-h-[44px] leading-tight"
               >
                 {lang === "es" ? "Programar visita" : "Schedule visit"}
               </button>
@@ -1091,13 +1095,13 @@ function PrivateBrPreviewContent(props: {
         </div>
       </div>
       {/* Bottom: Descripción + Detalles de la propiedad (private BR only) */}
-      <div className="mt-8 space-y-8 max-w-2xl">
+      <div className="mt-6 sm:mt-8 space-y-6 sm:space-y-8 max-w-2xl">
         <section>
           <h3 className="text-lg font-bold text-[#111111] mb-3 flex items-center gap-2 pb-2 border-b border-[#C9B46A]/30">
             <span className="w-1 h-6 rounded-full bg-[#C9B46A]/60" aria-hidden />
             {lang === "es" ? "Descripción" : "About this property"}
           </h3>
-          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5 text-[#111111] leading-relaxed whitespace-pre-wrap">
+          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-4 sm:p-5 text-[#111111] leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
             {(description ?? "").trim() ? description.trim() : (lang === "es" ? "Sin descripción." : "No description.")}
           </div>
         </section>
@@ -1154,10 +1158,10 @@ function PrivateBrPreviewContent(props: {
                         <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
                         {lang === "es" ? "Interior" : "Interior"}
                       </h4>
-                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {interiorRows.map((r) => (
-                          <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
-                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                          <div key={r.label} className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-center rounded-lg bg-[#F8F6F0]/80 px-4 py-3 sm:px-3 sm:py-2">
+                            <dt className="text-xs sm:text-sm text-[#111111]/80">{r.label}</dt>
                             <dd className="text-sm font-medium text-[#111111]">{r.value}</dd>
                           </div>
                         ))}
@@ -1170,10 +1174,10 @@ function PrivateBrPreviewContent(props: {
                         <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
                         {lang === "es" ? "Exterior / Terreno" : "Exterior / Lot"}
                       </h4>
-                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {exteriorRows.map((r) => (
-                          <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
-                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                          <div key={r.label} className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-center rounded-lg bg-[#F8F6F0]/80 px-4 py-3 sm:px-3 sm:py-2">
+                            <dt className="text-xs sm:text-sm text-[#111111]/80">{r.label}</dt>
                             <dd className="text-sm font-medium text-[#111111]">{r.value}</dd>
                           </div>
                         ))}
@@ -1186,10 +1190,10 @@ function PrivateBrPreviewContent(props: {
                         <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
                         {lang === "es" ? "Información adicional" : "Additional info"}
                       </h4>
-                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {extraRows.map((r) => (
-                          <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
-                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
+                          <div key={r.label} className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-center rounded-lg bg-[#F8F6F0]/80 px-4 py-3 sm:px-3 sm:py-2">
+                            <dt className="text-xs sm:text-sm text-[#111111]/80">{r.label}</dt>
                             <dd className="text-sm font-medium text-[#111111] break-all">{r.value}</dd>
                           </div>
                         ))}
@@ -1202,11 +1206,11 @@ function PrivateBrPreviewContent(props: {
                         <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
                         {lang === "es" ? "Multimedia" : "Multimedia"}
                       </h4>
-                      <dl className="grid grid-cols-1 gap-2">
+                      <dl className="grid grid-cols-1 gap-3">
                         {multiRows.map((r) => (
-                          <div key={r.label} className="rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
-                            <dt className="text-sm text-[#111111]/80">{r.label}</dt>
-                            <dd className="text-sm font-medium text-[#111111] mt-0.5 break-all">
+                          <div key={r.label} className="rounded-lg bg-[#F8F6F0]/80 px-4 py-3 sm:px-3 sm:py-2">
+                            <dt className="text-xs sm:text-sm text-[#111111]/80">{r.label}</dt>
+                            <dd className="text-sm font-medium text-[#111111] mt-1 break-all">
                               <a href={r.value} target="_blank" rel="noopener noreferrer" className="text-[#A98C2A] hover:underline">{r.value}</a>
                             </dd>
                           </div>
@@ -1334,17 +1338,17 @@ function PrivateBrPreviewContent(props: {
               {hasEmail && (
                 <div>
                   <p className="text-xs font-medium text-[#111111]/70 mb-2">{lang === "es" ? "Email" : "Email"}</p>
-                  <div className="space-y-1.5">
-                    <a href={gmailUrl} target="_blank" rel="noopener noreferrer" onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition">
+                  <div className="space-y-2">
+                    <a href={gmailUrl} target="_blank" rel="noopener noreferrer" onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition min-h-[44px]">
                       {lang === "es" ? "Abrir Gmail" : "Open Gmail"}
                     </a>
-                    <a href={yahooUrl} target="_blank" rel="noopener noreferrer" onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition">
+                    <a href={yahooUrl} target="_blank" rel="noopener noreferrer" onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition min-h-[44px]">
                       {lang === "es" ? "Abrir Yahoo Mail" : "Open Yahoo Mail"}
                     </a>
-                    <button type="button" onClick={copyEmail} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition text-left">
+                    <button type="button" onClick={copyEmail} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition text-left min-h-[44px]">
                       {lang === "es" ? "Copiar email" : "Copy email"}
                     </button>
-                    <a href={mailtoUrl} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition">
+                    <a href={mailtoUrl} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition min-h-[44px]">
                       {lang === "es" ? "Usar app predeterminada" : "Use default app"}
                     </a>
                   </div>
@@ -1353,20 +1357,20 @@ function PrivateBrPreviewContent(props: {
               {hasPhone && (
                 <div>
                   <p className="text-xs font-medium text-[#111111]/70 mb-2">{lang === "es" ? "Teléfono" : "Phone"}</p>
-                  <div className="space-y-1.5">
-                    <button type="button" onClick={copyPhone} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition text-left">
+                  <div className="flex flex-col space-y-2">
+                    <button type="button" onClick={copyPhone} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition text-left min-h-[44px] order-3 sm:order-1">
                       {lang === "es" ? "Copiar teléfono" : "Copy phone"}
                     </button>
-                    <a href={`tel:${phoneDigits}`} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition">
+                    <a href={`tel:${phoneDigits}`} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition min-h-[44px] order-1 sm:order-2">
                       {lang === "es" ? "Llamar" : "Call"}
                     </a>
-                    <a href={`sms:${phoneDigits}?body=${encodeURIComponent(msg)}`} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition">
+                    <a href={`sms:${phoneDigits}?body=${encodeURIComponent(msg)}`} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3.5 sm:py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition min-h-[44px] order-2 sm:order-3">
                       {lang === "es" ? "Texto / SMS" : "Text / SMS"}
                     </a>
                   </div>
                 </div>
               )}
-              <button type="button" onClick={() => setContactSheet(null)} className="w-full rounded-xl border border-black/15 py-3 text-sm font-medium text-[#111111] hover:bg-[#F5F5F5] transition">
+              <button type="button" onClick={() => setContactSheet(null)} className="w-full rounded-xl border border-black/15 py-3.5 sm:py-3 text-sm font-medium text-[#111111] hover:bg-[#F5F5F5] transition min-h-[44px]">
                 {lang === "es" ? "Cancelar" : "Cancel"}
               </button>
             </div>
