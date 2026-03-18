@@ -15,6 +15,7 @@ import {
   FiUsers,
   FiMapPin,
 } from "react-icons/fi";
+import { MdOutlineBed, MdOutlineBathtub, MdOutlineSquareFoot } from "react-icons/md";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../../../lib/supabase/browser";
 import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
 import {
@@ -5177,27 +5178,33 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   </div>
                                   {(() => {
                                     const d = details;
-                                    const parts: Array<{ num: string; label: string } | "posted"> = [];
+                                    type Fact = { type: "bed"; value: string } | { type: "bath"; value: string } | { type: "sqft"; value: string; label: string } | { type: "posted" };
+                                    const parts: Fact[] = [];
                                     const br = (d.enVentaBedrooms ?? "").trim();
-                                    if (br) parts.push({ num: br, label: lang === "es" ? "rec" : "bed" });
+                                    if (br) parts.push({ type: "bed", value: br });
                                     const ba = (d.enVentaBathrooms ?? "").trim();
-                                    if (ba) parts.push({ num: ba, label: lang === "es" ? "ba" : "ba" });
+                                    if (ba) parts.push({ type: "bath", value: ba });
                                     const sqRaw = (d.enVentaSquareFeet ?? "").trim();
                                     if (sqRaw) {
                                       const sqNum = sqRaw.replace(/[^0-9]/g, "");
                                       const sqDisplay = sqNum && Number.isFinite(Number(sqNum)) ? Number(sqNum).toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
-                                      parts.push({ num: sqDisplay, label: lang === "es" ? "pies²" : "sq ft" });
+                                      parts.push({ type: "sqft", value: sqDisplay, label: lang === "es" ? "pies²" : "sq ft" });
                                     }
-                                    parts.push("posted");
+                                    parts.push({ type: "posted" });
+                                    const iconClass = "w-3.5 h-3.5 text-[#111111]/50 flex-shrink-0";
                                     return parts.length > 0 ? (
-                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 py-1.5 text-[11px] leading-relaxed">
+                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5 text-[11px] leading-relaxed">
                                         {parts.map((p, i) => (
-                                          <span key={i} className="inline-flex items-center gap-0.5">
-                                            {i > 0 && <span className="text-[#111111]/35 select-none" aria-hidden>·</span>}
-                                            {p === "posted" ? (
-                                              <span className="text-[#111111]/70">{previewPosted}</span>
+                                          <span key={i} className="inline-flex items-center gap-1.5">
+                                            {i > 0 && <span className="text-[#111111]/30 select-none" aria-hidden>·</span>}
+                                            {p.type === "posted" ? (
+                                              <span className="text-[#111111]/65">{previewPosted}</span>
+                                            ) : p.type === "bed" ? (
+                                              <><MdOutlineBed className={iconClass} aria-hidden /><span className="font-bold text-[#111111]">{p.value}</span></>
+                                            ) : p.type === "bath" ? (
+                                              <><MdOutlineBathtub className={iconClass} aria-hidden /><span className="font-bold text-[#111111]">{p.value}</span></>
                                             ) : (
-                                              <><span className="font-bold text-[#111111]">{p.num}</span><span className="text-[#111111]/75">{p.label}</span></>
+                                              <><MdOutlineSquareFoot className={iconClass} aria-hidden /><span className="font-bold text-[#111111]">{p.value}</span><span className="text-[#111111]/70">{p.label}</span></>
                                             )}
                                           </span>
                                         ))}
