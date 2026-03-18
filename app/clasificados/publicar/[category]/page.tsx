@@ -714,6 +714,8 @@ function PrivateBrPreviewContent(props: {
   closeFullPreviewModal: () => void;
   handleFullPreviewConfirmPublish: () => void;
   publishing: boolean;
+  onSave?: () => void | Promise<void>;
+  onShare?: () => void | Promise<void>;
 }) {
   const {
     lang,
@@ -741,6 +743,8 @@ function PrivateBrPreviewContent(props: {
     closeFullPreviewModal,
     handleFullPreviewConfirmPublish,
     publishing,
+    onSave,
+    onShare,
   } = props;
 
   const confirmSectionRef = useRef<HTMLDivElement>(null);
@@ -754,7 +758,25 @@ function PrivateBrPreviewContent(props: {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxZoomIndex, setLightboxZoomIndex] = useState<number | null>(null);
   const [contactSheet, setContactSheet] = useState<"solicitar" | "visita" | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState(false);
   const n = images.length;
+  const handleSave = useCallback(() => {
+    if (typeof onSave === "function") {
+      void Promise.resolve(onSave()).then(() => {
+        setSaveFeedback(true);
+        setTimeout(() => setSaveFeedback(false), 2000);
+      });
+    }
+  }, [onSave]);
+  const handleShare = useCallback(() => {
+    if (typeof onShare === "function") {
+      void Promise.resolve(onShare()).then(() => {
+        setShareFeedback(true);
+        setTimeout(() => setShareFeedback(false), 2000);
+      });
+    }
+  }, [onShare]);
   const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -935,38 +957,56 @@ function PrivateBrPreviewContent(props: {
               )}
             </div>
           </div>
-        {/* E. Right private seller card */}
+        {/* E. Right private seller card: info + 2x2 action grid */}
         <div className="lg:col-span-4">
-          <div ref={contactoRef} id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm scroll-mt-4">
-            <h4 className="text-sm font-bold text-[#111111] mb-1 flex items-center gap-2">
-              <span className="w-1 h-5 rounded-full bg-[#C9B46A]/50" aria-hidden />
-              {lang === "es" ? "Contactar" : "Contact"}
-            </h4>
-            <p className="text-base font-semibold text-[#111111]">
-              {sellerDisplayName.trim() || (lang === "es" ? "Propietario" : "Owner")}
-            </p>
-            {previewPhone && (
-              <p className="mt-2 text-sm text-[#111111]">
-                <a href={`tel:${previewPhone.replace(/\D/g, "")}`} className="font-medium hover:underline">{previewPhone}</a>
+          <div ref={contactoRef} id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm scroll-mt-4 space-y-5">
+            <div>
+              <h4 className="text-sm font-bold text-[#111111] mb-1 flex items-center gap-2">
+                <span className="w-1 h-5 rounded-full bg-[#C9B46A]/50" aria-hidden />
+                {lang === "es" ? "Contactar" : "Contact"}
+              </h4>
+              <p className="text-base font-semibold text-[#111111] mt-2">
+                {sellerDisplayName.trim() || (lang === "es" ? "Propietario" : "Owner")}
               </p>
-            )}
-            {previewEmail && (
-              <p className="mt-1 text-sm text-[#111111]">
-                <a href={`mailto:${previewEmail}`} className="font-medium hover:underline break-all">{previewEmail}</a>
-              </p>
-            )}
-            <div className="mt-4 flex flex-col gap-2">
+              {previewPhone && (
+                <p className="mt-2 text-sm text-[#111111]">
+                  <a href={`tel:${previewPhone.replace(/\D/g, "")}`} className="font-medium hover:underline">{previewPhone}</a>
+                </p>
+              )}
+              {previewEmail && (
+                <p className="mt-1 text-sm text-[#111111]">
+                  <a href={`mailto:${previewEmail}`} className="font-medium hover:underline break-all">{previewEmail}</a>
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-xl bg-[#B8860B]/90 text-white px-3 py-2.5 text-xs font-semibold hover:bg-[#A0780A] transition border border-[#C9B46A]/40 shadow-sm"
+                title={lang === "es" ? "Guardar progreso" : "Save progress"}
+              >
+                {saveFeedback ? (lang === "es" ? "Guardado" : "Saved") : (lang === "es" ? "Guardar" : "Save")}
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F4EE] text-[#111111] px-3 py-2.5 text-xs font-semibold hover:bg-[#EFE7D8] transition"
+                title={lang === "es" ? "Compartir enlace" : "Share link"}
+              >
+                {shareFeedback ? (lang === "es" ? "¡Copiado!" : "Copied!") : (lang === "es" ? "Compartir" : "Share")}
+              </button>
               <button
                 type="button"
                 onClick={() => setContactSheet("solicitar")}
-                className="w-full rounded-xl bg-[#2D5016] text-white px-4 py-3 text-sm font-semibold hover:bg-[#244012] transition"
+                className="rounded-xl bg-[#2D5016] text-white px-3 py-2.5 text-xs font-semibold hover:bg-[#244012] transition border border-[#2D5016]/80 min-w-0"
               >
                 {lang === "es" ? "Solicitar información" : "Request info"}
               </button>
               <button
                 type="button"
                 onClick={() => setContactSheet("visita")}
-                className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] px-4 py-3 text-sm font-semibold hover:bg-[#EFE7D8] transition"
+                className="rounded-xl border-2 border-[#2D5016]/70 bg-[#2D5016]/08 text-[#2D5016] px-3 py-2.5 text-xs font-semibold hover:bg-[#2D5016]/15 transition min-w-0"
               >
                 {lang === "es" ? "Programar visita" : "Schedule visit"}
               </button>
@@ -1175,61 +1215,84 @@ function PrivateBrPreviewContent(props: {
           </div>
         </div>
       )}
-      {/* Contact action sheet: Llamar / Email / Texto */}
-      {contactSheet && (hasPhone || hasEmail) && (
-        <div
-          className="fixed inset-0 z-[99] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label={lang === "es" ? "Opciones de contacto" : "Contact options"}
-          onClick={() => setContactSheet(null)}
-        >
+      {/* Contact chooser: desktop-friendly (Gmail, Yahoo, Copy) + phone options */}
+      {contactSheet && (hasPhone || hasEmail) && (() => {
+        const msg = contactSheet === "solicitar" ? msgSolicitar : msgVisita;
+        const emailAddr = (previewEmail ?? "").trim();
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailAddr)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(msg)}`;
+        const yahooUrl = `https://compose.mail.yahoo.com/?to=${encodeURIComponent(emailAddr)}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(msg)}`;
+        const mailtoUrl = `mailto:${encodeURIComponent(emailAddr)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(msg)}`;
+        const copyEmail = () => {
+          if (typeof navigator !== "undefined" && navigator.clipboard) {
+            navigator.clipboard.writeText(emailAddr).catch(() => {});
+          }
+          setContactSheet(null);
+        };
+        const copyPhone = () => {
+          if (typeof navigator !== "undefined" && navigator.clipboard) {
+            navigator.clipboard.writeText(previewPhone ?? "").catch(() => {});
+          }
+          setContactSheet(null);
+        };
+        return (
           <div
-            className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl p-4 pb-safe space-y-2"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[99] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={lang === "es" ? "Opciones de contacto" : "Contact options"}
+            onClick={() => setContactSheet(null)}
           >
-            <p className="text-sm font-semibold text-[#111111] pb-2 border-b border-black/10">
-              {contactSheet === "solicitar"
-                ? (lang === "es" ? "Solicitar información" : "Request info")
-                : (lang === "es" ? "Programar visita" : "Schedule visit")}
-            </p>
-            {hasPhone && (
-              <>
-                <a
-                  href={`tel:${phoneDigits}`}
-                  onClick={() => setContactSheet(null)}
-                  className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition"
-                >
-                  {lang === "es" ? "Llamar" : "Call"}
-                </a>
-                <a
-                  href={`sms:${phoneDigits}?body=${encodeURIComponent(contactSheet === "solicitar" ? msgSolicitar : msgVisita)}`}
-                  onClick={() => setContactSheet(null)}
-                  className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition"
-                >
-                  {lang === "es" ? "Texto / SMS" : "Text / SMS"}
-                </a>
-              </>
-            )}
-            {hasEmail && (
-              <a
-                href={`mailto:${encodeURIComponent((previewEmail ?? "").trim())}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(contactSheet === "solicitar" ? msgSolicitar : msgVisita)}`}
-                onClick={() => setContactSheet(null)}
-                className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition"
-              >
-                {lang === "es" ? "Email" : "Email"}
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={() => setContactSheet(null)}
-              className="w-full rounded-xl border border-black/15 py-3 text-sm font-medium text-[#111111] hover:bg-[#F5F5F5] transition"
+            <div
+              className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl p-4 pb-safe space-y-4 max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
             >
-              {lang === "es" ? "Cancelar" : "Cancel"}
-            </button>
+              <p className="text-sm font-semibold text-[#111111] pb-2 border-b border-black/10">
+                {contactSheet === "solicitar"
+                  ? (lang === "es" ? "Solicitar información" : "Request info")
+                  : (lang === "es" ? "Programar visita" : "Schedule visit")}
+              </p>
+              {hasEmail && (
+                <div>
+                  <p className="text-xs font-medium text-[#111111]/70 mb-2">{lang === "es" ? "Email" : "Email"}</p>
+                  <div className="space-y-1.5">
+                    <a href={gmailUrl} target="_blank" rel="noopener noreferrer" onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition">
+                      {lang === "es" ? "Abrir Gmail" : "Open Gmail"}
+                    </a>
+                    <a href={yahooUrl} target="_blank" rel="noopener noreferrer" onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition">
+                      {lang === "es" ? "Abrir Yahoo Mail" : "Open Yahoo Mail"}
+                    </a>
+                    <button type="button" onClick={copyEmail} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition text-left">
+                      {lang === "es" ? "Copiar email" : "Copy email"}
+                    </button>
+                    <a href={mailtoUrl} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition">
+                      {lang === "es" ? "Usar app predeterminada" : "Use default app"}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {hasPhone && (
+                <div>
+                  <p className="text-xs font-medium text-[#111111]/70 mb-2">{lang === "es" ? "Teléfono" : "Phone"}</p>
+                  <div className="space-y-1.5">
+                    <button type="button" onClick={copyPhone} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition text-left">
+                      {lang === "es" ? "Copiar teléfono" : "Copy phone"}
+                    </button>
+                    <a href={`tel:${phoneDigits}`} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition">
+                      {lang === "es" ? "Llamar" : "Call"}
+                    </a>
+                    <a href={`sms:${phoneDigits}?body=${encodeURIComponent(msg)}`} onClick={() => setContactSheet(null)} className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#111111]/80 hover:bg-[#E8E8E8] transition">
+                      {lang === "es" ? "Texto / SMS" : "Text / SMS"}
+                    </a>
+                  </div>
+                </div>
+              )}
+              <button type="button" onClick={() => setContactSheet(null)} className="w-full rounded-xl border border-black/15 py-3 text-sm font-medium text-[#111111] hover:bg-[#F5F5F5] transition">
+                {lang === "es" ? "Cancelar" : "Cancel"}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {/* Confirm block */}
       <div ref={confirmSectionRef} id="confirmar" className="mt-10 pt-8 border-t border-black/10 max-w-2xl space-y-3 scroll-mt-4">
         <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
@@ -3665,6 +3728,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
     }
   }, [isRentasPrivado, isBienesRaicesNegocio, isBienesRaicesPrivado, userId, performDbSave, draftId, step]);
 
+  const handleSharePreview = useCallback(() => {
+    if (typeof window === "undefined") return Promise.resolve();
+    const url = window.location.href;
+    const shareTitle = (title?.trim() || (lang === "es" ? "Vista previa" : "Preview")) + (lang === "es" ? " — Leonix" : " — Leonix");
+    if (navigator.share) {
+      return navigator.share({ title: shareTitle, url }).catch(() => navigator.clipboard?.writeText(url) ?? Promise.resolve());
+    }
+    return navigator.clipboard?.writeText(url) ?? Promise.resolve();
+  }, [title, lang]);
+
   // Open same preview in Pro mode (same data; Pro badge styling). Used for En Venta Pro comparison.
   const openProPreview = () => {
     setFullPreviewVariant("pro");
@@ -3912,6 +3985,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         closeFullPreviewModal={closeFullPreviewModal}
                         handleFullPreviewConfirmPublish={handleFullPreviewConfirmPublish}
                         publishing={publishing}
+                        onSave={userId ? performDbSave : undefined}
+                        onShare={handleSharePreview}
                       />
                     ) : (
                       <ListingView
