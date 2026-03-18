@@ -741,6 +741,17 @@ function PrivateBrPreviewContent(props: {
     publishing,
   } = props;
 
+  const confirmSectionRef = useRef<HTMLDivElement>(null);
+  const [heroStartIndex, setHeroStartIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const n = images.length;
+  const canCycle = n > 3;
+  const maxStart = Math.max(0, n - 3);
+  const safeStart = n ? Math.min(heroStartIndex, maxStart) : 0;
+  const primaryImage = n ? images[safeStart] : null;
+  const side1 = n > 1 ? images[(safeStart + 1) % n] : null;
+  const side2 = n > 2 ? images[(safeStart + 2) % n] : null;
+
   const addr = (details.enVentaAddress ?? "").trim();
   const zone = (details.enVentaZone ?? "").trim();
   const hasRealCity = rawCity.trim() !== "" && rawCity !== (lang === "es" ? "(Ciudad)" : "(City)");
@@ -764,8 +775,6 @@ function PrivateBrPreviewContent(props: {
   if (lotVal) featureTagsFromDetails.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
   const levelsVal = (details.enVentaLevels ?? "").trim();
   if (levelsVal) featureTagsFromDetails.push({ label: lang === "es" ? "Niveles" : "Levels", value: levelsVal });
-  const primaryImage = images[0];
-  const restImages = images.slice(1, 3);
   const hasPrice = rawPrice.trim() !== "" && /[\d]/.test(rawPrice.replace(/,/g, ""));
   const priceDisplay = hasPrice ? (formatMoneyMaybe(rawPrice, lang) || rawPrice.trim()) : (lang === "es" ? "Precio no indicado" : "Price not specified");
   const hasTitle = rawTitle.trim().length > 0;
@@ -773,91 +782,134 @@ function PrivateBrPreviewContent(props: {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* A. Top shell */}
-      <header className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] overflow-hidden mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-          <span className="text-lg font-bold text-[#111111]">{lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}</span>
-          <div className="flex-1 min-w-0 max-w-sm mx-auto px-2">
-            <div className="rounded-xl border border-[#C9B46A]/30 bg-white/95 px-4 py-2.5 text-sm text-[#111111]/50">
-              {lang === "es" ? "Buscar anuncios…" : "Search listings…"}
-            </div>
-          </div>
-          <span className="rounded-xl bg-[#2D5016] text-white px-4 py-2.5 text-sm font-semibold">{lang === "es" ? "Publicar" : "Post"}</span>
-        </div>
-      </header>
-      {/* B. Section nav row */}
-      <nav className="flex flex-wrap gap-2 mb-5" aria-label={lang === "es" ? "Secciones" : "Sections"}>
-        {[
-          { id: "resumen", es: "Resumen", en: "Summary" },
-          { id: "interior", es: "Interior", en: "Interior" },
-          { id: "exterior", es: "Exterior", en: "Exterior" },
-          { id: "detalles", es: "Detalles", en: "Details" },
-          { id: "ubicacion", es: "Ubicación", en: "Location" },
-          { id: "contacto", es: "Contacto", en: "Contact" },
-        ].map(({ id, es, en }) => (
-          <span key={id} className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0] px-3 py-2 text-xs font-medium text-[#111111]/90">
-            {lang === "es" ? es : en}
+      {/* Light beige panel wrapping top-half preview */}
+      <div className="rounded-2xl border border-[#C9B46A]/20 bg-[#F8F4EE] p-5 sm:p-6 shadow-sm">
+        {/* A. Header: brand + Publicar (no search) */}
+        <header className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/25 bg-white/80 px-4 py-2 text-base font-bold text-[#111111] shadow-sm">
+            {lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}
           </span>
-        ))}
-      </nav>
-      {/* C + D + E */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-5">
-          {/* C. Hero gallery: large main left, two stacked right */}
-          <div id="resumen">
-            {primaryImage ? (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div className="md:col-span-8 rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[220px]">
-                  <img src={primaryImage} alt="" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={() => confirmSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="rounded-xl bg-[#2D5016] text-white px-4 py-2.5 text-sm font-semibold hover:bg-[#244012] transition"
+          >
+            {lang === "es" ? "Publicar" : "Post"}
+          </button>
+        </header>
+        {/* B. Section nav row */}
+        <nav className="flex flex-wrap gap-2 mb-5" aria-label={lang === "es" ? "Secciones" : "Sections"}>
+          {[
+            { id: "resumen", es: "Resumen", en: "Summary" },
+            { id: "interior", es: "Interior", en: "Interior" },
+            { id: "exterior", es: "Exterior", en: "Exterior" },
+            { id: "detalles", es: "Detalles", en: "Details" },
+            { id: "ubicacion", es: "Ubicación", en: "Location" },
+            { id: "contacto", es: "Contacto", en: "Contact" },
+          ].map(({ id, es, en }) => (
+            <span key={id} className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0] px-3 py-2 text-xs font-medium text-[#111111]/90">
+              {lang === "es" ? es : en}
+            </span>
+          ))}
+        </nav>
+        {/* C + D + E */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 space-y-5">
+            {/* C. Hero gallery: main + two side slots; cycle when >3 images */}
+            <div id="resumen" className="relative">
+              {primaryImage ? (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="md:col-span-8 relative rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[220px]">
+                    <img src={primaryImage} alt="" className="w-full h-full object-cover" />
+                    {canCycle && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setHeroStartIndex((i) => Math.max(0, i - 1))}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-lg font-bold"
+                          aria-label={lang === "es" ? "Anterior" : "Previous"}
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHeroStartIndex((i) => Math.min(maxStart, i + 1))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center text-lg font-bold"
+                          aria-label={lang === "es" ? "Siguiente" : "Next"}
+                        >
+                          →
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div className="md:col-span-4 flex flex-col gap-2">
+                    {side1 ? (
+                      <div className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[90px]">
+                        <img src={side1} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[90px]" aria-hidden />
+                    )}
+                    {side2 ? (
+                      <div className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[90px]">
+                        <img src={side2} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[90px]" aria-hidden />
+                    )}
+                  </div>
                 </div>
-                <div className="md:col-span-4 flex flex-col gap-2">
-                  {restImages.slice(0, 2).map((url, i) => (
-                    <div key={i} className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[90px]">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                  {restImages.length === 0 && (
-                    <>
-                      <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[90px]" aria-hidden />
-                      <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[90px]" aria-hidden />
-                    </>
+              ) : (
+                <div className="rounded-xl bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[16/10] min-h-[200px] flex items-center justify-center">
+                  <span className="text-[#111111]/50 text-sm">{lang === "es" ? "Sin imagen" : "No image"}</span>
+                </div>
+              )}
+              {n > 0 && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  {canCycle && (
+                    <span className="text-[11px] text-[#111111]/60">
+                      {safeStart + 1}–{Math.min(safeStart + 3, n)} {lang === "es" ? "de" : "of"} {n}
+                    </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setLightboxOpen(true)}
+                    className="rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFE7D8] transition"
+                  >
+                    {lang === "es" ? "Ver todas las fotos" : "View all photos"}
+                  </button>
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-xl bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[16/10] min-h-[200px] flex items-center justify-center">
-                <span className="text-[#111111]/50 text-sm">{lang === "es" ? "Sin imagen" : "No image"}</span>
-              </div>
-            )}
-          </div>
-          {/* D. Main info: price, title, address, zone, facts, features */}
-          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5">
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
-              {priceDisplay}
+              )}
             </div>
-            <h2 className="mt-3 text-xl sm:text-2xl font-bold text-[#111111] leading-tight">
-              {titleDisplay}
-            </h2>
-            {mainLine && <p className="mt-3 text-sm text-[#111111]/85 font-medium">{mainLine}</p>}
-            {zone && <p className="mt-1 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}</p>}
-            {quickFacts.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {quickFacts.map((f) => (
-                  <span key={f.label} className="rounded-full border border-[#C9B46A]/35 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
-                    {f.label}: {f.value}
-                  </span>
-                ))}
+            {/* D. Main info: price, title, address, zone, facts, features */}
+            <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
+                {priceDisplay}
               </div>
-            )}
-            {featureTagsFromDetails.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {featureTagsFromDetails.map((item, i) => (
-                  <span key={i} className="rounded-lg border border-[#C9B46A]/25 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90">
-                    {item.label}: {item.value}
-                  </span>
-                ))}
-              </div>
-            )}
+              <h2 className="mt-3 text-xl sm:text-2xl font-bold text-[#111111] leading-tight">
+                {titleDisplay}
+              </h2>
+              {mainLine && <p className="mt-3 text-sm text-[#111111]/85 font-medium">{mainLine}</p>}
+              {zone && <p className="mt-1 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}</p>}
+              {quickFacts.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {quickFacts.map((f) => (
+                    <span key={f.label} className="rounded-full border border-[#C9B46A]/35 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                      {f.label}: {f.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {featureTagsFromDetails.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {featureTagsFromDetails.map((item, i) => (
+                    <span key={i} className="rounded-lg border border-[#C9B46A]/25 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90">
+                      {item.label}: {item.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {/* E. Right private seller card */}
@@ -890,8 +942,37 @@ function PrivateBrPreviewContent(props: {
           </div>
         </div>
       </div>
+      </div>
+      {/* Lightbox: all photos inside preview modal */}
+      {lightboxOpen && n > 0 && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === "es" ? "Galería de fotos" : "Photo gallery"}
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 z-10 rounded-full bg-white/90 text-[#111111] w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-white"
+            aria-label={lang === "es" ? "Cerrar" : "Close"}
+          >
+            ×
+          </button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-4xl w-full">
+            {images.map((url, i) => (
+              <div key={i} className="rounded-lg overflow-hidden bg-[#222] aspect-square">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+          </div>
+        </div>
+      )}
       {/* Confirm block */}
-      <div className="mt-10 pt-8 border-t border-black/10 max-w-2xl space-y-3">
+      <div ref={confirmSectionRef} className="mt-10 pt-8 border-t border-black/10 max-w-2xl space-y-3">
         <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
           <input
             type="checkbox"
