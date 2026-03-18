@@ -534,11 +534,7 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     if (brBranch === "negocio") {
       const negocioNombre = (details.negocioNombre ?? "").trim() || (details.enVentaBusinessName ?? "").trim();
       if (negocioNombre) out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
-      const rentasTier = (details.rentasTier ?? "").trim();
-      if (rentasTier) {
-        const tierOpt = RENTAS_NEGOCIO_TIER_OPTIONS.find((o) => o.value === rentasTier);
-        out.push({ label: lang === "es" ? "Plan" : "Plan", value: tierOpt ? (lang === "es" ? tierOpt.label.es : tierOpt.label.en) : rentasTier });
-      }
+      out.push({ label: lang === "es" ? "Plan" : "Plan", value: lang === "es" ? "Negocio" : "Business" });
       const negocioAgente = (details.negocioAgente ?? "").trim() || (details.enVentaAgentName ?? "").trim();
       if (negocioAgente) out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
     }
@@ -948,7 +944,7 @@ export default function PublicarPage() {
   /** Bienes Raíces negocio gets premium media (12 images, 1 video) like Rentas premium. */
   const isBienesRaicesNegocio = categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim() === "negocio";
   const effectiveIsPro = isPro || isRentasPrivado || isBienesRaicesNegocio;
-  const maxImages = isRentasPrivado ? 15 : (effectiveIsPro ? 12 : 3);
+  const maxImages = isRentasPrivado ? 15 : (categoryFromUrl === "bienes-raices" ? 12 : (effectiveIsPro ? 12 : 3));
 
   // If plan changes to Free, trim images to Free limit (3). Rentas Privado keeps Pro limits.
   useEffect(() => {
@@ -2282,7 +2278,6 @@ export default function PublicarPage() {
         rentasNegocioContactOk);
     const bienesRaicesBranch = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
     const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
-    const brTier = (s.details.rentasTier ?? "").trim();
     const brDescription = (s.details.enVentaFullDescription ?? "").trim();
     const brPt = (s.details.enVentaPropertyType ?? "").trim();
     const brPrivadoCoreOk = !!(s.details.enVentaPropertyType ?? "").trim() && brDescription.length >= 5;
@@ -2306,8 +2301,7 @@ export default function PublicarPage() {
           ? !!(s.details.enVentaBedrooms ?? "").trim() &&
             !!(s.details.enVentaBathrooms ?? "").trim() &&
             !!(s.details.enVentaSquareFeet ?? "").trim() &&
-            !!(s.details.enVentaBusinessName ?? "").trim() &&
-            (brTier === "business_standard" || brTier === "business_plus")
+            !!(s.details.enVentaBusinessName ?? "").trim()
           : brPrivadoTypeOk)
       );
     return {
@@ -2769,8 +2763,7 @@ async function publish() {
       if (snap.category === "bienes-raices") {
         insertPayload.seller_type = bienesRaicesBranch === "negocio" ? "business" : "personal";
         if (isBienesRaicesNegocio) {
-          const tier = (snap.details.rentasTier ?? "").trim();
-          insertPayload.rentas_tier = tier === "business_plus" ? "plus" : "standard";
+          insertPayload.rentas_tier = "negocio";
           insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
           const businessMeta: Record<string, string> = {};
           for (const k of BUSINESS_META_KEYS) {
@@ -2852,7 +2845,7 @@ async function publish() {
 
 
 // Pro video upload (optional, Pro-only). BR negocio: 1 video; others: up to 2.
-const videoLimit = isBienesRaicesNegocio ? 1 : 2;
+const videoLimit = categoryFromUrl === "bienes-raices" ? 1 : 2;
 for (let vi = 0; vi < videoLimit; vi++) {
   const videoFile = videoFiles[vi];
   const videoThumbBlob = videoThumbBlobs[vi];
@@ -2966,7 +2959,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
         }
       } catch { /* ignore */ }
       base.category = "bienes-raices";
-      base.businessRailTier = (d.rentasTier ?? "").trim() === "business_plus" ? "business_plus" : "business_standard";
+      base.businessRailTier = "business_plus";
       base.businessRail = {
         name: (d.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business"),
         agent: (d.negocioAgente ?? "").trim(),
@@ -2995,7 +2988,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       setFullPreviewRulesConfirmed(false);
       setFullPreviewInfoConfirmed(false);
       setShowFullPreviewModal(true);
-    } else if (isBienesRaicesNegocio && (details.rentasTier ?? "").trim() === "business_plus") {
+    } else if (isBienesRaicesNegocio) {
       setFullPreviewVariant("pro");
       setFullPreviewRulesConfirmed(false);
       setFullPreviewInfoConfirmed(false);
@@ -3666,13 +3659,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             ? "Vendo mi propia propiedad como persona."
                             : "Selling my own property as an individual."}
                         </p>
+                        <p className="mt-2 text-sm font-semibold text-[#111111]">
+                          {lang === "es" ? "$49.99 por anuncio" : "$49.99 per post"}
+                        </p>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => {
-                          setDetails((prev) => ({ ...prev, bienesRaicesBranch: "negocio" }));
-                          syncBrBranchInUrl("negocio");
+                          setDetails((prev) => ({ ...prev, bienesRaicesBranch: "negocio", rentasTier: "" }));
+                          goToStep("basics", { branch: "negocio" });
                         }}
                         className={cx(
                           "rounded-2xl border p-5 text-left transition-all",
@@ -3690,122 +3686,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             ? "Agentes, brokers, inmobiliarias, desarrolladores o empresas."
                             : "Agents, brokers, offices, developers, or commercial real estate."}
                         </p>
+                        <p className="mt-2 text-sm font-semibold text-[#111111]">
+                          {lang === "es" ? "$89.99/semana o $329.99/mes" : "$89.99/week or $329.99/month"}
+                        </p>
                       </button>
                     </div>
-
-                    {details.bienesRaicesBranch === "negocio" && (
-                      <div className="mt-8">
-                        <h3 className="text-base font-semibold text-[#111111] mb-1">
-                          {lang === "es" ? "Elige tu plan" : "Choose your plan"}
-                        </h3>
-                        <p className="text-sm text-[#111111]/80 mb-4">
-                          {lang === "es"
-                            ? "Mismo producto para agentes y profesionales inmobiliarios. Plus incluye más visibilidad y el módulo de más anuncios de tu compañía."
-                            : "Same product for agents and real estate professionals. Plus includes stronger visibility and the same-company listings module."}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Negocio Standard */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDetails((prev) => ({ ...prev, rentasTier: "business_standard" }));
-                              goToStep("basics");
-                            }}
-                            className={cx(
-                              "rounded-2xl border p-5 text-left transition-all",
-                              "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
-                              details.rentasTier === "business_standard"
-                                ? "border-yellow-400/50 bg-[#FAFAF8] ring-1 ring-yellow-400/25 shadow-sm"
-                                : "border-black/12 bg-white hover:border-yellow-400/30 hover:bg-[#FAFAFA] hover:shadow-sm"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-lg font-bold text-[#111111]">
-                                {lang === "es" ? "Negocio Standard" : "Business Standard"}
-                              </span>
-                              {details.rentasTier === "business_standard" && (
-                                <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
-                                  {lang === "es" ? "Seleccionado" : "Selected"}
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-2 text-base font-semibold text-[#111111]">
-                              {lang === "es" ? "$24.99/semana o $89.99/mes" : "$24.99/week or $89.99/month"}
-                            </p>
-                            <ul className="mt-3 space-y-1.5 text-sm text-[#111111]/85">
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "Identidad de negocio en el anuncio (nombre, agente, contacto)" : "Business identity on listing (name, agent, contact)"}
-                              </li>
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "Ficha profesional en resultados y en la página del anuncio" : "Professional card in results and on the listing page"}
-                              </li>
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "1 anuncio activo incluido" : "1 active listing included"}
-                              </li>
-                            </ul>
-                          </button>
-                          {/* Negocio Plus */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDetails((prev) => ({ ...prev, rentasTier: "business_plus" }));
-                              goToStep("basics");
-                            }}
-                            className={cx(
-                              "rounded-2xl border p-5 text-left transition-all",
-                              "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
-                              details.rentasTier === "business_plus"
-                                ? "border-yellow-300/60 bg-[#FAFAF8] ring-1 ring-yellow-300/30 shadow-[0_0_0_1px_rgba(250,204,21,0.15)]"
-                                : "border-black/12 bg-white hover:border-yellow-300/40 hover:bg-[#FAFAFA] hover:shadow-sm"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-lg font-bold text-[#111111]">
-                                {lang === "es" ? "Negocio Plus" : "Business Plus"}
-                              </span>
-                              {details.rentasTier === "business_plus" ? (
-                                <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
-                                  {lang === "es" ? "Seleccionado" : "Selected"}
-                                </span>
-                              ) : (
-                                <span className="rounded-full border border-yellow-400/50 bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
-                                  {lang === "es" ? "Más completo" : "Premium"}
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-2 text-base font-semibold text-[#111111]">
-                              {lang === "es" ? "$49.99/semana o $179.99/mes" : "$49.99/week or $179.99/month"}
-                            </p>
-                            <ul className="mt-3 space-y-1.5 text-sm text-[#111111]/85">
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "Todo lo de Standard" : "Everything in Standard"}
-                              </li>
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "Módulo «Más anuncios de esta compañía» en tu ficha" : "“More listings from this company” module on your listing"}
-                              </li>
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "Presentación premium en listados y ficha abierta" : "Premium presentation on result cards and open listing"}
-                              </li>
-                              <li className="flex gap-2">
-                                <span className="text-yellow-600/80 shrink-0" aria-hidden>•</span>
-                                {lang === "es" ? "Hasta 3 anuncios activos, 2 impulsos por ciclo" : "Up to 3 active listings, 2 boosts per cycle"}
-                              </li>
-                            </ul>
-                          </button>
-                        </div>
-                        <p className="mt-4 text-xs text-[#111111]/70">
-                          <Link href={`/clasificados/membresias?lang=${lang}`} className="underline hover:no-underline text-[#111111]/90">
-                            {lang === "es" ? "Ver todos los planes y comparativa" : "View all plans and comparison"}
-                          </Link>
-                        </p>
-                      </div>
-                    )}
 
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
@@ -4017,12 +3902,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </p>
                               <p className="mt-1 text-sm font-medium text-[#111111]">
                                 {details.bienesRaicesBranch === "negocio"
-                                  ? (lang === "es" ? "Negocio" : "Business") +
-                                    (details.rentasTier === "business_plus"
-                                      ? " — Plus"
-                                      : details.rentasTier === "business_standard"
-                                        ? " — Standard"
-                                        : "")
+                                  ? (lang === "es" ? "Negocio" : "Business")
                                   : (lang === "es" ? "Privado" : "Private")}
                               </p>
                             </div>
@@ -4836,7 +4716,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                                 />
                               </div>
-                              {details.rentasTier === "business_plus" && (
+                              {((details.rentasTier ?? "").trim() === "business_plus" || (details.bienesRaicesBranch ?? "").trim() === "negocio") && (
                                 <div className="sm:col-span-2">
                                   <label className="flex items-center gap-2 text-sm text-[#111111]">
                                     <input
@@ -5203,7 +5083,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             : undefined
                         }
                         onBeforeProNavigate={categoryFromUrl === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
-                        maxVideos={isBienesRaicesNegocio ? 1 : (isRentasPrivado ? 1 : 2)}
+                        maxVideos={categoryFromUrl === "bienes-raices" ? 1 : (isRentasPrivado ? 1 : 2)}
                         copy={{
                           addImages: copy.addImages,
                           addVideo: copy.addVideo,
@@ -5397,24 +5277,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   {lang === "es" ? "Vista previa" : "Preview"}
                                 </button>
                               ) : isBienesRaicesNegocio ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={openFullPreview}
-                                    className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  >
-                                    {lang === "es" ? "Vista previa" : "Preview"}
-                                  </button>
-                                  {(details.rentasTier ?? "").trim() !== "business_plus" && (
-                                    <button
-                                      type="button"
-                                      onClick={openProPreview}
-                                      className="w-full rounded-xl border border-[#111111]/20 bg-white py-2.5 text-sm font-semibold text-[#111111]/90 hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                    >
-                                      {lang === "es" ? "Ver plan Plus" : "See Plus plan"}
-                                    </button>
-                                  )}
-                                </>
+                                <button
+                                  type="button"
+                                  onClick={openFullPreview}
+                                  className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                >
+                                  {lang === "es" ? "Vista previa" : "Preview"}
+                                </button>
                               ) : (
                                 <>
                                   <button
