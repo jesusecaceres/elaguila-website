@@ -687,12 +687,12 @@ function buildEnVentaDraftSnapshot(params: {
   };
 }
 
-/** Dedicated full-preview content for private bienes-raices (no ListingView). Matches mockup: Leonix shell, section nav, hero gallery, main info, private seller card, then confirm block. */
+/** Dedicated full-preview content for private bienes-raices (no ListingView). Uses raw form fields; only shows placeholders when field is truly blank. */
 function PrivateBrPreviewContent(props: {
   lang: Lang;
-  previewPrice: string;
-  previewTitle: string;
-  previewCity: string;
+  rawPrice: string;
+  rawTitle: string;
+  rawCity: string;
   details: Record<string, string>;
   previewDetailPairs: Array<{ label: string; value: string }>;
   images: string[];
@@ -716,9 +716,9 @@ function PrivateBrPreviewContent(props: {
 }) {
   const {
     lang,
-    previewPrice,
-    previewTitle,
-    previewCity,
+    rawPrice,
+    rawTitle,
+    rawCity,
     details,
     previewDetailPairs,
     images,
@@ -743,13 +743,13 @@ function PrivateBrPreviewContent(props: {
 
   const addr = (details.enVentaAddress ?? "").trim();
   const zone = (details.enVentaZone ?? "").trim();
-  const mainLine = addr || previewCity;
+  const hasRealCity = rawCity.trim() !== "" && rawCity !== (lang === "es" ? "(Ciudad)" : "(City)");
+  const mainLine = addr ? addr : hasRealCity ? rawCity.trim() : "";
   const br = (details.enVentaBedrooms ?? "").trim();
   const ba = (details.enVentaBathrooms ?? "").trim();
   const sqRaw = (details.enVentaSquareFeet ?? "").trim();
-  const sqDisplay = sqRaw && /^\d+$/.test(sqRaw.replace(/,/g, ""))
-    ? Number(sqRaw.replace(/,/g, "")).toLocaleString(lang === "es" ? "es-US" : "en-US")
-    : sqRaw;
+  const sqNum = sqRaw ? Number(sqRaw.replace(/,/g, "").replace(/\s/g, "").trim()) : NaN;
+  const sqDisplay = Number.isFinite(sqNum) ? sqNum.toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
   const quickFacts = [
     br && { label: lang === "es" ? "Recámaras" : "Bedrooms", value: br },
     ba && { label: lang === "es" ? "Baños" : "Bathrooms", value: ba },
@@ -761,24 +761,28 @@ function PrivateBrPreviewContent(props: {
     .map((p) => (p.label ?? "").trim())
     .slice(0, 6);
   const primaryImage = images[0];
-  const restImages = images.slice(1, 4);
+  const restImages = images.slice(1, 3);
+  const hasPrice = rawPrice.trim() !== "" && /[\d]/.test(rawPrice.replace(/,/g, ""));
+  const priceDisplay = hasPrice ? (formatMoneyMaybe(rawPrice, lang) || rawPrice.trim()) : (lang === "es" ? "Precio no indicado" : "Price not specified");
+  const hasTitle = rawTitle.trim().length > 0;
+  const titleDisplay = hasTitle ? rawTitle.trim() : (lang === "es" ? "(Sin título)" : "(No title)");
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* A. Leonix shell */}
+      {/* A. Top shell */}
       <header className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] overflow-hidden mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <span className="text-base font-bold text-[#111111]">{lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}</span>
-          <div className="flex-1 min-w-0 max-w-xs mx-auto">
-            <div className="rounded-lg border border-[#C9B46A]/30 bg-white/90 px-3 py-2 text-sm text-[#111111]/50">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+          <span className="text-lg font-bold text-[#111111]">{lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}</span>
+          <div className="flex-1 min-w-0 max-w-sm mx-auto px-2">
+            <div className="rounded-xl border border-[#C9B46A]/30 bg-white/95 px-4 py-2.5 text-sm text-[#111111]/50">
               {lang === "es" ? "Buscar anuncios…" : "Search listings…"}
             </div>
           </div>
-          <span className="rounded-lg bg-[#2D5016] text-white px-3 py-2 text-sm font-semibold">{lang === "es" ? "Publicar" : "Post"}</span>
+          <span className="rounded-xl bg-[#2D5016] text-white px-4 py-2.5 text-sm font-semibold">{lang === "es" ? "Publicar" : "Post"}</span>
         </div>
       </header>
-      {/* B. Section nav */}
-      <nav className="flex flex-wrap gap-2 mb-6" aria-label={lang === "es" ? "Secciones" : "Sections"}>
+      {/* B. Section nav row */}
+      <nav className="flex flex-wrap gap-2 mb-5" aria-label={lang === "es" ? "Secciones" : "Sections"}>
         {[
           { id: "resumen", es: "Resumen", en: "Summary" },
           { id: "interior", es: "Interior", en: "Interior" },
@@ -787,46 +791,53 @@ function PrivateBrPreviewContent(props: {
           { id: "ubicacion", es: "Ubicación", en: "Location" },
           { id: "contacto", es: "Contacto", en: "Contact" },
         ].map(({ id, es, en }) => (
-          <span key={id} className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0]/80 px-2.5 py-1.5 text-xs font-medium text-[#111111]/90">
+          <span key={id} className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0] px-3 py-2 text-xs font-medium text-[#111111]/90">
             {lang === "es" ? es : en}
           </span>
         ))}
       </nav>
-      {/* C + D + E: grid hero+info | seller card */}
+      {/* C + D + E */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-4">
-          {/* C. Hero gallery */}
+        <div className="lg:col-span-8 space-y-5">
+          {/* C. Hero gallery: large main left, two stacked right */}
           <div id="resumen">
             {primaryImage ? (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-                <div className="md:col-span-8 rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[180px]">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div className="md:col-span-8 rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[220px]">
                   <img src={primaryImage} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="md:col-span-4 flex flex-col gap-2">
-                  {restImages.slice(0, 3).map((url, i) => (
-                    <div key={i} className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[70px]">
+                  {restImages.slice(0, 2).map((url, i) => (
+                    <div key={i} className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[90px]">
                       <img src={url} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  {restImages.length === 0 && <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[70px]" aria-hidden />}
+                  {restImages.length === 0 && (
+                    <>
+                      <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[90px]" aria-hidden />
+                      <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[90px]" aria-hidden />
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[16/10] flex items-center justify-center">
+              <div className="rounded-xl bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[16/10] min-h-[200px] flex items-center justify-center">
                 <span className="text-[#111111]/50 text-sm">{lang === "es" ? "Sin imagen" : "No image"}</span>
               </div>
             )}
           </div>
-          {/* D. Main info */}
-          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-4">
-            <div className="text-2xl font-extrabold text-[#111111]">
-              {formatMoneyMaybe(previewPrice, lang) || previewPrice}
+          {/* D. Main info: price, title, address, zone, facts, features */}
+          <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5">
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
+              {priceDisplay}
             </div>
-            <h2 className="mt-2 text-xl font-bold text-[#111111] leading-tight">{previewTitle}</h2>
-            {mainLine && <p className="mt-2 text-sm text-[#111111]/85 font-medium">{mainLine}</p>}
-            {zone && <p className="mt-0.5 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}</p>}
+            <h2 className="mt-3 text-xl sm:text-2xl font-bold text-[#111111] leading-tight">
+              {titleDisplay}
+            </h2>
+            {mainLine && <p className="mt-3 text-sm text-[#111111]/85 font-medium">{mainLine}</p>}
+            {zone && <p className="mt-1 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}</p>}
             {quickFacts.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {quickFacts.map((f) => (
                   <span key={f.label} className="rounded-full border border-[#C9B46A]/35 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
                     {f.label}: {f.value}
@@ -835,9 +846,9 @@ function PrivateBrPreviewContent(props: {
               </div>
             )}
             {featureTags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {featureTags.map((tag, i) => (
-                  <span key={i} className="rounded-lg border border-[#C9B46A]/25 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90">
+                  <span key={i} className="rounded-lg border border-[#C9B46A]/25 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90">
                     {tag}
                   </span>
                 ))}
@@ -847,12 +858,12 @@ function PrivateBrPreviewContent(props: {
         </div>
         {/* E. Right private seller card */}
         <div className="lg:col-span-4">
-          <div id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-4 shadow-sm">
+          <div id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm">
             <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
               {lang === "es" ? "Contactar" : "Contact"}
             </h4>
             <p className="text-base font-semibold text-[#111111]">
-              {sellerDisplayName || (lang === "es" ? "Propietario" : "Owner")}
+              {sellerDisplayName.trim() || (lang === "es" ? "Propietario" : "Owner")}
             </p>
             {previewPhone && (
               <p className="mt-2 text-sm text-[#111111]">
@@ -3532,13 +3543,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     ) : isBienesRaicesPrivado ? (
                       <PrivateBrPreviewContent
                         lang={lang}
-                        previewPrice={previewPrice}
-                        previewTitle={previewTitle}
-                        previewCity={previewCity}
+                        rawPrice={price}
+                        rawTitle={title}
+                        rawCity={city}
                         details={details}
                         previewDetailPairs={previewDetailPairs}
                         images={enVentaSnapshot.images ?? []}
-                        sellerDisplayName={sellerDisplayName}
+                        sellerDisplayName={sellerDisplayName ?? ""}
                         previewPhone={previewPhone}
                         previewEmail={previewEmail}
                         formatMoneyMaybe={formatMoneyMaybe}
