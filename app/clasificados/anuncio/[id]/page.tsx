@@ -891,6 +891,50 @@ export default function AnuncioDetallePage() {
     return out.slice(0, 8);
   }, [listing, isBienesRaicesNegocio]);
 
+  /** BR base shell: address for both Privado and Negocio (from details or detail_pairs). */
+  const brBaseAddress = useMemo((): string => {
+    if (!listing || listing.category !== "bienes-raices") return "";
+    const details = (listing as any).details as Record<string, string> | undefined;
+    const addr = details?.enVentaAddress?.trim() ?? "";
+    if (addr) return addr;
+    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
+    if (Array.isArray(pairs)) {
+      const p = pairs.find((x) => /direcci[oó]n|address/i.test(x.label ?? ""));
+      return (p?.value ?? "").trim();
+    }
+    return "";
+  }, [listing]);
+
+  /** BR base shell: zone/neighborhood for both Privado and Negocio. */
+  const brBaseZone = useMemo((): string => {
+    if (!listing || listing.category !== "bienes-raices") return "";
+    const details = (listing as any).details as Record<string, string> | undefined;
+    const z = details?.enVentaZone?.trim() ?? "";
+    if (z) return z;
+    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
+    if (Array.isArray(pairs)) {
+      const p = pairs.find((x) => /vecindad|neighborhood|zona|zone/i.test(x.label ?? ""));
+      return (p?.value ?? "").trim();
+    }
+    return "";
+  }, [listing]);
+
+  /** BR base shell: feature tags for both Privado and Negocio (from detail_pairs). */
+  const brBaseFeatureTags = useMemo((): string[] => {
+    if (!listing || listing.category !== "bienes-raices") return [];
+    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
+    if (!Array.isArray(pairs)) return [];
+    const featureLabels = [/piscina|pool/i, /lavander[ií]a|laundry/i, /estacionamiento|parking|garage/i, /jard[ií]n|garden/i, /gimnasio|gym/i];
+    const out: string[] = [];
+    for (const p of pairs) {
+      const label = (p.label ?? "").trim();
+      const value = (p.value ?? "").trim();
+      if (!value || value.startsWith("http")) continue;
+      if (featureLabels.some((re) => re.test(label))) out.push(label);
+    }
+    return out.slice(0, 8);
+  }, [listing]);
+
   const proVideoInfos = useMemo(() => {
     if (!listing) return [];
     const blob = `${listing.blurb?.[lang] ?? ""}\n${listing.blurb?.[lang === "es" ? "en" : "es"] ?? ""}`;
@@ -1060,7 +1104,7 @@ export default function AnuncioDetallePage() {
           </div>
         </div>
 
-        {isBienesRaicesPrivado && (
+        {(isBienesRaicesPrivado || isBienesRaicesNegocio) && (
           <>
             <header className="mt-8 rounded-2xl border border-[#C9B46A]/25 bg-[#FAFAF8] shadow-sm overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-4">
@@ -1103,7 +1147,7 @@ export default function AnuncioDetallePage() {
           </>
         )}
 
-        <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", isBienesRaicesPrivado ? "mt-8" : "mt-10")}>
+        <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", (isBienesRaicesPrivado || isBienesRaicesNegocio) ? "mt-8" : "mt-10")}>
           {/* Main card */}
           <div className="lg:col-span-8">
             <div
@@ -1113,13 +1157,11 @@ export default function AnuncioDetallePage() {
                 rentasPlanTier === "business_standard" && "border-yellow-400/45",
                 rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
                 !rentasPlanTier && isBusiness && listing?.category === "rentas" && "border-yellow-400/45",
-                isBienesRaicesNegocio && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
-                listing?.category === "bienes-raices" && !isBienesRaicesNegocio && "border-black/10",
-                isBienesRaicesPrivado && "border-[#C9B46A]/20 bg-[#FAFAF8]",
-                !rentasPlanTier && !isBienesRaicesNegocio && !isBienesRaicesPrivado && "border-black/10"
+                (isBienesRaicesPrivado || isBienesRaicesNegocio) && "border-[#C9B46A]/20 bg-[#FAFAF8]",
+                !rentasPlanTier && !isBienesRaicesNegocio && !isBienesRaicesPrivado && listing?.category !== "bienes-raices" && "border-black/10"
               )}
             >
-              {isBienesRaicesPrivado ? (
+              {(isBienesRaicesPrivado || isBienesRaicesNegocio) ? (
                 <>
                   <div id="resumen" className="scroll-mt-24">
                     {/* Hero gallery: large primary left, stacked right */}
@@ -1152,7 +1194,7 @@ export default function AnuncioDetallePage() {
                         </div>
                       );
                     })()}
-                    {/* Main info: price, title, address, zone, quick facts, optional features */}
+                    {/* Main info: price, title, address, zone, quick facts, optional features (shared BR base for Privado and Negocio) */}
                     <div className="space-y-4">
                       <div>
                         <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
@@ -1161,18 +1203,18 @@ export default function AnuncioDetallePage() {
                         <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#111111] leading-tight">
                           {listing.title[lang]}
                         </h1>
-                        {(brPrivadoAddress || listing.city) && (
+                        {(brBaseAddress || listing.city) && (
                           <p className="mt-2 text-[#111111]/85 text-sm font-medium">
-                            {brPrivadoAddress || listing.city}
+                            {brBaseAddress || listing.city}
                           </p>
                         )}
-                        {brPrivadoZone && (
-                          <p className="mt-0.5 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{brPrivadoZone}</p>
+                        {brBaseZone && (
+                          <p className="mt-0.5 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{brBaseZone}</p>
                         )}
                       </div>
-                      {brPrivadoQuickFacts.length > 0 && (
+                      {bienesRaicesFacts.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {brPrivadoQuickFacts.map((f) => (
+                          {bienesRaicesFacts.map((f) => (
                             <span
                               key={`${f.label}-${f.value}`}
                               className="rounded-full border border-[#C9B46A]/35 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]"
@@ -1182,9 +1224,9 @@ export default function AnuncioDetallePage() {
                           ))}
                         </div>
                       )}
-                      {brPrivadoFeatureTags.length > 0 && (
+                      {brBaseFeatureTags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {brPrivadoFeatureTags.map((tag, i) => (
+                          {brBaseFeatureTags.map((tag, i) => (
                             <span
                               key={i}
                               className="rounded-lg border border-[#C9B46A]/25 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90"
@@ -1195,6 +1237,25 @@ export default function AnuncioDetallePage() {
                         </div>
                       )}
                     </div>
+                    {(proVideoInfos.length > 0 || brVirtualTourUrl) && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {proVideoInfos.length > 0 && (
+                          <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
+                            {lang === "es" ? "Video disponible" : "Video available"}
+                          </span>
+                        )}
+                        {brVirtualTourUrl && (
+                          <a
+                            href={brVirtualTourUrl.startsWith("http") ? brVirtualTourUrl : `https://${brVirtualTourUrl}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFE7D8]"
+                          >
+                            {lang === "es" ? "Tour virtual" : "Virtual tour"}
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div id="interior" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />
                   <div id="exterior" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />
@@ -1379,37 +1440,6 @@ export default function AnuncioDetallePage() {
                 </div>
               )}
 
-              {listing.category === "bienes-raices" && bienesRaicesFacts.length > 0 && (
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {bienesRaicesFacts.map((f) => (
-                    <span
-                      key={`${f.label}-${f.value}`}
-                      className="rounded-full border border-[#C9B46A]/25 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]"
-                    >
-                      {f.label}: {f.value}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {listing.category === "bienes-raices" && (proVideoInfos.length > 0 || brVirtualTourUrl) && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {proVideoInfos.length > 0 && (
-                    <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
-                      {lang === "es" ? "Video disponible" : "Video available"}
-                    </span>
-                  )}
-                  {brVirtualTourUrl && (
-                    <a
-                      href={brVirtualTourUrl.startsWith("http") ? brVirtualTourUrl : `https://${brVirtualTourUrl}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFE7D8]"
-                    >
-                      {lang === "es" ? "Tour virtual" : "Virtual tour"}
-                    </a>
-                  )}
-                </div>
-              )}
                 </>
               )}
 
@@ -1435,18 +1465,18 @@ export default function AnuncioDetallePage() {
               )}
 
               <div
-                id={isBienesRaicesPrivado ? "detalles" : undefined}
+                id={(isBienesRaicesPrivado || isBienesRaicesNegocio) ? "detalles" : undefined}
                 className={cx(
                   "mt-8 rounded-2xl p-6 scroll-mt-24",
                   listing.category === "rentas" && rentasPlanTier === "privado_pro"
                     ? "border border-stone-200/80 bg-[#FAFAF9]"
                     : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
-                  isBienesRaicesPrivado && "border-[#C9B46A]/25 bg-[#FAFAF8]"
+                  (isBienesRaicesPrivado || isBienesRaicesNegocio) && "border-[#C9B46A]/25 bg-[#FAFAF8]"
                 )}
               >
                 <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
               </div>
-              {isBienesRaicesPrivado && <div id="ubicacion" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />}
+              {(isBienesRaicesPrivado || isBienesRaicesNegocio) && <div id="ubicacion" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />}
 
               {listing.category === "bienes-raices" && isBusiness && brNegocioDisplay && (
                 <div
