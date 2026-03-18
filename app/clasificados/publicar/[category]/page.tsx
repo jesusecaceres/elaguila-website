@@ -762,30 +762,58 @@ export default function PublicarPage() {
     return stepsForCategory[idx - 1];
   }, [stepsForCategory, step]);
 
-  /** Sync step into URL query (preserves lang, draftId, etc.). Replace = no new history entry (draft restore, reset). */
+  /** Options for step URL sync when category is bienes-raices (branch in query). */
+  type StepSyncOptions = { branch?: "privado" | "negocio" };
+
+  /** Sync step into URL query (preserves lang, draftId, etc.). For BR, includes branch= when set. Replace = no new history entry. */
   const syncStepInUrl = useCallback(
-    (newStep: PublishStep) => {
+    (newStep: PublishStep, options?: StepSyncOptions) => {
       const p = new URLSearchParams(searchParams?.toString() ?? "");
       p.set("step", newStep);
+      if (categoryFromUrl === "bienes-raices") {
+        const br = (options?.branch ?? (detailsRefForBrBranch.current?.bienesRaicesBranch ?? "").trim().toLowerCase());
+        if (br === "privado" || br === "negocio") p.set("branch", br);
+        else p.delete("branch");
+      }
       const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
       router.replace(`${path}?${p.toString()}`);
     },
     [router, pathname, searchParams, categoryFromUrl]
   );
 
-  /** Push step to URL so browser Back has a previous step in the flow. Use when user navigates forward (goToStep). */
+  /** Push step to URL so browser Back has a previous step in the flow. For BR, includes branch= when set. Use when user navigates forward (goToStep). */
   const syncStepInUrlPush = useCallback(
-    (newStep: PublishStep) => {
+    (newStep: PublishStep, options?: StepSyncOptions) => {
       const p = new URLSearchParams(searchParams?.toString() ?? "");
       p.set("step", newStep);
+      if (categoryFromUrl === "bienes-raices") {
+        const br = (options?.branch ?? (detailsRefForBrBranch.current?.bienesRaicesBranch ?? "").trim().toLowerCase());
+        if (br === "privado" || br === "negocio") p.set("branch", br);
+        else p.delete("branch");
+      }
       const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
       router.push(`${path}?${p.toString()}`);
     },
     [router, pathname, searchParams, categoryFromUrl]
   );
 
+  /** BR only: set or update branch= in URL (replace). Use when user selects Negocio so URL reflects before next step. */
+  const syncBrBranchInUrl = useCallback(
+    (branch: "privado" | "negocio") => {
+      if (categoryFromUrl !== "bienes-raices") return;
+      const p = new URLSearchParams(searchParams?.toString() ?? "");
+      p.set("branch", branch);
+      const path = pathname ?? `/clasificados/publicar/bienes-raices`;
+      router.replace(`${path}?${p.toString()}`);
+    },
+    [router, pathname, searchParams, categoryFromUrl]
+  );
+
   /** When true, step→URL effect should skip (we just pushed in goToStep). */
   const skipStepSyncRef = useRef(false);
+
+  /** BR branch for URL sync (details is declared later; we read this in syncStepInUrl/syncStepInUrlPush). */
+  const detailsRefForBrBranch = useRef<Record<string, string>>({});
 
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
@@ -840,6 +868,18 @@ export default function PublicarPage() {
     setStep(urlStep as PublishStep);
   }, [searchParams]);
 
+  // BR only: hydrate branch from URL so details.bienesRaicesBranch and ?branch= stay in sync (load, refresh, restore).
+  useEffect(() => {
+    if (categoryFromUrl !== "bienes-raices") return;
+    const urlBranch = searchParams?.get("branch")?.trim().toLowerCase();
+    if (urlBranch !== "privado" && urlBranch !== "negocio") return;
+    setDetails((prev) => {
+      const cur = (prev?.bienesRaicesBranch ?? "").trim().toLowerCase();
+      if (cur === urlBranch) return prev;
+      return { ...prev, bienesRaicesBranch: urlBranch };
+    });
+  }, [categoryFromUrl, searchParams]);
+
   // When step changes in-app, sync step to URL (replace). Skip when we just pushed in goToStep.
   useEffect(() => {
     if (skipStepSyncRef.current) {
@@ -885,6 +925,7 @@ export default function PublicarPage() {
     if (prefill.notes) d["notes"] = prefill.notes;
     return d;
   });
+  detailsRefForBrBranch.current = details;
   // Basics
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>(() => {
@@ -1043,12 +1084,12 @@ export default function PublicarPage() {
     window.scrollTo({ top: 0, behavior });
   }
 
-  /** Navigate to a step: push URL so browser Back has history; scroll form to top. Use for forward step navigation only. For Back use handleBack(). */
+  /** Navigate to a step: push URL so browser Back has history; scroll form to top. Use for forward step navigation only. For Back use handleBack(). Options.branch for BR when step is set before details has committed. */
   const goToStep = useCallback(
-    (newStep: PublishStep) => {
+    (newStep: PublishStep, options?: StepSyncOptions) => {
       skipStepSyncRef.current = true;
       setStep(newStep);
-      syncStepInUrlPush(newStep);
+      syncStepInUrlPush(newStep, options);
       requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
     },
     [syncStepInUrlPush]
@@ -1645,13 +1686,21 @@ export default function PublicarPage() {
             const p = new URLSearchParams(searchParams?.toString() ?? "");
             p.set("draftId", draftId);
             if (!p.has("lang")) p.set("lang", lang);
+            if (draftCat === "bienes-raices") {
+              const stepVal = (payload as DraftDataPayload).step;
+              if (stepVal && ["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"].includes(stepVal)) p.set("step", stepVal);
+              const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+              if (brBranch === "privado" || brBranch === "negocio") p.set("branch", brBranch);
+            }
             router.replace(`/clasificados/publicar/${draftCat}?${p.toString()}`);
             return;
           }
           applyDraftPayloadFromDb(payload);
           syncDraftIdInUrl(draftId);
           const restoredStep = (payload.step && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(payload.step as PublishStep) && stepsForCategory.includes(payload.step as PublishStep)) ? (payload.step as PublishStep) : "basics";
-          syncStepInUrl(restoredStep);
+          const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+          const branchOpt = (brBranch === "privado" || brBranch === "negocio") ? { branch: brBranch as "privado" | "negocio" } : undefined;
+          syncStepInUrl(restoredStep, branchOpt);
           setRecoveredDraftMessage(lang === "es" ? "Progreso guardado recuperado." : "Recovered saved progress.");
           return;
         }
@@ -1664,12 +1713,18 @@ export default function PublicarPage() {
       if (parsedCat && parsedCat !== categoryFromUrl) {
         const p = new URLSearchParams(searchParams?.toString() ?? "");
         if (!p.has("lang")) p.set("lang", lang);
+        if (parsedCat === "bienes-raices") {
+          const brBranch = (parsed.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+          if (brBranch === "privado" || brBranch === "negocio") p.set("branch", brBranch);
+        }
         router.replace(`/clasificados/publicar/${parsedCat}?${p.toString()}`);
         return;
       }
       applyDraftToForm(parsed);
       setStep("basics");
-      syncStepInUrl("basics");
+      const localBrBranch = (parsed.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+      const localBranchOpt = (localBrBranch === "privado" || localBrBranch === "negocio") ? { branch: localBrBranch as "privado" | "negocio" } : undefined;
+      syncStepInUrl("basics", localBranchOpt);
       try {
         const imgRaw = sessionStorage.getItem(draftKey + "_images");
         if (imgRaw) {
@@ -3593,7 +3648,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         type="button"
                         onClick={() => {
                           setDetails((prev) => ({ ...prev, bienesRaicesBranch: "privado", rentasTier: "" }));
-                          goToStep("basics");
+                          goToStep("basics", { branch: "privado" });
                         }}
                         className={cx(
                           "rounded-2xl border p-5 text-left transition-all",
@@ -3615,7 +3670,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
                       <button
                         type="button"
-                        onClick={() => setDetails((prev) => ({ ...prev, bienesRaicesBranch: "negocio" }))}
+                        onClick={() => {
+                          setDetails((prev) => ({ ...prev, bienesRaicesBranch: "negocio" }));
+                          syncBrBranchInUrl("negocio");
+                        }}
                         className={cx(
                           "rounded-2xl border p-5 text-left transition-all",
                           "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
