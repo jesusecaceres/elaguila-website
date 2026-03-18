@@ -762,7 +762,7 @@ export default function PublicarPage() {
     return stepsForCategory[idx - 1];
   }, [stepsForCategory, step]);
 
-  /** Sync step into URL query (preserves lang, draftId, etc.). Browser Back will change URL; we read step from URL in effect. */
+  /** Sync step into URL query (preserves lang, draftId, etc.). Replace = no new history entry (draft restore, reset). */
   const syncStepInUrl = useCallback(
     (newStep: PublishStep) => {
       const p = new URLSearchParams(searchParams?.toString() ?? "");
@@ -772,6 +772,20 @@ export default function PublicarPage() {
     },
     [router, pathname, searchParams, categoryFromUrl]
   );
+
+  /** Push step to URL so browser Back has a previous step in the flow. Use when user navigates forward (goToStep). */
+  const syncStepInUrlPush = useCallback(
+    (newStep: PublishStep) => {
+      const p = new URLSearchParams(searchParams?.toString() ?? "");
+      p.set("step", newStep);
+      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
+      router.push(`${path}?${p.toString()}`);
+    },
+    [router, pathname, searchParams, categoryFromUrl]
+  );
+
+  /** When true, step→URL effect should skip (we just pushed in goToStep). */
+  const skipStepSyncRef = useRef(false);
 
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
@@ -826,8 +840,12 @@ export default function PublicarPage() {
     setStep(urlStep as PublishStep);
   }, [searchParams]);
 
-  // When step changes in-app, push step to URL so browser Back reflects the flow.
+  // When step changes in-app, sync step to URL (replace). Skip when we just pushed in goToStep.
   useEffect(() => {
+    if (skipStepSyncRef.current) {
+      skipStepSyncRef.current = false;
+      return;
+    }
     if (searchParams?.get("step") === step) return;
     syncStepInUrl(step);
   }, [step, searchParams, syncStepInUrl]);
@@ -1025,14 +1043,28 @@ export default function PublicarPage() {
     window.scrollTo({ top: 0, behavior });
   }
 
-  /** Navigate to a step (URL sync happens via effect); scrolls form to top. Use for all in-app step changes. */
+  /** Navigate to a step: push URL so browser Back has history; scroll form to top. Use for forward step navigation only. For Back use handleBack(). */
   const goToStep = useCallback(
     (newStep: PublishStep) => {
+      skipStepSyncRef.current = true;
       setStep(newStep);
+      syncStepInUrlPush(newStep);
       requestAnimationFrame(() => requestAnimationFrame(() => scrollFormToTop("auto")));
     },
-    []
+    [syncStepInUrlPush]
   );
+
+  /** In-app Atrás: browser back when there is history, else set step + replace URL so we stay in flow. */
+  const handleBack = useCallback(() => {
+    const prev = getPreviousStep();
+    if (!prev) return;
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      setStep(prev);
+      syncStepInUrl(prev);
+    }
+  }, [getPreviousStep, router, setStep, syncStepInUrl]);
 
   function scrollCategoryActionsIntoView() {
     if (typeof window === "undefined") return;
@@ -3535,11 +3567,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
+                        onClick={() => handleBack()}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
-                        {copy.back}
-                      </button>
+                          {copy.back}
+                        </button>
                     </div>
                   </section>
                 )}
@@ -3720,11 +3752,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
+                        onClick={() => handleBack()}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
-                        {copy.back}
-                      </button>
+                          {copy.back}
+                        </button>
                     </div>
                   </section>
                 )}
@@ -4864,11 +4896,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
+                        onClick={() => handleBack()}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
-                        {copy.back}
-                      </button>
+                          {copy.back}
+                        </button>
                       <button
                         type="button"
                         disabled={saveProgressing}
@@ -5043,7 +5075,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
 <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } const prev = getPreviousStep(); if (prev) goToStep(prev); }}
+                        onClick={() => { if (category === "servicios" && !servicesPackage) { setShowServicesGate(true); return; } handleBack(); }}
                         className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
                       >
                         {copy.back}
@@ -5462,9 +5494,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => { const prev = getPreviousStep(); if (prev) goToStep(prev); }}
-                          className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
-                        >
+                          onClick={() => handleBack()}
+                        className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
+                      >
                           {copy.back}
                         </button>
                         <button
