@@ -89,15 +89,7 @@ function inferRentasPlanTier(listing: { category?: string; sellerType?: string; 
   return null;
 }
 
-/** Bienes Raíces business plan tier (Standard vs Plus). Same contract as Rentas negocio. */
-function inferBienesRaicesPlanTier(listing: { category?: string; sellerType?: string; seller_type?: string } & Record<string, unknown>): "business_standard" | "business_plus" | null {
-  if (listing?.category !== "bienes-raices") return null;
-  const sellerType = listing.sellerType ?? listing.seller_type ?? "personal";
-  if (sellerType !== "business") return null;
-  const tier = listing.rentasTier ?? listing.rentas_tier ?? listing.servicesTier;
-  if (tier === "plus" || tier === "premium") return "business_plus";
-  return "business_standard";
-}
+/** BR only has Privado vs Negocio; no Standard/Plus. Use isBienesRaicesNegocio for open-card and same-company logic. */
 
 function parsePriceLabel(label: string): number | null {
   const m = (label || "").replace(/,/g, "").match(/(\d+(\.\d+)?)/);
@@ -555,12 +547,13 @@ export default function AnuncioDetallePage() {
     };
   }, [listing, bienesRaicesBusinessMeta, lang]);
 
-  /** Same-business Bienes Raíces listings for Plus "Más anuncios de esta compañía" (when flag set). */
+  /** Same-business Bienes Raíces listings for Negocio "Más anuncios de esta compañía" (when flag set). */
   const bienesRaicesSameCompanyListings = useMemo(() => {
     if (!listing || listing.category !== "bienes-raices") return [];
-    const tier = inferBienesRaicesPlanTier(listing as any);
+    const isNegocio =
+      (listing as any).sellerType === "business" || (listing as any).seller_type === "business";
     const plusMore = bienesRaicesBusinessMeta?.negocioPlusMasAnuncios === "si";
-    if (tier !== "business_plus" || !plusMore) return [];
+    if (!isNegocio || !plusMore) return [];
     const bizName =
       ((listing as any).business_name ?? (listing as any).businessName ?? "").trim().toLowerCase();
     if (!bizName) return [];
@@ -816,9 +809,10 @@ export default function AnuncioDetallePage() {
     () => (listing && listing.category === "rentas" ? inferRentasPlanTier(listing as any) : null),
     [listing]
   );
-  const bienesRaicesPlanTier = useMemo(
-    () => (listing && listing.category === "bienes-raices" ? inferBienesRaicesPlanTier(listing as any) : null),
-    [listing]
+  /** BR has only Privado vs Negocio; no Standard/Plus. Used for rail styling and same-company. */
+  const isBienesRaicesNegocio = Boolean(
+    listing?.category === "bienes-raices" &&
+      ((listing as any).sellerType === "business" || (listing as any).seller_type === "business")
   );
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
 
@@ -1001,10 +995,9 @@ export default function AnuncioDetallePage() {
                 rentasPlanTier === "business_standard" && "border-yellow-400/45",
                 rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
                 !rentasPlanTier && isBusiness && listing?.category === "rentas" && "border-yellow-400/45",
-                bienesRaicesPlanTier === "business_plus" && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
-                bienesRaicesPlanTier === "business_standard" && "border-yellow-400/45",
-                listing?.category === "bienes-raices" && !bienesRaicesPlanTier && "border-black/10",
-                !rentasPlanTier && !bienesRaicesPlanTier && "border-black/10"
+                isBienesRaicesNegocio && "border-yellow-300/60 ring-1 ring-yellow-300/25 shadow-[0_0_0_1px_rgba(250,204,21,0.2)]",
+                listing?.category === "bienes-raices" && !isBienesRaicesNegocio && "border-black/10",
+                !rentasPlanTier && !isBienesRaicesNegocio && "border-black/10"
               )}
             >
               {mediaSlots.length > 0 && (
@@ -1013,7 +1006,7 @@ export default function AnuncioDetallePage() {
                     "relative rounded-xl overflow-hidden bg-[#E8E8E8] flex items-center justify-center mb-6",
                     rentasPlanTier === "privado_pro"
                       ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-stone-200/80"
-                      : (rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard" || bienesRaicesPlanTier === "business_plus" || bienesRaicesPlanTier === "business_standard")
+                      : (rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard" || isBienesRaicesNegocio)
                         ? "aspect-[4/3] max-h-[480px] min-h-[280px] border border-black/10"
                       : listing?.category === "bienes-raices"
                         ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-black/10"
@@ -1232,7 +1225,7 @@ export default function AnuncioDetallePage() {
                 <div
                   className={cx(
                     "mt-6 rounded-2xl border p-4 sm:p-5 lg:hidden",
-                    bienesRaicesPlanTier === "business_plus"
+                    isBienesRaicesNegocio
                       ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.10)]"
                       : "border-[#C9B46A]/45 bg-[#F5F5F5] ring-1 ring-[#C9B46A]/25"
                   )}
@@ -1242,12 +1235,6 @@ export default function AnuncioDetallePage() {
                     <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
                       {lang === "es" ? "Información del negocio" : "Business"}
                     </h3>
-                    {bienesRaicesPlanTier === "business_plus" && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
-                        <span aria-hidden="true">🔑</span>
-                        {lang === "es" ? "Plus" : "Plus"}
-                      </span>
-                    )}
                   </div>
                   <p className="text-base font-semibold text-[#111111]">{brNegocioDisplay.name}</p>
                   {brNegocioDisplay.agent && <p className="mt-0.5 text-sm text-[#111111]/90">{brNegocioDisplay.agent}</p>}
@@ -1261,7 +1248,7 @@ export default function AnuncioDetallePage() {
                     type="button"
                     className={cx(
                       "mt-3 w-full px-4 py-3 rounded-xl font-semibold text-sm",
-                      bienesRaicesPlanTier === "business_plus"
+                      isBienesRaicesNegocio
                         ? "bg-[#A98C2A] text-white hover:bg-[#8f7a24]"
                         : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                     )}
@@ -1666,7 +1653,7 @@ export default function AnuncioDetallePage() {
 
             {/* Más anuncios de esta compañía (Bienes Raíces Plus only, when flag set) */}
             {listing.category === "bienes-raices" &&
-              bienesRaicesPlanTier === "business_plus" &&
+              isBienesRaicesNegocio &&
               brNegocioDisplay?.plusMoreListings && (
                 <div className="mt-10" data-section="bienes-raices-mas-anuncios">
                   <h3 className="text-xl font-bold text-[#111111] mb-4">
@@ -1738,7 +1725,7 @@ export default function AnuncioDetallePage() {
             {((listing.category === "rentas" && isBusiness && rentasNegocioDisplay) || (listing.category === "bienes-raices" && isBusiness && brNegocioDisplay)) ? (
               (() => {
                 const railDisplay = listing.category === "rentas" ? rentasNegocioDisplay! : brNegocioDisplay!;
-                const railTier = listing.category === "rentas" ? rentasPlanTier : bienesRaicesPlanTier;
+                const railTier = listing.category === "rentas" ? rentasPlanTier : (isBienesRaicesNegocio ? "business_plus" : null);
                 return (
                   <div
                     className={cx(
@@ -1753,7 +1740,8 @@ export default function AnuncioDetallePage() {
                       <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
                         {lang === "es" ? "Identidad del negocio" : "Business"}
                       </h4>
-                      {listing.category === "bienes-raices" && railTier === "business_plus" && (
+                      {/* No Plus badge for BR — single Negocio lane. Rentas can keep tier badge. */}
+                      {listing.category === "rentas" && railTier === "business_plus" && (
                         <span
                           className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]"
                           aria-hidden
@@ -1899,7 +1887,7 @@ export default function AnuncioDetallePage() {
                           type="button"
                           className={cx(
                             "w-full px-4 py-3 rounded-xl font-semibold transition text-sm",
-                            listing.category === "bienes-raices" && railTier === "business_plus"
+                            listing.category === "bienes-raices" && isBienesRaicesNegocio
                               ? "bg-[#A98C2A] text-white hover:bg-[#8f7a24] border border-[#A98C2A]"
                               : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                           )}
@@ -1911,7 +1899,7 @@ export default function AnuncioDetallePage() {
                           type="button"
                           className={cx(
                             "w-full px-4 py-3 rounded-xl font-semibold border transition text-sm",
-                            listing.category === "bienes-raices" && railTier === "business_plus"
+                            listing.category === "bienes-raices" && isBienesRaicesNegocio
                               ? "border-[#A98C2A]/60 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
                               : "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
                           )}

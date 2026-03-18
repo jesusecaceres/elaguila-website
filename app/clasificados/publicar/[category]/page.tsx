@@ -3215,10 +3215,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       <ListingView
                         listing={fullPreviewListingData}
                         previewMode={true}
-                        previewProUpgrade={fullPreviewVariant === "pro"}
-                        proHighlight={fullPreviewVariant === "pro" ? proHighlightId : null}
-                        onProBenefitClick={fullPreviewVariant === "pro" ? setProHighlightId : undefined}
-                        hideProComparisonUI={false}
+                        previewProUpgrade={category === "bienes-raices" ? false : fullPreviewVariant === "pro"}
+                        proHighlight={category === "bienes-raices" ? null : fullPreviewVariant === "pro" ? proHighlightId : null}
+                        onProBenefitClick={category === "bienes-raices" ? undefined : fullPreviewVariant === "pro" ? setProHighlightId : undefined}
+                        hideProComparisonUI={category === "bienes-raices"}
                       />
                     )}
                   </section>

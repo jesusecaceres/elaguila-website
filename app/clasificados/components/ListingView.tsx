@@ -99,7 +99,10 @@ export default function ListingView({
   onProBenefitClick,
   hideProComparisonUI = false,
 }: ListingViewProps) {
-  const effectiveIsPro = listing.isPro || previewProUpgrade;
+  const isBienesRaices = listing.category === "bienes-raices";
+  /** BR preview: no Pro comparison UI, no locked slots, no Pro/Standard/Plus framing. */
+  const effectiveHideProUI = hideProComparisonUI || isBienesRaices;
+  const effectiveIsPro = !isBienesRaices && (listing.isPro || previewProUpgrade);
   const lang = listing.lang;
   const [viewerCityInput, setViewerCityInput] = useState("");
   const [mediaIndex, setMediaIndex] = useState(0);
@@ -127,21 +130,21 @@ export default function ListingView({
     if (effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video", index: 0 });
     if (effectiveIsPro && (listing.proVideoUrl2 || listing.proVideoThumbUrl2)) slots.push({ type: "video", index: 1 });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
-    // Free preview: show locked Pro slots (2 videos sobresalientes = 2 locked-video slots).
-    if (previewMode && !effectiveIsPro) {
+    // Free preview: show locked Pro slots (not for BR — BR has no Pro comparison).
+    if (previewMode && !effectiveIsPro && !isBienesRaices) {
       const extraPhotoSlots = Math.min(2, Math.max(0, 12 - slots.length));
       for (let i = 0; i < extraPhotoSlots; i++) slots.push({ type: "locked-image" });
       slots.push({ type: "locked-video" });
       slots.push({ type: "locked-video" });
     }
-    // Pro preview: second slot as locked if only one video uploaded.
-    if (previewMode && effectiveIsPro) {
+    // Pro preview: second slot as locked if only one video uploaded (not for BR).
+    if (previewMode && effectiveIsPro && !isBienesRaices) {
       const videoCount = slots.filter((s) => s.type === "video").length;
       if (videoCount < 2) slots.push({ type: "locked-video" });
     }
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, listing.proVideoUrl2, listing.proVideoThumbUrl2, previewMode]);
+  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, listing.proVideoUrl2, listing.proVideoThumbUrl2, previewMode, isBienesRaices]);
 
   const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
   const goPrev = useCallback(() => {
@@ -281,7 +284,7 @@ export default function ListingView({
         <div
           className={cx(
             "rounded-2xl overflow-hidden bg-[#1a1a1a]",
-            hideProComparisonUI ? "shadow-lg border border-stone-300/40" : effectiveIsPro ? "shadow-xl ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#D9D9D9]" : "shadow-lg"
+            effectiveHideProUI ? "shadow-lg border border-stone-300/40" : effectiveIsPro ? "shadow-xl ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#D9D9D9]" : "shadow-lg"
           )}
         >
           {mediaSlots.length > 0 && (
@@ -375,7 +378,7 @@ export default function ListingView({
               data-pro-highlight="more-photos"
               className={cx(
                 "flex gap-2 p-3 sm:p-3.5 bg-[#1a1a1a] overflow-x-auto",
-                hideProComparisonUI ? "border-t border-white/10" : effectiveIsPro ? "border-t border-[#C9B46A]/25" : "border-t border-white/10",
+                effectiveHideProUI ? "border-t border-white/10" : effectiveIsPro ? "border-t border-[#C9B46A]/25" : "border-t border-white/10",
                 isHighlight("more-photos") && highlightClass
               )}
             >
@@ -419,7 +422,7 @@ export default function ListingView({
         </div>
 
         {/* Pro preview only: analytics block — preview-only; not part of published ad. Hidden for Rentas Privado (no comparison). */}
-        {previewProUpgrade && !hideProComparisonUI && (
+        {previewProUpgrade && !effectiveHideProUI && (
           <div
             ref={(el) => setHighlightRef("analytics", el)}
             data-pro-highlight="analytics"
@@ -462,7 +465,7 @@ export default function ListingView({
           <div
             className={cx(
               "rounded-2xl border p-5 sm:p-6",
-              listing.businessRailTier === "business_plus"
+              (isBienesRaices || listing.businessRailTier === "business_plus")
                 ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.12)]"
                 : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
             )}
@@ -472,7 +475,8 @@ export default function ListingView({
               <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
                 {lang === "es" ? "Identidad del negocio" : "Business"}
               </h4>
-              {listing.category === "bienes-raices" && listing.businessRailTier === "business_plus" && (
+              {/* No Plus badge for BR — single Negocio lane. Rentas can keep tier badge if needed. */}
+              {!isBienesRaices && listing.category === "rentas" && listing.businessRailTier === "business_plus" && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-500/12 px-2 py-0.5 text-[10px] font-semibold text-[#111111]" aria-hidden>
                   <span aria-hidden>🔑</span>
                   {lang === "es" ? "Plus" : "Plus"}
@@ -512,14 +516,14 @@ export default function ListingView({
                   {lang === "es" ? "Sitio web" : "Website"} → {listing.businessRail.website}
                 </p>
               )}
-              {(listing.businessRail.virtualTourUrl && (listing.businessRailTier === "business_plus" || listing.businessRailTier === "business_standard")) && (
+              {(listing.businessRail.virtualTourUrl && (isBienesRaices || listing.businessRailTier === "business_plus" || listing.businessRailTier === "business_standard")) && (
                 <p className="text-sm font-medium text-[#111111] break-all">
                   {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
                 </p>
               )}
               {listing.businessRail.socialLinks && listing.businessRail.socialLinks.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {listing.businessRail.socialLinks.slice(0, listing.businessRailTier === "business_plus" ? undefined : 2).map((s, i) => (
+                  {listing.businessRail.socialLinks.slice(0, (isBienesRaices || listing.businessRailTier === "business_plus") ? undefined : 2).map((s, i) => (
                     <span key={i} className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
                       {s.label} →
                     </span>
@@ -580,7 +584,7 @@ export default function ListingView({
         <div
           className={cx(
             "rounded-2xl border p-4 sm:p-5 lg:p-6 shadow-sm",
-            hideProComparisonUI ? "border-stone-300/50 bg-white" : effectiveIsPro ? "border-[#C9B46A]/30 border-l-4 border-l-[#C9B46A]/50 bg-[#FAFAF9]" : "border-black/10 bg-white"
+            effectiveHideProUI ? "border-stone-300/50 bg-white" : effectiveIsPro ? "border-[#C9B46A]/30 border-l-4 border-l-[#C9B46A]/50 bg-[#FAFAF9]" : "border-black/10 bg-white"
           )}
         >
           <div className="flex flex-wrap items-start gap-x-3 gap-y-3">
@@ -623,12 +627,12 @@ export default function ListingView({
               })()}
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0 sm:ml-auto">
-              {effectiveIsPro && !hideProComparisonUI ? (
+              {effectiveIsPro && !effectiveHideProUI ? (
                 <span ref={(el) => setHighlightRef("pro-badge", el)} data-pro-highlight="pro-badge" className={cx("inline-flex", isHighlight("pro-badge") && highlightClass)}>
                   <ProBadge />
                 </span>
               ) : null}
-              {previewProUpgrade && !hideProComparisonUI && (
+              {previewProUpgrade && !effectiveHideProUI && (
                 <span
                   ref={(el) => setHighlightRef("visibility-boosts", el)}
                   data-pro-highlight="visibility-boosts"
@@ -646,7 +650,7 @@ export default function ListingView({
         </div>
 
         {/* Pro preview only: interactive benefits zone — real Pro-only benefits; click to highlight. Hidden for Rentas Privado (no comparison). */}
-        {previewProUpgrade && !hideProComparisonUI && (
+        {previewProUpgrade && !effectiveHideProUI && (
           <div
             ref={(el) => setHighlightRef("duration", el)}
             data-pro-highlight="duration"
@@ -698,7 +702,7 @@ export default function ListingView({
         {/* Card 2: CTA — Guardar, Compartir, contacto (shared). Private preview: lighter border. */}
         <div className={cx(
           "rounded-2xl border p-4 sm:p-5 lg:p-6",
-          hideProComparisonUI ? "border-stone-300/50 bg-[#FAFAF9]" : "border-[#C9B46A]/40 bg-[#FAF9F6]"
+          effectiveHideProUI ? "border-stone-300/50 bg-[#FAFAF9]" : "border-[#C9B46A]/40 bg-[#FAF9F6]"
         )} id="listing-buyer-actions">
           <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
           <div className="flex flex-wrap gap-3">
@@ -781,7 +785,7 @@ export default function ListingView({
           </div>
           <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
           <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
-          {previewProUpgrade && !hideProComparisonUI && (
+          {previewProUpgrade && !effectiveHideProUI && (
             <p className="mt-3 text-xs font-medium text-[#C9B46A]/90" aria-hidden>
               {t.sellerProCue}
             </p>
