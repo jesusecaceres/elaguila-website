@@ -744,10 +744,26 @@ function PrivateBrPreviewContent(props: {
   } = props;
 
   const confirmSectionRef = useRef<HTMLDivElement>(null);
+  const resumenRef = useRef<HTMLDivElement>(null);
+  const ubicacionRef = useRef<HTMLDivElement>(null);
+  const contactoRef = useRef<HTMLDivElement>(null);
+  const detallesRef = useRef<HTMLElement>(null);
+  const interiorRef = useRef<HTMLDivElement>(null);
+  const exteriorRef = useRef<HTMLDivElement>(null);
   const [heroStartIndex, setHeroStartIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxZoomIndex, setLightboxZoomIndex] = useState<number | null>(null);
+  const [contactSheet, setContactSheet] = useState<"solicitar" | "visita" | null>(null);
   const n = images.length;
+  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const msgSolicitar = lang === "es" ? "Hola, me interesa tu propiedad. ¿Podrías compartirme más información?" : "Hi, I'm interested in your property. Could you share more information with me?";
+  const msgVisita = lang === "es" ? "Hola, me interesa tu propiedad. ¿Sería posible programar una visita?" : "Hi, I'm interested in your property. Would it be possible to schedule a visit?";
+  const emailSubject = lang === "es" ? "Consulta sobre tu propiedad" : "Question about your property";
+  const phoneDigits = (previewPhone ?? "").replace(/\D/g, "");
+  const hasPhone = phoneDigits.length >= 10;
+  const hasEmail = !!(previewEmail ?? "").trim();
   const canCycle = n > 3;
   const maxStart = Math.max(0, n - 3);
   const safeStart = n ? Math.min(heroStartIndex, maxStart) : 0;
@@ -785,8 +801,8 @@ function PrivateBrPreviewContent(props: {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Light beige panel wrapping top-half preview */}
-      <div className="rounded-2xl border border-[#C9B46A]/20 bg-[#F8F4EE] p-5 sm:p-6 shadow-sm">
+      {/* Full-page warm canvas: wraps entire preview content */}
+      <div className="rounded-2xl border border-[#C9B46A]/15 bg-[#F8F4EE] shadow-sm p-5 sm:p-6 min-h-[60vh]">
         {/* A. Header: brand + Publicar (no search) */}
         <header className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/25 bg-white/80 px-4 py-2 text-base font-bold text-[#111111] shadow-sm">
@@ -800,26 +816,31 @@ function PrivateBrPreviewContent(props: {
             {lang === "es" ? "Publicar" : "Post"}
           </button>
         </header>
-        {/* B. Section nav row */}
+        {/* B. Section nav row: scroll to sections */}
         <nav className="flex flex-wrap gap-2 mb-5" aria-label={lang === "es" ? "Secciones" : "Sections"}>
           {[
-            { id: "resumen", es: "Resumen", en: "Summary" },
-            { id: "interior", es: "Interior", en: "Interior" },
-            { id: "exterior", es: "Exterior", en: "Exterior" },
-            { id: "detalles", es: "Detalles", en: "Details" },
-            { id: "ubicacion", es: "Ubicación", en: "Location" },
-            { id: "contacto", es: "Contacto", en: "Contact" },
-          ].map(({ id, es, en }) => (
-            <span key={id} className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0] px-3 py-2 text-xs font-medium text-[#111111]/90">
+            { id: "resumen", es: "Resumen", en: "Summary", ref: resumenRef },
+            { id: "interior", es: "Interior", en: "Interior", ref: interiorRef },
+            { id: "exterior", es: "Exterior", en: "Exterior", ref: exteriorRef },
+            { id: "detalles", es: "Detalles", en: "Details", ref: detallesRef },
+            { id: "ubicacion", es: "Ubicación", en: "Location", ref: ubicacionRef },
+            { id: "contacto", es: "Contacto", en: "Contact", ref: contactoRef },
+          ].map(({ id, es, en, ref: sectionRef }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => scrollTo(sectionRef as React.RefObject<HTMLElement>)}
+              className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0] px-3 py-2 text-xs font-medium text-[#111111]/90 hover:bg-[#EFE7D8] hover:border-[#C9B46A]/40 transition"
+            >
               {lang === "es" ? es : en}
-            </span>
+            </button>
           ))}
         </nav>
         {/* C + D + E */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8 space-y-5">
             {/* C. Hero gallery: main + two side slots; cycle when >3 images */}
-            <div id="resumen" className="relative">
+            <div ref={resumenRef} id="resumen" className="relative scroll-mt-4">
               {primaryImage ? (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                   <div className="md:col-span-8 relative rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[220px]">
@@ -884,8 +905,8 @@ function PrivateBrPreviewContent(props: {
                 </div>
               )}
             </div>
-            {/* D. Main info: price, title, address, zone, facts, features */}
-            <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5">
+            {/* D. Main info: price, title, address, zone, facts, features (Ubicación) */}
+            <div ref={ubicacionRef} id="ubicacion" className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5 scroll-mt-4">
               <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
                 {priceDisplay}
               </div>
@@ -916,8 +937,9 @@ function PrivateBrPreviewContent(props: {
           </div>
         {/* E. Right private seller card */}
         <div className="lg:col-span-4">
-          <div id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm">
-            <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
+          <div ref={contactoRef} id="contacto" className="rounded-xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 shadow-sm scroll-mt-4">
+            <h4 className="text-sm font-bold text-[#111111] mb-1 flex items-center gap-2">
+              <span className="w-1 h-5 rounded-full bg-[#C9B46A]/50" aria-hidden />
               {lang === "es" ? "Contactar" : "Contact"}
             </h4>
             <p className="text-base font-semibold text-[#111111]">
@@ -934,29 +956,38 @@ function PrivateBrPreviewContent(props: {
               </p>
             )}
             <div className="mt-4 flex flex-col gap-2">
-              <button type="button" className="w-full rounded-xl bg-[#2D5016] text-white px-4 py-3 text-sm font-semibold hover:bg-[#244012] transition">
+              <button
+                type="button"
+                onClick={() => setContactSheet("solicitar")}
+                className="w-full rounded-xl bg-[#2D5016] text-white px-4 py-3 text-sm font-semibold hover:bg-[#244012] transition"
+              >
                 {lang === "es" ? "Solicitar información" : "Request info"}
               </button>
-              <button type="button" className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] px-4 py-3 text-sm font-semibold hover:bg-[#EFE7D8] transition">
+              <button
+                type="button"
+                onClick={() => setContactSheet("visita")}
+                className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] px-4 py-3 text-sm font-semibold hover:bg-[#EFE7D8] transition"
+              >
                 {lang === "es" ? "Programar visita" : "Schedule visit"}
               </button>
             </div>
           </div>
         </div>
       </div>
-      </div>
       {/* Bottom: Descripción + Detalles de la propiedad (private BR only) */}
       <div className="mt-8 space-y-8 max-w-2xl">
         <section>
-          <h3 className="text-lg font-bold text-[#111111] mb-3 border-b border-[#C9B46A]/25 pb-2">
+          <h3 className="text-lg font-bold text-[#111111] mb-3 flex items-center gap-2 pb-2 border-b border-[#C9B46A]/30">
+            <span className="w-1 h-6 rounded-full bg-[#C9B46A]/60" aria-hidden />
             {lang === "es" ? "Descripción" : "About this property"}
           </h3>
           <div className="rounded-xl border border-[#C9B46A]/20 bg-[#FAFAF8] p-5 text-[#111111] leading-relaxed whitespace-pre-wrap">
             {(description ?? "").trim() ? description.trim() : (lang === "es" ? "Sin descripción." : "No description.")}
           </div>
         </section>
-        <section>
-          <h3 className="text-lg font-bold text-[#111111] mb-3 border-b border-[#C9B46A]/25 pb-2">
+        <section ref={detallesRef} id="detalles" className="scroll-mt-4">
+          <h3 className="text-lg font-bold text-[#111111] mb-3 flex items-center gap-2 pb-2 border-b border-[#C9B46A]/30">
+            <span className="w-1 h-6 rounded-full bg-[#C9B46A]/60" aria-hidden />
             {lang === "es" ? "Detalles de la propiedad" : "Property details"}
           </h3>
           <div className="space-y-5">
@@ -998,8 +1029,11 @@ function PrivateBrPreviewContent(props: {
               return (
                 <>
                   {interiorRows.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Interior" : "Interior"}</h4>
+                    <div ref={interiorRef} id="interior" className="scroll-mt-4">
+                      <h4 className="text-sm font-bold text-[#111111] mb-2 flex items-center gap-2">
+                        <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
+                        {lang === "es" ? "Interior" : "Interior"}
+                      </h4>
                       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {interiorRows.map((r) => (
                           <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
@@ -1011,8 +1045,11 @@ function PrivateBrPreviewContent(props: {
                     </div>
                   )}
                   {exteriorRows.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Exterior / Terreno" : "Exterior / Lot"}</h4>
+                    <div ref={exteriorRef} id="exterior" className="scroll-mt-4">
+                      <h4 className="text-sm font-bold text-[#111111] mb-2 flex items-center gap-2">
+                        <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
+                        {lang === "es" ? "Exterior / Terreno" : "Exterior / Lot"}
+                      </h4>
                       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {exteriorRows.map((r) => (
                           <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
@@ -1025,7 +1062,10 @@ function PrivateBrPreviewContent(props: {
                   )}
                   {extraRows.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Información adicional" : "Additional info"}</h4>
+                      <h4 className="text-sm font-bold text-[#111111] mb-2 flex items-center gap-2">
+                        <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
+                        {lang === "es" ? "Información adicional" : "Additional info"}
+                      </h4>
                       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {extraRows.map((r) => (
                           <div key={r.label} className="flex justify-between gap-2 rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
@@ -1038,7 +1078,10 @@ function PrivateBrPreviewContent(props: {
                   )}
                   {multiRows.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold text-[#111111]/90 mb-2">{lang === "es" ? "Multimedia" : "Multimedia"}</h4>
+                      <h4 className="text-sm font-bold text-[#111111] mb-2 flex items-center gap-2">
+                        <span className="w-0.5 h-4 rounded-full bg-[#C9B46A]/50" aria-hidden />
+                        {lang === "es" ? "Multimedia" : "Multimedia"}
+                      </h4>
                       <dl className="grid grid-cols-1 gap-2">
                         {multiRows.map((r) => (
                           <div key={r.label} className="rounded-lg bg-[#F8F6F0]/80 px-3 py-2">
@@ -1132,8 +1175,63 @@ function PrivateBrPreviewContent(props: {
           </div>
         </div>
       )}
+      {/* Contact action sheet: Llamar / Email / Texto */}
+      {contactSheet && (hasPhone || hasEmail) && (
+        <div
+          className="fixed inset-0 z-[99] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === "es" ? "Opciones de contacto" : "Contact options"}
+          onClick={() => setContactSheet(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl p-4 pb-safe space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold text-[#111111] pb-2 border-b border-black/10">
+              {contactSheet === "solicitar"
+                ? (lang === "es" ? "Solicitar información" : "Request info")
+                : (lang === "es" ? "Programar visita" : "Schedule visit")}
+            </p>
+            {hasPhone && (
+              <>
+                <a
+                  href={`tel:${phoneDigits}`}
+                  onClick={() => setContactSheet(null)}
+                  className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition"
+                >
+                  {lang === "es" ? "Llamar" : "Call"}
+                </a>
+                <a
+                  href={`sms:${phoneDigits}?body=${encodeURIComponent(contactSheet === "solicitar" ? msgSolicitar : msgVisita)}`}
+                  onClick={() => setContactSheet(null)}
+                  className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition"
+                >
+                  {lang === "es" ? "Texto / SMS" : "Text / SMS"}
+                </a>
+              </>
+            )}
+            {hasEmail && (
+              <a
+                href={`mailto:${encodeURIComponent((previewEmail ?? "").trim())}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(contactSheet === "solicitar" ? msgSolicitar : msgVisita)}`}
+                onClick={() => setContactSheet(null)}
+                className="flex w-full items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] hover:bg-[#E8E8E8] transition"
+              >
+                {lang === "es" ? "Email" : "Email"}
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setContactSheet(null)}
+              className="w-full rounded-xl border border-black/15 py-3 text-sm font-medium text-[#111111] hover:bg-[#F5F5F5] transition"
+            >
+              {lang === "es" ? "Cancelar" : "Cancel"}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Confirm block */}
-      <div ref={confirmSectionRef} className="mt-10 pt-8 border-t border-black/10 max-w-2xl space-y-3">
+      <div ref={confirmSectionRef} id="confirmar" className="mt-10 pt-8 border-t border-black/10 max-w-2xl space-y-3 scroll-mt-4">
         <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
           <input
             type="checkbox"
@@ -1180,6 +1278,7 @@ function PrivateBrPreviewContent(props: {
             {publishing ? copyPublishing : copyFullPreviewConfirmPublish}
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
