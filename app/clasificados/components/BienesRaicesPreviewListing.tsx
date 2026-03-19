@@ -420,6 +420,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   businessRailTier={listing.businessRailTier}
                   lang={lang}
                   ownerId={listing.ownerId ?? null}
+                  agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
                 />
               </div>
             </div>

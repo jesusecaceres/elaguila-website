@@ -3147,7 +3147,7 @@ export default function PublicarPage() {
           ? !!(s.details.enVentaBedrooms ?? "").trim() &&
             !!(s.details.enVentaBathrooms ?? "").trim() &&
             !!(s.details.enVentaSquareFeet ?? "").trim() &&
-            !!(s.details.enVentaBusinessName ?? "").trim()
+            !!(s.details.negocioNombre ?? s.details.enVentaBusinessName ?? "").trim()
           : brPrivadoTypeOk)
       );
     return {
@@ -3784,6 +3784,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
   const coverImage = enVentaSnapshot.images[0] ?? null;
   const extraPreviewImages = enVentaSnapshot.images.slice(1, 5);
 
+  /** Current publish URL (path + query) so `/agente/[id]` can link back to this draft/preview flow. */
+  const previewPublishReturnPath = useMemo(() => {
+    const q = searchParams?.toString() ?? "";
+    return `${pathname ?? ""}${q ? `?${q}` : ""}`;
+  }, [pathname, searchParams]);
+
   // ListingData for in-page full preview modal (same shape as ListingView expects; uses current filePreviews so no navigation).
   const fullPreviewListingData = useMemo((): ListingData => {
     const snap = enVentaSnapshot;
@@ -3845,9 +3851,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
       // BR Negocio: floorplan + tour + Pro video feed BienesRaicesPreviewListing’s 2×2 utility tiles (main image stays left).
       base.floorPlanUrl = (d.negocioFloorPlanUrl ?? "").trim() || null;
+      base.agentProfileReturnUrl = previewPublishReturnPath;
     }
     return base;
-  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, userId]);
+  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, userId, previewPublishReturnPath]);
 
   // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
   const openFullPreview = useCallback(() => {
@@ -5353,6 +5360,68 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   </label>
                                   {details.negocioFotoAgenteUrl ? <img src={details.negocioFotoAgenteUrl} alt="" className="h-12 w-12 rounded-lg border border-black/10 object-cover bg-white" /> : null}
                                 </div>
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Licencia (número o credencial)" : "License (ID or credential)"}</label>
+                                <p className="mt-0.5 text-[11px] text-[#111111]/55">
+                                  {lang === "es" ? "Opcional. Se muestra en tu perfil público de agente." : "Optional. Shown on your public agent profile."}
+                                </p>
+                                <input
+                                  value={details.negocioLicencia ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioLicencia: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: DRE #01234567" : "e.g. DRE #01234567"}
+                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Teléfono de oficina" : "Office phone"}</label>
+                                <p className="mt-0.5 text-[11px] text-[#111111]/55">
+                                  {lang === "es" ? "Opcional. Visible en la ficha y en el perfil del agente." : "Optional. Shown on the listing and agent profile."}
+                                </p>
+                                <input
+                                  value={details.negocioTelOficina ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioTelOficina: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: (555) 123-4567" : "e.g. (555) 123-4567"}
+                                  inputMode="tel"
+                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Sitio web" : "Website"}</label>
+                                <input
+                                  value={details.negocioSitioWeb ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioSitioWeb: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: www.tuinmobiliaria.com" : "e.g. www.yourfirm.com"}
+                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Redes sociales" : "Social media"}</label>
+                                <p className="mt-0.5 text-[11px] text-[#111111]/55">
+                                  {lang === "es"
+                                    ? "Pega enlaces completos (https://…). Puedes poner varios en líneas separadas."
+                                    : "Paste full links (https://…). Multiple lines OK."}
+                                </p>
+                                <textarea
+                                  value={details.negocioRedes ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioRedes: e.target.value }))}
+                                  placeholder={
+                                    lang === "es"
+                                      ? "https://facebook.com/…\nhttps://instagram.com/…"
+                                      : "https://facebook.com/…\nhttps://instagram.com/…"
+                                  }
+                                  rows={3}
+                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Idiomas" : "Languages"}</label>
+                                <input
+                                  value={details.negocioIdiomas ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioIdiomas: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Español, inglés" : "e.g. Spanish, English"}
+                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                />
                               </div>
                             </div>
                           )}

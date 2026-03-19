@@ -14,6 +14,8 @@ export type BusinessListingIdentityRailProps = {
   lang: "es" | "en";
   /** Publisher id (`profiles.id`) for public agent profile; omit to hide BR agent CTA. */
   ownerId?: string | null;
+  /** Current publish page path+query; passed to `/agente/[id]` as `returnTo` for back navigation. */
+  agentProfileReturnUrl?: string | null;
 };
 
 /**
@@ -26,6 +28,7 @@ export default function BusinessListingIdentityRail({
   businessRailTier,
   lang,
   ownerId,
+  agentProfileReturnUrl,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
   const showFullSocial =
@@ -41,7 +44,12 @@ export default function BusinessListingIdentityRail({
   const agentRole = businessRail.role?.trim() || "";
   const agentNameLen = agentName.length;
   const ownerIdTrim = (ownerId ?? "").trim();
-  const agentProfileHref = ownerIdTrim ? `/agente/${encodeURIComponent(ownerIdTrim)}?lang=${lang}` : "";
+  const returnToTrim = (agentProfileReturnUrl ?? "").trim();
+  const agentProfileHref = ownerIdTrim
+    ? `/agente/${encodeURIComponent(ownerIdTrim)}?lang=${lang}${
+        returnToTrim ? `&returnTo=${encodeURIComponent(returnToTrim)}` : ""
+      }`
+    : "";
   const imageBoxClass = "h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0";
   const agentNameClass =
     agentNameLen > 72

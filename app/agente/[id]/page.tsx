@@ -9,11 +9,12 @@ import {
   type PublicAgentListingSummary,
 } from "@/app/lib/agentProfile/loadPublicAgentPageData";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { safePublishFlowReturnUrl } from "@/app/lib/safePublishReturnUrl";
 import AgentProfileHero from "./AgentProfileHero";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ lang?: string | string[] }>;
+  searchParams?: Promise<{ lang?: string | string[]; returnTo?: string | string[] }>;
 };
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -61,6 +62,8 @@ export default async function PublicAgentProfilePage(props: PageProps) {
   const sp = props.searchParams ? await props.searchParams : {};
   const langRaw = typeof sp.lang === "string" ? sp.lang : Array.isArray(sp.lang) ? sp.lang[0] : "";
   const lang = langRaw === "en" ? "en" : "es";
+  const returnToRaw = typeof sp.returnTo === "string" ? sp.returnTo : Array.isArray(sp.returnTo) ? sp.returnTo[0] : "";
+  const publishReturnHref = safePublishFlowReturnUrl(returnToRaw);
 
   if (!isValidPublicAgentId(rawId)) {
     notFound();
@@ -77,6 +80,7 @@ export default async function PublicAgentProfilePage(props: PageProps) {
     lang === "es"
       ? {
           back: "← Volver a Clasificados",
+          backPreview: "← Volver a la vista previa",
           about: "Sobre el agente",
           location: "Ubicación",
           hours: "Horario",
@@ -89,6 +93,7 @@ export default async function PublicAgentProfilePage(props: PageProps) {
         }
       : {
           back: "← Back to classifieds",
+          backPreview: "← Back to preview",
           about: "About the agent",
           location: "Location",
           hours: "Hours",
@@ -109,15 +114,18 @@ export default async function PublicAgentProfilePage(props: PageProps) {
 
   const showLocationBlock = Boolean(d.businessAddressLine || d.hours || mapsUrl);
 
+  const backHref = publishReturnHref ?? t.clasificadosHref;
+  const backLabel = publishReturnHref != null ? t.backPreview : t.back;
+
   return (
     <main className="min-h-screen bg-[#FAF9F5] text-[#111111]">
       <Navbar />
       <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-20 pb-16">
         <Link
-          href={t.clasificadosHref}
+          href={backHref}
           className="mb-4 inline-flex text-sm font-semibold text-[#3F5A43] hover:text-[#2F4A33]"
         >
-          {t.back}
+          {backLabel}
         </Link>
 
         <div className="mx-auto w-full max-w-3xl space-y-8">

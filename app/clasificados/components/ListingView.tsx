@@ -64,6 +64,11 @@ export type ListingData = {
   businessRailTier?: "business_standard" | "business_plus" | null;
   /** Listing publisher (profiles.id). Used for public agent profile CTA; omit in anonymous preview. */
   ownerId?: string | null;
+  /**
+   * When opening `/agente/[id]` from publish preview, pass current publish URL so the agent page
+   * back control can return here (BR negocio flow). Same-origin path + query, e.g. `/clasificados/publicar/bienes-raices?branch=negocio&step=media`.
+   */
+  agentProfileReturnUrl?: string | null;
 };
 
 type MediaSlot =
@@ -483,6 +488,7 @@ export default function ListingView({
             businessRailTier={listing.businessRailTier}
             lang={lang}
             ownerId={listing.ownerId ?? null}
+            agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
           />
         )}
 
