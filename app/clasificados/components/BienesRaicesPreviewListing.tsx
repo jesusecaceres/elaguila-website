@@ -38,6 +38,9 @@ export type BienesRaicesPreviewListingProps = {
 export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPreviewListingProps) {
   const lang = listing.lang;
   const [heroIndex, setHeroIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
   const [viewerCityInput, setViewerCityInput] = useState("");
   const [previewToast, setPreviewToast] = useState<string | null>(null);
 
@@ -52,8 +55,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     return Array.isArray(incoming) && incoming.length > 0 ? incoming : ["/logo.png"];
   }, [listing.images]);
 
-  // Kept: same hero + thumbnail selection logic.
-  const sideThumbs = images;
+  // Kept: same hero selection logic.
   const safeHero = Math.min(heroIndex, Math.max(0, images.length - 1));
   const heroSrc = images[safeHero] ?? "/logo.png";
 
@@ -62,6 +64,19 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     setHeroIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
   const goNextHero = () =>
     setHeroIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
+  const openLightbox = (index: number) => {
+    setLightboxIndex(Math.max(0, Math.min(index, images.length - 1)));
+    setLightboxZoom(1);
+    setLightboxOpen(true);
+  };
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxZoom(1);
+  };
+  const prevLightbox = () =>
+    setLightboxIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
+  const nextLightbox = () =>
+    setLightboxIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
 
   // BR Negocio top-half tiles (source order: explicit listing fields -> detailPairs fallback).
   const detailVirtualTourUrl =
@@ -161,11 +176,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Top row: hero left, square 2x2 media grid right, business rail below grid (desktop). */}
-        <div className={cx("grid gap-6 lg:gap-8 items-start", twoColClass)}>
+        {/* Top row: balanced hero + right stack with aligned bottom edge on desktop. */}
+        <div className={cx("grid gap-6 lg:gap-8 items-start lg:items-stretch", twoColClass)}>
           <div className="min-w-0 flex flex-col gap-3">
             {/* Main hero remains dominant and keeps arrow navigation. */}
-            <div className="relative min-h-[280px] sm:min-h-[360px] lg:min-h-[460px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+            <div className="relative min-h-[280px] sm:min-h-[340px] lg:min-h-0 lg:h-[620px] xl:h-[640px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
               <img src={heroSrc} alt="" className="w-full h-full object-cover" />
               {canCycle && (
                 <>
@@ -190,7 +205,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             </div>
 
             {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <div className="lg:hidden flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {images.map((url, idx) => (
                   <button
                     key={`${url}-m-${idx}`}
@@ -210,7 +225,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
 
           {showBusinessRail && listing.businessRail ? (
-            <div className="min-w-0 space-y-4 sm:space-y-5">
+            <div className="min-w-0 space-y-4 sm:space-y-5 lg:space-y-4 lg:h-[620px] xl:h-[640px] lg:flex lg:flex-col">
               {/* Right-side top media block: 2x2 square-ish tiles on desktop. */}
               <div className="hidden lg:grid grid-cols-2 gap-3">
                 <button
@@ -279,14 +294,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                 <button
                   type="button"
                   onClick={() => {
-                    if (additionalPhotos > 0) {
-                      setHeroIndex(nextPhotoIndex);
-                      showPreviewToast(
-                        lang === "es" ? `+ ${additionalPhotos} fotos` : `+ ${additionalPhotos} photos`
-                      );
-                      return;
-                    }
-                    setHeroIndex(0);
+                    openLightbox(nextPhotoIndex);
                   }}
                   className={cx(
                     "relative aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
@@ -306,7 +314,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </div>
 
               {/* Business card below media block (desktop), also visible on mobile/tablet. */}
-              <div className="lg:sticky lg:top-28">
+              <div className="lg:flex-1 lg:min-h-0">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -357,9 +365,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   <button
                     type="button"
                     onClick={() => {
-                      const nextIndex = maxRailPhotoThumbs;
-                      if (images[nextIndex]) setHeroIndex(nextIndex);
-                      showPreviewToast(lang === "es" ? `+ ${remainingPhotos} fotos` : `+ ${remainingPhotos} photos`);
+                      openLightbox(nextPhotoIndex);
                     }}
                     className="rounded-xl border border-stone-200/80 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111]"
                   >
@@ -370,6 +376,73 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             </div>
           ) : null}
         </div>
+
+        {lightboxOpen && (
+          <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-[1px] p-3 sm:p-6">
+            <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col rounded-2xl border border-white/10 bg-black/50">
+              <div className="flex items-center justify-between px-4 py-3 text-white">
+                <p className="text-sm font-medium">
+                  {lang === "es" ? "Galería de fotos" : "Photo gallery"} {lightboxIndex + 1}/{images.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLightboxZoom((z) => Math.max(1, Number((z - 0.25).toFixed(2))))}
+                    className="rounded-lg border border-white/25 px-3 py-1.5 text-sm font-semibold hover:bg-white/10"
+                    aria-label={lang === "es" ? "Alejar" : "Zoom out"}
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxZoom((z) => Math.min(3, Number((z + 0.25).toFixed(2))))}
+                    className="rounded-lg border border-white/25 px-3 py-1.5 text-sm font-semibold hover:bg-white/10"
+                    aria-label={lang === "es" ? "Acercar" : "Zoom in"}
+                  >
+                    ＋
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeLightbox}
+                    className="rounded-lg border border-white/25 px-3 py-1.5 text-sm font-semibold hover:bg-white/10"
+                    aria-label={lang === "es" ? "Cerrar galería" : "Close gallery"}
+                  >
+                    {lang === "es" ? "Cerrar" : "Close"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative flex-1 overflow-hidden">
+                <img
+                  src={images[lightboxIndex] ?? "/logo.png"}
+                  alt=""
+                  className="h-full w-full object-contain transition-transform duration-200"
+                  style={{ transform: `scale(${lightboxZoom})` }}
+                />
+                {images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={prevLightbox}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-black/55 hover:bg-black/75 text-white text-xl font-bold"
+                      aria-label={lang === "es" ? "Anterior" : "Previous"}
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={nextLightbox}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full bg-black/55 hover:bg-black/75 text-white text-xl font-bold"
+                      aria-label={lang === "es" ? "Siguiente" : "Next"}
+                    >
+                      →
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main listing content row (below hero): left-only */}
         <div className={cx("mt-8", twoColClass)}>
