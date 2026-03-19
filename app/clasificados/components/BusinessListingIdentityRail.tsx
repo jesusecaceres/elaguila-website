@@ -52,7 +52,7 @@ export default function BusinessListingIdentityRail({
       </div>
       <div className="flex flex-col gap-4">
         {/* Agent-first header row (matches requested reference direction). */}
-        <div className="rounded-xl border border-black/10 bg-white/75 p-3">
+        <div className={cx("rounded-xl border p-3", isBienesRaices ? "border-[#C9B46A]/35 bg-white" : "border-black/10 bg-white/75")}>
           <div className="flex items-center gap-3">
             {businessRail.agentPhotoUrl ? (
               <img
@@ -66,7 +66,7 @@ export default function BusinessListingIdentityRail({
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-base font-bold text-[#111111] leading-tight truncate">{agentName}</p>
+              <p className="text-base font-extrabold text-[#111111] leading-tight truncate">{agentName}</p>
               <p className="mt-0.5 text-xs text-[#111111]/70 truncate">{agentRole}</p>
             </div>
           </div>

@@ -77,8 +77,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const videoThumbUrl = listing.proVideoThumbUrl ?? null;
 
   const maxRailPhotoThumbs = 4;
-  const railPhotoThumbs = images.slice(0, maxRailPhotoThumbs);
-  const remainingPhotos = Math.max(0, images.length - railPhotoThumbs.length);
+  const remainingPhotos = Math.max(0, images.length - maxRailPhotoThumbs);
+  const additionalPhotos = Math.max(0, images.length - 1);
+  const nextPhotoIndex = images.length > 1 ? 1 : 0;
 
   const { quickFacts, featureTags } = useMemo(
     () => partitionBienesRaicesPreviewDetailPairs(listing.detailPairs ?? [], lang),
@@ -155,137 +156,23 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
 
-  const twoColClass = showBusinessRail ? "lg:grid-cols-[minmax(0,1.32fr)_minmax(300px,21rem)]" : "lg:grid-cols-1";
+  const twoColClass = showBusinessRail ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,24rem)]" : "lg:grid-cols-1";
 
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Top row: wider hero/gallery left. Business rail sits lower on right (desktop). */}
+        {/* Top row: hero left, square 2x2 media grid right, business rail below grid (desktop). */}
         <div className={cx("grid gap-6 lg:gap-8 items-start", twoColClass)}>
           <div className="min-w-0 flex flex-col gap-3">
-            {/* Desktop/tablet: hero + media tile rail (photos + virtual tour + floorplan + video) */}
-            <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_120px] gap-3 items-stretch">
-              <div className="relative min-h-[280px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
-                <img src={heroSrc} alt="" className="w-full h-full object-cover" />
-                {canCycle && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={goPrevHero}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-11 w-11 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-xl font-bold shadow-lg"
-                      aria-label={lang === "es" ? "Anterior" : "Previous"}
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      onClick={goNextHero}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-11 w-11 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-xl font-bold shadow-lg"
-                      aria-label={lang === "es" ? "Siguiente" : "Next"}
-                    >
-                      →
-                    </button>
-                  </>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2 max-h-[min(520px,70vh)] overflow-y-auto pr-0.5">
-                {virtualTourUrl && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showPreviewToast(lang === "es" ? "Abriendo tour virtual…" : "Opening virtual tour…");
-                      window.open(virtualTourUrl, "_blank", "noopener,noreferrer");
-                    }}
-                    className="h-16 rounded-xl border border-[#C9B46A]/40 bg-white/90 hover:bg-[#F8F6F0] transition flex flex-col items-center justify-center"
-                    aria-label={lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
-                  >
-                    <span aria-hidden className="text-xl">🗺️</span>
-                    <span className="text-[10px] font-semibold text-[#111111]">{lang === "es" ? "Tour virtual" : "Virtual tour"}</span>
-                  </button>
-                )}
-                {floorPlanUrl && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showPreviewToast(lang === "es" ? "Abriendo plano…" : "Opening floorplan…");
-                      window.open(floorPlanUrl, "_blank", "noopener,noreferrer");
-                    }}
-                    className="h-16 rounded-xl border border-[#C9B46A]/40 bg-white/90 hover:bg-[#F8F6F0] transition flex flex-col items-center justify-center"
-                    aria-label={lang === "es" ? "Abrir plano" : "Open floorplan"}
-                  >
-                    <span aria-hidden className="text-xl">📐</span>
-                    <span className="text-[10px] font-semibold text-[#111111]">{lang === "es" ? "Plano" : "Floorplan"}</span>
-                  </button>
-                )}
-                {videoUrl && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showPreviewToast(lang === "es" ? "Abriendo video…" : "Opening video…");
-                      window.open(videoUrl, "_blank", "noopener,noreferrer");
-                    }}
-                    className="relative h-16 rounded-xl border border-[#C9B46A]/40 bg-white/90 hover:bg-[#F8F6F0] transition flex flex-col items-center justify-center overflow-hidden"
-                    aria-label={lang === "es" ? "Abrir video" : "Open video"}
-                  >
-                    {videoThumbUrl ? (
-                      <img src={videoThumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90" />
-                    ) : null}
-                    <span aria-hidden className="relative text-xl">🎥</span>
-                    <span className="relative text-[10px] font-semibold text-[#111111]">
-                      {lang === "es" ? "Video" : "Video"}
-                    </span>
-                  </button>
-                )}
-
-                {railPhotoThumbs.map((url, idx) => {
-                  const isActive = safeHero === idx;
-                  return (
-                    <button
-                      key={`${url}-rail-${idx}`}
-                      type="button"
-                      onClick={() => setHeroIndex(idx)}
-                      className={cx(
-                        "relative h-16 rounded-xl overflow-hidden border-2 transition bg-stone-50",
-                        isActive
-                          ? "border-[#C9B46A] ring-2 ring-[#C9B46A]/30 ring-offset-2 ring-offset-[#F4F1EA]"
-                          : "border-stone-200/80 hover:border-stone-300"
-                      )}
-                      aria-label={lang === "es" ? `Foto ${idx + 1}` : `Photo ${idx + 1}`}
-                    >
-                      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    </button>
-                  );
-                })}
-
-                {remainingPhotos > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // Jump to the first hidden photo so arrow navigation stays coherent.
-                      const nextIndex = maxRailPhotoThumbs;
-                      if (images[nextIndex]) setHeroIndex(nextIndex);
-                      showPreviewToast(lang === "es" ? `+ ${remainingPhotos} fotos` : `+ ${remainingPhotos} photos`);
-                    }}
-                    className="h-16 rounded-xl border border-stone-200/80 bg-[#F8F6F0] hover:bg-white transition flex flex-col items-center justify-center"
-                    aria-label={lang === "es" ? "Ver más fotos" : "See more photos"}
-                  >
-                    <span aria-hidden className="text-lg">＋</span>
-                    <span className="text-[10px] font-semibold text-[#111111]">{lang === "es" ? `+${remainingPhotos} fotos` : `+${remainingPhotos}`}</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile/tablet: keep simple hero + horizontal thumb strip for photos */}
-            <div className="sm:hidden relative min-h-[220px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+            {/* Main hero remains dominant and keeps arrow navigation. */}
+            <div className="relative min-h-[280px] sm:min-h-[360px] lg:min-h-[460px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
               <img src={heroSrc} alt="" className="w-full h-full object-cover" />
               {canCycle && (
                 <>
                   <button
                     type="button"
                     onClick={goPrevHero}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-lg"
                     aria-label={lang === "es" ? "Anterior" : "Previous"}
                   >
                     ←
@@ -293,7 +180,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   <button
                     type="button"
                     onClick={goNextHero}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-lg sm:text-xl font-bold shadow-lg"
                     aria-label={lang === "es" ? "Siguiente" : "Next"}
                   >
                     →
@@ -303,7 +190,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             </div>
 
             {images.length > 1 && (
-              <div className="sm:hidden flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {images.map((url, idx) => (
                   <button
                     key={`${url}-m-${idx}`}
@@ -323,21 +210,103 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
 
           {showBusinessRail && listing.businessRail ? (
-            <>
-              {/* Desktop: keep right column, but place rail below gallery zone and sticky. */}
-              <div className="min-w-0 hidden lg:block">
-                <div className="h-[220px] xl:h-[250px]" aria-hidden />
-                <div className="sticky top-28">
-                  <BusinessListingIdentityRail
-                    businessRail={listing.businessRail}
-                    category="bienes-raices"
-                    businessRailTier={listing.businessRailTier}
-                    lang={lang}
-                  />
-                </div>
+            <div className="min-w-0 space-y-4 sm:space-y-5">
+              {/* Right-side top media block: 2x2 square-ish tiles on desktop. */}
+              <div className="hidden lg:grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!virtualTourUrl) return;
+                    showPreviewToast(lang === "es" ? "Abriendo tour virtual…" : "Opening virtual tour…");
+                    window.open(virtualTourUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  disabled={!virtualTourUrl}
+                  className={cx(
+                    "aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    virtualTourUrl
+                      ? "border-[#C9B46A]/45 bg-white/90 hover:bg-[#F8F6F0]"
+                      : "border-stone-200/80 bg-[#F5F5F5] text-[#111111]/45"
+                  )}
+                  aria-label={lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
+                >
+                  <span aria-hidden className="text-2xl">🗺️</span>
+                  <span className="mt-1 text-[11px] font-semibold">{lang === "es" ? "Tour virtual" : "Virtual tour"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!floorPlanUrl) return;
+                    showPreviewToast(lang === "es" ? "Abriendo plano…" : "Opening floorplan…");
+                    window.open(floorPlanUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  disabled={!floorPlanUrl}
+                  className={cx(
+                    "aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    floorPlanUrl
+                      ? "border-[#C9B46A]/45 bg-white/90 hover:bg-[#F8F6F0]"
+                      : "border-stone-200/80 bg-[#F5F5F5] text-[#111111]/45"
+                  )}
+                  aria-label={lang === "es" ? "Abrir plano" : "Open floorplan"}
+                >
+                  <span aria-hidden className="text-2xl">📐</span>
+                  <span className="mt-1 text-[11px] font-semibold">{lang === "es" ? "Plano" : "Floorplan"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!videoUrl) return;
+                    showPreviewToast(lang === "es" ? "Abriendo video…" : "Opening video…");
+                    window.open(videoUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  disabled={!videoUrl}
+                  className={cx(
+                    "relative aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    videoUrl
+                      ? "border-[#C9B46A]/45 bg-white/90 hover:bg-[#F8F6F0]"
+                      : "border-stone-200/80 bg-[#F5F5F5] text-[#111111]/45"
+                  )}
+                  aria-label={lang === "es" ? "Abrir video" : "Open video"}
+                >
+                  {videoUrl && videoThumbUrl ? (
+                    <img src={videoThumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                  ) : null}
+                  <span aria-hidden className="relative text-2xl">🎥</span>
+                  <span className="relative mt-1 text-[11px] font-semibold">{lang === "es" ? "Video" : "Video"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (additionalPhotos > 0) {
+                      setHeroIndex(nextPhotoIndex);
+                      showPreviewToast(
+                        lang === "es" ? `+ ${additionalPhotos} fotos` : `+ ${additionalPhotos} photos`
+                      );
+                      return;
+                    }
+                    setHeroIndex(0);
+                  }}
+                  className={cx(
+                    "relative aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    additionalPhotos > 0
+                      ? "border-[#C9B46A]/45 bg-[#F8F6F0] hover:bg-white"
+                      : "border-stone-200/80 bg-stone-50 hover:bg-white"
+                  )}
+                  aria-label={lang === "es" ? "Ver más fotos" : "See more photos"}
+                >
+                  {images[nextPhotoIndex] ? (
+                    <img src={images[nextPhotoIndex]} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+                  ) : null}
+                  <span className="relative rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
+                    {additionalPhotos > 0 ? (lang === "es" ? `+${additionalPhotos} fotos` : `+${additionalPhotos}`) : (lang === "es" ? "Fotos" : "Photos")}
+                  </span>
+                </button>
               </div>
-              {/* Mobile/tablet: rail remains below gallery. */}
-              <div className="lg:hidden">
+
+              {/* Business card below media block (desktop), also visible on mobile/tablet. */}
+              <div className="lg:sticky lg:top-28">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -345,7 +314,60 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   lang={lang}
                 />
               </div>
-            </>
+
+              {/* Mobile/tablet: preserve quick media access without changing lower section. */}
+              <div className="grid grid-cols-2 gap-2 lg:hidden">
+                {virtualTourUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showPreviewToast(lang === "es" ? "Abriendo tour virtual…" : "Opening virtual tour…");
+                      window.open(virtualTourUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="rounded-xl border border-[#C9B46A]/45 bg-white/90 px-3 py-2 text-xs font-semibold text-[#111111]"
+                  >
+                    {lang === "es" ? "Tour virtual" : "Virtual tour"}
+                  </button>
+                ) : null}
+                {floorPlanUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showPreviewToast(lang === "es" ? "Abriendo plano…" : "Opening floorplan…");
+                      window.open(floorPlanUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="rounded-xl border border-[#C9B46A]/45 bg-white/90 px-3 py-2 text-xs font-semibold text-[#111111]"
+                  >
+                    {lang === "es" ? "Plano" : "Floorplan"}
+                  </button>
+                ) : null}
+                {videoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showPreviewToast(lang === "es" ? "Abriendo video…" : "Opening video…");
+                      window.open(videoUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="rounded-xl border border-[#C9B46A]/45 bg-white/90 px-3 py-2 text-xs font-semibold text-[#111111]"
+                  >
+                    {lang === "es" ? "Video" : "Video"}
+                  </button>
+                ) : null}
+                {remainingPhotos > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextIndex = maxRailPhotoThumbs;
+                      if (images[nextIndex]) setHeroIndex(nextIndex);
+                      showPreviewToast(lang === "es" ? `+ ${remainingPhotos} fotos` : `+ ${remainingPhotos} photos`);
+                    }}
+                    className="rounded-xl border border-stone-200/80 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111]"
+                  >
+                    {lang === "es" ? `+${remainingPhotos} fotos` : `+${remainingPhotos}`}
+                  </button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
         </div>
 
