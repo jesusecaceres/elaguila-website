@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
@@ -303,79 +303,13 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </div>
   );
 
-  const mediaTilesNegocio: ReactNode[] = [];
-  if (virtualTourHref) {
-    mediaTilesNegocio.push(
-      <a
-        key="tour"
-        href={virtualTourHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-      >
-        <span className="text-lg" aria-hidden>
-          🌐
-        </span>
-        {t.tileTour}
-      </a>
-    );
-  }
-  if (floorPlanHref) {
-    mediaTilesNegocio.push(
-      <a
-        key="plan"
-        href={floorPlanHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-      >
-        <span className="text-lg" aria-hidden>
-          📐
-        </span>
-        {t.tilePlan}
-      </a>
-    );
-  }
-  if (proVideoHref) {
-    mediaTilesNegocio.push(
-      <a
-        key="video"
-        href={proVideoHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-      >
-        <span className="text-lg" aria-hidden>
-          🎥
-        </span>
-        {t.tileVideo}
-      </a>
-    );
-  }
-  if (extraImageCount > 0) {
-    mediaTilesNegocio.push(
-      <button
-        key="more"
-        type="button"
-        onClick={openMorePhotosLightbox}
-        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-0.5 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-      >
-        <span className="text-lg" aria-hidden>
-          🖼️
-        </span>
-        <span>{t.tileMorePhotos}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wide text-[#8B6914]/90">
-          {lang === "es"
-            ? extraImageCount === 1
-              ? "1 más"
-              : `${extraImageCount} más`
-            : extraImageCount === 1
-              ? "1 more"
-              : `${extraImageCount} more`}
-        </span>
-      </button>
-    );
-  }
+  /** Fixed 2×2 media grid: equal square cells; inactive slots stay aligned (disabled look). */
+  const negocioTileShell =
+    "flex aspect-square min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
+  const negocioTileActive =
+    "border-[#C9B46A]/35 bg-[#FFFCF6] text-[10px] font-semibold leading-tight text-[#111111] transition hover:bg-[#F8F2E6] sm:text-[11px]";
+  const negocioTileDisabled =
+    "border-[#C9B46A]/10 bg-[#EFEDE8]/90 text-[10px] font-semibold leading-tight text-[#111111]/32 sm:text-[11px] pointer-events-none select-none";
 
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
@@ -383,12 +317,102 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {showBusinessRail && listing.businessRail ? (
           <>
             {/* BR negocio publish preview: main image left; right = 2×2 utility tiles, then Identidad del negocio + CTAs (matches original composition). */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-3 sm:gap-5 lg:gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,26rem)] gap-3 sm:gap-5 lg:gap-7 items-start">
               <div className="min-w-0 order-1">{negocioHeroOnly}</div>
-              <div className="min-w-0 order-2 flex flex-col gap-3 sm:gap-4">
-                {mediaTilesNegocio.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5">{mediaTilesNegocio}</div>
-                ) : null}
+              <div className="min-w-0 order-2 flex w-full min-w-0 flex-col gap-3 sm:gap-3.5">
+                <div
+                  className="grid w-full max-w-[16.25rem] shrink-0 grid-cols-2 grid-rows-2 gap-2 self-center sm:max-w-[17rem] lg:self-start"
+                  aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
+                >
+                  {virtualTourHref ? (
+                    <a
+                      href={virtualTourHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cx(negocioTileShell, negocioTileActive)}
+                    >
+                      <span className="text-base sm:text-lg leading-none" aria-hidden>
+                        🌐
+                      </span>
+                      <span>{t.tileTour}</span>
+                    </a>
+                  ) : (
+                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
+                        🌐
+                      </span>
+                      <span>{t.tileTour}</span>
+                    </div>
+                  )}
+                  {floorPlanHref ? (
+                    <a
+                      href={floorPlanHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cx(negocioTileShell, negocioTileActive)}
+                    >
+                      <span className="text-base sm:text-lg leading-none" aria-hidden>
+                        📐
+                      </span>
+                      <span>{t.tilePlan}</span>
+                    </a>
+                  ) : (
+                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
+                        📐
+                      </span>
+                      <span>{t.tilePlan}</span>
+                    </div>
+                  )}
+                  {proVideoHref ? (
+                    <a
+                      href={proVideoHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cx(negocioTileShell, negocioTileActive)}
+                    >
+                      <span className="text-base sm:text-lg leading-none" aria-hidden>
+                        🎥
+                      </span>
+                      <span>{t.tileVideo}</span>
+                    </a>
+                  ) : (
+                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
+                        🎥
+                      </span>
+                      <span>{t.tileVideo}</span>
+                    </div>
+                  )}
+                  {extraImageCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={openMorePhotosLightbox}
+                      className={cx(negocioTileShell, negocioTileActive, "cursor-pointer")}
+                    >
+                      <span className="text-base sm:text-lg leading-none" aria-hidden>
+                        🖼️
+                      </span>
+                      <span>{t.tileMorePhotos}</span>
+                      <span className="text-[8px] font-bold uppercase tracking-wide text-[#8B6914]/90 leading-none">
+                        {lang === "es"
+                          ? extraImageCount === 1
+                            ? "1 más"
+                            : `${extraImageCount} más`
+                          : extraImageCount === 1
+                            ? "1 more"
+                            : `${extraImageCount} more`}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
+                        🖼️
+                      </span>
+                      <span>{t.tileMorePhotos}</span>
+                    </div>
+                  )}
+                </div>
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
