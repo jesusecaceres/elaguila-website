@@ -100,7 +100,16 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     () => partitionBienesRaicesPreviewDetailPairs(listing.detailPairs ?? [], lang),
     [listing.detailPairs, lang]
   );
-  const addressLine = (listing.approximateArea ?? "").trim();
+  const detailAddressLine = useMemo(() => {
+    const match = (listing.detailPairs ?? []).find((p) => /direcci[oó]n|address/i.test((p.label ?? "").toLowerCase()));
+    return (match?.value ?? "").trim() || null;
+  }, [listing.detailPairs]);
+  const detailNeighborhoodLine = useMemo(() => {
+    const match = (listing.detailPairs ?? []).find((p) => /vecindad|neighborhood/i.test((p.label ?? "").toLowerCase()));
+    return (match?.value ?? "").trim() || null;
+  }, [listing.detailPairs]);
+  const addressFallback = (listing.approximateArea ?? "").trim() || null;
+  const addressLine = detailAddressLine ?? addressFallback;
   const compactQuickFacts = useMemo(
     () =>
       quickFacts.filter((f) => {
@@ -110,9 +119,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     [quickFacts]
   );
   const neighborhoodLine = useMemo(() => {
-    const fromFacts = quickFacts.find((f) => /vecindad|neighborhood/.test((f.label ?? "").toLowerCase()))?.value?.trim();
-    return fromFacts || null;
-  }, [quickFacts]);
+    const fromFacts = quickFacts.find((f) => /vecindad|neighborhood/.test((f.label ?? "").toLowerCase()))?.value?.trim() || null;
+    return detailNeighborhoodLine ?? fromFacts;
+  }, [quickFacts, detailNeighborhoodLine]);
   const iconFacts = useMemo(() => {
     const buckets = [
       { pattern: /rec[aá]maras|bedrooms?/, icon: "🛏️", key: "bed" },
