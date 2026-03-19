@@ -96,10 +96,34 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const additionalPhotos = Math.max(0, images.length - 1);
   const nextPhotoIndex = images.length > 1 ? 1 : 0;
 
-  const { quickFacts, featureTags } = useMemo(
+  const { quickFacts } = useMemo(
     () => partitionBienesRaicesPreviewDetailPairs(listing.detailPairs ?? [], lang),
     [listing.detailPairs, lang]
   );
+  const addressLine = (listing.approximateArea ?? "").trim();
+  const compactQuickFacts = useMemo(
+    () =>
+      quickFacts.filter((f) => {
+        const label = (f.label ?? "").trim().toLowerCase();
+        return !/vecindad|neighborhood|niveles|stories/.test(label);
+      }),
+    [quickFacts]
+  );
+  const iconFacts = useMemo(() => {
+    const buckets = [
+      { pattern: /rec[aá]maras|bedrooms?/, icon: "🛏️", key: "bed" },
+      { pattern: /ba[ñn]os|bathrooms?/, icon: "🛁", key: "bath" },
+      { pattern: /pies|ft|sq\s*ft|superficie|area/, icon: "📏", key: "area" },
+      { pattern: /estacionamiento|parking|garage/, icon: "🚗", key: "parking" },
+      { pattern: /terreno|lot|land/, icon: "🌿", key: "lot" },
+    ];
+    return buckets
+      .map((b) => {
+        const match = compactQuickFacts.find((f) => b.pattern.test((f.label ?? "").toLowerCase()));
+        return match ? { ...match, icon: b.icon, _key: b.key } : null;
+      })
+      .filter((v): v is { label: string; value: string; icon: string; _key: string } => Boolean(v));
+  }, [compactQuickFacts]);
 
   const distanceMiles = useMemo(
     () => (viewerCityInput.trim() && listing.city ? getRoughDistanceMiles(viewerCityInput, listing.city) : null),
@@ -456,7 +480,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         <div className={cx("mt-8", twoColClass)}>
           <div className="lg:col-start-1 lg:col-span-1 min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8">
             {/* Title / price / city / posted + quick facts + feature chips */}
-            <div className="rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6 lg:p-8 shadow-sm w-full">
+            <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6] p-5 sm:p-6 lg:p-7 shadow-sm w-full lg:w-[min(100%,52rem)]">
               {listing.categoryLabel ? (
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
               ) : null}
@@ -477,40 +501,30 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                 <span>{listing.todayLabel}</span>
               </div>
 
-              {(quickFacts.length > 0 || featureTags.length > 0) && (
+              {addressLine ? (
+                <p className="mt-2 text-sm text-[#111111]/70">
+                  <span className="font-medium text-[#111111]/80">{lang === "es" ? "Dirección:" : "Address:"}</span>{" "}
+                  {addressLine}
+                </p>
+              ) : null}
+
+              {(iconFacts.length > 0 || compactQuickFacts.length > 0) && (
                 <div className="mt-4 pt-4">
                   <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.detallesPropiedad}</h2>
 
-                  {quickFacts.length > 0 && (
+                  {iconFacts.length > 0 && (
                     <div className="mb-5">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
                         {lang === "es" ? "Datos clave" : "Quick facts"}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {quickFacts.map((f) => (
+                        {iconFacts.map((f) => (
                           <span
-                            key={`qf-${f.label}-${f.value}`}
-                            className="rounded-full border border-[#C9B46A]/30 bg-[#FDF9EE] px-3 py-1.5 text-xs font-semibold text-[#111111]"
+                            key={`qf-icon-${f._key}-${f.value}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/35 bg-[#FAF3E4] px-3 py-1.5 text-xs font-semibold text-[#111111]"
                           >
+                            <span aria-hidden>{f.icon}</span>
                             <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {featureTags.length > 0 && (
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                        {lang === "es" ? "Características" : "Features"}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {featureTags.map((f) => (
-                          <span
-                            key={`ft-${f.label}-${f.value}`}
-                            className="rounded-lg border border-stone-200 bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-[#111111]/90"
-                          >
-                            <span className="text-[#111111]/55">{f.label}:</span> {f.value}
                           </span>
                         ))}
                       </div>
