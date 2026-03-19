@@ -1604,13 +1604,13 @@ export default function PublicarPage() {
     setCategory(categoryFromUrl);
   }, [categoryFromUrl]);
 
-  // Keep routing strict: invalid slug → redirect to canonical en-venta so no wrong UX leaks.
+  // Invalid category slug: send to Clasificados hub (do not force a default publish category like en-venta).
   useEffect(() => {
     if (slugFromUrl === "" || normalizeCategory(params?.category ?? "") !== "") return;
-    const p = new URLSearchParams(searchParams?.toString() ?? "");
-    if (!p.has("lang")) p.set("lang", lang);
-    router.replace(`/clasificados/publicar/en-venta?${p.toString()}`);
-  }, [slugFromUrl, params?.category, searchParams, lang, router]);
+    const p = new URLSearchParams();
+    p.set("lang", lang);
+    router.replace(`/clasificados?${p.toString()}`);
+  }, [slugFromUrl, params?.category, lang, router]);
 
   useEffect(() => {
     if (searchParams?.get("fromPreview") === "1") setPreviewViewed(true);
@@ -2134,7 +2134,6 @@ export default function PublicarPage() {
         deleteApplication: "Eliminar aplicación",
         leaveSaveDraft: "Guardar progreso y salir",
         leaveConfirmTitle: "¿Salir de la publicación?",
-        leaveDiscard: "Salir sin guardar",
         leaveKeepEditing: "Seguir editando",
         exitLink: "Salir",
         saveProgress: "Guardar progreso",
@@ -2212,7 +2211,6 @@ export default function PublicarPage() {
         deleteApplication: "Delete application",
         leaveConfirmTitle: "Leave publish flow?",
         leaveSaveDraft: "Save progress and exit",
-        leaveDiscard: "Leave without saving",
         leaveKeepEditing: "Keep editing",
         exitLink: "Exit",
       },
@@ -2618,9 +2616,17 @@ export default function PublicarPage() {
     clearAllClassifiedsDrafts({ draftKey, userId });
     resetFormToEmpty();
     setShowDraftRestoreModal(false);
-    setStep("category");
     syncDraftIdInUrl(null);
-    syncStepInUrl("category");
+    if (categoryFromUrl === "rentas") {
+      setStep("rentas-track");
+      syncStepInUrl("rentas-track");
+    } else if (categoryFromUrl === "bienes-raices") {
+      setStep("bienes-raices-track");
+      syncStepInUrl("bienes-raices-track");
+    } else {
+      setStep("category");
+      syncStepInUrl("category");
+    }
   }
 
   // Restore images from sessionStorage when returning from preview (prevents form reset)
@@ -3005,10 +3011,11 @@ export default function PublicarPage() {
   function handleExitClick(e: React.MouseEvent) {
     e.preventDefault();
     if (isFormDirty) setShowLeaveConfirmModal(true);
-    else router.push(`/clasificados?lang=${lang}`);
+    else void handleExitSaveAndNavigate();
   }
 
-  async function handleLeaveSaveDraft() {
+  /** Salir: always persist progress (local + DB) then go to Clasificados — never clear drafts here. */
+  async function handleExitSaveAndNavigate() {
     setLeaveSaving(true);
     try {
       await saveDraftAndImagesForProReturn();
@@ -3019,10 +3026,8 @@ export default function PublicarPage() {
     }
   }
 
-  function handleLeaveDiscard() {
-    clearAllClassifiedsDrafts({ draftKey });
-    setShowLeaveConfirmModal(false);
-    router.push(`/clasificados?lang=${lang}`);
+  async function handleLeaveSaveDraft() {
+    await handleExitSaveAndNavigate();
   }
 
   // Image previews (from images state)
@@ -4032,14 +4037,6 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         className="w-full rounded-xl bg-[#A98C2A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#8f7a24] disabled:opacity-70 disabled:cursor-wait"
                       >
                         {leaveSaving ? (lang === "es" ? "Guardando…" : "Saving…") : copy.leaveSaveDraft}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={leaveSaving}
-                        onClick={handleLeaveDiscard}
-                        className="w-full rounded-xl border border-red-600/50 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-100 disabled:opacity-70"
-                      >
-                        {copy.leaveDiscard}
                       </button>
                       <button
                         type="button"
