@@ -594,8 +594,10 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pk });
     const videoUrl = (details.enVentaVideoUrl ?? "").trim();
     if (videoUrl) out.push({ label: lang === "es" ? "Video de la propiedad" : "Property video", value: videoUrl });
-    const virtualTour = (details.enVentaVirtualTourUrl ?? "").trim();
+    const virtualTour = (details.enVentaVirtualTourUrl ?? details.negocioRecorridoVirtual ?? "").trim();
     if (virtualTour) out.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: virtualTour });
+    const floorPlan = (details.negocioFloorPlanUrl ?? "").trim();
+    if (floorPlan) out.push({ label: lang === "es" ? "Plano / Floorplan" : "Floorplan", value: floorPlan });
     const yearBuilt = (details.enVentaYearBuilt ?? "").trim();
     if (yearBuilt) out.push({ label: lang === "es" ? "Año de construcción" : "Year built", value: yearBuilt });
     const zoning = (details.enVentaZoning ?? "").trim();
@@ -1785,6 +1787,7 @@ export default function PublicarPage() {
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [agentPhotoUploading, setAgentPhotoUploading] = useState(false);
+  const [floorPlanUploading, setFloorPlanUploading] = useState(false);
 
   const setRulesConfirmedPersisted = (value: boolean) => {
     setRulesConfirmed(value);
@@ -1815,6 +1818,34 @@ export default function PublicarPage() {
         if (typeof window !== "undefined") alert(lang === "es" ? "No se pudo subir la imagen. Intenta de nuevo." : "Upload failed. Please try again.");
       } finally {
         setBusy(false);
+      }
+    },
+    [userId, lang]
+  );
+
+  /** Upload BR negocio floorplan asset (image/pdf) and store public URL in details.negocioFloorPlanUrl. */
+  const uploadBusinessFloorPlan = useCallback(
+    async (file: File) => {
+      if (!userId) return;
+      setFloorPlanUploading(true);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const rawExt = (file.name.split(".").pop() || "pdf").toLowerCase();
+        const ext = /^[a-z0-9]+$/.test(rawExt) ? rawExt : "pdf";
+        const path = `${userId}/drafts/business-floorplan-${Date.now()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("listing-images")
+          .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+        if (error) throw error;
+        const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+        setDetails((prev) => ({ ...prev, negocioFloorPlanUrl: url }));
+      } catch (e: unknown) {
+        console.warn("floorplan upload failed", e);
+        if (typeof window !== "undefined") {
+          alert(lang === "es" ? "No se pudo subir el plano. Intenta de nuevo." : "Floorplan upload failed. Please try again.");
+        }
+      } finally {
+        setFloorPlanUploading(false);
       }
     },
     [userId, lang]
@@ -4895,16 +4926,20 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               <p className="text-[11px] text-[#111111]/65">{lang === "es" ? "Todos opcionales. Completa solo lo que conozcas." : "All optional. Fill in only what you know."}</p>
                             )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="sm:col-span-2">
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad" : "Property video"}</label>
-                                <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Pega el enlace del video de tu propiedad. Puede ser de YouTube, TikTok, Vimeo, Instagram u otro enlace público." : "Paste the link to your property video. Can be from YouTube, TikTok, Vimeo, Instagram or another public link."}</p>
-                                <input value={details.enVentaVideoUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                              </div>
-                              <div className="sm:col-span-2">
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual" : "Virtual tour"}</label>
-                                <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Pega el enlace del recorrido virtual o tour 3D de la propiedad. Puede ser de Matterport, YouTube o del sitio web donde esté publicado." : "Paste the link to the virtual tour or 3D walkthrough. Can be Matterport, YouTube or the site where it is published."}</p>
-                                <input value={details.enVentaVirtualTourUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVirtualTourUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                              </div>
+                              {(details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio" && (
+                                <>
+                                  <div className="sm:col-span-2">
+                                    <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad" : "Property video"}</label>
+                                    <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Pega el enlace del video de tu propiedad. Puede ser de YouTube, TikTok, Vimeo, Instagram u otro enlace público." : "Paste the link to your property video. Can be from YouTube, TikTok, Vimeo, Instagram or another public link."}</p>
+                                    <input value={details.enVentaVideoUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                  </div>
+                                  <div className="sm:col-span-2">
+                                    <label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual" : "Virtual tour"}</label>
+                                    <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Pega el enlace del recorrido virtual o tour 3D de la propiedad. Puede ser de Matterport, YouTube o del sitio web donde esté publicado." : "Paste the link to the virtual tour or 3D walkthrough. Can be Matterport, YouTube or the site where it is published."}</p>
+                                    <input value={details.enVentaVirtualTourUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVirtualTourUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                  </div>
+                                </>
+                              )}
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label>
                                 <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Año en que se construyó la propiedad o la última remodelación importante." : "Year the property was built or last major remodel."}</p>
@@ -6028,12 +6063,73 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         }}
                       />
 
+                      {/* BR Negocio media links in Media + Contacto (active user-facing flow). */}
+                      {categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio" && (
+                        <div className="rounded-2xl border border-black/10 bg-white/60 p-4 space-y-3">
+                          <h4 className="text-sm font-semibold text-[#111111]">
+                            {lang === "es" ? "Medios de la propiedad (Negocio)" : "Property media (Business)"}
+                          </h4>
+                          <div>
+                            <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad (URL)" : "Property video (URL)"}</label>
+                            <input
+                              type="url"
+                              value={details.enVentaVideoUrl ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))}
+                              placeholder="https://"
+                              className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual (URL)" : "Virtual tour (URL)"}</label>
+                            <input
+                              type="url"
+                              value={details.negocioRecorridoVirtual ?? details.enVentaVirtualTourUrl ?? ""}
+                              onChange={(e) =>
+                                setDetails((prev) => ({
+                                  ...prev,
+                                  negocioRecorridoVirtual: e.target.value,
+                                  enVentaVirtualTourUrl: e.target.value,
+                                }))
+                              }
+                              placeholder="https://"
+                              className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       {/* BR Negocio: Floorplan (URL) for top-half media tiles. */}
                       {categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio" && (
                         <div className="rounded-2xl border border-black/10 bg-white/60 p-4">
                           <label className="text-sm text-[#111111] font-semibold">
-                            {lang === "es" ? "Plano / Floorplan (URL)" : "Floorplan (URL)"}
+                            {lang === "es" ? "Plano / Floorplan" : "Floorplan"}
                           </label>
+                          <div className="mt-2 flex items-center gap-3">
+                            <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                              {floorPlanUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir plano" : "Upload floorplan")}
+                              <input
+                                type="file"
+                                accept="image/*,.pdf,application/pdf"
+                                className="sr-only"
+                                disabled={floorPlanUploading}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) uploadBusinessFloorPlan(f);
+                                  e.target.value = "";
+                                }}
+                              />
+                            </label>
+                            {details.negocioFloorPlanUrl ? (
+                              <a
+                                href={details.negocioFloorPlanUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium text-[#111111] underline decoration-[#C9B46A]/70"
+                              >
+                                {lang === "es" ? "Ver archivo cargado" : "View uploaded file"}
+                              </a>
+                            ) : null}
+                          </div>
                           <input
                             type="url"
                             value={details.negocioFloorPlanUrl ?? ""}
@@ -6043,8 +6139,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           />
                           <p className="mt-1 text-xs text-[#111111]/50">
                             {lang === "es"
-                              ? "Pega el enlace del plano. (Se abrirá en nueva pestaña.)"
-                              : "Paste a link to the floorplan. (Opens in a new tab.)"}
+                              ? "Sube imagen/PDF o pega enlace. (Se abrirá en nueva pestaña.)"
+                              : "Upload image/PDF or paste URL. (Opens in a new tab.)"}
                           </p>
                         </div>
                       )}

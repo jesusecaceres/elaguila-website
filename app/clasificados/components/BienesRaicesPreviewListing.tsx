@@ -63,10 +63,17 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const goNextHero = () =>
     setHeroIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
 
-  // BR Negocio top-half tiles (data contract: virtual tour from business rail; video/pro video; floorplan from listing.floorPlanUrl)
-  const virtualTourUrl = listing.businessRail?.virtualTourUrl ?? null;
-  const floorPlanUrl = listing.floorPlanUrl ?? null;
-  const videoUrl = listing.proVideoUrl ?? null;
+  // BR Negocio top-half tiles (source order: explicit listing fields -> detailPairs fallback).
+  const detailVirtualTourUrl =
+    listing.detailPairs.find((p) => /tour virtual|virtual tour/i.test(p.label))?.value?.trim() || null;
+  const detailFloorPlanUrl =
+    listing.detailPairs.find((p) => /plano|floorplan/i.test(p.label))?.value?.trim() || null;
+  const detailVideoUrl =
+    listing.detailPairs.find((p) => /video de la propiedad|property video/i.test(p.label))?.value?.trim() || null;
+
+  const virtualTourUrl = listing.businessRail?.virtualTourUrl ?? detailVirtualTourUrl ?? null;
+  const floorPlanUrl = listing.floorPlanUrl ?? detailFloorPlanUrl ?? null;
+  const videoUrl = listing.proVideoUrl ?? detailVideoUrl ?? null;
   const videoThumbUrl = listing.proVideoThumbUrl ?? null;
 
   const maxRailPhotoThumbs = 4;
