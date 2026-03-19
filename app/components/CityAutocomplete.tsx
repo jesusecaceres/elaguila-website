@@ -74,6 +74,8 @@ export type CityAutocompleteProps = {
   variant?: "dark" | "light";
   /** Optional: clear parent error when user selects (e.g. setMsg(null)) */
   onSelect?: () => void;
+  /** Invalid state (e.g. after failed “next” in publish flow) */
+  invalid?: boolean;
 };
 
 export default function CityAutocomplete({
@@ -87,6 +89,7 @@ export default function CityAutocomplete({
   className = "",
   variant = "dark",
   onSelect,
+  invalid = false,
 }: CityAutocompleteProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -158,8 +161,8 @@ export default function CityAutocomplete({
 
   const isDark = variant === "dark";
   const inputClasses = isDark
-    ? "w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
-    : "mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30";
+    ? `w-full rounded-xl border ${invalid ? "border-red-500 ring-1 ring-red-500/35" : "border-white/10"} bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60`
+    : `mt-2 w-full rounded-xl border ${invalid ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"} bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30`;
   const panelClasses = isDark
     ? "absolute left-0 right-0 mt-2 z-50 max-h-80 overflow-auto rounded-xl border border-white/10 bg-black/95 shadow-xl"
     : "absolute left-0 right-0 mt-2 z-50 max-h-80 overflow-auto rounded-xl border border-black/10 bg-[#F5F5F5] shadow-xl";
@@ -198,6 +201,7 @@ export default function CityAutocomplete({
         aria-autocomplete="list"
         aria-expanded={showPanel}
         aria-controls="city-autocomplete-list"
+        aria-invalid={invalid}
         className={label !== undefined ? (isDark ? "mt-2 " + inputClasses : inputClasses) : inputClasses}
       />
       {showPanel && (

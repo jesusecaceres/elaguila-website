@@ -1655,6 +1655,8 @@ export default function PublicarPage() {
   type ServicesPackage = "" | "standard" | "plus";
   const [servicesPackage, setServicesPackage] = useState<ServicesPackage>("");
   const [showServicesGate, setShowServicesGate] = useState(false);
+  /** After user clicks “Siguiente”, show strong validation styling for that step (publish flow only). */
+  const [publishNextAttempted, setPublishNextAttempted] = useState<Partial<Record<PublishStep, boolean>>>({});
 
   // Restaurants do not require a listing price in our flow (treated as Free by default)
   useEffect(() => {
@@ -3215,6 +3217,40 @@ export default function PublicarPage() {
             requirements.cityOk
           : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
 
+  /** First invalid basics section for scroll-into-view after failed “Siguiente”. */
+  const getFirstBasicsInvalidElementId = (): string | null => {
+    if (basicsOk) return null;
+    if (categoryFromUrl === "en-venta") {
+      if (!requirements.enVentaMetaOk) return "publish-basics-enVenta-meta";
+      if (!requirements.titleOk) return "publish-basics-title";
+      if (!requirements.descOk) return "publish-basics-desc";
+      if (!requirements.priceOk) return "publish-basics-price";
+      if (!requirements.cityOk) return "publish-basics-city";
+      return null;
+    }
+    if (categoryFromUrl === "rentas") {
+      if (!requirements.rentasMetaOk) return "publish-basics-rentas-meta";
+      if (!requirements.titleOk) return "publish-basics-title";
+      if (!requirements.descOk) return "publish-basics-desc";
+      if (!requirements.priceOk) return "publish-basics-price";
+      if (!requirements.cityOk) return "publish-basics-city";
+      return null;
+    }
+    if (categoryFromUrl === "bienes-raices") {
+      if (!requirements.bienesRaicesMetaOk) return "publish-basics-br-meta";
+      if (!requirements.titleOk) return "publish-basics-title";
+      if (!requirements.descOk) return "publish-basics-desc";
+      if (!requirements.priceOk) return "publish-basics-price";
+      if (!requirements.cityOk) return "publish-basics-city";
+      return null;
+    }
+    if (!requirements.titleOk) return "publish-basics-title";
+    if (!requirements.descOk) return "publish-basics-desc";
+    if (!requirements.priceOk) return "publish-basics-price";
+    if (!requirements.cityOk) return "publish-basics-city";
+    return null;
+  };
+
   const requirementItems = useMemo(() => {
     const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
       {
@@ -3308,6 +3344,13 @@ export default function PublicarPage() {
 
   const missingRequirementsText = useMemo(() => {
     const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
+    if (missing.length === 0) return "";
+    const prefix = lang === "es" ? "Falta:" : "Missing:";
+    return `${prefix} ${missing.join(" · ")}`;
+  }, [requirementItems, lang]);
+
+  const missingBasicsRequirementsText = useMemo(() => {
+    const missing = requirementItems.filter((i) => i.step === "basics" && !i.ok).map((i) => i.label);
     if (missing.length === 0) return "";
     const prefix = lang === "es" ? "Falta:" : "Missing:";
     return `${prefix} ${missing.join(" · ")}`;
@@ -3947,6 +3990,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
     setTimeout(() => publish(), 600);
   };
 
+  const basicsShowValidation = publishNextAttempted.basics ?? false;
+  const categoryShowValidation = publishNextAttempted.category ?? false;
+
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16 [overflow-anchor:auto]">
       <div className="max-w-4xl mx-auto px-6" style={{ overflowAnchor: "none" } as React.CSSProperties}>
@@ -4434,7 +4480,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.categoryTitle}</h2>
                     <p className="mt-2 text-sm text-[#111111]">{copy.categoryNote}</p>
 
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div
+                      className={cx(
+                        "mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3",
+                        categoryShowValidation && !requirements.categoryOk && "rounded-xl p-2 ring-2 ring-red-500/45"
+                      )}
+                    >
                       {PUBLICAR_CATEGORIES.map(({ key, Icon }) => {
                         const label = categoryConfig[key].label[lang];
                         const selected = category === key;
@@ -4465,8 +4516,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       })}
                     </div>
 
-                    {!requirements.categoryOk && (
-                      <div className="mt-4 rounded-xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-3 text-xs text-[#111111]">
+                    {categoryShowValidation && !requirements.categoryOk && (
+                      <div className="mt-4 rounded-xl border border-red-300 bg-red-50/90 p-3 text-xs text-red-800" role="alert">
                         {lang === "es" ? "Selecciona una categoría para continuar." : "Choose a category to continue."}
                       </div>
                     )}
@@ -4496,19 +4547,21 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       </button>
                       <button
                         type="button"
-                        disabled={!requirements.categoryOk}
                         onClick={() => {
-                          if (categoryFromUrl === "servicios" && !servicesPackage) { setShowServicesGate(true); return; }
+                          if (categoryFromUrl === "servicios" && !servicesPackage) {
+                            setShowServicesGate(true);
+                            return;
+                          }
+                          if (!requirements.categoryOk) {
+                            setPublishNextAttempted((prev) => ({ ...prev, category: true }));
+                            return;
+                          }
+                          setPublishNextAttempted((prev) => ({ ...prev, category: false }));
                           if (categoryFromUrl === "rentas") goToStep("rentas-track");
                           else if (categoryFromUrl === "bienes-raices") goToStep("bienes-raices-track");
                           else goToStep("basics");
                         }}
-                        className={cx(
-                          "rounded-xl font-semibold px-5 py-3",
-                          requirements.categoryOk
-                            ? "bg-yellow-500/90 hover:bg-yellow-500 text-black"
-                            : "bg-black/10 text-[#111111]/40 cursor-not-allowed"
-                        )}
+                        className="rounded-xl font-semibold px-5 py-3 bg-yellow-500/90 hover:bg-yellow-500 text-black"
                       >
                         {copy.next}
                       </button>
@@ -4736,33 +4789,50 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       {categoryFromUrl === "en-venta" ? (
                         <>
                           {/* En Venta: item-selling Basics (subcategoría, artículo, condición, title, description, price, city) */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div
+                            id="publish-basics-enVenta-meta"
+                            className={cx(
+                              "grid grid-cols-1 sm:grid-cols-2 gap-3",
+                              basicsShowValidation && !requirements.enVentaMetaOk && "rounded-xl p-2 ring-2 ring-red-500/45"
+                            )}
+                          >
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subcategoría" : "Subcategory"}{" *"}</label>
                               <select
                                 value={details.rama ?? ""}
                                 onChange={(e) => setDetails((prev) => ({ ...prev, rama: e.target.value, itemType: "" }))}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                aria-invalid={basicsShowValidation && !details.rama?.trim()}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                  basicsShowValidation && !details.rama?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                )}
                               >
                                 <option value="">{lang === "es" ? "Elige subcategoría…" : "Choose subcategory…"}</option>
                                 {EN_VENTA_SUBCATEGORIES.map((s) => (
                                   <option key={s.key} value={s.key}>{lang === "es" ? s.label.es : s.label.en}</option>
                                 ))}
                               </select>
-                              {!details.rama?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              {!details.rama?.trim() && (
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
+                              )}
                             </div>
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Artículo" : "Item type"}{" *"}</label>
                               {(() => {
                                 const articuloResult = getArticuloOptionsForSubcategory(details.rama ?? "");
                                 const disabled = !(details.rama ?? "").trim();
+                                const itemErr = basicsShowValidation && !disabled && !details.itemType?.trim();
                                 if (articuloResult.type === "grouped") {
                                   return (
                                     <select
                                       value={details.itemType ?? ""}
                                       onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
                                       disabled={disabled}
-                                      className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                                      aria-invalid={!!itemErr}
+                                      className={cx(
+                                        "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60",
+                                        itemErr ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                      )}
                                     >
                                       <option value="">{disabled ? (lang === "es" ? "Elige subcategoría primero" : "Choose subcategory first") : (lang === "es" ? "Elige artículo…" : "Choose item…")}</option>
                                       {articuloResult.groups.map((g) => (
@@ -4780,7 +4850,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     value={details.itemType ?? ""}
                                     onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
                                     disabled={disabled}
-                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                                    aria-invalid={!!itemErr}
+                                    className={cx(
+                                      "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60",
+                                      itemErr ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                    )}
                                   >
                                     <option value="">{disabled ? (lang === "es" ? "Elige subcategoría primero" : "Choose subcategory first") : (lang === "es" ? "Elige artículo…" : "Choose item…")}</option>
                                     {articuloResult.options.map((o) => (
@@ -4789,35 +4863,49 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   </select>
                                 );
                               })()}
-                              {!details.itemType?.trim() && details.rama?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              {!details.itemType?.trim() && details.rama?.trim() && (
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
+                              )}
                             </div>
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Condición" : "Condition"}{" *"}</label>
                               <select
                                 value={details.condition ?? ""}
                                 onChange={(e) => setDetails((prev) => ({ ...prev, condition: e.target.value }))}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                aria-invalid={basicsShowValidation && !details.condition?.trim()}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                  basicsShowValidation && !details.condition?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                )}
                               >
                                 <option value="">{lang === "es" ? "Elige condición…" : "Choose condition…"}</option>
                                 {EN_VENTA_CONDICION.map((c) => (
                                   <option key={c.value} value={c.value}>{lang === "es" ? c.labelEs : c.labelEn}</option>
                                 ))}
                               </select>
-                              {!details.condition?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              {!details.condition?.trim() && (
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
+                              )}
                             </div>
                           </div>
-                          <div>
+                          <div id="publish-basics-title">
                             <label className="text-sm font-medium text-[#111111]">{copy.fieldTitle}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro ayuda a que te encuentren." : "A clear title helps people find your listing."}</p>
                             <input
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
                               placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "e.g. Great-condition sofa"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.titleOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.titleOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
-                            {!requirements.titleOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
+                            {!requirements.titleOk && (
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>
+                            )}
                           </div>
-                          <div>
+                          <div id="publish-basics-desc">
                             <label className="text-sm font-medium text-[#111111]">{copy.fieldDesc}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Describe el estado, medidas, entrega, etc." : "Describe condition, size, pickup/delivery, etc."}</p>
                             <textarea
@@ -4825,24 +4913,37 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               onChange={(e) => setDescription(e.target.value)}
                               placeholder={lang === "es" ? "Describe el estado, medidas, entrega, etc." : "Describe condition, size, pickup/delivery, etc."}
                               rows={5}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.descOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.descOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
-                            {!requirements.descOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
+                            {!requirements.descOk && (
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>
+                            )}
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="sm:col-span-2">
+                            <div className="sm:col-span-2" id="publish-basics-price">
                               <label className="text-sm font-medium text-[#111111]">{copy.fieldPrice}{" *"}</label>
                               <input
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                                 disabled={isFree}
                                 placeholder={lang === "es" ? "Ej: 120" : "e.g. 120"}
+                                aria-invalid={basicsShowValidation && !requirements.priceOk}
                                 className={cx(
                                   "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
-                                  isFree ? "border-white/5 bg-[#F5F5F5] text-[#111111]" : "border-black/10 bg-white/90 focus:ring-yellow-400/30"
+                                  isFree
+                                    ? "border-white/5 bg-[#F5F5F5] text-[#111111]"
+                                    : basicsShowValidation && !requirements.priceOk
+                                      ? "border-red-500 ring-1 ring-red-500/35 bg-white/90 focus:ring-yellow-400/30"
+                                      : "border-black/10 bg-white/90 focus:ring-yellow-400/30"
                                 )}
                               />
-                              {!requirements.priceOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}</div>}
+                              {!requirements.priceOk && (
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}</div>
+                              )}
                             </div>
                             <div className="sm:col-span-1">
                               <label className="text-sm font-medium text-[#111111]">{copy.freeToggle}</label>
@@ -4858,14 +4959,31 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </button>
                             </div>
                           </div>
-                          <div>
+                          <div id="publish-basics-city">
                             <label className="text-sm font-medium text-[#111111]">{copy.fieldCity}{" *"}</label>
-                            <CityAutocomplete value={city} onChange={setCity} placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"} lang={lang} label="" variant="light" className="mt-2" />
-                            {!requirements.cityOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Agrega tu ciudad." : "Add your city."}</div>}
+                            <CityAutocomplete
+                              value={city}
+                              onChange={setCity}
+                              placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
+                              lang={lang}
+                              label=""
+                              variant="light"
+                              className="mt-2"
+                              invalid={basicsShowValidation && !requirements.cityOk}
+                            />
+                            {!requirements.cityOk && (
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Agrega tu ciudad." : "Add your city."}</div>
+                            )}
                           </div>
                         </>
                       ) : categoryFromUrl === "bienes-raices" ? (
-                        <>
+                        <div
+                          id="publish-basics-br-meta"
+                          className={cx(
+                            "space-y-4",
+                            basicsShowValidation && !requirements.bienesRaicesMetaOk && "rounded-xl p-2 ring-2 ring-red-500/45"
+                          )}
+                        >
                           {/* Bienes Raíces: read-only advertiser summary (set in previous step); Cambiar goes back to bienes-raices-track */}
                           <div className="rounded-xl border border-[#C9B46A]/25 bg-[#F8F6F0]/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div>
@@ -4894,28 +5012,58 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 const v = e.target.value;
                                 setDetails((prev) => ({ ...prev, enVentaPropertyType: v, bienesRaicesSubcategoria: getBrSubcategoriaFromPropertyType(v) }));
                               }}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !details.enVentaPropertyType?.trim()}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !details.enVentaPropertyType?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             >
                               <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
                               {EN_VENTA_BR_PROPERTY_TYPES.map((o) => <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>)}
                             </select>
-                            {!details.enVentaPropertyType?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                            {!details.enVentaPropertyType?.trim() && (
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
+                            )}
                           </div>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subtipo de propiedad" : "Property subtype"}</label>
                             <input value={details.enVentaPropertySubtype ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.subtypePlaceholder.es : brPrivateCopyProfile.subtypePlaceholder.en) : (lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex")} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
                           </div>
-                          <div>
+                          <div id="publish-basics-title">
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Título del anuncio" : "Listing title"}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro que describa la propiedad." : "A clear title that describes the property."}</p>
-                            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.titlePlaceholder.es : brPrivateCopyProfile.titlePlaceholder.en) : (lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "e.g. 3-bed house in central area")} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.titleOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>}
+                            <input
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                              placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.titlePlaceholder.es : brPrivateCopyProfile.titlePlaceholder.en) : (lang === "es" ? "Ej: Casa 3 recámaras en zona céntrica" : "e.g. 3-bed house in central area")}
+                              aria-invalid={basicsShowValidation && !requirements.titleOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.titleOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
+                            />
+                            {!requirements.titleOk && (
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>
+                            )}
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
+                            <div id="publish-basics-price">
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Precio" : "Price"}{" *"}</label>
-                              <input type="text" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder={lang === "es" ? "Ej: 250000" : "e.g. 250000"} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                              {!requirements.priceOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Indica el precio." : "Enter price."}</div>}
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+                                placeholder={lang === "es" ? "Ej: 250000" : "e.g. 250000"}
+                                aria-invalid={basicsShowValidation && !requirements.priceOk}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                  basicsShowValidation && !requirements.priceOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                )}
+                              />
+                              {!requirements.priceOk && (
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Indica el precio." : "Enter price."}</div>
+                              )}
                             </div>
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Modo de precio" : "Price display"}</label>
@@ -4927,10 +5075,21 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           </div>
                           <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                             <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Ubicación" : "Location"}</h4>
-                            <div>
+                            <div id="publish-basics-city">
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Ciudad" : "City"}{" *"}</label>
-                              <CityAutocomplete value={city} onChange={setCity} placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"} lang={lang} label="" variant="light" className="mt-1" />
-                              {!requirements.cityOk && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                              <CityAutocomplete
+                                value={city}
+                                onChange={setCity}
+                                placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
+                                lang={lang}
+                                label=""
+                                variant="light"
+                                className="mt-1"
+                                invalid={basicsShowValidation && !requirements.cityOk}
+                              />
+                              {!requirements.cityOk && (
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
+                              )}
                             </div>
                             <div>
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre de la vecindad" : "Neighborhood name"}</label>
@@ -5333,11 +5492,23 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             }
                             return null;
                           })()}
-                          <div>
+                          <div id="publish-basics-desc">
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción de la propiedad" : "Property description"}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionHelper.es : brPrivateCopyProfile.descriptionHelper.en) : (lang === "es" ? "Descripción completa del anuncio. Se usará en la ficha y para búsquedas (mín. 5 caracteres)." : "Full listing description for the listing page and search (min 5 characters).")}</p>
-                            <textarea value={details.enVentaFullDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionPlaceholder.es : brPrivateCopyProfile.descriptionPlaceholder.en) : (lang === "es" ? "Describa la propiedad, ubicación, acabados, características, etc." : "Describe the property, location, finishes, features, etc.")} rows={5} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
-                            {!requirements.bienesRaicesMetaOk && (details.enVentaFullDescription ?? "").trim().length < 5 && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>}
+                            <textarea
+                              value={details.enVentaFullDescription ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))}
+                              placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionPlaceholder.es : brPrivateCopyProfile.descriptionPlaceholder.en) : (lang === "es" ? "Describa la propiedad, ubicación, acabados, características, etc." : "Describe the property, location, finishes, features, etc.")}
+                              rows={5}
+                              aria-invalid={basicsShowValidation && !requirements.descOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.descOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
+                            />
+                            {!requirements.descOk && (
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>
+                            )}
                           </div>
                           {details.bienesRaicesBranch === "negocio" && (
                             <div className="rounded-xl border border-black/10 bg-[#F8F6F0]/80 p-4 space-y-3">
@@ -5462,9 +5633,15 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </div>
                             </div>
                           )}
-                        </>
+                        </div>
                       ) : categoryFromUrl === "rentas" ? (
-                        <>
+                        <div
+                          id="publish-basics-rentas-meta"
+                          className={cx(
+                            "space-y-4",
+                            basicsShowValidation && !requirements.rentasMetaOk && "rounded-xl p-2 ring-2 ring-red-500/45"
+                          )}
+                        >
                           <div className="grid-details grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <label className="text-sm text-[#111111]">
@@ -5476,7 +5653,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   const v = e.target.value;
                                   setDetails((prev) => ({ ...prev, rentasSubcategoria: v, tipoPropiedad: "" }));
                                 }}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                aria-invalid={basicsShowValidation && !details.rentasSubcategoria?.trim()}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                  basicsShowValidation && !details.rentasSubcategoria?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                )}
                               >
                                 <option value="">{lang === "es" ? "Elige una subcategoría…" : "Choose one…"}</option>
                                 {RENTAS_SUBCATEGORIES.map((s) => (
@@ -5486,7 +5667,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 ))}
                               </select>
                               {!details.rentasSubcategoria?.trim() && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                   {lang === "es" ? "Requerido." : "Required."}
                                 </div>
                               )}
@@ -5499,7 +5680,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 value={details.tipoPropiedad ?? ""}
                                 onChange={(e) => setDetails((prev) => ({ ...prev, tipoPropiedad: e.target.value }))}
                                 disabled={!details.rentasSubcategoria?.trim()}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60"
+                                aria-invalid={basicsShowValidation && !!details.rentasSubcategoria?.trim() && !details.tipoPropiedad?.trim()}
+                                className={cx(
+                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60",
+                                  basicsShowValidation && !!details.rentasSubcategoria?.trim() && !details.tipoPropiedad?.trim()
+                                    ? "border-red-500 ring-1 ring-red-500/35"
+                                    : "border-black/10"
+                                )}
                               >
                                 <option value="">{lang === "es" ? "Elige tipo…" : "Choose type…"}</option>
                                 {getTipoOptionsForSubcategory(details.rentasSubcategoria ?? "").map((o) => (
@@ -5509,7 +5696,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 ))}
                               </select>
                               {!details.tipoPropiedad?.trim() && details.rentasSubcategoria?.trim() && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                   {lang === "es" ? "Requerido." : "Required."}
                                 </div>
                               )}
@@ -5533,7 +5720,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </button>
                             </div>
                           </div>
-                          <div>
+                          <div id="publish-basics-title">
                             <label className="text-sm text-[#111111]">{copy.fieldTitle}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">
                               {lang === "es"
@@ -5549,15 +5736,19 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               autoCapitalize="sentences"
                               lang={lang === "es" ? "es" : "en"}
                               inputMode="text"
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.titleOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.titleOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
                             {!requirements.titleOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                               </div>
                             )}
                           </div>
-                          <div>
+                          <div id="publish-basics-desc">
                             <label className="text-sm text-[#111111]">{copy.fieldDesc}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">
                               {lang === "es"
@@ -5576,15 +5767,19 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               autoCorrect="on"
                               autoCapitalize="sentences"
                               lang={lang === "es" ? "es" : "en"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.descOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.descOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
                             {!requirements.descOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                               </div>
                             )}
                           </div>
-                          <div>
+                          <div id="publish-basics-price">
                             <label className="text-sm text-[#111111]">
                               {lang === "es" ? "Renta mensual" : "Monthly rent"}{" *"}
                             </label>
@@ -5592,10 +5787,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               value={price}
                               onChange={(e) => setPrice(e.target.value)}
                               placeholder={lang === "es" ? "Ej: 1500" : "Ex: 1500"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.priceOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.priceOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
                             {!requirements.priceOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Agrega la renta mensual." : "Add monthly rent."}
                               </div>
                             )}
@@ -5611,7 +5810,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                             />
                           </div>
-                          <div>
+                          <div id="publish-basics-city">
                             <label className="text-sm text-[#111111]">{copy.fieldCity}{" *"}</label>
                             <CityAutocomplete
                               value={city}
@@ -5621,9 +5820,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               label=""
                               variant="light"
                               className="mt-2"
+                              invalid={basicsShowValidation && !requirements.cityOk}
                             />
                             {!requirements.cityOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
                               </div>
                             )}
@@ -5647,10 +5847,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               value={details.fechaDisponible ?? ""}
                               onChange={(e) => setDetails((prev) => ({ ...prev, fechaDisponible: e.target.value }))}
                               placeholder={lang === "es" ? "Ej: Inmediato / 1 de marzo" : "e.g. Immediate / Mar 1"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !details.fechaDisponible?.trim()}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !details.fechaDisponible?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
                             {!details.fechaDisponible?.trim() && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Requerido." : "Required."}
                               </div>
                             )}
@@ -5840,25 +6044,29 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               )}
                             </>
                           )}
-                        </>
+                        </div>
                       ) : (
                         <>
-                          <div>
+                          <div id="publish-basics-title">
                             <label className="text-sm text-[#111111]">{copy.fieldTitle}</label>
                             <input
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
                               placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "Ex: Great-condition sofa"}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.titleOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.titleOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
                             {!requirements.titleOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                               </div>
                             )}
                           </div>
 
-                          <div>
+                          <div id="publish-basics-desc">
                             <label className="text-sm text-[#111111]">{copy.fieldDesc}</label>
                             <textarea
                               value={description}
@@ -5869,32 +6077,39 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   : "Describe condition, size, pickup/delivery, etc."
                               }
                               rows={5}
-                              className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                              aria-invalid={basicsShowValidation && !requirements.descOk}
+                              className={cx(
+                                "mt-2 w-full rounded-xl border bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
+                                basicsShowValidation && !requirements.descOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                              )}
                             />
                             {!requirements.descOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}
                               </div>
                             )}
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="sm:col-span-2">
+                            <div className="sm:col-span-2" id="publish-basics-price">
                               <label className="text-sm text-[#111111]">{copy.fieldPrice}</label>
                               <input
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                                 disabled={isFree}
                                 placeholder={lang === "es" ? "Ej: 120" : "Ex: 120"}
+                                aria-invalid={basicsShowValidation && !requirements.priceOk}
                                 className={cx(
                                   "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
                                   isFree
                                     ? "border-white/5 bg-[#F5F5F5] text-[#111111]"
-                                    : "border-black/10 bg-white/9 focus:ring-yellow-400/30"
+                                    : basicsShowValidation && !requirements.priceOk
+                                      ? "border-red-500 ring-1 ring-red-500/35 bg-white/9 focus:ring-yellow-400/30"
+                                      : "border-black/10 bg-white/9 focus:ring-yellow-400/30"
                                 )}
                               />
                               {!requirements.priceOk && (
-                                <div className="mt-1 text-xs text-[#111111]/40">
+                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                   {lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}
                                 </div>
                               )}
@@ -5920,7 +6135,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                           </div>
 
-                          <div>
+                          <div id="publish-basics-city">
                             <CityAutocomplete
                               value={city}
                               onChange={setCity}
@@ -5929,9 +6144,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               label={copy.fieldCity}
                               variant="light"
                               className="mt-0"
+                              invalid={basicsShowValidation && !requirements.cityOk}
                             />
                             {!requirements.cityOk && (
-                              <div className="mt-1 text-xs text-[#111111]/40">
+                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>
                                 {lang === "es" ? "Agrega tu ciudad." : "Add your city."}
                               </div>
                             )}
@@ -5939,6 +6155,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         </>
                       )}
                     </div>
+
+                    {basicsShowValidation && !basicsOk && missingBasicsRequirementsText && (
+                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50/90 px-3 py-2 text-sm text-red-800" role="alert">
+                        {missingBasicsRequirementsText}
+                      </div>
+                    )}
 
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                       <button
@@ -5965,14 +6187,19 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       </button>
                       <button
                         type="button"
-                        disabled={!basicsOk}
-                        onClick={() => { if (basicsOk) goToStep(isEnVentaFlow ? "media" : "details"); }}
-                        className={cx(
-                          "rounded-xl font-semibold px-5 py-3",
-                          basicsOk
-                            ? "bg-yellow-500/90 hover:bg-yellow-500 text-black"
-                            : "bg-black/10 text-[#111111]/40 cursor-not-allowed"
-                        )}
+                        onClick={() => {
+                          if (!basicsOk) {
+                            setPublishNextAttempted((prev) => ({ ...prev, basics: true }));
+                            requestAnimationFrame(() => {
+                              const id = getFirstBasicsInvalidElementId();
+                              document.getElementById(id ?? "")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            });
+                            return;
+                          }
+                          setPublishNextAttempted((prev) => ({ ...prev, basics: false }));
+                          goToStep(isEnVentaFlow ? "media" : "details");
+                        }}
+                        className="rounded-xl font-semibold px-5 py-3 bg-yellow-500/90 hover:bg-yellow-500 text-black"
                       >
                         {copy.next}
                       </button>
