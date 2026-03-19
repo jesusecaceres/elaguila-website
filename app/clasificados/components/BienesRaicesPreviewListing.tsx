@@ -16,10 +16,6 @@ export type BienesRaicesPreviewListingProps = {
   listing: ListingData;
 };
 
-/**
- * Buyer-facing BR preview shell for /preview-listing only.
- * Composition: 2-row desktop grid (hero left + negocio rail right) then listing body flowing left-only.
- */
 export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPreviewListingProps) {
   const lang = listing.lang;
   const [heroIndex, setHeroIndex] = useState(0);
@@ -37,7 +33,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     return Array.isArray(incoming) && incoming.length > 0 ? incoming : ["/logo.png"];
   }, [listing.images]);
 
-  /** Vertical thumbs (all photos, scroll if many). */
+  // Kept: same hero + thumbnail selection logic.
   const sideThumbs = images;
   const safeHero = Math.min(heroIndex, Math.max(0, images.length - 1));
   const heroSrc = images[safeHero] ?? "/logo.png";
@@ -117,21 +113,19 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
 
+  const twoColClass = showBusinessRail ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,22rem)]" : "lg:grid-cols-1";
+
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
       <div className="p-4 sm:p-6 lg:p-8">
-        <div
-          className={cx(
-            "grid gap-6 lg:gap-8 items-start",
-            showBusinessRail ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,22rem)]" : "grid-cols-1"
-          )}
-        >
-          {/* Row 1 / Left: hero/gallery + thumbs */}
-          <div className="min-w-0 flex flex-col gap-3 order-1 lg:col-start-1 lg:col-span-1">
+        {/* Top row: hero left, negocio identity rail right ONLY */}
+        <div className={cx("grid gap-6 lg:gap-8 items-start", twoColClass)}>
+          <div className="min-w-0 flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch">
               <div className="flex-1 min-h-[220px] sm:min-h-[320px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
                 <img src={heroSrc} alt="" className="w-full h-full object-cover" />
               </div>
+
               {sideThumbs.length > 1 && (
                 <div className="hidden sm:flex flex-col gap-2 w-[104px] lg:w-[118px] max-h-[min(420px,70vh)] overflow-y-auto shrink-0 pr-0.5">
                   {sideThumbs.map((url, i) => {
@@ -175,9 +169,8 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             )}
           </div>
 
-          {/* Row 1 / Right: negocio identity only */}
           {showBusinessRail && listing.businessRail ? (
-            <div className="min-w-0 order-2 lg:sticky lg:top-28 lg:self-start lg:col-start-2 lg:col-span-1">
+            <div className="min-w-0 lg:sticky lg:top-28 lg:self-start">
               <BusinessListingIdentityRail
                 businessRail={listing.businessRail}
                 category="bienes-raices"
@@ -186,14 +179,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               />
             </div>
           ) : null}
+        </div>
 
-          {/* Row 2 / Left: full listing body (left-only) */}
-          <div
-            className={cx(
-              "min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8 order-3",
-              showBusinessRail ? "lg:col-start-1 lg:col-span-1" : "col-span-full"
-            )}
-          >
+        {/* Main listing content row (below hero): left-only */}
+        <div className={cx("mt-8", twoColClass)}>
+          <div className="lg:col-start-1 lg:col-span-1 min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8">
+            {/* Title / price / city / posted + quick facts + feature chips */}
             <div className="rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6 lg:p-8 shadow-sm w-full">
               {listing.categoryLabel ? (
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
@@ -258,6 +249,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               )}
             </div>
 
+            {/* Buyer actions */}
             <div
               className="rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF5] p-4 sm:p-5 lg:p-6 w-full"
               id="listing-buyer-actions"
@@ -319,11 +311,18 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               )}
             </div>
 
+            {/* Description */}
             <div className={`${detailCardClass} w-full`}>
               <h3 className="text-xs font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">{t.descripcion}</h3>
-              <div className="text-sm sm:text-base text-[#111111] whitespace-pre-wrap leading-relaxed">{listing.description}</div>
+              <div className="text-sm sm:text-base text-[#111111] whitespace-pre-wrap leading-relaxed">
+                {listing.description}
+              </div>
             </div>
 
+            {/* Property details section header/cards (existing info-only partitioning) */}
+            {/* Note: title/price/facts/features already rendered above; remaining cards are seller and location. */}
+
+            {/* Seller / published-by */}
             <div className={`${detailCardClass} w-full`} data-section="seller-profile">
               <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
               <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
@@ -338,6 +337,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
             </div>
 
+            {/* Location */}
             <div className={`${detailCardClass} w-full`}>
               <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
               <p className="text-sm text-[#111111] mb-2">
