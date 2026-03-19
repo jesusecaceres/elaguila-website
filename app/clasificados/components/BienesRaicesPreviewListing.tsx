@@ -248,11 +248,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     setLightboxOpen(true);
   }, [extraImageCount, photoUrls.length]);
 
+  /** Main hero: fixed aspect — do not stretch to match the right column height (avoids empty band under image). */
   const negocioHeroOnly = (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className="relative min-h-[260px] flex-1 sm:min-h-[300px] lg:min-h-0 rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
-        <img src={negocioMainHeroSrc} alt="" className="h-full min-h-[200px] w-full object-cover" />
-      </div>
+    <div className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3]">
+      <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
 
@@ -316,13 +315,17 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
       <div className="p-4 sm:p-6 lg:p-8">
         {showBusinessRail && listing.businessRail ? (
           <>
-            {/* BR negocio publish preview: main image left; right = 2×2 utility tiles, then Identidad del negocio + CTAs (matches original composition). */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,26rem)] gap-3 sm:gap-5 lg:gap-5 items-start">
-              {/* Left stretches to full row height so hero fills beside tiles+rail (no dead band under image). */}
-              <div className="order-1 flex min-h-0 min-w-0 self-stretch flex-col">{negocioHeroOnly}</div>
+            {/*
+              BR negocio full-preview top band (one row):
+              - Left: main listing photo (aspect ratio, does not stretch with the right rail).
+              - Right column: 2×2 media tiles on top, business / agent rail directly underneath.
+              Title · price · address · details start below this full-width band (not under the hero alone).
+            */}
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] gap-4 sm:gap-5 lg:gap-6 lg:items-start">
+              <div className="order-1 min-w-0 self-start lg:max-w-none">{negocioHeroOnly}</div>
               <div className="order-2 flex w-full min-w-0 flex-col gap-3 sm:gap-3.5 self-start">
                 <div
-                  className="grid w-full max-w-[16.25rem] shrink-0 grid-cols-2 grid-rows-2 gap-2 self-center sm:max-w-[17rem] lg:self-start"
+                  className="grid w-full max-w-[16.25rem] shrink-0 grid-cols-2 grid-rows-2 gap-2 self-center sm:max-w-[17rem] lg:mx-0 lg:self-start"
                   aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
                 >
                   {virtualTourHref ? (
@@ -414,14 +417,16 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     </div>
                   )}
                 </div>
-                <BusinessListingIdentityRail
-                  businessRail={listing.businessRail}
-                  category="bienes-raices"
-                  businessRailTier={listing.businessRailTier}
-                  lang={lang}
-                  ownerId={listing.ownerId ?? null}
-                  agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
-                />
+                <div className="w-full min-w-0">
+                  <BusinessListingIdentityRail
+                    businessRail={listing.businessRail}
+                    category="bienes-raices"
+                    businessRailTier={listing.businessRailTier}
+                    lang={lang}
+                    ownerId={listing.ownerId ?? null}
+                    agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
+                  />
+                </div>
               </div>
             </div>
           </>
@@ -496,12 +501,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
         )}
 
-        {/* Main listing content row (below hero): full width; negocio: tight gap so title/address follows top band immediately */}
-        <div className={cx("lg:grid lg:grid-cols-1", showBusinessRail ? "mt-4 sm:mt-5" : "mt-8")}>
+        {/* Below the full top band (hero + media grid + rail): title / price / address — full width, not nested under the left column */}
+        <div className={cx("w-full min-w-0", showBusinessRail ? "mt-5 sm:mt-6" : "mt-8")}>
           <div
             className={cx(
-              "lg:col-start-1 lg:col-span-1 min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70",
-              showBusinessRail ? "pt-4 sm:pt-5" : "pt-8"
+              "min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70",
+              showBusinessRail ? "pt-5 sm:pt-6" : "pt-8"
             )}
           >
             {/* Title / price / city / posted + quick facts + feature chips */}

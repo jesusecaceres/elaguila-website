@@ -293,8 +293,7 @@ export default function ListingView({
   const isHighlight = (id: string) => proHighlight === id;
 
   // BR preview: swap the generic listing buyer shell for a BR-specific base shell.
-  // This keeps the BR business identity rail as source-of-truth (via BusinessListingIdentityRail),
-  // while avoiding the generic media+info hierarchy for bienes-raices.
+  // Layout for publish full-preview (privado + negocio hero / 2×2 / rail) lives in BienesRaicesPreviewListing.tsx.
   if (previewMode && isBienesRaices) {
     return <BienesRaicesPreviewListing listing={listing} />;
   }
