@@ -109,6 +109,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
       }),
     [quickFacts]
   );
+  const neighborhoodLine = useMemo(() => {
+    const fromFacts = quickFacts.find((f) => /vecindad|neighborhood/.test((f.label ?? "").toLowerCase()))?.value?.trim();
+    return fromFacts || null;
+  }, [quickFacts]);
   const iconFacts = useMemo(() => {
     const buckets = [
       { pattern: /rec[aá]maras|bedrooms?/, icon: "🛏️", key: "bed" },
@@ -493,18 +497,18 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                 {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/80">
-                <span className="font-medium text-[#111111]">{listing.city}</span>
-                <span className="text-[#111111]/40" aria-hidden>
-                  ·
-                </span>
-                <span>{listing.todayLabel}</span>
-              </div>
+              <div className="mt-3 text-sm text-[#111111]/75">{listing.todayLabel}</div>
 
               {addressLine ? (
                 <p className="mt-2 text-sm text-[#111111]/70">
                   <span className="font-medium text-[#111111]/80">{lang === "es" ? "Dirección:" : "Address:"}</span>{" "}
                   {addressLine}
+                </p>
+              ) : null}
+              {neighborhoodLine ? (
+                <p className="mt-1 text-sm text-[#111111]/65">
+                  <span className="font-medium text-[#111111]/75">{lang === "es" ? "Vecindad:" : "Neighborhood:"}</span>{" "}
+                  {neighborhoodLine}
                 </p>
               ) : null}
 
