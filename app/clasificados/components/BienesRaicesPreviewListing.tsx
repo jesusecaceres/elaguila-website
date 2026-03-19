@@ -18,7 +18,7 @@ export type BienesRaicesPreviewListingProps = {
 
 /**
  * Buyer-facing BR preview shell for /preview-listing only.
- * Layout: Privado-style — top row gallery + Negocio card; primary listing content flows full-width below (not a cramped right stack).
+ * Composition: 2-row desktop grid (hero left + negocio rail right) then listing body flowing left-only.
  */
 export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPreviewListingProps) {
   const lang = listing.lang;
@@ -37,7 +37,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     return Array.isArray(incoming) && incoming.length > 0 ? incoming : ["/logo.png"];
   }, [listing.images]);
 
-  /** Vertical thumbs (all photos, scroll if many) — desktop access beyond first four without a new media contract. */
+  /** Vertical thumbs (all photos, scroll if many). */
   const sideThumbs = images;
   const safeHero = Math.min(heroIndex, Math.max(0, images.length - 1));
   const heroSrc = images[safeHero] ?? "/logo.png";
@@ -119,15 +119,15 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
 
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
-      <div className="p-4 sm:p-6 lg:p-8 space-y-8 lg:space-y-10">
-        {/* Top: gallery (primary) + Negocio identity only on the right — not the whole listing */}
+      <div className="p-4 sm:p-6 lg:p-8">
         <div
           className={cx(
             "grid gap-6 lg:gap-8 items-start",
             showBusinessRail ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,22rem)]" : "grid-cols-1"
           )}
         >
-          <div className="min-w-0 order-1 flex flex-col gap-3">
+          {/* Row 1 / Left: hero/gallery + thumbs */}
+          <div className="min-w-0 flex flex-col gap-3 order-1 lg:col-start-1 lg:col-span-1">
             <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch">
               <div className="flex-1 min-h-[220px] sm:min-h-[320px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
                 <img src={heroSrc} alt="" className="w-full h-full object-cover" />
@@ -155,6 +155,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                 </div>
               )}
             </div>
+
             {images.length > 1 && (
               <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {images.map((url, idx) => (
@@ -174,8 +175,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             )}
           </div>
 
+          {/* Row 1 / Right: negocio identity only */}
           {showBusinessRail && listing.businessRail ? (
-            <div className="min-w-0 order-2 lg:sticky lg:top-28 lg:self-start">
+            <div className="min-w-0 order-2 lg:sticky lg:top-28 lg:self-start lg:col-start-2 lg:col-span-1">
               <BusinessListingIdentityRail
                 businessRail={listing.businessRail}
                 category="bienes-raices"
@@ -184,165 +186,185 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               />
             </div>
           ) : null}
-        </div>
 
-        {/* Primary content flow: full width below hero row (Privado-style; not sidebar-stacked) */}
-        <div className="min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8">
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6 lg:p-8 shadow-sm max-w-5xl">
-            {listing.categoryLabel ? (
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
-            ) : null}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
-              {listing.title}
-            </h1>
-            <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-bold text-[#1a1a1a] tabular-nums">
-              {formatListingPrice(listing.priceLabel, { lang })}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/75">
-              <span className="font-medium text-[#111111]">{listing.city}</span>
-              <span className="text-[#111111]/40" aria-hidden>
-                ·
-              </span>
-              <span>{listing.todayLabel}</span>
-            </div>
-
-            {(quickFacts.length > 0 || featureTags.length > 0) && (
-              <div className="mt-8 pt-6 border-t border-stone-200/80">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-4">{t.detallesPropiedad}</h2>
-                {quickFacts.length > 0 && (
-                  <div className="mb-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                      {lang === "es" ? "Datos clave" : "Quick facts"}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {quickFacts.map((f) => (
-                        <span
-                          key={`qf-${f.label}-${f.value}`}
-                          className="rounded-full border border-[#C9B46A]/30 bg-[#FDF9EE] px-3 py-1.5 text-xs font-semibold text-[#111111]"
-                        >
-                          <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {featureTags.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                      {lang === "es" ? "Características" : "Features"}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {featureTags.map((f) => (
-                        <span
-                          key={`ft-${f.label}-${f.value}`}
-                          className="rounded-lg border border-stone-200 bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-[#111111]/90"
-                        >
-                          <span className="text-[#111111]/55">{f.label}:</span> {f.value}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
+          {/* Row 2 / Left: full listing body (left-only) */}
           <div
-            className="rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF5] p-4 sm:p-5 lg:p-6 max-w-5xl"
-            id="listing-buyer-actions"
+            className={cx(
+              "min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8 order-3",
+              showBusinessRail ? "lg:col-start-1 lg:col-span-1" : "col-span-full"
+            )}
           >
-            <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => showPreviewToast(t.previewToastSave)}
-                className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-black/12 bg-white hover:bg-stone-50 transition shadow-sm"
-              >
-                {t.guardar}
-              </button>
-              <button
-                type="button"
-                onClick={() => showPreviewToast(t.previewToastShare)}
-                className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-              >
-                {t.compartir}
-              </button>
-              {listing.contactMethod !== "email" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => showPreviewToast(t.previewToastCall)}
-                    className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-                  >
-                    {t.contactPhoneOnly}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => showPreviewToast(t.previewToastText)}
-                    className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-                  >
-                    {lang === "es" ? "Texto" : "Text"}
-                  </button>
-                </>
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6 lg:p-8 shadow-sm w-full">
+              {listing.categoryLabel ? (
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
+              ) : null}
+
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
+                {listing.title}
+              </h1>
+
+              <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-bold text-[#1a1a1a] tabular-nums">
+                {formatListingPrice(listing.priceLabel, { lang })}
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/75">
+                <span className="font-medium text-[#111111]">{listing.city}</span>
+                <span className="text-[#111111]/40" aria-hidden>
+                  ·
+                </span>
+                <span>{listing.todayLabel}</span>
+              </div>
+
+              {(quickFacts.length > 0 || featureTags.length > 0) && (
+                <div className="mt-8 pt-6 border-t border-stone-200/80">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-4">{t.detallesPropiedad}</h2>
+
+                  {quickFacts.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+                        {lang === "es" ? "Datos clave" : "Quick facts"}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {quickFacts.map((f) => (
+                          <span
+                            key={`qf-${f.label}-${f.value}`}
+                            className="rounded-full border border-[#C9B46A]/30 bg-[#FDF9EE] px-3 py-1.5 text-xs font-semibold text-[#111111]"
+                          >
+                            <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {featureTags.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+                        {lang === "es" ? "Características" : "Features"}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {featureTags.map((f) => (
+                          <span
+                            key={`ft-${f.label}-${f.value}`}
+                            className="rounded-lg border border-stone-200 bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-[#111111]/90"
+                          >
+                            <span className="text-[#111111]/55">{f.label}:</span> {f.value}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
-              {listing.contactMethod !== "phone" && (
+            </div>
+
+            <div
+              className="rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF5] p-4 sm:p-5 lg:p-6 w-full"
+              id="listing-buyer-actions"
+            >
+              <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
+
+              <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => showPreviewToast(t.previewToastEmail)}
+                  onClick={() => showPreviewToast(t.previewToastSave)}
+                  className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-black/12 bg-white hover:bg-stone-50 transition shadow-sm"
+                >
+                  {t.guardar}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => showPreviewToast(t.previewToastShare)}
                   className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
                 >
-                  {t.contactEmailOnly}
+                  {t.compartir}
                 </button>
+
+                {listing.contactMethod !== "email" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => showPreviewToast(t.previewToastCall)}
+                      className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
+                    >
+                      {t.contactPhoneOnly}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => showPreviewToast(t.previewToastText)}
+                      className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
+                    >
+                      {lang === "es" ? "Texto" : "Text"}
+                    </button>
+                  </>
+                )}
+
+                {listing.contactMethod !== "phone" && (
+                  <button
+                    type="button"
+                    onClick={() => showPreviewToast(t.previewToastEmail)}
+                    className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
+                  >
+                    {t.contactEmailOnly}
+                  </button>
+                )}
+              </div>
+
+              {previewToast && (
+                <div className="mt-3 rounded-xl bg-[#111111] px-4 py-3 text-sm text-[#F5F5F5] shadow-lg" role="status">
+                  {previewToast}
+                </div>
               )}
             </div>
-            {previewToast && (
-              <div className="mt-3 rounded-xl bg-[#111111] px-4 py-3 text-sm text-[#F5F5F5] shadow-lg" role="status">
-                {previewToast}
-              </div>
-            )}
-          </div>
 
-          <div className={`${detailCardClass} max-w-5xl`}>
-            <h3 className="text-xs font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">{t.descripcion}</h3>
-            <div className="text-sm sm:text-base text-[#111111] whitespace-pre-wrap leading-relaxed">{listing.description}</div>
-          </div>
-
-          <div className={`${detailCardClass} max-w-5xl`} data-section="seller-profile">
-            <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
-            <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
-            <span className="inline-block mt-1 text-xs text-[#111111]/60 font-medium">{t.memberLabel}</span>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#111111]/60">
-              <span>⭐ {t.newSeller}</span>
-              <span>
-                📅 {t.memberSince} {new Date().getFullYear()}
-              </span>
+            <div className={`${detailCardClass} w-full`}>
+              <h3 className="text-xs font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">{t.descripcion}</h3>
+              <div className="text-sm sm:text-base text-[#111111] whitespace-pre-wrap leading-relaxed">{listing.description}</div>
             </div>
-            <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
-            <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
-          </div>
 
-          <div className={`${detailCardClass} max-w-5xl`}>
-            <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
-            <p className="text-sm text-[#111111] mb-2">
-              {t.sellerLocation} {listing.city}
-            </p>
-            <label className="block text-sm text-[#111111]/70 mb-1">{t.distanceLabel}</label>
-            <CityAutocomplete
-              value={viewerCityInput}
-              onChange={setViewerCityInput}
-              placeholder={t.cityPlaceholder}
-              lang={lang}
-              variant="light"
-              className="mt-1 w-full max-w-full sm:max-w-md"
-            />
-            {distanceMiles !== null && (
-              <p className="mt-2 text-sm text-[#111111]/70">
-                {t.milesAway} {Math.round(distanceMiles)} {t.miles}
+            <div className={`${detailCardClass} w-full`} data-section="seller-profile">
+              <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
+              <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
+              <span className="inline-block mt-1 text-xs text-[#111111]/60 font-medium">{t.memberLabel}</span>
+
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#111111]/60">
+                <span>⭐ {t.newSeller}</span>
+                <span>📅 {t.memberSince} {new Date().getFullYear()}</span>
+              </div>
+
+              <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
+              <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
+            </div>
+
+            <div className={`${detailCardClass} w-full`}>
+              <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
+              <p className="text-sm text-[#111111] mb-2">
+                {t.sellerLocation} {listing.city}
               </p>
-            )}
+
+              <label className="block text-sm text-[#111111]/70 mb-1">{t.distanceLabel}</label>
+
+              <CityAutocomplete
+                value={viewerCityInput}
+                onChange={setViewerCityInput}
+                placeholder={t.cityPlaceholder}
+                lang={lang}
+                variant="light"
+                className="mt-1 w-full max-w-full sm:max-w-md"
+              />
+
+              {distanceMiles !== null && (
+                <p className="mt-2 text-sm text-[#111111]/70">
+                  {t.milesAway} {Math.round(distanceMiles)} {t.miles}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
