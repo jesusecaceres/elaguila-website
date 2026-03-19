@@ -35,21 +35,18 @@ export default function BusinessListingIdentityRail({
   const agentName = businessRail.agent?.trim() || businessName;
   const agentRole = businessRail.role?.trim() || "";
   const agentNameLen = agentName.length;
+  const imageBoxClass = "h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0";
   const agentNameClass =
-    agentNameLen > 86
-      ? "text-[0.78rem] sm:text-[0.84rem]"
-      : agentNameLen > 70
-        ? "text-[0.82rem] sm:text-[0.88rem]"
-        : agentNameLen > 56
-          ? "text-[0.86rem] sm:text-[0.92rem]"
-          : agentNameLen > 44
-            ? "text-[0.9rem] sm:text-[0.96rem]"
-            : agentNameLen > 32
-              ? "text-[0.95rem] sm:text-[1.01rem]"
-              : "text-[1.02rem] sm:text-[1.08rem]";
-  // One-line preference for short/medium names; long names wrap cleanly; only extreme values ellipsize.
+    agentNameLen > 72
+      ? "text-[0.84rem] sm:text-[0.88rem]"
+      : agentNameLen > 56
+        ? "text-[0.88rem] sm:text-[0.92rem]"
+        : agentNameLen > 42
+          ? "text-[0.92rem] sm:text-[0.95rem]"
+          : "text-sm sm:text-[0.98rem]";
+  // One-line preference for short/medium names; long names wrap; only extreme values ellipsize.
   const agentNameLayoutClass =
-    agentNameLen > 86
+    agentNameLen > 72
       ? "whitespace-nowrap overflow-hidden text-ellipsis"
       : agentNameLen > 56
         ? "whitespace-normal break-words"
@@ -81,15 +78,15 @@ export default function BusinessListingIdentityRail({
               <img
                 src={businessRail.agentPhotoUrl}
                 alt=""
-                className="h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem] rounded-2xl border border-black/10 object-cover bg-white shadow-sm shrink-0"
+                className={imageBoxClass}
               />
             ) : (
-              <div className="h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem] rounded-2xl border border-black/10 bg-[#F5F5F5] flex items-center justify-center text-[#111111]/45 text-xs shadow-sm shrink-0">
+              <div className={cx(imageBoxClass, "bg-[#F5F5F5] flex items-center justify-center text-[#111111]/45 text-xs")}>
                 {lang === "es" ? "Agente" : "Agent"}
               </div>
             )}
             <div className="min-w-0 flex-[1_1_0%]">
-              <p className={cx(agentNameClass, agentNameLayoutClass, "font-extrabold text-[#111111] leading-tight max-w-full")}>
+              <p className={cx(agentNameClass, agentNameLayoutClass, "font-semibold text-[#111111] leading-tight max-w-full")}>
                 {agentName}
               </p>
               {agentRole ? <p className="mt-1 text-xs sm:text-[0.8rem] text-[#111111]/70 whitespace-nowrap overflow-hidden text-ellipsis">{agentRole}</p> : null}
@@ -101,7 +98,7 @@ export default function BusinessListingIdentityRail({
                 <img
                   src={businessRail.logoUrl}
                   alt=""
-                  className="h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0"
+                  className={imageBoxClass}
                 />
               ) : null}
               <p className="text-sm sm:text-[0.94rem] font-semibold text-[#111111] leading-tight break-words">{businessName}</p>
