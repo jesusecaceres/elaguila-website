@@ -12,6 +12,25 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function formatBrPriceWithCommaThousands(priceLabel: string, lang: "es" | "en"): string {
+  // Keep existing formatListingPrice behavior for Gratis/Free and fallback cases.
+  const base = formatListingPrice(priceLabel, { lang });
+  const lower = base.toLowerCase();
+  if (lower.includes("gratis") || lower.includes("free")) return base;
+
+  const numericMatch = base.match(/-?\d+(?:\.\d+)?/);
+  if (!numericMatch) return base;
+
+  const n = Number(numericMatch[0]);
+  if (!Number.isFinite(n)) return base;
+
+  const roundedIntStr = String(Math.round(n));
+  const withCommas = roundedIntStr.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  // formatListingPrice returns `$${...}` for numeric values, so keep `$` prefix when present.
+  return base.includes("$") ? `$${withCommas}` : withCommas;
+}
+
 export type BienesRaicesPreviewListingProps = {
   listing: ListingData;
 };
@@ -195,7 +214,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </h1>
 
               <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-bold text-[#1a1a1a] tabular-nums">
-                {formatListingPrice(listing.priceLabel, { lang })}
+                {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/75">
