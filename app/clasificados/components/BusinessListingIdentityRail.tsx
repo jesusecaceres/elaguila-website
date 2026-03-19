@@ -34,6 +34,13 @@ export default function BusinessListingIdentityRail({
   const businessName = businessRail.name || (lang === "es" ? "Negocio" : "Business");
   const agentName = businessRail.agent?.trim() || businessName;
   const agentRole = businessRail.role?.trim() || "";
+  const agentNameLen = agentName.length;
+  const agentNameClass =
+    agentNameLen > 44
+      ? "text-[0.9rem] sm:text-[0.95rem]"
+      : agentNameLen > 32
+        ? "text-[0.96rem] sm:text-[1rem]"
+        : "text-[1.02rem] sm:text-[1.08rem]";
 
   return (
     <div
@@ -68,8 +75,8 @@ export default function BusinessListingIdentityRail({
                 {lang === "es" ? "Agente" : "Agent"}
               </div>
             )}
-            <div className="min-w-0 flex-1">
-              <p className="text-[1.02rem] sm:text-[1.08rem] font-extrabold text-[#111111] leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+            <div className="min-w-0 flex-[1_1_0%]">
+              <p className={cx(agentNameClass, "font-extrabold text-[#111111] leading-tight whitespace-nowrap overflow-hidden text-ellipsis")}>
                 {agentName}
               </p>
               {agentRole ? <p className="mt-1 text-xs sm:text-[0.8rem] text-[#111111]/70 whitespace-nowrap overflow-hidden text-ellipsis">{agentRole}</p> : null}

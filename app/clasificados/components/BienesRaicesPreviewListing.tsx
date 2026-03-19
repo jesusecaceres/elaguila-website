@@ -172,6 +172,8 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
 
   const twoColClass = showBusinessRail ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,24rem)]" : "lg:grid-cols-1";
+  const desktopTileBaseClass =
+    "aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center gap-2";
 
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
@@ -237,15 +239,17 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   }}
                   disabled={!virtualTourUrl}
                   className={cx(
-                    "aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    desktopTileBaseClass,
                     virtualTourUrl
-                      ? "border-[#C9B46A]/45 bg-white/90 hover:bg-[#F8F6F0]"
-                      : "border-stone-200/80 bg-[#F5F5F5] text-[#111111]/45"
+                      ? "border-[#BFA05C]/60 bg-[#F2EBDD] hover:bg-[#EEE4D2] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                      : "border-[#CDBE97]/55 bg-[#EFE9DC] text-[#111111]/45"
                   )}
                   aria-label={lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
                 >
-                  <span aria-hidden className="text-2xl">🗺️</span>
-                  <span className="mt-1 text-[11px] font-semibold">{lang === "es" ? "Tour virtual" : "Virtual tour"}</span>
+                  <span className="rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC] p-2.5 shadow-sm">
+                    <span aria-hidden className="block text-[1.55rem] leading-none">🗺️</span>
+                  </span>
+                  <span className="text-[11px] font-semibold">{lang === "es" ? "Tour virtual" : "Virtual tour"}</span>
                 </button>
 
                 <button
@@ -257,15 +261,17 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   }}
                   disabled={!floorPlanUrl}
                   className={cx(
-                    "aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    desktopTileBaseClass,
                     floorPlanUrl
-                      ? "border-[#C9B46A]/45 bg-white/90 hover:bg-[#F8F6F0]"
-                      : "border-stone-200/80 bg-[#F5F5F5] text-[#111111]/45"
+                      ? "border-[#BFA05C]/60 bg-[#F2EBDD] hover:bg-[#EEE4D2] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                      : "border-[#CDBE97]/55 bg-[#EFE9DC] text-[#111111]/45"
                   )}
                   aria-label={lang === "es" ? "Abrir plano" : "Open floorplan"}
                 >
-                  <span aria-hidden className="text-2xl">📐</span>
-                  <span className="mt-1 text-[11px] font-semibold">{lang === "es" ? "Plano" : "Floorplan"}</span>
+                  <span className="rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC] p-2.5 shadow-sm">
+                    <span aria-hidden className="block text-[1.55rem] leading-none">📐</span>
+                  </span>
+                  <span className="text-[11px] font-semibold">{lang === "es" ? "Plano" : "Floorplan"}</span>
                 </button>
 
                 <button
@@ -277,18 +283,20 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   }}
                   disabled={!videoUrl}
                   className={cx(
-                    "relative aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    "relative " + desktopTileBaseClass,
                     videoUrl
-                      ? "border-[#C9B46A]/45 bg-white/90 hover:bg-[#F8F6F0]"
-                      : "border-stone-200/80 bg-[#F5F5F5] text-[#111111]/45"
+                      ? "border-[#BFA05C]/60 bg-[#F2EBDD] hover:bg-[#EEE4D2] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                      : "border-[#CDBE97]/55 bg-[#EFE9DC] text-[#111111]/45"
                   )}
                   aria-label={lang === "es" ? "Abrir video" : "Open video"}
                 >
                   {videoUrl && videoThumbUrl ? (
                     <img src={videoThumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
                   ) : null}
-                  <span aria-hidden className="relative text-2xl">🎥</span>
-                  <span className="relative mt-1 text-[11px] font-semibold">{lang === "es" ? "Video" : "Video"}</span>
+                  <span className="relative rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC] p-2.5 shadow-sm">
+                    <span aria-hidden className="block text-[1.55rem] leading-none">🎥</span>
+                  </span>
+                  <span className="relative text-[11px] font-semibold">{lang === "es" ? "Video" : "Video"}</span>
                 </button>
 
                 <button
@@ -297,17 +305,17 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     openLightbox(nextPhotoIndex);
                   }}
                   className={cx(
-                    "relative aspect-square rounded-2xl border overflow-hidden transition flex flex-col items-center justify-center",
+                    "relative " + desktopTileBaseClass,
                     additionalPhotos > 0
-                      ? "border-[#C9B46A]/45 bg-[#F8F6F0] hover:bg-white"
-                      : "border-stone-200/80 bg-stone-50 hover:bg-white"
+                      ? "border-[#BFA05C]/60 bg-[#EFE4CD] hover:bg-[#E9DDBF] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                      : "border-[#CDBE97]/55 bg-[#EFE9DC] hover:bg-[#ECE4D4] text-[#111111]/80"
                   )}
                   aria-label={lang === "es" ? "Ver más fotos" : "See more photos"}
                 >
                   {images[nextPhotoIndex] ? (
                     <img src={images[nextPhotoIndex]} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
                   ) : null}
-                  <span className="relative rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
+                  <span className="relative rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC]/95 px-2.5 py-0.5 text-[11px] font-semibold text-[#2F4A33] shadow-sm">
                     {additionalPhotos > 0 ? (lang === "es" ? `+${additionalPhotos} fotos` : `+${additionalPhotos}`) : (lang === "es" ? "Fotos" : "Photos")}
                   </span>
                 </button>
