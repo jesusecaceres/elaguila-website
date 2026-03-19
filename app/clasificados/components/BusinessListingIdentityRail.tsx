@@ -38,51 +38,53 @@ export default function BusinessListingIdentityRail({
   return (
     <div
       className={cx(
-        "rounded-2xl border p-5 sm:p-6",
+        "rounded-[1.4rem] border p-5 sm:p-6",
         isBienesRaices || businessRailTier === "business_plus"
-          ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.12)]"
+          ? "border-[#C9B46A]/55 bg-gradient-to-b from-[#F7F2E5] to-[#F2EBDD] ring-1 ring-[#C9B46A]/25 shadow-[0_14px_38px_-20px_rgba(17,17,17,0.35)]"
           : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
       )}
       data-section="preview-business-rail"
     >
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-5">
         <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
           {lang === "es" ? "Identidad del negocio" : "Business"}
         </h4>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 sm:gap-5">
         {/* Agent-first header row (matches requested reference direction). */}
-        <div className={cx("rounded-xl border p-3 sm:p-4", isBienesRaices ? "border-[#C9B46A]/35 bg-white shadow-sm" : "border-black/10 bg-white/75")}>
+        <div className={cx("rounded-2xl border p-4 sm:p-5", isBienesRaices ? "border-[#C9B46A]/40 bg-[#FFFEFB] shadow-[0_8px_22px_-16px_rgba(17,17,17,0.35)]" : "border-black/10 bg-white/75")}>
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
             {lang === "es" ? "Agente" : "Agent"}
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5 sm:gap-4">
             {businessRail.agentPhotoUrl ? (
               <img
                 src={businessRail.agentPhotoUrl}
                 alt=""
-                className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
+                className="h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem] rounded-2xl border border-black/10 object-cover bg-white shadow-sm shrink-0"
               />
             ) : (
-              <div className="h-14 w-14 rounded-xl border border-black/10 bg-[#F5F5F5] flex items-center justify-center text-[#111111]/45 text-xs">
+              <div className="h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem] rounded-2xl border border-black/10 bg-[#F5F5F5] flex items-center justify-center text-[#111111]/45 text-xs shadow-sm shrink-0">
                 {lang === "es" ? "Agente" : "Agent"}
               </div>
             )}
-            <div className="min-w-0">
-              <p className="text-base font-extrabold text-[#111111] leading-tight truncate">{agentName}</p>
-              {agentRole ? <p className="mt-0.5 text-xs text-[#111111]/70 truncate">{agentRole}</p> : null}
+            <div className="min-w-0 flex-1">
+              <p className="text-[1.02rem] sm:text-[1.08rem] font-extrabold text-[#111111] leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                {agentName}
+              </p>
+              {agentRole ? <p className="mt-1 text-xs sm:text-[0.8rem] text-[#111111]/70 whitespace-nowrap overflow-hidden text-ellipsis">{agentRole}</p> : null}
             </div>
           </div>
           {(businessRail.logoUrl || businessName) && (
-            <div className="mt-3 border-t border-black/10 pt-3 flex items-center gap-2">
+            <div className="mt-4 border-t border-black/10 pt-3.5 flex items-center gap-3">
               {businessRail.logoUrl ? (
                 <img
                   src={businessRail.logoUrl}
                   alt=""
-                  className="h-10 w-10 rounded-lg border border-black/10 object-cover bg-white"
+                  className="h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0"
                 />
               ) : null}
-              <p className="text-sm font-semibold text-[#111111] leading-tight break-words">{businessName}</p>
+              <p className="text-sm sm:text-[0.94rem] font-semibold text-[#111111] leading-tight break-words">{businessName}</p>
             </div>
           )}
         </div>
@@ -153,27 +155,37 @@ export default function BusinessListingIdentityRail({
             </div>
           </div>
         )}
-        <div className="mt-2 flex flex-col gap-2">
+        <div className="mt-2 flex flex-col gap-2.5 sm:gap-3">
           <button
             type="button"
-            className="w-full px-4 py-3 rounded-xl font-semibold border border-[#111111]/18 bg-white text-[#111111] text-sm hover:bg-[#F5F5F5] transition"
+            className={cx(
+              "w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition",
+              isBienesRaices
+                ? "border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
+                : "border border-[#111111]/18 bg-white text-[#111111] hover:bg-[#F5F5F5]"
+            )}
           >
             {lang === "es" ? "Solicitar información" : "Request info"}
-          </button>
-          <button
-            type="button"
-            className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] text-sm hover:bg-[#EFE7D8] transition"
-          >
-            {lang === "es" ? "Programar visita" : "Schedule visit"}
           </button>
           {isBienesRaices && (
             <button
               type="button"
-              className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/45 bg-white/90 text-[#111111] text-sm hover:bg-[#F8F6F0] transition"
+              className="w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition"
             >
               {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
             </button>
           )}
+          <button
+            type="button"
+            className={cx(
+              "w-full px-4 py-3.5 rounded-xl font-semibold border text-sm transition",
+              isBienesRaices
+                ? "border-[#C9B46A]/65 bg-[#F8F2E3] text-[#4A4536] hover:bg-[#F2E9D4]"
+                : "border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
+            )}
+          >
+            {lang === "es" ? "Programar visita" : "Schedule visit"}
+          </button>
         </div>
       </div>
     </div>
