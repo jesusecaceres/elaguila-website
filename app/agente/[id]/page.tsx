@@ -9,6 +9,7 @@ import {
   type PublicAgentListingSummary,
 } from "@/app/lib/agentProfile/loadPublicAgentPageData";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import AgentProfileHero from "./AgentProfileHero";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -71,23 +72,13 @@ export default async function PublicAgentProfilePage(props: PageProps) {
   }
 
   const d = data.display;
-  const headline =
-    d.agentName ||
-    d.businessName ||
-    (lang === "es" ? "Profesional inmobiliario" : "Real estate professional");
 
   const t =
     lang === "es"
       ? {
           back: "← Volver a Clasificados",
-          identity: "Identidad",
-          contact: "Contacto",
-          office: "Teléfono de oficina",
-          website: "Sitio web",
-          socials: "Redes sociales",
           about: "Sobre el agente",
-          serviceArea: "Zona de servicio",
-          location: "Ubicación del negocio",
+          location: "Ubicación",
           hours: "Horario",
           openMap: "Abrir en mapa",
           mapAria: "Abrir ubicación en Google Maps",
@@ -98,14 +89,8 @@ export default async function PublicAgentProfilePage(props: PageProps) {
         }
       : {
           back: "← Back to classifieds",
-          identity: "Identity",
-          contact: "Get in touch",
-          office: "Office phone",
-          website: "Website",
-          socials: "Social",
-          about: "About",
-          serviceArea: "Service area",
-          location: "Business location",
+          about: "About the agent",
+          location: "Location",
           hours: "Hours",
           openMap: "Open map",
           mapAria: "Open location in Google Maps",
@@ -122,6 +107,8 @@ export default async function PublicAgentProfilePage(props: PageProps) {
   const shellClass =
     "rounded-[1.35rem] border border-[#C9B46A]/45 bg-gradient-to-b from-[#FFFCF6] to-[#F5F0E4] shadow-[0_18px_48px_-28px_rgba(17,17,17,0.35)] ring-1 ring-[#C9B46A]/20";
 
+  const showLocationBlock = Boolean(d.businessAddressLine || d.hours || mapsUrl);
+
   return (
     <main className="min-h-screen bg-[#E8E4DC] text-[#111111]">
       <Navbar />
@@ -133,131 +120,38 @@ export default async function PublicAgentProfilePage(props: PageProps) {
           {t.back}
         </Link>
 
-        <article className={cx(shellClass, "p-6 sm:p-9")}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B6914]/90 mb-3">
-            {t.identity}
-          </p>
+        <article className={cx(shellClass, "p-6 sm:p-9 lg:p-10")}>
+          <AgentProfileHero
+            lang={lang}
+            agentName={d.agentName}
+            agentLicense={d.agentLicense}
+            serviceAreaLines={d.serviceAreaLines}
+            website={d.website}
+            socialLinks={d.socialLinks}
+            officePhone={d.officePhone}
+            languages={d.languages}
+            agentPhotoUrl={d.agentPhotoUrl}
+          />
 
-          {/* 1) Header identity */}
-          <header className="flex flex-col sm:flex-row sm:items-start gap-5 sm:gap-6">
-            <div className="flex items-start gap-4 min-w-0 flex-1">
-              {d.agentPhotoUrl ? (
-                <img
-                  src={d.agentPhotoUrl}
-                  alt=""
-                  className="h-[4.5rem] w-[4.5rem] sm:h-24 sm:w-24 rounded-2xl border border-[#C9B46A]/40 object-cover bg-white shadow-sm shrink-0"
-                />
-              ) : (
-                <div className="h-[4.5rem] w-[4.5rem] sm:h-24 sm:w-24 rounded-2xl border border-[#C9B46A]/35 bg-white/80 flex items-center justify-center text-[#111111]/35 text-xs font-semibold shrink-0">
-                  {lang === "es" ? "Foto" : "Photo"}
-                </div>
-              )}
-              <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
-                  {headline}
-                </h1>
-                {d.agentRole ? (
-                  <p className="mt-2 text-sm sm:text-base text-[#111111]/75 font-medium">{d.agentRole}</p>
-                ) : null}
-              </div>
-            </div>
-
-            {(d.logoUrl || d.businessName) && (
-              <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:text-right border-t sm:border-t-0 sm:border-l border-[#C9B46A]/25 pt-4 sm:pt-0 sm:pl-6 sm:min-w-[8.5rem]">
-                {d.logoUrl ? (
-                  <img
-                    src={d.logoUrl}
-                    alt=""
-                    className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white shadow-sm"
-                  />
-                ) : null}
-                {d.businessName ? (
-                  <p className="text-sm font-bold text-[#111111] leading-snug break-words">{d.businessName}</p>
-                ) : null}
-              </div>
-            )}
-          </header>
-
-          {/* 2) Get in touch */}
-          {(d.officePhone || d.website || d.socialLinks.length > 0) && (
-            <section className="mt-10 pt-8 border-t border-[#C9B46A]/25">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-4">{t.contact}</h2>
-              <div className="space-y-3 text-sm">
-                {d.officePhone ? (
-                  <p>
-                    <span className="text-[#111111]/60 font-medium">{t.office}: </span>
-                    <a className="font-semibold text-[#2F4A33] hover:underline" href={`tel:${d.officePhone.replace(/\D/g, "")}`}>
-                      {d.officePhone}
-                    </a>
-                  </p>
-                ) : null}
-                {d.website ? (
-                  <p>
-                    <span className="text-[#111111]/60 font-medium">{t.website}: </span>
-                    <a
-                      className="font-semibold text-[#2F4A33] hover:underline break-all"
-                      href={d.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {d.website.replace(/^https?:\/\//i, "")}
-                    </a>
-                  </p>
-                ) : null}
-                {d.socialLinks.length > 0 ? (
-                  <div>
-                    <p className="text-[#111111]/60 font-medium mb-2">{t.socials}</p>
-                    <ul className="flex flex-wrap gap-2">
-                      {d.socialLinks.map((s, i) => (
-                        <li key={`${s.url}-${i}`}>
-                          <a
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center rounded-xl border border-[#C9B46A]/40 bg-white/90 px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#F8F4EA] transition"
-                          >
-                            {s.label}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          )}
-
-          {/* 3) About */}
           {d.about ? (
-            <section className="mt-10 pt-8 border-t border-[#C9B46A]/25">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.about}</h2>
-              <p className="text-sm sm:text-[0.95rem] text-[#111111]/85 leading-relaxed whitespace-pre-wrap">{d.about}</p>
+            <section className="mt-14 lg:mt-16 pt-10 border-t border-[#C9B46A]/28" aria-labelledby="agent-about-heading">
+              <h2 id="agent-about-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6914]/90 mb-5">
+                {t.about}
+              </h2>
+              <div className="max-w-[70ch] text-sm sm:text-[0.95rem] text-[#111111]/88 leading-[1.8] whitespace-pre-wrap">{d.about}</div>
             </section>
           ) : null}
 
-          {/* 4) Service area */}
-          {d.serviceAreaLines.length > 0 ? (
-            <section className="mt-10 pt-8 border-t border-[#C9B46A]/25">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.serviceArea}</h2>
-              <ul className="flex flex-wrap gap-2">
-                {d.serviceAreaLines.map((line) => (
-                  <li
-                    key={line}
-                    className="rounded-full border border-[#C9B46A]/35 bg-[#FAF3E4] px-3 py-1.5 text-xs font-semibold text-[#111111]"
-                  >
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {/* 5) Location + hours */}
-          {(d.businessAddressLine || d.hours || mapsUrl) && (
-            <section className="mt-10 pt-8 border-t border-[#C9B46A]/25">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.location}</h2>
+          {showLocationBlock ? (
+            <section
+              className={cx("mt-12 pt-10 border-t border-[#C9B46A]/28", !d.about && "mt-14 lg:mt-16")}
+              aria-labelledby="agent-location-heading"
+            >
+              <h2 id="agent-location-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6914]/90 mb-4">
+                {t.location}
+              </h2>
               {d.businessAddressLine ? (
-                <p className="text-sm text-[#111111]/85 font-medium leading-relaxed">{d.businessAddressLine}</p>
+                <p className="text-sm text-[#111111]/85 font-medium leading-relaxed max-w-[70ch]">{d.businessAddressLine}</p>
               ) : null}
               {mapsUrl ? (
                 <a
@@ -271,16 +165,15 @@ export default async function PublicAgentProfilePage(props: PageProps) {
                 </a>
               ) : null}
               {d.hours ? (
-                <p className="mt-5 text-sm text-[#111111]/80">
+                <p className="mt-6 text-sm text-[#111111]/80 max-w-[70ch]">
                   <span className="font-semibold text-[#111111]/65">{t.hours}: </span>
                   {d.hours}
                 </p>
               ) : null}
             </section>
-          )}
+          ) : null}
         </article>
 
-        {/* Listings owned by this shared identity (`listings.owner_id`) */}
         <section className="mt-10" aria-labelledby="agent-listings-heading">
           <h2
             id="agent-listings-heading"

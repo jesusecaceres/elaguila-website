@@ -95,6 +95,8 @@ export type PublicAgentPageModel = {
   display: {
     agentName: string;
     agentRole: string | null;
+    /** From `negocioLicencia` when set */
+    agentLicense: string | null;
     businessName: string | null;
     agentPhotoUrl: string | null;
     logoUrl: string | null;
@@ -103,6 +105,8 @@ export type PublicAgentPageModel = {
     socialLinks: Array<{ label: string; url: string }>;
     about: string | null;
     hours: string | null;
+    /** From `negocioIdiomas` when set */
+    languages: string | null;
     serviceAreaLines: string[];
     businessAddressLine: string | null;
     mapQuery: string | null;
@@ -191,6 +195,8 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
     "";
 
   const agentRole = (meta?.negocioCargo ?? "").trim() || null;
+  const agentLicense = (meta?.negocioLicencia ?? "").trim() || null;
+  const languages = (meta?.negocioIdiomas ?? "").trim() || null;
   const agentPhotoUrl = (meta?.negocioFotoAgenteUrl ?? "").trim() || null;
   const logoUrl = (meta?.negocioLogoUrl ?? "").trim() || null;
   const officePhone =
@@ -202,11 +208,19 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   const about = (meta?.negocioDescripcion ?? "").trim() || null;
   const hours = (meta?.negocioHorario ?? "").trim() || null;
 
-  const serviceSet = new Set<string>();
-  if (profile?.homeCity) serviceSet.add(profile.homeCity);
-  if (city) serviceSet.add(city);
-  if (neighborhood) serviceSet.add(neighborhood);
-  const serviceAreaLines = [...serviceSet].filter(Boolean);
+  const serviceAreaLines: string[] = [];
+  const serviceSeen = new Set<string>();
+  const pushArea = (raw: string | null | undefined) => {
+    const t = (raw ?? "").trim();
+    if (!t) return;
+    const k = t.toLowerCase();
+    if (serviceSeen.has(k)) return;
+    serviceSeen.add(k);
+    serviceAreaLines.push(t);
+  };
+  pushArea(profile?.homeCity ?? null);
+  pushArea(city);
+  pushArea(neighborhood);
 
   const businessAddressLine =
     streetAddress && city
@@ -270,6 +284,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
     display: {
       agentName,
       agentRole,
+      agentLicense,
       businessName,
       agentPhotoUrl,
       logoUrl,
@@ -278,6 +293,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
       socialLinks,
       about,
       hours,
+      languages,
       serviceAreaLines,
       businessAddressLine,
       mapQuery,

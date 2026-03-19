@@ -105,16 +105,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     return detailNeighborhoodLine ?? fromFacts;
   }, [quickFacts, detailNeighborhoodLine]);
 
-  /** Real listing geography for agent profile service-area line (city + vecindad when distinct). */
-  const serviceAreaPartsForRail = useMemo(() => {
-    const parts: string[] = [];
-    const c = (listing.city ?? "").trim();
-    const n = (neighborhoodLine ?? "").trim();
-    if (c) parts.push(c);
-    if (n && n.toLowerCase() !== c.toLowerCase()) parts.push(n);
-    return parts;
-  }, [listing.city, neighborhoodLine]);
-
   const iconFacts = useMemo(() => {
     const buckets = [
       { pattern: /rec[aá]maras|bedrooms?/, icon: "🛏️", key: "bed" },
@@ -165,7 +155,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             verifiedPlaceholder: "Verificado (próximamente)",
             descripcion: "Descripción",
             detallesPropiedad: "Detalles de la propiedad",
-            aboutAgent: "Sobre el agente",
             propertyPhotos: "Fotos de la propiedad",
           }
         : {
@@ -194,7 +183,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             verifiedPlaceholder: "Verified (coming soon)",
             descripcion: "Description",
             detallesPropiedad: "Property details",
-            aboutAgent: "About the agent",
             propertyPhotos: "Property photos",
           },
     [lang]
@@ -204,14 +192,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const detailCardClass = "rounded-2xl border border-stone-200/90 bg-white/90 p-4 sm:p-5 lg:p-6 shadow-sm";
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
-
-  const portraitSrc = useMemo(() => {
-    const agent = listing.businessRail?.agentPhotoUrl?.trim();
-    if (agent) return agent;
-    return heroSrc;
-  }, [listing.businessRail?.agentPhotoUrl, heroSrc]);
-
-  const aboutAgentText = (listing.businessRail?.businessDescription ?? "").trim();
 
   const propertyHeroSection = (
     <div className="min-w-0 flex flex-col gap-3">
@@ -265,41 +245,21 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
       <div className="p-4 sm:p-6 lg:p-8">
         {showBusinessRail && listing.businessRail ? (
           <>
-            {/* Hero band: profile summary (left on desktop) + large portrait (right). Mobile: portrait first. */}
-            <div className="flex flex-col-reverse lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] gap-6 lg:gap-10 lg:items-stretch">
-              <div className="min-w-0 flex lg:min-h-[560px]">
+            {/* Same balance as ListingView: property media left, default business rail right (no profile-only layout). */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10 items-start">
+              <div className="min-w-0 order-1 space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#111111]/55">{t.propertyPhotos}</h3>
+                {propertyHeroSection}
+              </div>
+              <div className="min-w-0 order-2">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
                   businessRailTier={listing.businessRailTier}
                   lang={lang}
                   ownerId={listing.ownerId ?? null}
-                  presentation="profile"
-                  serviceAreaParts={serviceAreaPartsForRail}
                 />
               </div>
-              <div className="relative min-h-[320px] sm:min-h-[400px] lg:min-h-[560px] rounded-2xl overflow-hidden border border-[#C9B46A]/35 bg-stone-200 shadow-[0_16px_40px_-24px_rgba(17,17,17,0.35)]">
-                <img src={portraitSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              </div>
-            </div>
-
-            {aboutAgentText ? (
-              <section className="mt-10 lg:mt-14 border-t border-[#C9B46A]/28 pt-10" aria-labelledby="br-about-agent-heading">
-                <h2
-                  id="br-about-agent-heading"
-                  className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6914]/90 mb-5 pb-2 border-b border-[#C9B46A]/25 w-full max-w-xl"
-                >
-                  {t.aboutAgent}
-                </h2>
-                <div className="max-w-[70ch] text-sm sm:text-[0.95rem] text-[#111111]/88 leading-[1.8] whitespace-pre-wrap">
-                  {aboutAgentText}
-                </div>
-              </section>
-            ) : null}
-
-            <div className="mt-10 lg:mt-12 space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#111111]/55">{t.propertyPhotos}</h3>
-              {propertyHeroSection}
             </div>
           </>
         ) : (
