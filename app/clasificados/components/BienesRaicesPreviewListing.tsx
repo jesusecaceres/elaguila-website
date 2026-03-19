@@ -365,6 +365,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   category="bienes-raices"
                   businessRailTier={listing.businessRailTier}
                   lang={lang}
+                  ownerId={listing.ownerId ?? null}
                 />
               </div>
 

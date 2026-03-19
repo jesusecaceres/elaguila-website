@@ -3808,6 +3808,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       sellerName: sellerDisplayName || undefined,
       categoryLabel: previewCategoryLabel || undefined,
       approximateArea: category === "rentas" && snap.details?.zonaDireccion?.trim() ? snap.details.zonaDireccion.trim() : undefined,
+      ownerId: userId?.trim() ? userId.trim() : undefined,
     };
     // BR negocio: add business rail so full preview matches open card (company name, agent, logo, photo, phone, website, socials, availability).
     if (category === "bienes-raices" && (snap.details?.bienesRaicesBranch ?? "").trim() === "negocio") {
@@ -3844,7 +3845,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       base.floorPlanUrl = (d.negocioFloorPlanUrl ?? "").trim() || null;
     }
     return base;
-  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
+  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, userId]);
 
   // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
   const openFullPreview = useCallback(() => {

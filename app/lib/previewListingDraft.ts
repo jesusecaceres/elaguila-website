@@ -28,6 +28,8 @@ export type PreviewListingDraft = {
   /** Optional negocio rail — same shape as ListingView when publish flow stores it on the draft JSON. */
   businessRail?: BusinessRailData | null;
   businessRailTier?: "business_standard" | "business_plus" | null;
+  /** Publisher id for agent profile CTA / deep links. */
+  ownerId?: string | null;
 };
 
 export function getPreviewDraft(): PreviewListingDraft | null {

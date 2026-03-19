@@ -46,6 +46,8 @@ export type ListingRow = Record<string, unknown> & {
   seller_name?: string | null;
   businessRail?: ListingData["businessRail"];
   businessRailTier?: ListingData["businessRailTier"];
+  owner_id?: string | null;
+  ownerId?: string | null;
 };
 
 /** Ordered image URLs from draft/DB. Only use logo placeholder when there are truly zero images. */
@@ -157,6 +159,10 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
       ? (rail as NonNullable<ListingData["businessRail"]>)
       : undefined;
 
+  const ownerIdRaw = row.owner_id ?? row.ownerId;
+  const ownerId =
+    typeof ownerIdRaw === "string" && ownerIdRaw.trim() ? ownerIdRaw.trim() : undefined;
+
   return {
     title,
     priceLabel,
@@ -178,5 +184,6 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
     ...(category ? { category } : {}),
     ...(businessRail ? { businessRail } : {}),
     ...(businessRailTier ? { businessRailTier } : {}),
+    ...(ownerId ? { ownerId } : {}),
   };
 }

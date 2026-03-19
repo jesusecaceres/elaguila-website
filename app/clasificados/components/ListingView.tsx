@@ -60,6 +60,8 @@ export type ListingData = {
   businessRail?: BusinessRailData | null;
   /** "business_standard" | "business_plus" for rail styling (Plus badge, border). */
   businessRailTier?: "business_standard" | "business_plus" | null;
+  /** Listing publisher (profiles.id). Used for public agent profile CTA; omit in anonymous preview. */
+  ownerId?: string | null;
 };
 
 type MediaSlot =
@@ -478,6 +480,7 @@ export default function ListingView({
             category={listing.category === "rentas" ? "rentas" : "bienes-raices"}
             businessRailTier={listing.businessRailTier}
             lang={lang}
+            ownerId={listing.ownerId ?? null}
           />
         )}
 

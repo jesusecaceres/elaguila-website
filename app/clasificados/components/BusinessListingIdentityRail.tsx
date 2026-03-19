@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { BusinessRailData, ListingData } from "./ListingView";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -11,6 +12,8 @@ export type BusinessListingIdentityRailProps = {
   category: "bienes-raices" | "rentas";
   businessRailTier?: ListingData["businessRailTier"];
   lang: "es" | "en";
+  /** Publisher id (`profiles.id`) for public agent profile; omit to hide BR agent CTA. */
+  ownerId?: string | null;
 };
 
 /**
@@ -21,6 +24,7 @@ export default function BusinessListingIdentityRail({
   category,
   businessRailTier,
   lang,
+  ownerId,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
   const showFullSocial =
@@ -35,6 +39,8 @@ export default function BusinessListingIdentityRail({
   const agentName = businessRail.agent?.trim() || businessName;
   const agentRole = businessRail.role?.trim() || "";
   const agentNameLen = agentName.length;
+  const ownerIdTrim = (ownerId ?? "").trim();
+  const agentProfileHref = ownerIdTrim ? `/agente/${encodeURIComponent(ownerIdTrim)}?lang=${lang}` : "";
   const imageBoxClass = "h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0";
   const agentNameClass =
     agentNameLen > 72
@@ -184,14 +190,15 @@ export default function BusinessListingIdentityRail({
           >
             {lang === "es" ? "Solicitar información" : "Request info"}
           </button>
-          {isBienesRaices && (
-            <button
-              type="button"
-              className="w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition"
+          {isBienesRaices && agentProfileHref ? (
+            <Link
+              href={agentProfileHref}
+              prefetch={false}
+              className="block w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition text-center"
             >
               {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
-            </button>
-          )}
+            </Link>
+          ) : null}
           <button
             type="button"
             className={cx(
