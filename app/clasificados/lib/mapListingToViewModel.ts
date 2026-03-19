@@ -44,6 +44,8 @@ export type ListingRow = Record<string, unknown> & {
   rama?: string | null;
   sellerName?: string | null;
   seller_name?: string | null;
+  businessRail?: ListingData["businessRail"];
+  businessRailTier?: ListingData["businessRailTier"];
 };
 
 /** Ordered image URLs from draft/DB. Only use logo placeholder when there are truly zero images. */
@@ -141,6 +143,20 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
   const proVideoUrl2 = (proVideosFromDesc[1]?.url ?? row.proVideoUrl2 ?? null) as string | null;
   const sellerName = (row.sellerName ?? row.seller_name ?? null) as string | null;
 
+  const categoryRaw = row.category;
+  const category =
+    typeof categoryRaw === "string" && categoryRaw.trim() ? categoryRaw.trim() : undefined;
+
+  const tierRaw = row.businessRailTier;
+  const businessRailTier =
+    tierRaw === "business_standard" || tierRaw === "business_plus" ? tierRaw : undefined;
+
+  const rail = row.businessRail;
+  const businessRail =
+    rail != null && typeof rail === "object"
+      ? (rail as NonNullable<ListingData["businessRail"]>)
+      : undefined;
+
   return {
     title,
     priceLabel,
@@ -159,5 +175,8 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
     proVideoUrl2: proVideoUrl2 ?? null,
     lang: L,
     sellerName: sellerName ?? undefined,
+    ...(category ? { category } : {}),
+    ...(businessRail ? { businessRail } : {}),
+    ...(businessRailTier ? { businessRailTier } : {}),
   };
 }

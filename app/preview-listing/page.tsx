@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
 import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
+import BienesRaicesPreviewListing from "@/app/clasificados/components/BienesRaicesPreviewListing";
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
@@ -117,7 +118,11 @@ export default function PreviewListingPage() {
 
       <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full max-w-full">
         {draftListingData ? (
-          <ListingView listing={draftListingData} previewMode={true} />
+          draft.category === "bienes-raices" ? (
+            <BienesRaicesPreviewListing listing={draftListingData} />
+          ) : (
+            <ListingView listing={draftListingData} previewMode={true} />
+          )
         ) : null}
       </section>
 

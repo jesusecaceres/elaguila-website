@@ -1,3 +1,5 @@
+import type { BusinessRailData } from "@/app/clasificados/components/ListingView";
+
 /** SessionStorage key for the listing draft used by /preview-listing */
 export const PREVIEW_LISTING_DRAFT_KEY = "preview-listing-draft";
 
@@ -16,13 +18,16 @@ export type PreviewListingDraft = {
   contactMethod: "phone" | "email" | "both";
   contactPhone: string;
   contactEmail: string;
-  /** Ordered media: same order as uploader (cover first). Use data URLs so preview survives navigation. */
+  /** Ordered media: same order as uploader (cover first). Use data URLs so they survive navigation. */
   imageUrls: string[];
   proVideoThumbUrl: string | null;
   proVideoUrl: string | null;
   isPro: boolean;
   /** Real seller display name when available (e.g. from profile) */
   sellerName?: string | null;
+  /** Optional negocio rail — same shape as ListingView when publish flow stores it on the draft JSON. */
+  businessRail?: BusinessRailData | null;
+  businessRailTier?: "business_standard" | "business_plus" | null;
 };
 
 export function getPreviewDraft(): PreviewListingDraft | null {

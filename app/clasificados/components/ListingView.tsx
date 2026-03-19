@@ -6,6 +6,7 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
+import BusinessListingIdentityRail from "./BusinessListingIdentityRail";
 
 /** Business rail display (BR negocio / Rentas negocio). Used for preview parity with open card. */
 export type BusinessRailData = {
@@ -462,116 +463,12 @@ export default function ListingView({
       <div className="min-w-0 space-y-4 sm:space-y-5 order-2">
         {/* Business rail (preview parity with open card): logo, agent photo, name, agent, role, phone, website, socials, availability. */}
         {listing.businessRail && (listing.category === "bienes-raices" || listing.category === "rentas") && (
-          <div
-            className={cx(
-              "rounded-2xl border p-5 sm:p-6",
-              (isBienesRaices || listing.businessRailTier === "business_plus")
-                ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.12)]"
-                : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
-            )}
-            data-section="preview-business-rail"
-          >
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
-                {lang === "es" ? "Identidad del negocio" : "Business"}
-              </h4>
-              {/* No Plus/Standard badges — single Negocio lane for BR and Rentas. */}
-            </div>
-            <div className="flex flex-col gap-4">
-              {(listing.businessRail.logoUrl || listing.businessRail.agentPhotoUrl) && (
-                <div className="flex items-start gap-3">
-                  {listing.businessRail.logoUrl && (
-                    <img src={listing.businessRail.logoUrl} alt="" className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white" />
-                  )}
-                  {listing.businessRail.agentPhotoUrl && (
-                    <img src={listing.businessRail.agentPhotoUrl} alt="" className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white" />
-                  )}
-                </div>
-              )}
-              <div>
-                <p className="text-base font-semibold text-[#111111]">
-                  {listing.businessRail.name || (lang === "es" ? "Negocio" : "Business")}
-                </p>
-                {listing.businessRail.agent && (
-                  <p className="mt-0.5 text-sm text-[#111111]/90">{listing.businessRail.agent}</p>
-                )}
-                {listing.businessRail.role && (
-                  <p className="text-xs text-[#111111]/70">{listing.businessRail.role}</p>
-                )}
-              </div>
-              {listing.businessRail.officePhone && (
-                <p className="text-sm text-[#111111]">
-                  <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
-                  <span className="font-medium">{listing.businessRail.officePhone}</span>
-                </p>
-              )}
-              {listing.businessRail.website && (
-                <p className="text-sm font-medium text-[#111111] break-all">
-                  {lang === "es" ? "Sitio web" : "Website"} → {listing.businessRail.website}
-                </p>
-              )}
-              {(listing.businessRail.virtualTourUrl && (isBienesRaices || listing.businessRailTier === "business_plus" || listing.businessRailTier === "business_standard")) && (
-                <p className="text-sm font-medium text-[#111111] break-all">
-                  {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
-                </p>
-              )}
-              {listing.businessRail.socialLinks && listing.businessRail.socialLinks.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {listing.businessRail.socialLinks.slice(0, (isBienesRaices || listing.businessRailTier === "business_plus") ? undefined : 2).map((s, i) => (
-                    <span key={i} className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]">
-                      {s.label} →
-                    </span>
-                  ))}
-                </div>
-              ) : listing.businessRail.rawSocials ? (
-                <p className="text-xs text-[#111111]/80 break-words">{listing.businessRail.rawSocials}</p>
-              ) : null}
-              {listing.businessRail.languages && (
-                <p className="text-xs text-[#111111]/80">
-                  <span className="text-[#111111]/60">{lang === "es" ? "Idiomas:" : "Languages:"} </span>
-                  {listing.businessRail.languages}
-                </p>
-              )}
-              {listing.businessRail.hours && (
-                <p className="text-xs text-[#111111]/80">
-                  <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
-                  {listing.businessRail.hours}
-                </p>
-              )}
-              {listing.businessRail.businessDescription && (
-                <p className="text-xs text-[#111111]/80 whitespace-pre-wrap">{listing.businessRail.businessDescription}</p>
-              )}
-              {listing.businessRail.availabilityRows && listing.businessRail.availabilityRows.length > 0 && (
-                <div className="mt-3 rounded-xl border border-black/10 bg-white/60 p-3">
-                  <p className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
-                    {lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}
-                  </p>
-                  <div className="space-y-2">
-                    {listing.businessRail.availabilityRows.map((row, i) => (
-                      <div key={i} className="flex flex-wrap items-center gap-2 text-xs">
-                        {row.title && <span className="font-medium text-[#111111]">{row.title}</span>}
-                        {row.price && <span className="text-[#111111]/90">{row.price}</span>}
-                        {row.size && <span className="text-[#111111]/70">{row.size}</span>}
-                        {(row.ctaText || row.ctaLink) && (
-                          <span className="font-medium text-[#111111]">
-                            {row.ctaText || (lang === "es" ? "Ver" : "View")} →
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="mt-3 flex flex-col gap-2">
-                <button type="button" className="w-full px-4 py-3 rounded-xl font-semibold border border-[#111111]/20 bg-[#F5F5F5] text-[#111111] text-sm">
-                  {lang === "es" ? "Solicitar información" : "Request info"}
-                </button>
-                <button type="button" className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] text-sm">
-                  {lang === "es" ? "Programar visita" : "Schedule visit"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <BusinessListingIdentityRail
+            businessRail={listing.businessRail}
+            category={listing.category === "rentas" ? "rentas" : "bienes-raices"}
+            businessRailTier={listing.businessRailTier}
+            lang={lang}
+          />
         )}
 
         {/* Card 1: Title, price, meta. Pro: premium accent; spacing so title and badge don't collide. */}
