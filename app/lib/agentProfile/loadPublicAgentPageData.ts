@@ -19,25 +19,26 @@ function pickDetailPairValue(
   return "";
 }
 
+/**
+ * Extract every `http(s)` URL from negocioRedes (commas, newlines, bullets, etc.).
+ * Dedupes case-insensitively so icons match all links users paste in the publish form.
+ */
 function parseSocialUrls(raw: string): Array<{ label: string; url: string }> {
   const s = (raw ?? "").trim();
   if (!s) return [];
+  const urlLike = /https?:\/\/[^\s<>"']+/gi;
+  const seen = new Set<string>();
   const out: Array<{ label: string; url: string }> = [];
-  const urlLike = /https?:\/\/[^\s,]+/gi;
-  const parts = s.split(/[,;]|\s+-\s+/).map((p) => p.trim()).filter(Boolean);
-  for (const part of parts) {
-    const urlMatch = part.match(urlLike);
-    const url = urlMatch ? urlMatch[0] : "";
-    if (url && /^https?:\/\//i.test(url)) {
-      const labelPart = part.replace(urlLike, "").replace(/^[:\s]+|[:\s]+$/g, "").trim();
-      out.push({ label: labelPart || "Link", url });
-    } else if (/^https?:\/\//i.test(part)) {
-      out.push({ label: "Link", url: part });
+  const matches = s.match(urlLike);
+  if (matches) {
+    for (const matched of matches) {
+      const u = matched.replace(/[),.;:]+$/g, "").trim();
+      if (!/^https?:\/\//i.test(u)) continue;
+      const key = u.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ label: "Link", url: u });
     }
-  }
-  if (out.length === 0 && /https?:\/\//i.test(s)) {
-    const m = s.match(urlLike);
-    if (m) m.forEach((u) => out.push({ label: "Link", url: u }));
   }
   return out;
 }

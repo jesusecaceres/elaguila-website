@@ -80,17 +80,19 @@ export default function AgentProfileHero({
     lang === "es"
       ? {
           serviceAreas: "Zonas de servicio",
-          visitWeb: "Sitio web",
+          websiteLabel: "Sitio web",
           phone: "Teléfono",
           langs: "Idiomas",
-          licensePrefix: "Licencia",
+          licenseLabel: "Licencia",
+          socialHeading: "Redes sociales",
         }
       : {
           serviceAreas: "Service areas",
-          visitWeb: "Website",
+          websiteLabel: "Website",
           phone: "Phone",
           langs: "Languages",
-          licensePrefix: "License",
+          licenseLabel: "License",
+          socialHeading: "Social links",
         };
 
   const licenseTrim = (agentLicense ?? "").trim();
@@ -104,6 +106,15 @@ export default function AgentProfileHero({
   const bizTrim = (businessName ?? "").trim();
 
   const validSocials = socialLinks.filter((s) => /^https?:\/\//i.test(s.url.trim()));
+
+  const websiteLinkText = (() => {
+    if (!websiteHref) return "";
+    try {
+      return new URL(websiteHref).hostname.replace(/^www\./i, "");
+    } catch {
+      return websiteHref.replace(/^https?:\/\//i, "");
+    }
+  })();
 
   return (
     <div
@@ -156,10 +167,10 @@ export default function AgentProfileHero({
           </h1>
 
           {licenseTrim ? (
-            <p className="text-sm text-[#111111]/70">
-              <span className="font-medium text-[#111111]/55">{t.licensePrefix}: </span>
-              {licenseTrim}
-            </p>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.licenseLabel}</p>
+              <p className="text-sm font-medium leading-snug text-[#111111]/90">{licenseTrim}</p>
+            </div>
           ) : null}
 
           {areas.length > 0 ? (
@@ -189,39 +200,43 @@ export default function AgentProfileHero({
           ) : null}
 
           {websiteHref ? (
-            <div className="pt-0.5">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.websiteLabel}</p>
               <a
                 href={websiteHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-[#3F5A43]/35 bg-[#EEF4EF] px-3 py-2 text-sm font-semibold text-[#2F4A33] transition hover:bg-[#E3EBE0]"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2F4A33] hover:underline break-all"
               >
                 <FaGlobe className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                {t.visitWeb}
+                {websiteLinkText || websiteHref}
               </a>
             </div>
           ) : null}
 
           {validSocials.length > 0 ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {validSocials.map((s, i) => {
-                const u = s.url.trim();
-                const platform = detectSocialPlatform(u, s.label);
-                const label = (s.label || "Social").trim();
-                return (
-                  <a
-                    key={`${u}-${i}`}
-                    href={u}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={label}
-                    aria-label={label}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#C9B46A]/30 bg-white text-[#111111]/85 shadow-sm transition hover:border-[#C9B46A]/50 hover:bg-[#FFFCF7]"
-                  >
-                    <SocialPlatformIcon platform={platform} />
-                  </a>
-                );
-              })}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1.5">{t.socialHeading}</p>
+              <div className="flex flex-wrap gap-2">
+                {validSocials.map((s, i) => {
+                  const u = s.url.trim();
+                  const platform = detectSocialPlatform(u, s.label);
+                  const label = (s.label || "Social").trim();
+                  return (
+                    <a
+                      key={`${u}-${i}`}
+                      href={u}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={label}
+                      aria-label={label}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#C9B46A]/30 bg-white text-[#111111]/85 shadow-sm transition hover:border-[#C9B46A]/50 hover:bg-[#FFFCF7]"
+                    >
+                      <SocialPlatformIcon platform={platform} />
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
         </div>
