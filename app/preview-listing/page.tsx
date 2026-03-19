@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
 import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
-import BienesRaicesPreviewListing from "@/app/clasificados/components/BienesRaicesPreviewListing";
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
@@ -40,7 +39,9 @@ export default function PreviewListingPage() {
     };
     const data = mapListingToViewModel(row, draft.lang);
     if (!data) return null;
-    const categoryLabel = draft.category ? (categoryConfig as Record<string, { label: { es: string; en: string } }>)[draft.category]?.label[draft.lang] : undefined;
+    const categoryLabel = draft.category
+      ? (categoryConfig as Record<string, { label: { es: string; en: string } }>)[draft.category]?.label[draft.lang]
+      : undefined;
     return { ...data, categoryLabel: categoryLabel ?? undefined, sellerName: data.sellerName ?? draft.sellerName ?? undefined };
   }, [draft]);
 
@@ -117,13 +118,7 @@ export default function PreviewListingPage() {
       </div>
 
       <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full max-w-full">
-        {draftListingData ? (
-          draft.category === "bienes-raices" ? (
-            <BienesRaicesPreviewListing listing={draftListingData} />
-          ) : (
-            <ListingView listing={draftListingData} previewMode={true} />
-          )
-        ) : null}
+        {draftListingData ? <ListingView listing={draftListingData} previewMode={true} /> : null}
       </section>
 
       {/* Preview confirm bar: community rules + confirm info + Editar anuncio + Confirmar y publicar */}
@@ -137,10 +132,13 @@ export default function PreviewListingPage() {
               className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
             />
             <span>
-              {t.rulesCheckbox}
-              {" "}
+              {t.rulesCheckbox}{" "}
               <Link
-                href={draft?.backToEditUrl ? `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(draft.backToEditUrl)}` : `/clasificados/reglas?lang=${lang}`}
+                href={
+                  draft?.backToEditUrl
+                    ? `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(draft.backToEditUrl)}`
+                    : `/clasificados/reglas?lang=${lang}`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
@@ -191,3 +189,4 @@ export default function PreviewListingPage() {
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
+

@@ -7,6 +7,7 @@ import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
 import BusinessListingIdentityRail from "./BusinessListingIdentityRail";
+import BienesRaicesPreviewListing from "./BienesRaicesPreviewListing";
 
 /** Business rail display (BR negocio / Rentas negocio). Used for preview parity with open card. */
 export type BusinessRailData = {
@@ -277,6 +278,13 @@ export default function ListingView({
 
   const highlightClass = "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#D9D9D9] transition";
   const isHighlight = (id: string) => proHighlight === id;
+
+  // BR preview: swap the generic listing buyer shell for a BR-specific base shell.
+  // This keeps the BR business identity rail as source-of-truth (via BusinessListingIdentityRail),
+  // while avoiding the generic media+info hierarchy for bienes-raices.
+  if (previewMode && isBienesRaices) {
+    return <BienesRaicesPreviewListing listing={listing} />;
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10">
