@@ -574,8 +574,11 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     if (subtype) out.push({ label: lang === "es" ? "Subtipo" : "Subtype", value: subtype });
     const zone = (details.enVentaZone ?? "").trim();
     if (zone) out.push({ label: lang === "es" ? "Nombre de la vecindad" : "Neighborhood name", value: zone });
-    const addr = (details.enVentaAddress ?? "").trim();
-    if (addr) out.push({ label: lang === "es" ? "Dirección" : "Address", value: addr });
+    // Canonical labels for preview summary (BienesRaicesPreviewListing): "Dirección" / "Address".
+    // Prefer the live form field (Dirección opcional); fall back to legacy `direccionPropiedad` so drafts still preview.
+    const addrLine =
+      (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
+    if (addrLine) out.push({ label: lang === "es" ? "Dirección" : "Address", value: addrLine });
     if (isBrPrivadoResidential(pt) || (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
       const br = (details.enVentaBedrooms ?? "").trim();
       if (br) out.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: br });
@@ -656,6 +659,8 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
   }
   for (const f of fields) {
     if (cat === "rentas" && f.key === "plazo_contrato") continue;
+    // BR: address + optional zone are emitted above with summary-friendly labels; skip legacy row to avoid duplicates/wrong labels.
+    if (cat === "bienes-raices" && f.key === "direccionPropiedad") continue;
     const raw = (details[f.key] ?? "").toString().trim();
     if (!raw) continue;
 
