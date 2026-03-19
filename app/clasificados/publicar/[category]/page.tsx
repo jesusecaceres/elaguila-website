@@ -3836,7 +3836,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
         agentPhotoUrl: (d.negocioFotoAgenteUrl ?? "").trim() || null,
         languages: (d.negocioIdiomas ?? "").trim(),
         hours: (d.negocioHorario ?? "").trim(),
-        virtualTourUrl: (d.negocioRecorridoVirtual ?? "").trim() || null,
+        // Same merge as negocio media step UI (negocio field + legacy en-venta URL).
+        virtualTourUrl: (d.negocioRecorridoVirtual ?? d.enVentaVirtualTourUrl ?? "").trim() || null,
         plusMoreListings: (d.negocioPlusMasAnuncios ?? "") === "si",
         businessDescription: (d.negocioDescripcion ?? "").trim() || undefined,
         availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,

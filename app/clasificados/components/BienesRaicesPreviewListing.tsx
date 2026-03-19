@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
@@ -12,10 +12,20 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function normalizeExternalHref(raw: string): string {
+/** Openable media href: absolute http(s), blob (preview uploads), or site-relative paths. */
+function normalizeMediaHref(raw: string): string {
   const t = raw.trim();
   if (!t) return "";
-  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  if (/^https?:\/\//i.test(t) || t.startsWith("blob:") || t.startsWith("/")) return t;
+  return `https://${t}`;
+}
+
+function pickDetailPairValue(
+  pairs: Array<{ label: string; value: string }> | undefined,
+  labelTest: (label: string) => boolean
+): string {
+  const p = pairs?.find((x) => labelTest((x.label ?? "").toLowerCase()));
+  return (p?.value ?? "").trim();
 }
 
 function formatBrPriceWithCommaThousands(priceLabel: string, lang: "es" | "en"): string {
@@ -56,22 +66,26 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     return () => clearTimeout(t);
   }, []);
 
-  const images = useMemo(() => {
+  const photoUrls = useMemo(() => {
     const incoming = listing.images ?? [];
     return Array.isArray(incoming) && incoming.length > 0 ? incoming : ["/logo.png"];
   }, [listing.images]);
 
-  // Kept: same hero selection logic.
-  const safeHero = Math.min(heroIndex, Math.max(0, images.length - 1));
-  const heroSrc = images[safeHero] ?? "/logo.png";
+  const isLogoPlaceholder = (u: string) => u === "/logo.png" || u.endsWith("/logo.png");
+  /** True when the only “image” is the default logo (no real uploads yet). */
+  const isDefaultPhotoOnly = photoUrls.length === 1 && isLogoPlaceholder(photoUrls[0] ?? "");
 
-  const canCycle = images.length > 1;
+  // Non-negocio hero: allow cycling thumbnails under hero.
+  const safeHero = Math.min(heroIndex, Math.max(0, photoUrls.length - 1));
+  const heroSrc = photoUrls[safeHero] ?? "/logo.png";
+
+  const canCycle = photoUrls.length > 1;
   const goPrevHero = () =>
-    setHeroIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
+    setHeroIndex((i) => (i <= 0 ? photoUrls.length - 1 : i - 1));
   const goNextHero = () =>
-    setHeroIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
+    setHeroIndex((i) => (i >= photoUrls.length - 1 ? 0 : i + 1));
   const openLightbox = (index: number) => {
-    setLightboxIndex(Math.max(0, Math.min(index, images.length - 1)));
+    setLightboxIndex(Math.max(0, Math.min(index, photoUrls.length - 1)));
     setLightboxZoom(1);
     setLightboxOpen(true);
   };
@@ -80,9 +94,13 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     setLightboxZoom(1);
   };
   const prevLightbox = () =>
-    setLightboxIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
+    setLightboxIndex((i) => (i <= 0 ? photoUrls.length - 1 : i - 1));
   const nextLightbox = () =>
-    setLightboxIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
+    setLightboxIndex((i) => (i >= photoUrls.length - 1 ? 0 : i + 1));
+
+  useEffect(() => {
+    setLightboxZoom(1);
+  }, [lightboxIndex]);
 
   const { quickFacts } = useMemo(
     () => partitionBienesRaicesPreviewDetailPairs(listing.detailPairs ?? [], lang),
@@ -207,10 +225,36 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
 
-  const virtualTourHref = normalizeExternalHref(listing.businessRail?.virtualTourUrl ?? "");
-  const floorPlanHref = normalizeExternalHref(listing.floorPlanUrl ?? "");
-  const proVideoHref = (listing.proVideoUrl ?? "").trim();
-  const hasGalleryExtras = images.length > 1;
+  const virtualTourRaw =
+    (listing.businessRail?.virtualTourUrl ?? "").trim() ||
+    pickDetailPairValue(listing.detailPairs, (lab) => /tour virtual|virtual tour/.test(lab));
+  const floorPlanRaw =
+    (listing.floorPlanUrl ?? "").trim() ||
+    pickDetailPairValue(listing.detailPairs, (lab) => /plano|floorplan|floor plan/.test(lab));
+  const virtualTourHref = normalizeMediaHref(virtualTourRaw);
+  const floorPlanHref = normalizeMediaHref(floorPlanRaw);
+  const proVideoHref = normalizeMediaHref((listing.proVideoUrl ?? "").trim());
+
+  /** Extra listing photos after the main hero (negocio: no thumbnail row; extras only via + fotos). */
+  const extraImageCount = isDefaultPhotoOnly ? 0 : Math.max(0, photoUrls.length - 1);
+  const negocioMainHeroSrc = photoUrls[0] ?? "/logo.png";
+
+  const openMorePhotosLightbox = useCallback(() => {
+    if (extraImageCount <= 0) return;
+    // Land on first photo beyond the hero (the “additional” set); user can arrow to hero and back.
+    const start = photoUrls.length > 1 ? 1 : 0;
+    setLightboxIndex(start);
+    setLightboxZoom(1);
+    setLightboxOpen(true);
+  }, [extraImageCount, photoUrls.length]);
+
+  const negocioHeroOnly = (
+    <div className="min-w-0">
+      <div className="relative min-h-[260px] sm:min-h-[300px] lg:min-h-0 lg:h-[472px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+        <img src={negocioMainHeroSrc} alt="" className="w-full h-full object-cover" />
+      </div>
+    </div>
+  );
 
   const propertyHeroSection = (
     <div className="min-w-0 flex flex-col gap-3">
@@ -238,9 +282,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         )}
       </div>
 
-      {images.length > 1 && (
+      {photoUrls.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {images.map((url, idx) => (
+          {photoUrls.map((url, idx) => (
             <button
               key={`${url}-m-${idx}`}
               type="button"
@@ -259,96 +303,92 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </div>
   );
 
+  const mediaTilesNegocio: ReactNode[] = [];
+  if (virtualTourHref) {
+    mediaTilesNegocio.push(
+      <a
+        key="tour"
+        href={virtualTourHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+      >
+        <span className="text-lg" aria-hidden>
+          🌐
+        </span>
+        {t.tileTour}
+      </a>
+    );
+  }
+  if (floorPlanHref) {
+    mediaTilesNegocio.push(
+      <a
+        key="plan"
+        href={floorPlanHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+      >
+        <span className="text-lg" aria-hidden>
+          📐
+        </span>
+        {t.tilePlan}
+      </a>
+    );
+  }
+  if (proVideoHref) {
+    mediaTilesNegocio.push(
+      <a
+        key="video"
+        href={proVideoHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+      >
+        <span className="text-lg" aria-hidden>
+          🎥
+        </span>
+        {t.tileVideo}
+      </a>
+    );
+  }
+  if (extraImageCount > 0) {
+    mediaTilesNegocio.push(
+      <button
+        key="more"
+        type="button"
+        onClick={openMorePhotosLightbox}
+        className="flex min-h-[5.25rem] flex-col items-center justify-center gap-0.5 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+      >
+        <span className="text-lg" aria-hidden>
+          🖼️
+        </span>
+        <span>{t.tileMorePhotos}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wide text-[#8B6914]/90">
+          {lang === "es"
+            ? extraImageCount === 1
+              ? "1 más"
+              : `${extraImageCount} más`
+            : extraImageCount === 1
+              ? "1 more"
+              : `${extraImageCount} more`}
+        </span>
+      </button>
+    );
+  }
+
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
       <div className="p-4 sm:p-6 lg:p-8">
         {showBusinessRail && listing.businessRail ? (
           <>
             {/* BR negocio publish preview: main image left; right = 2×2 utility tiles, then Identidad del negocio + CTAs (matches original composition). */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10 items-start">
-              <div className="min-w-0 order-1">{propertyHeroSection}</div>
-              <div className="min-w-0 order-2 flex flex-col gap-4 sm:gap-5">
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  {virtualTourHref ? (
-                    <a
-                      href={virtualTourHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-                    >
-                      <span className="text-lg" aria-hidden>
-                        🌐
-                      </span>
-                      {t.tileTour}
-                    </a>
-                  ) : (
-                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
-                      <span className="text-lg opacity-50" aria-hidden>
-                        🌐
-                      </span>
-                      {t.tileTour}
-                    </div>
-                  )}
-                  {floorPlanHref ? (
-                    <a
-                      href={floorPlanHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-                    >
-                      <span className="text-lg" aria-hidden>
-                        📐
-                      </span>
-                      {t.tilePlan}
-                    </a>
-                  ) : (
-                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
-                      <span className="text-lg opacity-50" aria-hidden>
-                        📐
-                      </span>
-                      {t.tilePlan}
-                    </div>
-                  )}
-                  {proVideoHref ? (
-                    <a
-                      href={proVideoHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-                    >
-                      <span className="text-lg" aria-hidden>
-                        🎥
-                      </span>
-                      {t.tileVideo}
-                    </a>
-                  ) : (
-                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
-                      <span className="text-lg opacity-50" aria-hidden>
-                        🎥
-                      </span>
-                      {t.tileVideo}
-                    </div>
-                  )}
-                  {hasGalleryExtras ? (
-                    <button
-                      type="button"
-                      onClick={() => openLightbox(safeHero)}
-                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
-                    >
-                      <span className="text-lg" aria-hidden>
-                        🖼️
-                      </span>
-                      {t.tileMorePhotos}
-                    </button>
-                  ) : (
-                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
-                      <span className="text-lg opacity-50" aria-hidden>
-                        🖼️
-                      </span>
-                      {t.tileMorePhotos}
-                    </div>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-3 sm:gap-5 lg:gap-8 items-start">
+              <div className="min-w-0 order-1">{negocioHeroOnly}</div>
+              <div className="min-w-0 order-2 flex flex-col gap-3 sm:gap-4">
+                {mediaTilesNegocio.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5">{mediaTilesNegocio}</div>
+                ) : null}
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -368,7 +408,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col rounded-2xl border border-white/10 bg-black/50">
               <div className="flex items-center justify-between px-4 py-3 text-white">
                 <p className="text-sm font-medium">
-                  {lang === "es" ? "Galería de fotos" : "Photo gallery"} {lightboxIndex + 1}/{images.length}
+                  {lang === "es" ? "Galería de fotos" : "Photo gallery"} {lightboxIndex + 1}/{photoUrls.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -400,12 +440,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
 
               <div className="relative flex-1 overflow-hidden">
                 <img
-                  src={images[lightboxIndex] ?? "/logo.png"}
+                  src={photoUrls[lightboxIndex] ?? "/logo.png"}
                   alt=""
                   className="h-full w-full object-contain transition-transform duration-200"
                   style={{ transform: `scale(${lightboxZoom})` }}
                 />
-                {images.length > 1 && (
+                {photoUrls.length > 1 && (
                   <>
                     <button
                       type="button"
