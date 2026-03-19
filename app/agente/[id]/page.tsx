@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import {
   isValidPublicAgentId,
   loadPublicAgentPageData,
+  type PublicAgentListingSummary,
 } from "@/app/lib/agentProfile/loadPublicAgentPageData";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -32,6 +35,22 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function listingHrefForAgentGrid(item: PublicAgentListingSummary, lang: "es" | "en") {
+  if (item.category === "servicios") {
+    return `/clasificados/servicios/${item.id}?lang=${lang}`;
+  }
+  return `/clasificados/anuncio/${item.id}?lang=${lang}`;
+}
+
+function categoryChipLabel(category: string | null, lang: "es" | "en"): string | null {
+  if (!category) return null;
+  const k = category as CategoryKey;
+  if (k !== "all" && k in categoryConfig) {
+    return categoryConfig[k].label[lang];
+  }
+  return null;
 }
 
 export default async function PublicAgentProfilePage(props: PageProps) {
@@ -73,6 +92,9 @@ export default async function PublicAgentProfilePage(props: PageProps) {
           openMap: "Abrir en mapa",
           mapAria: "Abrir ubicación en Google Maps",
           clasificadosHref: "/clasificados?lang=es",
+          listingsTitle: "Anuncios activos",
+          listingsEmpty: "Este miembro aún no tiene otros anuncios activos publicados.",
+          listingsCity: "Ciudad",
         }
       : {
           back: "← Back to classifieds",
@@ -88,6 +110,9 @@ export default async function PublicAgentProfilePage(props: PageProps) {
           openMap: "Open map",
           mapAria: "Open location in Google Maps",
           clasificadosHref: "/clasificados?lang=en",
+          listingsTitle: "Active listings",
+          listingsEmpty: "This member does not have any other active listings yet.",
+          listingsCity: "City",
         };
 
   const mapsUrl = d.mapQuery
@@ -100,7 +125,7 @@ export default async function PublicAgentProfilePage(props: PageProps) {
   return (
     <main className="min-h-screen bg-[#E8E4DC] text-[#111111]">
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-20">
         <Link
           href={t.clasificadosHref}
           className="inline-flex text-sm font-semibold text-[#3F5A43] hover:text-[#2F4A33] mb-6"
@@ -254,6 +279,67 @@ export default async function PublicAgentProfilePage(props: PageProps) {
             </section>
           )}
         </article>
+
+        {/* Listings owned by this shared identity (`listings.owner_id`) */}
+        <section className="mt-10" aria-labelledby="agent-listings-heading">
+          <h2
+            id="agent-listings-heading"
+            className="text-sm font-semibold uppercase tracking-wide text-[#111111]/55 mb-4"
+          >
+            {t.listingsTitle}
+          </h2>
+          {data.listings.length === 0 ? (
+            <p className="text-sm text-[#111111]/65 rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6]/80 px-5 py-4">
+              {t.listingsEmpty}
+            </p>
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.listings.map((item) => {
+                const href = listingHrefForAgentGrid(item, lang);
+                const priceLabel = formatListingPrice(item.price, { lang, isFree: item.isFree });
+                const catLabel = categoryChipLabel(item.category, lang);
+                const titleShow =
+                  item.title.trim() ||
+                  (lang === "es" ? "(Sin título)" : "(No title)");
+                return (
+                  <li key={item.id}>
+                    <Link
+                      href={href}
+                      prefetch={false}
+                      className={cx(
+                        shellClass,
+                        "block overflow-hidden p-0 hover:ring-2 hover:ring-[#C9B46A]/40 transition"
+                      )}
+                    >
+                      <div className="relative h-36 w-full bg-[#E8E4DC] border-b border-[#C9B46A]/20">
+                        <img
+                          src={item.imageUrl}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="p-4 space-y-1.5">
+                        {catLabel ? (
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8B6914]/90">
+                            {catLabel}
+                          </p>
+                        ) : null}
+                        <p className="text-sm font-bold text-[#111111] line-clamp-2 leading-snug">{titleShow}</p>
+                        <p className="text-base font-extrabold text-[#2F4A33] tabular-nums">{priceLabel}</p>
+                        {item.city ? (
+                          <p className="text-xs text-[#111111]/60">
+                            <span className="font-medium">{t.listingsCity}: </span>
+                            {item.city}
+                          </p>
+                        ) : null}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   );

@@ -49,6 +49,33 @@ function normalizeWebsiteUrl(raw: string): string | null {
   return `https://${t}`;
 }
 
+/** First image URL for listing cards (matches mapListingToViewModel image normalization). */
+function firstListingImageUrl(raw: unknown): string {
+  let v: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      v = JSON.parse(raw) as unknown;
+    } catch {
+      v = [];
+    }
+  }
+  if (!Array.isArray(v)) return "/logo.png";
+  const u = v.find((x): x is string => typeof x === "string" && x.trim().length > 0);
+  return u?.trim() || "/logo.png";
+}
+
+/** Active listings for this owner (shared identity); used on public agent profile only. */
+export type PublicAgentListingSummary = {
+  id: string;
+  title: string;
+  city: string | null;
+  price: number | string | null;
+  isFree: boolean;
+  category: string | null;
+  imageUrl: string;
+  createdAt: string | null;
+};
+
 export type PublicAgentPageModel = {
   ownerId: string;
   /** From `profiles` when present */
@@ -80,6 +107,8 @@ export type PublicAgentPageModel = {
     businessAddressLine: string | null;
     mapQuery: string | null;
   };
+  /** All active listings for this owner (`listings.owner_id` = profile id). */
+  listings: PublicAgentListingSummary[];
 };
 
 export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAgentPageModel | null> {
@@ -199,6 +228,41 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
       }
     : null;
 
+  let listings: PublicAgentListingSummary[] = [];
+  const { data: listingRows, error: listingsErr } = await supabase
+    .from("listings")
+    .select("id, title, city, price, is_free, category, images, created_at")
+    .eq("owner_id", id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(48);
+
+  if (!listingsErr && Array.isArray(listingRows)) {
+    listings = listingRows
+      .map((row) => {
+        if (!row || typeof row !== "object") return null;
+        const r = row as Record<string, unknown>;
+        const lid = typeof r.id === "string" ? r.id : null;
+        if (!lid) return null;
+        const title = typeof r.title === "string" ? r.title.trim() : "";
+        const cat = typeof r.category === "string" ? r.category.trim() : null;
+        const cityVal = typeof r.city === "string" ? r.city.trim() : null;
+        const isFree = r.is_free === true;
+        const createdAt = typeof r.created_at === "string" ? r.created_at : null;
+        return {
+          id: lid,
+          title: title || "",
+          city: cityVal,
+          price: r.price as number | string | null,
+          isFree,
+          category: cat,
+          imageUrl: firstListingImageUrl(r.images),
+          createdAt,
+        } satisfies PublicAgentListingSummary;
+      })
+      .filter((x): x is PublicAgentListingSummary => x != null);
+  }
+
   return {
     ownerId: id,
     profile,
@@ -218,5 +282,6 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
       businessAddressLine,
       mapQuery,
     },
+    listings,
   };
 }
