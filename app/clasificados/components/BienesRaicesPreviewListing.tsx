@@ -249,9 +249,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   }, [extraImageCount, photoUrls.length]);
 
   const negocioHeroOnly = (
-    <div className="min-w-0">
-      <div className="relative min-h-[260px] sm:min-h-[300px] lg:min-h-0 lg:h-[472px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
-        <img src={negocioMainHeroSrc} alt="" className="w-full h-full object-cover" />
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="relative min-h-[260px] flex-1 sm:min-h-[300px] lg:min-h-0 rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+        <img src={negocioMainHeroSrc} alt="" className="h-full min-h-[200px] w-full object-cover" />
       </div>
     </div>
   );
@@ -317,9 +317,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {showBusinessRail && listing.businessRail ? (
           <>
             {/* BR negocio publish preview: main image left; right = 2×2 utility tiles, then Identidad del negocio + CTAs (matches original composition). */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,26rem)] gap-3 sm:gap-5 lg:gap-7 items-start">
-              <div className="min-w-0 order-1">{negocioHeroOnly}</div>
-              <div className="min-w-0 order-2 flex w-full min-w-0 flex-col gap-3 sm:gap-3.5">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,26rem)] gap-3 sm:gap-5 lg:gap-5 items-start">
+              {/* Left stretches to full row height so hero fills beside tiles+rail (no dead band under image). */}
+              <div className="order-1 flex min-h-0 min-w-0 self-stretch flex-col">{negocioHeroOnly}</div>
+              <div className="order-2 flex w-full min-w-0 flex-col gap-3 sm:gap-3.5 self-start">
                 <div
                   className="grid w-full max-w-[16.25rem] shrink-0 grid-cols-2 grid-rows-2 gap-2 self-center sm:max-w-[17rem] lg:self-start"
                   aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
@@ -494,9 +495,14 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
         )}
 
-        {/* Main listing content row (below hero): left-only */}
-        <div className="mt-8 lg:grid lg:grid-cols-1">
-          <div className="lg:col-start-1 lg:col-span-1 min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8">
+        {/* Main listing content row (below hero): full width; negocio: tight gap so title/address follows top band immediately */}
+        <div className={cx("lg:grid lg:grid-cols-1", showBusinessRail ? "mt-4 sm:mt-5" : "mt-8")}>
+          <div
+            className={cx(
+              "lg:col-start-1 lg:col-span-1 min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70",
+              showBusinessRail ? "pt-4 sm:pt-5" : "pt-8"
+            )}
+          >
             {/* Title / price / city / posted + quick facts + feature chips */}
             <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6] p-5 sm:p-6 lg:p-7 shadow-sm w-full lg:w-[min(100%,52rem)]">
               {listing.categoryLabel ? (
