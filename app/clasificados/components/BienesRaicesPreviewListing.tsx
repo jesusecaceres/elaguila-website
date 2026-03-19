@@ -534,72 +534,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               )}
             </div>
 
-            {/* Buyer actions */}
-            <div
-              className="rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF5] p-4 sm:p-5 lg:p-6 w-full"
-              id="listing-buyer-actions"
-            >
-              <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => showPreviewToast(t.previewToastSave)}
-                  className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-black/12 bg-white hover:bg-stone-50 transition shadow-sm"
-                >
-                  {t.guardar}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => showPreviewToast(t.previewToastShare)}
-                  className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-                >
-                  {t.compartir}
-                </button>
-
-                {listing.contactMethod !== "email" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => showPreviewToast(t.previewToastCall)}
-                      className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-                    >
-                      {t.contactPhoneOnly}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => showPreviewToast(t.previewToastText)}
-                      className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-                    >
-                      {lang === "es" ? "Texto" : "Text"}
-                    </button>
-                  </>
-                )}
-
-                {listing.contactMethod !== "phone" && (
-                  <button
-                    type="button"
-                    onClick={() => showPreviewToast(t.previewToastEmail)}
-                    className="px-5 py-3 rounded-xl font-semibold text-[#111111] border border-[#C9B46A]/50 bg-[#F8F6F0] hover:bg-[#EFE7D8] transition shadow-sm"
-                  >
-                    {t.contactEmailOnly}
-                  </button>
-                )}
-              </div>
-
-              {previewToast && (
-                <div className="mt-3 rounded-xl bg-[#111111] px-4 py-3 text-sm text-[#F5F5F5] shadow-lg" role="status">
-                  {previewToast}
-                </div>
-              )}
-            </div>
-
             {/* Description */}
-            <div className={`${detailCardClass} w-full`}>
-              <h3 className="text-xs font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">{t.descripcion}</h3>
-              <div className="text-sm sm:text-base text-[#111111] whitespace-pre-wrap leading-relaxed">
+            <div className="w-full lg:w-[min(100%,52rem)] rounded-2xl border border-[#C9B46A]/28 bg-[#FFFDF7] p-5 sm:p-6 lg:p-7 shadow-[0_10px_28px_-24px_rgba(17,17,17,0.45)]">
+              <h3 className="text-sm font-semibold text-[#111111]/75 uppercase tracking-wide mb-3">{t.descripcion}</h3>
+              <div className="max-w-[74ch] text-sm sm:text-base text-[#111111]/95 whitespace-pre-wrap leading-7">
                 {listing.description}
               </div>
             </div>
