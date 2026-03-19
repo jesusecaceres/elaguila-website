@@ -57,6 +57,22 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const safeHero = Math.min(heroIndex, Math.max(0, images.length - 1));
   const heroSrc = images[safeHero] ?? "/logo.png";
 
+  const canCycle = images.length > 1;
+  const goPrevHero = () =>
+    setHeroIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
+  const goNextHero = () =>
+    setHeroIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
+
+  // BR Negocio top-half tiles (data contract: virtual tour from business rail; video/pro video; floorplan from listing.floorPlanUrl)
+  const virtualTourUrl = listing.businessRail?.virtualTourUrl ?? null;
+  const floorPlanUrl = listing.floorPlanUrl ?? null;
+  const videoUrl = listing.proVideoUrl ?? null;
+  const videoThumbUrl = listing.proVideoThumbUrl ?? null;
+
+  const maxRailPhotoThumbs = 4;
+  const railPhotoThumbs = images.slice(0, maxRailPhotoThumbs);
+  const remainingPhotos = Math.max(0, images.length - railPhotoThumbs.length);
+
   const { quickFacts, featureTags } = useMemo(
     () => partitionBienesRaicesPreviewDetailPairs(listing.detailPairs ?? [], lang),
     [listing.detailPairs, lang]
@@ -140,37 +156,147 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {/* Top row: hero left, negocio identity rail right ONLY */}
         <div className={cx("grid gap-6 lg:gap-8 items-start", twoColClass)}>
           <div className="min-w-0 flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch">
-              <div className="flex-1 min-h-[220px] sm:min-h-[320px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+            {/* Desktop/tablet: hero + media tile rail (photos + virtual tour + floorplan + video) */}
+            <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_120px] gap-3 items-stretch">
+              <div className="relative min-h-[280px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
                 <img src={heroSrc} alt="" className="w-full h-full object-cover" />
+                {canCycle && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={goPrevHero}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-11 w-11 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-xl font-bold shadow-lg"
+                      aria-label={lang === "es" ? "Anterior" : "Previous"}
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goNextHero}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-11 w-11 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-xl font-bold shadow-lg"
+                      aria-label={lang === "es" ? "Siguiente" : "Next"}
+                    >
+                      →
+                    </button>
+                  </>
+                )}
               </div>
 
-              {sideThumbs.length > 1 && (
-                <div className="hidden sm:flex flex-col gap-2 w-[104px] lg:w-[118px] max-h-[min(420px,70vh)] overflow-y-auto shrink-0 pr-0.5">
-                  {sideThumbs.map((url, i) => {
-                    const idx = i;
-                    return (
-                      <button
-                        key={`${url}-${i}`}
-                        type="button"
-                        onClick={() => setHeroIndex(idx)}
-                        className={cx(
-                          "relative flex-1 min-h-[72px] rounded-xl overflow-hidden border-2 transition",
-                          safeHero === idx
-                            ? "border-[#C9B46A] ring-2 ring-[#C9B46A]/35 ring-offset-2 ring-offset-[#F4F1EA]"
-                            : "border-stone-200/80 hover:border-stone-300"
-                        )}
-                      >
-                        <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="flex flex-col gap-2 max-h-[min(520px,70vh)] overflow-y-auto pr-0.5">
+                {virtualTourUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showPreviewToast(lang === "es" ? "Abriendo tour virtual…" : "Opening virtual tour…");
+                      window.open(virtualTourUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="h-16 rounded-xl border border-[#C9B46A]/40 bg-white/90 hover:bg-[#F8F6F0] transition flex flex-col items-center justify-center"
+                    aria-label={lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
+                  >
+                    <span aria-hidden className="text-xl">🗺️</span>
+                    <span className="text-[10px] font-semibold text-[#111111]">{lang === "es" ? "Tour virtual" : "Virtual tour"}</span>
+                  </button>
+                )}
+                {floorPlanUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showPreviewToast(lang === "es" ? "Abriendo plano…" : "Opening floorplan…");
+                      window.open(floorPlanUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="h-16 rounded-xl border border-[#C9B46A]/40 bg-white/90 hover:bg-[#F8F6F0] transition flex flex-col items-center justify-center"
+                    aria-label={lang === "es" ? "Abrir plano" : "Open floorplan"}
+                  >
+                    <span aria-hidden className="text-xl">📐</span>
+                    <span className="text-[10px] font-semibold text-[#111111]">{lang === "es" ? "Plano" : "Floorplan"}</span>
+                  </button>
+                )}
+                {videoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showPreviewToast(lang === "es" ? "Abriendo video…" : "Opening video…");
+                      window.open(videoUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="relative h-16 rounded-xl border border-[#C9B46A]/40 bg-white/90 hover:bg-[#F8F6F0] transition flex flex-col items-center justify-center overflow-hidden"
+                    aria-label={lang === "es" ? "Abrir video" : "Open video"}
+                  >
+                    {videoThumbUrl ? (
+                      <img src={videoThumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90" />
+                    ) : null}
+                    <span aria-hidden className="relative text-xl">🎥</span>
+                    <span className="relative text-[10px] font-semibold text-[#111111]">
+                      {lang === "es" ? "Video" : "Video"}
+                    </span>
+                  </button>
+                )}
+
+                {railPhotoThumbs.map((url, idx) => {
+                  const isActive = safeHero === idx;
+                  return (
+                    <button
+                      key={`${url}-rail-${idx}`}
+                      type="button"
+                      onClick={() => setHeroIndex(idx)}
+                      className={cx(
+                        "relative h-16 rounded-xl overflow-hidden border-2 transition bg-stone-50",
+                        isActive
+                          ? "border-[#C9B46A] ring-2 ring-[#C9B46A]/30 ring-offset-2 ring-offset-[#F4F1EA]"
+                          : "border-stone-200/80 hover:border-stone-300"
+                      )}
+                      aria-label={lang === "es" ? `Foto ${idx + 1}` : `Photo ${idx + 1}`}
+                    >
+                      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    </button>
+                  );
+                })}
+
+                {remainingPhotos > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Jump to the first hidden photo so arrow navigation stays coherent.
+                      const nextIndex = maxRailPhotoThumbs;
+                      if (images[nextIndex]) setHeroIndex(nextIndex);
+                      showPreviewToast(lang === "es" ? `+ ${remainingPhotos} fotos` : `+ ${remainingPhotos} photos`);
+                    }}
+                    className="h-16 rounded-xl border border-stone-200/80 bg-[#F8F6F0] hover:bg-white transition flex flex-col items-center justify-center"
+                    aria-label={lang === "es" ? "Ver más fotos" : "See more photos"}
+                  >
+                    <span aria-hidden className="text-lg">＋</span>
+                    <span className="text-[10px] font-semibold text-[#111111]">{lang === "es" ? `+${remainingPhotos} fotos` : `+${remainingPhotos}`}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile/tablet: keep simple hero + horizontal thumb strip for photos */}
+            <div className="sm:hidden relative min-h-[220px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+              <img src={heroSrc} alt="" className="w-full h-full object-cover" />
+              {canCycle && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goPrevHero}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+                    aria-label={lang === "es" ? "Anterior" : "Previous"}
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNextHero}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+                    aria-label={lang === "es" ? "Siguiente" : "Next"}
+                  >
+                    →
+                  </button>
+                </>
               )}
             </div>
 
             {images.length > 1 && (
-              <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <div className="sm:hidden flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {images.map((url, idx) => (
                   <button
                     key={`${url}-m-${idx}`}
@@ -180,6 +306,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       "h-16 w-16 min-w-[4rem] shrink-0 rounded-lg overflow-hidden border-2",
                       safeHero === idx ? "border-[#C9B46A]" : "border-stone-200"
                     )}
+                    aria-label={lang === "es" ? `Foto ${idx + 1}` : `Photo ${idx + 1}`}
                   >
                     <img src={url} alt="" className="w-full h-full object-cover" />
                   </button>
@@ -213,11 +340,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                 {listing.title}
               </h1>
 
-              <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-bold text-[#1a1a1a] tabular-nums">
+              <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-extrabold text-[#111111] tabular-nums">
                 {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
               </div>
 
-              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/75">
+              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/80">
                 <span className="font-medium text-[#111111]">{listing.city}</span>
                 <span className="text-[#111111]/40" aria-hidden>
                   ·
@@ -226,8 +353,8 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </div>
 
               {(quickFacts.length > 0 || featureTags.length > 0) && (
-                <div className="mt-8 pt-6 border-t border-stone-200/80">
-                  <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-4">{t.detallesPropiedad}</h2>
+                <div className="mt-4 pt-4">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.detallesPropiedad}</h2>
 
                   {quickFacts.length > 0 && (
                     <div className="mb-5">

@@ -3803,6 +3803,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
         businessDescription: (d.negocioDescripcion ?? "").trim() || undefined,
         availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,
       };
+
+      // BR Negocio: floorplan link used by top-half media tiles.
+      base.floorPlanUrl = (d.negocioFloorPlanUrl ?? "").trim() || null;
     }
     return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category]);
@@ -6024,6 +6027,27 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           images: copy.images,
                         }}
                       />
+
+                      {/* BR Negocio: Floorplan (URL) for top-half media tiles. */}
+                      {categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio" && (
+                        <div className="rounded-2xl border border-black/10 bg-white/60 p-4">
+                          <label className="text-sm text-[#111111] font-semibold">
+                            {lang === "es" ? "Plano / Floorplan (URL)" : "Floorplan (URL)"}
+                          </label>
+                          <input
+                            type="url"
+                            value={details.negocioFloorPlanUrl ?? ""}
+                            onChange={(e) => setDetails((prev) => ({ ...prev, negocioFloorPlanUrl: e.target.value }))}
+                            placeholder="https://"
+                            className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                          />
+                          <p className="mt-1 text-xs text-[#111111]/50">
+                            {lang === "es"
+                              ? "Pega el enlace del plano. (Se abrirá en nueva pestaña.)"
+                              : "Paste a link to the floorplan. (Opens in a new tab.)"}
+                          </p>
+                        </div>
+                      )}
 
                         {!requirements.imagesOk && (
                           <div className="mt-1 text-xs text-[#111111]/40">

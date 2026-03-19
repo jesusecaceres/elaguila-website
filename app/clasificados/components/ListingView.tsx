@@ -48,6 +48,8 @@ export type ListingData = {
   lang: "es" | "en";
   /** Real seller display name when available; fallback to "Tú" / "You" in preview */
   sellerName?: string | null;
+  /** BR Negocio: optional floorplan link/asset used by top-half media tiles. */
+  floorPlanUrl?: string | null;
   /** Optional category label for chip (e.g. "En Venta") */
   categoryLabel?: string | null;
   /** Optional approximate area / main streets for Rentas (e.g. "King Rd y Story") */
