@@ -36,17 +36,24 @@ export default function BusinessListingIdentityRail({
   const agentRole = businessRail.role?.trim() || "";
   const agentNameLen = agentName.length;
   const agentNameClass =
-    agentNameLen > 52
-      ? "text-[0.82rem] sm:text-[0.9rem]"
-      : agentNameLen > 42
-        ? "text-[0.88rem] sm:text-[0.95rem]"
-        : agentNameLen > 30
-          ? "text-[0.95rem] sm:text-[1.01rem]"
-          : "text-[1.02rem] sm:text-[1.08rem]";
-  const agentNameOverflowClass =
-    agentNameLen > 52
+    agentNameLen > 86
+      ? "text-[0.78rem] sm:text-[0.84rem]"
+      : agentNameLen > 70
+        ? "text-[0.82rem] sm:text-[0.88rem]"
+        : agentNameLen > 56
+          ? "text-[0.86rem] sm:text-[0.92rem]"
+          : agentNameLen > 44
+            ? "text-[0.9rem] sm:text-[0.96rem]"
+            : agentNameLen > 32
+              ? "text-[0.95rem] sm:text-[1.01rem]"
+              : "text-[1.02rem] sm:text-[1.08rem]";
+  // One-line preference for short/medium names; long names wrap cleanly; only extreme values ellipsize.
+  const agentNameLayoutClass =
+    agentNameLen > 86
       ? "whitespace-nowrap overflow-hidden text-ellipsis"
-      : "whitespace-nowrap";
+      : agentNameLen > 56
+        ? "whitespace-normal break-words"
+        : "whitespace-nowrap";
 
   return (
     <div
@@ -82,7 +89,7 @@ export default function BusinessListingIdentityRail({
               </div>
             )}
             <div className="min-w-0 flex-[1_1_0%]">
-              <p className={cx(agentNameClass, agentNameOverflowClass, "font-extrabold text-[#111111] leading-tight max-w-full")}>
+              <p className={cx(agentNameClass, agentNameLayoutClass, "font-extrabold text-[#111111] leading-tight max-w-full")}>
                 {agentName}
               </p>
               {agentRole ? <p className="mt-1 text-xs sm:text-[0.8rem] text-[#111111]/70 whitespace-nowrap overflow-hidden text-ellipsis">{agentRole}</p> : null}
