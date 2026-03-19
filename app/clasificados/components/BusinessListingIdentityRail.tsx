@@ -14,6 +14,13 @@ export type BusinessListingIdentityRailProps = {
   lang: "es" | "en";
   /** Publisher id (`profiles.id`) for public agent profile; omit to hide BR agent CTA. */
   ownerId?: string | null;
+  /**
+   * `profile` = BR preview hero left column: no inline agent thumbnail (shown large beside card),
+   * no duplicated long bio here (rendered as “About” in parent). `default` = existing rail everywhere else.
+   */
+  presentation?: "default" | "profile";
+  /** Listing city for optional service-area line (preview). */
+  listingCity?: string | null;
 };
 
 /**
@@ -25,11 +32,15 @@ export default function BusinessListingIdentityRail({
   businessRailTier,
   lang,
   ownerId,
+  presentation = "default",
+  listingCity,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
+  const isProfileLayout = presentation === "profile" && isBienesRaices;
   const showFullSocial =
     isBienesRaices || businessRailTier === "business_plus";
   const showVirtualTourRow =
+    !isProfileLayout &&
     Boolean(businessRail.virtualTourUrl) &&
     (isBienesRaices ||
       businessRailTier === "business_plus" ||
@@ -57,6 +68,145 @@ export default function BusinessListingIdentityRail({
       : agentNameLen > 56
         ? "whitespace-normal break-words"
         : "whitespace-nowrap";
+
+  const cityLine = (listingCity ?? "").trim();
+
+  if (isProfileLayout) {
+    return (
+      <div
+        className={cx(
+          "rounded-2xl border border-[#C9B46A]/50 bg-[#FFFCF6] p-6 sm:p-8 shadow-[0_20px_50px_-28px_rgba(17,17,17,0.28)] ring-1 ring-[#C9B46A]/20 h-full flex flex-col min-h-0"
+        )}
+        data-section="preview-business-rail"
+        data-presentation="profile"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B6914]/90 mb-4">
+          {lang === "es" ? "Agente inmobiliario" : "Real estate agent"}
+        </p>
+
+        <h2 className="font-serif text-3xl sm:text-[2.1rem] font-bold text-[#111111] leading-[1.15] tracking-tight break-words">
+          {agentName}
+        </h2>
+        {agentRole ? (
+          <p className="mt-3 text-sm sm:text-base text-[#111111]/72 font-medium leading-snug">{agentRole}</p>
+        ) : null}
+
+        {(businessRail.logoUrl || businessName) && (
+          <div className="mt-6 flex items-center gap-3 pt-5 border-t border-[#C9B46A]/25">
+            {businessRail.logoUrl ? (
+              <img src={businessRail.logoUrl} alt="" className="h-11 w-11 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0" />
+            ) : null}
+            <p className="text-sm font-semibold text-[#111111] leading-snug break-words">{businessName}</p>
+          </div>
+        )}
+
+        <div className="mt-6 space-y-3 text-sm text-[#111111]/90 flex-1 min-h-0">
+          {businessRail.officePhone ? (
+            <p>
+              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
+                {lang === "es" ? "Teléfono de oficina" : "Office phone"}
+              </span>
+              <span className="font-semibold text-[#111111]">{businessRail.officePhone}</span>
+            </p>
+          ) : null}
+          {cityLine ? (
+            <p>
+              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
+                {lang === "es" ? "Ciudad del anuncio" : "Listing city"}
+              </span>
+              <span className="font-medium text-[#111111]/85">{cityLine}</span>
+            </p>
+          ) : null}
+          {businessRail.languages ? (
+            <p className="text-sm">
+              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
+                {lang === "es" ? "Idiomas" : "Languages"}
+              </span>
+              {businessRail.languages}
+            </p>
+          ) : null}
+          {businessRail.hours ? (
+            <p className="text-sm text-[#111111]/80">
+              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
+                {lang === "es" ? "Horario" : "Hours"}
+              </span>
+              {businessRail.hours}
+            </p>
+          ) : null}
+          {businessRail.website ? (
+            <p className="pt-1">
+              <a
+                href={businessRail.website.startsWith("http") ? businessRail.website : `https://${businessRail.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-[#2F4A33] hover:underline break-all"
+              >
+                {lang === "es" ? "Sitio web" : "Website"}
+              </a>
+            </p>
+          ) : null}
+          {businessRail.socialLinks && businessRail.socialLinks.length > 0 ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {businessRail.socialLinks.slice(0, showFullSocial ? undefined : 3).map((s, i) => (
+                <a
+                  key={i}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#FAF3E4]"
+                >
+                  {s.label}
+                </a>
+              ))}
+            </div>
+          ) : businessRail.rawSocials ? (
+            <p className="text-xs text-[#111111]/75 break-words">{businessRail.rawSocials}</p>
+          ) : null}
+        </div>
+
+        {businessRail.availabilityRows && businessRail.availabilityRows.length > 0 && (
+          <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#FAF3E4]/50 p-4">
+            <p className="text-[10px] font-semibold text-[#111111]/60 uppercase tracking-wide mb-2">
+              {lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}
+            </p>
+            <div className="space-y-2">
+              {businessRail.availabilityRows.map((row, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 text-xs text-[#111111]">
+                  {row.title && <span className="font-semibold">{row.title}</span>}
+                  {row.price && <span>{row.price}</span>}
+                  {row.size && <span className="text-[#111111]/65">{row.size}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-auto pt-8 flex flex-col gap-2.5">
+          <button
+            type="button"
+            className="w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
+          >
+            {lang === "es" ? "Solicitar información" : "Request info"}
+          </button>
+          {agentProfileHref ? (
+            <Link
+              href={agentProfileHref}
+              prefetch={false}
+              className="block w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition text-center"
+            >
+              {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            className="w-full px-4 py-3.5 rounded-xl font-semibold border border-[#C9B46A]/65 bg-[#F8F2E3] text-[#4A4536] text-sm hover:bg-[#F2E9D4] transition"
+          >
+            {lang === "es" ? "Programar visita" : "Schedule visit"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
