@@ -137,6 +137,8 @@ export default async function PublicAgentProfilePage(props: PageProps) {
             website={d.website}
             socialLinks={d.socialLinks}
             officePhone={d.officePhone}
+            officePhoneTelDigits={d.officePhoneTelDigits}
+            agentEmail={d.agentEmail}
             languages={d.languages}
             agentPhotoUrl={d.agentPhotoUrl}
             logoUrl={d.logoUrl}

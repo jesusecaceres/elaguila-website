@@ -17,6 +17,8 @@ export type BusinessRailData = {
   /** License or credential line when provided in business meta (`negocioLicencia`). */
   agentLicense?: string | null;
   officePhone: string;
+  /** Business / agent email from `negocioEmail` when set */
+  agentEmail?: string | null;
   website: string | null;
   socialLinks: Array<{ label: string; url: string }>;
   rawSocials: string;

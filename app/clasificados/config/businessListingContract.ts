@@ -17,7 +17,11 @@ export const BUSINESS_META_KEYS = [
   /** Real estate / professional license number or ID (optional). */
   "negocioLicencia",
   "negocioTelOficina",
+  /** Office phone extension (digits or short label), optional. */
+  "negocioTelExtension",
   "negocioSitioWeb",
+  /** Business / agent contact email for listings and public agent profile. */
+  "negocioEmail",
   "negocioRedes",
   "negocioLogoUrl",
   "negocioFotoAgenteUrl",

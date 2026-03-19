@@ -88,6 +88,8 @@ const BR_PRIVADO_PRICE_PER_POST = "$49.99";
 const BR_NEGOCIO_PRICE_WEEKLY = "$89.99";
 const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
+import { buildNegocioRedesPayload, formatUsPhone10 } from "../../lib/brNegocioContactHelpers";
+import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
 
 /** BR private: 6-bucket subcategory keys (source of truth for type-aware copy). */
@@ -3609,6 +3611,10 @@ async function publish() {
             const v = (snap.details[k] ?? "").trim();
             if (v) businessMeta[k] = v;
           }
+          const mergedRedes = buildNegocioRedesPayload(snap.details as Record<string, string | undefined>);
+          if (mergedRedes.trim()) {
+            businessMeta.negocioRedes = mergedRedes.trim();
+          }
           if (Object.keys(businessMeta).length > 0) {
             insertPayload.business_meta = JSON.stringify(businessMeta);
           }
@@ -3623,6 +3629,10 @@ async function publish() {
           for (const k of BUSINESS_META_KEYS) {
             const v = (snap.details[k] ?? "").trim();
             if (v) businessMeta[k] = v;
+          }
+          const mergedRedesBr = buildNegocioRedesPayload(snap.details as Record<string, string | undefined>);
+          if (mergedRedesBr.trim()) {
+            businessMeta.negocioRedes = mergedRedesBr.trim();
           }
           if (Object.keys(businessMeta).length > 0) {
             insertPayload.business_meta = JSON.stringify(businessMeta);
@@ -3829,15 +3839,22 @@ for (let vi = 0; vi < videoLimit; vi++) {
       } catch { /* ignore */ }
       base.category = "bienes-raices";
       base.businessRailTier = "business_plus";
+      const phoneFmt = (d.negocioTelOficina ?? "").trim();
+      const extFmt = (d.negocioTelExtension ?? "").trim();
+      const officeDisplay =
+        phoneFmt ? (extFmt ? `${phoneFmt} · Ext. ${extFmt}` : phoneFmt) : "";
+      const mergedRedesPreview = buildNegocioRedesPayload(d as Record<string, string | undefined>);
+      const rawSocialsPreview = mergedRedesPreview.trim() || (d.negocioRedes ?? "").trim();
       base.businessRail = {
         name: (d.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business"),
         agent: (d.negocioAgente ?? "").trim(),
         role: (d.negocioCargo ?? "").trim(),
         agentLicense: (d.negocioLicencia ?? "").trim() || undefined,
-        officePhone: (d.negocioTelOficina ?? "").trim(),
+        officePhone: officeDisplay,
+        agentEmail: (d.negocioEmail ?? "").trim() || null,
         website: (d.negocioSitioWeb ?? "").trim() || null,
         socialLinks: [],
-        rawSocials: (d.negocioRedes ?? "").trim(),
+        rawSocials: rawSocialsPreview,
         logoUrl: (d.negocioLogoUrl ?? "").trim() || null,
         agentPhotoUrl: (d.negocioFotoAgenteUrl ?? "").trim() || null,
         languages: (d.negocioIdiomas ?? "").trim(),
@@ -5330,16 +5347,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Identidad del negocio" : "Business identity"}</h4>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre del negocio" : "Business name"}{" *"}</label>
-                                <input value={details.negocioNombre ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioNombre: e.target.value }))} placeholder={lang === "es" ? "Ej: Inmobiliaria López" : "e.g. Lopez Realty"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.negocioNombre ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioNombre: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                 {!details.negocioNombre?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido para negocio." : "Required for business."}</div>}
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre del agente" : "Agent name"}</label>
-                                <input value={details.negocioAgente ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioAgente: e.target.value }))} placeholder={lang === "es" ? "Ej: María García" : "e.g. Maria Garcia"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.negocioAgente ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioAgente: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Cargo o rol" : "Role or title"}</label>
-                                <input value={details.negocioCargo ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))} placeholder={lang === "es" ? "Ej: Agente de ventas" : "e.g. Sales agent"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.negocioCargo ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Logo del negocio" : "Business logo"}</label>
@@ -5362,27 +5379,46 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 </div>
                               </div>
                               <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Licencia (número o credencial)" : "License (ID or credential)"}</label>
-                                <p className="mt-0.5 text-[11px] text-[#111111]/55">
-                                  {lang === "es" ? "Opcional. Se muestra en tu perfil público de agente." : "Optional. Shown on your public agent profile."}
-                                </p>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Licencia profesional" : "Professional license"}</label>
                                 <input
                                   value={details.negocioLicencia ?? ""}
                                   onChange={(e) => setDetails((prev) => ({ ...prev, negocioLicencia: e.target.value }))}
-                                  placeholder={lang === "es" ? "Ej: DRE #01234567" : "e.g. DRE #01234567"}
                                   className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                 />
                               </div>
+                              <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Teléfono de oficina" : "Office phone"}</label>
+                                  <input
+                                    value={details.negocioTelOficina ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, negocioTelOficina: formatUsPhone10(e.target.value) }))}
+                                    inputMode="numeric"
+                                    autoComplete="tel"
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm tabular-nums"
+                                  />
+                                </div>
+                                <div className="w-[4.75rem] shrink-0">
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Ext." : "Ext."}</label>
+                                  <input
+                                    value={details.negocioTelExtension ?? ""}
+                                    onChange={(e) =>
+                                      setDetails((prev) => ({
+                                        ...prev,
+                                        negocioTelExtension: e.target.value.replace(/[^\dA-Za-z#*]/g, "").slice(0, 8),
+                                      }))
+                                    }
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+                                    inputMode="text"
+                                  />
+                                </div>
+                              </div>
                               <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Teléfono de oficina" : "Office phone"}</label>
-                                <p className="mt-0.5 text-[11px] text-[#111111]/55">
-                                  {lang === "es" ? "Opcional. Visible en la ficha y en el perfil del agente." : "Optional. Shown on the listing and agent profile."}
-                                </p>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Correo del negocio o agente" : "Business or agent email"}</label>
                                 <input
-                                  value={details.negocioTelOficina ?? ""}
-                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioTelOficina: e.target.value }))}
-                                  placeholder={lang === "es" ? "Ej: (555) 123-4567" : "e.g. (555) 123-4567"}
-                                  inputMode="tel"
+                                  type="email"
+                                  value={details.negocioEmail ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioEmail: e.target.value }))}
+                                  autoComplete="email"
                                   className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                 />
                               </div>
@@ -5391,35 +5427,39 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 <input
                                   value={details.negocioSitioWeb ?? ""}
                                   onChange={(e) => setDetails((prev) => ({ ...prev, negocioSitioWeb: e.target.value }))}
-                                  placeholder={lang === "es" ? "Ej: www.tuinmobiliaria.com" : "e.g. www.yourfirm.com"}
                                   className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                 />
                               </div>
-                              <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Redes sociales" : "Social media"}</label>
-                                <p className="mt-0.5 text-[11px] text-[#111111]/55">
-                                  {lang === "es"
-                                    ? "Pega enlaces completos (https://…). Puedes poner varios en líneas separadas."
-                                    : "Paste full links (https://…). Multiple lines OK."}
-                                </p>
-                                <textarea
-                                  value={details.negocioRedes ?? ""}
-                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioRedes: e.target.value }))}
-                                  placeholder={
-                                    lang === "es"
-                                      ? "https://facebook.com/…\nhttps://instagram.com/…"
-                                      : "https://facebook.com/…\nhttps://instagram.com/…"
-                                  }
-                                  rows={3}
-                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
-                                />
+                              <div className="space-y-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#111111]/55">{lang === "es" ? "Redes sociales" : "Social media"}</p>
+                                {(
+                                  [
+                                    { key: "negocioSocialFacebook" as const, Icon: FaFacebook, lab: lang === "es" ? "Facebook" : "Facebook" },
+                                    { key: "negocioSocialInstagram" as const, Icon: FaInstagram, lab: lang === "es" ? "Instagram" : "Instagram" },
+                                    { key: "negocioSocialYoutube" as const, Icon: FaYoutube, lab: lang === "es" ? "YouTube" : "YouTube" },
+                                    { key: "negocioSocialTiktok" as const, Icon: FaTiktok, lab: lang === "es" ? "TikTok" : "TikTok" },
+                                    { key: "negocioSocialWhatsapp" as const, Icon: FaWhatsapp, lab: lang === "es" ? "WhatsApp" : "WhatsApp" },
+                                    { key: "negocioSocialX" as const, Icon: FaTwitter, lab: lang === "es" ? "X" : "X" },
+                                  ] as const
+                                ).map(({ key, Icon, lab }) => (
+                                  <div key={key} className="flex items-center gap-2.5">
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/10 bg-white text-[#111111]/75" title={lab}>
+                                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                                    </span>
+                                    <input
+                                      value={(details as Record<string, string>)[key] ?? ""}
+                                      onChange={(e) => setDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                                      className="min-w-0 flex-1 rounded-lg border border-black/10 px-3 py-1.5 text-sm"
+                                      aria-label={lab}
+                                    />
+                                  </div>
+                                ))}
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Idiomas" : "Languages"}</label>
                                 <input
                                   value={details.negocioIdiomas ?? ""}
                                   onChange={(e) => setDetails((prev) => ({ ...prev, negocioIdiomas: e.target.value }))}
-                                  placeholder={lang === "es" ? "Ej: Español, inglés" : "e.g. Spanish, English"}
                                   className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                 />
                               </div>

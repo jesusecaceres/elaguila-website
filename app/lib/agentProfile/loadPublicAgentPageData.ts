@@ -50,6 +50,10 @@ function normalizeWebsiteUrl(raw: string): string | null {
   return `https://${t}`;
 }
 
+function digitsOnly(s: string): string {
+  return s.replace(/\D/g, "");
+}
+
 /** First image URL for listing cards (matches mapListingToViewModel image normalization). */
 function firstListingImageUrl(raw: unknown): string {
   let v: unknown = raw;
@@ -102,6 +106,8 @@ export type PublicAgentPageModel = {
     agentPhotoUrl: string | null;
     logoUrl: string | null;
     officePhone: string | null;
+    officePhoneTelDigits: string | null;
+    agentEmail: string | null;
     website: string | null;
     socialLinks: Array<{ label: string; url: string }>;
     about: string | null;
@@ -200,8 +206,18 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   const languages = (meta?.negocioIdiomas ?? "").trim() || null;
   const agentPhotoUrl = (meta?.negocioFotoAgenteUrl ?? "").trim() || null;
   const logoUrl = (meta?.negocioLogoUrl ?? "").trim() || null;
-  const officePhone =
-    (meta?.negocioTelOficina ?? "").trim() || profile?.phone?.trim() || null;
+  const phoneMainFmt = (meta?.negocioTelOficina ?? "").trim();
+  const phoneExt = (meta?.negocioTelExtension ?? "").trim();
+  const profilePhone = profile?.phone?.trim() || null;
+  const officePhone = phoneMainFmt
+    ? phoneExt
+      ? `${phoneMainFmt} · Ext. ${phoneExt}`
+      : phoneMainFmt
+    : profilePhone || null;
+  const mainDigits = phoneMainFmt ? digitsOnly(phoneMainFmt).slice(0, 10) : "";
+  const profileDigits = profilePhone ? digitsOnly(profilePhone).slice(0, 10) : "";
+  const officePhoneTelDigits = mainDigits.length === 10 ? mainDigits : profileDigits.length === 10 ? profileDigits : null;
+  const agentEmail = (meta?.negocioEmail ?? "").trim() || null;
   const websiteRaw = (meta?.negocioSitioWeb ?? "").trim();
   const website = websiteRaw ? normalizeWebsiteUrl(websiteRaw) : null;
   const rawSocials = (meta?.negocioRedes ?? "").trim();
@@ -290,6 +306,8 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
       agentPhotoUrl,
       logoUrl,
       officePhone,
+      officePhoneTelDigits,
+      agentEmail,
       website,
       socialLinks,
       about,

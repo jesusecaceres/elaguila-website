@@ -125,6 +125,12 @@ export default function BusinessListingIdentityRail({
             <span className="font-medium">{businessRail.officePhone}</span>
           </p>
         )}
+        {businessRail.agentEmail?.trim() ? (
+          <p className="text-sm text-[#111111] break-all">
+            <span className="text-[#111111]/70">{lang === "es" ? "Correo:" : "Email:"} </span>
+            <span className="font-medium">{businessRail.agentEmail.trim()}</span>
+          </p>
+        ) : null}
         {businessRail.website && (
           <p className="text-sm font-medium text-[#111111] break-all">
             {lang === "es" ? "Sitio web" : "Website"} → {businessRail.website}

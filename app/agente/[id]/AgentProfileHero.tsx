@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  FaEnvelope,
   FaFacebookF,
   FaGlobe,
   FaInstagram,
@@ -52,6 +53,9 @@ export type AgentProfileHeroProps = {
   website: string | null;
   socialLinks: Array<{ label: string; url: string }>;
   officePhone: string | null;
+  /** 10 digits for `tel:` when main office line is US-format; avoids extension digits in dial string. */
+  officePhoneTelDigits?: string | null;
+  agentEmail?: string | null;
   languages: string | null;
   agentPhotoUrl: string | null;
   logoUrl?: string | null;
@@ -70,6 +74,8 @@ export default function AgentProfileHero({
   website,
   socialLinks,
   officePhone,
+  officePhoneTelDigits,
+  agentEmail,
   languages,
   agentPhotoUrl,
   logoUrl,
@@ -82,6 +88,7 @@ export default function AgentProfileHero({
           serviceAreas: "Zonas de servicio",
           websiteLabel: "Sitio web",
           phone: "Teléfono",
+          email: "Correo",
           langs: "Idiomas",
           licenseLabel: "Licencia",
           socialHeading: "Redes sociales",
@@ -90,6 +97,7 @@ export default function AgentProfileHero({
           serviceAreas: "Service areas",
           websiteLabel: "Website",
           phone: "Phone",
+          email: "Email",
           langs: "Languages",
           licenseLabel: "License",
           socialHeading: "Social links",
@@ -184,10 +192,27 @@ export default function AgentProfileHero({
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.phone}</p>
               <a
-                href={`tel:${officePhone.replace(/\D/g, "")}`}
+                href={`tel:${
+                  (officePhoneTelDigits ?? "").length === 10
+                    ? officePhoneTelDigits
+                    : officePhone.replace(/\D/g, "").slice(0, 10)
+                }`}
                 className="text-base font-semibold text-[#2F4A33] hover:underline"
               >
                 {officePhone}
+              </a>
+            </div>
+          ) : null}
+
+          {(agentEmail ?? "").trim() ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.email}</p>
+              <a
+                href={`mailto:${(agentEmail ?? "").trim()}`}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2F4A33] hover:underline break-all"
+              >
+                <FaEnvelope className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                {(agentEmail ?? "").trim()}
               </a>
             </div>
           ) : null}
