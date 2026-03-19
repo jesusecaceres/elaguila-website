@@ -18,7 +18,7 @@ export type BienesRaicesPreviewListingProps = {
 
 /**
  * Buyer-facing BR preview shell for /preview-listing only.
- * Warm Private-BR-style hierarchy: hero + stacked thumbs, business rail, title block, fact pills, feature tags.
+ * Layout: Privado-style — top row gallery + Negocio card; primary listing content flows full-width below (not a cramped right stack).
  */
 export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPreviewListingProps) {
   const lang = listing.lang;
@@ -80,6 +80,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             responsePlaceholder: "Respuesta: —",
             verifiedPlaceholder: "Verificado (próximamente)",
             descripcion: "Descripción",
+            detallesPropiedad: "Detalles de la propiedad",
           }
         : {
             guardar: "☆ Save",
@@ -106,86 +107,95 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             responsePlaceholder: "Response: —",
             verifiedPlaceholder: "Verified (coming soon)",
             descripcion: "Description",
+            detallesPropiedad: "Property details",
           },
     [lang]
   );
 
   const sellerDisplayName = (listing.sellerName ?? "").trim() || t.you;
-  const detailCardClass = "rounded-2xl border border-stone-200/90 bg-white/90 p-4 sm:p-5 shadow-sm";
+  const detailCardClass = "rounded-2xl border border-stone-200/90 bg-white/90 p-4 sm:p-5 lg:p-6 shadow-sm";
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
 
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,26rem)] gap-6 lg:gap-8 p-4 sm:p-6 lg:p-8">
-        {/* Hero / gallery */}
-        <div className="min-w-0 flex flex-col gap-3 order-1">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch">
-            <div className="flex-1 min-h-[220px] sm:min-h-[320px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
-              <img src={heroSrc} alt="" className="w-full h-full object-cover" />
+      <div className="p-4 sm:p-6 lg:p-8 space-y-8 lg:space-y-10">
+        {/* Top: gallery (primary) + Negocio identity only on the right — not the whole listing */}
+        <div
+          className={cx(
+            "grid gap-6 lg:gap-8 items-start",
+            showBusinessRail ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,22rem)]" : "grid-cols-1"
+          )}
+        >
+          <div className="min-w-0 order-1 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch">
+              <div className="flex-1 min-h-[220px] sm:min-h-[320px] lg:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
+                <img src={heroSrc} alt="" className="w-full h-full object-cover" />
+              </div>
+              {sideThumbs.length > 1 && (
+                <div className="hidden sm:flex flex-col gap-2 w-[104px] lg:w-[118px] max-h-[min(420px,70vh)] overflow-y-auto shrink-0 pr-0.5">
+                  {sideThumbs.map((url, i) => {
+                    const idx = i;
+                    return (
+                      <button
+                        key={`${url}-${i}`}
+                        type="button"
+                        onClick={() => setHeroIndex(idx)}
+                        className={cx(
+                          "relative flex-1 min-h-[72px] rounded-xl overflow-hidden border-2 transition",
+                          safeHero === idx
+                            ? "border-[#C9B46A] ring-2 ring-[#C9B46A]/35 ring-offset-2 ring-offset-[#F4F1EA]"
+                            : "border-stone-200/80 hover:border-stone-300"
+                        )}
+                      >
+                        <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {sideThumbs.length > 1 && (
-              <div className="hidden sm:flex flex-col gap-2 w-[104px] lg:w-[118px] max-h-[min(420px,70vh)] overflow-y-auto shrink-0 pr-0.5">
-                {sideThumbs.map((url, i) => {
-                  const idx = i;
-                  return (
-                    <button
-                      key={`${url}-${i}`}
-                      type="button"
-                      onClick={() => setHeroIndex(idx)}
-                      className={cx(
-                        "relative flex-1 min-h-[72px] rounded-xl overflow-hidden border-2 transition",
-                        safeHero === idx
-                          ? "border-[#C9B46A] ring-2 ring-[#C9B46A]/35 ring-offset-2 ring-offset-[#F4F1EA]"
-                          : "border-stone-200/80 hover:border-stone-300"
-                      )}
-                    >
-                      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    </button>
-                  );
-                })}
+            {images.length > 1 && (
+              <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                {images.map((url, idx) => (
+                  <button
+                    key={`${url}-m-${idx}`}
+                    type="button"
+                    onClick={() => setHeroIndex(idx)}
+                    className={cx(
+                      "h-16 w-16 min-w-[4rem] shrink-0 rounded-lg overflow-hidden border-2",
+                      safeHero === idx ? "border-[#C9B46A]" : "border-stone-200"
+                    )}
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
-          {/* Mobile thumb strip */}
-          {images.length > 1 && (
-            <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {images.map((url, idx) => (
-                <button
-                  key={`${url}-m-${idx}`}
-                  type="button"
-                  onClick={() => setHeroIndex(idx)}
-                  className={cx(
-                    "h-16 w-16 min-w-[4rem] shrink-0 rounded-lg overflow-hidden border-2",
-                    safeHero === idx ? "border-[#C9B46A]" : "border-stone-200"
-                  )}
-                >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
+
+          {showBusinessRail && listing.businessRail ? (
+            <div className="min-w-0 order-2 lg:sticky lg:top-28 lg:self-start">
+              <BusinessListingIdentityRail
+                businessRail={listing.businessRail}
+                category="bienes-raices"
+                businessRailTier={listing.businessRailTier}
+                lang={lang}
+              />
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Right rail */}
-        <div className="min-w-0 space-y-4 sm:space-y-5 order-2">
-          {showBusinessRail && listing.businessRail && (
-            <BusinessListingIdentityRail
-              businessRail={listing.businessRail}
-              category="bienes-raices"
-              businessRailTier={listing.businessRailTier}
-              lang={lang}
-            />
-          )}
-
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6 shadow-sm">
+        {/* Primary content flow: full width below hero row (Privado-style; not sidebar-stacked) */}
+        <div className="min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8">
+          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6 lg:p-8 shadow-sm max-w-5xl">
             {listing.categoryLabel ? (
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
             ) : null}
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
               {listing.title}
             </h1>
-            <div className="mt-3 text-2xl sm:text-3xl font-bold text-[#1a1a1a] tabular-nums">
+            <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-bold text-[#1a1a1a] tabular-nums">
               {formatListingPrice(listing.priceLabel, { lang })}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#111111]/75">
@@ -196,44 +206,51 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               <span>{listing.todayLabel}</span>
             </div>
 
-            {quickFacts.length > 0 && (
-              <div className="mt-5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                  {lang === "es" ? "Datos clave" : "Quick facts"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {quickFacts.map((f) => (
-                    <span
-                      key={`qf-${f.label}-${f.value}`}
-                      className="rounded-full border border-[#C9B46A]/30 bg-[#FDF9EE] px-3 py-1.5 text-xs font-semibold text-[#111111]"
-                    >
-                      <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {featureTags.length > 0 && (
-              <div className="mt-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                  {lang === "es" ? "Características" : "Features"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {featureTags.map((f) => (
-                    <span
-                      key={`ft-${f.label}-${f.value}`}
-                      className="rounded-lg border border-stone-200 bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-[#111111]/90"
-                    >
-                      <span className="text-[#111111]/55">{f.label}:</span> {f.value}
-                    </span>
-                  ))}
-                </div>
+            {(quickFacts.length > 0 || featureTags.length > 0) && (
+              <div className="mt-8 pt-6 border-t border-stone-200/80">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-4">{t.detallesPropiedad}</h2>
+                {quickFacts.length > 0 && (
+                  <div className="mb-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+                      {lang === "es" ? "Datos clave" : "Quick facts"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {quickFacts.map((f) => (
+                        <span
+                          key={`qf-${f.label}-${f.value}`}
+                          className="rounded-full border border-[#C9B46A]/30 bg-[#FDF9EE] px-3 py-1.5 text-xs font-semibold text-[#111111]"
+                        >
+                          <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {featureTags.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+                      {lang === "es" ? "Características" : "Features"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {featureTags.map((f) => (
+                        <span
+                          key={`ft-${f.label}-${f.value}`}
+                          className="rounded-lg border border-stone-200 bg-[#FAFAF8] px-3 py-1.5 text-xs font-medium text-[#111111]/90"
+                        >
+                          <span className="text-[#111111]/55">{f.label}:</span> {f.value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF5] p-4 sm:p-5 lg:p-6" id="listing-buyer-actions">
+          <div
+            className="rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF5] p-4 sm:p-5 lg:p-6 max-w-5xl"
+            id="listing-buyer-actions"
+          >
             <p className="text-sm text-[#111111]/80 mb-3">{t.buyerActionsHelper}</p>
             <div className="flex flex-wrap gap-3">
               <button
@@ -285,24 +302,26 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             )}
           </div>
 
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 lg:p-6 shadow-sm">
-            <h3 className="text-xs font-semibold text-[#111111]/60 uppercase tracking-wide mb-2">{t.descripcion}</h3>
-            <div className="text-sm text-[#111111] whitespace-pre-wrap leading-relaxed">{listing.description}</div>
+          <div className={`${detailCardClass} max-w-5xl`}>
+            <h3 className="text-xs font-semibold text-[#111111]/60 uppercase tracking-wide mb-3">{t.descripcion}</h3>
+            <div className="text-sm sm:text-base text-[#111111] whitespace-pre-wrap leading-relaxed">{listing.description}</div>
           </div>
 
-          <div className={detailCardClass} data-section="seller-profile">
+          <div className={`${detailCardClass} max-w-5xl`} data-section="seller-profile">
             <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
             <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
             <span className="inline-block mt-1 text-xs text-[#111111]/60 font-medium">{t.memberLabel}</span>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#111111]/60">
               <span>⭐ {t.newSeller}</span>
-              <span>📅 {t.memberSince} {new Date().getFullYear()}</span>
+              <span>
+                📅 {t.memberSince} {new Date().getFullYear()}
+              </span>
             </div>
             <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
             <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
           </div>
 
-          <div className={detailCardClass}>
+          <div className={`${detailCardClass} max-w-5xl`}>
             <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
             <p className="text-sm text-[#111111] mb-2">
               {t.sellerLocation} {listing.city}
@@ -314,7 +333,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               placeholder={t.cityPlaceholder}
               lang={lang}
               variant="light"
-              className="mt-1 w-full max-w-full"
+              className="mt-1 w-full max-w-full sm:max-w-md"
             />
             {distanceMiles !== null && (
               <p className="mt-2 text-sm text-[#111111]/70">
@@ -322,7 +341,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </p>
             )}
           </div>
-
         </div>
       </div>
     </div>
