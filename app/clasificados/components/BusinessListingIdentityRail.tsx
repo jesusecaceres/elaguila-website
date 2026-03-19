@@ -163,6 +163,14 @@ export default function BusinessListingIdentityRail({
           >
             {lang === "es" ? "Programar visita" : "Schedule visit"}
           </button>
+          {isBienesRaices && (
+            <button
+              type="button"
+              className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/45 bg-white/90 text-[#111111] text-sm hover:bg-[#F8F6F0] transition"
+            >
+              {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
+            </button>
+          )}
         </div>
       </div>
     </div>
