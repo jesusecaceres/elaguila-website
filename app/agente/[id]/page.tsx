@@ -110,17 +110,17 @@ export default async function PublicAgentProfilePage(props: PageProps) {
   const showLocationBlock = Boolean(d.businessAddressLine || d.hours || mapsUrl);
 
   return (
-    <main className="min-h-screen bg-[#E8E4DC] text-[#111111]">
+    <main className="min-h-screen bg-[#FAF9F5] text-[#111111]">
       <Navbar />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-20">
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-20 pb-16">
         <Link
           href={t.clasificadosHref}
-          className="inline-flex text-sm font-semibold text-[#3F5A43] hover:text-[#2F4A33] mb-6"
+          className="mb-4 inline-flex text-sm font-semibold text-[#3F5A43] hover:text-[#2F4A33]"
         >
           {t.back}
         </Link>
 
-        <article className={cx(shellClass, "p-6 sm:p-9 lg:p-10")}>
+        <div className="mx-auto w-full max-w-3xl space-y-8">
           <AgentProfileHero
             lang={lang}
             agentName={d.agentName}
@@ -131,27 +131,32 @@ export default async function PublicAgentProfilePage(props: PageProps) {
             officePhone={d.officePhone}
             languages={d.languages}
             agentPhotoUrl={d.agentPhotoUrl}
+            logoUrl={d.logoUrl}
+            businessName={d.businessName}
           />
 
           {d.about ? (
-            <section className="mt-14 lg:mt-16 pt-10 border-t border-[#C9B46A]/28" aria-labelledby="agent-about-heading">
-              <h2 id="agent-about-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6914]/90 mb-5">
+            <section
+              className="rounded-2xl border border-[#C9B46A]/18 bg-[#FFFEFB]/90 px-4 py-5 sm:px-5 sm:py-6 shadow-sm"
+              aria-labelledby="agent-about-heading"
+            >
+              <h2 id="agent-about-heading" className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#8B6914]/90">
                 {t.about}
               </h2>
-              <div className="max-w-[70ch] text-sm sm:text-[0.95rem] text-[#111111]/88 leading-[1.8] whitespace-pre-wrap">{d.about}</div>
+              <div className="max-w-[70ch] text-sm text-[#111111]/88 leading-relaxed whitespace-pre-wrap">{d.about}</div>
             </section>
           ) : null}
 
           {showLocationBlock ? (
             <section
-              className={cx("mt-12 pt-10 border-t border-[#C9B46A]/28", !d.about && "mt-14 lg:mt-16")}
+              className="rounded-2xl border border-[#C9B46A]/18 bg-[#FFFEFB]/90 px-4 py-5 sm:px-5 sm:py-6 shadow-sm"
               aria-labelledby="agent-location-heading"
             >
-              <h2 id="agent-location-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6914]/90 mb-4">
+              <h2 id="agent-location-heading" className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#8B6914]/90">
                 {t.location}
               </h2>
               {d.businessAddressLine ? (
-                <p className="text-sm text-[#111111]/85 font-medium leading-relaxed max-w-[70ch]">{d.businessAddressLine}</p>
+                <p className="text-sm font-medium leading-relaxed text-[#111111]/85 max-w-[70ch]">{d.businessAddressLine}</p>
               ) : null}
               {mapsUrl ? (
                 <a
@@ -159,20 +164,20 @@ export default async function PublicAgentProfilePage(props: PageProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t.mapAria}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl border border-[#3F5A43]/70 bg-[#3F5A43] px-5 py-3 text-sm font-semibold text-[#F7F4EC] hover:bg-[#36503A] shadow-sm transition"
+                  className="mt-3 inline-flex items-center justify-center rounded-xl border border-[#3F5A43]/70 bg-[#3F5A43] px-4 py-2.5 text-sm font-semibold text-[#F7F4EC] shadow-sm transition hover:bg-[#36503A]"
                 >
                   {t.openMap}
                 </a>
               ) : null}
               {d.hours ? (
-                <p className="mt-6 text-sm text-[#111111]/80 max-w-[70ch]">
+                <p className="mt-4 max-w-[70ch] text-sm text-[#111111]/80">
                   <span className="font-semibold text-[#111111]/65">{t.hours}: </span>
                   {d.hours}
                 </p>
               ) : null}
             </section>
           ) : null}
-        </article>
+        </div>
 
         <section className="mt-10" aria-labelledby="agent-listings-heading">
           <h2
