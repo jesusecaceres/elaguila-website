@@ -31,6 +31,10 @@ export default function BusinessListingIdentityRail({
       businessRailTier === "business_plus" ||
       businessRailTier === "business_standard");
 
+  const businessName = businessRail.name || (lang === "es" ? "Negocio" : "Business");
+  const agentName = businessRail.agent?.trim() || businessName;
+  const agentRole = businessRail.role?.trim() || (lang === "es" ? "Asesor" : "Advisor");
+
   return (
     <div
       className={cx(
@@ -41,41 +45,45 @@ export default function BusinessListingIdentityRail({
       )}
       data-section="preview-business-rail"
     >
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
           {lang === "es" ? "Identidad del negocio" : "Business"}
         </h4>
       </div>
       <div className="flex flex-col gap-4">
-        {(businessRail.logoUrl || businessRail.agentPhotoUrl) && (
-          <div className="flex items-start gap-3">
-            {businessRail.logoUrl && (
-              <img
-                src={businessRail.logoUrl}
-                alt=""
-                className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
-              />
-            )}
-            {businessRail.agentPhotoUrl && (
+        {/* Agent-first header row (matches requested reference direction). */}
+        <div className="rounded-xl border border-black/10 bg-white/75 p-3">
+          <div className="flex items-center gap-3">
+            {businessRail.agentPhotoUrl ? (
               <img
                 src={businessRail.agentPhotoUrl}
                 alt=""
                 className="h-14 w-14 rounded-xl border border-black/10 object-cover bg-white"
               />
+            ) : (
+              <div className="h-14 w-14 rounded-xl border border-black/10 bg-[#F5F5F5] flex items-center justify-center text-[#111111]/45 text-xs">
+                {lang === "es" ? "Agente" : "Agent"}
+              </div>
             )}
+            <div className="min-w-0">
+              <p className="text-base font-bold text-[#111111] leading-tight truncate">{agentName}</p>
+              <p className="mt-0.5 text-xs text-[#111111]/70 truncate">{agentRole}</p>
+            </div>
           </div>
-        )}
-        <div>
-          <p className="text-base font-semibold text-[#111111]">
-            {businessRail.name || (lang === "es" ? "Negocio" : "Business")}
-          </p>
-          {businessRail.agent && (
-            <p className="mt-0.5 text-sm text-[#111111]/90">{businessRail.agent}</p>
-          )}
-          {businessRail.role && (
-            <p className="text-xs text-[#111111]/70">{businessRail.role}</p>
+          {(businessRail.logoUrl || businessName) && (
+            <div className="mt-3 flex items-center gap-2">
+              {businessRail.logoUrl ? (
+                <img
+                  src={businessRail.logoUrl}
+                  alt=""
+                  className="h-10 w-10 rounded-lg border border-black/10 object-cover bg-white"
+                />
+              ) : null}
+              <p className="text-sm font-semibold text-[#111111] leading-tight break-words">{businessName}</p>
+            </div>
           )}
         </div>
+
         {businessRail.officePhone && (
           <p className="text-sm text-[#111111]">
             <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
@@ -142,16 +150,16 @@ export default function BusinessListingIdentityRail({
             </div>
           </div>
         )}
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-2 flex flex-col gap-2">
           <button
             type="button"
-            className="w-full px-4 py-3 rounded-xl font-semibold border border-[#111111]/20 bg-[#F5F5F5] text-[#111111] text-sm"
+            className="w-full px-4 py-3 rounded-xl font-semibold border border-[#111111]/18 bg-white text-[#111111] text-sm hover:bg-[#F5F5F5] transition"
           >
             {lang === "es" ? "Solicitar información" : "Request info"}
           </button>
           <button
             type="button"
-            className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] text-sm"
+            className="w-full px-4 py-3 rounded-xl font-semibold border border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] text-sm hover:bg-[#EFE7D8] transition"
           >
             {lang === "es" ? "Programar visita" : "Schedule visit"}
           </button>

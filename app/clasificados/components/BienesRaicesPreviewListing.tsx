@@ -155,12 +155,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
 
-  const twoColClass = showBusinessRail ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,22rem)]" : "lg:grid-cols-1";
+  const twoColClass = showBusinessRail ? "lg:grid-cols-[minmax(0,1.32fr)_minmax(300px,21rem)]" : "lg:grid-cols-1";
 
   return (
     <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Top row: hero left, negocio identity rail right ONLY */}
+        {/* Top row: wider hero/gallery left. Business rail sits lower on right (desktop). */}
         <div className={cx("grid gap-6 lg:gap-8 items-start", twoColClass)}>
           <div className="min-w-0 flex flex-col gap-3">
             {/* Desktop/tablet: hero + media tile rail (photos + virtual tour + floorplan + video) */}
@@ -323,14 +323,29 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
 
           {showBusinessRail && listing.businessRail ? (
-            <div className="min-w-0 lg:sticky lg:top-28 lg:self-start">
-              <BusinessListingIdentityRail
-                businessRail={listing.businessRail}
-                category="bienes-raices"
-                businessRailTier={listing.businessRailTier}
-                lang={lang}
-              />
-            </div>
+            <>
+              {/* Desktop: keep right column, but place rail below gallery zone and sticky. */}
+              <div className="min-w-0 hidden lg:block">
+                <div className="h-[220px] xl:h-[250px]" aria-hidden />
+                <div className="sticky top-28">
+                  <BusinessListingIdentityRail
+                    businessRail={listing.businessRail}
+                    category="bienes-raices"
+                    businessRailTier={listing.businessRailTier}
+                    lang={lang}
+                  />
+                </div>
+              </div>
+              {/* Mobile/tablet: rail remains below gallery. */}
+              <div className="lg:hidden">
+                <BusinessListingIdentityRail
+                  businessRail={listing.businessRail}
+                  category="bienes-raices"
+                  businessRailTier={listing.businessRailTier}
+                  lang={lang}
+                />
+              </div>
+            </>
           ) : null}
         </div>
 
