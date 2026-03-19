@@ -241,12 +241,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   className={cx(
                     desktopTileBaseClass,
                     virtualTourUrl
-                      ? "border-[#BFA05C]/60 bg-[#F2EBDD] hover:bg-[#EEE4D2] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
-                      : "border-[#CDBE97]/55 bg-[#EFE9DC] text-[#111111]/45"
+                      ? "border-[#C9B46A]/45 bg-[#FCFAF5] hover:bg-[#F8F4EA] text-[#2F4A33]"
+                      : "border-[#D9CFB3]/55 bg-[#F8F5EE] text-[#111111]/40"
                   )}
                   aria-label={lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
                 >
-                  <span className="rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC] p-2.5 shadow-sm">
+                  <span className="rounded-full border border-[#C9B46A]/35 bg-white/90 p-2.5 shadow-[0_2px_6px_-4px_rgba(17,17,17,0.22)]">
                     <span aria-hidden className="block text-[1.55rem] leading-none">🗺️</span>
                   </span>
                   <span className="text-[11px] font-semibold">{lang === "es" ? "Tour virtual" : "Virtual tour"}</span>
@@ -263,12 +263,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   className={cx(
                     desktopTileBaseClass,
                     floorPlanUrl
-                      ? "border-[#BFA05C]/60 bg-[#F2EBDD] hover:bg-[#EEE4D2] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
-                      : "border-[#CDBE97]/55 bg-[#EFE9DC] text-[#111111]/45"
+                      ? "border-[#C9B46A]/45 bg-[#FCFAF5] hover:bg-[#F8F4EA] text-[#2F4A33]"
+                      : "border-[#D9CFB3]/55 bg-[#F8F5EE] text-[#111111]/40"
                   )}
                   aria-label={lang === "es" ? "Abrir plano" : "Open floorplan"}
                 >
-                  <span className="rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC] p-2.5 shadow-sm">
+                  <span className="rounded-full border border-[#C9B46A]/35 bg-white/90 p-2.5 shadow-[0_2px_6px_-4px_rgba(17,17,17,0.22)]">
                     <span aria-hidden className="block text-[1.55rem] leading-none">📐</span>
                   </span>
                   <span className="text-[11px] font-semibold">{lang === "es" ? "Plano" : "Floorplan"}</span>
@@ -285,15 +285,15 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   className={cx(
                     "relative " + desktopTileBaseClass,
                     videoUrl
-                      ? "border-[#BFA05C]/60 bg-[#F2EBDD] hover:bg-[#EEE4D2] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
-                      : "border-[#CDBE97]/55 bg-[#EFE9DC] text-[#111111]/45"
+                      ? "border-[#C9B46A]/45 bg-[#FCFAF5] hover:bg-[#F8F4EA] text-[#2F4A33]"
+                      : "border-[#D9CFB3]/55 bg-[#F8F5EE] text-[#111111]/40"
                   )}
                   aria-label={lang === "es" ? "Abrir video" : "Open video"}
                 >
                   {videoUrl && videoThumbUrl ? (
                     <img src={videoThumbUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
                   ) : null}
-                  <span className="relative rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC] p-2.5 shadow-sm">
+                  <span className="relative rounded-full border border-[#C9B46A]/35 bg-white/90 p-2.5 shadow-[0_2px_6px_-4px_rgba(17,17,17,0.22)]">
                     <span aria-hidden className="block text-[1.55rem] leading-none">🎥</span>
                   </span>
                   <span className="relative text-[11px] font-semibold">{lang === "es" ? "Video" : "Video"}</span>
@@ -307,15 +307,15 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   className={cx(
                     "relative " + desktopTileBaseClass,
                     additionalPhotos > 0
-                      ? "border-[#BFA05C]/60 bg-[#EFE4CD] hover:bg-[#E9DDBF] text-[#2F4A33] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
-                      : "border-[#CDBE97]/55 bg-[#EFE9DC] hover:bg-[#ECE4D4] text-[#111111]/80"
+                      ? "border-[#C9B46A]/45 bg-[#F8F4EA] hover:bg-[#F4EEDC] text-[#2F4A33]"
+                      : "border-[#D9CFB3]/55 bg-[#F8F5EE] hover:bg-[#F4F1E9] text-[#111111]/70"
                   )}
                   aria-label={lang === "es" ? "Ver más fotos" : "See more photos"}
                 >
                   {images[nextPhotoIndex] ? (
                     <img src={images[nextPhotoIndex]} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
                   ) : null}
-                  <span className="relative rounded-full border border-[#BFA05C]/45 bg-[#FBF6EC]/95 px-2.5 py-0.5 text-[11px] font-semibold text-[#2F4A33] shadow-sm">
+                  <span className="relative rounded-full border border-[#C9B46A]/35 bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-[#2F4A33] shadow-[0_2px_6px_-4px_rgba(17,17,17,0.22)]">
                     {additionalPhotos > 0 ? (lang === "es" ? `+${additionalPhotos} fotos` : `+${additionalPhotos}`) : (lang === "es" ? "Fotos" : "Photos")}
                   </span>
                 </button>
