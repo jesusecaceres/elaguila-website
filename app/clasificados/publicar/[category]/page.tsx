@@ -3842,7 +3842,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
         availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,
       };
 
-      // BR Negocio: floorplan link used by top-half media tiles.
+      // BR Negocio: floorplan + tour + Pro video feed BienesRaicesPreviewListing’s 2×2 utility tiles (main image stays left).
       base.floorPlanUrl = (d.negocioFloorPlanUrl ?? "").trim() || null;
     }
     return base;

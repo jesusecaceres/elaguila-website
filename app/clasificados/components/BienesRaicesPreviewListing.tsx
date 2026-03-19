@@ -12,6 +12,12 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function normalizeExternalHref(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "";
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
+
 function formatBrPriceWithCommaThousands(priceLabel: string, lang: "es" | "en"): string {
   // Keep existing formatListingPrice behavior for Gratis/Free and fallback cases.
   const base = formatListingPrice(priceLabel, { lang });
@@ -156,6 +162,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             descripcion: "Descripción",
             detallesPropiedad: "Detalles de la propiedad",
             propertyPhotos: "Fotos de la propiedad",
+            tileTour: "Tour virtual",
+            tilePlan: "Plano",
+            tileVideo: "Video",
+            tileMorePhotos: "+ fotos",
           }
         : {
             guardar: "☆ Save",
@@ -184,6 +194,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             descripcion: "Description",
             detallesPropiedad: "Property details",
             propertyPhotos: "Property photos",
+            tileTour: "Virtual tour",
+            tilePlan: "Floor plan",
+            tileVideo: "Video",
+            tileMorePhotos: "+ photos",
           },
     [lang]
   );
@@ -192,6 +206,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   const detailCardClass = "rounded-2xl border border-stone-200/90 bg-white/90 p-4 sm:p-5 lg:p-6 shadow-sm";
 
   const showBusinessRail = Boolean(listing.businessRail && listing.category === "bienes-raices");
+
+  const virtualTourHref = normalizeExternalHref(listing.businessRail?.virtualTourUrl ?? "");
+  const floorPlanHref = normalizeExternalHref(listing.floorPlanUrl ?? "");
+  const proVideoHref = (listing.proVideoUrl ?? "").trim();
+  const hasGalleryExtras = images.length > 1;
 
   const propertyHeroSection = (
     <div className="min-w-0 flex flex-col gap-3">
@@ -245,13 +264,91 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
       <div className="p-4 sm:p-6 lg:p-8">
         {showBusinessRail && listing.businessRail ? (
           <>
-            {/* Same balance as ListingView: property media left, default business rail right (no profile-only layout). */}
+            {/* BR negocio publish preview: main image left; right = 2×2 utility tiles, then Identidad del negocio + CTAs (matches original composition). */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10 items-start">
-              <div className="min-w-0 order-1 space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#111111]/55">{t.propertyPhotos}</h3>
-                {propertyHeroSection}
-              </div>
-              <div className="min-w-0 order-2">
+              <div className="min-w-0 order-1">{propertyHeroSection}</div>
+              <div className="min-w-0 order-2 flex flex-col gap-4 sm:gap-5">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  {virtualTourHref ? (
+                    <a
+                      href={virtualTourHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+                    >
+                      <span className="text-lg" aria-hidden>
+                        🌐
+                      </span>
+                      {t.tileTour}
+                    </a>
+                  ) : (
+                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
+                      <span className="text-lg opacity-50" aria-hidden>
+                        🌐
+                      </span>
+                      {t.tileTour}
+                    </div>
+                  )}
+                  {floorPlanHref ? (
+                    <a
+                      href={floorPlanHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+                    >
+                      <span className="text-lg" aria-hidden>
+                        📐
+                      </span>
+                      {t.tilePlan}
+                    </a>
+                  ) : (
+                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
+                      <span className="text-lg opacity-50" aria-hidden>
+                        📐
+                      </span>
+                      {t.tilePlan}
+                    </div>
+                  )}
+                  {proVideoHref ? (
+                    <a
+                      href={proVideoHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+                    >
+                      <span className="text-lg" aria-hidden>
+                        🎥
+                      </span>
+                      {t.tileVideo}
+                    </a>
+                  ) : (
+                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
+                      <span className="text-lg opacity-50" aria-hidden>
+                        🎥
+                      </span>
+                      {t.tileVideo}
+                    </div>
+                  )}
+                  {hasGalleryExtras ? (
+                    <button
+                      type="button"
+                      onClick={() => openLightbox(safeHero)}
+                      className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-2 py-3 text-center text-xs font-semibold text-[#111111] shadow-sm transition hover:bg-[#F8F2E6]"
+                    >
+                      <span className="text-lg" aria-hidden>
+                        🖼️
+                      </span>
+                      {t.tileMorePhotos}
+                    </button>
+                  ) : (
+                    <div className="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-xl border border-[#C9B46A]/20 bg-[#F5F5F5]/80 px-2 py-3 text-center text-xs font-medium text-[#111111]/40">
+                      <span className="text-lg opacity-50" aria-hidden>
+                        🖼️
+                      </span>
+                      {t.tileMorePhotos}
+                    </div>
+                  )}
+                </div>
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
