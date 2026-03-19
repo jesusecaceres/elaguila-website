@@ -3827,6 +3827,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
         name: (d.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business"),
         agent: (d.negocioAgente ?? "").trim(),
         role: (d.negocioCargo ?? "").trim(),
+        agentLicense: (d.negocioLicencia ?? "").trim() || undefined,
         officePhone: (d.negocioTelOficina ?? "").trim(),
         website: (d.negocioSitioWeb ?? "").trim() || null,
         socialLinks: [],

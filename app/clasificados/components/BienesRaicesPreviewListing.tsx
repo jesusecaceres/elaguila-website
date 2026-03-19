@@ -104,6 +104,17 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     const fromFacts = quickFacts.find((f) => /vecindad|neighborhood/.test((f.label ?? "").toLowerCase()))?.value?.trim() || null;
     return detailNeighborhoodLine ?? fromFacts;
   }, [quickFacts, detailNeighborhoodLine]);
+
+  /** Real listing geography for agent profile service-area line (city + vecindad when distinct). */
+  const serviceAreaPartsForRail = useMemo(() => {
+    const parts: string[] = [];
+    const c = (listing.city ?? "").trim();
+    const n = (neighborhoodLine ?? "").trim();
+    if (c) parts.push(c);
+    if (n && n.toLowerCase() !== c.toLowerCase()) parts.push(n);
+    return parts;
+  }, [listing.city, neighborhoodLine]);
+
   const iconFacts = useMemo(() => {
     const buckets = [
       { pattern: /rec[aá]maras|bedrooms?/, icon: "🛏️", key: "bed" },
@@ -264,7 +275,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   lang={lang}
                   ownerId={listing.ownerId ?? null}
                   presentation="profile"
-                  listingCity={listing.city}
+                  serviceAreaParts={serviceAreaPartsForRail}
                 />
               </div>
               <div className="relative min-h-[320px] sm:min-h-[400px] lg:min-h-[560px] rounded-2xl overflow-hidden border border-[#C9B46A]/35 bg-stone-200 shadow-[0_16px_40px_-24px_rgba(17,17,17,0.35)]">

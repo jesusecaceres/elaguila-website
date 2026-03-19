@@ -14,6 +14,8 @@
 export const BUSINESS_META_KEYS = [
   "negocioAgente",
   "negocioCargo",
+  /** Real estate / professional license number or ID (optional). */
+  "negocioLicencia",
   "negocioTelOficina",
   "negocioSitioWeb",
   "negocioRedes",

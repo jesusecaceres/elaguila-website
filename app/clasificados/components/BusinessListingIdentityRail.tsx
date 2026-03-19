@@ -1,10 +1,72 @@
 "use client";
 
 import Link from "next/link";
+import {
+  FaFacebookF,
+  FaGlobe,
+  FaInstagram,
+  FaTiktok,
+  FaWhatsapp,
+  FaYoutube,
+} from "react-icons/fa";
 import type { BusinessRailData, ListingData } from "./ListingView";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+type SocialPlatform = "facebook" | "instagram" | "youtube" | "tiktok" | "whatsapp" | "other";
+
+function detectSocialPlatform(url: string, label?: string): SocialPlatform {
+  const u = url.toLowerCase();
+  const l = (label ?? "").toLowerCase();
+  if (/facebook\.com|fb\.com|fb\.me/.test(u) || l.includes("facebook")) return "facebook";
+  if (/instagram\.com|instagr\.am/.test(u) || l.includes("instagram") || l === "ig") return "instagram";
+  if (/youtube\.com|youtu\.be/.test(u) || l.includes("youtube")) return "youtube";
+  if (/tiktok\.com/.test(u) || l.includes("tiktok")) return "tiktok";
+  if (/wa\.me|whatsapp\.com|api\.whatsapp/.test(u) || l.includes("whatsapp")) return "whatsapp";
+  return "other";
+}
+
+function buildSocialIconEntries(rail: BusinessRailData): Array<{ url: string; label: string; platform: SocialPlatform }> {
+  const seen = new Set<string>();
+  const out: Array<{ url: string; label: string; platform: SocialPlatform }> = [];
+  const add = (rawUrl: string, label: string) => {
+    const u = rawUrl.trim();
+    if (!/^https?:\/\//i.test(u)) return;
+    const key = u.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ url: u, label: label.trim() || "Social", platform: detectSocialPlatform(u, label) });
+  };
+  for (const s of rail.socialLinks ?? []) {
+    if (s?.url) add(s.url, s.label ?? "");
+  }
+  const raw = (rail.rawSocials ?? "").trim();
+  if (raw) {
+    const urlLike = /https?:\/\/[^\s,]+/gi;
+    const matches = raw.match(urlLike);
+    if (matches) matches.forEach((u) => add(u, ""));
+  }
+  return out;
+}
+
+function SocialPlatformIcon({ platform, className }: { platform: SocialPlatform; className?: string }) {
+  const cn = cx("h-[1.05rem] w-[1.05rem]", className);
+  switch (platform) {
+    case "facebook":
+      return <FaFacebookF className={cn} aria-hidden />;
+    case "instagram":
+      return <FaInstagram className={cn} aria-hidden />;
+    case "youtube":
+      return <FaYoutube className={cn} aria-hidden />;
+    case "tiktok":
+      return <FaTiktok className={cn} aria-hidden />;
+    case "whatsapp":
+      return <FaWhatsapp className={cn} aria-hidden />;
+    default:
+      return <FaGlobe className={cn} aria-hidden />;
+  }
 }
 
 export type BusinessListingIdentityRailProps = {
@@ -19,8 +81,10 @@ export type BusinessListingIdentityRailProps = {
    * no duplicated long bio here (rendered as “About” in parent). `default` = existing rail everywhere else.
    */
   presentation?: "default" | "profile";
-  /** Listing city for optional service-area line (preview). */
+  /** Listing city for optional service-area line (preview). @deprecated prefer serviceAreaParts */
   listingCity?: string | null;
+  /** Deduped cities / areas to show in profile layout (e.g. listing city + neighborhood). */
+  serviceAreaParts?: string[];
 };
 
 /**
@@ -34,6 +98,7 @@ export default function BusinessListingIdentityRail({
   ownerId,
   presentation = "default",
   listingCity,
+  serviceAreaParts,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
   const isProfileLayout = presentation === "profile" && isBienesRaices;
@@ -70,121 +135,140 @@ export default function BusinessListingIdentityRail({
         : "whitespace-nowrap";
 
   const cityLine = (listingCity ?? "").trim();
+  const serviceAreas = (() => {
+    if (Array.isArray(serviceAreaParts) && serviceAreaParts.length > 0) {
+      return [...new Set(serviceAreaParts.map((s) => s.trim()).filter(Boolean))];
+    }
+    return cityLine ? [cityLine] : [];
+  })();
+
+  const licenseLine = (businessRail.agentLicense ?? "").trim();
+  const socialIconEntries = isProfileLayout ? buildSocialIconEntries(businessRail) : [];
+  const websiteHref = businessRail.website?.trim()
+    ? businessRail.website.trim().startsWith("http")
+      ? businessRail.website.trim()
+      : `https://${businessRail.website.trim()}`
+    : "";
 
   if (isProfileLayout) {
+    const licenseDisplay = licenseLine
+      ? lang === "es"
+        ? `Licencia: ${licenseLine}`
+        : `License: ${licenseLine}`
+      : "";
+
     return (
       <div
         className={cx(
-          "rounded-2xl border border-[#C9B46A]/50 bg-[#FFFCF6] p-6 sm:p-8 shadow-[0_20px_50px_-28px_rgba(17,17,17,0.28)] ring-1 ring-[#C9B46A]/20 h-full flex flex-col min-h-0"
+          "rounded-2xl border border-white/10 bg-gradient-to-b from-[#2f2d2a] to-[#1c1b19] p-7 sm:p-8 shadow-[0_24px_56px_-28px_rgba(0,0,0,0.55)] h-full flex flex-col min-h-0 text-[#F4F1EA]"
         )}
         data-section="preview-business-rail"
         data-presentation="profile"
       >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B6914]/90 mb-4">
-          {lang === "es" ? "Agente inmobiliario" : "Real estate agent"}
-        </p>
-
-        <h2 className="font-serif text-3xl sm:text-[2.1rem] font-bold text-[#111111] leading-[1.15] tracking-tight break-words">
+        {/* 1. Agent name */}
+        <h2 className="font-serif text-[1.85rem] sm:text-[2.15rem] font-bold text-white leading-[1.12] tracking-tight break-words">
           {agentName}
         </h2>
-        {agentRole ? (
-          <p className="mt-3 text-sm sm:text-base text-[#111111]/72 font-medium leading-snug">{agentRole}</p>
+
+        {/* 2. License (only when provided — no placeholder / no role substitute) */}
+        {licenseDisplay ? (
+          <p className="mt-3 text-sm sm:text-[0.95rem] text-[#F4F1EA]/80 font-normal leading-snug">{licenseDisplay}</p>
         ) : null}
 
-        {(businessRail.logoUrl || businessName) && (
-          <div className="mt-6 flex items-center gap-3 pt-5 border-t border-[#C9B46A]/25">
-            {businessRail.logoUrl ? (
-              <img src={businessRail.logoUrl} alt="" className="h-11 w-11 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0" />
-            ) : null}
-            <p className="text-sm font-semibold text-[#111111] leading-snug break-words">{businessName}</p>
+        {/* 3. Service areas / cities */}
+        {serviceAreas.length > 0 ? (
+          <div className="mt-8 pt-6 border-t border-[#C9B46A]/35">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C9B46A]/95 mb-2.5">
+              {lang === "es" ? "Zonas de servicio" : "Service areas"}
+            </p>
+            <p className="text-[0.95rem] sm:text-base text-[#F4F1EA]/95 leading-relaxed font-medium">
+              {serviceAreas.join(lang === "es" ? " · " : " · ")}
+            </p>
           </div>
-        )}
+        ) : null}
 
-        <div className="mt-6 space-y-3 text-sm text-[#111111]/90 flex-1 min-h-0">
-          {businessRail.officePhone ? (
-            <p>
-              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
-                {lang === "es" ? "Teléfono de oficina" : "Office phone"}
-              </span>
-              <span className="font-semibold text-[#111111]">{businessRail.officePhone}</span>
-            </p>
-          ) : null}
-          {cityLine ? (
-            <p>
-              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
-                {lang === "es" ? "Ciudad del anuncio" : "Listing city"}
-              </span>
-              <span className="font-medium text-[#111111]/85">{cityLine}</span>
-            </p>
-          ) : null}
-          {businessRail.languages ? (
-            <p className="text-sm">
-              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
-                {lang === "es" ? "Idiomas" : "Languages"}
-              </span>
-              {businessRail.languages}
-            </p>
-          ) : null}
-          {businessRail.hours ? (
-            <p className="text-sm text-[#111111]/80">
-              <span className="text-[#111111]/55 font-medium text-xs uppercase tracking-wide block mb-0.5">
-                {lang === "es" ? "Horario" : "Hours"}
-              </span>
-              {businessRail.hours}
-            </p>
-          ) : null}
-          {businessRail.website ? (
-            <p className="pt-1">
+        {/* 4. Website CTA */}
+        {websiteHref ? (
+          <div className={cx("mt-8", serviceAreas.length === 0 && "pt-6 border-t border-[#C9B46A]/35")}>
+            <a
+              href={websiteHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3F5A43] px-4 py-3.5 text-sm font-semibold text-[#F7F4EC] shadow-[0_10px_24px_-14px_rgba(0,0,0,0.5)] transition hover:bg-[#36503A]"
+            >
+              <FaGlobe className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+              {lang === "es" ? "Visitar sitio web" : "Visit website"}
+            </a>
+          </div>
+        ) : null}
+
+        {/* 5. Social icon row */}
+        {socialIconEntries.length > 0 ? (
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            {socialIconEntries.map((s, i) => (
               <a
-                href={businessRail.website.startsWith("http") ? businessRail.website : `https://${businessRail.website}`}
+                key={`${s.url}-${i}`}
+                href={s.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-semibold text-[#2F4A33] hover:underline break-all"
+                title={s.label}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-[#F4F1EA] transition hover:bg-white/18 hover:border-[#C9B46A]/40"
+                aria-label={s.label}
               >
-                {lang === "es" ? "Sitio web" : "Website"}
+                <SocialPlatformIcon platform={s.platform} />
               </a>
-            </p>
-          ) : null}
-          {businessRail.socialLinks && businessRail.socialLinks.length > 0 ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {businessRail.socialLinks.slice(0, showFullSocial ? undefined : 3).map((s, i) => (
-                <a
-                  key={i}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:bg-[#FAF3E4]"
-                >
-                  {s.label}
-                </a>
-              ))}
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-8 flex-1 min-h-0 space-y-6">
+          {/* 6. Phone */}
+          {businessRail.officePhone ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C9B46A]/90 mb-2">
+                {lang === "es" ? "Teléfono" : "Phone"}
+              </p>
+              <a
+                href={`tel:${businessRail.officePhone.replace(/\D/g, "")}`}
+                className="text-lg sm:text-xl font-semibold text-white tracking-tight hover:text-[#C9B46A] transition"
+              >
+                {businessRail.officePhone}
+              </a>
             </div>
-          ) : businessRail.rawSocials ? (
-            <p className="text-xs text-[#111111]/75 break-words">{businessRail.rawSocials}</p>
+          ) : null}
+
+          {/* 7. Languages */}
+          {businessRail.languages?.trim() ? (
+            <div className="rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C9B46A] mb-2">
+                {lang === "es" ? "Idiomas" : "Languages"}
+              </p>
+              <p className="text-base sm:text-[1.05rem] font-semibold text-[#F4F1EA] leading-snug">{businessRail.languages.trim()}</p>
+            </div>
           ) : null}
         </div>
 
         {businessRail.availabilityRows && businessRail.availabilityRows.length > 0 && (
-          <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#FAF3E4]/50 p-4">
-            <p className="text-[10px] font-semibold text-[#111111]/60 uppercase tracking-wide mb-2">
+          <div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#C9B46A]/85 mb-2">
               {lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}
             </p>
             <div className="space-y-2">
               {businessRail.availabilityRows.map((row, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-2 text-xs text-[#111111]">
-                  {row.title && <span className="font-semibold">{row.title}</span>}
+                <div key={i} className="flex flex-wrap items-center gap-2 text-xs text-[#F4F1EA]/90">
+                  {row.title && <span className="font-semibold text-white">{row.title}</span>}
                   {row.price && <span>{row.price}</span>}
-                  {row.size && <span className="text-[#111111]/65">{row.size}</span>}
+                  {row.size && <span className="text-[#F4F1EA]/65">{row.size}</span>}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="mt-auto pt-8 flex flex-col gap-2.5">
+        <div className="mt-auto pt-8 flex flex-col gap-2.5 border-t border-white/10">
           <button
             type="button"
-            className="w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
+            className="w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition bg-[#9a6b4a] text-white hover:bg-[#8a5f42] shadow-[0_10px_22px_-14px_rgba(0,0,0,0.45)]"
           >
             {lang === "es" ? "Solicitar información" : "Request info"}
           </button>
@@ -192,14 +276,14 @@ export default function BusinessListingIdentityRail({
             <Link
               href={agentProfileHref}
               prefetch={false}
-              className="block w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition text-center"
+              className="block w-full px-4 py-3.5 rounded-xl font-semibold border border-white/20 bg-white/10 text-[#F4F1EA] text-sm hover:bg-white/[0.14] transition text-center"
             >
               {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
             </Link>
           ) : null}
           <button
             type="button"
-            className="w-full px-4 py-3.5 rounded-xl font-semibold border border-[#C9B46A]/65 bg-[#F8F2E3] text-[#4A4536] text-sm hover:bg-[#F2E9D4] transition"
+            className="w-full px-4 py-3.5 rounded-xl font-semibold border border-[#C9B46A]/40 bg-transparent text-[#E8DCC8] text-sm hover:bg-white/5 transition"
           >
             {lang === "es" ? "Programar visita" : "Schedule visit"}
           </button>
