@@ -5315,16 +5315,36 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Identidad del negocio" : "Business identity"}</h4>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre del negocio" : "Business name"}{" *"}</label>
-                                <input value={details.enVentaBusinessName ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBusinessName: e.target.value }))} placeholder={lang === "es" ? "Ej: Inmobiliaria López" : "e.g. Lopez Realty"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                {!details.enVentaBusinessName?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido para negocio." : "Required for business."}</div>}
+                                <input value={details.negocioNombre ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioNombre: e.target.value }))} placeholder={lang === "es" ? "Ej: Inmobiliaria López" : "e.g. Lopez Realty"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                {!details.negocioNombre?.trim() && <div className="mt-1 text-xs text-[#111111]/40">{lang === "es" ? "Requerido para negocio." : "Required for business."}</div>}
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre del agente" : "Agent name"}</label>
-                                <input value={details.enVentaAgentName ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAgentName: e.target.value }))} placeholder={lang === "es" ? "Ej: María García" : "e.g. Maria Garcia"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.negocioAgente ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioAgente: e.target.value }))} placeholder={lang === "es" ? "Ej: María García" : "e.g. Maria Garcia"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Cargo o rol" : "Role or title"}</label>
-                                <input value={details.enVentaAgentRole ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAgentRole: e.target.value }))} placeholder={lang === "es" ? "Ej: Agente de ventas" : "e.g. Sales agent"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.negocioCargo ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))} placeholder={lang === "es" ? "Ej: Agente de ventas" : "e.g. Sales agent"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Logo del negocio" : "Business logo"}</label>
+                                <div className="mt-2 flex items-center gap-3">
+                                  <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                                    {logoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
+                                    <input type="file" accept="image/*" className="sr-only" disabled={logoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "logo"); e.target.value = ""; }} />
+                                  </label>
+                                  {details.negocioLogoUrl ? <img src={details.negocioLogoUrl} alt="" className="h-12 w-12 rounded-lg border border-black/10 object-cover bg-white" /> : null}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Foto del agente" : "Agent photo"}</label>
+                                <div className="mt-2 flex items-center gap-3">
+                                  <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
+                                    {agentPhotoUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir imagen" : "Upload image")}
+                                    <input type="file" accept="image/*" className="sr-only" disabled={agentPhotoUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBusinessImage(f, "agent"); e.target.value = ""; }} />
+                                  </label>
+                                  {details.negocioFotoAgenteUrl ? <img src={details.negocioFotoAgenteUrl} alt="" className="h-12 w-12 rounded-lg border border-black/10 object-cover bg-white" /> : null}
+                                </div>
                               </div>
                             </div>
                           )}

@@ -33,7 +33,7 @@ export default function BusinessListingIdentityRail({
 
   const businessName = businessRail.name || (lang === "es" ? "Negocio" : "Business");
   const agentName = businessRail.agent?.trim() || businessName;
-  const agentRole = businessRail.role?.trim() || (lang === "es" ? "Asesor" : "Advisor");
+  const agentRole = businessRail.role?.trim() || "";
 
   return (
     <div
@@ -52,7 +52,10 @@ export default function BusinessListingIdentityRail({
       </div>
       <div className="flex flex-col gap-4">
         {/* Agent-first header row (matches requested reference direction). */}
-        <div className={cx("rounded-xl border p-3", isBienesRaices ? "border-[#C9B46A]/35 bg-white" : "border-black/10 bg-white/75")}>
+        <div className={cx("rounded-xl border p-3 sm:p-4", isBienesRaices ? "border-[#C9B46A]/35 bg-white shadow-sm" : "border-black/10 bg-white/75")}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+            {lang === "es" ? "Agente" : "Agent"}
+          </p>
           <div className="flex items-center gap-3">
             {businessRail.agentPhotoUrl ? (
               <img
@@ -67,11 +70,11 @@ export default function BusinessListingIdentityRail({
             )}
             <div className="min-w-0">
               <p className="text-base font-extrabold text-[#111111] leading-tight truncate">{agentName}</p>
-              <p className="mt-0.5 text-xs text-[#111111]/70 truncate">{agentRole}</p>
+              {agentRole ? <p className="mt-0.5 text-xs text-[#111111]/70 truncate">{agentRole}</p> : null}
             </div>
           </div>
           {(businessRail.logoUrl || businessName) && (
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 border-t border-black/10 pt-3 flex items-center gap-2">
               {businessRail.logoUrl ? (
                 <img
                   src={businessRail.logoUrl}
