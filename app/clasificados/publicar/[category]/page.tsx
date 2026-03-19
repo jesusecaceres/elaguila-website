@@ -4119,7 +4119,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             : "Preview (as buyers will see it)"}
                     </span>
                   </div>
-                  <section className="flex-1 overflow-y-auto max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full">
+                  <section
+                    className={cx(
+                      "flex-1 overflow-y-auto mx-auto px-4 sm:px-6 py-6 w-full",
+                      // BR negocio: same focused column as PrivateBrPreviewContent (max-w-4xl); avoid full-bleed 2xl shell.
+                      isBienesRaicesNegocio ? "max-w-4xl" : "max-w-screen-2xl"
+                    )}
+                  >
                     {isRentasPrivado ? (
                       <>
                         <RentasPrivadoPublishPreview
