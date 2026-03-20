@@ -31,13 +31,12 @@ export default function BusinessListingIdentityRail({
   agentProfileReturnUrl,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
-  const showFullSocial =
-    isBienesRaices || businessRailTier === "business_plus";
+  /** BR listing/preview: compact rail (identity + CTAs only). Contact/social/hours stay on agent page & elsewhere. */
+  const showFullSocial = !isBienesRaices && businessRailTier === "business_plus";
   const showVirtualTourRow =
+    !isBienesRaices &&
     Boolean(businessRail.virtualTourUrl) &&
-    (isBienesRaices ||
-      businessRailTier === "business_plus" ||
-      businessRailTier === "business_standard");
+    (businessRailTier === "business_plus" || businessRailTier === "business_standard");
 
   const businessName = businessRail.name || (lang === "es" ? "Negocio" : "Business");
   const agentName = businessRail.agent?.trim() || businessName;
@@ -69,20 +68,27 @@ export default function BusinessListingIdentityRail({
   return (
     <div
       className={cx(
-        "rounded-[1.4rem] border p-5 sm:p-6",
+        "rounded-[1.4rem] border",
+        isBienesRaices ? "p-3.5 sm:p-4" : "p-5 sm:p-6",
         isBienesRaices || businessRailTier === "business_plus"
           ? "border-[#C9B46A]/55 bg-gradient-to-b from-[#F7F2E5] to-[#F2EBDD] ring-1 ring-[#C9B46A]/25 shadow-[0_14px_38px_-20px_rgba(17,17,17,0.35)]"
           : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
       )}
       data-section="preview-business-rail"
     >
-      <div className="flex flex-wrap items-center gap-2 mb-5">
+      <div className={cx("flex flex-wrap items-center gap-2", isBienesRaices ? "mb-2.5" : "mb-5")}>
         <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
           {lang === "es" ? "Identidad del negocio" : "Business"}
         </h4>
       </div>
-      <div className="flex flex-col gap-4 sm:gap-5">
-        <div className={cx("rounded-2xl border p-4 sm:p-5", isBienesRaices ? "border-[#C9B46A]/40 bg-[#FFFEFB] shadow-[0_8px_22px_-16px_rgba(17,17,17,0.35)]" : "border-black/10 bg-white/75")}>
+      <div className={cx("flex flex-col", isBienesRaices ? "gap-3" : "gap-4 sm:gap-5")}>
+        <div
+          className={cx(
+            "rounded-2xl border",
+            isBienesRaices ? "p-3 sm:p-3.5" : "p-4 sm:p-5",
+            isBienesRaices ? "border-[#C9B46A]/40 bg-[#FFFEFB] shadow-[0_8px_22px_-16px_rgba(17,17,17,0.35)]" : "border-black/10 bg-white/75"
+          )}
+        >
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
             {lang === "es" ? "Agente" : "Agent"}
           </p>
@@ -106,7 +112,7 @@ export default function BusinessListingIdentityRail({
             </div>
           </div>
           {(businessRail.logoUrl || businessName) && (
-            <div className="mt-4 border-t border-black/10 pt-3.5 flex items-center gap-3">
+            <div className={cx("border-t border-black/10 flex items-center gap-3", isBienesRaices ? "mt-3 pt-2.5" : "mt-4 pt-3.5")}>
               {businessRail.logoUrl ? (
                 <img
                   src={businessRail.logoUrl}
@@ -119,29 +125,29 @@ export default function BusinessListingIdentityRail({
           )}
         </div>
 
-        {businessRail.officePhone && (
+        {!isBienesRaices && businessRail.officePhone && (
           <p className="text-sm text-[#111111]">
             <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
             <span className="font-medium">{businessRail.officePhone}</span>
           </p>
         )}
-        {businessRail.agentEmail?.trim() ? (
+        {!isBienesRaices && businessRail.agentEmail?.trim() ? (
           <p className="text-sm text-[#111111] break-all">
             <span className="text-[#111111]/70">{lang === "es" ? "Correo:" : "Email:"} </span>
             <span className="font-medium">{businessRail.agentEmail.trim()}</span>
           </p>
         ) : null}
-        {businessRail.website && (
+        {!isBienesRaices && businessRail.website && (
           <p className="text-sm font-medium text-[#111111] break-all">
             {lang === "es" ? "Sitio web" : "Website"} → {businessRail.website}
           </p>
         )}
-        {showVirtualTourRow && (
+        {!isBienesRaices && showVirtualTourRow && (
           <p className="text-sm font-medium text-[#111111] break-all">
             {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
           </p>
         )}
-        {businessRail.socialLinks && businessRail.socialLinks.length > 0 ? (
+        {!isBienesRaices && businessRail.socialLinks && businessRail.socialLinks.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {businessRail.socialLinks.slice(0, showFullSocial ? undefined : 2).map((s, i) => (
               <span
@@ -152,25 +158,25 @@ export default function BusinessListingIdentityRail({
               </span>
             ))}
           </div>
-        ) : businessRail.rawSocials ? (
+        ) : !isBienesRaices && businessRail.rawSocials ? (
           <p className="text-xs text-[#111111]/80 break-words">{businessRail.rawSocials}</p>
         ) : null}
-        {businessRail.languages && (
+        {!isBienesRaices && businessRail.languages && (
           <p className="text-xs text-[#111111]/80">
             <span className="text-[#111111]/60">{lang === "es" ? "Idiomas:" : "Languages:"} </span>
             {businessRail.languages}
           </p>
         )}
-        {businessRail.hours && (
+        {!isBienesRaices && businessRail.hours && (
           <p className="text-xs text-[#111111]/80">
             <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
             {businessRail.hours}
           </p>
         )}
-        {businessRail.businessDescription && (
+        {!isBienesRaices && businessRail.businessDescription && (
           <p className="text-xs text-[#111111]/80 whitespace-pre-wrap">{businessRail.businessDescription}</p>
         )}
-        {businessRail.availabilityRows && businessRail.availabilityRows.length > 0 && (
+        {!isBienesRaices && businessRail.availabilityRows && businessRail.availabilityRows.length > 0 && (
           <div className="mt-3 rounded-xl border border-black/10 bg-white/60 p-3">
             <p className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
               {lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}
@@ -191,7 +197,7 @@ export default function BusinessListingIdentityRail({
             </div>
           </div>
         )}
-        <div className="mt-2 flex flex-col gap-2.5 sm:gap-3">
+        <div className={cx("flex flex-col", isBienesRaices ? "mt-1 gap-2 sm:gap-2.5" : "mt-2 gap-2.5 sm:gap-3")}>
           <button
             type="button"
             className={cx(

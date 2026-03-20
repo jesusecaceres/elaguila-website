@@ -417,7 +417,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     </div>
                   )}
                 </div>
-                <div className="w-full min-w-0">
+                <div className="w-full max-w-[17rem] min-w-0 shrink-0 self-center sm:self-start lg:mx-0">
                   <BusinessListingIdentityRail
                     businessRail={listing.businessRail}
                     category="bienes-raices"
