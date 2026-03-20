@@ -16,12 +16,24 @@ export type BusinessListingIdentityRailProps = {
   ownerId?: string | null;
   /** Current publish page path+query; passed to `/agente/[id]` as `returnTo` for back navigation. */
   agentProfileReturnUrl?: string | null;
+  /**
+   * BR negocio publish preview: show full contact/social/tour rows (same data as open card) with premium layout.
+   * Default false keeps compact rail for other BR callers.
+   */
+  premiumBienesRaices?: boolean;
 };
 
 /**
  * Shared business identity rail (BR negocio / Rentas negocio). Single source for ListingView and BR preview shell.
  * Premium agent layout lives on `/agente/[id]` only — not here.
  */
+function hrefForTour(raw: string | null | undefined): string {
+  const t = (raw ?? "").trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t) || t.startsWith("/")) return t;
+  return `https://${t}`;
+}
+
 export default function BusinessListingIdentityRail({
   businessRail,
   category,
@@ -29,14 +41,17 @@ export default function BusinessListingIdentityRail({
   lang,
   ownerId,
   agentProfileReturnUrl,
+  premiumBienesRaices = false,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
-  /** BR listing/preview: compact rail (identity + CTAs only). Contact/social/hours stay on agent page & elsewhere. */
-  const showFullSocial = !isBienesRaices && businessRailTier === "business_plus";
+  const brFull = isBienesRaices && premiumBienesRaices;
+  /** BR listing (non-premium): compact rail. Rentas: full social when Plus. */
+  const showFullSocial = (!isBienesRaices && businessRailTier === "business_plus") || brFull;
   const showVirtualTourRow =
-    !isBienesRaices &&
     Boolean(businessRail.virtualTourUrl) &&
-    (businessRailTier === "business_plus" || businessRailTier === "business_standard");
+    ((!isBienesRaices && (businessRailTier === "business_plus" || businessRailTier === "business_standard")) || brFull);
+  const showContactRows = !isBienesRaices || brFull;
+  const tourHrefBr = brFull && businessRail.virtualTourUrl ? hrefForTour(businessRail.virtualTourUrl) : "";
 
   const businessName = businessRail.name || (lang === "es" ? "Negocio" : "Business");
   const agentName = businessRail.agent?.trim() || businessName;
@@ -71,23 +86,23 @@ export default function BusinessListingIdentityRail({
     <div
       className={cx(
         "w-full min-w-0 rounded-[1.4rem] border",
-        isBienesRaices ? "p-3.5 sm:p-4" : "p-5 sm:p-6",
+        isBienesRaices ? (brFull ? "p-5 sm:p-6" : "p-3.5 sm:p-4") : "p-5 sm:p-6",
         isBienesRaices || businessRailTier === "business_plus"
           ? "border-[#C9B46A]/55 bg-gradient-to-b from-[#F7F2E5] to-[#F2EBDD] ring-1 ring-[#C9B46A]/25 shadow-[0_14px_38px_-20px_rgba(17,17,17,0.35)]"
           : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
       )}
       data-section="preview-business-rail"
     >
-      <div className={cx("flex flex-wrap items-center gap-2", isBienesRaices ? "mb-2.5" : "mb-5")}>
+      <div className={cx("flex flex-wrap items-center gap-2", isBienesRaices && !brFull ? "mb-2.5" : "mb-5")}>
         <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
-          {lang === "es" ? "Identidad del negocio" : "Business"}
+          {brFull ? (lang === "es" ? "Contacto del listado" : "Listing contact") : lang === "es" ? "Identidad del negocio" : "Business"}
         </h4>
       </div>
-      <div className={cx("flex flex-col", isBienesRaices ? "gap-3" : "gap-4 sm:gap-5")}>
+      <div className={cx("flex flex-col", isBienesRaices && !brFull ? "gap-3" : "gap-4 sm:gap-5")}>
         <div
           className={cx(
             "rounded-2xl border",
-            isBienesRaices ? "p-3 sm:p-3.5" : "p-4 sm:p-5",
+            isBienesRaices ? (brFull ? "p-4 sm:p-5" : "p-3 sm:p-3.5") : "p-4 sm:p-5",
             isBienesRaices ? "border-[#C9B46A]/40 bg-[#FFFEFB] shadow-[0_8px_22px_-16px_rgba(17,17,17,0.35)]" : "border-black/10 bg-white/75"
           )}
         >
@@ -120,6 +135,11 @@ export default function BusinessListingIdentityRail({
                   {agentRole}
                 </p>
               ) : null}
+              {brFull && businessRail.agentLicense?.trim() ? (
+                <p className="mt-1.5 text-[11px] text-[#111111]/55">
+                  {lang === "es" ? "Licencia" : "License"}: {businessRail.agentLicense.trim()}
+                </p>
+              ) : null}
             </div>
           </div>
           {(businessRail.logoUrl || businessName) && (
@@ -136,58 +156,73 @@ export default function BusinessListingIdentityRail({
           )}
         </div>
 
-        {!isBienesRaices && businessRail.officePhone && (
+        {showContactRows && businessRail.officePhone && (
           <p className="text-sm text-[#111111]">
             <span className="text-[#111111]/70">{lang === "es" ? "Oficina:" : "Office:"} </span>
             <span className="font-medium">{businessRail.officePhone}</span>
           </p>
         )}
-        {!isBienesRaices && businessRail.agentEmail?.trim() ? (
+        {showContactRows && businessRail.agentEmail?.trim() ? (
           <p className="text-sm text-[#111111] break-all">
             <span className="text-[#111111]/70">{lang === "es" ? "Correo:" : "Email:"} </span>
             <span className="font-medium">{businessRail.agentEmail.trim()}</span>
           </p>
         ) : null}
-        {!isBienesRaices && businessRail.website && (
-          <p className="text-sm font-medium text-[#111111] break-all">
-            {lang === "es" ? "Sitio web" : "Website"} → {businessRail.website}
-          </p>
+        {showContactRows && businessRail.website && (
+          <a
+            href={hrefForTour(businessRail.website)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-[#2F4A33] underline-offset-2 hover:underline break-all"
+          >
+            {lang === "es" ? "Sitio web" : "Website"}
+          </a>
         )}
-        {!isBienesRaices && showVirtualTourRow && (
-          <p className="text-sm font-medium text-[#111111] break-all">
-            {lang === "es" ? "Recorrido virtual" : "Virtual tour"} →
-          </p>
+        {showContactRows && showVirtualTourRow && businessRail.virtualTourUrl && !brFull && (
+          <a
+            href={hrefForTour(businessRail.virtualTourUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-[#2F4A33] underline-offset-2 hover:underline break-all"
+          >
+            {lang === "es" ? "Recorrido virtual" : "Virtual tour"}
+          </a>
         )}
-        {!isBienesRaices && businessRail.socialLinks && businessRail.socialLinks.length > 0 ? (
+        {showContactRows && businessRail.socialLinks && businessRail.socialLinks.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {businessRail.socialLinks.slice(0, showFullSocial ? undefined : 2).map((s, i) => (
-              <span
+              <a
                 key={i}
-                className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111]"
+                href={hrefForTour(s.url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#FAFAFA]"
               >
-                {s.label} →
-              </span>
+                {s.label}
+              </a>
             ))}
           </div>
-        ) : !isBienesRaices && businessRail.rawSocials ? (
+        ) : showContactRows && businessRail.rawSocials ? (
           <p className="text-xs text-[#111111]/80 break-words">{businessRail.rawSocials}</p>
         ) : null}
-        {!isBienesRaices && businessRail.languages && (
+        {showContactRows && businessRail.languages && (
           <p className="text-xs text-[#111111]/80">
             <span className="text-[#111111]/60">{lang === "es" ? "Idiomas:" : "Languages:"} </span>
             {businessRail.languages}
           </p>
         )}
-        {!isBienesRaices && businessRail.hours && (
+        {showContactRows && businessRail.hours && (
           <p className="text-xs text-[#111111]/80">
             <span className="text-[#111111]/60">{lang === "es" ? "Horario:" : "Hours:"} </span>
             {businessRail.hours}
           </p>
         )}
-        {!isBienesRaices && businessRail.businessDescription && (
-          <p className="text-xs text-[#111111]/80 whitespace-pre-wrap">{businessRail.businessDescription}</p>
+        {showContactRows && businessRail.businessDescription && (
+          <p className={cx("text-[#111111]/80 whitespace-pre-wrap", brFull ? "text-sm leading-relaxed" : "text-xs")}>
+            {businessRail.businessDescription}
+          </p>
         )}
-        {!isBienesRaices && businessRail.availabilityRows && businessRail.availabilityRows.length > 0 && (
+        {showContactRows && businessRail.availabilityRows && businessRail.availabilityRows.length > 0 && (
           <div className="mt-3 rounded-xl border border-black/10 bg-white/60 p-3">
             <p className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">
               {lang === "es" ? "Disponibilidad y precios" : "Availability & pricing"}
@@ -208,17 +243,29 @@ export default function BusinessListingIdentityRail({
             </div>
           </div>
         )}
-        <div className={cx("flex flex-col", isBienesRaices ? "mt-1 gap-2 sm:gap-2.5" : "mt-2 gap-2.5 sm:gap-3")}>
+        <div className={cx("flex flex-col", isBienesRaices && !brFull ? "mt-1 gap-2 sm:gap-2.5" : "mt-2 gap-2.5 sm:gap-3")}>
+          {tourHrefBr ? (
+            <a
+              href={tourHrefBr}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full px-4 py-3.5 rounded-xl font-semibold text-sm text-center border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)] transition"
+            >
+              {lang === "es" ? "Solicitar recorrido" : "Request tour"}
+            </a>
+          ) : null}
           <button
             type="button"
             className={cx(
               "w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition",
-              isBienesRaices
-                ? "border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
-                : "border border-[#111111]/18 bg-white text-[#111111] hover:bg-[#F5F5F5]"
+              brFull && tourHrefBr
+                ? "border border-stone-300/90 bg-white text-[#111111] hover:bg-stone-50 shadow-sm"
+                : isBienesRaices
+                  ? "border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
+                  : "border border-[#111111]/18 bg-white text-[#111111] hover:bg-[#F5F5F5]"
             )}
           >
-            {lang === "es" ? "Solicitar información" : "Request info"}
+            {brFull ? (lang === "es" ? "Enviar mensaje" : "Send message") : lang === "es" ? "Solicitar información" : "Request info"}
           </button>
           {isBienesRaices && agentProfileHref ? (
             <Link
@@ -228,6 +275,14 @@ export default function BusinessListingIdentityRail({
             >
               {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
             </Link>
+          ) : null}
+          {brFull && businessRail.officePhone ? (
+            <a
+              href={`tel:${businessRail.officePhone.replace(/[^\d+]/g, "")}`}
+              className="w-full px-4 py-3.5 rounded-xl font-semibold border border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] text-sm hover:bg-[#EFE7D8] transition text-center"
+            >
+              {lang === "es" ? "Llamar" : "Call"}
+            </a>
           ) : null}
           <button
             type="button"
