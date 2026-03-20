@@ -88,7 +88,7 @@ const BR_PRIVADO_PRICE_PER_POST = "$49.99";
 const BR_NEGOCIO_PRICE_WEEKLY = "$89.99";
 const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
-import { buildNegocioRedesPayload, formatUsPhone10 } from "../../lib/brNegocioContactHelpers";
+import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
 import { BIENES_RAICES_SUBCATEGORIES } from "../../config/bienesRaicesTaxonomy";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
@@ -183,7 +183,7 @@ import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
 import ListingView, { type ListingData } from "../../components/ListingView";
-import RentasPrivadoPublishPreview from "../../components/RentasPrivadoPublishPreview";
+import RentasPrivadoPublishPreview from "../../rentas/privado/preview/RentasPrivadoPublishPreview";
 
 /** Real categories for publicar (no "all", no "Más"). Same order and icons as lista explorer. */
 const PUBLICAR_CATEGORIES: Array<{

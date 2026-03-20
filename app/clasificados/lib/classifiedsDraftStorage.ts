@@ -4,8 +4,10 @@
  * and so logout clears stale in-progress data.
  */
 
+import { PREVIEW_LISTING_DRAFT_KEY } from "@/app/lib/previewListingDraft";
+
 /** SessionStorage: draft passed to /preview-listing (set when opening full preview). */
-export const PREVIEW_LISTING_DRAFT_KEY = "preview-listing-draft";
+export { PREVIEW_LISTING_DRAFT_KEY };
 
 /** SessionStorage: restore images when returning from preview. */
 export const IMAGES_RESTORE_KEY = "leonix_listing_draft_images_restore";

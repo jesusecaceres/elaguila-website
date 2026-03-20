@@ -4,7 +4,7 @@
  */
 
 import type { BusinessRailData, ListingData } from "@/app/clasificados/components/ListingView";
-import { buildNegocioRedesPayload } from "@/app/clasificados/lib/brNegocioContactHelpers";
+import { buildNegocioRedesPayload } from "@/app/clasificados/bienes-raices/negocio/utils/brNegocioContactHelpers";
 type Lang = "es" | "en";
 
 type MapperParams = {

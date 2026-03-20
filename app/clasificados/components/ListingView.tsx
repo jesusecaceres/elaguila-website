@@ -7,8 +7,8 @@ import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
 import BusinessListingIdentityRail from "./BusinessListingIdentityRail";
-import BienesRaicesPreviewListing from "./BienesRaicesPreviewListing";
-import BienesRaicesPreviewNegocioFresh from "./BienesRaicesPreviewNegocioFresh";
+import BienesRaicesPreviewListing from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPreviewListing";
+import BienesRaicesPreviewNegocioFresh from "@/app/clasificados/bienes-raices/negocio/preview/BienesRaicesPreviewNegocioFresh";
 
 /** Business rail display (BR negocio / Rentas negocio). Used for preview parity with open card. */
 export type BusinessRailData = {

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import ListingView from "@/app/clasificados/components/ListingView";
 import type { ListingData } from "@/app/clasificados/components/ListingView";
-import { formatUsPhone10 } from "@/app/clasificados/lib/brNegocioContactHelpers";
+import { formatUsPhone10 } from "@/app/clasificados/bienes-raices/negocio/utils/brNegocioContactHelpers";
 import type { PublishStep } from "@/app/clasificados/config/categorySchema";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
 
