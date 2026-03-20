@@ -4248,7 +4248,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
               {/* In-page full preview modal — no route, no sessionStorage; uses current form state and ListingView */}
               {showFullPreviewModal && (
-                <div className="fixed inset-0 z-[110] flex flex-col bg-[#D9D9D9] text-[#111111]" role="dialog" aria-modal="true" aria-labelledby="full-preview-title">
+                <div
+                  className="fixed inset-0 z-[110] overflow-y-auto overscroll-y-contain bg-[#D9D9D9] text-[#111111]"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="full-preview-title"
+                >
                   <h2 id="full-preview-title" className="sr-only">{copy.fullPreviewTitle}</h2>
                   <div className="sticky top-0 z-10 flex items-center justify-between gap-4 px-4 py-3 border-b border-black/10 bg-[#F5F5F5] shadow-sm">
                     <button
@@ -4270,7 +4275,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                   </div>
                   <section
                     className={cx(
-                      "flex-1 overflow-y-auto mx-auto px-4 sm:px-6 py-6 w-full",
+                      "mx-auto px-4 sm:px-6 py-6 w-full min-w-0",
                       // BR negocio: same focused column as PrivateBrPreviewContent (max-w-4xl); avoid full-bleed 2xl shell.
                       isBienesRaicesNegocio ? "max-w-4xl" : "max-w-screen-2xl"
                     )}
@@ -4374,9 +4379,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         hideProComparisonUI={category === "bienes-raices"}
                       />
                     )}
-                  </section>
-                  {(!isRentasPrivado && !isBienesRaicesPrivado && categoryFromUrl !== "bienes-raices") || (categoryFromUrl === "bienes-raices" && isBienesRaicesNegocio) ? (
-                  <div className="sticky bottom-0 left-0 right-0 z-10 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
+                    {(!isRentasPrivado && !isBienesRaicesPrivado && categoryFromUrl !== "bienes-raices") ||
+                    (categoryFromUrl === "bienes-raices" && isBienesRaicesNegocio) ? (
+                  <div className="mt-8 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
                     <div className="max-w-md mx-auto space-y-3">
                       {categoryFromUrl === "bienes-raices" ? (
                         <>
@@ -4519,7 +4524,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       )}
                     </div>
                   </div>
-                ) : null}
+                    ) : null}
+                  </section>
                 </div>
               )}
 
