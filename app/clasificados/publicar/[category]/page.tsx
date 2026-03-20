@@ -15,7 +15,6 @@ import {
   FiUsers,
   FiMapPin,
 } from "react-icons/fi";
-import { MdOutlineBed, MdOutlineBathtub, MdOutlineSquareFoot } from "react-icons/md";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../../../lib/supabase/browser";
 import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
 import {
@@ -91,7 +90,7 @@ const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../lib/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
-import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
+import { BIENES_RAICES_SUBCATEGORIES } from "../../config/bienesRaicesTaxonomy";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
@@ -102,6 +101,7 @@ import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublis
 import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
+import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
 
 /** BR private: 6-bucket subcategory keys (source of truth for type-aware copy). */
 type BrSubcategoriaKey = "residencial" | "condos-townhomes" | "multifamiliar" | "terrenos" | "comercial" | "industrial";
@@ -6613,334 +6613,51 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           />
                         )}
 
-                      {/* Preview */}
-                      <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-semibold text-[#111111]">{copy.preview}</div>
-                          <div className="text-xs text-[#111111]/40">
-                            {lang === "es" ? "Así se verá tu anuncio" : "This is how your listing will look"}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
-                          {/* Left: compact feed card — Zillow-style for BR private only */}
-                          {categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio" ? (
-                            <div className="max-w-[280px] lg:max-w-none">
-                              <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
-                              <article className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm">
-                                <div className="relative h-36 w-full overflow-hidden bg-[#E8E8E8] flex items-center justify-center rounded-t-xl">
-                                  {coverImage ? (
-                                    <img src={coverImage} alt="" className="h-full w-full object-cover" />
-                                  ) : (
-                                    <div className="flex items-center justify-center text-[#111111]/45 text-xs px-2 text-center">
-                                      {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="p-4">
-                                  <div className="rounded-lg bg-[#F8F6F0]/70 pl-0 pr-2.5 py-2.5 mb-4">
-                                    <div className="text-lg font-extrabold text-[#111111] leading-tight tracking-tight">
-                                      {formatMoneyMaybe(previewPrice, lang) || formatListingPrice(previewPrice, { lang, isFree: false })}
-                                    </div>
-                                  </div>
-                                  {(() => {
-                                    const d = details;
-                                    type Fact = { type: "bed"; value: string } | { type: "bath"; value: string } | { type: "sqft"; value: string; label: string } | { type: "posted" };
-                                    const parts: Fact[] = [];
-                                    const br = (d.enVentaBedrooms ?? "").trim();
-                                    if (br) parts.push({ type: "bed", value: br });
-                                    const ba = (d.enVentaBathrooms ?? "").trim();
-                                    if (ba) parts.push({ type: "bath", value: ba });
-                                    const sqRaw = (d.enVentaSquareFeet ?? "").trim();
-                                    if (sqRaw) {
-                                      const sqNum = sqRaw.replace(/[^0-9]/g, "");
-                                      const sqDisplay = sqNum && Number.isFinite(Number(sqNum)) ? Number(sqNum).toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
-                                      parts.push({ type: "sqft", value: sqDisplay, label: lang === "es" ? "pies²" : "sq ft" });
-                                    }
-                                    parts.push({ type: "posted" });
-                                    const iconClass = "w-3.5 h-3.5 text-[#111111]/50 flex-shrink-0";
-                                    return parts.length > 0 ? (
-                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5 text-[11px] leading-relaxed">
-                                        {parts.map((p, i) => (
-                                          <span key={i} className="inline-flex items-center gap-1.5">
-                                            {i > 0 && <span className="text-[#111111]/30 select-none" aria-hidden>·</span>}
-                                            {p.type === "posted" ? (
-                                              <span className="text-[#111111]/65">{previewPosted}</span>
-                                            ) : p.type === "bed" ? (
-                                              <><MdOutlineBed className={iconClass} aria-hidden /><span className="font-bold text-[#111111]">{p.value}</span></>
-                                            ) : p.type === "bath" ? (
-                                              <><MdOutlineBathtub className={iconClass} aria-hidden /><span className="font-bold text-[#111111]">{p.value}</span></>
-                                            ) : (
-                                              <><MdOutlineSquareFoot className={iconClass} aria-hidden /><span className="font-bold text-[#111111]">{p.value}</span><span className="text-[#111111]/70">{p.label}</span></>
-                                            )}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    ) : null;
-                                  })()}
-                                  {(() => {
-                                    const addr = (details.enVentaAddress ?? "").trim();
-                                    const zone = (details.enVentaZone ?? "").trim();
-                                    const city = previewCity;
-                                    const mainLine = addr ? addr : (zone ? `${zone}, ${city}` : city);
-                                    if (!mainLine) return null;
-                                    return (
-                                      <div className="mt-1.5 space-y-0.5">
-                                        <p className="text-[11px] font-medium text-[#111111]/70 leading-snug">{mainLine}</p>
-                                        {zone ? (
-                                          <p className="text-[10px] text-[#111111]/55 leading-snug">
-                                            {lang === "es" ? "Vecindad: " : "Neighborhood: "}{zone}
-                                          </p>
-                                        ) : null}
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </article>
-                            </div>
-                          ) : (
-                            <div className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm max-w-[280px] lg:max-w-none">
-                              <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-1.5">{copy.cardPreview}</div>
-                              <div className="relative rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] h-48 flex items-center justify-center">
-                                {coverImage ? (
-                                  <img src={coverImage} alt="" className="max-h-full max-w-full w-full object-contain" />
-                                ) : (
-                                  <div className="flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center h-full">
-                                    {lang === "es" ? "Tu foto principal aparecerá aquí" : "Your main photo will appear here"}
-                                  </div>
-                                )}
-                                <span className="absolute top-1.5 right-1.5 rounded-full border border-black/10 bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-[#111111]">
-                                  {copy.saveLabel}
-                                </span>
-                              </div>
-                              <div className="p-2">
-                                <div className="text-sm font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaSnapshot.isFree })}</div>
-                                <h3 className="mt-0.5 text-xs font-semibold text-[#111111] line-clamp-2 leading-tight">{previewTitle}</h3>
-                                <div className="mt-0.5 text-[10px] text-[#111111]/55">
-                                  {previewCity} · {previewPosted}
-                                </div>
-                                {previewShortDescription ? (
-                                  <p className="mt-1.5 text-[10px] text-[#111111]/75 line-clamp-2">{previewShortDescription}</p>
-                                ) : null}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Right: summary + launcher */}
-                          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 flex flex-col">
-                            <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-2">{copy.detailPreview}</div>
-
-                            <div className="rounded-lg border border-black/10 overflow-hidden bg-[#E8E8E8] h-40 flex items-center justify-center mb-3">
-                              {coverImage ? (
-                                <img src={coverImage} alt="" className="max-h-full max-w-full w-full object-contain" />
-                              ) : (
-                                <div className="flex items-center justify-center text-[#111111]/45 text-xs px-3 text-center h-full">
-                                  {lang === "es" ? "La vista detallada mostrará tu foto principal aquí" : "The detail view will show your main photo here"}
-                                </div>
-                              )}
-                            </div>
-
-                            <h2 className="text-base font-semibold text-[#111111] leading-snug">{previewTitle}</h2>
-                            <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
-                              <span className="font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaSnapshot.isFree })}</span>
-                              <span className="text-[#111111]/40">·</span>
-                              <span className="text-[#111111]/80">{previewCity}</span>
-                              <span className="text-[#111111]/40">·</span>
-                              <span className="text-[#111111]/60 text-xs">{previewPosted}</span>
-                            </div>
-                            {previewCategoryLabel ? (
-                              <span className="mt-2 inline-block rounded-md border border-black/10 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-[#111111]/80">
-                                {previewCategoryLabel}
-                              </span>
-                            ) : null}
-                            {categoryFromUrl === "bienes-raices" && (details.bienesRaicesSubcategoria ?? "").trim() ? (
-                              <p className="mt-2 text-xs font-medium text-[#111111]">
-                                {lang === "es" ? "Tipo de propiedad:" : "Property type:"}{" "}
-                                <span className="font-semibold">{getBienesRaicesSubcategoryLabel(details.bienesRaicesSubcategoria.trim(), lang)}</span>
-                              </p>
-                            ) : null}
-
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#111111]">
-                                {copy.saveLabel}
-                              </span>
-                              <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#111111]">
-                                {copy.shareLabel}
-                              </span>
-                              <span className="rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-2.5 py-1 text-[10px] font-semibold text-[#111111]">
-                                {copy.contactLabel}
-                              </span>
-                            </div>
-
-                            {previewDetailPairs.length > 0 && (categoryFromUrl === "bienes-raices" && isBienesRaicesPrivado ? (
-                              <>
-                                {compactBrPrivateDetailPairs.length > 0 && (
-                                  <div className="mt-3 rounded-lg border border-black/10 bg-white p-3 sm:hidden space-y-2.5">
-                                    <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide">
-                                      {lang === "es" ? "Resumen" : "Summary"}
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                      {compactBrPrivateDetailPairs.map((p) => (
-                                        <div key={p.label} className="flex flex-col gap-0.5">
-                                          <span className="text-[10px] text-[#111111]/55">{p.label}</span>
-                                          <span className="text-xs font-medium text-[#111111]">{p.value}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5 hidden sm:block">
-                                  <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
-                                    {lang === "es" ? "Detalles" : "Details"}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                                    {previewDetailPairs.map((p) => (
-                                      <div key={p.label}>
-                                        <span className="text-[#111111]/55">{p.label}</span>
-                                        <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
-                                <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
-                                  {lang === "es" ? "Detalles" : "Details"}
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                                  {previewDetailPairs.map((p) => (
-                                    <div key={p.label}>
-                                      <span className="text-[#111111]/55">{p.label}</span>
-                                      <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-
-                            <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
-                              <p className="text-xs text-[#111111] line-clamp-3 whitespace-pre-wrap">
-                                {previewShortDescription || previewDescription || (lang === "es" ? "(Sin descripción)" : "(No description)")}
-                              </p>
-                            </div>
-
-                            <div className="mt-4 pt-3 border-t border-black/10 flex flex-col gap-2">
-                              {isRentasPrivado ? (
-                                <button
-                                  type="button"
-                                  onClick={openFullPreview}
-                                  className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                >
-                                  {lang === "es" ? "Vista previa" : "Preview"}
-                                </button>
-                              ) : isBienesRaicesNegocio ? (
-                                <button
-                                  type="button"
-                                  onClick={openFullPreview}
-                                  className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                >
-                                  {lang === "es" ? "Vista previa" : "Preview"}
-                                </button>
-                              ) : isBienesRaicesPrivado ? (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    openFullPreview();
-                                  }}
-                                  className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                >
-                                  {(copy as { viewYourListingCta?: string }).viewYourListingCta ?? (lang === "es" ? "Ver tu anuncio" : "View your listing")}
-                                </button>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={openFullPreview}
-                                    className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  >
-                                    {copy.fullPreviewCta}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={openProPreview}
-                                    className="w-full rounded-xl border border-[#111111]/20 bg-white py-2.5 text-sm font-semibold text-[#111111]/90 hover:bg-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                                  >
-                                    {copy.proPreviewCta}
-                                  </button>
-                                </>
-                              )}
-                            </div>
-
-                            {isPro && (videoFiles[0] || (!isRentasPrivado && videoFiles[1])) && (
-                              <div className="mt-4 rounded-xl border border-black/10 bg-[#F5F5F5] p-4">
-                                <div className="text-sm font-semibold text-yellow-200">
-                                  {lang === "es" ? "Videos (Pro)" : "Pro Videos"}
-                                </div>
-                                <div className="mt-1 text-xs text-[#111111]">
-                                  {lang === "es"
-                                    ? "Toque la miniatura para reproducir. No se reproduce automáticamente."
-                                    : "Tap the thumbnail to play. No autoplay."}
-                                </div>
-                                <div className="mt-3 space-y-3">
-                                  {(isRentasPrivado ? [0] : [0, 1]).map((idx) => {
-                                    if (!videoFiles[idx] || videoErrors[idx]) return null;
-                                    const thumb = proVideoThumbPreviewUrls[idx];
-                                    const src = proVideoPreviewUrls[idx];
-                                    const expanded = expandedVideoIndex === idx;
-                                    return (
-                                      <div key={idx} className="rounded-xl border border-black/10 overflow-hidden bg-[#1a1a1a]">
-                                        <div className="text-[10px] font-medium text-white/70 px-2 py-1">
-                                          {lang === "es" ? `Video ${idx + 1}` : `Video ${idx + 1}`}
-                                        </div>
-                                        {expanded ? (
-                                          <video
-                                            className="w-full aspect-video bg-black"
-                                            controls
-                                            preload="none"
-                                            playsInline
-                                            poster={thumb || undefined}
-                                            src={src || undefined}
-                                          />
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            onClick={() => setExpandedVideoIndex(idx as 0 | 1)}
-                                            className="group relative block w-full overflow-hidden rounded-b-xl border-0"
-                                            aria-label={lang === "es" ? "Reproducir video" : "Play video"}
-                                          >
-                                            {thumb ? (
-                                              <img src={thumb} alt="" className="h-auto w-full object-cover opacity-95 group-hover:opacity-100" loading="lazy" />
-                                            ) : (
-                                              <div className="aspect-video flex items-center justify-center text-white/60">🎥</div>
-                                            )}
-                                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                              <div className="rounded-full border border-white/20 bg-white/14 px-4 py-2 text-sm font-semibold text-[#111111]">
-                                                {lang === "es" ? "▶ Reproducir" : "▶ Play"}
-                                              </div>
-                                            </div>
-                                          </button>
-                                        )}
-                                        {expanded && (
-                                          <button
-                                            type="button"
-                                            onClick={() => setExpandedVideoIndex(null)}
-                                            className="w-full py-1.5 text-xs text-white/70 hover:text-white"
-                                          >
-                                            {lang === "es" ? "Cerrar" : "Close"}
-                                          </button>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <PublishMediaPreviewPanel
+                        lang={lang}
+                        copy={{ preview: copy.preview, cardPreview: copy.cardPreview }}
+                        useBienesRaicesPrivadoLeftCard={
+                          categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio"
+                        }
+                        formatMoneyMaybe={formatMoneyMaybe}
+                        coverImage={coverImage}
+                        previewPrice={previewPrice}
+                        previewTitle={previewTitle}
+                        previewCity={previewCity}
+                        previewPosted={previewPosted}
+                        previewShortDescription={previewShortDescription}
+                        details={details}
+                        enVentaIsFree={enVentaSnapshot.isFree}
+                        rightPanel={{
+                          copy: {
+                            detailPreview: copy.detailPreview,
+                            saveLabel: copy.saveLabel,
+                            shareLabel: copy.shareLabel,
+                            contactLabel: copy.contactLabel,
+                            fullPreviewCta: copy.fullPreviewCta,
+                            proPreviewCta: copy.proPreviewCta,
+                          },
+                          viewYourListingCta: (copy as { viewYourListingCta?: string }).viewYourListingCta,
+                          previewCategoryLabel,
+                          categoryFromUrl,
+                          isBienesRaicesPrivado,
+                          previewDetailPairs,
+                          compactBrPrivateDetailPairs,
+                          previewShortDescription,
+                          previewDescription,
+                          isRentasPrivado,
+                          isBienesRaicesNegocio,
+                          openFullPreview,
+                          openProPreview,
+                          isPro,
+                          videoFiles,
+                          videoErrors,
+                          proVideoThumbPreviewUrls,
+                          proVideoPreviewUrls,
+                          expandedVideoIndex,
+                          setExpandedVideoIndex,
+                        }}
+                      />
 
                       {publishError && (
                         <div
