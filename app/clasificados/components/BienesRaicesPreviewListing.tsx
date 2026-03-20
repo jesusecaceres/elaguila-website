@@ -431,7 +431,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     <div
       className={cx(
         "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-x-hidden",
-        showBusinessRail && "mx-auto max-w-[min(100%,80rem)]"
+        showBusinessRail && "mx-auto max-w-[min(100%,88rem)] 2xl:max-w-[min(100%,112rem)]"
       )}
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
