@@ -1,12 +1,4 @@
 "use client";
-
-import type { ListingData } from "./ListingView";
-
-export type BienesRaicesPreviewListingProps = {
-  listing: ListingData;
-};
-
-export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPreviewListingProps) {
-  void listing;
-  return <div>BR privado preview reset</div>;
-}
+/** Re-export — implementation: `app/clasificados/bienes-raices/privado/preview/BienesRaicesPreviewListing.tsx` */
+export { default } from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPreviewListing";
+export type { BienesRaicesPreviewListingProps } from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPreviewListing";
