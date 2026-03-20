@@ -474,11 +474,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </nav>
             </header>
             {/*
-              BR negocio desktop: 2-col (main | sidebar). Left: media band (hero|2×2) → details card → description stack. Right: rail only.
+              BR negocio desktop: main | fixed sidebar; left stacks media row → title card → description. Rail only in right column.
             */}
-            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)] lg:items-start lg:gap-x-8">
+            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_24rem]">
               <div className="min-w-0 flex w-full flex-col gap-4 sm:gap-5 lg:min-w-0">
-                <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] lg:items-start lg:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]">
+                <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
                   <div className="flex w-full min-w-0 justify-center lg:min-w-0 lg:max-w-full lg:justify-start">
                     {negocioHeroOnly}
                   </div>
