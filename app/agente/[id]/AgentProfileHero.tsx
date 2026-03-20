@@ -42,6 +42,8 @@ function SocialPlatformIcon({ platform, className }: { platform: SocialPlatform;
       return <FaTiktok className={cn} aria-hidden />;
     case "whatsapp":
       return <FaWhatsapp className={cn} aria-hidden />;
+    case "twitter":
+      return <FaTwitter className={cn} aria-hidden />;
     default:
       return <FaGlobe className={cn} aria-hidden />;
   }
@@ -130,7 +132,7 @@ export default function AgentProfileHero({
   return (
     <div
       className={cx(
-        "w-full max-w-3xl rounded-2xl border border-[#C9B46A]/22 bg-gradient-to-b from-[#FFFEFB] to-[#F8F5EE] shadow-[0_8px_32px_-20px_rgba(17,17,17,0.2)] ring-1 ring-[#C9B46A]/12",
+        "w-full min-w-0 max-w-3xl overflow-x-hidden rounded-2xl border border-[#C9B46A]/22 bg-gradient-to-b from-[#FFFEFB] to-[#F8F5EE] shadow-[0_8px_32px_-20px_rgba(17,17,17,0.2)] ring-1 ring-[#C9B46A]/12",
         "p-4 sm:p-5 lg:p-6",
         className
       )}
@@ -218,14 +220,14 @@ export default function AgentProfileHero({
           ) : null}
 
           {(agentEmail ?? "").trim() ? (
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.email}</p>
               <a
                 href={`mailto:${(agentEmail ?? "").trim()}`}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2F4A33] hover:underline break-all"
+                className="inline-flex min-w-0 max-w-full items-start gap-1.5 text-sm font-semibold text-[#2F4A33] hover:underline break-words"
               >
-                <FaEnvelope className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                {(agentEmail ?? "").trim()}
+                <FaEnvelope className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                <span className="min-w-0">{(agentEmail ?? "").trim()}</span>
               </a>
             </div>
           ) : null}

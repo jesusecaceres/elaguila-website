@@ -26,21 +26,55 @@ function pickDetailPairValue(
 function parseSocialUrls(raw: string): Array<{ label: string; url: string }> {
   const s = (raw ?? "").trim();
   if (!s) return [];
-  const urlLike = /https?:\/\/[^\s<>"']+/gi;
   const seen = new Set<string>();
   const out: Array<{ label: string; url: string }> = [];
+
+  const pushUrl = (candidate: string) => {
+    let u = candidate.replace(/[),.;:]+$/g, "").trim();
+    if (!u) return;
+    if (!/^https?:\/\//i.test(u)) {
+      if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)) {
+        u = `https://${u}`;
+      } else {
+        return;
+      }
+    }
+    const key = u.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ label: "Link", url: u });
+  };
+
+  const urlLike = /https?:\/\/[^\s<>"']+/gi;
   const matches = s.match(urlLike);
   if (matches) {
     for (const matched of matches) {
-      const u = matched.replace(/[),.;:]+$/g, "").trim();
-      if (!/^https?:\/\//i.test(u)) continue;
-      const key = u.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({ label: "Link", url: u });
+      pushUrl(matched);
+    }
+  }
+  // Lines without a scheme (e.g. facebook.com/...) still saved in negocioRedes
+  for (const line of s.split(/[\n\r,;]+/)) {
+    const t = line.trim();
+    if (!t || /^https?:\/\//i.test(t)) continue;
+    if (/^[\w.-]+\.[a-z]{2,}/i.test(t)) {
+      pushUrl(t);
     }
   }
   return out;
+}
+
+/** Merge `business_meta` from several listings (newest rows first): each key uses first non-empty value = prefers newest listing’s data. */
+function mergeBusinessMetaPreferNewest(rows: Array<Record<string, unknown>>): Record<string, string> {
+  const merged: Record<string, string> = {};
+  for (const row of rows) {
+    const m = parseBusinessMeta(row.business_meta as string | null | undefined);
+    if (!m) continue;
+    for (const [k, v] of Object.entries(m)) {
+      const t = (v ?? "").trim();
+      if (t && merged[k] === undefined) merged[k] = t;
+    }
+  }
+  return merged;
 }
 
 function normalizeWebsiteUrl(raw: string): string | null {
@@ -156,35 +190,57 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
     "business_name, business_meta, city, detail_pairs, category, seller_type, status, created_at";
 
   let listing: Record<string, unknown> | null = null;
-  const { data: bizListing } = await supabase
+  let meta: Record<string, string> = {};
+
+  /** Prefer Bienes Raíces + business listings for identity: BR negocio saves here; a newer Rentas business row must not wipe this meta. */
+  const { data: brBusinessRows } = await supabase
     .from("listings")
     .select(listingSelect)
     .eq("owner_id", id)
     .eq("seller_type", "business")
+    .eq("category", "bienes-raices")
     .eq("status", "active")
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(24);
 
-  if (bizListing && typeof bizListing === "object") {
-    listing = bizListing as Record<string, unknown>;
+  if (Array.isArray(brBusinessRows) && brBusinessRows.length > 0) {
+    listing = brBusinessRows[0] as Record<string, unknown>;
+    meta = mergeBusinessMetaPreferNewest(brBusinessRows as Record<string, unknown>[]);
   } else {
-    const { data: anyListing } = await supabase
+    const { data: bizListing } = await supabase
       .from("listings")
       .select(listingSelect)
       .eq("owner_id", id)
+      .eq("seller_type", "business")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (anyListing && typeof anyListing === "object") {
-      listing = anyListing as Record<string, unknown>;
+
+    if (bizListing && typeof bizListing === "object") {
+      listing = bizListing as Record<string, unknown>;
+      meta = parseBusinessMeta(listing.business_meta as string | null | undefined) ?? {};
+    } else {
+      const { data: anyListing } = await supabase
+        .from("listings")
+        .select(listingSelect)
+        .eq("owner_id", id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (anyListing && typeof anyListing === "object") {
+        listing = anyListing as Record<string, unknown>;
+        meta = parseBusinessMeta(listing.business_meta as string | null | undefined) ?? {};
+      }
     }
   }
 
   if (!profile && !listing) return null;
 
-  const meta = parseBusinessMeta(listing?.business_meta as string | null | undefined);
+  if (Object.keys(meta).length === 0 && listing) {
+    meta = parseBusinessMeta(listing.business_meta as string | null | undefined) ?? {};
+  }
   const city = (listing?.city as string | undefined)?.trim() || null;
   const detailPairs = listing?.detail_pairs;
   const streetAddress = pickDetailPairValue(detailPairs, (lab) =>
@@ -193,22 +249,23 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   const neighborhood = pickDetailPairValue(detailPairs, (lab) => /vecindad|neighborhood/i.test(lab));
 
   const businessNameCol = (listing?.business_name as string | undefined)?.trim() || null;
-  const businessName = businessNameCol || null;
+  const businessName = businessNameCol || (meta.negocioNombre ?? "").trim() || null;
 
+  /** Saved application fields first; profile display name last so it never masks `negocioNombre` / business column. */
   const agentName =
-    (meta?.negocioAgente ?? "").trim() ||
-    profile?.displayName?.trim() ||
+    (meta.negocioAgente ?? "").trim() ||
     businessName ||
+    profile?.displayName?.trim() ||
     "";
 
-  const agentRole = (meta?.negocioCargo ?? "").trim() || null;
-  const agentLicense = (meta?.negocioLicencia ?? "").trim() || null;
-  const languages = (meta?.negocioIdiomas ?? "").trim() || null;
-  const zonasServicioRaw = (meta?.negocioZonasServicio ?? "").trim();
-  const agentPhotoUrl = (meta?.negocioFotoAgenteUrl ?? "").trim() || null;
-  const logoUrl = (meta?.negocioLogoUrl ?? "").trim() || null;
-  const phoneMainFmt = (meta?.negocioTelOficina ?? "").trim();
-  const phoneExt = (meta?.negocioTelExtension ?? "").trim();
+  const agentRole = (meta.negocioCargo ?? "").trim() || null;
+  const agentLicense = (meta.negocioLicencia ?? "").trim() || null;
+  const languages = (meta.negocioIdiomas ?? "").trim() || null;
+  const zonasServicioRaw = (meta.negocioZonasServicio ?? "").trim();
+  const agentPhotoUrl = (meta.negocioFotoAgenteUrl ?? "").trim() || null;
+  const logoUrl = (meta.negocioLogoUrl ?? "").trim() || null;
+  const phoneMainFmt = (meta.negocioTelOficina ?? "").trim();
+  const phoneExt = (meta.negocioTelExtension ?? "").trim();
   const profilePhone = profile?.phone?.trim() || null;
   const officePhone = phoneMainFmt
     ? phoneExt
@@ -218,13 +275,13 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   const mainDigits = phoneMainFmt ? digitsOnly(phoneMainFmt).slice(0, 10) : "";
   const profileDigits = profilePhone ? digitsOnly(profilePhone).slice(0, 10) : "";
   const officePhoneTelDigits = mainDigits.length === 10 ? mainDigits : profileDigits.length === 10 ? profileDigits : null;
-  const agentEmail = (meta?.negocioEmail ?? "").trim() || null;
-  const websiteRaw = (meta?.negocioSitioWeb ?? "").trim();
+  const agentEmail = (meta.negocioEmail ?? "").trim() || null;
+  const websiteRaw = (meta.negocioSitioWeb ?? "").trim();
   const website = websiteRaw ? normalizeWebsiteUrl(websiteRaw) : null;
-  const rawSocials = (meta?.negocioRedes ?? "").trim();
+  const rawSocials = (meta.negocioRedes ?? "").trim();
   const socialLinks = parseSocialUrls(rawSocials);
-  const about = (meta?.negocioDescripcion ?? "").trim() || null;
-  const hours = (meta?.negocioHorario ?? "").trim() || null;
+  const about = (meta.negocioDescripcion ?? "").trim() || null;
+  const hours = (meta.negocioHorario ?? "").trim() || null;
 
   const serviceAreaLines: string[] = [];
   const serviceSeen = new Set<string>();

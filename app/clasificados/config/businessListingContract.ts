@@ -13,6 +13,8 @@
 /** Keys stored in listing.business_meta JSON. Same shape for rentas (business rentals) and en-venta (business sales). */
 export const BUSINESS_META_KEYS = [
   "negocioAgente",
+  /** Mirrors `listings.business_name` when saved from publish (redundant but ensures meta merge has a name). */
+  "negocioNombre",
   "negocioCargo",
   /** Real estate / professional license number or ID (optional). */
   "negocioLicencia",
@@ -47,7 +49,12 @@ export function parseBusinessMeta(raw: string | null | undefined): Record<string
     if (!parsed || typeof parsed !== "object") return null;
     const out: Record<string, string> = {};
     for (const [k, v] of Object.entries(parsed)) {
-      if (typeof v === "string") out[k] = v;
+      if (v == null) continue;
+      if (typeof v === "string") {
+        out[k] = v;
+      } else if (typeof v === "number" || typeof v === "boolean") {
+        out[k] = String(v);
+      }
     }
     return out;
   } catch {
