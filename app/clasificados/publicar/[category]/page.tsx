@@ -4276,8 +4276,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                   <section
                     className={cx(
                       "mx-auto px-4 sm:px-6 py-6 w-full min-w-0",
-                      // BR negocio: full preview content canvas up to 2500px wide, centered (matches listing shell).
-                      isBienesRaicesNegocio ? "max-w-[2500px]" : "max-w-screen-2xl"
+                      // BR negocio: same max width as main publish shell (max-w-4xl); width owned here only.
+                      isBienesRaicesNegocio ? "max-w-4xl" : "max-w-screen-2xl"
                     )}
                   >
                     {isRentasPrivado ? (
