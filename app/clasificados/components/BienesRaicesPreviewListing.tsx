@@ -436,6 +436,44 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
         {showBusinessRail && listing.businessRail ? (
           <>
+            <header
+              className="mb-4 sm:mb-5 w-full min-w-0 border-b border-stone-200/80 pb-4 sm:pb-5"
+              data-section="br-negocio-preview-top-chrome"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-4 py-2.5 sm:px-5 sm:py-3 shadow-sm ring-1 ring-[#C9B46A]/15">
+                  <span className="text-sm sm:text-base font-bold tracking-tight text-[#111111]">Leonix Clasificados</span>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-xl border border-[#3F5A43]/70 bg-[#3F5A43] px-4 py-2.5 text-sm font-semibold text-[#F7F4EC] shadow-sm transition hover:bg-[#36503A]"
+                >
+                  Publicar
+                </button>
+              </div>
+              <nav
+                className="mt-3 sm:mt-4 flex flex-wrap gap-1 border-t border-stone-200/60 pt-3 sm:pt-4"
+                aria-label={lang === "es" ? "Secciones del anuncio" : "Listing sections"}
+              >
+                {(lang === "es"
+                  ? (["Resumen", "Interior", "Exterior", "Detalles", "Ubicación", "Contacto"] as const)
+                  : (["Summary", "Interior", "Exterior", "Details", "Location", "Contact"] as const)
+                ).map((label, tabIdx) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className={cx(
+                      "rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-semibold transition",
+                      tabIdx === 0
+                        ? "border border-[#C9B46A]/50 bg-[#FAF3E4] text-[#111111]"
+                        : "border border-transparent text-[#111111]/65 hover:border-stone-200/80 hover:bg-white/60 hover:text-[#111111]"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </header>
             {/*
               BR negocio (desktop, 2500px canvas): row1 = 1152×875 hero | 1158×890 2×2; row2 = 1674×555 property | 625×500 rail; then description stack.
             */}
