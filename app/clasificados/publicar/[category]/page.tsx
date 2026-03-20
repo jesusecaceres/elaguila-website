@@ -562,11 +562,64 @@ const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
   "2-anos": { es: "2 años", en: "2 years" },
 };
 
-function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>) {
+/** Digits only for BR negocio sqft / lot stored values. */
+function brNegocioDigitsOnly(raw: string): string {
+  return raw.replace(/[^\d]/g, "");
+}
+
+/** Comma-grouped display while typing (US grouping); underlying value uses `brNegocioDigitsOnly`. */
+function formatBrNegocioIntegerInputDisplay(raw: string): string {
+  const d = brNegocioDigitsOnly(raw);
+  if (!d) return "";
+  return Number(d).toLocaleString("en-US");
+}
+
+/** BR negocio listing price: comma display; validation uses digits stripped from state. */
+function formatBrNegocioPriceInputDisplay(raw: string): string {
+  const d = raw.replace(/[^0-9]/g, "");
+  if (!d) return "";
+  return Number(d).toLocaleString("en-US");
+}
+
+/** Preview / detail row: "123 Main St, City, ST 95112" or legacy single line. */
+function formatBrNegocioAddressLine(details: Record<string, string>, cityDisplay: string): string {
+  const num = (details.brNegocioStreetNumber ?? "").trim();
+  const st = (details.brNegocioStreet ?? "").trim();
+  const streetPart = [num, st].filter(Boolean).join(" ");
+  const c = (cityDisplay ?? "").trim();
+  const state = (details.brNegocioState ?? "").trim();
+  const zip = (details.brNegocioZip ?? "").trim();
+  const stateZip = [state, zip].filter(Boolean).join(" ");
+  const parts: string[] = [];
+  if (streetPart) parts.push(streetPart);
+  if (c) parts.push(c);
+  if (stateZip) parts.push(stateZip);
+  if (parts.length) return parts.join(", ");
+  return (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
+}
+
+function formatBrNegocioDetailNumberDisplay(raw: string): string {
+  const d = raw.replace(/[^\d]/g, "");
+  if (!d) return raw.trim();
+  return Number(d).toLocaleString("en-US");
+}
+
+function isFloorplanUrlProbablyPdf(url: string): boolean {
+  const u = url.split("?")[0]?.toLowerCase() ?? "";
+  return u.endsWith(".pdf") || u.includes(".pdf");
+}
+
+function isFloorplanUrlProbablyImage(url: string): boolean {
+  const u = url.split("?")[0] ?? "";
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(u);
+}
+
+function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>, cityDisplay = "") {
   const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
   // En Venta: item-selling details come from fields (rama, itemType, condition) only.
   if (cat === "bienes-raices") {
+    const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
     const pt = (details.enVentaPropertyType ?? "").trim();
     if (pt) {
       const opt = EN_VENTA_BR_PROPERTY_TYPES.find((o) => o.value === pt);
@@ -577,11 +630,13 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     const zone = (details.enVentaZone ?? "").trim();
     if (zone) out.push({ label: lang === "es" ? "Nombre de la vecindad" : "Neighborhood name", value: zone });
     // Canonical labels for preview summary (BienesRaicesPreviewListing): "Dirección" / "Address".
-    // Prefer the live form field (Dirección opcional); fall back to legacy `direccionPropiedad` so drafts still preview.
+    // BR negocio: split street / city / state / zip; else legacy single line (+ direccionPropiedad).
     const addrLine =
-      (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
+      brBranch === "negocio"
+        ? formatBrNegocioAddressLine(details, cityDisplay)
+        : (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
     if (addrLine) out.push({ label: lang === "es" ? "Dirección" : "Address", value: addrLine });
-    if (isBrPrivadoResidential(pt) || (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
+    if (isBrPrivadoResidential(pt) || brBranch === "negocio") {
       const br = (details.enVentaBedrooms ?? "").trim();
       if (br) out.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: br });
       const ba = (details.enVentaBathrooms ?? "").trim();
@@ -590,9 +645,15 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
       if (hb) out.push({ label: lang === "es" ? "Medios baños" : "Half bathrooms", value: hb });
     }
     const sq = (details.enVentaSquareFeet ?? "").trim();
-    if (sq) out.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sq });
+    if (sq) {
+      const sqVal = brBranch === "negocio" ? formatBrNegocioDetailNumberDisplay(sq) : sq;
+      out.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sqVal });
+    }
     const lot = (details.enVentaLotSize ?? "").trim();
-    if (lot) out.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lot });
+    if (lot) {
+      const lotVal = brBranch === "negocio" ? formatBrNegocioDetailNumberDisplay(lot) : lot;
+      out.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
+    }
     const lv = (details.enVentaLevels ?? "").trim();
     if (lv) out.push({ label: lang === "es" ? "Niveles" : "Levels", value: lv });
     const pk = (details.enVentaParkingSpaces ?? "").trim();
@@ -620,8 +681,9 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     if (servInternet === "si" || servInternet === "sí" || servInternet === "yes") serviciosList.push("Internet");
     if (serviciosList.length > 0) out.push({ label: lang === "es" ? "Servicios disponibles" : "Utilities available", value: serviciosList.join(", ") });
     const utilDetails = (details.enVentaUtilitiesForProperty ?? "").trim();
-    if (utilDetails) out.push({ label: lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details", value: utilDetails });
-    const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
+    if (utilDetails && brBranch !== "negocio") {
+      out.push({ label: lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details", value: utilDetails });
+    }
     if (brBranch === "negocio") {
       const negocioNombre = (details.negocioNombre ?? "").trim() || (details.enVentaBusinessName ?? "").trim();
       if (negocioNombre) out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
@@ -684,8 +746,8 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
   return out;
 }
 
-function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, string>) {
-  const pairs = getDetailPairs(cat, lang, details);
+function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, string>, cityDisplay?: string) {
+  const pairs = getDetailPairs(cat, lang, details, cityDisplay ?? "");
   if (!pairs.length) return "";
   const header = lang === "es" ? "Detalles" : "Details";
   const lines = pairs.map((p) => `${p.label}: ${p.value}`).join("\n");
@@ -740,13 +802,19 @@ function buildEnVentaDraftSnapshot(params: {
   const cityCanonical = normalizeCity(city) || null;
   const priceNum = (price ?? "").replace(/[^0-9.]/g, "");
   const hasPrice = priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0;
+  const isBrNegocioPricing =
+    category === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio";
   const priceLabel =
     isFree
       ? (lang === "es" ? "Gratis" : "Free")
       : hasPrice
-        ? (Number(priceNum) === 0 ? (lang === "es" ? "Gratis" : "Free") : `$${Math.round(Number(priceNum))}`)
+        ? Number(priceNum) === 0
+          ? (lang === "es" ? "Gratis" : "Free")
+          : isBrNegocioPricing
+            ? `$${Number(priceNum).toLocaleString(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 0 })}`
+            : `$${Math.round(Number(priceNum))}`
         : (lang === "es" ? "(Sin precio)" : "(No price)");
-  const detailPairs = getDetailPairs(category, lang, details);
+  const detailPairs = getDetailPairs(category, lang, details, cityCanonical ?? city.trim());
   return {
     category: category.trim(),
     title: title.trim(),
@@ -1842,9 +1910,14 @@ export default function PublicarPage() {
         const rawExt = (file.name.split(".").pop() || "pdf").toLowerCase();
         const ext = /^[a-z0-9]+$/.test(rawExt) ? rawExt : "pdf";
         const path = `${userId}/drafts/business-floorplan-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("listing-images")
-          .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+        const isPdf = ext === "pdf" || file.type === "application/pdf";
+        const contentType =
+          file.type && file.type !== "application/octet-stream"
+            ? file.type
+            : isPdf
+              ? "application/pdf"
+              : "image/jpeg";
+        const { error } = await supabase.storage.from("listing-images").upload(path, file, { upsert: true, contentType });
         if (error) throw error;
         const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
         setDetails((prev) => ({ ...prev, negocioFloorPlanUrl: url }));
@@ -3098,10 +3171,23 @@ export default function PublicarPage() {
         ? priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0
         : s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
     const imagesOk = s.images.length >= 1;
+    const bienesRaicesBranchEarly = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
+    const isBienesRaicesNegocioContact = s.category === "bienes-raices" && bienesRaicesBranchEarly === "negocio";
+    const brNegocioOfficeDigits = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
+    const brNegocioBizEmailOk = /.+@.+\..+/.test((s.details.negocioEmail ?? "").trim());
     const phoneDigits = getPhoneDigits(s.contactPhone);
-    const phoneOk = s.contactMethod === "email" ? true : phoneDigits.length === 10;
-    const emailOk = s.contactMethod === "phone" ? true : /.+@.+\..+/.test(s.contactEmail.trim());
-    const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(s.contactEmail.trim());
+    const phoneOk =
+      s.contactMethod === "email"
+        ? true
+        : phoneDigits.length === 10 || (isBienesRaicesNegocioContact && brNegocioOfficeDigits.length === 10);
+    const emailOk =
+      s.contactMethod === "phone"
+        ? true
+        : /.+@.+\..+/.test(s.contactEmail.trim()) || (isBienesRaicesNegocioContact && brNegocioBizEmailOk);
+    const contactOk =
+      phoneDigits.length === 10 ||
+      /.+@.+\..+/.test(s.contactEmail.trim()) ||
+      (isBienesRaicesNegocioContact && (brNegocioOfficeDigits.length === 10 || brNegocioBizEmailOk));
     // En Venta: item-selling metadata (subcategoría, artículo, condición).
     const enVentaMetaOk =
       s.category !== "en-venta" ||
@@ -3628,12 +3714,19 @@ async function publish() {
       }
 
       const snap = enVentaSnapshot;
-      const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details)).trim();
+      const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details, snap.cityCanonical ?? snap.city)).trim();
       const rentasBranch = (snap.details.rentasBranch ?? "").trim();
       const bienesRaicesBranch = (snap.details.bienesRaicesBranch ?? "").trim().toLowerCase();
       const isRentasNegocio = snap.category === "rentas" && rentasBranch === "negocio";
       const isBienesRaicesNegocio = snap.category === "bienes-raices" && bienesRaicesBranch === "negocio";
       // Insert from same normalized snapshot as preview/validation (DB field names unchanged).
+      const mediaPhoneDigits = getPhoneDigits(snap.contactPhone);
+      const officePhoneDigits = (snap.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
+      const resolvedPhoneForInsert =
+        mediaPhoneDigits.length === 10 ? mediaPhoneDigits : isBienesRaicesNegocio && officePhoneDigits.length === 10 ? officePhoneDigits : null;
+      const negocioEmailTrim = (snap.details.negocioEmail ?? "").trim();
+      const resolvedEmailForInsert =
+        snap.contactEmail.trim() || (isBienesRaicesNegocio && /.+@.+\..+/.test(negocioEmailTrim) ? negocioEmailTrim : "");
       const insertPayload: any = {
         owner_id: userId,
         title: snap.title,
@@ -3642,8 +3735,8 @@ async function publish() {
         category: snap.category,
         price: snap.isFree ? 0 : Number((snap.priceRaw ?? "").replace(/[^0-9.]/g, "")) || 0,
         is_free: snap.isFree,
-        contact_phone: snap.contactMethod === "email" ? null : (getPhoneDigits(snap.contactPhone).length === 10 ? getPhoneDigits(snap.contactPhone) : null),
-        contact_email: snap.contactMethod === "phone" ? null : snap.contactEmail.trim(),
+        contact_phone: snap.contactMethod === "email" ? null : resolvedPhoneForInsert,
+        contact_email: snap.contactMethod === "phone" ? null : resolvedEmailForInsert || null,
         status: "active",
         is_published: true,
         detail_pairs: Array.isArray(snap.detailPairs) && snap.detailPairs.length > 0 ? snap.detailPairs : null,
@@ -5059,8 +5152,21 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 type="text"
                                 inputMode="numeric"
                                 value={price}
-                                onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
-                                placeholder={lang === "es" ? "Ej: 250000" : "e.g. 250000"}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  if ((details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
+                                    setPrice(formatBrNegocioPriceInputDisplay(v));
+                                  } else {
+                                    setPrice(v.replace(/[^0-9.]/g, ""));
+                                  }
+                                }}
+                                placeholder={
+                                  (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio"
+                                    ? (lang === "es" ? "Ej: 1,200,000" : "e.g. 1,200,000")
+                                    : lang === "es"
+                                      ? "Ej: 250000"
+                                      : "e.g. 250000"
+                                }
                                 aria-invalid={basicsShowValidation && !requirements.priceOk}
                                 className={cx(
                                   "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
@@ -5101,10 +5207,52 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre de la vecindad" : "Neighborhood name"}</label>
                               <input value={details.enVentaZone ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZone: e.target.value }))} placeholder={lang === "es" ? "Ej: Rose Garden, Downtown, Little Portugal, Willow Glen" : "e.g. Rose Garden, Downtown, Little Portugal, Willow Glen"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                             </div>
-                            <div>
-                              <label className="text-xs text-[#111111]/80">{lang === "es" ? "Dirección (opcional)" : "Address (optional)"}</label>
-                              <input value={details.enVentaAddress ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAddress: e.target.value }))} placeholder={lang === "es" ? "Ej: Calle 5, Av. Central" : "e.g. 123 Main St"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                            </div>
+                            {(details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio" ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Número" : "Street number"}</label>
+                                  <input
+                                    value={details.brNegocioStreetNumber ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, brNegocioStreetNumber: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: 123" : "e.g. 123"}
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Calle" : "Street"}</label>
+                                  <input
+                                    value={details.brNegocioStreet ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, brNegocioStreet: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: Av. Central" : "e.g. Main St"}
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Estado" : "State"}</label>
+                                  <input
+                                    value={details.brNegocioState ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, brNegocioState: e.target.value }))}
+                                    placeholder={lang === "es" ? "Ej: CA" : "e.g. CA"}
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Código postal" : "ZIP code"}</label>
+                                  <input
+                                    value={details.brNegocioZip ?? ""}
+                                    onChange={(e) => setDetails((prev) => ({ ...prev, brNegocioZip: e.target.value.replace(/[^\d-]/g, "").slice(0, 10) }))}
+                                    placeholder={lang === "es" ? "Ej: 95112" : "e.g. 95112"}
+                                    inputMode="numeric"
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Dirección (opcional)" : "Address (optional)"}</label>
+                                <input value={details.enVentaAddress ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAddress: e.target.value }))} placeholder={lang === "es" ? "Ej: Calle 5, Av. Central" : "e.g. 123 Main St"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                              </div>
+                            )}
                             <div>
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Mostrar ubicación" : "Location display"}</label>
                               <div className="mt-1 flex rounded-lg border border-black/10 overflow-hidden bg-[#F5F5F5]">
@@ -5170,11 +5318,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     );
                                   })}
                                 </div>
-                                <div className="mt-3">
-                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details"}</label>
-                                  <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: PG&E, San Jose Water, pozo, fosa séptica, panel solar." : "e.g. PG&E, San Jose Water, well, septic, solar."}</p>
-                                  <input value={details.enVentaUtilitiesForProperty ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaUtilitiesForProperty: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                </div>
+                                {(details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio" && (
+                                  <div className="mt-3">
+                                    <label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details"}</label>
+                                    <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: PG&E, San Jose Water, pozo, fosa séptica, panel solar." : "e.g. PG&E, San Jose Water, well, septic, solar."}</p>
+                                    <input value={details.enVentaUtilitiesForProperty ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaUtilitiesForProperty: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -5186,8 +5336,37 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
                                 <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
                                 <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div>
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label>
+                                  <input
+                                    value={formatBrNegocioIntegerInputDisplay(details.enVentaSquareFeet ?? "")}
+                                    onChange={(e) =>
+                                      setDetails((prev) => ({
+                                        ...prev,
+                                        enVentaSquareFeet: brNegocioDigitsOnly(e.target.value),
+                                      }))
+                                    }
+                                    placeholder={lang === "es" ? "Ej: 1,200" : "e.g. 1,200"}
+                                    inputMode="numeric"
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                  />
+                                  {!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                                </div>
+                                <div>
+                                  <label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label>
+                                  <input
+                                    value={formatBrNegocioIntegerInputDisplay(details.enVentaLotSize ?? "")}
+                                    onChange={(e) =>
+                                      setDetails((prev) => ({
+                                        ...prev,
+                                        enVentaLotSize: brNegocioDigitsOnly(e.target.value),
+                                      }))
+                                    }
+                                    placeholder={lang === "es" ? "Ej: 5,000" : "e.g. 5,000"}
+                                    inputMode="numeric"
+                                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                  />
+                                </div>
                                 <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                 <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                               </div>
@@ -5530,7 +5709,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Cargo o rol" : "Role or title"}</label>
-                                <input value={details.negocioCargo ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input
+                                  value={details.negocioCargo ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: Agente de venta, Asistente de venta" : "e.g. Sales agent, Sales assistant"}
+                                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                                />
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Logo del negocio" : "Business logo"}</label>
@@ -5587,7 +5771,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 </div>
                               </div>
                               <div>
-                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Correo del negocio o agente" : "Business or agent email"}</label>
+                                <label className="text-xs text-[#111111]/80">{lang === "es" ? "Correo electrónico" : "Email"}</label>
                                 <input
                                   type="email"
                                   value={details.negocioEmail ?? ""}
@@ -6471,12 +6655,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           <label className="text-sm text-[#111111] font-semibold">
                             {lang === "es" ? "Plano / Floorplan" : "Floorplan"}
                           </label>
-                          <div className="mt-2 flex items-center gap-3">
+                          <div className="mt-2 flex flex-wrap items-center gap-3">
                             <label className="shrink-0 cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFE7D8] focus-within:ring-2 focus-within:ring-yellow-400/30">
                               {floorPlanUploading ? (lang === "es" ? "Subiendo…" : "Uploading…") : (lang === "es" ? "Subir plano" : "Upload floorplan")}
                               <input
                                 type="file"
-                                accept="image/*,.pdf,application/pdf"
+                                accept="image/jpeg,image/png,image/webp,image/gif,.pdf,application/pdf"
                                 className="sr-only"
                                 disabled={floorPlanUploading}
                                 onChange={(e) => {
@@ -6487,14 +6671,47 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               />
                             </label>
                             {details.negocioFloorPlanUrl ? (
-                              <a
-                                href={details.negocioFloorPlanUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs font-medium text-[#111111] underline decoration-[#C9B46A]/70"
-                              >
-                                {lang === "es" ? "Ver archivo cargado" : "View uploaded file"}
-                              </a>
+                              (() => {
+                                const u = (details.negocioFloorPlanUrl ?? "").trim();
+                                if (isFloorplanUrlProbablyPdf(u)) {
+                                  return (
+                                    <a
+                                      href={u}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+                                    >
+                                      <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#111111]/80">PDF</span>
+                                      {lang === "es" ? "Abrir archivo PDF" : "Open PDF file"}
+                                    </a>
+                                  );
+                                }
+                                if (isFloorplanUrlProbablyImage(u)) {
+                                  return (
+                                    <a
+                                      href={u}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 rounded-lg border border-black/10 bg-white p-1.5 pr-2 hover:bg-[#F8F6F0] transition"
+                                    >
+                                      <img src={u} alt="" className="h-14 w-20 rounded object-cover bg-[#E8E8E8]" />
+                                      <span className="text-xs font-medium text-[#111111] underline decoration-[#C9B46A]/70">
+                                        {lang === "es" ? "Ver imagen" : "View image"}
+                                      </span>
+                                    </a>
+                                  );
+                                }
+                                return (
+                                  <a
+                                    href={u}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-semibold text-[#111111] underline decoration-[#C9B46A]/70"
+                                  >
+                                    {lang === "es" ? "Abrir archivo" : "Open file"}
+                                  </a>
+                                );
+                              })()
                             ) : null}
                           </div>
                           <input
@@ -6504,6 +6721,36 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             placeholder="https://"
                             className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
                           />
+                          {details.negocioFloorPlanUrl &&
+                          !floorPlanUploading &&
+                          (() => {
+                            const u = (details.negocioFloorPlanUrl ?? "").trim();
+                            if (!u || u.startsWith("blob:")) return null;
+                            if (isFloorplanUrlProbablyImage(u)) {
+                              return (
+                                <div className="mt-3 rounded-lg border border-black/10 bg-[#E8E8E8]/50 p-2">
+                                  <img src={u} alt="" className="max-h-40 w-full rounded object-contain bg-white" />
+                                </div>
+                              );
+                            }
+                            if (isFloorplanUrlProbablyPdf(u)) {
+                              return (
+                                <div className="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-black/15 bg-white/80 px-3 py-2 text-xs text-[#111111]/80">
+                                  <span className="rounded bg-[#F5F5F5] px-1.5 py-0.5 text-[10px] font-bold uppercase">PDF</span>
+                                  {lang === "es"
+                                    ? "Archivo PDF: usa “Abrir archivo PDF” arriba para verlo."
+                                    : "PDF file: use “Open PDF file” above to view it."}
+                                </div>
+                              );
+                            }
+                            return (
+                              <p className="mt-3 text-xs text-[#111111]/60">
+                                {lang === "es"
+                                  ? "Enlace guardado. Usa “Abrir archivo” arriba si la vista previa no aplica."
+                                  : "Link saved. Use “Open file” above if no inline preview applies."}
+                              </p>
+                            );
+                          })()}
                           <p className="mt-1 text-xs text-[#111111]/50">
                             {lang === "es"
                               ? "Sube imagen/PDF o pega enlace. (Se abrirá en nueva pestaña.)"
@@ -6518,68 +6765,69 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           </div>
                         )}
 
-<div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
+                        {!(categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") && (
+                          <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
+                            <div className="text-sm text-[#111111]">{copy.contact}</div>
 
-                        <div className="text-sm text-[#111111]">{copy.contact}</div>
+                            <div className="mt-3 grid grid-cols-3 gap-2">
+                              {([
+                                ["phone", copy.phone],
+                                ["email", copy.email],
+                                ["both", copy.both],
+                              ] as const).map(([value, label]) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setContactMethod(value)}
+                                  className={cx(
+                                    "rounded-xl border px-3 py-2 text-sm font-semibold",
+                                    contactMethod === value
+                                      ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
+                                      : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF]"
+                                  )}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
 
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          {([
-                            ["phone", copy.phone],
-                            ["email", copy.email],
-                            ["both", copy.both],
-                          ] as const).map(([value, label]) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => setContactMethod(value)}
-                              className={cx(
-                                "rounded-xl border px-3 py-2 text-sm font-semibold",
-                                contactMethod === value
-                                  ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]"
-                                  : "border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF]"
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {(contactMethod === "phone" || contactMethod === "both") && (
+                                <div>
+                                  <label className="text-xs text-[#111111]">{copy.phone}</label>
+                                  <input
+                                    value={contactPhone}
+                                    onChange={(e) => setContactPhone(formatPhoneDisplay(e.target.value))}
+                                    placeholder="(408) 555-1234"
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                  {!requirements.phoneOk && (
+                                    <div className="mt-1 text-xs text-red-600">
+                                      {lang === "es" ? "Agrega un teléfono válido (10 dígitos)." : "Add a valid phone (10 digits)."}
+                                    </div>
+                                  )}
+                                </div>
                               )}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
 
-                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {(contactMethod === "phone" || contactMethod === "both") && (
-                            <div>
-                              <label className="text-xs text-[#111111]">{copy.phone}</label>
-                              <input
-                                value={contactPhone}
-                                onChange={(e) => setContactPhone(formatPhoneDisplay(e.target.value))}
-                                placeholder="(408) 555-1234"
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                              />
-                              {!requirements.phoneOk && (
-                                <div className="mt-1 text-xs text-red-600">
-                                  {lang === "es" ? "Agrega un teléfono válido (10 dígitos)." : "Add a valid phone (10 digits)."}
+                              {(contactMethod === "email" || contactMethod === "both") && (
+                                <div>
+                                  <label className="text-xs text-[#111111]">{copy.email}</label>
+                                  <input
+                                    value={contactEmail}
+                                    onChange={(e) => setContactEmail(e.target.value)}
+                                    placeholder={lang === "es" ? "Ej: nombre@email.com" : "Ex: name@email.com"}
+                                    className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+                                  />
+                                  {!requirements.emailOk && (
+                                    <div className="mt-1 text-xs text-red-600">
+                                      {lang === "es" ? "Agrega un email válido." : "Add a valid email."}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-
-                          {(contactMethod === "email" || contactMethod === "both") && (
-                            <div>
-                              <label className="text-xs text-[#111111]">{copy.email}</label>
-                              <input
-                                value={contactEmail}
-                                onChange={(e) => setContactEmail(e.target.value)}
-                                placeholder={lang === "es" ? "Ej: nombre@email.com" : "Ex: name@email.com"}
-                                className="mt-2 w-full rounded-xl border border-black/10 bg-white/9 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-                              />
-                              {!requirements.emailOk && (
-                                <div className="mt-1 text-xs text-red-600">
-                                  {lang === "es" ? "Agrega un email válido." : "Add a valid email."}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
+                        )}
 
                       {/* Preview */}
                       <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
