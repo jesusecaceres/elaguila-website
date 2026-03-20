@@ -70,7 +70,7 @@ export default function BusinessListingIdentityRail({
   return (
     <div
       className={cx(
-        "rounded-[1.4rem] border",
+        "w-full min-w-0 rounded-[1.4rem] border",
         isBienesRaices ? "p-3.5 sm:p-4" : "p-5 sm:p-6",
         isBienesRaices || businessRailTier === "business_plus"
           ? "border-[#C9B46A]/55 bg-gradient-to-b from-[#F7F2E5] to-[#F2EBDD] ring-1 ring-[#C9B46A]/25 shadow-[0_14px_38px_-20px_rgba(17,17,17,0.35)]"
