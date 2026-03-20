@@ -100,6 +100,9 @@ import { RentasPublishShell } from "../../rentas/shared/publish/RentasPublishShe
 import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublishTrackStep";
 import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
+import { appendBrNegocioLongTailDetailPairs } from "../../bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
+import { buildBrNegocioListingData } from "../../bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
+import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
 
@@ -743,6 +746,9 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     }
 
     out.push({ label: f.label[lang], value: raw });
+  }
+  if (cat === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
+    appendBrNegocioLongTailDetailPairs(lang, details, out);
   }
   return out;
 }
@@ -4023,49 +4029,29 @@ for (let vi = 0; vi < videoLimit; vi++) {
       approximateArea: category === "rentas" && snap.details?.zonaDireccion?.trim() ? snap.details.zonaDireccion.trim() : undefined,
       ownerId: userId?.trim() ? userId.trim() : undefined,
     };
-    // BR negocio: add business rail so full preview matches open card (company name, agent, logo, photo, phone, website, socials, availability).
+    // BR negocio: normalized mapper (rail + structured facts + highlights).
     if (category === "bienes-raices" && (snap.details?.bienesRaicesBranch ?? "").trim() === "negocio") {
-      const d = snap.details;
-      let availabilityRows: Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }> = [];
-      try {
-        const raw = (d.negocioDisponibilidadPrecios ?? "").trim();
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) availabilityRows = parsed;
-        }
-      } catch { /* ignore */ }
-      base.category = "bienes-raices";
-      base.businessRailTier = "business_plus";
-      const phoneFmt = (d.negocioTelOficina ?? "").trim();
-      const extFmt = (d.negocioTelExtension ?? "").trim();
-      const officeDisplay =
-        phoneFmt ? (extFmt ? `${phoneFmt} · Ext. ${extFmt}` : phoneFmt) : "";
-      const mergedRedesPreview = buildNegocioRedesPayload(d as Record<string, string | undefined>);
-      const rawSocialsPreview = mergedRedesPreview.trim() || (d.negocioRedes ?? "").trim();
-      base.businessRail = {
-        name: (d.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business"),
-        agent: (d.negocioAgente ?? "").trim(),
-        role: (d.negocioCargo ?? "").trim(),
-        agentLicense: (d.negocioLicencia ?? "").trim() || undefined,
-        officePhone: officeDisplay,
-        agentEmail: (d.negocioEmail ?? "").trim() || null,
-        website: (d.negocioSitioWeb ?? "").trim() || null,
-        socialLinks: [],
-        rawSocials: rawSocialsPreview,
-        logoUrl: (d.negocioLogoUrl ?? "").trim() || null,
-        agentPhotoUrl: (d.negocioFotoAgenteUrl ?? "").trim() || null,
-        languages: (d.negocioIdiomas ?? "").trim(),
-        hours: (d.negocioHorario ?? "").trim(),
-        // Same merge as negocio media step UI (negocio field + legacy en-venta URL).
-        virtualTourUrl: (d.negocioRecorridoVirtual ?? d.enVentaVirtualTourUrl ?? "").trim() || null,
-        plusMoreListings: (d.negocioPlusMasAnuncios ?? "") === "si",
-        businessDescription: (d.negocioDescripcion ?? "").trim() || undefined,
-        availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,
-      };
-
-      // BR Negocio: floorplan + tour + Pro video feed BienesRaicesPreviewListing’s 2×2 utility tiles (main image stays left).
-      base.floorPlanUrl = (d.negocioFloorPlanUrl ?? "").trim() || null;
-      base.agentProfileReturnUrl = previewPublishReturnPath;
+      return buildBrNegocioListingData({
+        snap: {
+          title: snap.title,
+          priceLabel: snap.priceLabel,
+          city: snap.city,
+          cityCanonical: snap.cityCanonical,
+          description: snap.description,
+          detailPairs: snap.detailPairs ?? [],
+          details: snap.details,
+          images: imgs,
+          proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
+          proVideoUrl: snap.proVideoUrl ?? null,
+          lang: snap.lang,
+        },
+        lang,
+        todayLabel: copy.todayLabel,
+        previewCategoryLabel: previewCategoryLabel || "",
+        sellerDisplayName: sellerDisplayName ?? null,
+        userId: userId ?? null,
+        agentProfileReturnUrl: previewPublishReturnPath,
+      });
     }
     return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, userId, previewPublishReturnPath]);
@@ -5042,6 +5028,30 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               {lang === "es" ? "Cambiar" : "Change"}
                             </button>
                           </div>
+                          {(details.bienesRaicesBranch ?? "").trim() === "negocio" ? (
+                            <BienesRaicesNegocioBasicsWizard
+                              lang={lang}
+                              details={details}
+                              setDetails={setDetails}
+                              title={title}
+                              setTitle={setTitle}
+                              price={price}
+                              setPrice={setPrice}
+                              city={city}
+                              setCity={setCity}
+                              basicsShowValidation={basicsShowValidation}
+                              requirements={requirements}
+                              formatBrNegocioPriceInputDisplay={formatBrNegocioPriceInputDisplay}
+                              formatBrNegocioIntegerInputDisplay={formatBrNegocioIntegerInputDisplay}
+                              brNegocioDigitsOnly={brNegocioDigitsOnly}
+                              logoUploading={logoUploading}
+                              agentPhotoUploading={agentPhotoUploading}
+                              uploadBusinessImage={uploadBusinessImage}
+                              goToStep={goToStep}
+                              previewListing={fullPreviewListingData}
+                            />
+                          ) : (
+                          <>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
                             <select

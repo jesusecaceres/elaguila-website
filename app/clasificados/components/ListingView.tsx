@@ -15,6 +15,10 @@ export type BusinessRailData = {
   name: string;
   agent: string;
   role: string;
+  /** Brokerage / office brand line (BR negocio). */
+  brokerageName?: string | null;
+  /** Secondary agent on the listing (BR negocio). */
+  coAgentName?: string | null;
   /** License or credential line when provided in business meta (`negocioLicencia`). */
   agentLicense?: string | null;
   officePhone: string;
@@ -72,6 +76,29 @@ export type ListingData = {
    * back control can return here (BR negocio flow). Same-origin path + query, e.g. `/clasificados/publicar/bienes-raices?branch=negocio&step=media`.
    */
   agentProfileReturnUrl?: string | null;
+  /** BR negocio: typed facts for preview (preferred over inferring only from detailPairs). */
+  structuredFacts?: {
+    propertyTypeLabel?: string;
+    addressLine?: string;
+    neighborhood?: string;
+    beds?: string;
+    baths?: string;
+    halfBaths?: string;
+    sqft?: string;
+    lotSize?: string;
+    levels?: string;
+    parking?: string;
+    yearBuilt?: string;
+    zoning?: string;
+    city?: string;
+    zip?: string;
+  };
+  /** Short teaser under title (BR negocio). */
+  listingSummaryShort?: string | null;
+  /** User-defined highlight chips (BR negocio). */
+  highlightChips?: string[];
+  /** Display label for listing status (BR negocio). */
+  listingStatusLabel?: string | null;
 };
 
 type MediaSlot =

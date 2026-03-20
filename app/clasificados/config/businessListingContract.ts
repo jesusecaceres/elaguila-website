@@ -13,6 +13,10 @@
 /** Keys stored in listing.business_meta JSON. Same shape for rentas (business rentals) and en-venta (business sales). */
 export const BUSINESS_META_KEYS = [
   "negocioAgente",
+  /** Co-listing agent when provided (BR negocio). */
+  "negocioCoAgente",
+  /** Brokerage / brand name separate from listing business display name (BR negocio). */
+  "negocioNombreCorreduria",
   /** Mirrors `listings.business_name` when saved from publish (redundant but ensures meta merge has a name). */
   "negocioNombre",
   "negocioCargo",
