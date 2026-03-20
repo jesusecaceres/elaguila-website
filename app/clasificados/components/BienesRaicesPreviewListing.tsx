@@ -474,11 +474,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </nav>
             </header>
             {/*
-              BR negocio desktop: main | fixed sidebar; left stacks media row → title card → description. Rail only in right column.
+              BR negocio desktop: explicit 2-col grid — col1 = media row + title + description; col2 = rail only (never merged with media band).
             */}
-            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_24rem]">
-              <div className="min-w-0 flex w-full flex-col gap-4 sm:gap-5 lg:min-w-0">
-                <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
+              <div className="min-w-0 flex w-full flex-col gap-4 sm:gap-5 lg:col-start-1 lg:row-start-1 lg:min-w-0">
+                <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-5">
                   <div className="flex w-full min-w-0 justify-center lg:min-w-0 lg:max-w-full lg:justify-start">
                     {negocioHeroOnly}
                   </div>
@@ -581,7 +581,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                 <div className="min-w-0 w-full lg:min-w-0 lg:max-w-full">{brPreviewTitleAndPropertyCard}</div>
                 <div className="min-w-0 w-full space-y-5 sm:space-y-6">{brPreviewDescriptionSellerLocation}</div>
               </div>
-              <div className="w-full min-w-0 lg:min-w-0">
+              <div className="w-full min-w-0 lg:col-start-2 lg:row-start-1 lg:min-w-0 lg:max-w-full lg:self-start">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
