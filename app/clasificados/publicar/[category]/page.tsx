@@ -6478,51 +6478,65 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           />
                         )}
 
-                      <PublishMediaPreviewPanel
-                        lang={lang}
-                        copy={{ preview: copy.preview, cardPreview: copy.cardPreview }}
-                        useBienesRaicesPrivadoLeftCard={
-                          categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio"
-                        }
-                        formatMoneyMaybe={formatMoneyMaybe}
-                        coverImage={coverImage}
-                        previewPrice={previewPrice}
-                        previewTitle={previewTitle}
-                        previewCity={previewCity}
-                        previewPosted={previewPosted}
-                        previewShortDescription={previewShortDescription}
-                        details={details}
-                        enVentaIsFree={enVentaSnapshot.isFree}
-                        rightPanel={{
-                          copy: {
-                            detailPreview: copy.detailPreview,
-                            saveLabel: copy.saveLabel,
-                            shareLabel: copy.shareLabel,
-                            contactLabel: copy.contactLabel,
-                            fullPreviewCta: copy.fullPreviewCta,
-                            proPreviewCta: copy.proPreviewCta,
-                          },
-                          viewYourListingCta: (copy as { viewYourListingCta?: string }).viewYourListingCta,
-                          previewCategoryLabel,
-                          categoryFromUrl,
-                          isBienesRaicesPrivado,
-                          previewDetailPairs,
-                          compactBrPrivateDetailPairs,
-                          previewShortDescription,
-                          previewDescription,
-                          isRentasPrivado,
-                          isBienesRaicesNegocio,
-                          openFullPreview,
-                          openProPreview,
-                          isPro,
-                          videoFiles,
-                          videoErrors,
-                          proVideoThumbPreviewUrls,
-                          proVideoPreviewUrls,
-                          expandedVideoIndex,
-                          setExpandedVideoIndex,
-                        }}
-                      />
+                      {isBienesRaicesNegocio ? (
+                        <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-3 sm:p-4">
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="text-sm font-semibold text-[#111111]">{copy.preview}</div>
+                            <div className="text-xs text-[#111111]/50">
+                              {lang === "es" ? "Vista previa final (mismo diseño que publicación)" : "Final preview (same layout as live)"}
+                            </div>
+                          </div>
+                          <div className="max-h-[min(88vh,920px)] overflow-y-auto overflow-x-hidden rounded-xl border border-black/5 bg-[#f5f3ef]">
+                            <ListingView listing={fullPreviewListingData} previewMode hideProComparisonUI />
+                          </div>
+                        </div>
+                      ) : (
+                        <PublishMediaPreviewPanel
+                          lang={lang}
+                          copy={{ preview: copy.preview, cardPreview: copy.cardPreview }}
+                          useBienesRaicesPrivadoLeftCard={
+                            categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "negocio"
+                          }
+                          formatMoneyMaybe={formatMoneyMaybe}
+                          coverImage={coverImage}
+                          previewPrice={previewPrice}
+                          previewTitle={previewTitle}
+                          previewCity={previewCity}
+                          previewPosted={previewPosted}
+                          previewShortDescription={previewShortDescription}
+                          details={details}
+                          enVentaIsFree={enVentaSnapshot.isFree}
+                          rightPanel={{
+                            copy: {
+                              detailPreview: copy.detailPreview,
+                              saveLabel: copy.saveLabel,
+                              shareLabel: copy.shareLabel,
+                              contactLabel: copy.contactLabel,
+                              fullPreviewCta: copy.fullPreviewCta,
+                              proPreviewCta: copy.proPreviewCta,
+                            },
+                            viewYourListingCta: (copy as { viewYourListingCta?: string }).viewYourListingCta,
+                            previewCategoryLabel,
+                            categoryFromUrl,
+                            isBienesRaicesPrivado,
+                            previewDetailPairs,
+                            compactBrPrivateDetailPairs,
+                            previewShortDescription,
+                            previewDescription,
+                            isRentasPrivado,
+                            isBienesRaicesNegocio,
+                            openFullPreview,
+                            openProPreview,
+                            isPro,
+                            videoFiles,
+                            videoErrors,
+                            proVideoThumbPreviewUrls,
+                            proVideoPreviewUrls,
+                            expandedVideoIndex,
+                            setExpandedVideoIndex,
+                          }}
+                        />
+                      )}
 
                       {publishError && (
                         <div
