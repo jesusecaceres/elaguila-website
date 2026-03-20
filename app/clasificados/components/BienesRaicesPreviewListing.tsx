@@ -474,15 +474,13 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </nav>
             </header>
             {/*
-              BR negocio desktop: outer 2-col grid — left = (hero+2×2 band) + listingDetailsStack; right = rail only.
+              BR negocio desktop: wide 2-col grid — (hero|2×2), (title|rail↓), (description|rail↓). No compact rail / nested skinny column.
             */}
-            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,625px)] lg:items-start lg:gap-x-6">
-              <div className="min-w-0 flex w-full flex-col gap-4 sm:gap-5 lg:min-w-0">
-                <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-start lg:gap-6">
-                  <div className="flex w-full min-w-0 justify-center lg:min-w-0 lg:max-w-full lg:justify-start">
-                    {negocioHeroOnly}
-                  </div>
-                  <div className="flex w-full min-w-0 justify-center lg:min-w-0 lg:w-[1158px] lg:max-w-full lg:justify-start lg:shrink-0">
+            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(24rem,42rem)] lg:grid-rows-[auto_auto_auto] lg:items-start lg:gap-x-8 lg:gap-y-5">
+              <div className="flex w-full min-w-0 justify-center lg:col-start-1 lg:row-start-1 lg:min-w-0 lg:max-w-full lg:justify-start">
+                {negocioHeroOnly}
+              </div>
+              <div className="flex w-full min-w-0 justify-center lg:col-start-2 lg:row-start-1 lg:min-w-0 lg:w-[1158px] lg:max-w-full lg:justify-start lg:shrink-0">
                     <div
                       className="grid aspect-square h-auto min-h-0 w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-auto lg:h-[890px] lg:w-[1158px] lg:max-w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-1 lg:overflow-hidden lg:rounded-2xl lg:ring-1 lg:ring-stone-200/60 lg:shadow-sm"
                       aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
@@ -576,13 +574,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     </div>
                   )}
                     </div>
-                  </div>
-                </div>
-                <div className="min-w-0 w-full space-y-5 sm:space-y-6">
-                  {listingDetailsStack}
-                </div>
               </div>
-              <div className="w-full min-w-0 lg:min-w-0 lg:max-w-full lg:self-start">
+              <div className="min-w-0 w-full lg:col-start-1 lg:row-start-2 lg:min-w-0 lg:max-w-full">
+                {brPreviewTitleAndPropertyCard}
+              </div>
+              <div className="w-full min-w-0 lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:self-start lg:min-w-0 lg:max-w-full">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -591,6 +587,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   ownerId={listing.ownerId ?? null}
                   agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
                 />
+              </div>
+              <div className="min-w-0 w-full space-y-5 sm:space-y-6 lg:col-start-1 lg:row-start-3">
+                {brPreviewDescriptionSellerLocation}
               </div>
             </div>
           </>
