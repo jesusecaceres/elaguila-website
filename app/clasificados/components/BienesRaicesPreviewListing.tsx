@@ -248,15 +248,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     setLightboxOpen(true);
   }, [extraImageCount, photoUrls.length]);
 
-  /**
-   * NEGOCIO main hero: mobile/tablet photo-forward aspects; desktop (lg+) fixed 1152×875 inside 2500px preview canvas.
-   */
-  const negocioHeroOnly = (
-    <div className="relative min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0 lg:h-[875px] lg:w-[1152px] lg:max-w-full lg:shrink-0 lg:shadow-sm">
-      <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
-    </div>
-  );
-
   const propertyHeroSection = (
     <div className="min-w-0 flex flex-col gap-3">
       <div className="relative min-h-[280px] sm:min-h-[340px] lg:min-h-0 lg:h-[520px] xl:h-[540px] rounded-2xl overflow-hidden border border-stone-200/80 bg-stone-100 shadow-inner">
@@ -418,14 +409,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </>
   );
 
-  /** Tiles inside the square 2×2 wrapper: fill grid cells (equal quadrants). */
-  const negocioTileInBand =
-    "flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
-  const negocioTileActive =
-    "border-[#C9B46A]/35 bg-[#FFFCF6] text-[10px] font-semibold leading-tight text-[#111111] transition hover:bg-[#F8F2E6] sm:text-[11px]";
-  const negocioTileDisabled =
-    "border-[#C9B46A]/10 bg-[#EFEDE8]/90 text-[10px] font-semibold leading-tight text-[#111111]/32 sm:text-[11px] pointer-events-none select-none";
-
   return (
     <div
       className={cx(
@@ -434,165 +417,30 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
         {showBusinessRail && listing.businessRail ? (
-          <>
-            <header
-              className="mb-4 sm:mb-5 w-full min-w-0 border-b border-stone-200/80 pb-4 sm:pb-5"
-              data-section="br-negocio-preview-top-chrome"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF6] px-4 py-2.5 sm:px-5 sm:py-3 shadow-sm ring-1 ring-[#C9B46A]/15">
-                  <span className="text-sm sm:text-base font-bold tracking-tight text-[#111111]">Leonix Clasificados</span>
-                </div>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-xl border border-[#3F5A43]/70 bg-[#3F5A43] px-4 py-2.5 text-sm font-semibold text-[#F7F4EC] shadow-sm transition hover:bg-[#36503A]"
-                >
-                  Publicar
-                </button>
-              </div>
-              <nav
-                className="mt-3 sm:mt-4 flex flex-wrap gap-1 border-t border-stone-200/60 pt-3 sm:pt-4"
-                aria-label={lang === "es" ? "Secciones del anuncio" : "Listing sections"}
-              >
-                {(lang === "es"
-                  ? (["Resumen", "Interior", "Exterior", "Detalles", "Ubicación", "Contacto"] as const)
-                  : (["Summary", "Interior", "Exterior", "Details", "Location", "Contact"] as const)
-                ).map((label, tabIdx) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className={cx(
-                      "rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-semibold transition",
-                      tabIdx === 0
-                        ? "border border-[#C9B46A]/50 bg-[#FAF3E4] text-[#111111]"
-                        : "border border-transparent text-[#111111]/65 hover:border-stone-200/80 hover:bg-white/60 hover:text-[#111111]"
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </nav>
-            </header>
+          <div
+            className="rounded-2xl border border-stone-200/80 bg-[#FFFCF6] p-8 sm:p-10 text-center shadow-sm"
+            data-br-negocio-preview-reset="1"
+            data-negocio-hero-src={negocioMainHeroSrc}
+            data-negocio-virtual-tour-href={virtualTourHref || undefined}
+            data-negocio-floor-plan-href={floorPlanHref || undefined}
+            data-negocio-pro-video-href={proVideoHref || undefined}
+            data-negocio-extra-image-count={extraImageCount}
+          >
+            <p className="text-base font-medium text-[#111111]/80">BR negocio preview reset in progress</p>
             {/*
-              BR negocio desktop: explicit 2-col grid — col1 = media row + title + description; col2 = rail only (never merged with media band).
+              Preserved rail wiring (not rendered during layout reset; reconnect when rebuilding BR negocio preview).
             */}
-            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
-              <div className="min-w-0 flex w-full flex-col gap-4 sm:gap-5 lg:col-start-1 lg:row-start-1 lg:min-w-0">
-                <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-5">
-                  <div className="flex w-full min-w-0 justify-center lg:min-w-0 lg:max-w-full lg:justify-start">
-                    {negocioHeroOnly}
-                  </div>
-                  <div className="flex w-full min-w-0 justify-center lg:min-w-0 lg:max-w-full lg:justify-start">
-                    <div
-                      className="grid aspect-square h-auto min-h-0 w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-square lg:max-w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-1 lg:overflow-hidden lg:rounded-2xl lg:ring-1 lg:ring-stone-200/60 lg:shadow-sm"
-                      aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
-                    >
-                  {virtualTourHref ? (
-                    <a
-                      href={virtualTourHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cx(negocioTileInBand, negocioTileActive)}
-                    >
-                      <span className="text-base sm:text-lg leading-none" aria-hidden>
-                        🌐
-                      </span>
-                      <span>{t.tileTour}</span>
-                    </a>
-                  ) : (
-                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
-                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
-                        🌐
-                      </span>
-                      <span>{t.tileTour}</span>
-                    </div>
-                  )}
-                  {floorPlanHref ? (
-                    <a
-                      href={floorPlanHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cx(negocioTileInBand, negocioTileActive)}
-                    >
-                      <span className="text-base sm:text-lg leading-none" aria-hidden>
-                        📐
-                      </span>
-                      <span>{t.tilePlan}</span>
-                    </a>
-                  ) : (
-                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
-                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
-                        📐
-                      </span>
-                      <span>{t.tilePlan}</span>
-                    </div>
-                  )}
-                  {proVideoHref ? (
-                    <a
-                      href={proVideoHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cx(negocioTileInBand, negocioTileActive)}
-                    >
-                      <span className="text-base sm:text-lg leading-none" aria-hidden>
-                        🎥
-                      </span>
-                      <span>{t.tileVideo}</span>
-                    </a>
-                  ) : (
-                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
-                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
-                        🎥
-                      </span>
-                      <span>{t.tileVideo}</span>
-                    </div>
-                  )}
-                  {extraImageCount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={openMorePhotosLightbox}
-                      className={cx(negocioTileInBand, negocioTileActive, "cursor-pointer")}
-                    >
-                      <span className="text-base sm:text-lg leading-none" aria-hidden>
-                        🖼️
-                      </span>
-                      <span>{t.tileMorePhotos}</span>
-                      <span className="text-[8px] font-bold uppercase tracking-wide text-[#8B6914]/90 leading-none">
-                        {lang === "es"
-                          ? extraImageCount === 1
-                            ? "1 más"
-                            : `${extraImageCount} más`
-                          : extraImageCount === 1
-                            ? "1 more"
-                            : `${extraImageCount} more`}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
-                      <span className="text-base opacity-40 sm:text-lg" aria-hidden>
-                        🖼️
-                      </span>
-                      <span>{t.tileMorePhotos}</span>
-                    </div>
-                  )}
-                    </div>
-                  </div>
-                </div>
-                <div className="min-w-0 w-full lg:min-w-0 lg:max-w-full">{brPreviewTitleAndPropertyCard}</div>
-                <div className="min-w-0 w-full space-y-5 sm:space-y-6">{brPreviewDescriptionSellerLocation}</div>
-              </div>
-              <div className="w-full min-w-0 lg:col-start-2 lg:row-start-1 lg:min-w-0 lg:max-w-full lg:self-start">
-                <BusinessListingIdentityRail
-                  businessRail={listing.businessRail}
-                  category="bienes-raices"
-                  businessRailTier={listing.businessRailTier}
-                  lang={lang}
-                  ownerId={listing.ownerId ?? null}
-                  agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
-                />
-              </div>
-            </div>
-          </>
+            {false ? (
+              <BusinessListingIdentityRail
+                businessRail={listing.businessRail!}
+                category="bienes-raices"
+                businessRailTier={listing.businessRailTier}
+                lang={lang}
+                ownerId={listing.ownerId ?? null}
+                agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
+              />
+            ) : null}
+          </div>
         ) : (
           <div className="grid gap-6 lg:gap-8 items-start lg:items-stretch lg:grid-cols-1">{propertyHeroSection}</div>
         )}
@@ -664,7 +512,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
         )}
 
-        {/* Privado / non-negocio: hero then details stack (negocio renders details inside left column above). */}
+        {/* Privado / non-negocio: hero then details stack (BR negocio preview body is reset above). */}
         {!showBusinessRail ? (
           <div className="w-full min-w-0 mt-8">
             <div className="min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8 w-full">
