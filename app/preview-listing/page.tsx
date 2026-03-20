@@ -71,6 +71,8 @@ export default function PreviewListingPage() {
             noPreview: "No preview available.",
             goToClassifieds: "Go to Classifieds",
             previewSubtitle: "Preview (as buyers will see it)",
+            brandTitle: "Leonix Clasificados",
+            publishGoToReview: "Publish",
             backToEditListing: "Back to edit listing",
             editListing: "Edit listing",
             confirmPublish: "Confirm & Publish",
