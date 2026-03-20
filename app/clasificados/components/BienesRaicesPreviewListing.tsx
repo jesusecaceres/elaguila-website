@@ -249,11 +249,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   }, [extraImageCount, photoUrls.length]);
 
   /**
-   * NEGOCIO main hero: mobile keeps a photo-forward aspect; desktop (lg+) fills the grid cell next to
-   * the smaller 2×2 utilities block so the hero reads as the dominant image.
+   * NEGOCIO main hero: mobile/tablet photo-forward aspects; desktop (lg+) baseline 1152×875 (Zillow-style band).
    */
   const negocioHeroOnly = (
-    <div className="relative h-full min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0 lg:h-full">
+    <div className="relative min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-[1152/875] lg:max-h-[875px] lg:min-h-0">
       <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
@@ -431,7 +430,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     <div
       className={cx(
         "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-x-hidden",
-        showBusinessRail && "mx-auto max-w-[min(100%,88rem)] 2xl:max-w-[min(100%,112rem)]"
+        showBusinessRail && "mx-auto max-w-[min(100%,2500px)]"
       )}
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
@@ -441,11 +440,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               BR negocio: top band = hero (left) + 2×2 utilities (right) only; rail sits below the band; then title/details/description.
             */}
             <div className="min-w-0 flex flex-col gap-4 sm:gap-5">
-              <div className="flex flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(10.5rem,30%)] lg:grid-rows-1 lg:items-stretch lg:gap-4 xl:grid-cols-[minmax(0,1fr)_12rem] xl:gap-5">
-                  <div className="order-1 min-w-0 w-full lg:min-h-0 lg:min-w-0">{negocioHeroOnly}</div>
-                  <div className="order-2 w-full min-w-0 shrink-0 lg:min-w-0 lg:max-w-full">
+              <div className="flex flex-col gap-4 sm:gap-4 lg:grid lg:w-full lg:max-w-full lg:min-w-0 lg:grid-cols-[minmax(0,1152fr)_minmax(0,1158fr)] lg:items-start lg:gap-6 xl:gap-8">
+                  <div className="order-1 min-w-0 w-full">{negocioHeroOnly}</div>
+                  <div className="order-2 w-full min-w-0 shrink-0">
                     <div
-                      className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:gap-1.5"
+                      className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-[1158/890] lg:gap-1.5 lg:max-h-[890px]"
                       aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
                     >
                   {virtualTourHref ? (
