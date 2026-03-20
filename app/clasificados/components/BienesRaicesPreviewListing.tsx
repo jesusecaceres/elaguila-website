@@ -430,8 +430,8 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     <div
       className={cx(
         "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-x-hidden",
-        /* BR negocio canvas: width 100%, max-width 2500px, margin-inline auto */
-        showBusinessRail && "mx-auto box-border w-full max-w-[2500px]"
+        /* BR negocio: match publish page outer canvas (max-w-4xl + mx-auto + px-6) */
+        showBusinessRail && "mx-auto box-border w-full max-w-4xl px-6"
       )}
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
