@@ -6,6 +6,7 @@ import {
   FaGlobe,
   FaInstagram,
   FaTiktok,
+  FaTwitter,
   FaWhatsapp,
   FaYoutube,
 } from "react-icons/fa";
@@ -14,7 +15,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-type SocialPlatform = "facebook" | "instagram" | "youtube" | "tiktok" | "whatsapp" | "other";
+type SocialPlatform = "facebook" | "instagram" | "youtube" | "tiktok" | "whatsapp" | "twitter" | "other";
 
 function detectSocialPlatform(url: string, label?: string): SocialPlatform {
   const u = url.toLowerCase();
@@ -24,6 +25,7 @@ function detectSocialPlatform(url: string, label?: string): SocialPlatform {
   if (/youtube\.com|youtu\.be/.test(u) || l.includes("youtube")) return "youtube";
   if (/tiktok\.com/.test(u) || l.includes("tiktok")) return "tiktok";
   if (/wa\.me|whatsapp\.com|api\.whatsapp/.test(u) || l.includes("whatsapp")) return "whatsapp";
+  if (/twitter\.com|\/\/x\.com\//i.test(u) || l.includes("twitter") || l === "x") return "twitter";
   return "other";
 }
 
@@ -88,7 +90,7 @@ export default function AgentProfileHero({
           serviceAreas: "Zonas de servicio",
           websiteLabel: "Sitio web",
           phone: "Teléfono",
-          email: "Correo",
+          email: "Correo electrónico",
           langs: "Idiomas",
           licenseLabel: "Licencia",
           socialHeading: "Redes sociales",
@@ -120,7 +122,8 @@ export default function AgentProfileHero({
     try {
       return new URL(websiteHref).hostname.replace(/^www\./i, "");
     } catch {
-      return websiteHref.replace(/^https?:\/\//i, "");
+      const s = websiteHref.replace(/^https?:\/\//i, "").trim();
+      return s.split("/")[0]?.replace(/^www\./i, "") ?? s;
     }
   })();
 
@@ -169,22 +172,32 @@ export default function AgentProfileHero({
         </div>
 
         {/* Right: content starts high, compact vertical rhythm */}
-        <div className="flex min-w-0 flex-col items-stretch gap-3 text-left lg:pt-0">
-          <h1 className="font-serif text-2xl sm:text-[1.65rem] font-bold leading-tight tracking-tight text-[#111111]">
-            {agentName}
-          </h1>
-
-          {licenseTrim ? (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.licenseLabel}</p>
-              <p className="text-sm font-medium leading-snug text-[#111111]/90">{licenseTrim}</p>
-            </div>
-          ) : null}
+        <div className="flex min-w-0 max-w-full flex-col items-stretch gap-3 text-left lg:pt-0">
+          <div className="min-w-0 space-y-1.5">
+            <h1 className="font-serif text-2xl sm:text-[1.65rem] font-bold leading-tight tracking-tight text-[#111111] break-words">
+              {agentName}
+            </h1>
+            {licenseTrim ? (
+              <p className="text-sm font-medium leading-snug text-[#111111]/88">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8B6914]/80">{t.licenseLabel}: </span>
+                <span className="break-words">{licenseTrim}</span>
+              </p>
+            ) : null}
+          </div>
 
           {areas.length > 0 ? (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.serviceAreas}</p>
-              <p className="text-sm font-medium leading-snug text-[#111111]/90">{areas.join(" · ")}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1.5">{t.serviceAreas}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {areas.map((a) => (
+                  <span
+                    key={a}
+                    className="inline-flex max-w-full items-center rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7]/90 px-2.5 py-1 text-xs font-medium leading-snug text-[#111111]/90 break-words"
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
 
@@ -225,24 +238,24 @@ export default function AgentProfileHero({
           ) : null}
 
           {websiteHref ? (
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1">{t.websiteLabel}</p>
               <a
                 href={websiteHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2F4A33] hover:underline break-all"
+                className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm font-semibold text-[#2F4A33] hover:underline"
               >
                 <FaGlobe className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                {websiteLinkText || websiteHref}
+                <span className="min-w-0 truncate">{websiteLinkText || websiteHref}</span>
               </a>
             </div>
           ) : null}
 
           {validSocials.length > 0 ? (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8B6914]/85 mb-1.5">{t.socialHeading}</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="min-w-0">
+              <p className="sr-only">{t.socialHeading}</p>
+              <div className="flex flex-wrap gap-2" role="list" aria-label={t.socialHeading}>
                 {validSocials.map((s, i) => {
                   const u = s.url.trim();
                   const platform = detectSocialPlatform(u, s.label);
@@ -255,6 +268,7 @@ export default function AgentProfileHero({
                       rel="noopener noreferrer"
                       title={label}
                       aria-label={label}
+                      role="listitem"
                       className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#C9B46A]/30 bg-white text-[#111111]/85 shadow-sm transition hover:border-[#C9B46A]/50 hover:bg-[#FFFCF7]"
                     >
                       <SocialPlatformIcon platform={platform} />

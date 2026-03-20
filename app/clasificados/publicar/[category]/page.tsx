@@ -5786,6 +5786,23 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                 />
                               </div>
+                              <div>
+                                <label className="text-xs text-[#111111]/80">
+                                  {lang === "es" ? "Zonas de servicio" : "Service areas"}
+                                </label>
+                                <p className="mt-0.5 text-[11px] text-[#111111]/55 leading-snug">
+                                  {lang === "es"
+                                    ? "Ciudades o zonas separadas por comas (se guardan tal cual)."
+                                    : "Cities or areas, separated by commas (saved as entered)."}
+                                </p>
+                                <textarea
+                                  value={details.negocioZonasServicio ?? ""}
+                                  onChange={(e) => setDetails((prev) => ({ ...prev, negocioZonasServicio: e.target.value }))}
+                                  placeholder={lang === "es" ? "Ej: San José, Milpitas, Fremont" : "e.g. San Jose, Milpitas, Fremont"}
+                                  rows={3}
+                                  className="mt-1.5 w-full min-h-[4.5rem] rounded-lg border border-black/10 px-3 py-2 text-sm resize-y"
+                                />
+                              </div>
                               <div className="flex flex-wrap items-end gap-2 sm:gap-3">
                                 <div className="min-w-0 flex-1">
                                   <label className="text-xs text-[#111111]/80">{lang === "es" ? "Teléfono de oficina" : "Office phone"}</label>

@@ -118,7 +118,7 @@ export default async function PublicAgentProfilePage(props: PageProps) {
   const backLabel = publishReturnHref != null ? t.backPreview : t.back;
 
   return (
-    <main className="min-h-screen bg-[#FAF9F5] text-[#111111]">
+    <main className="min-h-screen overflow-x-hidden bg-[#FAF9F5] text-[#111111]">
       <Navbar />
       <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-20 pb-16">
         <Link

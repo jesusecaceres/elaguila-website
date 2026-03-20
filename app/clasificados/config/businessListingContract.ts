@@ -26,6 +26,8 @@ export const BUSINESS_META_KEYS = [
   "negocioLogoUrl",
   "negocioFotoAgenteUrl",
   "negocioIdiomas",
+  /** Comma- or newline-separated cities/areas the business serves (BR negocio). */
+  "negocioZonasServicio",
   "negocioHorario",
   "negocioRecorridoVirtual",
   "negocioPlusMasAnuncios",

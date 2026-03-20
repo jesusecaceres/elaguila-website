@@ -58,8 +58,10 @@ export default function BusinessListingIdentityRail({
         : agentNameLen > 42
           ? "text-[0.92rem] sm:text-[0.95rem]"
           : "text-sm sm:text-[0.98rem]";
-  const agentNameLayoutClass =
-    agentNameLen > 72
+  /** BR compact rail: always wrap — no horizontal clipping on narrow widths. */
+  const agentNameLayoutClass = isBienesRaices
+    ? "whitespace-normal break-words"
+    : agentNameLen > 72
       ? "whitespace-nowrap overflow-hidden text-ellipsis"
       : agentNameLen > 56
         ? "whitespace-normal break-words"
@@ -108,7 +110,16 @@ export default function BusinessListingIdentityRail({
               <p className={cx(agentNameClass, agentNameLayoutClass, "font-semibold text-[#111111] leading-tight max-w-full")}>
                 {agentName}
               </p>
-              {agentRole ? <p className="mt-1 text-xs sm:text-[0.8rem] text-[#111111]/70 whitespace-nowrap overflow-hidden text-ellipsis">{agentRole}</p> : null}
+              {agentRole ? (
+                <p
+                  className={cx(
+                    "mt-1 text-xs sm:text-[0.8rem] text-[#111111]/70",
+                    isBienesRaices ? "break-words" : "whitespace-nowrap overflow-hidden text-ellipsis"
+                  )}
+                >
+                  {agentRole}
+                </p>
+              ) : null}
             </div>
           </div>
           {(businessRail.logoUrl || businessName) && (

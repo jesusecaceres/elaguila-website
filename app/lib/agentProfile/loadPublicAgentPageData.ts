@@ -204,6 +204,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   const agentRole = (meta?.negocioCargo ?? "").trim() || null;
   const agentLicense = (meta?.negocioLicencia ?? "").trim() || null;
   const languages = (meta?.negocioIdiomas ?? "").trim() || null;
+  const zonasServicioRaw = (meta?.negocioZonasServicio ?? "").trim();
   const agentPhotoUrl = (meta?.negocioFotoAgenteUrl ?? "").trim() || null;
   const logoUrl = (meta?.negocioLogoUrl ?? "").trim() || null;
   const phoneMainFmt = (meta?.negocioTelOficina ?? "").trim();
@@ -235,9 +236,18 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
     serviceSeen.add(k);
     serviceAreaLines.push(t);
   };
-  pushArea(profile?.homeCity ?? null);
-  pushArea(city);
-  pushArea(neighborhood);
+
+  // Service areas: explicit publisher-entered list in business_meta wins; infer only if absent.
+  if (zonasServicioRaw) {
+    const parts = zonasServicioRaw.split(/[,;\n\r]+/);
+    for (const part of parts) {
+      pushArea(part);
+    }
+  } else {
+    pushArea(profile?.homeCity ?? null);
+    pushArea(city);
+    pushArea(neighborhood);
+  }
 
   const businessAddressLine =
     streetAddress && city
