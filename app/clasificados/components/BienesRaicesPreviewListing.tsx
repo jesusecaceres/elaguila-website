@@ -305,6 +305,109 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </div>
   );
 
+  /** Title / price / detalles / description / seller / location — reused for privado flow and negocio left column. */
+  const listingDetailsStack = (
+    <>
+      <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6] p-5 sm:p-6 lg:p-7 shadow-sm w-full min-w-0">
+        {listing.categoryLabel ? (
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
+        ) : null}
+
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
+          {listing.title}
+        </h1>
+
+        <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-extrabold text-[#111111] tabular-nums">
+          {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
+        </div>
+
+        <div className="mt-3 text-sm text-[#111111]/75">{listing.todayLabel}</div>
+
+        {addressLine ? (
+          <p className="mt-2 text-sm text-[#111111]/70">
+            <span className="font-medium text-[#111111]/80">{lang === "es" ? "Dirección:" : "Address:"}</span> {addressLine}
+          </p>
+        ) : null}
+        {neighborhoodLine ? (
+          <p className="mt-1 text-sm text-[#111111]/65">
+            <span className="font-medium text-[#111111]/75">{lang === "es" ? "Vecindad:" : "Neighborhood:"}</span>{" "}
+            {neighborhoodLine}
+          </p>
+        ) : null}
+
+        {(iconFacts.length > 0 || compactQuickFacts.length > 0) && (
+          <div className="mt-4 pt-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.detallesPropiedad}</h2>
+
+            {iconFacts.length > 0 && (
+              <div className="mb-5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+                  {lang === "es" ? "Datos clave" : "Quick facts"}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {iconFacts.map((f) => (
+                    <span
+                      key={`qf-icon-${f._key}-${f.value}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/35 bg-[#FAF3E4] px-3 py-1.5 text-xs font-semibold text-[#111111]"
+                    >
+                      <span aria-hidden>{f.icon}</span>
+                      <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="w-full min-w-0 rounded-2xl border border-[#C9B46A]/28 bg-[#FFFDF7] p-5 sm:p-6 lg:p-7 shadow-[0_10px_28px_-24px_rgba(17,17,17,0.45)]">
+        <h3 className="text-sm font-semibold text-[#111111]/75 uppercase tracking-wide mb-3">{t.descripcion}</h3>
+        <div className="max-w-[74ch] text-sm sm:text-base text-[#111111]/95 whitespace-pre-wrap leading-7">{listing.description}</div>
+      </div>
+
+      <div className={`${detailCardClass} w-full min-w-0`} data-section="seller-profile">
+        <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
+        <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
+        <span className="inline-block mt-1 text-xs text-[#111111]/60 font-medium">{t.memberLabel}</span>
+
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#111111]/60">
+          <span>⭐ {t.newSeller}</span>
+          <span>
+            📅 {t.memberSince} {new Date().getFullYear()}
+          </span>
+        </div>
+
+        <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
+        <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
+      </div>
+
+      <div className={`${detailCardClass} w-full min-w-0`}>
+        <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
+        <p className="text-sm text-[#111111] mb-2">
+          {t.sellerLocation} {listing.city}
+        </p>
+
+        <label className="block text-sm text-[#111111]/70 mb-1">{t.distanceLabel}</label>
+
+        <CityAutocomplete
+          value={viewerCityInput}
+          onChange={setViewerCityInput}
+          placeholder={t.cityPlaceholder}
+          lang={lang}
+          variant="light"
+          className="mt-1 w-full max-w-full sm:max-w-md"
+        />
+
+        {distanceMiles !== null && (
+          <p className="mt-2 text-sm text-[#111111]/70">
+            {t.milesAway} {Math.round(distanceMiles)} {t.miles}
+          </p>
+        )}
+      </div>
+    </>
+  );
+
   /** Tiles inside the square 2×2 wrapper: fill grid cells (equal quadrants). */
   const negocioTileInBand =
     "flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
@@ -324,17 +427,18 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {showBusinessRail && listing.businessRail ? (
           <>
             {/*
-              BR negocio top band: one rectangle = hero + square 2×2 (heights lock on lg+).
-              Business / agent rail sits below so it does not stretch or compress the media row.
+              BR negocio: desktop two-column — left: media band + listing details under images; right: business rail + CTAs.
+              Mobile: stack — main column (media + details) then sidebar (rail).
             */}
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-4 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-6">
-                <div className="order-1 min-w-0 w-full lg:min-h-0 lg:flex-[1.72] lg:min-w-0">{negocioHeroOnly}</div>
-                <div className="order-2 w-full min-w-0 shrink-0 lg:w-[min(100%,19rem)] lg:max-w-[19rem]">
-                  <div
-                    className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2"
-                    aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
-                  >
+            <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6 xl:gap-8">
+              <div className="min-w-0 w-full flex-1 flex flex-col gap-4 lg:gap-5">
+                <div className="flex flex-col gap-4 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-6">
+                  <div className="order-1 min-w-0 w-full lg:min-h-0 lg:flex-[1.72] lg:min-w-0">{negocioHeroOnly}</div>
+                  <div className="order-2 w-full min-w-0 shrink-0 lg:w-[min(100%,19rem)] lg:max-w-[19rem]">
+                    <div
+                      className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2"
+                      aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
+                    >
                   {virtualTourHref ? (
                     <a
                       href={virtualTourHref}
@@ -423,10 +527,16 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       <span>{t.tileMorePhotos}</span>
                     </div>
                   )}
+                    </div>
                   </div>
                 </div>
+
+                <div className="min-w-0 w-full border-t border-stone-200/70 pt-4 sm:pt-5 lg:pt-5">
+                  <div className="min-w-0 space-y-5 sm:space-y-6 w-full">{listingDetailsStack}</div>
+                </div>
               </div>
-              <div className="w-full min-w-0 pt-1">
+
+              <aside className="w-full min-w-0 shrink-0 lg:w-[min(100%,22rem)] lg:max-w-[22rem] lg:self-start">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -435,7 +545,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   ownerId={listing.ownerId ?? null}
                   agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
                 />
-              </div>
+              </aside>
             </div>
           </>
         ) : (
@@ -509,121 +619,14 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
           </div>
         )}
 
-        {/* Below the full top band (hero + media grid + rail): title / price / address — full width, not nested under the left column */}
-        <div className={cx("w-full min-w-0", showBusinessRail ? "mt-5 sm:mt-6" : "mt-8")}>
-          <div
-            className={cx(
-              "min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70",
-              showBusinessRail ? "pt-5 sm:pt-6" : "pt-8"
-            )}
-          >
-            {/* Title / price / city / posted + quick facts + feature chips */}
-            <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6] p-5 sm:p-6 lg:p-7 shadow-sm w-full lg:w-[min(100%,52rem)]">
-              {listing.categoryLabel ? (
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
-              ) : null}
-
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
-                {listing.title}
-              </h1>
-
-              <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-extrabold text-[#111111] tabular-nums">
-                {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
-              </div>
-
-              <div className="mt-3 text-sm text-[#111111]/75">{listing.todayLabel}</div>
-
-              {addressLine ? (
-                <p className="mt-2 text-sm text-[#111111]/70">
-                  <span className="font-medium text-[#111111]/80">{lang === "es" ? "Dirección:" : "Address:"}</span>{" "}
-                  {addressLine}
-                </p>
-              ) : null}
-              {neighborhoodLine ? (
-                <p className="mt-1 text-sm text-[#111111]/65">
-                  <span className="font-medium text-[#111111]/75">{lang === "es" ? "Vecindad:" : "Neighborhood:"}</span>{" "}
-                  {neighborhoodLine}
-                </p>
-              ) : null}
-
-              {(iconFacts.length > 0 || compactQuickFacts.length > 0) && (
-                <div className="mt-4 pt-4">
-                  <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.detallesPropiedad}</h2>
-
-                  {iconFacts.length > 0 && (
-                    <div className="mb-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                        {lang === "es" ? "Datos clave" : "Quick facts"}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {iconFacts.map((f) => (
-                          <span
-                            key={`qf-icon-${f._key}-${f.value}`}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/35 bg-[#FAF3E4] px-3 py-1.5 text-xs font-semibold text-[#111111]"
-                          >
-                            <span aria-hidden>{f.icon}</span>
-                            <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            <div className="w-full lg:w-[min(100%,52rem)] rounded-2xl border border-[#C9B46A]/28 bg-[#FFFDF7] p-5 sm:p-6 lg:p-7 shadow-[0_10px_28px_-24px_rgba(17,17,17,0.45)]">
-              <h3 className="text-sm font-semibold text-[#111111]/75 uppercase tracking-wide mb-3">{t.descripcion}</h3>
-              <div className="max-w-[74ch] text-sm sm:text-base text-[#111111]/95 whitespace-pre-wrap leading-7">
-                {listing.description}
-              </div>
-            </div>
-
-            {/* Property details section header/cards (existing info-only partitioning) */}
-            {/* Note: title/price/facts/features already rendered above; remaining cards are seller and location. */}
-
-            {/* Seller / published-by */}
-            <div className={`${detailCardClass} w-full`} data-section="seller-profile">
-              <h4 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.postedBy}</h4>
-              <p className="text-base font-semibold text-[#111111]">{sellerDisplayName}</p>
-              <span className="inline-block mt-1 text-xs text-[#111111]/60 font-medium">{t.memberLabel}</span>
-
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#111111]/60">
-                <span>⭐ {t.newSeller}</span>
-                <span>📅 {t.memberSince} {new Date().getFullYear()}</span>
-              </div>
-
-              <div className="mt-2 text-xs text-[#111111]/50">{t.responsePlaceholder}</div>
-              <div className="mt-1 text-xs text-[#111111]/50">{t.verifiedPlaceholder}</div>
-            </div>
-
-            {/* Location */}
-            <div className={`${detailCardClass} w-full`}>
-              <h3 className="text-xs font-semibold text-[#111111]/70 uppercase tracking-wide mb-2">{t.location}</h3>
-              <p className="text-sm text-[#111111] mb-2">
-                {t.sellerLocation} {listing.city}
-              </p>
-
-              <label className="block text-sm text-[#111111]/70 mb-1">{t.distanceLabel}</label>
-
-              <CityAutocomplete
-                value={viewerCityInput}
-                onChange={setViewerCityInput}
-                placeholder={t.cityPlaceholder}
-                lang={lang}
-                variant="light"
-                className="mt-1 w-full max-w-full sm:max-w-md"
-              />
-
-              {distanceMiles !== null && (
-                <p className="mt-2 text-sm text-[#111111]/70">
-                  {t.milesAway} {Math.round(distanceMiles)} {t.miles}
-                </p>
-              )}
+        {/* Privado / non-negocio: hero then details stack (negocio renders details inside left column above). */}
+        {!showBusinessRail ? (
+          <div className="w-full min-w-0 mt-8">
+            <div className="min-w-0 space-y-5 sm:space-y-6 border-t border-stone-200/70 pt-8 w-full">
+              <div className="w-full max-w-[52rem] space-y-5 sm:space-y-6">{listingDetailsStack}</div>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );
