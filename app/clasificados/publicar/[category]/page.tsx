@@ -1797,7 +1797,8 @@ export default function PublicarPage() {
   /** Rentas Privado is Pro-only; no free/pro comparison. */
   const isRentasPrivado = categoryFromUrl === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
   /** Bienes Raíces negocio gets premium media (12 images, 1 video) like Rentas premium. */
-  const isBienesRaicesNegocio = categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim() === "negocio";
+  const isBienesRaicesNegocio =
+    categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio";
   /** Private BR: sale-by-owner; single preview CTA, no free/pro comparison. */
   const isBienesRaicesPrivado = categoryFromUrl === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "privado";
   const effectiveIsPro = isPro || isRentasPrivado || isBienesRaicesNegocio;
@@ -4030,7 +4031,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId?.trim() ? userId.trim() : undefined,
     };
     // BR negocio: normalized mapper (rail + structured facts + highlights).
-    if (category === "bienes-raices" && (snap.details?.bienesRaicesBranch ?? "").trim() === "negocio") {
+    // Use categoryFromUrl so preview matches the live route even if local `category` state lags the URL.
+    if (
+      categoryFromUrl === "bienes-raices" &&
+      (snap.details?.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio"
+    ) {
       return buildBrNegocioListingData({
         snap: {
           title: snap.title,
@@ -4054,7 +4059,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       });
     }
     return base;
-  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, userId, previewPublishReturnPath]);
+  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, userId, previewPublishReturnPath]);
 
   // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
   const openFullPreview = useCallback(() => {
@@ -6479,14 +6484,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         )}
 
                       {isBienesRaicesNegocio ? (
-                        <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-3 sm:p-4">
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            <div className="text-sm font-semibold text-[#111111]">{copy.preview}</div>
-                            <div className="text-xs text-[#111111]/50">
-                              {lang === "es" ? "Vista previa final (mismo diseño que publicación)" : "Final preview (same layout as live)"}
-                            </div>
-                          </div>
-                          <div className="max-h-[min(88vh,920px)] overflow-y-auto overflow-x-hidden rounded-xl border border-black/5 bg-[#f5f3ef]">
+                        <div className="mt-1 w-full min-w-0">
+                          <p className="text-sm font-semibold text-[#111111]">{copy.preview}</p>
+                          <p className="mt-1 mb-3 text-xs text-[#111111]/55">
+                            {lang === "es"
+                              ? "Vista previa final — mismo diseño premium que verán los compradores."
+                              : "Final preview — same premium layout buyers will see."}
+                          </p>
+                          <div className="max-h-[min(92vh,980px)] w-full min-w-0 overflow-y-auto overflow-x-hidden">
                             <ListingView listing={fullPreviewListingData} previewMode hideProComparisonUI />
                           </div>
                         </div>

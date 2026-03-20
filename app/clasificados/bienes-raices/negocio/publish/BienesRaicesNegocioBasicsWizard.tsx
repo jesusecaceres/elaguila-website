@@ -610,7 +610,7 @@ export function BienesRaicesNegocioBasicsWizard({
       {step === 7 && (
         <div className="space-y-4">
           <p className="text-sm text-[#111111]/80">{lang === "es" ? "Así se verá tu listado. Luego sube fotos y finaliza." : "This is how your listing will look. Then upload photos and finish."}</p>
-          <div className="max-h-[min(75vh,720px)] overflow-y-auto rounded-2xl border border-stone-200/90 bg-[#f5f3ef] shadow-inner">
+          <div className="max-h-[min(88vh,920px)] w-full min-w-0 overflow-y-auto overflow-x-hidden">
             <ListingView listing={previewListing} previewMode hideProComparisonUI />
           </div>
           <button
