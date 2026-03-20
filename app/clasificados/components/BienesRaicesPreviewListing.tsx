@@ -438,12 +438,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {showBusinessRail && listing.businessRail ? (
           <>
             {/*
-              BR negocio: md+ two-column grid — left: media band, title/details directly under images, then description;
-              right: business rail (compact sidebar). Rail is never a full-width row under the media band.
+              BR negocio: top band = hero (left) + 2×2 utilities (right) only; rail sits below the band; then title/details/description.
             */}
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_min(18.5rem,100%)] md:gap-6 lg:grid-cols-[minmax(0,1fr)_min(22rem,100%)] lg:gap-8 items-start">
-              <div className="min-w-0 flex flex-col gap-3 sm:gap-4">
-                <div className="flex flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(10.5rem,30%)] lg:grid-rows-1 lg:items-stretch lg:gap-4 xl:grid-cols-[minmax(0,1fr)_12rem] xl:gap-5">
+            <div className="min-w-0 flex flex-col gap-4 sm:gap-5">
+              <div className="flex flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(10.5rem,30%)] lg:grid-rows-1 lg:items-stretch lg:gap-4 xl:grid-cols-[minmax(0,1fr)_12rem] xl:gap-5">
                   <div className="order-1 min-w-0 w-full lg:min-h-0 lg:min-w-0">{negocioHeroOnly}</div>
                   <div className="order-2 w-full min-w-0 shrink-0 lg:min-w-0 lg:max-w-full">
                     <div
@@ -540,14 +538,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   )}
                     </div>
                   </div>
-                </div>
-
-                {brPreviewTitleAndPropertyCard}
-
-                <div className="min-w-0 w-full space-y-5 sm:space-y-6">{brPreviewDescriptionSellerLocation}</div>
               </div>
 
-              <aside className="min-w-0 w-full md:max-w-none">
+              <div className="w-full min-w-0">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -556,7 +549,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   ownerId={listing.ownerId ?? null}
                   agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
                 />
-              </aside>
+              </div>
+
+              {brPreviewTitleAndPropertyCard}
+
+              <div className="min-w-0 w-full space-y-5 sm:space-y-6">{brPreviewDescriptionSellerLocation}</div>
             </div>
           </>
         ) : (
