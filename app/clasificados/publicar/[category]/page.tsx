@@ -4008,6 +4008,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
   const fullPreviewListingData = useMemo((): ListingData => {
     const snap = enVentaSnapshot;
     const imgs = snap.images?.length ? snap.images : ["/logo.png"];
+    /** Snapshot + live form can diverge briefly; branch must match user selection for preview routing. */
+    const brBranchNormalized = (
+      snap.details?.bienesRaicesBranch ??
+      details?.bienesRaicesBranch ??
+      ""
+    )
+      .trim()
+      .toLowerCase();
+    const isBrNegocioPreviewData = categoryFromUrl === "bienes-raices" && brBranchNormalized === "negocio";
+
     const base: ListingData = {
       title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
       priceLabel: snap.priceLabel,
@@ -4029,13 +4039,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
       categoryLabel: previewCategoryLabel || undefined,
       approximateArea: category === "rentas" && snap.details?.zonaDireccion?.trim() ? snap.details.zonaDireccion.trim() : undefined,
       ownerId: userId?.trim() ? userId.trim() : undefined,
+      /** So ListingView BR preview branch runs even if `category` state lags `categoryFromUrl`. */
+      ...(categoryFromUrl === "bienes-raices" ? { category: "bienes-raices" as const } : {}),
     };
     // BR negocio: normalized mapper (rail + structured facts + highlights).
-    // Use categoryFromUrl so preview matches the live route even if local `category` state lags the URL.
-    if (
-      categoryFromUrl === "bienes-raices" &&
-      (snap.details?.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio"
-    ) {
+    // Use categoryFromUrl + branch from snapshot or live form so mapper always runs for Negocio / Profesional.
+    if (isBrNegocioPreviewData) {
       return buildBrNegocioListingData({
         snap: {
           title: snap.title,
@@ -4059,7 +4068,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       });
     }
     return base;
-  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, userId, previewPublishReturnPath]);
+  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]);
 
   // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
   const openFullPreview = useCallback(() => {
