@@ -123,6 +123,8 @@ export default async function PublicAgentProfilePage(props: PageProps) {
       <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-20 pb-16">
         <Link
           href={backHref}
+          prefetch={false}
+          scroll={false}
           className="mb-4 inline-flex text-sm font-semibold text-[#3F5A43] hover:text-[#2F4A33]"
         >
           {backLabel}

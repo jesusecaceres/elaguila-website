@@ -22,6 +22,7 @@ import {
   createDraft,
   updateDraft,
   getDraft,
+  getDraftsForCategory,
   getLatestDraftForCategory,
   getLatestDraftForRentasBranch,
   deleteDraftInDb,
@@ -2464,6 +2465,47 @@ export default function PublicarPage() {
           }
           // No branch chosen yet: do not offer a random rentas draft; wait for branch selection (see effect below)
           return;
+        }
+        // Bienes Raíces: auto-hydrate latest in-progress draft (e.g. return from /agente with returnTo missing draftId).
+        // Only Start new / Eliminar aplicación should clear; do not leave an empty form behind a blocking modal.
+        if (categoryForQuery === "bienes-raices") {
+          const branchInUrl = searchParams?.get("branch")?.trim().toLowerCase();
+          let pick: ListingDraftRow | null = null;
+          if (branchInUrl === "privado" || branchInUrl === "negocio") {
+            const rows = await getDraftsForCategory(supabase, userId, "bienes-raices", 20);
+            if (cancelled) return;
+            pick =
+              rows.find(
+                (row) =>
+                  ((row.draft_data?.details as Record<string, string> | undefined)?.bienesRaicesBranch ?? "")
+                    .trim()
+                    .toLowerCase() === branchInUrl
+              ) ?? null;
+          }
+          if (!pick) {
+            pick = await getLatestDraftForCategory(supabase, userId, "bienes-raices");
+          }
+          if (cancelled) return;
+          if (pick?.draft_data) {
+            const payload = pick.draft_data as DraftDataPayload;
+            applyDraftPayloadFromDb(payload);
+            setDraftId(pick.id);
+            setStoredDraftId(userId, pick.id);
+            syncDraftIdInUrl(pick.id);
+            const brSteps: PublishStep[] = ["category", "bienes-raices-track", "basics", "media"];
+            let restoredStep: PublishStep = "basics";
+            if (categoryFromUrl === "bienes-raices" && payload.step === "details") {
+              restoredStep = "media";
+            } else if (payload.step && brSteps.includes(payload.step as PublishStep)) {
+              restoredStep = payload.step as PublishStep;
+            }
+            setStep(restoredStep);
+            const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+            const branchOpt = brBranch === "privado" || brBranch === "negocio" ? { branch: brBranch as "privado" | "negocio" } : undefined;
+            syncStepInUrl(restoredStep, branchOpt);
+            setRecoveredDraftMessage(lang === "es" ? "Progreso guardado recuperado." : "Recovered saved progress.");
+            return;
+          }
         } else {
           const latest = await getLatestDraftForCategory(supabase, userId, categoryForQuery);
           if (cancelled) return;
@@ -2501,7 +2543,7 @@ export default function PublicarPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl, router, lang]);
+  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl, syncStepInUrl, router, lang]);
 
   // Rentas: when user selects a branch, run restore check for that branch only (no modal before branch is chosen).
   useEffect(() => {

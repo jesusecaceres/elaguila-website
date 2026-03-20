@@ -248,9 +248,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     setLightboxOpen(true);
   }, [extraImageCount, photoUrls.length]);
 
-  /** Main hero: fixed aspect — do not stretch to match the right column height (avoids empty band under image). */
+  /** Main hero: fixed aspect — visually dominant left column; does not stretch with the right rail. */
   const negocioHeroOnly = (
-    <div className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3]">
+    <div className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] min-h-[200px] sm:min-h-[240px] sm:aspect-[5/4]">
       <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
@@ -311,8 +311,13 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     "border-[#C9B46A]/10 bg-[#EFEDE8]/90 text-[10px] font-semibold leading-tight text-[#111111]/32 sm:text-[11px] pointer-events-none select-none";
 
   return (
-    <div className="rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden">
-      <div className="p-4 sm:p-6 lg:p-8">
+    <div
+      className={cx(
+        "rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden",
+        showBusinessRail && "mx-auto w-full max-w-[56rem]"
+      )}
+    >
+      <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
         {showBusinessRail && listing.businessRail ? (
           <>
             {/*
@@ -321,9 +326,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               - Right column: 2×2 media tiles on top, business / agent rail directly underneath.
               Title · price · address · details start below this full-width band (not under the hero alone).
             */}
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] gap-4 sm:gap-5 lg:gap-6 lg:items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,17.5rem)] gap-4 sm:gap-4 lg:gap-5 lg:items-start">
               <div className="order-1 min-w-0 self-start lg:max-w-none">{negocioHeroOnly}</div>
-              <div className="order-2 flex w-full min-w-0 flex-col gap-3 sm:gap-3.5 self-start">
+              <div className="order-2 flex w-full min-w-0 max-w-[17.5rem] flex-col gap-2.5 sm:gap-3 self-start lg:max-w-none lg:justify-self-end">
                 <div
                   className="grid w-full max-w-[16.25rem] shrink-0 grid-cols-2 grid-rows-2 gap-2 self-center sm:max-w-[17rem] lg:mx-0 lg:self-start"
                   aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
@@ -417,7 +422,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     </div>
                   )}
                 </div>
-                <div className="w-full max-w-[17rem] min-w-0 shrink-0 self-center sm:self-start lg:mx-0">
+                <div className="w-full max-w-[17rem] min-w-0 shrink-0 self-center sm:self-start lg:w-full">
                   <BusinessListingIdentityRail
                     businessRail={listing.businessRail}
                     category="bienes-raices"
