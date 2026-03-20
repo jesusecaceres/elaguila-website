@@ -249,10 +249,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   }, [extraImageCount, photoUrls.length]);
 
   /**
-   * NEGOCIO main hero: mobile/tablet photo-forward aspects; desktop (lg+) baseline 1152×875 (Zillow-style band).
+   * NEGOCIO main hero: mobile/tablet photo-forward aspects; desktop (lg+) fixed 1152×875 inside 2500px preview canvas.
    */
   const negocioHeroOnly = (
-    <div className="relative min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-[1152/875] lg:max-h-[875px] lg:min-h-0">
+    <div className="relative min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-[1152/875] lg:max-h-[875px] lg:w-full lg:max-w-[1152px] lg:shrink-0">
       <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
@@ -437,14 +437,16 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {showBusinessRail && listing.businessRail ? (
           <>
             {/*
-              BR negocio: top band = hero (left) + 2×2 utilities (right) only; rail sits below the band; then title/details/description.
+              BR negocio (desktop, 2500px canvas): row1 = 1152×875 hero | 1158×890 2×2; row2 = 1674×555 property | 625×500 rail; then description stack.
             */}
             <div className="min-w-0 flex flex-col gap-4 sm:gap-5">
-              <div className="flex flex-col gap-4 sm:gap-4 lg:grid lg:w-full lg:max-w-full lg:min-w-0 lg:grid-cols-[minmax(0,1152fr)_minmax(0,1158fr)] lg:items-start lg:gap-6 xl:gap-8">
-                  <div className="order-1 min-w-0 w-full">{negocioHeroOnly}</div>
-                  <div className="order-2 w-full min-w-0 shrink-0">
+              <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:flex-row lg:flex-wrap lg:items-start lg:justify-center lg:gap-6">
+                  <div className="order-1 flex w-full min-w-0 justify-center lg:order-none lg:w-auto lg:justify-start">
+                    {negocioHeroOnly}
+                  </div>
+                  <div className="order-2 flex w-full min-w-0 shrink-0 justify-center lg:order-none lg:w-[1158px] lg:max-w-full lg:justify-start">
                     <div
-                      className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-[1158/890] lg:gap-1.5 lg:max-h-[890px]"
+                      className="grid aspect-square h-auto min-h-0 w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-[1158/890] lg:max-h-[890px] lg:w-full lg:gap-1.5"
                       aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
                     >
                   {virtualTourHref ? (
@@ -539,18 +541,21 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   </div>
               </div>
 
-              <div className="w-full min-w-0">
-                <BusinessListingIdentityRail
-                  businessRail={listing.businessRail}
-                  category="bienes-raices"
-                  businessRailTier={listing.businessRailTier}
-                  lang={lang}
-                  ownerId={listing.ownerId ?? null}
-                  agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
-                />
+              <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-start lg:justify-center lg:gap-6">
+                <div className="w-full min-w-0 lg:h-[555px] lg:w-[1674px] lg:max-w-full lg:overflow-y-auto lg:overflow-x-hidden">
+                  {brPreviewTitleAndPropertyCard}
+                </div>
+                <div className="w-full min-w-0 lg:h-[500px] lg:w-[625px] lg:max-w-full lg:shrink-0 lg:overflow-y-auto lg:overflow-x-hidden">
+                  <BusinessListingIdentityRail
+                    businessRail={listing.businessRail}
+                    category="bienes-raices"
+                    businessRailTier={listing.businessRailTier}
+                    lang={lang}
+                    ownerId={listing.ownerId ?? null}
+                    agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
+                  />
+                </div>
               </div>
-
-              {brPreviewTitleAndPropertyCard}
 
               <div className="min-w-0 w-full space-y-5 sm:space-y-6">{brPreviewDescriptionSellerLocation}</div>
             </div>
