@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
-import { partitionBienesRaicesPreviewDetailPairs } from "@/app/clasificados/bienes-raices/shared/utils/bienesRaicesPreviewDetailPartition";
+import { partitionBienesRaicesPreviewDetailPairs } from "@/app/clasificados/bienes-raices/shared/preview/bienesRaicesPreviewDetailPartition";
 import { groupBienesRaicesNegocioDetailPairs, negocioSectionTitle } from "@/app/clasificados/bienes-raices/negocio/mapping/bienesRaicesNegocioDetailGroups";
 import BusinessListingIdentityRail from "@/app/clasificados/components/BusinessListingIdentityRail";
 import type { ListingData } from "@/app/clasificados/components/ListingView";
