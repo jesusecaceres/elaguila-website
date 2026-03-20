@@ -92,6 +92,13 @@ import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../lib/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../../config/bienesRaicesTaxonomy";
+import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
+import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
+import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
+import { BienesRaicesPublishTrackStep } from "../../bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
+import { RentasNegocioPublishShell } from "../../rentas/negocio/publish/RentasNegocioPublishShell";
+import { RentasPublishShell } from "../../rentas/shared/publish/RentasPublishShell";
+import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublishTrackStep";
 
 /** BR private: 6-bucket subcategory keys (source of truth for type-aware copy). */
 type BrSubcategoriaKey = "residencial" | "condos-townhomes" | "multifamiliar" | "terrenos" | "comercial" | "industrial";
@@ -4732,162 +4739,36 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
                 {/* RENTAS TRACK (step 2 for Rentas only): Privado vs Negocio + plan */}
                 {step === "rentas-track" && categoryFromUrl === "rentas" && (
-                  <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
-                    <h2 className="text-lg font-semibold text-[#111111]">
-                      {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
-                    </h2>
-                    <p className="mt-2 text-sm text-[#111111]/90">
-                      {lang === "es"
-                        ? "Elige si publicas como persona o como negocio. Esto define las opciones de tu anuncio."
-                        : "Choose whether you post as an individual or as a business. This defines your listing options."}
-                    </p>
-
-                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDetails((prev) => ({ ...prev, rentasBranch: "privado", rentasTier: "" }));
-                          goToStep("basics");
-                        }}
-                        className={cx(
-                          "rounded-2xl border p-5 text-left transition-all",
-                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
-                          details.rentasBranch === "privado"
-                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
-                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
-                        )}
-                      >
-                        <span className="block text-base font-bold text-[#111111]">
-                          {lang === "es" ? "Publicar como Privado" : "Post as Private"}
-                        </span>
-                        <p className="mt-2 text-sm text-[#111111]/85">
-                          {lang === "es"
-                            ? "Ideal si publicas tu propio cuarto, apartamento, casa o espacio en renta como persona."
-                            : "Ideal if you list your own room, apartment, house, or space for rent as an individual."}
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDetails((prev) => ({ ...prev, rentasBranch: "negocio", rentasTier: "negocio" }));
-                          goToStep("basics");
-                        }}
-                        className={cx(
-                          "rounded-2xl border p-5 text-left transition-all",
-                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
-                          details.rentasBranch === "negocio"
-                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
-                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
-                        )}
-                      >
-                        <span className="block text-base font-bold text-[#111111]">
-                          {lang === "es" ? "Publicar como Negocio" : "Post as Business"}
-                        </span>
-                        <p className="mt-2 text-sm text-[#111111]/85">
-                          {lang === "es"
-                            ? "Ideal para agentes, brokers, administradores de propiedades, oficinas o compañías con presencia comercial."
-                            : "Ideal for agents, brokers, property managers, offices, or companies with a commercial presence."}
-                        </p>
-                        <p className="mt-2 text-sm font-semibold text-[#111111]">
-                          {RENTAS_NEGOCIO_PRICE_PER_POST} {lang === "es" ? "por anuncio" : "per post"} · {lang === "es" ? "30 días" : "30 days"}
-                        </p>
-                        <p className="mt-1 text-xs text-[#111111]/70">
-                          {lang === "es" ? "Cada propiedad se cobra por separado." : "Each property billed separately."}
-                        </p>
-                      </button>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleBack()}
-                        className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
-                      >
-                          {copy.back}
-                        </button>
-                    </div>
-                  </section>
+                  <RentasPublishShell>
+                    <RentasPublishTrackStep
+                      lang={lang}
+                      cx={cx}
+                      details={details}
+                      setDetails={setDetails}
+                      goToStep={goToStep}
+                      handleBack={handleBack}
+                      rentasNegocioPricePerPost={RENTAS_NEGOCIO_PRICE_PER_POST}
+                      copyBack={copy.back}
+                    />
+                  </RentasPublishShell>
                 )}
 
                 {/* BIENES RAÍCES TRACK: Privado vs Negocio/Profesional */}
                 {step === "bienes-raices-track" && categoryFromUrl === "bienes-raices" && (
-                  <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
-                    <h2 className="text-lg font-semibold text-[#111111]">
-                      {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
-                    </h2>
-                    <p className="mt-2 text-sm text-[#111111]/90">
-                      {lang === "es"
-                        ? "Elige si publicas como persona o como negocio/profesional inmobiliario."
-                        : "Choose whether you post as an individual or as a business/professional."}
-                    </p>
-
-                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDetails((prev) => ({ ...prev, bienesRaicesBranch: "privado", rentasTier: "" }));
-                          goToStep("basics", { branch: "privado" });
-                        }}
-                        className={cx(
-                          "rounded-2xl border p-5 text-left transition-all",
-                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
-                          details.bienesRaicesBranch === "privado"
-                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
-                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
-                        )}
-                      >
-                        <span className="block text-base font-bold text-[#111111]">
-                          {lang === "es" ? "Privado" : "Private"}
-                        </span>
-                        <p className="mt-2 text-sm text-[#111111]/85">
-                          {lang === "es"
-                            ? "Vendo mi propia propiedad como persona."
-                            : "Selling my own property as an individual."}
-                        </p>
-                        <p className="mt-2 text-sm font-semibold text-[#111111]">
-                          {BR_PRIVADO_PRICE_PER_POST} {lang === "es" ? "por anuncio" : "per post"}
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDetails((prev) => ({ ...prev, bienesRaicesBranch: "negocio", rentasTier: "" }));
-                          goToStep("basics", { branch: "negocio" });
-                        }}
-                        className={cx(
-                          "rounded-2xl border p-5 text-left transition-all",
-                          "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40",
-                          details.bienesRaicesBranch === "negocio"
-                            ? "border-[#C9B46A]/60 bg-[#F8F6F0]"
-                            : "border-black/10 bg-white hover:bg-[#FAFAFA] hover:border-black/15"
-                        )}
-                      >
-                        <span className="block text-base font-bold text-[#111111]">
-                          {lang === "es" ? "Negocio / Profesional" : "Business / Professional"}
-                        </span>
-                        <p className="mt-2 text-sm text-[#111111]/85">
-                          {lang === "es"
-                            ? "Agentes, brokers, inmobiliarias, desarrolladores o empresas."
-                            : "Agents, brokers, offices, developers, or commercial real estate."}
-                        </p>
-                        <p className="mt-2 text-sm font-semibold text-[#111111]">
-                          {lang === "es" ? `${BR_NEGOCIO_PRICE_WEEKLY}/semana o ${BR_NEGOCIO_PRICE_MONTHLY}/mes` : `${BR_NEGOCIO_PRICE_WEEKLY}/week or ${BR_NEGOCIO_PRICE_MONTHLY}/month`}
-                        </p>
-                      </button>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleBack()}
-                        className="rounded-xl border border-black/10 bg-[#F5F5F5] hover:bg-[#EFEFEF] text-[#111111] font-semibold px-5 py-3"
-                      >
-                          {copy.back}
-                        </button>
-                    </div>
-                  </section>
+                  <BienesRaicesPublishShell>
+                    <BienesRaicesPublishTrackStep
+                      lang={lang}
+                      cx={cx}
+                      details={details}
+                      setDetails={setDetails}
+                      goToStep={goToStep}
+                      handleBack={handleBack}
+                      brPrivadoPricePerPost={BR_PRIVADO_PRICE_PER_POST}
+                      brNegocioPriceWeekly={BR_NEGOCIO_PRICE_WEEKLY}
+                      brNegocioPriceMonthly={BR_NEGOCIO_PRICE_MONTHLY}
+                      copyBack={copy.back}
+                    />
+                  </BienesRaicesPublishShell>
                 )}
 
                 {/* BASICS */}
@@ -4948,6 +4829,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
 
                     <div className="mt-4 grid gap-4">
                       {categoryFromUrl === "en-venta" ? (
+                        <EnVentaPublishShell>
                         <>
                           {/* En Venta: item-selling Basics (subcategoría, artículo, condición, title, description, price, city) */}
                           <div
@@ -5137,7 +5019,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             )}
                           </div>
                         </>
+                        </EnVentaPublishShell>
                       ) : categoryFromUrl === "bienes-raices" ? (
+                        <BienesRaicesPublishShell>
                         <div
                           id="publish-basics-br-meta"
                           className={cx(
@@ -5757,6 +5641,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido. Mínimo 5 caracteres." : "Required. Min 5 characters."}</div>
                             )}
                           </div>
+                          <BienesRaicesNegocioPublishShell>
                           {details.bienesRaicesBranch === "negocio" && (
                             <div className="rounded-xl border border-black/10 bg-[#F8F6F0]/80 p-4 space-y-3">
                               <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Identidad del negocio" : "Business identity"}</h4>
@@ -5902,8 +5787,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               </div>
                             </div>
                           )}
+                          </BienesRaicesNegocioPublishShell>
                         </div>
+                        </BienesRaicesPublishShell>
                       ) : categoryFromUrl === "rentas" ? (
+                        <RentasPublishShell>
                         <div
                           id="publish-basics-rentas-meta"
                           className={cx(
@@ -6154,6 +6042,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               />
                             )}
                           </div>
+                          <RentasNegocioPublishShell>
                           {details.rentasBranch === "negocio" && (
                             <>
                               <div className="sm:col-span-2 mt-4 pt-4 border-t border-black/10">
@@ -6313,7 +6202,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               )}
                             </>
                           )}
+                          </RentasNegocioPublishShell>
                         </div>
+                        </RentasPublishShell>
                       ) : (
                         <>
                           <div id="publish-basics-title">
