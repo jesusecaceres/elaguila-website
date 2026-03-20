@@ -249,11 +249,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   }, [extraImageCount, photoUrls.length]);
 
   /**
-   * NEGOCIO main hero: mobile keeps a photo-forward aspect; desktop (lg+) fills the flex row height
-   * so it locks flush with the square 2×2 utilities block beside it.
+   * NEGOCIO main hero: mobile keeps a photo-forward aspect; desktop (lg+) fills the grid cell next to
+   * the smaller 2×2 utilities block so the hero reads as the dominant image.
    */
   const negocioHeroOnly = (
-    <div className="relative h-full min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0">
+    <div className="relative h-full min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0 lg:h-full">
       <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
@@ -305,62 +305,65 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </div>
   );
 
-  /** Title / price / detalles / description / seller / location — reused for privado flow and negocio left column. */
-  const listingDetailsStack = (
-    <>
-      <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6] p-5 sm:p-6 lg:p-7 shadow-sm w-full min-w-0">
-        {listing.categoryLabel ? (
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
-        ) : null}
+  /** Title / price / address / detalles — BR negocio: sits directly under the media band in the left column. */
+  const brPreviewTitleAndPropertyCard = (
+    <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF6] p-5 sm:p-6 lg:p-7 shadow-sm w-full min-w-0">
+      {listing.categoryLabel ? (
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B6914] mb-2">{listing.categoryLabel}</p>
+      ) : null}
 
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
-          {listing.title}
-        </h1>
+      <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111111] leading-tight tracking-tight break-words">
+        {listing.title}
+      </h1>
 
-        <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-extrabold text-[#111111] tabular-nums">
-          {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
-        </div>
-
-        <div className="mt-3 text-sm text-[#111111]/75">{listing.todayLabel}</div>
-
-        {addressLine ? (
-          <p className="mt-2 text-sm text-[#111111]/70">
-            <span className="font-medium text-[#111111]/80">{lang === "es" ? "Dirección:" : "Address:"}</span> {addressLine}
-          </p>
-        ) : null}
-        {neighborhoodLine ? (
-          <p className="mt-1 text-sm text-[#111111]/65">
-            <span className="font-medium text-[#111111]/75">{lang === "es" ? "Vecindad:" : "Neighborhood:"}</span>{" "}
-            {neighborhoodLine}
-          </p>
-        ) : null}
-
-        {(iconFacts.length > 0 || compactQuickFacts.length > 0) && (
-          <div className="mt-4 pt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.detallesPropiedad}</h2>
-
-            {iconFacts.length > 0 && (
-              <div className="mb-5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
-                  {lang === "es" ? "Datos clave" : "Quick facts"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {iconFacts.map((f) => (
-                    <span
-                      key={`qf-icon-${f._key}-${f.value}`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/35 bg-[#FAF3E4] px-3 py-1.5 text-xs font-semibold text-[#111111]"
-                    >
-                      <span aria-hidden>{f.icon}</span>
-                      <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+      <div className="mt-3 text-2xl sm:text-3xl lg:text-[2rem] font-extrabold text-[#111111] tabular-nums">
+        {formatBrPriceWithCommaThousands(listing.priceLabel, lang)}
       </div>
 
+      <div className="mt-3 text-sm text-[#111111]/75">{listing.todayLabel}</div>
+
+      {addressLine ? (
+        <p className="mt-2 text-sm text-[#111111]/70">
+          <span className="font-medium text-[#111111]/80">{lang === "es" ? "Dirección:" : "Address:"}</span> {addressLine}
+        </p>
+      ) : null}
+      {neighborhoodLine ? (
+        <p className="mt-1 text-sm text-[#111111]/65">
+          <span className="font-medium text-[#111111]/75">{lang === "es" ? "Vecindad:" : "Neighborhood:"}</span>{" "}
+          {neighborhoodLine}
+        </p>
+      ) : null}
+
+      {(iconFacts.length > 0 || compactQuickFacts.length > 0) && (
+        <div className="mt-4 pt-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">{t.detallesPropiedad}</h2>
+
+          {iconFacts.length > 0 && (
+            <div className="mb-5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#111111]/50 mb-2">
+                {lang === "es" ? "Datos clave" : "Quick facts"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {iconFacts.map((f) => (
+                  <span
+                    key={`qf-icon-${f._key}-${f.value}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/35 bg-[#FAF3E4] px-3 py-1.5 text-xs font-semibold text-[#111111]"
+                  >
+                    <span aria-hidden>{f.icon}</span>
+                    <span className="text-[#111111]/60 font-medium">{f.label}:</span> {f.value}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  /** Description, seller, location — below title card (privado stack or negocio left column). */
+  const brPreviewDescriptionSellerLocation = (
+    <>
       <div className="w-full min-w-0 rounded-2xl border border-[#C9B46A]/28 bg-[#FFFDF7] p-5 sm:p-6 lg:p-7 shadow-[0_10px_28px_-24px_rgba(17,17,17,0.45)]">
         <h3 className="text-sm font-semibold text-[#111111]/75 uppercase tracking-wide mb-3">{t.descripcion}</h3>
         <div className="max-w-[74ch] text-sm sm:text-base text-[#111111]/95 whitespace-pre-wrap leading-7">{listing.description}</div>
@@ -408,6 +411,14 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </>
   );
 
+  /** Title / price / detalles / description / seller / location — privado full-preview stack. */
+  const listingDetailsStack = (
+    <>
+      {brPreviewTitleAndPropertyCard}
+      {brPreviewDescriptionSellerLocation}
+    </>
+  );
+
   /** Tiles inside the square 2×2 wrapper: fill grid cells (equal quadrants). */
   const negocioTileInBand =
     "flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
@@ -427,16 +438,16 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
         {showBusinessRail && listing.businessRail ? (
           <>
             {/*
-              BR negocio: desktop two-column — left: media band + listing details under images; right: business rail + CTAs.
-              Mobile: stack — main column (media + details) then sidebar (rail).
+              BR negocio: md+ two-column grid — left: media band, title/details directly under images, then description;
+              right: business rail (compact sidebar). Rail is never a full-width row under the media band.
             */}
-            <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6 xl:gap-8">
-              <div className="min-w-0 w-full flex-1 flex flex-col gap-4 lg:gap-5">
-                <div className="flex flex-col gap-4 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-6">
-                  <div className="order-1 min-w-0 w-full lg:min-h-0 lg:flex-[1.72] lg:min-w-0">{negocioHeroOnly}</div>
-                  <div className="order-2 w-full min-w-0 shrink-0 lg:w-[min(100%,19rem)] lg:max-w-[19rem]">
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_min(18.5rem,100%)] md:gap-6 lg:grid-cols-[minmax(0,1fr)_min(22rem,100%)] lg:gap-8 items-start">
+              <div className="min-w-0 flex flex-col gap-3 sm:gap-4">
+                <div className="flex flex-col gap-4 sm:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(10.5rem,30%)] lg:grid-rows-1 lg:items-stretch lg:gap-4 xl:grid-cols-[minmax(0,1fr)_12rem] xl:gap-5">
+                  <div className="order-1 min-w-0 w-full lg:min-h-0 lg:min-w-0">{negocioHeroOnly}</div>
+                  <div className="order-2 w-full min-w-0 shrink-0 lg:min-w-0 lg:max-w-full">
                     <div
-                      className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2"
+                      className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:gap-1.5"
                       aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
                     >
                   {virtualTourHref ? (
@@ -531,12 +542,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   </div>
                 </div>
 
-                <div className="min-w-0 w-full border-t border-stone-200/70 pt-4 sm:pt-5 lg:pt-5">
-                  <div className="min-w-0 space-y-5 sm:space-y-6 w-full">{listingDetailsStack}</div>
-                </div>
+                {brPreviewTitleAndPropertyCard}
+
+                <div className="min-w-0 w-full space-y-5 sm:space-y-6">{brPreviewDescriptionSellerLocation}</div>
               </div>
 
-              <aside className="w-full min-w-0 shrink-0 lg:w-[min(100%,22rem)] lg:max-w-[22rem] lg:self-start">
+              <aside className="min-w-0 w-full md:max-w-none">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
