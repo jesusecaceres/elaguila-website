@@ -474,10 +474,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </nav>
             </header>
             {/*
-              BR negocio desktop: explicit 2-col grid — (hero|2×2), (property|rail↓), (description|rail↓).
-              Rail lg:row-span-2 beside property + description. Mobile: flex stack in DOM order.
+              BR negocio desktop: 2×2 grid — (hero|2×2), (listingDetailsStack|rail). Stack holds title + description/seller/location.
             */}
-            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,625px)] lg:grid-rows-[auto_auto_auto] lg:items-start lg:gap-x-6 lg:gap-y-4">
+            <div className="min-w-0 flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,625px)] lg:grid-rows-[auto_auto] lg:items-start lg:gap-x-6 lg:gap-y-4">
               <div className="flex w-full min-w-0 justify-center lg:col-start-1 lg:row-start-1 lg:min-w-0 lg:max-w-full lg:justify-start">
                 {negocioHeroOnly}
               </div>
@@ -577,10 +576,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     </div>
               </div>
 
-              <div className="w-full min-w-0 lg:col-start-1 lg:row-start-2 lg:min-w-0 lg:w-[1674px] lg:max-w-full">
-                {brPreviewTitleAndPropertyCard}
+              <div className="min-w-0 w-full space-y-5 sm:space-y-6 lg:col-start-1 lg:row-start-2 lg:min-w-0 lg:max-w-full">
+                {listingDetailsStack}
               </div>
-              <div className="w-full min-w-0 lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:self-start lg:min-w-0 lg:w-[625px] lg:max-w-full">
+              <div className="w-full min-w-0 lg:col-start-2 lg:row-start-2 lg:self-start lg:min-w-0 lg:max-w-full">
                 <BusinessListingIdentityRail
                   businessRail={listing.businessRail}
                   category="bienes-raices"
@@ -590,8 +589,6 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
                 />
               </div>
-
-              <div className="min-w-0 w-full space-y-5 sm:space-y-6 lg:col-start-1 lg:row-start-3">{brPreviewDescriptionSellerLocation}</div>
             </div>
           </>
         ) : (
