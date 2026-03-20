@@ -8,6 +8,7 @@ import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
 import BusinessListingIdentityRail from "./BusinessListingIdentityRail";
 import BienesRaicesPreviewListing from "./BienesRaicesPreviewListing";
+import BienesRaicesPreviewNegocioFresh from "./BienesRaicesPreviewNegocioFresh";
 
 /** Business rail display (BR negocio / Rentas negocio). Used for preview parity with open card. */
 export type BusinessRailData = {
@@ -292,9 +293,11 @@ export default function ListingView({
   const highlightClass = "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#D9D9D9] transition";
   const isHighlight = (id: string) => proHighlight === id;
 
-  // BR preview: swap the generic listing buyer shell for a BR-specific base shell.
-  // Layout for publish full-preview (privado + negocio hero / 2×2 / rail) lives in BienesRaicesPreviewListing.tsx.
+  // BR preview: negocio (business rail) uses fresh 2-col layout; privado stays on BienesRaicesPreviewListing.
   if (previewMode && isBienesRaices) {
+    if (listing.businessRail) {
+      return <BienesRaicesPreviewNegocioFresh listing={listing} />;
+    }
     return <BienesRaicesPreviewListing listing={listing} />;
   }
 
