@@ -252,7 +252,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
    * NEGOCIO main hero: mobile/tablet photo-forward aspects; desktop (lg+) fixed 1152×875 inside 2500px preview canvas.
    */
   const negocioHeroOnly = (
-    <div className="relative min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0 lg:h-[875px] lg:w-[1152px] lg:max-w-full lg:shrink-0">
+    <div className="relative min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0 lg:h-[875px] lg:w-[1152px] lg:max-w-full lg:shrink-0 lg:shadow-sm">
       <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
@@ -479,13 +479,13 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               BR negocio (desktop, 2500px canvas): row1 = 1152×875 hero | 1158×890 2×2; row2 = 1674×555 property | 625×500 rail; then description stack.
             */}
             <div className="min-w-0 flex flex-col gap-4 sm:gap-5">
-              <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:flex-row lg:flex-nowrap lg:items-start lg:justify-center lg:gap-6">
-                  <div className="order-1 flex w-full min-w-0 justify-center lg:order-none lg:min-w-0 lg:w-[1152px] lg:max-w-full lg:justify-start">
+              <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-start lg:gap-6">
+                  <div className="order-1 flex w-full min-w-0 justify-center lg:order-none lg:min-w-0 lg:w-[1152px] lg:max-w-full lg:justify-start lg:shrink-0">
                     {negocioHeroOnly}
                   </div>
-                  <div className="order-2 flex w-full min-w-0 justify-center lg:order-none lg:min-w-0 lg:w-[1158px] lg:max-w-full lg:justify-start">
+                  <div className="order-2 flex w-full min-w-0 justify-center lg:order-none lg:min-w-0 lg:w-[1158px] lg:max-w-full lg:justify-start lg:shrink-0">
                     <div
-                      className="grid aspect-square h-auto min-h-0 w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-auto lg:h-[890px] lg:w-[1158px] lg:max-w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-1.5"
+                      className="grid aspect-square h-auto min-h-0 w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-auto lg:h-[890px] lg:w-[1158px] lg:max-w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-1 lg:overflow-hidden lg:rounded-2xl lg:ring-1 lg:ring-stone-200/60 lg:shadow-sm"
                       aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
                     >
                   {virtualTourHref ? (
@@ -580,11 +580,11 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                   </div>
               </div>
 
-              <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:flex-nowrap lg:items-start lg:justify-center lg:gap-6">
-                <div className="w-full min-w-0 lg:h-[555px] lg:min-w-0 lg:w-[1674px] lg:max-w-full lg:overflow-y-auto lg:overflow-x-hidden">
+              <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:flex-nowrap lg:items-stretch lg:justify-start lg:gap-6">
+                <div className="w-full min-w-0 lg:min-w-0 lg:w-[1674px] lg:max-w-full lg:self-stretch">
                   {brPreviewTitleAndPropertyCard}
                 </div>
-                <div className="w-full min-w-0 lg:h-[500px] lg:min-w-0 lg:w-[625px] lg:max-w-full lg:overflow-y-auto lg:overflow-x-hidden">
+                <div className="w-full min-w-0 lg:min-w-0 lg:w-[625px] lg:max-w-full lg:self-stretch">
                   <BusinessListingIdentityRail
                     businessRail={listing.businessRail}
                     category="bienes-raices"
