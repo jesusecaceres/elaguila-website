@@ -430,7 +430,8 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     <div
       className={cx(
         "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-x-hidden",
-        showBusinessRail && "mx-auto w-full max-w-[2500px]"
+        /* BR negocio canvas: width 100%, max-width 2500px, margin-inline auto */
+        showBusinessRail && "mx-auto box-border w-full max-w-[2500px]"
       )}
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
@@ -479,10 +480,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
             */}
             <div className="min-w-0 flex flex-col gap-4 sm:gap-5">
               <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-4 lg:flex-row lg:flex-nowrap lg:items-start lg:justify-center lg:gap-6">
-                  <div className="order-1 flex w-full min-w-0 justify-center lg:order-none lg:w-[1152px] lg:max-w-full lg:shrink-0 lg:justify-start">
+                  <div className="order-1 flex w-full min-w-0 justify-center lg:order-none lg:min-w-0 lg:w-[1152px] lg:max-w-full lg:justify-start">
                     {negocioHeroOnly}
                   </div>
-                  <div className="order-2 flex w-full min-w-0 shrink-0 justify-center lg:order-none lg:w-[1158px] lg:max-w-full lg:justify-start">
+                  <div className="order-2 flex w-full min-w-0 justify-center lg:order-none lg:min-w-0 lg:w-[1158px] lg:max-w-full lg:justify-start">
                     <div
                       className="grid aspect-square h-auto min-h-0 w-full min-w-0 grid-cols-2 grid-rows-2 gap-2 lg:aspect-auto lg:h-[890px] lg:w-[1158px] lg:max-w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-1.5"
                       aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
@@ -580,10 +581,10 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               </div>
 
               <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:flex-nowrap lg:items-start lg:justify-center lg:gap-6">
-                <div className="w-full min-w-0 lg:h-[555px] lg:w-[1674px] lg:max-w-full lg:shrink-0 lg:overflow-y-auto lg:overflow-x-hidden">
+                <div className="w-full min-w-0 lg:h-[555px] lg:min-w-0 lg:w-[1674px] lg:max-w-full lg:overflow-y-auto lg:overflow-x-hidden">
                   {brPreviewTitleAndPropertyCard}
                 </div>
-                <div className="w-full min-w-0 lg:h-[500px] lg:w-[625px] lg:max-w-full lg:shrink-0 lg:overflow-y-auto lg:overflow-x-hidden">
+                <div className="w-full min-w-0 lg:h-[500px] lg:min-w-0 lg:w-[625px] lg:max-w-full lg:overflow-y-auto lg:overflow-x-hidden">
                   <BusinessListingIdentityRail
                     businessRail={listing.businessRail}
                     category="bienes-raices"
