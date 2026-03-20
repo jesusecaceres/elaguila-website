@@ -3788,15 +3788,22 @@ async function publish() {
         if (isRentasNegocio) {
           const tier = (snap.details.rentasTier ?? "").trim();
           insertPayload.rentas_tier = (tier === "business_plus" || tier === "negocio") ? "plus" : "standard";
-          insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
+          insertPayload.business_name =
+            (snap.details.negocioNombre ?? "").trim() || (snap.details.enVentaBusinessName ?? "").trim() || null;
           const businessMeta: Record<string, string> = {};
           for (const k of BUSINESS_META_KEYS) {
-            const v = (snap.details[k] ?? "").trim();
+            let v = (snap.details[k] ?? "").trim();
+            if (!v && k === "negocioNombre") v = (snap.details.enVentaBusinessName ?? "").trim();
+            if (!v && k === "negocioAgente") v = (snap.details.enVentaAgentName ?? "").trim();
             if (v) businessMeta[k] = v;
           }
           const mergedRedes = buildNegocioRedesPayload(snap.details as Record<string, string | undefined>);
           if (mergedRedes.trim()) {
             businessMeta.negocioRedes = mergedRedes.trim();
+          }
+          if (!businessMeta.negocioEmail?.trim()) {
+            const ce = (snap.contactEmail ?? "").trim();
+            if (/.+@.+\..+/.test(ce)) businessMeta.negocioEmail = ce;
           }
           if (Object.keys(businessMeta).length > 0) {
             insertPayload.business_meta = JSON.stringify(businessMeta);
@@ -3807,15 +3814,22 @@ async function publish() {
         insertPayload.seller_type = bienesRaicesBranch === "negocio" ? "business" : "personal";
         if (isBienesRaicesNegocio) {
           insertPayload.rentas_tier = "negocio";
-          insertPayload.business_name = (snap.details.negocioNombre ?? "").trim() || null;
+          insertPayload.business_name =
+            (snap.details.negocioNombre ?? "").trim() || (snap.details.enVentaBusinessName ?? "").trim() || null;
           const businessMeta: Record<string, string> = {};
           for (const k of BUSINESS_META_KEYS) {
-            const v = (snap.details[k] ?? "").trim();
+            let v = (snap.details[k] ?? "").trim();
+            if (!v && k === "negocioNombre") v = (snap.details.enVentaBusinessName ?? "").trim();
+            if (!v && k === "negocioAgente") v = (snap.details.enVentaAgentName ?? "").trim();
             if (v) businessMeta[k] = v;
           }
           const mergedRedesBr = buildNegocioRedesPayload(snap.details as Record<string, string | undefined>);
           if (mergedRedesBr.trim()) {
             businessMeta.negocioRedes = mergedRedesBr.trim();
+          }
+          if (!businessMeta.negocioEmail?.trim()) {
+            const ce = (snap.contactEmail ?? "").trim();
+            if (/.+@.+\..+/.test(ce)) businessMeta.negocioEmail = ce;
           }
           if (Object.keys(businessMeta).length > 0) {
             insertPayload.business_meta = JSON.stringify(businessMeta);

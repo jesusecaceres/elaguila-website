@@ -39,24 +39,32 @@ export const BUSINESS_META_KEYS = [
 
 export type BusinessMetaKey = (typeof BUSINESS_META_KEYS)[number];
 
+function metaObjectToStrings(obj: Record<string, unknown>): Record<string, string> | null {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v == null) continue;
+    if (typeof v === "string") {
+      out[k] = v;
+    } else if (typeof v === "number" || typeof v === "boolean") {
+      out[k] = String(v);
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 /**
- * Parse listing.business_meta string into a record. Safe for any category (rentas, en-venta).
+ * Parse listing.business_meta into a record. Accepts JSON string or an already-parsed object (PostgREST / drivers).
  */
-export function parseBusinessMeta(raw: string | null | undefined): Record<string, string> | null {
+export function parseBusinessMeta(raw: unknown): Record<string, string> | null {
+  if (raw == null) return null;
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+    return metaObjectToStrings(raw as Record<string, unknown>);
+  }
   if (typeof raw !== "string" || !raw.trim()) return null;
   try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== "object") return null;
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(parsed)) {
-      if (v == null) continue;
-      if (typeof v === "string") {
-        out[k] = v;
-      } else if (typeof v === "number" || typeof v === "boolean") {
-        out[k] = String(v);
-      }
-    }
-    return out;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return metaObjectToStrings(parsed as Record<string, unknown>);
   } catch {
     return null;
   }

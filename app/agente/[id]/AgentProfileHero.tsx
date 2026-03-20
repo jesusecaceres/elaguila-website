@@ -52,6 +52,8 @@ function SocialPlatformIcon({ platform, className }: { platform: SocialPlatform;
 export type AgentProfileHeroProps = {
   lang: "es" | "en";
   agentName: string;
+  /** From `negocioCargo` when set */
+  agentRole?: string | null;
   agentLicense: string | null;
   serviceAreaLines: string[];
   website: string | null;
@@ -73,6 +75,7 @@ export type AgentProfileHeroProps = {
 export default function AgentProfileHero({
   lang,
   agentName,
+  agentRole,
   agentLicense,
   serviceAreaLines,
   website,
@@ -107,6 +110,7 @@ export default function AgentProfileHero({
           socialHeading: "Social links",
         };
 
+  const roleTrim = (agentRole ?? "").trim();
   const licenseTrim = (agentLicense ?? "").trim();
   const areas = [...new Set(serviceAreaLines.map((s) => s.trim()).filter(Boolean))];
   const websiteHref = website?.trim()
@@ -179,6 +183,9 @@ export default function AgentProfileHero({
             <h1 className="font-serif text-2xl sm:text-[1.65rem] font-bold leading-tight tracking-tight text-[#111111] break-words">
               {agentName}
             </h1>
+            {roleTrim ? (
+              <p className="text-sm font-medium text-[#111111]/75 leading-snug break-words">{roleTrim}</p>
+            ) : null}
             {licenseTrim ? (
               <p className="text-sm font-medium leading-snug text-[#111111]/88">
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8B6914]/80">{t.licenseLabel}: </span>

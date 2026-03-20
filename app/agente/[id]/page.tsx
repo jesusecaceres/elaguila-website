@@ -134,6 +134,7 @@ export default async function PublicAgentProfilePage(props: PageProps) {
           <AgentProfileHero
             lang={lang}
             agentName={d.agentName}
+            agentRole={d.agentRole}
             agentLicense={d.agentLicense}
             serviceAreaLines={d.serviceAreaLines}
             website={d.website}

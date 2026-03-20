@@ -67,7 +67,7 @@ function parseSocialUrls(raw: string): Array<{ label: string; url: string }> {
 function mergeBusinessMetaPreferNewest(rows: Array<Record<string, unknown>>): Record<string, string> {
   const merged: Record<string, string> = {};
   for (const row of rows) {
-    const m = parseBusinessMeta(row.business_meta as string | null | undefined);
+    const m = parseBusinessMeta(row.business_meta);
     if (!m) continue;
     for (const [k, v] of Object.entries(m)) {
       const t = (v ?? "").trim();
@@ -187,7 +187,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
       : null;
 
   const listingSelect =
-    "business_name, business_meta, city, detail_pairs, category, seller_type, status, created_at";
+    "business_name, business_meta, city, detail_pairs, category, seller_type, status, created_at, contact_email, contact_phone";
 
   let listing: Record<string, unknown> | null = null;
   let meta: Record<string, string> = {};
@@ -219,7 +219,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
 
     if (bizListing && typeof bizListing === "object") {
       listing = bizListing as Record<string, unknown>;
-      meta = parseBusinessMeta(listing.business_meta as string | null | undefined) ?? {};
+      meta = parseBusinessMeta(listing.business_meta) ?? {};
     } else {
       const { data: anyListing } = await supabase
         .from("listings")
@@ -231,7 +231,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
         .maybeSingle();
       if (anyListing && typeof anyListing === "object") {
         listing = anyListing as Record<string, unknown>;
-        meta = parseBusinessMeta(listing.business_meta as string | null | undefined) ?? {};
+        meta = parseBusinessMeta(listing.business_meta) ?? {};
       }
     }
   }
@@ -239,7 +239,7 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   if (!profile && !listing) return null;
 
   if (Object.keys(meta).length === 0 && listing) {
-    meta = parseBusinessMeta(listing.business_meta as string | null | undefined) ?? {};
+    meta = parseBusinessMeta(listing.business_meta) ?? {};
   }
   const city = (listing?.city as string | undefined)?.trim() || null;
   const detailPairs = listing?.detail_pairs;
@@ -264,18 +264,30 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   const zonasServicioRaw = (meta.negocioZonasServicio ?? "").trim();
   const agentPhotoUrl = (meta.negocioFotoAgenteUrl ?? "").trim() || null;
   const logoUrl = (meta.negocioLogoUrl ?? "").trim() || null;
+  const listingContactPhone = (listing?.contact_phone as string | undefined)?.trim() || null;
+  const listingContactEmail = (listing?.contact_email as string | undefined)?.trim() || null;
   const phoneMainFmt = (meta.negocioTelOficina ?? "").trim();
   const phoneExt = (meta.negocioTelExtension ?? "").trim();
   const profilePhone = profile?.phone?.trim() || null;
+  /** Saved office line in meta wins; then listing contact_phone (publish flow stores office digits there). */
   const officePhone = phoneMainFmt
     ? phoneExt
       ? `${phoneMainFmt} · Ext. ${phoneExt}`
       : phoneMainFmt
-    : profilePhone || null;
+    : listingContactPhone || profilePhone || null;
   const mainDigits = phoneMainFmt ? digitsOnly(phoneMainFmt).slice(0, 10) : "";
+  const listingDigits = listingContactPhone ? digitsOnly(listingContactPhone).slice(0, 10) : "";
   const profileDigits = profilePhone ? digitsOnly(profilePhone).slice(0, 10) : "";
-  const officePhoneTelDigits = mainDigits.length === 10 ? mainDigits : profileDigits.length === 10 ? profileDigits : null;
-  const agentEmail = (meta.negocioEmail ?? "").trim() || null;
+  const officePhoneTelDigits =
+    mainDigits.length === 10
+      ? mainDigits
+      : listingDigits.length === 10
+        ? listingDigits
+        : profileDigits.length === 10
+          ? profileDigits
+          : null;
+  /** Meta email wins; else listing row contact_email (aligned with publish insert). */
+  const agentEmail = (meta.negocioEmail ?? "").trim() || listingContactEmail || null;
   const websiteRaw = (meta.negocioSitioWeb ?? "").trim();
   const website = websiteRaw ? normalizeWebsiteUrl(websiteRaw) : null;
   const rawSocials = (meta.negocioRedes ?? "").trim();
