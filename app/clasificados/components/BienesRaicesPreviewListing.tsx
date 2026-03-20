@@ -248,9 +248,12 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     setLightboxOpen(true);
   }, [extraImageCount, photoUrls.length]);
 
-  /** Main hero: fixed aspect — visually dominant left column; does not stretch with the right rail. */
+  /**
+   * NEGOCIO main hero: mobile keeps a photo-forward aspect; desktop (lg+) fills the flex row height
+   * so it locks flush with the square 2×2 utilities block beside it.
+   */
   const negocioHeroOnly = (
-    <div className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] min-h-[200px] sm:min-h-[240px] sm:aspect-[5/4]">
+    <div className="relative h-full min-h-[200px] w-full min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-100 shadow-inner aspect-[4/3] sm:min-h-[240px] sm:aspect-[5/4] lg:aspect-auto lg:min-h-0">
       <img src={negocioMainHeroSrc} alt="" className="h-full w-full object-cover" />
     </div>
   );
@@ -302,9 +305,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     </div>
   );
 
-  /** Fixed 2×2 media grid: equal square cells; inactive slots stay aligned (disabled look). */
-  const negocioTileShell =
-    "flex aspect-square min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
+  /** Tiles inside the square 2×2 wrapper: fill grid cells (equal quadrants). */
+  const negocioTileInBand =
+    "flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
   const negocioTileActive =
     "border-[#C9B46A]/35 bg-[#FFFCF6] text-[10px] font-semibold leading-tight text-[#111111] transition hover:bg-[#F8F2E6] sm:text-[11px]";
   const negocioTileDisabled =
@@ -314,31 +317,30 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
     <div
       className={cx(
         "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden",
-        showBusinessRail && "mx-auto max-w-[56rem]"
+        showBusinessRail && "mx-auto max-w-[min(100%,72rem)]"
       )}
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
         {showBusinessRail && listing.businessRail ? (
           <>
             {/*
-              BR negocio full-preview top band (one row):
-              - Left: main listing photo (aspect ratio, does not stretch with the right rail).
-              - Right column: 2×2 media tiles on top, business / agent rail directly underneath.
-              Title · price · address · details start below this full-width band (not under the hero alone).
+              BR negocio top band: one rectangle = hero + square 2×2 (heights lock on lg+).
+              Business / agent rail sits below so it does not stretch or compress the media row.
             */}
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,17.5rem)] gap-4 sm:gap-4 lg:gap-5 lg:items-start">
-              <div className="order-1 min-w-0 self-start lg:max-w-none">{negocioHeroOnly}</div>
-              <div className="order-2 flex w-full min-w-0 max-w-[17.5rem] flex-col gap-2.5 sm:gap-3 self-start lg:max-w-none lg:justify-self-end">
-                <div
-                  className="grid w-full max-w-[16.25rem] shrink-0 grid-cols-2 grid-rows-2 gap-2 self-center sm:max-w-[17rem] lg:mx-0 lg:self-start"
-                  aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
-                >
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-5">
+                <div className="order-1 min-w-0 w-full lg:min-h-0 lg:flex-1">{negocioHeroOnly}</div>
+                <div className="order-2 w-full min-w-0 shrink-0 lg:w-[min(100%,28rem)] lg:max-w-[min(100%,28rem)]">
+                  <div
+                    className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2"
+                    aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}
+                  >
                   {virtualTourHref ? (
                     <a
                       href={virtualTourHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={cx(negocioTileShell, negocioTileActive)}
+                      className={cx(negocioTileInBand, negocioTileActive)}
                     >
                       <span className="text-base sm:text-lg leading-none" aria-hidden>
                         🌐
@@ -346,7 +348,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       <span>{t.tileTour}</span>
                     </a>
                   ) : (
-                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
                       <span className="text-base opacity-40 sm:text-lg" aria-hidden>
                         🌐
                       </span>
@@ -358,7 +360,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       href={floorPlanHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={cx(negocioTileShell, negocioTileActive)}
+                      className={cx(negocioTileInBand, negocioTileActive)}
                     >
                       <span className="text-base sm:text-lg leading-none" aria-hidden>
                         📐
@@ -366,7 +368,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       <span>{t.tilePlan}</span>
                     </a>
                   ) : (
-                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
                       <span className="text-base opacity-40 sm:text-lg" aria-hidden>
                         📐
                       </span>
@@ -378,7 +380,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       href={proVideoHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={cx(negocioTileShell, negocioTileActive)}
+                      className={cx(negocioTileInBand, negocioTileActive)}
                     >
                       <span className="text-base sm:text-lg leading-none" aria-hidden>
                         🎥
@@ -386,7 +388,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       <span>{t.tileVideo}</span>
                     </a>
                   ) : (
-                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
                       <span className="text-base opacity-40 sm:text-lg" aria-hidden>
                         🎥
                       </span>
@@ -397,7 +399,7 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                     <button
                       type="button"
                       onClick={openMorePhotosLightbox}
-                      className={cx(negocioTileShell, negocioTileActive, "cursor-pointer")}
+                      className={cx(negocioTileInBand, negocioTileActive, "cursor-pointer")}
                     >
                       <span className="text-base sm:text-lg leading-none" aria-hidden>
                         🖼️
@@ -414,24 +416,25 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
                       </span>
                     </button>
                   ) : (
-                    <div className={cx(negocioTileShell, negocioTileDisabled)} aria-disabled="true">
+                    <div className={cx(negocioTileInBand, negocioTileDisabled)} aria-disabled="true">
                       <span className="text-base opacity-40 sm:text-lg" aria-hidden>
                         🖼️
                       </span>
                       <span>{t.tileMorePhotos}</span>
                     </div>
                   )}
+                  </div>
                 </div>
-                <div className="w-full max-w-[17rem] min-w-0 shrink-0 self-center sm:self-start lg:w-full">
-                  <BusinessListingIdentityRail
-                    businessRail={listing.businessRail}
-                    category="bienes-raices"
-                    businessRailTier={listing.businessRailTier}
-                    lang={lang}
-                    ownerId={listing.ownerId ?? null}
-                    agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
-                  />
-                </div>
+              </div>
+              <div className="w-full min-w-0 pt-1">
+                <BusinessListingIdentityRail
+                  businessRail={listing.businessRail}
+                  category="bienes-raices"
+                  businessRailTier={listing.businessRailTier}
+                  lang={lang}
+                  ownerId={listing.ownerId ?? null}
+                  agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
+                />
               </div>
             </div>
           </>
