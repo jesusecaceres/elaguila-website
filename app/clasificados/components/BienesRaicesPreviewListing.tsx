@@ -316,8 +316,8 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
   return (
     <div
       className={cx(
-        "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-hidden",
-        showBusinessRail && "mx-auto max-w-[min(100%,72rem)]"
+        "w-full min-w-0 rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] to-[#F4F1EA] shadow-[0_12px_48px_-16px_rgba(17,17,17,0.18)] overflow-x-hidden",
+        showBusinessRail && "mx-auto max-w-[min(100%,80rem)]"
       )}
     >
       <div className={cx(showBusinessRail ? "p-4 sm:p-5" : "p-4 sm:p-6 lg:p-8")}>
@@ -328,9 +328,9 @@ export default function BienesRaicesPreviewListing({ listing }: BienesRaicesPrev
               Business / agent rail sits below so it does not stretch or compress the media row.
             */}
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-4 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-5">
-                <div className="order-1 min-w-0 w-full lg:min-h-0 lg:flex-1">{negocioHeroOnly}</div>
-                <div className="order-2 w-full min-w-0 shrink-0 lg:w-[min(100%,28rem)] lg:max-w-[min(100%,28rem)]">
+              <div className="flex flex-col gap-4 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-6">
+                <div className="order-1 min-w-0 w-full lg:min-h-0 lg:flex-[1.72] lg:min-w-0">{negocioHeroOnly}</div>
+                <div className="order-2 w-full min-w-0 shrink-0 lg:w-[min(100%,19rem)] lg:max-w-[19rem]">
                   <div
                     className="grid min-h-0 aspect-square w-full min-w-0 grid-cols-2 grid-rows-2 gap-2"
                     aria-label={lang === "es" ? "Medios de la propiedad" : "Property media"}

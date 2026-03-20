@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
@@ -18,6 +18,11 @@ export default function PreviewListingPage() {
   const [draft, setDraft] = useState<ReturnType<typeof getPreviewDraft>>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState(false);
   const [infoConfirmed, setInfoConfirmed] = useState(false);
+  const confirmSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToConfirmSection = () => {
+    confirmSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   useEffect(() => {
     setDraft(getPreviewDraft());
@@ -53,6 +58,8 @@ export default function PreviewListingPage() {
             noPreview: "No hay vista previa disponible.",
             goToClassifieds: "Ir a Clasificados",
             previewSubtitle: "Vista previa (como la verán los compradores)",
+            brandTitle: "Leonix Clasificados",
+            publishGoToReview: "Publicar",
             backToEditListing: "Volver a editar anuncio",
             editListing: "Editar anuncio",
             confirmPublish: "Confirmar y publicar",
@@ -103,85 +110,107 @@ export default function PreviewListingPage() {
   const L = draft.lang;
 
   return (
-    <main className="min-h-screen bg-[#D9D9D9] text-[#111111]">
+    <main className="min-h-screen bg-[#D9D9D9] text-[#111111] overflow-x-hidden">
       <Navbar />
-      {/* Back to edit — single top bar; bottom actions are primary */}
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-4 px-4 py-3 border-b border-black/10 bg-[#F5F5F5] shadow-sm">
-        <button
-          type="button"
-          onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
-          className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
-        >
-          ← {t.backToEdit}
-        </button>
-        <span className="text-xs text-[#111111]/50">{t.previewSubtitle}</span>
-      </div>
-
-      <section className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 w-full max-w-full">
-        {draftListingData ? <ListingView listing={draftListingData} previewMode={true} /> : null}
-      </section>
-
-      {/* Preview confirm bar: community rules + confirm info + Editar anuncio + Confirmar y publicar */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-black/10 bg-[#F5F5F5] p-4 safe-area-pb">
-        <div className="max-w-md mx-auto space-y-3">
-          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
-            <input
-              type="checkbox"
-              checked={rulesConfirmed}
-              onChange={(e) => setRulesConfirmed(e.target.checked)}
-              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
-            />
-            <span>
-              {t.rulesCheckbox}{" "}
-              <Link
-                href={
-                  draft?.backToEditUrl
-                    ? `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(draft.backToEditUrl)}`
-                    : `/clasificados/reglas?lang=${lang}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
-                onClick={(e) => e.stopPropagation()}
+      <div className="max-w-[min(100%,80rem)] mx-auto w-full px-4 sm:px-6 py-6 pb-12">
+        {/* Preview shell: brand + scroll-to-review (not instant publish) */}
+        <div className="rounded-[1.35rem] border border-stone-200/90 bg-gradient-to-b from-[#FFFCF6] to-[#F2EBDD] shadow-[0_12px_40px_-28px_rgba(17,17,17,0.35)] ring-1 ring-[#C9B46A]/18 overflow-x-hidden">
+          <header className="border-b border-[#C9B46A]/28 bg-[#F8F6F0]/95">
+            <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
+              <p className="text-[0.95rem] sm:text-base font-semibold tracking-tight text-[#111111] min-w-0">{t.brandTitle}</p>
+              <button
+                type="button"
+                onClick={scrollToConfirmSection}
+                className="shrink-0 rounded-xl border border-[#3F5A43]/60 bg-[#3F5A43] px-4 py-2 text-sm font-semibold text-[#F7F4EC] shadow-sm hover:bg-[#36503A] transition"
               >
-                {lang === "es" ? "Ver reglas" : "View rules"}
-              </Link>
-            </span>
-          </label>
-          <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
-            <input
-              type="checkbox"
-              checked={infoConfirmed}
-              onChange={(e) => setInfoConfirmed(e.target.checked)}
-              className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
-            />
-            <span>{t.infoCheckbox}</span>
-          </label>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              type="button"
-              onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
-              className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
-            >
-              {t.editListing}
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmPublish}
-              disabled={!rulesConfirmed || !infoConfirmed}
-              className={cx(
-                "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
-                rulesConfirmed && infoConfirmed
-                  ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
-                  : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
-              )}
-            >
-              {t.confirmPublish}
-            </button>
+                {t.publishGoToReview}
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-2.5 border-t border-[#C9B46A]/15 bg-[#FFFCF7]/60">
+              <button
+                type="button"
+                onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+                className="self-start rounded-xl border border-[#C9B46A]/50 bg-[#FFFCF7] px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
+              >
+                ← {t.backToEdit}
+              </button>
+              <span className="text-[11px] sm:text-xs text-[#111111]/45 sm:text-right">{t.previewSubtitle}</span>
+            </div>
+          </header>
+
+          <section className="w-full p-3 sm:p-5 pt-4 sm:pt-5">
+            {draftListingData ? <ListingView listing={draftListingData} previewMode={true} /> : null}
+          </section>
+        </div>
+
+        {/* Final review / confirm — end of ad, natural scroll (not fixed / not sticky) */}
+        <div
+          ref={confirmSectionRef}
+          id="preview-confirm-section"
+          className="mt-8 max-w-md mx-auto w-full rounded-2xl border border-[#C9B46A]/35 bg-[#F5F5F5] p-4 sm:p-5 shadow-sm"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#111111]/55 mb-3">
+            {lang === "es" ? "Revisión final" : "Final review"}
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+              <input
+                type="checkbox"
+                checked={rulesConfirmed}
+                onChange={(e) => setRulesConfirmed(e.target.checked)}
+                className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+              />
+              <span>
+                {t.rulesCheckbox}{" "}
+                <Link
+                  href={
+                    draft?.backToEditUrl
+                      ? `/clasificados/reglas?lang=${lang}&return=${encodeURIComponent(draft.backToEditUrl)}`
+                      : `/clasificados/reglas?lang=${lang}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#A98C2A] hover:text-[#8f7a24] underline font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {lang === "es" ? "Ver reglas" : "View rules"}
+                </Link>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer text-sm text-[#111111]">
+              <input
+                type="checkbox"
+                checked={infoConfirmed}
+                onChange={(e) => setInfoConfirmed(e.target.checked)}
+                className="mt-0.5 rounded border-[#C9B46A]/60 text-[#C9B46A] focus:ring-[#C9B46A]/40"
+              />
+              <span>{t.infoCheckbox}</span>
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+                className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
+              >
+                {t.editListing}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPublish}
+                disabled={!rulesConfirmed || !infoConfirmed}
+                className={cx(
+                  "flex-1 w-full max-w-full rounded-xl font-semibold py-3.5 text-center transition",
+                  rulesConfirmed && infoConfirmed
+                    ? "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
+                    : "bg-[#D9D9D9] text-[#111111]/60 cursor-not-allowed"
+                )}
+              >
+                {t.confirmPublish}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <div className="h-28" aria-hidden />
     </main>
   );
 }
