@@ -15,6 +15,7 @@ export default function PreviewListingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
+  const branchFromUrl = searchParams?.get("branch")?.trim().toLowerCase();
   const [draft, setDraft] = useState<ReturnType<typeof getPreviewDraft>>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState(false);
   const [infoConfirmed, setInfoConfirmed] = useState(false);
@@ -43,7 +44,16 @@ export default function PreviewListingPage() {
         ) {
           /** Ensure `category` is set so ListingView BR preview branch runs (JSON may omit optional fields). */
           const cat = parsed.category ?? (draft.category === "bienes-raices" ? ("bienes-raices" as const) : parsed.category);
-          return { ...parsed, ...(cat ? { category: cat } : {}) };
+          const base = { ...parsed, ...(cat ? { category: cat } : {}) };
+          /** BR negocio: inject rail/tier from draft when parsed data lacks them (deterministic premium path). */
+          if (draft.branch === "negocio") {
+            return {
+              ...base,
+              businessRail: base.businessRail ?? draft.businessRail ?? null,
+              businessRailTier: base.businessRailTier ?? draft.businessRailTier ?? null,
+            };
+          }
+          return base;
         }
       } catch {
         /* fall through to legacy mapping */
@@ -68,19 +78,27 @@ export default function PreviewListingPage() {
     const brCat =
       data.category ??
       (draft.category === "bienes-raices" ? ("bienes-raices" as const) : data.category);
-    return {
+    const base = {
       ...data,
       ...(brCat ? { category: brCat } : {}),
       categoryLabel: categoryLabel ?? undefined,
       sellerName: data.sellerName ?? draft.sellerName ?? undefined,
     };
+    /** BR negocio: inject rail/tier from draft for legacy mapping path (deterministic premium path). */
+    if (draft.branch === "negocio") {
+      return {
+        ...base,
+        businessRail: base.businessRail ?? draft.businessRail ?? null,
+        businessRailTier: base.businessRailTier ?? draft.businessRailTier ?? null,
+      };
+    }
+    return base;
   }, [draft]);
 
-  /** BR Negocio handoff: same pipeline as publish wizard — ListingView → premium BR renderer (not generic classifieds shell). */
-  const isBrNegocioPremium =
-    !!draftListingData &&
-    (draftListingData.category === "bienes-raices" || draft?.category === "bienes-raices") &&
-    (draftListingData.businessRailTier === "business_plus" || !!draftListingData.businessRail);
+  /** BR Negocio: deterministic from route/draft context. No fallback to generic shell when category=bienes-raices and branch=negocio. */
+  const isBrNegocioFromContext =
+    draft?.category === "bienes-raices" &&
+    (draft?.branch === "negocio" || branchFromUrl === "negocio");
 
   const t = useMemo(
     () =>
@@ -210,7 +228,7 @@ export default function PreviewListingPage() {
     </div>
   );
 
-  if (isBrNegocioPremium && draftListingData) {
+  if (isBrNegocioFromContext && draftListingData) {
     return (
       <main className="min-h-screen bg-[#F1EDE6] text-[#111111] overflow-x-hidden">
         <Navbar />

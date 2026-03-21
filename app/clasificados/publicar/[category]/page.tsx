@@ -4085,6 +4085,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       backToEditUrl,
       lang,
       category: "bienes-raices",
+      branch: "negocio",
       title: snap.title,
       description: snap.description,
       isFree: snap.isFree,
@@ -4105,7 +4106,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId ?? null,
       fullListingDataJson: JSON.stringify(fullPreviewListingData),
     });
-    router.push(`/preview-listing?lang=${lang}`);
+    router.push(`/preview-listing?lang=${lang}&branch=negocio`);
   }, [
     isBienesRaicesNegocio,
     step,

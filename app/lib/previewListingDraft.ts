@@ -30,6 +30,8 @@ export type PreviewListingDraft = {
   businessRailTier?: "business_standard" | "business_plus" | null;
   /** Publisher id for agent profile CTA / deep links. */
   ownerId?: string | null;
+  /** BR only: branch from publish flow. Used to deterministically route premium vs generic preview. */
+  branch?: "privado" | "negocio" | null;
   /**
    * When set (e.g. BR negocio "Ver anuncio" handoff), `/preview-listing` parses this JSON as `ListingData`
    * so the page matches the publish wizard preview (`BienesRaicesNegocioPremiumDetail`).
