@@ -4,12 +4,59 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
-import { getPreviewDraft } from "@/app/lib/previewListingDraft";
-import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
+import { getPreviewDraft, type PreviewListingDraft } from "@/app/lib/previewListingDraft";
+import ListingView, { type BusinessRailData, type ListingData } from "@/app/clasificados/components/ListingView";
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
+
+/** Last-resort rail so ListingView BR premium gate + BienesRaicesNegocioPremiumDetail always get a truthy `businessRail`. */
+function minimalBusinessRailFromDraft(draft: PreviewListingDraft): BusinessRailData {
+  const L = draft.lang === "en" ? "en" : "es";
+  const name = (draft.sellerName ?? "").trim() || (L === "es" ? "Negocio" : "Business");
+  return {
+    name,
+    agent: name,
+    role: "",
+    officePhone: draft.contactPhone?.trim() ?? "",
+    agentEmail: draft.contactEmail?.trim() || null,
+    website: null,
+    socialLinks: [],
+    rawSocials: "",
+    logoUrl: null,
+    agentPhotoUrl: null,
+    languages: "",
+    hours: "",
+    virtualTourUrl: null,
+    plusMoreListings: false,
+  };
+}
+
+/**
+ * BR Negocio preview: ListingView requires `category === "bienes-raices"` and
+ * (`businessRailTier === "business_plus"` || `businessRail`). URL may carry `branch=negocio` while `draft.branch` is unset (older sessions).
+ * Premium detail also requires a truthy `businessRail`.
+ */
+function normalizeBrNegocioListingDataForPremiumGate(
+  listing: ListingData,
+  draft: PreviewListingDraft,
+  branchFromUrl: string | undefined
+): ListingData {
+  const isBrNegocio =
+    draft.category === "bienes-raices" && (draft.branch === "negocio" || branchFromUrl === "negocio");
+  if (!isBrNegocio) return listing;
+
+  const railMerged = listing.businessRail ?? draft.businessRail ?? null;
+  const tierMerged = listing.businessRailTier ?? draft.businessRailTier ?? null;
+
+  return {
+    ...listing,
+    category: "bienes-raices",
+    businessRail: railMerged ?? minimalBusinessRailFromDraft(draft),
+    businessRailTier: tierMerged ?? "business_plus",
+  };
+}
 
 export default function PreviewListingPage() {
   const router = useRouter();
@@ -32,6 +79,8 @@ export default function PreviewListingPage() {
   // Single source: draft from publish page. Do not reconstruct media from partial/stale fields.
   const draftListingData = useMemo((): ListingData | null => {
     if (!draft) return null;
+
+    let built: ListingData | null = null;
     const rawJson = draft.fullListingDataJson?.trim();
     if (rawJson) {
       try {
@@ -42,58 +91,45 @@ export default function PreviewListingPage() {
           typeof (parsed as ListingData).title === "string" &&
           Array.isArray((parsed as ListingData).images)
         ) {
-          /** Ensure `category` is set so ListingView BR preview branch runs (JSON may omit optional fields). */
+          /** Ensure `category` is set when JSON omits it (ListingView BR gate uses `listing.category`). */
           const cat = parsed.category ?? (draft.category === "bienes-raices" ? ("bienes-raices" as const) : parsed.category);
-          const base = { ...parsed, ...(cat ? { category: cat } : {}) };
-          /** BR negocio: inject rail/tier from draft when parsed data lacks them (deterministic premium path). */
-          if (draft.branch === "negocio") {
-            return {
-              ...base,
-              businessRail: base.businessRail ?? draft.businessRail ?? null,
-              businessRailTier: base.businessRailTier ?? draft.businessRailTier ?? null,
-            };
-          }
-          return base;
+          built = { ...parsed, ...(cat ? { category: cat } : {}) };
         }
       } catch {
         /* fall through to legacy mapping */
       }
     }
-    const imageUrls = draft.imageUrls ?? [];
-    const row = {
-      ...draft,
-      images: imageUrls,
-      image_urls: imageUrls,
-      contact_phone: draft.contactPhone ?? "",
-      contact_email: draft.contactEmail ?? "",
-      is_free: draft.isFree,
-      price: draft.price?.trim() ? draft.price.trim() : (draft.isFree ? "0" : null),
-      sellerName: draft.sellerName ?? undefined,
-    };
-    const data = mapListingToViewModel(row, draft.lang);
-    if (!data) return null;
-    const categoryLabel = draft.category
-      ? (categoryConfig as Record<string, { label: { es: string; en: string } }>)[draft.category]?.label[draft.lang]
-      : undefined;
-    const brCat =
-      data.category ??
-      (draft.category === "bienes-raices" ? ("bienes-raices" as const) : data.category);
-    const base = {
-      ...data,
-      ...(brCat ? { category: brCat } : {}),
-      categoryLabel: categoryLabel ?? undefined,
-      sellerName: data.sellerName ?? draft.sellerName ?? undefined,
-    };
-    /** BR negocio: inject rail/tier from draft for legacy mapping path (deterministic premium path). */
-    if (draft.branch === "negocio") {
-      return {
-        ...base,
-        businessRail: base.businessRail ?? draft.businessRail ?? null,
-        businessRailTier: base.businessRailTier ?? draft.businessRailTier ?? null,
+
+    if (!built) {
+      const imageUrls = draft.imageUrls ?? [];
+      const row = {
+        ...draft,
+        images: imageUrls,
+        image_urls: imageUrls,
+        contact_phone: draft.contactPhone ?? "",
+        contact_email: draft.contactEmail ?? "",
+        is_free: draft.isFree,
+        price: draft.price?.trim() ? draft.price.trim() : (draft.isFree ? "0" : null),
+        sellerName: draft.sellerName ?? undefined,
+      };
+      const data = mapListingToViewModel(row, draft.lang);
+      if (!data) return null;
+      const categoryLabel = draft.category
+        ? (categoryConfig as Record<string, { label: { es: string; en: string } }>)[draft.category]?.label[draft.lang]
+        : undefined;
+      const brCat =
+        data.category ??
+        (draft.category === "bienes-raices" ? ("bienes-raices" as const) : data.category);
+      built = {
+        ...data,
+        ...(brCat ? { category: brCat } : {}),
+        categoryLabel: categoryLabel ?? undefined,
+        sellerName: data.sellerName ?? draft.sellerName ?? undefined,
       };
     }
-    return base;
-  }, [draft]);
+
+    return normalizeBrNegocioListingDataForPremiumGate(built, draft, branchFromUrl);
+  }, [draft, branchFromUrl]);
 
   /** BR Negocio: deterministic from route/draft context. No fallback to generic shell when category=bienes-raices and branch=negocio. */
   const isBrNegocioFromContext =
