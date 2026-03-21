@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../../../lib/supabase/browser";
 import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
+import { setPreviewDraft } from "@/app/lib/previewListingDraft";
 import {
   createDraft,
   updateDraft,
@@ -4070,6 +4071,56 @@ for (let vi = 0; vi < videoLimit; vi++) {
     return base;
   }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]);
 
+  /** BR negocio (media step): full-page preview via `/preview-listing` — same `ListingView` → `BienesRaicesPreviewNegocioFresh` as embedded preview. */
+  const openBrNegocioFullListingPreview = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!isBienesRaicesNegocio || step !== "media") return;
+    if (userId && typeof performDbSave === "function") {
+      void performDbSave();
+    }
+    const q = searchParams?.toString() ?? "";
+    const backToEditUrl = `${pathname ?? ""}${q ? `?${q}` : ""}`;
+    const snap = enVentaSnapshot;
+    setPreviewDraft({
+      backToEditUrl,
+      lang,
+      category: "bienes-raices",
+      title: snap.title,
+      description: snap.description,
+      isFree: snap.isFree,
+      price: snap.priceRaw || "",
+      city: snap.city,
+      todayLabel: copy.todayLabel,
+      detailPairs: snap.detailPairs ?? [],
+      contactMethod: snap.contactMethod,
+      contactPhone: snap.contactPhone,
+      contactEmail: snap.contactEmail,
+      imageUrls: snap.images ?? [],
+      proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
+      proVideoUrl: snap.proVideoUrl ?? null,
+      isPro: snap.isPro,
+      sellerName: sellerDisplayName ?? null,
+      businessRail: fullPreviewListingData.businessRail ?? null,
+      businessRailTier: fullPreviewListingData.businessRailTier ?? null,
+      ownerId: userId ?? null,
+      fullListingDataJson: JSON.stringify(fullPreviewListingData),
+    });
+    router.push(`/preview-listing?lang=${lang}`);
+  }, [
+    isBienesRaicesNegocio,
+    step,
+    userId,
+    performDbSave,
+    pathname,
+    searchParams,
+    enVentaSnapshot,
+    lang,
+    copy.todayLabel,
+    sellerDisplayName,
+    fullPreviewListingData,
+    router,
+  ]);
+
   // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
   const openFullPreview = useCallback(() => {
     if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
@@ -6491,6 +6542,48 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             emailOk={requirements.emailOk}
                           />
                         )}
+
+                      {isBienesRaicesNegocio && (
+                        <div className="rounded-2xl border border-[#C9B46A]/40 bg-gradient-to-b from-[#FFFCF7] to-[#F5F5F5] p-4 sm:p-5 shadow-sm">
+                          <p className="text-sm font-semibold text-[#111111]">
+                            {lang === "es" ? "Última revisión antes de publicar" : "Final review before publishing"}
+                          </p>
+                          <p className="mt-1 text-xs text-[#111111]/60">
+                            {lang === "es"
+                              ? "Abre la vista previa a pantalla completa (como la verán los compradores), vuelve a editar o publica cuando estés listo."
+                              : "Open the full-page preview as buyers will see it, go back to edit, or publish when ready."}
+                          </p>
+                          <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                            <button
+                              type="button"
+                              onClick={() => void openBrNegocioFullListingPreview()}
+                              className="rounded-xl border border-[#3F5A43]/70 bg-[#3F5A43] px-4 py-2.5 text-sm font-semibold text-[#F7F4EC] shadow-sm hover:bg-[#36503A] transition"
+                            >
+                              {lang === "es" ? "Ver anuncio" : "View listing"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => goToStep("basics")}
+                              className="rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
+                            >
+                              {lang === "es" ? "Volver a editar" : "Back to edit"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={publishing || !requirements.allOk || !previewViewed || !rulesConfirmed}
+                              onClick={() => void publish()}
+                              className={cx(
+                                "rounded-xl px-4 py-2.5 text-sm font-semibold",
+                                publishing || !requirements.allOk || !previewViewed || !rulesConfirmed
+                                  ? "bg-yellow-500/40 text-black/70 cursor-not-allowed"
+                                  : "bg-yellow-500/90 hover:bg-yellow-500 text-black"
+                              )}
+                            >
+                              {publishing ? copy.publishing : copy.publish}
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {isBienesRaicesNegocio ? (
                         <div className="mt-1 w-full min-w-0">

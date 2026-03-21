@@ -31,6 +31,22 @@ export default function PreviewListingPage() {
   // Single source: draft from publish page. Do not reconstruct media from partial/stale fields.
   const draftListingData = useMemo((): ListingData | null => {
     if (!draft) return null;
+    const rawJson = draft.fullListingDataJson?.trim();
+    if (rawJson) {
+      try {
+        const parsed = JSON.parse(rawJson) as ListingData;
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          typeof (parsed as ListingData).title === "string" &&
+          Array.isArray((parsed as ListingData).images)
+        ) {
+          return parsed;
+        }
+      } catch {
+        /* fall through to legacy mapping */
+      }
+    }
     const imageUrls = draft.imageUrls ?? [];
     const row = {
       ...draft,
@@ -141,7 +157,13 @@ export default function PreviewListingPage() {
           </header>
 
           <section className="w-full p-3 sm:p-5 pt-4 sm:pt-5">
-            {draftListingData ? <ListingView listing={draftListingData} previewMode={true} /> : null}
+            {draftListingData ? (
+              <ListingView
+                listing={draftListingData}
+                previewMode
+                hideProComparisonUI={draftListingData.category === "bienes-raices"}
+              />
+            ) : null}
           </section>
         </div>
 
