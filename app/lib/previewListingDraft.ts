@@ -32,7 +32,7 @@ export type PreviewListingDraft = {
   ownerId?: string | null;
   /**
    * When set (e.g. BR negocio "Ver anuncio" handoff), `/preview-listing` parses this JSON as `ListingData`
-   * so the page matches the publish wizard preview exactly (same `ListingView` → `BienesRaicesPreviewNegocioFresh` path).
+   * so the page matches the publish wizard preview (`BienesRaicesNegocioPremiumDetail`).
    * Flat fields above remain for backward compatibility and fallback.
    */
   fullListingDataJson?: string | null;
