@@ -132,6 +132,8 @@ export type ListingViewProps = {
   onProBenefitClick?: (id: ProHighlightId) => void;
   /** When true, do not render Pro comparison UI (analytics block, benefits panel). Use for Rentas Privado (Pro-only, no upgrade framing). */
   hideProComparisonUI?: boolean;
+  /** BR negocio preview only: `embedded` (wizard) vs `full` (e.g. `/preview-listing`). Ignored for other categories. */
+  brNegocioPreviewVariant?: "embedded" | "full";
 };
 
 export default function ListingView({
@@ -141,6 +143,7 @@ export default function ListingView({
   proHighlight = null,
   onProBenefitClick,
   hideProComparisonUI = false,
+  brNegocioPreviewVariant = "embedded",
 }: ListingViewProps) {
   const isBienesRaices = listing.category === "bienes-raices";
   /** BR preview: no Pro comparison UI, no locked slots, no Pro/Standard/Plus framing. */
@@ -324,7 +327,7 @@ export default function ListingView({
   // Privado → BienesRaicesPreviewListing. Do not route negocio to the privado shell when tier/rail are present.
   if (previewMode && isBienesRaices) {
     if (listing.businessRailTier === "business_plus" || listing.businessRail) {
-      return <BienesRaicesNegocioPremiumDetail listing={listing} variant="embedded" />;
+      return <BienesRaicesNegocioPremiumDetail listing={listing} variant={brNegocioPreviewVariant} />;
     }
     return <BienesRaicesPreviewListing listing={listing} />;
   }

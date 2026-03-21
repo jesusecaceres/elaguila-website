@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft } from "@/app/lib/previewListingDraft";
 import ListingView, { type ListingData } from "@/app/clasificados/components/ListingView";
-import BienesRaicesNegocioPremiumDetail from "@/app/clasificados/bienes-raices/negocio/preview/BienesRaicesNegocioPremiumDetail";
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
@@ -42,7 +41,9 @@ export default function PreviewListingPage() {
           typeof (parsed as ListingData).title === "string" &&
           Array.isArray((parsed as ListingData).images)
         ) {
-          return parsed;
+          /** Ensure `category` is set so ListingView BR preview branch runs (JSON may omit optional fields). */
+          const cat = parsed.category ?? (draft.category === "bienes-raices" ? ("bienes-raices" as const) : parsed.category);
+          return { ...parsed, ...(cat ? { category: cat } : {}) };
         }
       } catch {
         /* fall through to legacy mapping */
@@ -64,12 +65,21 @@ export default function PreviewListingPage() {
     const categoryLabel = draft.category
       ? (categoryConfig as Record<string, { label: { es: string; en: string } }>)[draft.category]?.label[draft.lang]
       : undefined;
-    return { ...data, categoryLabel: categoryLabel ?? undefined, sellerName: data.sellerName ?? draft.sellerName ?? undefined };
+    const brCat =
+      data.category ??
+      (draft.category === "bienes-raices" ? ("bienes-raices" as const) : data.category);
+    return {
+      ...data,
+      ...(brCat ? { category: brCat } : {}),
+      categoryLabel: categoryLabel ?? undefined,
+      sellerName: data.sellerName ?? draft.sellerName ?? undefined,
+    };
   }, [draft]);
 
+  /** BR Negocio handoff: same pipeline as publish wizard — ListingView → premium BR renderer (not generic classifieds shell). */
   const isBrNegocioPremium =
     !!draftListingData &&
-    draftListingData.category === "bienes-raices" &&
+    (draftListingData.category === "bienes-raices" || draft?.category === "bienes-raices") &&
     (draftListingData.businessRailTier === "business_plus" || !!draftListingData.businessRail);
 
   const t = useMemo(
@@ -224,7 +234,12 @@ export default function PreviewListingPage() {
           </div>
         </div>
         <div className="max-w-[min(100%,92rem)] mx-auto px-4 sm:px-8 lg:px-12 py-6 pb-10 w-full">
-          <BienesRaicesNegocioPremiumDetail listing={draftListingData} variant="full" />
+          <ListingView
+            listing={draftListingData}
+            previewMode
+            hideProComparisonUI
+            brNegocioPreviewVariant="full"
+          />
         </div>
         <div className="max-w-[min(100%,92rem)] mx-auto px-4 sm:px-6 pb-14 w-full">{confirmSection}</div>
       </main>
