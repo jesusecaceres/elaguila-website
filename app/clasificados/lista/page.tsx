@@ -18,7 +18,7 @@ import {
 } from "react-icons/fi";
 import Navbar from "../../components/Navbar";
 import { serviciosDrawerFilters } from "../config/categoryConfig";
-import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../config/bienesRaicesTaxonomy";
+import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../bienes-raices/shared/fields/bienesRaicesTaxonomy";
 import newLogo from "../../../public/logo.png";
 
 import {

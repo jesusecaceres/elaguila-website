@@ -35,7 +35,7 @@ import {
   EN_VENTA_SUBCATEGORIES,
   getArticuloOptionsForSubcategory,
   getArticuloLabel,
-} from "../../config/enVentaTaxonomy";
+} from "../../en-venta/utils/enVentaTaxonomy";
 
 /** En Venta (BR-style) Basics: property types. */
 const EN_VENTA_BR_PROPERTY_TYPES: Array<{ value: string; label: { es: string; en: string } }> = [
@@ -77,7 +77,7 @@ import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
   getRentasDetailFields,
-} from "../../config/rentasTaxonomy";
+} from "../../rentas/shared/utils/rentasTaxonomy";
 
 /** Rentas Negocio: price per post (30 days). Single source of truth. */
 const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
@@ -90,7 +90,7 @@ const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
-import { BIENES_RAICES_SUBCATEGORIES } from "../../config/bienesRaicesTaxonomy";
+import { BIENES_RAICES_SUBCATEGORIES } from "../../bienes-raices/shared/fields/bienesRaicesTaxonomy";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
