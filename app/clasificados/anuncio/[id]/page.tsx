@@ -135,6 +135,120 @@ function formatPostedAgo(createdAt: string | null | undefined, lang: Lang): stri
   return `Posted ${diffDays === 1 ? "1 day" : `${diffDays} days`} ago`;
 }
 
+const CATEGORY_KEYS: readonly CategoryKey[] = [
+  "en-venta",
+  "bienes-raices",
+  "rentas",
+  "autos",
+  "servicios",
+  "empleos",
+  "clases",
+  "comunidad",
+  "travel",
+];
+
+function coerceCategoryKey(raw: unknown): CategoryKey {
+  const s = typeof raw === "string" ? raw : "";
+  return (CATEGORY_KEYS as readonly string[]).includes(s) ? (s as CategoryKey) : "en-venta";
+}
+
+function imageUrlsFromJsonb(images: unknown): string[] {
+  if (images == null) return [];
+  if (Array.isArray(images)) {
+    return images
+      .map((item) => {
+        if (typeof item === "string" && item.trim()) return item.trim();
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
+          if (typeof url === "string" && url.trim()) return url.trim();
+        }
+        return null;
+      })
+      .filter((u): u is string => u != null);
+  }
+  return [];
+}
+
+function extractLeonixImageUrlsFromDescription(description: string | null | undefined): string[] {
+  if (!description) return [];
+  const m = description.match(/\[LEONIX_IMAGES\]([\s\S]*?)\[\/LEONIX_IMAGES\]/);
+  if (!m) return [];
+  const block = m[1];
+  const urls: string[] = [];
+  for (const line of block.split("\n")) {
+    const trimmed = line.trim();
+    const um = /^url=(.+)$/i.exec(trimmed);
+    if (um?.[1]) urls.push(um[1].trim());
+  }
+  return urls;
+}
+
+function stripLeonixImagesBlock(desc: string): string {
+  return desc.replace(/\s*\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]\s*/g, "\n").trim();
+}
+
+function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
+  const rawDesc = String(row.description ?? "");
+  const blurbText = stripLeonixImagesBlock(rawDesc).trim() || rawDesc.trim();
+  const fromJson = imageUrlsFromJsonb(row.images);
+  const fromMarker = extractLeonixImageUrlsFromDescription(rawDesc);
+  const merged = [...new Set([...fromJson, ...fromMarker])];
+  const images = merged.length > 0 ? merged : null;
+
+  const isFree = Boolean(row.is_free);
+  const priceRaw = row.price;
+  const priceNum = typeof priceRaw === "number" ? priceRaw : Number(String(priceRaw ?? "").replace(/[^0-9.]/g, ""));
+  const priceLabel = {
+    es: formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang: "es", isFree }),
+    en: formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang: "en", isFree }),
+  };
+
+  const sellerType: SellerType = row.seller_type === "business" ? "business" : "personal";
+  const statusRaw = row.status;
+  const status: ListingStatus | undefined = statusRaw === "sold" ? "sold" : "active";
+
+  const boostRaw = row.boost_expires;
+  const boostUntil =
+    typeof boostRaw === "string" && boostRaw.trim() ? boostRaw : typeof boostRaw === "number" ? String(boostRaw) : null;
+
+  const detailPairs = row.detail_pairs;
+  const base: Listing = {
+    id: String(row.id ?? ""),
+    category: coerceCategoryKey(row.category),
+    title: { es: String(row.title ?? "").trim(), en: String(row.title ?? "").trim() },
+    priceLabel,
+    city: String(row.city ?? "").trim(),
+    postedAgo: { es: "", en: "" },
+    blurb: { es: blurbText, en: blurbText },
+    hasImage: merged.length > 0,
+    condition: "good",
+    sellerType,
+    status,
+    original_price: row.original_price != null ? Number(row.original_price) : null,
+    current_price: row.current_price != null ? Number(row.current_price) : null,
+    price_last_updated: typeof row.price_last_updated === "string" ? row.price_last_updated : null,
+    created_at: typeof row.created_at === "string" ? row.created_at : null,
+    images,
+    boostUntil,
+    owner_id: row.owner_id != null ? String(row.owner_id) : null,
+    businessName: row.business_name != null ? String(row.business_name) : null,
+    business_name: row.business_name != null ? String(row.business_name) : null,
+    rentasTier: row.rentas_tier != null ? String(row.rentas_tier) : null,
+    rentas_tier: row.rentas_tier != null ? String(row.rentas_tier) : null,
+    business_meta: typeof row.business_meta === "string" ? row.business_meta : null,
+  };
+
+  const out = base as Listing & { detailPairs?: unknown; contact_phone?: unknown; contact_email?: unknown; seller_type?: string };
+  if (Array.isArray(detailPairs)) {
+    out.detailPairs = detailPairs;
+  }
+  out.contact_phone = row.contact_phone ?? null;
+  out.contact_email = row.contact_email ?? null;
+  out.seller_type = sellerType;
+  return out;
+}
+
 export default function AnuncioDetallePage() {
   const params = useParams<{ id: string }>();
 
@@ -245,11 +359,71 @@ export default function AnuncioDetallePage() {
     return map;
   }, []);
 
-  const listing: Listing | undefined = useMemo(() => {
+  const sampleListing: Listing | undefined = useMemo(() => {
     const id = params?.id;
     if (!id) return undefined;
     return (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
   }, [params?.id]);
+
+  const [fetchedListing, setFetchedListing] = useState<Listing | undefined>(undefined);
+  const [remoteState, setRemoteState] = useState<"uninitialized" | "loading" | "ready" | "error">("uninitialized");
+  const [remoteError, setRemoteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = params?.id;
+    setRemoteError(null);
+    if (!id) {
+      setFetchedListing(undefined);
+      setRemoteState("ready");
+      return;
+    }
+    const sample = (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
+    if (sample) {
+      setFetchedListing(undefined);
+      setRemoteState("ready");
+      return;
+    }
+    let cancelled = false;
+    setRemoteState("loading");
+    setFetchedListing(undefined);
+    void (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("listings")
+          .select(
+            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, created_at, original_price, current_price, price_last_updated, images, boost_expires"
+          )
+          .eq("id", id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (error) {
+          setRemoteError(error.message);
+          setRemoteState("error");
+          return;
+        }
+        setFetchedListing(data ? mapDbListingRowToListing(data as Record<string, unknown>) : undefined);
+        setRemoteState("ready");
+      } catch (e: unknown) {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Unknown error";
+        setRemoteError(msg);
+        setRemoteState("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [params?.id]);
+
+  const listing: Listing | undefined = sampleListing ?? fetchedListing;
+
+  const idParam = params?.id;
+  const showLoading = Boolean(
+    idParam && !sampleListing && (remoteState === "uninitialized" || remoteState === "loading")
+  );
+  const showFetchError = Boolean(idParam && !sampleListing && remoteState === "error");
+
   const jobMeta = useMemo(() => {
     if (!listing || listing.category !== "empleos") return null;
 
@@ -1010,6 +1184,47 @@ export default function AnuncioDetallePage() {
     if (c === "fair") return "Fair";
     return "Any";
   };
+
+  if (showLoading) {
+    return (
+      <div className="bg-[#D9D9D9] min-h-screen text-[#111111] pb-24">
+        <Navbar />
+        <section className="max-w-screen-2xl mx-auto px-6 pt-28">
+          <div className="text-center">
+            <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
+            <p className="text-lg font-medium text-[#111111]/80">
+              {lang === "es" ? "Cargando anuncio…" : "Loading listing…"}
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (showFetchError) {
+    return (
+      <div className="bg-[#D9D9D9] min-h-screen text-[#111111] pb-24">
+        <Navbar />
+        <section className="max-w-screen-2xl mx-auto px-6 pt-28">
+          <div className="text-center max-w-lg mx-auto">
+            <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
+            <h1 className="text-2xl font-bold text-[#111111]">
+              {lang === "es" ? "No se pudo cargar el anuncio" : "Could not load this listing"}
+            </h1>
+            {remoteError ? <p className="mt-3 text-sm text-[#111111]/75 break-words">{remoteError}</p> : null}
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <a
+                href={`/clasificados?lang=${lang}`}
+                className="px-7 py-3 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
+              >
+                {t.viewAll}
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (!listing) {
     return (
