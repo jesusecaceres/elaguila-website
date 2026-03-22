@@ -9,6 +9,8 @@ import newLogo from "../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../data/classifieds/sampleListings";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
 type Lang = "es" | "en";
 
@@ -53,6 +55,135 @@ const CATEGORY_ORDER: CategoryKey[] = [
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+const HUB_CATEGORY_KEYS: readonly CategoryKey[] = [
+  "en-venta",
+  "bienes-raices",
+  "rentas",
+  "autos",
+  "servicios",
+  "empleos",
+  "clases",
+  "comunidad",
+  "travel",
+  "restaurantes",
+];
+
+function coerceHubCategory(raw: unknown): CategoryKey {
+  const s = typeof raw === "string" ? raw.trim() : "";
+  if ((HUB_CATEGORY_KEYS as readonly string[]).includes(s)) return s as CategoryKey;
+  return "en-venta";
+}
+
+function stripLeonixImagesBlockHub(desc: string): string {
+  return desc.replace(/\s*\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]\s*/g, "\n").trim();
+}
+
+function extractLeonixImageUrlsHub(description: string | null | undefined): string[] {
+  if (!description) return [];
+  const m = description.match(/\[LEONIX_IMAGES\]([\s\S]*?)\[\/LEONIX_IMAGES\]/);
+  if (!m) return [];
+  const block = m[1];
+  const urls: string[] = [];
+  for (const line of block.split("\n")) {
+    const trimmed = line.trim();
+    const um = /^url=(.+)$/i.exec(trimmed);
+    if (um?.[1]) urls.push(um[1].trim());
+  }
+  return urls;
+}
+
+function imageUrlsFromJsonbHub(images: unknown): string[] {
+  if (images == null) return [];
+  if (Array.isArray(images)) {
+    return images
+      .map((item) => {
+        if (typeof item === "string" && item.trim()) return item.trim();
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
+          if (typeof url === "string" && url.trim()) return url.trim();
+        }
+        return null;
+      })
+      .filter((u): u is string => u != null);
+  }
+  return [];
+}
+
+function postedAgoFromCreatedHub(createdAt: string | null | undefined): { es: string; en: string } {
+  if (!createdAt) return { es: "", en: "" };
+  const created = new Date(createdAt).getTime();
+  if (!Number.isFinite(created)) return { es: "", en: "" };
+  const diffMins = Math.floor((Date.now() - created) / (1000 * 60));
+  const diffHours = Math.floor((Date.now() - created) / (1000 * 60 * 60));
+  const diffDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
+  if (diffMins < 60) {
+    return {
+      es: diffMins <= 1 ? "hace 1 min" : `hace ${diffMins} min`,
+      en: diffMins <= 1 ? "1 min ago" : `${diffMins} min ago`,
+    };
+  }
+  if (diffHours < 24) {
+    return {
+      es: diffHours === 1 ? "hace 1 h" : `hace ${diffHours} h`,
+      en: diffHours === 1 ? "1 h ago" : `${diffHours} h ago`,
+    };
+  }
+  return {
+    es: diffDays === 1 ? "hace 1 día" : `hace ${diffDays} días`,
+    en: diffDays === 1 ? "1 day ago" : `${diffDays} days ago`,
+  };
+}
+
+function mapDbRowToHubListing(row: Record<string, unknown>): Listing | null {
+  if (row.is_published === false) return null;
+  const status = row.status;
+  if (status !== "active") return null;
+
+  const rawDesc = String(row.description ?? "");
+  const blurbText = stripLeonixImagesBlockHub(rawDesc).trim() || rawDesc.trim();
+  const fromJson = imageUrlsFromJsonbHub(row.images);
+  const fromMarker = extractLeonixImageUrlsHub(rawDesc);
+  const mergedImgs = [...new Set([...fromJson, ...fromMarker])];
+  const hasImage = mergedImgs.length > 0;
+
+  const isFree = Boolean(row.is_free);
+  const priceRaw = row.price;
+  const priceNum =
+    typeof priceRaw === "number" ? priceRaw : Number(String(priceRaw ?? "").replace(/[^0-9.]/g, ""));
+  const priceLabel = {
+    es: formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang: "es", isFree }),
+    en: formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang: "en", isFree }),
+  };
+
+  const createdRaw = typeof row.created_at === "string" ? row.created_at : null;
+
+  const sellerType: SellerType = row.seller_type === "business" ? "business" : "personal";
+
+  return {
+    id: String(row.id ?? ""),
+    category: coerceHubCategory(row.category),
+    title: { es: String(row.title ?? "").trim(), en: String(row.title ?? "").trim() },
+    priceLabel,
+    city: String(row.city ?? "").trim(),
+    postedAgo: postedAgoFromCreatedHub(createdRaw),
+    blurb: { es: blurbText, en: blurbText },
+    hasImage,
+    sellerType,
+  };
+}
+
+function dedupeHubListingsById(items: Listing[]): Listing[] {
+  const seen = new Set<string>();
+  const out: Listing[] = [];
+  for (const it of items) {
+    if (!it.id || seen.has(it.id)) continue;
+    seen.add(it.id);
+    out.push(it);
+  }
+  return out;
 }
 
 export default function ClasificadosPage() {
@@ -279,6 +410,44 @@ export default function ClasificadosPage() {
     []
   );
 
+  const [supabaseListings, setSupabaseListings] = useState<Listing[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("listings")
+          .select(
+            "id, title, description, city, category, price, is_free, images, created_at, seller_type, status"
+          )
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (cancelled) return;
+        if (error) return;
+        const rows = (data ?? []) as Record<string, unknown>[];
+        const mapped: Listing[] = [];
+        for (const r of rows) {
+          const m = mapDbRowToHubListing(r);
+          if (m) mapped.push(m);
+        }
+        setSupabaseListings(mapped);
+      } catch {
+        /* fail soft: demo-only hub */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const poolListings = useMemo(
+    () => dedupeHubListingsById([...sampleListings, ...supabaseListings]),
+    [sampleListings, supabaseListings]
+  );
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -323,7 +492,7 @@ export default function ClasificadosPage() {
     };
 
     for (const cat of Object.keys(out) as CategoryKey[]) {
-      const all = sampleListings.filter((l) => l.category === cat);
+      const all = poolListings.filter((l) => l.category === cat);
       const business = all.filter((x) => x.sellerType === "business");
       const personal = all.filter((x) => x.sellerType === "personal");
       const limit = (limits as Record<string, number>)[cat] as number;
@@ -341,7 +510,7 @@ export default function ClasificadosPage() {
     }
 
     return out;
-  }, [limits, sampleListings]);
+  }, [limits, poolListings]);
 
   const ListingCardCompact = ({ item }: { item: Listing }) => {
     const href = `/clasificados/anuncio/${item.id}?lang=${lang}`;
@@ -528,6 +697,39 @@ export default function ClasificadosPage() {
           {CATEGORY_ORDER.map((k) => (
             <CategoryTile key={k} cat={k} />
           ))}
+        </div>
+      </section>
+
+      <section className="max-w-screen-2xl mx-auto px-6 mt-12">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">{t.sectionFeatured}</h2>
+          <p className="text-sm text-[#111111]/80 max-w-3xl">{t.sectionFeaturedHint}</p>
+        </div>
+
+        <div className="mt-8 space-y-10">
+          {CATEGORY_ORDER.map((cat) => {
+            const items = featuredByCategory[cat];
+            if (!items.length) return null;
+            const meta = (t.cat as Record<string, { label: string; hint: string }>)[cat];
+            return (
+              <div key={cat}>
+                <div className="flex items-end justify-between gap-3 flex-wrap">
+                  <h3 className="text-xl font-bold text-[#111111]">{meta.label}</h3>
+                  <Link
+                    href={withListParams(cat)}
+                    className="text-sm font-semibold text-[#111111] underline underline-offset-2 hover:opacity-90"
+                  >
+                    {t.viewMore}
+                  </Link>
+                </div>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {items.map((item) => (
+                    <ListingCardCompact key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
