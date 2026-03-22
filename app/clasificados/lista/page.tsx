@@ -898,6 +898,155 @@ function applyBienesRaicesParams(list: Listing[], p: BienesRaicesParams): Listin
   });
 }
 
+const LISTA_DB_CATEGORY_WHITELIST: Array<Exclude<CategoryKey, "all">> = [
+  "en-venta",
+  "bienes-raices",
+  "rentas",
+  "autos",
+  "servicios",
+  "empleos",
+  "clases",
+  "comunidad",
+  "travel",
+  "restaurantes",
+];
+
+function coerceListaCategory(raw: unknown): Exclude<CategoryKey, "all"> {
+  const s = typeof raw === "string" ? raw.trim() : "";
+  if ((LISTA_DB_CATEGORY_WHITELIST as readonly string[]).includes(s)) return s as Exclude<CategoryKey, "all">;
+  return "en-venta";
+}
+
+function stripLeonixImagesBlockLista(desc: string): string {
+  return desc.replace(/\s*\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]\s*/g, "\n").trim();
+}
+
+function extractLeonixImageUrlsLista(description: string | null | undefined): string[] {
+  if (!description) return [];
+  const m = description.match(/\[LEONIX_IMAGES\]([\s\S]*?)\[\/LEONIX_IMAGES\]/);
+  if (!m) return [];
+  const block = m[1];
+  const urls: string[] = [];
+  for (const line of block.split("\n")) {
+    const trimmed = line.trim();
+    const um = /^url=(.+)$/i.exec(trimmed);
+    if (um?.[1]) urls.push(um[1].trim());
+  }
+  return urls;
+}
+
+function imageUrlsFromJsonbLista(images: unknown): string[] {
+  if (images == null) return [];
+  if (Array.isArray(images)) {
+    return images
+      .map((item) => {
+        if (typeof item === "string" && item.trim()) return item.trim();
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
+          if (typeof url === "string" && url.trim()) return url.trim();
+        }
+        return null;
+      })
+      .filter((u): u is string => u != null);
+  }
+  return [];
+}
+
+function postedAgoFromCreatedLista(createdAt: string | null | undefined): { es: string; en: string } {
+  if (!createdAt) return { es: "", en: "" };
+  const created = new Date(createdAt).getTime();
+  if (!Number.isFinite(created)) return { es: "", en: "" };
+  const diffMins = Math.floor((Date.now() - created) / (1000 * 60));
+  const diffHours = Math.floor((Date.now() - created) / (1000 * 60 * 60));
+  const diffDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
+  if (diffMins < 60) {
+    return {
+      es: diffMins <= 1 ? "hace 1 min" : `hace ${diffMins} min`,
+      en: diffMins <= 1 ? "1 min ago" : `${diffMins} min ago`,
+    };
+  }
+  if (diffHours < 24) {
+    return {
+      es: diffHours === 1 ? "hace 1 h" : `hace ${diffHours} h`,
+      en: diffHours === 1 ? "1 h ago" : `${diffHours} h ago`,
+    };
+  }
+  return {
+    es: diffDays === 1 ? "hace 1 día" : `hace ${diffDays} días`,
+    en: diffDays === 1 ? "1 day ago" : `${diffDays} days ago`,
+  };
+}
+
+function mapDbRowToListaListing(row: Record<string, unknown>): Listing | null {
+  if (row.is_published === false) return null;
+  const rawDesc = String(row.description ?? "");
+  const blurbText = stripLeonixImagesBlockLista(rawDesc).trim() || rawDesc.trim();
+  const fromJson = imageUrlsFromJsonbLista(row.images);
+  const fromMarker = extractLeonixImageUrlsLista(rawDesc);
+  const mergedImgs = [...new Set([...fromJson, ...fromMarker])];
+  const hasImage = mergedImgs.length > 0;
+
+  const isFree = Boolean(row.is_free);
+  const priceRaw = row.price;
+  const priceNum =
+    typeof priceRaw === "number" ? priceRaw : Number(String(priceRaw ?? "").replace(/[^0-9.]/g, ""));
+  const priceLabel = {
+    es: formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang: "es", isFree }),
+    en: formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang: "en", isFree }),
+  };
+
+  const createdRaw = typeof row.created_at === "string" ? row.created_at : null;
+  const createdAtISO = safeISO(createdRaw ?? "");
+
+  const sellerType: SellerType = row.seller_type === "business" ? "business" : "personal";
+  const category = coerceListaCategory(row.category);
+
+  const base: Listing = {
+    id: String(row.id ?? ""),
+    category,
+    title: { es: String(row.title ?? "").trim(), en: String(row.title ?? "").trim() },
+    priceLabel,
+    city: String(row.city ?? "").trim(),
+    zip: row.zip != null && String(row.zip).trim() ? String(row.zip).trim() : undefined,
+    postedAgo: postedAgoFromCreatedLista(createdRaw),
+    createdAtISO,
+    hasImage,
+    sellerType,
+    blurb: { es: blurbText, en: blurbText },
+  };
+
+  const out = base as Listing & {
+    views?: number;
+    saves?: number;
+    shares?: number;
+    boostUntil?: string | null;
+    detailPairs?: unknown;
+    owner_id?: string | null;
+  };
+  out.views = Number(row.views) || 0;
+  out.saves = Number(row.saves) || 0;
+  out.shares = Number(row.shares) || 0;
+  const be = row.boost_expires;
+  if (typeof be === "string" && be.trim()) out.boostUntil = be.trim();
+  else if (be != null) out.boostUntil = String(be);
+  if (row.owner_id != null) out.owner_id = String(row.owner_id);
+  const dp = row.detail_pairs;
+  if (Array.isArray(dp)) out.detailPairs = dp;
+  return base;
+}
+
+function dedupeListingsById(items: Listing[]): Listing[] {
+  const seen = new Set<string>();
+  const out: Listing[] = [];
+  for (const it of items) {
+    if (!it.id || seen.has(it.id)) continue;
+    seen.add(it.id);
+    out.push(it);
+  }
+  return out;
+}
+
 export default function ListaPage() {
   const params = useSearchParams();
   const router = useRouter();
@@ -2665,6 +2814,39 @@ useEffect(() => {
     }
   }, []);
 
+  const [supabaseListings, setSupabaseListings] = useState<Listing[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("listings")
+          .select(
+            "id, title, description, city, zip, category, price, is_free, images, created_at, seller_type, detail_pairs, boost_expires, views, saves, shares, status, owner_id"
+          )
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (cancelled) return;
+        if (error) return;
+        const rows = (data ?? []) as Record<string, unknown>[];
+        const mapped: Listing[] = [];
+        for (const r of rows) {
+          const m = mapDbRowToListaListing(r);
+          if (m) mapped.push(m);
+        }
+        setSupabaseListings(mapped);
+      } catch {
+        /* fail soft: keep SAMPLE_LISTINGS-only behavior */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const listings = useMemo<Listing[]>(() => {
     const raw = (SAMPLE_LISTINGS as unknown as Listing[]) ?? [];
     const sample = raw.map((x) => ({
@@ -2673,11 +2855,9 @@ useEffect(() => {
       hasImage: Boolean(x.hasImage),
       sellerType: x.sellerType ?? "personal",
     }));
-    if (typeof window !== "undefined" && adminServiciosListings.length > 0) {
-      return [...sample, ...adminServiciosListings];
-    }
-    return sample;
-  }, [adminServiciosListings]);
+    const merged = [...sample, ...adminServiciosListings, ...supabaseListings];
+    return dedupeListingsById(merged);
+  }, [adminServiciosListings, supabaseListings]);
 
   const qSmart = useMemo(() => {
     const nq = normalize(q);
