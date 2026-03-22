@@ -1,1 +1,0 @@
-export default function UnlockedCoupon(){return (<div>Unlocked Coupon</div>);}
