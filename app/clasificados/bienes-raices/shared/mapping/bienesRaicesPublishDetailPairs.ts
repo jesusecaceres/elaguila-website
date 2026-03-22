@@ -10,7 +10,7 @@ import {
 import {
   formatBrNegocioAddressLine,
   formatBrNegocioDetailNumberDisplay,
-} from "@/app/clasificados/bienes-raices/shared/publish/brNegocioPublishFormatting";
+} from "@/app/clasificados/bienes-raices/negocio/publish/brNegocioPublishFormatting";
 import {
   resolveBrNegocioAgentForPairs,
   resolveBrNegocioBusinessNameForPairs,

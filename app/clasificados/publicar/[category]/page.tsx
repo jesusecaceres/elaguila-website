@@ -66,7 +66,7 @@ import {
   brNegocioDigitsOnly,
   formatBrNegocioIntegerInputDisplay,
   formatBrNegocioPriceInputDisplay,
-} from "../../bienes-raices/shared/publish/brNegocioPublishFormatting";
+} from "../../bienes-raices/negocio/publish/brNegocioPublishFormatting";
 import {
   BR_NEGOCIO_PRICE_MONTHLY,
   BR_NEGOCIO_PRICE_WEEKLY,
