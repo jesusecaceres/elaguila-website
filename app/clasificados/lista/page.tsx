@@ -3762,6 +3762,7 @@ function inferBienesRaicesPlanTier(x: Listing): "business_standard" | "business_
   const sellerType = x.sellerType ?? (x as any).seller_type ?? "personal";
   if (sellerType !== "business") return null;
   const tier = (x as any).rentasTier ?? (x as any).rentas_tier ?? (x as any).servicesTier;
+  if (tier === "negocio") return "business_plus";
   if (tier === "plus" || tier === "premium") return "business_plus";
   return "business_standard";
 }
