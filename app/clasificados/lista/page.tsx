@@ -35,6 +35,7 @@ import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { isProListing } from "../components/planHelpers";
 import ProBadge from "../components/ProBadge";
 import { parseBusinessMeta } from "../config/businessListingContract";
+import { inferRentasPlanTierFromListing as inferRentasPlanTier } from "../rentas/shared/utils/rentasPlanTier";
 
 type ServicesTier = "standard" | "plus" | "premium";
 
@@ -3574,21 +3575,6 @@ const inferVisualTier = (x: Listing): VisualTier => {
   if (x.sellerType === "personal" && x.handle) return "joya";
   return null;
 };
-
-/** Rentas-only plan tier for display (Privado Pro / Negocio Standard / Negocio Plus). */
-type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
-
-function inferRentasPlanTier(x: Listing): RentasPlanTier | null {
-  if (x.category !== "rentas") return null;
-  const sellerType = x.sellerType ?? (x as any).seller_type ?? "personal";
-  if (sellerType === "personal" && isProListing(x)) return "privado_pro";
-  if (sellerType === "business") {
-    const tier = (x as any).rentasTier ?? (x as any).rentas_tier ?? (x as any).servicesTier;
-    if (tier === "plus" || tier === "premium") return "business_plus";
-    return "business_standard";
-  }
-  return null;
-}
 
 /** Bienes Raíces business plan tier (Standard vs Plus). Same contract as Rentas negocio. */
 function inferBienesRaicesPlanTier(x: Listing): "business_standard" | "business_plus" | null {

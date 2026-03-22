@@ -22,6 +22,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { parseBusinessMeta } from "../../config/businessListingContract";
+import { inferRentasPlanTierFromListing as inferRentasPlanTier } from "../../rentas/shared/utils/rentasPlanTier";
 
 type Lang = "es" | "en";
 
@@ -72,21 +73,6 @@ type Listing = {
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
-}
-
-/** Rentas-only plan tier for display (Privado Pro / Negocio Standard / Negocio Plus). */
-type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
-
-function inferRentasPlanTier(listing: { category?: string; sellerType?: string; seller_type?: string } & Record<string, unknown>): RentasPlanTier | null {
-  if (listing?.category !== "rentas") return null;
-  const sellerType = listing.sellerType ?? listing.seller_type ?? "personal";
-  if (sellerType === "personal" && isProListing(listing)) return "privado_pro";
-  if (sellerType === "business") {
-    const tier = listing.rentasTier ?? listing.rentas_tier ?? listing.servicesTier;
-    if (tier === "plus" || tier === "premium") return "business_plus";
-    return "business_standard";
-  }
-  return null;
 }
 
 /** BR only has Privado vs Negocio; no Standard/Plus. Use isBienesRaicesNegocio for open-card and same-company logic. */

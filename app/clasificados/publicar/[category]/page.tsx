@@ -79,6 +79,7 @@ import {
   getTipoOptionsForSubcategory,
   getRentasDetailFields,
 } from "../../rentas/shared/utils/rentasTaxonomy";
+import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
 
 /** Rentas Negocio: price per post (30 days). Single source of truth. */
 const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
@@ -3789,7 +3790,7 @@ async function publish() {
         insertPayload.seller_type = rentasBranch === "negocio" ? "business" : "personal";
         if (isRentasNegocio) {
           const tier = (snap.details.rentasTier ?? "").trim();
-          insertPayload.rentas_tier = (tier === "business_plus" || tier === "negocio") ? "plus" : "standard";
+          insertPayload.rentas_tier = mapRentasNegocioDetailsTierToDb(tier);
           insertPayload.business_name =
             (snap.details.negocioNombre ?? "").trim() || (snap.details.enVentaBusinessName ?? "").trim() || null;
           const businessMeta: Record<string, string> = {};
