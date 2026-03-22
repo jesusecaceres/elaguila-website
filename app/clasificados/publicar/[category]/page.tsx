@@ -76,6 +76,7 @@ import {
   BR_PRIVADO_PRICE_PER_POST,
 } from "../../bienes-raices/shared/publish/brPublishPricing";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
+import { buildEnVentaDraftSnapshot } from "../../en-venta/publish/buildEnVentaDraftSnapshot";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
 import { BienesRaicesPublishTrackStep } from "../../bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
@@ -369,91 +370,6 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
 
 function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, string>, cityDisplay?: string) {
   return buildDetailsAppendixFromPairs(getDetailPairs(cat, lang, details, cityDisplay ?? ""), lang);
-}
-
-/** Normalized shape for En Venta (and shared) preview, validation, and insert. Single source of truth. */
-export type EnVentaDraftSnapshot = {
-  category: string;
-  title: string;
-  description: string;
-  city: string;
-  cityCanonical: string | null;
-  priceRaw: string;
-  isFree: boolean;
-  priceLabel: string;
-  images: string[];
-  detailPairs: Array<{ label: string; value: string }>;
-  details: Record<string, string>;
-  contactMethod: "phone" | "email" | "both";
-  contactPhone: string;
-  contactEmail: string;
-  isPro: boolean;
-  proVideoThumbUrl: string | null;
-  proVideoUrl: string | null;
-  proVideoThumbUrl2: string | null;
-  proVideoUrl2: string | null;
-  lang: Lang;
-};
-
-/** Build normalized snapshot from current form state. Drives preview, validation, and insert. */
-function buildEnVentaDraftSnapshot(params: {
-  title: string;
-  description: string;
-  city: string;
-  price: string;
-  isFree: boolean;
-  details: Record<string, string>;
-  contactMethod: "phone" | "email" | "both";
-  contactPhone: string;
-  contactEmail: string;
-  category: string;
-  lang: Lang;
-  isPro: boolean;
-  imageUrls: string[];
-  proVideoThumbUrl: string | null;
-  proVideoUrl: string | null;
-  proVideoThumbUrl2?: string | null;
-  proVideoUrl2?: string | null;
-}): EnVentaDraftSnapshot {
-  const { title, description, city, price, isFree, details, contactMethod, contactPhone, contactEmail, category, lang, isPro, imageUrls, proVideoThumbUrl, proVideoUrl, proVideoThumbUrl2 = null, proVideoUrl2 = null } = params;
-  const cityCanonical = normalizeCity(city) || null;
-  const priceNum = (price ?? "").replace(/[^0-9.]/g, "");
-  const hasPrice = priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0;
-  const isBrNegocioPricing =
-    category === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio";
-  const priceLabel =
-    isFree
-      ? (lang === "es" ? "Gratis" : "Free")
-      : hasPrice
-        ? Number(priceNum) === 0
-          ? (lang === "es" ? "Gratis" : "Free")
-          : isBrNegocioPricing
-            ? `$${Number(priceNum).toLocaleString(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 0 })}`
-            : `$${Math.round(Number(priceNum))}`
-        : (lang === "es" ? "(Sin precio)" : "(No price)");
-  const detailPairs = getDetailPairs(category, lang, details, cityCanonical ?? city.trim());
-  return {
-    category: category.trim(),
-    title: title.trim(),
-    description: description.trim(),
-    city: city.trim(),
-    cityCanonical,
-    priceRaw: price.trim(),
-    isFree,
-    priceLabel,
-    images: imageUrls.filter(Boolean),
-    detailPairs,
-    details: { ...details },
-    contactMethod,
-    contactPhone: contactPhone.trim(),
-    contactEmail: contactEmail.trim(),
-    isPro,
-    proVideoThumbUrl: proVideoThumbUrl ?? null,
-    proVideoUrl: proVideoUrl ?? null,
-    proVideoThumbUrl2: proVideoThumbUrl2 ?? null,
-    proVideoUrl2: proVideoUrl2 ?? null,
-    lang,
-  };
 }
 
 /** Dedicated full-preview content for private bienes-raices (no ListingView). Uses raw form fields; only shows placeholders when field is truly blank. */
@@ -2780,6 +2696,8 @@ export default function PublicarPage() {
       category === "bienes-raices"
         ? (details.enVentaFullDescription ?? "").trim() || ""
         : description;
+    const cityCanonical = normalizeCity(city) || null;
+    const detailPairs = getDetailPairs(category, lang, details, cityCanonical ?? city.trim());
     return buildEnVentaDraftSnapshot({
       title,
       description: descriptionForSnapshot,
@@ -2798,6 +2716,8 @@ export default function PublicarPage() {
       proVideoUrl: proVideoPreviewUrls[0] || null,
       proVideoThumbUrl2: isPrivate ? null : (proVideoThumbPreviewUrls[1] || null),
       proVideoUrl2: isPrivate ? null : (proVideoPreviewUrls[1] || null),
+      cityCanonical,
+      detailPairs,
     });
   }, [
     title,
