@@ -4,7 +4,13 @@
  */
 
 import type { BusinessRailData, ListingData } from "@/app/clasificados/components/ListingView";
-import { buildNegocioRedesPayload } from "@/app/clasificados/bienes-raices/negocio/utils/brNegocioContactHelpers";
+import {
+  resolveBrNegocioAddressStructuredFactsLine,
+  resolveBrNegocioAgentForRail,
+  resolveBrNegocioBusinessNameForRail,
+  resolveBrNegocioSocialPayload,
+  resolveBrNegocioVirtualTourForRail,
+} from "@/app/clasificados/bienes-raices/negocio/mapping/brNegocioReadResolvers";
 type Lang = "es" | "en";
 
 type MapperParams = {
@@ -47,10 +53,7 @@ export function parseBrNegocioHighlights(raw: string | undefined): string[] {
 }
 
 export function buildStructuredFactsFromDetails(details: Record<string, string>, cityDisplay: string) {
-  const addr =
-    [details.brNegocioStreetNumber, details.brNegocioStreet].filter(Boolean).join(" ").trim() ||
-    (details.enVentaAddress ?? "").trim() ||
-    (details.direccionPropiedad ?? "").trim();
+  const addr = resolveBrNegocioAddressStructuredFactsLine(details);
   return {
     propertyTypeLabel: "",
     addressLine: addr || undefined,
@@ -76,15 +79,14 @@ export function buildBrNegocioListingData(params: MapperParams): ListingData {
   const cityDisplay = (snap.cityCanonical ?? snap.city).trim() || (lang === "es" ? "Ciudad" : "City");
 
   let availabilityRows = parseAvailability((d.negocioDisponibilidadPrecios ?? "").trim());
-  const mergedRedes = buildNegocioRedesPayload(d as Record<string, string | undefined>);
-  const rawSocialsPreview = mergedRedes.trim() || (d.negocioRedes ?? "").trim();
+  const rawSocialsPreview = resolveBrNegocioSocialPayload(d);
   const phoneFmt = (d.negocioTelOficina ?? "").trim();
   const extFmt = (d.negocioTelExtension ?? "").trim();
   const officeDisplay = phoneFmt ? (extFmt ? `${phoneFmt} · Ext. ${extFmt}` : phoneFmt) : "";
 
   const businessRail: BusinessRailData = {
-    name: (d.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business"),
-    agent: (d.negocioAgente ?? "").trim(),
+    name: resolveBrNegocioBusinessNameForRail(d, lang),
+    agent: resolveBrNegocioAgentForRail(d),
     role: (d.negocioCargo ?? "").trim(),
     agentLicense: (d.negocioLicencia ?? "").trim() || undefined,
     officePhone: officeDisplay,
@@ -96,7 +98,7 @@ export function buildBrNegocioListingData(params: MapperParams): ListingData {
     agentPhotoUrl: (d.negocioFotoAgenteUrl ?? "").trim() || null,
     languages: (d.negocioIdiomas ?? "").trim(),
     hours: (d.negocioHorario ?? "").trim(),
-    virtualTourUrl: (d.negocioRecorridoVirtual ?? d.enVentaVirtualTourUrl ?? "").trim() || null,
+    virtualTourUrl: resolveBrNegocioVirtualTourForRail(d),
     plusMoreListings: (d.negocioPlusMasAnuncios ?? "") === "si",
     businessDescription: (d.negocioDescripcion ?? "").trim() || undefined,
     availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,

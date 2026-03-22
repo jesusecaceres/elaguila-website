@@ -102,6 +102,12 @@ import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublis
 import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
 import { appendBrNegocioLongTailDetailPairs } from "../../bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
+import {
+  resolveBrNegocioAddressDisplayLine,
+  resolveBrNegocioAgentForPairs,
+  resolveBrNegocioBusinessNameForPairs,
+  resolveBrNegocioVirtualTourForPairs,
+} from "../../bienes-raices/negocio/mapping/brNegocioReadResolvers";
 import { buildBrNegocioListingData } from "../../bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
 import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
@@ -598,19 +604,7 @@ function formatBrNegocioPriceInputDisplay(raw: string): string {
 
 /** Preview / detail row: "123 Main St, City, ST 95112" or legacy single line. */
 function formatBrNegocioAddressLine(details: Record<string, string>, cityDisplay: string): string {
-  const num = (details.brNegocioStreetNumber ?? "").trim();
-  const st = (details.brNegocioStreet ?? "").trim();
-  const streetPart = [num, st].filter(Boolean).join(" ");
-  const c = (cityDisplay ?? "").trim();
-  const state = (details.brNegocioState ?? "").trim();
-  const zip = (details.brNegocioZip ?? "").trim();
-  const stateZip = [state, zip].filter(Boolean).join(" ");
-  const parts: string[] = [];
-  if (streetPart) parts.push(streetPart);
-  if (c) parts.push(c);
-  if (stateZip) parts.push(stateZip);
-  if (parts.length) return parts.join(", ");
-  return (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
+  return resolveBrNegocioAddressDisplayLine(details, cityDisplay);
 }
 
 function formatBrNegocioDetailNumberDisplay(raw: string): string {
@@ -665,7 +659,7 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pk });
     const videoUrl = (details.enVentaVideoUrl ?? "").trim();
     if (videoUrl) out.push({ label: lang === "es" ? "Video de la propiedad" : "Property video", value: videoUrl });
-    const virtualTour = (details.enVentaVirtualTourUrl ?? details.negocioRecorridoVirtual ?? "").trim();
+    const virtualTour = resolveBrNegocioVirtualTourForPairs(details);
     if (virtualTour) out.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: virtualTour });
     const floorPlan = (details.negocioFloorPlanUrl ?? "").trim();
     if (floorPlan) out.push({ label: lang === "es" ? "Plano / Floorplan" : "Floorplan", value: floorPlan });
@@ -690,10 +684,10 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
       out.push({ label: lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details", value: utilDetails });
     }
     if (brBranch === "negocio") {
-      const negocioNombre = (details.negocioNombre ?? "").trim() || (details.enVentaBusinessName ?? "").trim();
+      const negocioNombre = resolveBrNegocioBusinessNameForPairs(details);
       if (negocioNombre) out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
       out.push({ label: lang === "es" ? "Plan" : "Plan", value: lang === "es" ? "Negocio" : "Business" });
-      const negocioAgente = (details.negocioAgente ?? "").trim() || (details.enVentaAgentName ?? "").trim();
+      const negocioAgente = resolveBrNegocioAgentForPairs(details);
       if (negocioAgente) out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
     }
   }
@@ -3822,13 +3816,13 @@ async function publish() {
         insertPayload.seller_type = bienesRaicesBranch === "negocio" ? "business" : "personal";
         if (isBienesRaicesNegocio) {
           insertPayload.rentas_tier = "negocio";
-          insertPayload.business_name =
-            (snap.details.negocioNombre ?? "").trim() || (snap.details.enVentaBusinessName ?? "").trim() || null;
+          insertPayload.business_name = resolveBrNegocioBusinessNameForPairs(snap.details) || null;
           const businessMeta: Record<string, string> = {};
           for (const k of BUSINESS_META_KEYS) {
-            let v = (snap.details[k] ?? "").trim();
-            if (!v && k === "negocioNombre") v = (snap.details.enVentaBusinessName ?? "").trim();
-            if (!v && k === "negocioAgente") v = (snap.details.enVentaAgentName ?? "").trim();
+            let v: string;
+            if (k === "negocioNombre") v = resolveBrNegocioBusinessNameForPairs(snap.details);
+            else if (k === "negocioAgente") v = resolveBrNegocioAgentForPairs(snap.details);
+            else v = (snap.details[k] ?? "").trim();
             if (v) businessMeta[k] = v;
           }
           const mergedRedesBr = buildNegocioRedesPayload(snap.details as Record<string, string | undefined>);
