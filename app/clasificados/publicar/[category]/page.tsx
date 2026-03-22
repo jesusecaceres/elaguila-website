@@ -90,6 +90,13 @@ import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
 import { buildDetailsAppendix, getDetailPairs } from "../../lib/publishDetailPairs";
 import { computePublishRequirements } from "../../lib/publishRequirements";
+import {
+  buildMissingBasicsRequirementsText,
+  buildMissingRequirementsText,
+  buildPublishRequirementItems,
+  computeBasicsOk,
+  getFirstBasicsInvalidElementId,
+} from "../../lib/publishRequirementChecklist";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -2706,165 +2713,33 @@ export default function PublicarPage() {
     return BR_PRIVATE_COPY_PROFILES[key];
   }, [categoryFromUrl, details.bienesRaicesBranch, details.bienesRaicesSubcategoria, details.enVentaPropertyType]);
 
-  const basicsOk =
-    categoryFromUrl === "en-venta"
-      ? requirements.enVentaMetaOk &&
-        requirements.titleOk &&
-        requirements.descOk &&
-        requirements.priceOk &&
-        requirements.cityOk
-      : categoryFromUrl === "rentas"
-        ? requirements.rentasMetaOk &&
-          requirements.titleOk &&
-          requirements.descOk &&
-          requirements.priceOk &&
-          requirements.cityOk
-        : categoryFromUrl === "bienes-raices"
-          ? requirements.bienesRaicesMetaOk &&
-            requirements.titleOk &&
-            requirements.descOk &&
-            requirements.priceOk &&
-            requirements.cityOk
-          : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
+  const basicsOk = useMemo(
+    () => computeBasicsOk(categoryFromUrl, requirements),
+    [categoryFromUrl, requirements]
+  );
 
-  /** First invalid basics section for scroll-into-view after failed “Siguiente”. */
-  const getFirstBasicsInvalidElementId = (): string | null => {
-    if (basicsOk) return null;
-    if (categoryFromUrl === "en-venta") {
-      if (!requirements.enVentaMetaOk) return "publish-basics-enVenta-meta";
-      if (!requirements.titleOk) return "publish-basics-title";
-      if (!requirements.descOk) return "publish-basics-desc";
-      if (!requirements.priceOk) return "publish-basics-price";
-      if (!requirements.cityOk) return "publish-basics-city";
-      return null;
-    }
-    if (categoryFromUrl === "rentas") {
-      if (!requirements.rentasMetaOk) return "publish-basics-rentas-meta";
-      if (!requirements.titleOk) return "publish-basics-title";
-      if (!requirements.descOk) return "publish-basics-desc";
-      if (!requirements.priceOk) return "publish-basics-price";
-      if (!requirements.cityOk) return "publish-basics-city";
-      return null;
-    }
-    if (categoryFromUrl === "bienes-raices") {
-      if (!requirements.bienesRaicesMetaOk) return "publish-basics-br-meta";
-      if (!requirements.titleOk) return "publish-basics-title";
-      if (!requirements.descOk) return "publish-basics-desc";
-      if (!requirements.priceOk) return "publish-basics-price";
-      if (!requirements.cityOk) return "publish-basics-city";
-      return null;
-    }
-    if (!requirements.titleOk) return "publish-basics-title";
-    if (!requirements.descOk) return "publish-basics-desc";
-    if (!requirements.priceOk) return "publish-basics-price";
-    if (!requirements.cityOk) return "publish-basics-city";
-    return null;
-  };
+  const requirementItems = useMemo(
+    () =>
+      buildPublishRequirementItems({
+        requirements,
+        lang,
+        isFree,
+        contactMethod,
+        categoryFromUrl,
+        rentasBranch: details.rentasBranch ?? "",
+      }),
+    [requirements, lang, isFree, contactMethod, categoryFromUrl, details.rentasBranch]
+  );
 
-  const requirementItems = useMemo(() => {
-    const items: Array<{ key: string; label: string; ok: boolean; step: PublishStep }> = [
-      {
-        key: "category",
-        label: lang === "es" ? "Categoría" : "Category",
-        ok: requirements.categoryOk,
-        step: "category",
-      },
-      {
-        key: "title",
-        label: lang === "es" ? "Título" : "Title",
-        ok: requirements.titleOk,
-        step: "basics",
-      },
-      {
-        key: "desc",
-        label: lang === "es" ? "Descripción" : "Description",
-        ok: requirements.descOk,
-        step: "basics",
-      },
-      {
-        key: "price",
-        label:
-          categoryFromUrl === "rentas"
-            ? lang === "es"
-              ? "Renta mensual"
-              : "Monthly rent"
-            : lang === "es"
-              ? (isFree ? "Gratis" : "Precio")
-              : (isFree ? "Free" : "Price"),
-        ok: requirements.priceOk,
-        step: "basics",
-      },
-      {
-        key: "city",
-        label: lang === "es" ? "Ciudad válida" : "Valid city",
-        ok: requirements.cityOk,
-        step: "basics",
-      },
-      ...(categoryFromUrl === "en-venta"
-        ? [
-            {
-              key: "itemDetails" as const,
-              label: lang === "es" ? "Subcategoría, artículo y condición" : "Subcategory, item type and condition",
-              ok: requirements.enVentaMetaOk,
-              step: "basics" as const,
-            },
-          ]
-        : categoryFromUrl === "rentas"
-          ? [
-              {
-                key: "rentasDetails" as const,
-                label:
-                  lang === "es"
-                    ? "Subcategoría, tipo, rama, fecha disponible" + (details.rentasBranch === "negocio" ? ", plan y nombre del negocio" : "")
-                    : "Subcategory, type, branch, availability" + (details.rentasBranch === "negocio" ? ", plan & business name" : ""),
-                ok: requirements.rentasMetaOk,
-                step: "basics" as const,
-              },
-            ]
-          : categoryFromUrl === "bienes-raices"
-            ? [
-                {
-                  key: "bienesRaicesSubcat" as const,
-                  label: lang === "es"
-                    ? "Datos de propiedad (tipo, recámaras, baños, pies², descripción)"
-                    : "Property data (type, beds, baths, sq ft, description)",
-                  ok: requirements.bienesRaicesMetaOk,
-                  step: "basics" as const,
-                },
-              ]
-            : []),
-      {
-        key: "images",
-        label: lang === "es" ? "1+ foto" : "1+ photo",
-        ok: requirements.imagesOk,
-        step: "media",
-      },
-      // Contact: show method-specific requirement(s) so seller sees exactly what to fix
-      ...(contactMethod === "both"
-        ? [
-            { key: "contactPhone", label: lang === "es" ? "Teléfono válido (10 dígitos)" : "Valid phone (10 digits)", ok: requirements.phoneOk, step: "media" as PublishStep },
-            { key: "contactEmail", label: lang === "es" ? "Email válido" : "Valid email", ok: requirements.emailOk, step: "media" as PublishStep },
-          ]
-        : contactMethod === "phone"
-          ? [{ key: "contact", label: lang === "es" ? "Contacto válido (teléfono)" : "Valid contact (phone)", ok: requirements.phoneOk, step: "media" as PublishStep }]
-          : [{ key: "contact", label: lang === "es" ? "Contacto válido (email)" : "Valid contact (email)", ok: requirements.emailOk, step: "media" as PublishStep }]),
-    ];
-    return items;
-  }, [requirements, lang, isFree, contactMethod, categoryFromUrl, details.rentasBranch]);
+  const missingRequirementsText = useMemo(
+    () => buildMissingRequirementsText(requirementItems, lang),
+    [requirementItems, lang]
+  );
 
-  const missingRequirementsText = useMemo(() => {
-    const missing = requirementItems.filter((i) => !i.ok).map((i) => i.label);
-    if (missing.length === 0) return "";
-    const prefix = lang === "es" ? "Falta:" : "Missing:";
-    return `${prefix} ${missing.join(" · ")}`;
-  }, [requirementItems, lang]);
-
-  const missingBasicsRequirementsText = useMemo(() => {
-    const missing = requirementItems.filter((i) => i.step === "basics" && !i.ok).map((i) => i.label);
-    if (missing.length === 0) return "";
-    const prefix = lang === "es" ? "Falta:" : "Missing:";
-    return `${prefix} ${missing.join(" · ")}`;
-  }, [requirementItems, lang]);
+  const missingBasicsRequirementsText = useMemo(
+    () => buildMissingBasicsRequirementsText(requirementItems, lang),
+    [requirementItems, lang]
+  );
 
   const garage = useMemo(() => {
     if (category !== "en-venta") {
@@ -5662,7 +5537,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           if (!basicsOk) {
                             setPublishNextAttempted((prev) => ({ ...prev, basics: true }));
                             requestAnimationFrame(() => {
-                              const id = getFirstBasicsInvalidElementId();
+                              const id = getFirstBasicsInvalidElementId(categoryFromUrl, requirements);
                               document.getElementById(id ?? "")?.scrollIntoView({ behavior: "smooth", block: "center" });
                             });
                             return;
