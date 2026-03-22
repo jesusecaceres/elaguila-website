@@ -89,6 +89,7 @@ import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/pub
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
 import { buildDetailsAppendix, getDetailPairs } from "../../lib/publishDetailPairs";
+import { computePublishRequirements } from "../../lib/publishRequirements";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -2692,120 +2693,10 @@ export default function PublicarPage() {
   ]);
 
   // Validation from snapshot so we validate what preview/insert use.
-  const requirements = useMemo(() => {
-    const s = enVentaSnapshot;
-    const categoryOk = !!normalizeCategory(s.category);
-    const titleOk = s.title.length >= 5;
-    const descOk = s.description.length >= 5;
-    const cityOk = Boolean(s.cityCanonical);
-    const priceNum = (s.priceRaw ?? "").replace(/[^0-9.]/g, "");
-    const priceOk =
-      s.category === "rentas" || s.category === "bienes-raices"
-        ? priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0
-        : s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
-    const imagesOk = s.images.length >= 1;
-    const bienesRaicesBranchEarly = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
-    const isBienesRaicesNegocioContact = s.category === "bienes-raices" && bienesRaicesBranchEarly === "negocio";
-    const brNegocioOfficeDigits = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
-    const brNegocioBizEmailOk = /.+@.+\..+/.test((s.details.negocioEmail ?? "").trim());
-    const phoneDigits = getPhoneDigits(s.contactPhone);
-    const phoneOk =
-      s.contactMethod === "email"
-        ? true
-        : phoneDigits.length === 10 || (isBienesRaicesNegocioContact && brNegocioOfficeDigits.length === 10);
-    const emailOk =
-      s.contactMethod === "phone"
-        ? true
-        : /.+@.+\..+/.test(s.contactEmail.trim()) || (isBienesRaicesNegocioContact && brNegocioBizEmailOk);
-    const contactOk =
-      phoneDigits.length === 10 ||
-      /.+@.+\..+/.test(s.contactEmail.trim()) ||
-      (isBienesRaicesNegocioContact && (brNegocioOfficeDigits.length === 10 || brNegocioBizEmailOk));
-    // En Venta: item-selling metadata (subcategoría, artículo, condición).
-    const enVentaMetaOk =
-      s.category !== "en-venta" ||
-      (!!(s.details.rama ?? "").trim() &&
-        !!(s.details.itemType ?? "").trim() &&
-        !!(s.details.condition ?? "").trim());
-    const rentasBranch = (s.details.rentasBranch ?? "").trim();
-    const rentasNegocio = s.category === "rentas" && rentasBranch === "negocio";
-    const rentasNegocioNameOk = !rentasNegocio || !!(s.details.negocioNombre ?? "").trim();
-    const rentasNegocioTierOk = !rentasNegocio || !!(s.details.rentasTier ?? "").trim();
-    const negocioOfficePhone = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
-    const rentasNegocioContactOk =
-      !rentasNegocio ||
-      contactOk ||
-      negocioOfficePhone.length === 10;
-    const rentasMetaOk =
-      s.category !== "rentas" ||
-      (!!(s.details.rentasSubcategoria ?? "").trim() &&
-        !!(s.details.tipoPropiedad ?? "").trim() &&
-        !!rentasBranch &&
-        !!(s.details.fechaDisponible ?? "").trim() &&
-        rentasNegocioNameOk &&
-        rentasNegocioTierOk &&
-        rentasNegocioContactOk);
-    const bienesRaicesBranch = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
-    const isBienesRaicesNegocio = s.category === "bienes-raices" && bienesRaicesBranch === "negocio";
-    const brDescription = (s.details.enVentaFullDescription ?? "").trim();
-    const brPt = (s.details.enVentaPropertyType ?? "").trim();
-    const brSubcat = (s.details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType(brPt);
-    const brPrivadoCoreOk = !!(s.details.enVentaPropertyType ?? "").trim() && brDescription.length >= 5;
-    const brPrivadoTypeOk =
-      brSubcat === "terrenos"
-        ? !!(s.details.enVentaLotSize ?? "").trim()
-        : brSubcat === "comercial" || brSubcat === "industrial"
-          ? !!(s.details.enVentaSquareFeet ?? "").trim()
-          : (brSubcat === "residencial" || brSubcat === "condos-townhomes" || brSubcat === "multifamiliar")
-            ? !!(s.details.enVentaBedrooms ?? "").trim() && !!(s.details.enVentaBathrooms ?? "").trim() && !!(s.details.enVentaSquareFeet ?? "").trim()
-            : isBrPrivadoLote(brPt)
-              ? !!(s.details.enVentaLotSize ?? "").trim()
-              : isBrPrivadoComercial(brPt) || isBrPrivadoEdificio(brPt)
-                ? !!(s.details.enVentaSquareFeet ?? "").trim()
-                : isBrPrivadoProyectoNuevo(brPt)
-                  ? true
-                  : true;
-    const bienesRaicesMetaOk =
-      s.category !== "bienes-raices" ||
-      (
-        ["privado", "negocio"].includes(bienesRaicesBranch) &&
-        !!brPt &&
-        brDescription.length >= 5 &&
-        (bienesRaicesBranch === "negocio"
-          ? !!(s.details.enVentaBedrooms ?? "").trim() &&
-            !!(s.details.enVentaBathrooms ?? "").trim() &&
-            !!(s.details.enVentaSquareFeet ?? "").trim() &&
-            !!(s.details.negocioNombre ?? s.details.enVentaBusinessName ?? "").trim()
-          : brPrivadoTypeOk)
-      );
-    return {
-      categoryOk,
-      titleOk,
-      descOk,
-      cityOk,
-      priceOk,
-      imagesOk,
-      phoneOk,
-      emailOk,
-      contactOk,
-      enVentaMetaOk,
-      rentasMetaOk,
-      bienesRaicesMetaOk,
-      allOk:
-        categoryOk &&
-        titleOk &&
-        descOk &&
-        cityOk &&
-        priceOk &&
-        imagesOk &&
-        contactOk &&
-        phoneOk &&
-        emailOk &&
-        enVentaMetaOk &&
-        rentasMetaOk &&
-        bienesRaicesMetaOk,
-    };
-  }, [enVentaSnapshot]);
+  const requirements = useMemo(
+    () => computePublishRequirements(enVentaSnapshot),
+    [enVentaSnapshot]
+  );
 
   /** BR private: type-aware copy profile for placeholders and helpers. Uses bienesRaicesSubcategoria or derives from enVentaPropertyType. */
   const brPrivateCopyProfile = useMemo(() => {
