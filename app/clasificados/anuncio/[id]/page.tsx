@@ -418,6 +418,9 @@ export default function AnuncioDetallePage() {
 
   const listing: Listing | undefined = sampleListing ?? fetchedListing;
 
+  /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
+  const isLiveDbListing = Boolean(listing && !sampleListing);
+
   const idParam = params?.id;
   const showLoading = Boolean(
     idParam && !sampleListing && (remoteState === "uninitialized" || remoteState === "loading")
@@ -507,6 +510,7 @@ export default function AnuncioDetallePage() {
 
   const relatedListings = useMemo(() => {
     if (!listing) return [];
+    if (isLiveDbListing) return [];
     const price = parsePriceLabel(listing.priceLabel?.en ?? listing.priceLabel?.es ?? "");
     const low = price != null ? price * 0.5 : 0;
     const high = price != null ? price * 2 : Infinity;
@@ -520,7 +524,7 @@ export default function AnuncioDetallePage() {
     const sameCity = (l: Listing) => (l.city ?? "").trim().toLowerCase() === cityNorm;
     const sorted = [...list].sort((a, b) => (sameCity(b) ? 1 : 0) - (sameCity(a) ? 1 : 0));
     return sorted.slice(0, 6);
-  }, [listing?.id, listing?.category, listing?.priceLabel, listing?.city]);
+  }, [isLiveDbListing, listing?.id, listing?.category, listing?.priceLabel, listing?.city]);
 
   const rentasMeta = useMemo(() => {
     if (!listing || listing.category !== "rentas") return null;
@@ -649,6 +653,7 @@ export default function AnuncioDetallePage() {
   /** Same-business Rentas listings for Plus "Más anuncios de esta compañía" (when flag set). */
   const rentasSameCompanyListings = useMemo(() => {
     if (!listing || listing.category !== "rentas") return [];
+    if (isLiveDbListing) return [];
     const tier = inferRentasPlanTier(listing as any);
     const plusMore = rentasBusinessMeta?.negocioPlusMasAnuncios === "si";
     if (tier !== "business_plus" || !plusMore) return [];
@@ -662,7 +667,7 @@ export default function AnuncioDetallePage() {
       return otherBiz === bizName;
     });
     return list.slice(0, 6);
-  }, [listing, rentasBusinessMeta?.negocioPlusMasAnuncios]);
+  }, [isLiveDbListing, listing, rentasBusinessMeta?.negocioPlusMasAnuncios]);
 
   /** Parsed business_meta for Bienes Raíces (same contract as Rentas). */
   const bienesRaicesBusinessMeta = useMemo((): Record<string, string> | null => {
@@ -712,6 +717,7 @@ export default function AnuncioDetallePage() {
   /** Same-business Bienes Raíces listings for Negocio "Más anuncios de esta compañía" (when flag set). */
   const bienesRaicesSameCompanyListings = useMemo(() => {
     if (!listing || listing.category !== "bienes-raices") return [];
+    if (isLiveDbListing) return [];
     const isNegocio =
       (listing as any).sellerType === "business" || (listing as any).seller_type === "business";
     const plusMore = bienesRaicesBusinessMeta?.negocioPlusMasAnuncios === "si";
@@ -726,7 +732,7 @@ export default function AnuncioDetallePage() {
       return otherBiz === bizName;
     });
     return list.slice(0, 6);
-  }, [listing, bienesRaicesBusinessMeta?.negocioPlusMasAnuncios]);
+  }, [isLiveDbListing, listing, bienesRaicesBusinessMeta?.negocioPlusMasAnuncios]);
 
   /** Quick facts strip for Bienes Raíces. Excludes URL values (video/tour) so mobile summary stays clean; use badges for those. */
   const bienesRaicesFacts = useMemo((): Array<{ label: string; value: string }> => {
@@ -2676,7 +2682,11 @@ export default function AnuncioDetallePage() {
               </div>
 
               <div className="mt-6">
-                <AiInsightsPanel lang={lang} listing={listing as any} allListings={SAMPLE_LISTINGS as any} />
+                <AiInsightsPanel
+                  lang={lang}
+                  listing={listing as any}
+                  allListings={(isLiveDbListing ? [] : SAMPLE_LISTINGS) as any}
+                />
               </div>
 
 
