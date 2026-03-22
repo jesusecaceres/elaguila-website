@@ -11,7 +11,7 @@ import {
   isBrPrivadoProyectoNuevo,
   isBrPrivadoResidential,
 } from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
-import { getRentasDetailFields } from "@/app/clasificados/rentas/shared/utils/rentasTaxonomy";
+import { getRentasDetailFields } from "@/app/clasificados/rentas/shared/fields/rentasTaxonomy";
 
 export function getPublishCategoryFields(
   cat: string,

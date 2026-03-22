@@ -41,9 +41,9 @@ import {
 import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
-} from "../../rentas/shared/utils/rentasTaxonomy";
-import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
-import { RENTAS_NEGOCIO_PRICE_PER_POST } from "../../rentas/shared/utils/rentasPublishConstants";
+} from "../../rentas/shared/fields/rentasTaxonomy";
+import { mapRentasNegocioDetailsTierToDb } from "../../rentas/negocio/mapping/rentasNegocioDetailsTierToDb";
+import { RENTAS_NEGOCIO_PRICE_PER_POST } from "../../rentas/negocio/publish/rentasNegocioPublishConstants";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";

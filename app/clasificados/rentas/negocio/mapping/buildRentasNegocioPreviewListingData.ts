@@ -4,7 +4,7 @@
  */
 
 import type { BusinessRailData, ListingData } from "../../../components/ListingView";
-import { mapRentasNegocioDetailsTierToDb } from "../../shared/utils/rentasPlanTier";
+import { mapRentasNegocioDetailsTierToDb } from "./rentasNegocioDetailsTierToDb";
 
 /** Same parsing as anuncio/[id]/page.tsx `parseRentasSocialLinks` (behavior-preserving). */
 function parseRentasSocialLinks(raw: string | null | undefined): Array<{ label: string; url: string }> | null {

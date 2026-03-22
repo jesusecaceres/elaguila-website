@@ -14,7 +14,7 @@
 import { categoryConfig, type CategoryKey } from "./categoryConfig";
 import { BIENES_RAICES_SUBCATEGORIES as BIENES_RAICES_SUBCATEGORIES_FROM_TAXONOMY } from "../bienes-raices/shared/fields/bienesRaicesTaxonomy";
 import { EN_VENTA_SUBCATEGORIES as EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY } from "../en-venta/utils/enVentaTaxonomy";
-import { RENTAS_SUBCATEGORIES as RENTAS_SUBCATEGORIES_FROM_TAXONOMY } from "../rentas/shared/utils/rentasTaxonomy";
+import { RENTAS_SUBCATEGORIES as RENTAS_SUBCATEGORIES_FROM_TAXONOMY } from "../rentas/shared/fields/rentasTaxonomy";
 
 /** Plan types for listing/seller eligibility. */
 export type PlanType =

@@ -1,21 +1,11 @@
 /**
- * Rentas plan tier: publish details.rentasTier → DB rentas_tier, and listing → display tier.
- * Kept in sync with previous inline logic in publicar / anuncio / lista.
+ * Rentas plan tier: infer listing → display tier for anuncio / lista (cross-branch).
  */
 
 import { isProListing } from "../../../components/planHelpers";
 
 /** Rentas-only plan tier for display (Privado Pro / Negocio Standard / Negocio Plus). */
 export type RentasPlanTier = "privado_pro" | "business_standard" | "business_plus";
-
-/**
- * Maps publish flow `details.rentasTier` to DB `listings.rentas_tier`.
- * Preserves insert semantics: only "business_plus" and "negocio" → "plus"; else "standard".
- */
-export function mapRentasNegocioDetailsTierToDb(detailsRentasTier: string): "plus" | "standard" {
-  const tier = detailsRentasTier.trim();
-  return tier === "business_plus" || tier === "negocio" ? "plus" : "standard";
-}
 
 /**
  * Infers display tier from a listing row (anuncio / lista / sample data).

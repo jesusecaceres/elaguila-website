@@ -1,8 +1,6 @@
 /**
- * Rentas publish UI: pricing and lease-term labels for the unified publish flow.
+ * Rentas publish UI: lease-term labels for the unified publish flow (cross-branch).
  */
-
-export const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
 
 export const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
   "mes-a-mes": { es: "Mes a mes", en: "Month to month" },
