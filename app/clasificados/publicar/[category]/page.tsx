@@ -45,10 +45,8 @@ import {
 } from "../../rentas/shared/utils/rentasTaxonomy";
 import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
 import { buildRentasNegocioPreviewListingData } from "../../rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
-import {
-  RENTAS_NEGOCIO_PRICE_PER_POST,
-  RENTAS_PLAZO_LABELS,
-} from "../../rentas/shared/utils/rentasPublishConstants";
+import { RENTAS_NEGOCIO_PRICE_PER_POST } from "../../rentas/shared/utils/rentasPublishConstants";
+import { getRentasPublishStructuredDetailPairs } from "../../rentas/shared/utils/rentasPublishDetailPairs";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
@@ -69,8 +67,6 @@ import {
 } from "../../bienes-raices/privado/publish/brPrivadoPublishConstants";
 import {
   brNegocioDigitsOnly,
-  formatBrNegocioAddressLine,
-  formatBrNegocioDetailNumberDisplay,
   formatBrNegocioIntegerInputDisplay,
   formatBrNegocioPriceInputDisplay,
 } from "../../bienes-raices/shared/publish/brNegocioPublishFormatting";
@@ -89,15 +85,13 @@ import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublis
 import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
 import { appendBrNegocioLongTailDetailPairs } from "../../bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
-import {
-  resolveBrNegocioAgentForPairs,
-  resolveBrNegocioBusinessNameForPairs,
-  resolveBrNegocioVirtualTourForPairs,
-} from "../../bienes-raices/negocio/mapping/brNegocioReadResolvers";
+import { resolveBrNegocioAgentForPairs, resolveBrNegocioBusinessNameForPairs } from "../../bienes-raices/negocio/mapping/brNegocioReadResolvers";
+import { getBienesRaicesPublishStructuredDetailPairs } from "../../bienes-raices/shared/mapping/bienesRaicesPublishDetailPairs";
 import { buildBrNegocioListingData } from "../../bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
 import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
+import { buildDetailsAppendixFromPairs } from "../../lib/buildDetailsAppendix";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -470,107 +464,10 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
   const out: Array<{ label: string; value: string }> = [];
   // En Venta: item-selling details come from fields (rama, itemType, condition) only.
   if (cat === "bienes-raices") {
-    const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
-    const pt = (details.enVentaPropertyType ?? "").trim();
-    if (pt) {
-      const opt = BR_PROPERTY_TYPE_OPTIONS.find((o) => o.value === pt);
-      out.push({ label: lang === "es" ? "Tipo de propiedad" : "Property type", value: opt ? opt.label[lang] : pt });
-    }
-    const subtype = (details.enVentaPropertySubtype ?? "").trim();
-    if (subtype) out.push({ label: lang === "es" ? "Subtipo" : "Subtype", value: subtype });
-    const zone = (details.enVentaZone ?? "").trim();
-    if (zone) out.push({ label: lang === "es" ? "Nombre de la vecindad" : "Neighborhood name", value: zone });
-    // Canonical labels for preview summary (BienesRaicesPreviewListing): "Dirección" / "Address".
-    // BR negocio: split street / city / state / zip; else legacy single line (+ direccionPropiedad).
-    const addrLine =
-      brBranch === "negocio"
-        ? formatBrNegocioAddressLine(details, cityDisplay)
-        : (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
-    if (addrLine) out.push({ label: lang === "es" ? "Dirección" : "Address", value: addrLine });
-    if (isBrPrivadoResidential(pt) || brBranch === "negocio") {
-      const br = (details.enVentaBedrooms ?? "").trim();
-      if (br) out.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: br });
-      const ba = (details.enVentaBathrooms ?? "").trim();
-      if (ba) out.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: ba });
-      const hb = (details.enVentaHalfBathrooms ?? "").trim();
-      if (hb) out.push({ label: lang === "es" ? "Medios baños" : "Half bathrooms", value: hb });
-    }
-    const sq = (details.enVentaSquareFeet ?? "").trim();
-    if (sq) {
-      const sqVal = brBranch === "negocio" ? formatBrNegocioDetailNumberDisplay(sq) : sq;
-      out.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sqVal });
-    }
-    const lot = (details.enVentaLotSize ?? "").trim();
-    if (lot) {
-      const lotVal = brBranch === "negocio" ? formatBrNegocioDetailNumberDisplay(lot) : lot;
-      out.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
-    }
-    const lv = (details.enVentaLevels ?? "").trim();
-    if (lv) out.push({ label: lang === "es" ? "Niveles" : "Levels", value: lv });
-    const pk = (details.enVentaParkingSpaces ?? "").trim();
-    if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pk });
-    const videoUrl = (details.enVentaVideoUrl ?? "").trim();
-    if (videoUrl) out.push({ label: lang === "es" ? "Video de la propiedad" : "Property video", value: videoUrl });
-    const virtualTour = resolveBrNegocioVirtualTourForPairs(details);
-    if (virtualTour) out.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: virtualTour });
-    const floorPlan = (details.negocioFloorPlanUrl ?? "").trim();
-    if (floorPlan) out.push({ label: lang === "es" ? "Plano / Floorplan" : "Floorplan", value: floorPlan });
-    const yearBuilt = (details.enVentaYearBuilt ?? "").trim();
-    if (yearBuilt) out.push({ label: lang === "es" ? "Año de construcción" : "Year built", value: yearBuilt });
-    const zoning = (details.enVentaZoning ?? "").trim();
-    if (zoning) out.push({ label: lang === "es" ? "Zonificación" : "Zoning", value: zoning });
-    const servAgua = (details.enVentaServicioAgua ?? "").trim().toLowerCase();
-    const servElec = (details.enVentaServicioElectricidad ?? "").trim().toLowerCase();
-    const servGas = (details.enVentaServicioGas ?? "").trim().toLowerCase();
-    const servDrenaje = (details.enVentaServicioDrenaje ?? "").trim().toLowerCase();
-    const servInternet = (details.enVentaServicioInternet ?? "").trim().toLowerCase();
-    const serviciosList: string[] = [];
-    if (servAgua === "si" || servAgua === "sí" || servAgua === "yes") serviciosList.push(lang === "es" ? "Agua" : "Water");
-    if (servElec === "si" || servElec === "sí" || servElec === "yes") serviciosList.push(lang === "es" ? "Electricidad" : "Electric");
-    if (servGas === "si" || servGas === "sí" || servGas === "yes") serviciosList.push(lang === "es" ? "Gas" : "Gas");
-    if (servDrenaje === "si" || servDrenaje === "sí" || servDrenaje === "yes") serviciosList.push(lang === "es" ? "Drenaje" : "Sewer");
-    if (servInternet === "si" || servInternet === "sí" || servInternet === "yes") serviciosList.push("Internet");
-    if (serviciosList.length > 0) out.push({ label: lang === "es" ? "Servicios disponibles" : "Utilities available", value: serviciosList.join(", ") });
-    const utilDetails = (details.enVentaUtilitiesForProperty ?? "").trim();
-    if (utilDetails && brBranch !== "negocio") {
-      out.push({ label: lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details", value: utilDetails });
-    }
-    if (brBranch === "negocio") {
-      const negocioNombre = resolveBrNegocioBusinessNameForPairs(details);
-      if (negocioNombre) out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
-      out.push({ label: lang === "es" ? "Plan" : "Plan", value: lang === "es" ? "Negocio" : "Business" });
-      const negocioAgente = resolveBrNegocioAgentForPairs(details);
-      if (negocioAgente) out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
-    }
+    out.push(...getBienesRaicesPublishStructuredDetailPairs(lang, details, cityDisplay));
   }
   if (cat === "rentas") {
-    const rentasBranch = (details.rentasBranch ?? "").trim().toLowerCase();
-    if (rentasBranch === "negocio") {
-      const negocioNombre = (details.negocioNombre ?? "").trim();
-      if (negocioNombre) {
-        out.push({ label: lang === "es" ? "Nombre del negocio" : "Business name", value: negocioNombre });
-      }
-      out.push({ label: lang === "es" ? "Plan" : "Plan", value: lang === "es" ? "Negocio" : "Business" });
-      const negocioAgente = (details.negocioAgente ?? "").trim();
-      if (negocioAgente) {
-        out.push({ label: lang === "es" ? "Agente" : "Agent", value: negocioAgente });
-      }
-    }
-    const plazo = (details.plazo_contrato ?? "").trim();
-    if (plazo) {
-      const label = lang === "es" ? "Plazo del contrato" : "Lease term";
-      const value = plazo === "otro"
-        ? (details.plazo_contrato_otro ?? "").trim() || (lang === "es" ? "Otro" : "Other")
-        : (RENTAS_PLAZO_LABELS[plazo]?.[lang] ?? plazo);
-      out.push({ label, value });
-    }
-    const fechaDisp = (details.fechaDisponible ?? "").trim();
-    if (fechaDisp) {
-      out.push({
-        label: lang === "es" ? "Fecha disponible" : "Available date",
-        value: fechaDisp,
-      });
-    }
+    out.push(...getRentasPublishStructuredDetailPairs(lang, details));
   }
   for (const f of fields) {
     if (cat === "rentas" && f.key === "plazo_contrato") continue;
@@ -601,11 +498,7 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
 }
 
 function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, string>, cityDisplay?: string) {
-  const pairs = getDetailPairs(cat, lang, details, cityDisplay ?? "");
-  if (!pairs.length) return "";
-  const header = lang === "es" ? "Detalles" : "Details";
-  const lines = pairs.map((p) => `${p.label}: ${p.value}`).join("\n");
-  return `\n\n—\n${header}:\n${lines}`.trim();
+  return buildDetailsAppendixFromPairs(getDetailPairs(cat, lang, details, cityDisplay ?? ""), lang);
 }
 
 /** Normalized shape for En Venta (and shared) preview, validation, and insert. Single source of truth. */
