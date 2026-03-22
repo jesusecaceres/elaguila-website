@@ -97,6 +97,10 @@ import {
   getFirstBasicsInvalidElementId,
 } from "../../lib/publishRequirementChecklist";
 import { buildFullPreviewListingData } from "../../lib/buildFullPreviewListingData";
+import {
+  buildCompactBrPrivateDetailPairs,
+  buildPublishPreviewDisplayStrings,
+} from "../../lib/publishPreviewStrings";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -202,13 +206,6 @@ function formatPhoneDisplay(raw: string): string {
 
 function getPhoneDigits(raw: string): string {
   return (raw ?? "").replace(/\D/g, "").slice(0, 10);
-}
-
-function getShortPreviewText(raw: string, maxLen = 90): string {
-  const t = (raw ?? "").replace(/\s+/g, " ").trim();
-  if (!t) return "";
-  if (t.length <= maxLen) return t;
-  return t.slice(0, maxLen).trim() + "…";
 }
 
 const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -2550,24 +2547,35 @@ for (let vi = 0; vi < videoLimit; vi++) {
   }, []);
 
   // Preview UI strings derived from snapshot so card/preview stay in sync.
-  const previewTitle = enVentaSnapshot.title || (lang === "es" ? "(Sin título)" : "(No title)");
-  const previewDescription = enVentaSnapshot.description || (lang === "es" ? "(Sin descripción)" : "(No description)");
-  const previewPrice = enVentaSnapshot.priceLabel;
-  const previewCity = (enVentaSnapshot.cityCanonical ?? enVentaSnapshot.city) || (lang === "es" ? "(Ciudad)" : "(City)");
-  const previewPosted = copy.todayLabel;
-  const COMPACT_TEASER_MAX_LEN = 80;
-  const previewShortDescription = getShortPreviewText(enVentaSnapshot.description, COMPACT_TEASER_MAX_LEN);
+  const {
+    previewTitle,
+    previewDescription,
+    previewPrice,
+    previewCity,
+    previewPosted,
+    previewShortDescription,
+  } = useMemo(
+    () =>
+      buildPublishPreviewDisplayStrings({
+        snapshot: enVentaSnapshot,
+        lang,
+        todayLabel: copy.todayLabel,
+      }),
+    [enVentaSnapshot, lang, copy.todayLabel]
+  );
   const previewPhone = enVentaSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(enVentaSnapshot.contactPhone);
   const previewEmail = enVentaSnapshot.contactMethod === "phone" ? "" : enVentaSnapshot.contactEmail;
   const previewDetailPairs = enVentaSnapshot.detailPairs;
-  const compactBrPrivateDetailPairs = useMemo(() => {
-    if (categoryFromUrl !== "bienes-raices" || !isBienesRaicesPrivado || !previewDetailPairs.length) return [];
-    const order = lang === "es"
-      ? ["Tipo de propiedad", "Dirección", "Recámaras", "Baños", "Pies²"]
-      : ["Property type", "Address", "Bedrooms", "Bathrooms", "Sq ft"];
-    const byLabel = new Map(previewDetailPairs.map((p) => [p.label, p]));
-    return order.map((label) => byLabel.get(label)).filter(Boolean) as Array<{ label: string; value: string }>;
-  }, [categoryFromUrl, isBienesRaicesPrivado, previewDetailPairs, lang]);
+  const compactBrPrivateDetailPairs = useMemo(
+    () =>
+      buildCompactBrPrivateDetailPairs({
+        categoryFromUrl,
+        isBienesRaicesPrivado,
+        previewDetailPairs,
+        lang,
+      }),
+    [categoryFromUrl, isBienesRaicesPrivado, previewDetailPairs, lang]
+  );
   const previewCategoryLabel = enVentaSnapshot.category ? categoryConfig[enVentaSnapshot.category as CategoryKey]?.label[lang] ?? "" : "";
   const previewContactMethod = enVentaSnapshot.contactMethod;
   const coverImage = enVentaSnapshot.images[0] ?? null;
