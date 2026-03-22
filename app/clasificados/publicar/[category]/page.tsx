@@ -80,6 +80,7 @@ import {
   getRentasDetailFields,
 } from "../../rentas/shared/utils/rentasTaxonomy";
 import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
+import { buildRentasNegocioPreviewListingData } from "../../rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
 
 /** Rentas Negocio: price per post (30 days). Single source of truth. */
 const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
@@ -4061,6 +4062,19 @@ for (let vi = 0; vi < videoLimit; vi++) {
         sellerDisplayName: sellerDisplayName ?? null,
         userId: userId ?? null,
         agentProfileReturnUrl: previewPublishReturnPath,
+      });
+    }
+    const rentasBranchNormalized = (snap.details?.rentasBranch ?? details?.rentasBranch ?? "")
+      .trim()
+      .toLowerCase();
+    if (categoryFromUrl === "rentas" && rentasBranchNormalized === "negocio") {
+      return buildRentasNegocioPreviewListingData({
+        base,
+        categoryFromUrl,
+        details: snap.details,
+        contactEmail: snap.contactEmail,
+        agentProfileReturnUrl: previewPublishReturnPath,
+        lang,
       });
     }
     return base;
