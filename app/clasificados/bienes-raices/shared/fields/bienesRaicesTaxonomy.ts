@@ -28,3 +28,17 @@ export function getBienesRaicesSubcategoryLabel(
   const opt = BIENES_RAICES_SUBCATEGORIES.find((s) => s.key === key);
   return opt ? opt.label[lang] : key;
 }
+
+/** Property type options for BR publish detail pairs and selects (same labels as legacy En Venta–style block). */
+export const BR_PROPERTY_TYPE_OPTIONS: Array<{ value: string; label: { es: string; en: string } }> = [
+  { value: "casa", label: { es: "Casa", en: "House" } },
+  { value: "apartamento", label: { es: "Apartamento", en: "Apartment" } },
+  { value: "condo", label: { es: "Condo", en: "Condo" } },
+  { value: "townhouse", label: { es: "Townhouse", en: "Townhouse" } },
+  { value: "lote", label: { es: "Lote", en: "Lot" } },
+  { value: "finca", label: { es: "Finca", en: "Farm / ranch" } },
+  { value: "oficina", label: { es: "Oficina", en: "Office" } },
+  { value: "local-comercial", label: { es: "Local comercial", en: "Commercial space" } },
+  { value: "edificio", label: { es: "Edificio", en: "Building" } },
+  { value: "proyecto-nuevo", label: { es: "Proyecto nuevo", en: "New development" } },
+];

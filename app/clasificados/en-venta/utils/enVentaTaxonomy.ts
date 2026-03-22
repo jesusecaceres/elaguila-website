@@ -197,3 +197,11 @@ export function getArticuloLabel(
   }
   return itemTypeValue;
 }
+
+/** Publish form (Basics): condition dropdown for En Venta detail fields. */
+export const EN_VENTA_PUBLISH_CONDITION_OPTIONS: Array<{ value: string; labelEs: string; labelEn: string }> = [
+  { value: "new", labelEs: "Nuevo", labelEn: "New" },
+  { value: "like-new", labelEs: "Como nuevo", labelEn: "Like new" },
+  { value: "good", labelEs: "Buen estado", labelEn: "Good" },
+  { value: "fair", labelEs: "Regular", labelEn: "Fair" },
+];

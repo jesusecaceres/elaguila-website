@@ -36,44 +36,8 @@ import {
   EN_VENTA_SUBCATEGORIES,
   getArticuloOptionsForSubcategory,
   getArticuloLabel,
+  EN_VENTA_PUBLISH_CONDITION_OPTIONS,
 } from "../../en-venta/utils/enVentaTaxonomy";
-
-/** En Venta (BR-style) Basics: property types. */
-const EN_VENTA_BR_PROPERTY_TYPES: Array<{ value: string; label: { es: string; en: string } }> = [
-  { value: "casa", label: { es: "Casa", en: "House" } },
-  { value: "apartamento", label: { es: "Apartamento", en: "Apartment" } },
-  { value: "condo", label: { es: "Condo", en: "Condo" } },
-  { value: "townhouse", label: { es: "Townhouse", en: "Townhouse" } },
-  { value: "lote", label: { es: "Lote", en: "Lot" } },
-  { value: "finca", label: { es: "Finca", en: "Farm / ranch" } },
-  { value: "oficina", label: { es: "Oficina", en: "Office" } },
-  { value: "local-comercial", label: { es: "Local comercial", en: "Commercial space" } },
-  { value: "edificio", label: { es: "Edificio", en: "Building" } },
-  { value: "proyecto-nuevo", label: { es: "Proyecto nuevo", en: "New development" } },
-];
-
-/** BR Privado: property type groups for conditional fields. Do not add to negocio in this pass. */
-const BR_RESIDENTIAL_TYPES = ["casa", "apartamento", "condo", "townhouse", "finca"];
-const BR_LOTE_TYPES = ["lote"];
-const BR_COMERCIAL_TYPES = ["oficina", "local-comercial"];
-const BR_EDIFICIO_TYPES = ["edificio"];
-const BR_PROYECTO_NUEVO_TYPES = ["proyecto-nuevo"];
-
-function isBrPrivadoResidential(propertyType: string): boolean {
-  return BR_RESIDENTIAL_TYPES.includes((propertyType ?? "").trim().toLowerCase());
-}
-function isBrPrivadoLote(propertyType: string): boolean {
-  return BR_LOTE_TYPES.includes((propertyType ?? "").trim().toLowerCase());
-}
-function isBrPrivadoComercial(propertyType: string): boolean {
-  return BR_COMERCIAL_TYPES.includes((propertyType ?? "").trim().toLowerCase());
-}
-function isBrPrivadoEdificio(propertyType: string): boolean {
-  return BR_EDIFICIO_TYPES.includes((propertyType ?? "").trim().toLowerCase());
-}
-function isBrPrivadoProyectoNuevo(propertyType: string): boolean {
-  return BR_PROYECTO_NUEVO_TYPES.includes((propertyType ?? "").trim().toLowerCase());
-}
 import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
@@ -81,19 +45,40 @@ import {
 } from "../../rentas/shared/utils/rentasTaxonomy";
 import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
 import { buildRentasNegocioPreviewListingData } from "../../rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
-
-/** Rentas Negocio: price per post (30 days). Single source of truth. */
-const RENTAS_NEGOCIO_PRICE_PER_POST = "$29.99";
-
-/** BR Privado: price per post. */
-const BR_PRIVADO_PRICE_PER_POST = "$49.99";
-/** BR Negocio: weekly or monthly. */
-const BR_NEGOCIO_PRICE_WEEKLY = "$89.99";
-const BR_NEGOCIO_PRICE_MONTHLY = "$329.99";
+import {
+  RENTAS_NEGOCIO_PRICE_PER_POST,
+  RENTAS_PLAZO_LABELS,
+} from "../../rentas/shared/utils/rentasPublishConstants";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
-import { BIENES_RAICES_SUBCATEGORIES } from "../../bienes-raices/shared/fields/bienesRaicesTaxonomy";
+import {
+  BIENES_RAICES_SUBCATEGORIES,
+  BR_PROPERTY_TYPE_OPTIONS,
+} from "../../bienes-raices/shared/fields/bienesRaicesTaxonomy";
+import {
+  BR_COMODIDADES_OPTIONS,
+  BR_PRIVATE_COPY_PROFILES,
+  getBrSubcategoriaFromPropertyType,
+  isBrPrivadoComercial,
+  isBrPrivadoEdificio,
+  isBrPrivadoLote,
+  isBrPrivadoProyectoNuevo,
+  isBrPrivadoResidential,
+  type BrSubcategoriaKey,
+} from "../../bienes-raices/privado/publish/brPrivadoPublishConstants";
+import {
+  brNegocioDigitsOnly,
+  formatBrNegocioAddressLine,
+  formatBrNegocioDetailNumberDisplay,
+  formatBrNegocioIntegerInputDisplay,
+  formatBrNegocioPriceInputDisplay,
+} from "../../bienes-raices/shared/publish/brNegocioPublishFormatting";
+import {
+  BR_NEGOCIO_PRICE_MONTHLY,
+  BR_NEGOCIO_PRICE_WEEKLY,
+  BR_PRIVADO_PRICE_PER_POST,
+} from "../../bienes-raices/shared/publish/brPublishPricing";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
@@ -105,7 +90,6 @@ import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/p
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
 import { appendBrNegocioLongTailDetailPairs } from "../../bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
 import {
-  resolveBrNegocioAddressDisplayLine,
   resolveBrNegocioAgentForPairs,
   resolveBrNegocioBusinessNameForPairs,
   resolveBrNegocioVirtualTourForPairs,
@@ -114,80 +98,6 @@ import { buildBrNegocioListingData } from "../../bienes-raices/negocio/mapping/b
 import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
-
-/** BR private: 6-bucket subcategory keys (source of truth for type-aware copy). */
-type BrSubcategoriaKey = "residencial" | "condos-townhomes" | "multifamiliar" | "terrenos" | "comercial" | "industrial";
-
-/** Derive 6-bucket subcategory from property type value. Used when bienesRaicesSubcategoria is not set. */
-function getBrSubcategoriaFromPropertyType(propertyType: string): BrSubcategoriaKey {
-  const pt = (propertyType ?? "").trim().toLowerCase();
-  if (["casa", "apartamento", "finca"].includes(pt)) return "residencial";
-  if (["condo", "townhouse"].includes(pt)) return "condos-townhomes";
-  if (["edificio"].includes(pt)) return "multifamiliar";
-  if (["lote"].includes(pt)) return "terrenos";
-  if (["oficina", "local-comercial"].includes(pt)) return "comercial";
-  if (["proyecto-nuevo"].includes(pt)) return "residencial";
-  return "residencial";
-}
-
-/** BR private: copy profile per subcategory. Drives placeholders, helpers, and field emphasis. */
-const BR_PRIVATE_COPY_PROFILES: Record<BrSubcategoriaKey, {
-  titlePlaceholder: { es: string; en: string };
-  subtypePlaceholder: { es: string; en: string };
-  descriptionHelper: { es: string; en: string };
-  descriptionPlaceholder: { es: string; en: string };
-  emphasize: string[];
-  hideOrOptional: string[];
-}> = {
-  residencial: {
-    titlePlaceholder: { es: "Ej: Casa 3 recámaras en zona tranquila", en: "e.g. 3-bedroom home in a quiet area" },
-    subtypePlaceholder: { es: "Ej: Casa independiente, Duplex", en: "e.g. Single-family home, Duplex" },
-    descriptionHelper: { es: "Describe la propiedad, su ubicación y características principales.", en: "Describe the property, location, and main features." },
-    descriptionPlaceholder: { es: "Ej: Casa amplia con jardín, 3 recámaras, zona tranquila.", en: "e.g. Spacious home with garden, 3 bedrooms, quiet area." },
-    emphasize: ["recámaras", "baños", "pies²", "niveles", "estacionamiento", "terreno"],
-    hideOrOptional: [],
-  },
-  "condos-townhomes": {
-    titlePlaceholder: { es: "Ej: Condo 2 recámaras cerca del centro", en: "e.g. 2-bedroom condo near downtown" },
-    subtypePlaceholder: { es: "Ej: Condominio, Townhome", en: "e.g. Condo, Townhome" },
-    descriptionHelper: { es: "Describe la unidad, ubicación y amenidades importantes.", en: "Describe the unit, location, and key amenities." },
-    descriptionPlaceholder: { es: "Ej: Condo con área de asador, estacionamiento incluido.", en: "e.g. Condo with BBQ area, parking included." },
-    emphasize: ["recámaras", "baños", "pies²", "estacionamiento"],
-    hideOrOptional: ["terreno"],
-  },
-  multifamiliar: {
-    titlePlaceholder: { es: "Ej: Propiedad multifamiliar con 2 unidades", en: "e.g. Multi-family property with 2 units" },
-    subtypePlaceholder: { es: "Ej: Duplex, Triplex, Fourplex", en: "e.g. Duplex, Triplex, Fourplex" },
-    descriptionHelper: { es: "Describe la propiedad, cantidad de unidades y sus características principales.", en: "Describe the property, number of units, and main features." },
-    descriptionPlaceholder: { es: "Ej: Duplex con 2 unidades de 2 recámaras cada una.", en: "e.g. Duplex with 2 units, 2 bedrooms each." },
-    emphasize: ["recámaras", "baños", "pies²", "estacionamiento"],
-    hideOrOptional: [],
-  },
-  terrenos: {
-    titlePlaceholder: { es: "Ej: Terreno residencial en buena ubicación", en: "e.g. Residential lot in a great location" },
-    subtypePlaceholder: { es: "Ej: Lote residencial, Parcela", en: "e.g. Residential lot, Parcel" },
-    descriptionHelper: { es: "Describe el terreno, ubicación, tamaño y usos posibles.", en: "Describe the lot, location, size, and possible uses." },
-    descriptionPlaceholder: { es: "Ej: Terreno plano, servicios en la calle, zona residencial.", en: "e.g. Flat lot, utilities at street, residential zone." },
-    emphasize: ["terreno", "zonificación", "servicios disponibles", "ubicación"],
-    hideOrOptional: ["recámaras", "baños", "niveles"],
-  },
-  comercial: {
-    titlePlaceholder: { es: "Ej: Oficina en zona comercial", en: "e.g. Office space in a commercial area" },
-    subtypePlaceholder: { es: "Ej: Oficina, Local comercial", en: "e.g. Office, Retail space" },
-    descriptionHelper: { es: "Describe el espacio, ubicación, tamaño y uso ideal.", en: "Describe the space, location, size, and ideal use." },
-    descriptionPlaceholder: { es: "Ej: Oficina 800 pies², baño, estacionamiento.", en: "e.g. 800 sq ft office, restroom, parking." },
-    emphasize: ["pies²", "estacionamiento", "zonificación", "ubicación"],
-    hideOrOptional: ["recámaras"],
-  },
-  industrial: {
-    titlePlaceholder: { es: "Ej: Bodega industrial con amplio espacio", en: "e.g. Industrial warehouse with ample space" },
-    subtypePlaceholder: { es: "Ej: Bodega, Nave industrial, Taller", en: "e.g. Warehouse, Industrial space, Workshop" },
-    descriptionHelper: { es: "Describe el espacio, tamaño, acceso y uso industrial.", en: "Describe the space, size, access, and industrial use." },
-    descriptionPlaceholder: { es: "Ej: Bodega 5,000 pies², carga y descarga fácil.", en: "e.g. 5,000 sq ft warehouse, easy loading." },
-    emphasize: ["pies²", "terreno", "estacionamiento", "zonificación"],
-    hideOrOptional: ["recámaras"],
-  },
-};
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -425,14 +335,6 @@ function getStableSessionId(userId: string | null): string {
   return id;
 }
 
-/** Condición options for En Venta (Basics). */
-const EN_VENTA_CONDICION: Array<{ value: string; labelEs: string; labelEn: string }> = [
-  { value: "new", labelEs: "Nuevo", labelEn: "New" },
-  { value: "like-new", labelEs: "Como nuevo", labelEn: "Like new" },
-  { value: "good", labelEs: "Buen estado", labelEn: "Good" },
-  { value: "fair", labelEs: "Regular", labelEn: "Fair" },
-];
-
 type DetailField = {
   key: string;
   label: { es: string; en: string };
@@ -519,7 +421,7 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
       key: "condition",
       label: { es: "Condición", en: "Condition" },
       type: "select",
-      options: EN_VENTA_CONDICION.map((c) => ({ value: c.value, label: { es: c.labelEs, en: c.labelEn } })),
+      options: EN_VENTA_PUBLISH_CONDITION_OPTIONS.map((c) => ({ value: c.value, label: { es: c.labelEs, en: c.labelEn } })),
     },
   ],
   restaurantes: [
@@ -543,20 +445,6 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
 
 };
 
-/** Common amenities for BR; click to add/remove from comodidades (comma-separated). */
-const BR_COMODIDADES_OPTIONS: Array<{ es: string; en: string }> = [
-  { es: "Estacionamiento", en: "Parking" },
-  { es: "Jardín", en: "Garden" },
-  { es: "A/C", en: "A/C" },
-  { es: "Calefacción", en: "Heating" },
-  { es: "Lavandería", en: "Laundry" },
-  { es: "Seguridad 24h", en: "24h security" },
-  { es: "Gimnasio", en: "Gym" },
-  { es: "Alberca", en: "Pool" },
-  { es: "Área de juegos", en: "Playground" },
-  { es: "Mascotas permitidas", en: "Pets allowed" },
-];
-
 function getCategoryFields(cat: string, details?: Record<string, string>): DetailField[] {
   if (cat === "rentas" && details) {
     const sub = (details.rentasSubcategoria ?? "").trim();
@@ -577,44 +465,6 @@ function getCategoryFields(cat: string, details?: Record<string, string>): Detai
   return DETAIL_FIELDS[cat] ?? [];
 }
 
-const RENTAS_PLAZO_LABELS: Record<string, { es: string; en: string }> = {
-  "mes-a-mes": { es: "Mes a mes", en: "Month to month" },
-  "6-meses": { es: "6 meses", en: "6 months" },
-  "12-meses": { es: "12 meses", en: "12 months" },
-  "1-ano": { es: "1 año", en: "1 year" },
-  "2-anos": { es: "2 años", en: "2 years" },
-};
-
-/** Digits only for BR negocio sqft / lot stored values. */
-function brNegocioDigitsOnly(raw: string): string {
-  return raw.replace(/[^\d]/g, "");
-}
-
-/** Comma-grouped display while typing (US grouping); underlying value uses `brNegocioDigitsOnly`. */
-function formatBrNegocioIntegerInputDisplay(raw: string): string {
-  const d = brNegocioDigitsOnly(raw);
-  if (!d) return "";
-  return Number(d).toLocaleString("en-US");
-}
-
-/** BR negocio listing price: comma display; validation uses digits stripped from state. */
-function formatBrNegocioPriceInputDisplay(raw: string): string {
-  const d = raw.replace(/[^0-9]/g, "");
-  if (!d) return "";
-  return Number(d).toLocaleString("en-US");
-}
-
-/** Preview / detail row: "123 Main St, City, ST 95112" or legacy single line. */
-function formatBrNegocioAddressLine(details: Record<string, string>, cityDisplay: string): string {
-  return resolveBrNegocioAddressDisplayLine(details, cityDisplay);
-}
-
-function formatBrNegocioDetailNumberDisplay(raw: string): string {
-  const d = raw.replace(/[^\d]/g, "");
-  if (!d) return raw.trim();
-  return Number(d).toLocaleString("en-US");
-}
-
 function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>, cityDisplay = "") {
   const fields = getCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
@@ -623,7 +473,7 @@ function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>
     const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
     const pt = (details.enVentaPropertyType ?? "").trim();
     if (pt) {
-      const opt = EN_VENTA_BR_PROPERTY_TYPES.find((o) => o.value === pt);
+      const opt = BR_PROPERTY_TYPE_OPTIONS.find((o) => o.value === pt);
       out.push({ label: lang === "es" ? "Tipo de propiedad" : "Property type", value: opt ? opt.label[lang] : pt });
     }
     const subtype = (details.enVentaPropertySubtype ?? "").trim();
@@ -4976,7 +4826,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                 )}
                               >
                                 <option value="">{lang === "es" ? "Elige condición…" : "Choose condition…"}</option>
-                                {EN_VENTA_CONDICION.map((c) => (
+                                {EN_VENTA_PUBLISH_CONDITION_OPTIONS.map((c) => (
                                   <option key={c.value} value={c.value}>{lang === "es" ? c.labelEs : c.labelEn}</option>
                                 ))}
                               </select>
@@ -5142,7 +4992,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               )}
                             >
                               <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
-                              {EN_VENTA_BR_PROPERTY_TYPES.map((o) => <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>)}
+                              {BR_PROPERTY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>)}
                             </select>
                             {!details.enVentaPropertyType?.trim() && (
                               <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
