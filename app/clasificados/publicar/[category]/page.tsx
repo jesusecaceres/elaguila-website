@@ -43,7 +43,6 @@ import {
   getTipoOptionsForSubcategory,
 } from "../../rentas/shared/utils/rentasTaxonomy";
 import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
-import { buildRentasNegocioPreviewListingData } from "../../rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
 import { RENTAS_NEGOCIO_PRICE_PER_POST } from "../../rentas/shared/utils/rentasPublishConstants";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
@@ -84,7 +83,6 @@ import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublis
 import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
 import { resolveBrNegocioAgentForPairs, resolveBrNegocioBusinessNameForPairs } from "../../bienes-raices/negocio/mapping/brNegocioReadResolvers";
-import { buildBrNegocioListingData } from "../../bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
 import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
@@ -97,10 +95,11 @@ import {
   computeBasicsOk,
   getFirstBasicsInvalidElementId,
 } from "../../lib/publishRequirementChecklist";
+import { buildFullPreviewListingData } from "../../lib/buildFullPreviewListingData";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
-import ListingView, { type ListingData } from "../../components/ListingView";
+import ListingView from "../../components/ListingView";
 import RentasPrivadoPublishPreview from "../../rentas/privado/preview/RentasPrivadoPublishPreview";
 
 /** Real categories for publicar (no "all", no "Más"). Same order and icons as lista explorer. */
@@ -3255,83 +3254,22 @@ for (let vi = 0; vi < videoLimit; vi++) {
   }, [pathname, searchParams]);
 
   // ListingData for in-page full preview modal (same shape as ListingView expects; uses current filePreviews so no navigation).
-  const fullPreviewListingData = useMemo((): ListingData => {
-    const snap = enVentaSnapshot;
-    const imgs = snap.images?.length ? snap.images : ["/logo.png"];
-    /** Snapshot + live form can diverge briefly; branch must match user selection for preview routing. */
-    const brBranchNormalized = (
-      snap.details?.bienesRaicesBranch ??
-      details?.bienesRaicesBranch ??
-      ""
-    )
-      .trim()
-      .toLowerCase();
-    const isBrNegocioPreviewData = categoryFromUrl === "bienes-raices" && brBranchNormalized === "negocio";
-
-    const base: ListingData = {
-      title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
-      priceLabel: snap.priceLabel,
-      city: (snap.cityCanonical ?? snap.city) || (lang === "es" ? "Ciudad" : "City"),
-      description: snap.description || (lang === "es" ? "(Sin descripción)" : "(No description)"),
-      todayLabel: copy.todayLabel,
-      images: imgs,
-      detailPairs: snap.detailPairs ?? [],
-      contactMethod: snap.contactMethod,
-      contactPhone: formatPhoneDisplay(snap.contactPhone),
-      contactEmail: snap.contactEmail,
-      isPro: snap.isPro,
-      proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
-      proVideoUrl: snap.proVideoUrl ?? null,
-      proVideoThumbUrl2: snap.proVideoThumbUrl2 ?? null,
-      proVideoUrl2: snap.proVideoUrl2 ?? null,
-      lang,
-      sellerName: sellerDisplayName || undefined,
-      categoryLabel: previewCategoryLabel || undefined,
-      approximateArea: category === "rentas" && snap.details?.zonaDireccion?.trim() ? snap.details.zonaDireccion.trim() : undefined,
-      ownerId: userId?.trim() ? userId.trim() : undefined,
-      /** So ListingView BR preview branch runs even if `category` state lags `categoryFromUrl`. */
-      ...(categoryFromUrl === "bienes-raices" ? { category: "bienes-raices" as const } : {}),
-    };
-    // BR negocio: normalized mapper (rail + structured facts + highlights).
-    // Use categoryFromUrl + branch from snapshot or live form so mapper always runs for Negocio / Profesional.
-    if (isBrNegocioPreviewData) {
-      return buildBrNegocioListingData({
-        snap: {
-          title: snap.title,
-          priceLabel: snap.priceLabel,
-          city: snap.city,
-          cityCanonical: snap.cityCanonical,
-          description: snap.description,
-          detailPairs: snap.detailPairs ?? [],
-          details: snap.details,
-          images: imgs,
-          proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
-          proVideoUrl: snap.proVideoUrl ?? null,
-          lang: snap.lang,
-        },
+  const fullPreviewListingData = useMemo(
+    () =>
+      buildFullPreviewListingData({
+        enVentaSnapshot,
         lang,
         todayLabel: copy.todayLabel,
-        previewCategoryLabel: previewCategoryLabel || "",
-        sellerDisplayName: sellerDisplayName ?? null,
-        userId: userId ?? null,
-        agentProfileReturnUrl: previewPublishReturnPath,
-      });
-    }
-    const rentasBranchNormalized = (snap.details?.rentasBranch ?? details?.rentasBranch ?? "")
-      .trim()
-      .toLowerCase();
-    if (categoryFromUrl === "rentas" && rentasBranchNormalized === "negocio") {
-      return buildRentasNegocioPreviewListingData({
-        base,
+        previewCategoryLabel,
+        sellerDisplayName,
+        category,
         categoryFromUrl,
-        details: snap.details,
-        contactEmail: snap.contactEmail,
-        agentProfileReturnUrl: previewPublishReturnPath,
-        lang,
-      });
-    }
-    return base;
-  }, [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]);
+        details,
+        userId,
+        previewPublishReturnPath,
+      }),
+    [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
+  );
 
   /** BR negocio (media step): full-page preview via `/preview-listing` — same `BienesRaicesNegocioPremiumDetail` family as embedded preview. */
   const openBrNegocioFullListingPreview = useCallback(() => {
