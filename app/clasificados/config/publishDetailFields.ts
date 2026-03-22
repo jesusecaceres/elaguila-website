@@ -1,6 +1,6 @@
 /**
  * Publish flow: per-category detail field definitions for the unified publicar orchestrator.
- * Labels, keys, and option lists must stay aligned with `getDetailPairs` / `getCategoryFields` behavior.
+ * Labels, keys, and option lists must stay aligned with `getDetailPairs` (lib/publishDetailPairs) / `getPublishCategoryFields` behavior.
  */
 
 import {

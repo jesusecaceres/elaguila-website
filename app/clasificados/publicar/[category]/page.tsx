@@ -36,7 +36,6 @@ import { getStepOrderForCategory } from "../../config/categorySchema";
 import {
   EN_VENTA_SUBCATEGORIES,
   getArticuloOptionsForSubcategory,
-  getArticuloLabel,
   EN_VENTA_PUBLISH_CONDITION_OPTIONS,
 } from "../../en-venta/utils/enVentaTaxonomy";
 import {
@@ -46,7 +45,6 @@ import {
 import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
 import { buildRentasNegocioPreviewListingData } from "../../rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
 import { RENTAS_NEGOCIO_PRICE_PER_POST } from "../../rentas/shared/utils/rentasPublishConstants";
-import { getRentasPublishStructuredDetailPairs } from "../../rentas/shared/utils/rentasPublishDetailPairs";
 import { BUSINESS_META_KEYS } from "../../config/businessListingContract";
 import { buildNegocioRedesPayload, formatUsPhone10 } from "../../bienes-raices/negocio/utils/brNegocioContactHelpers";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaTwitter, FaYoutube } from "react-icons/fa";
@@ -85,14 +83,12 @@ import { RentasPublishShell } from "../../rentas/shared/publish/RentasPublishShe
 import { RentasPublishTrackStep } from "../../rentas/shared/publish/RentasPublishTrackStep";
 import { BienesRaicesNegocioFloorplanBlock } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
 import { BienesRaicesNegocioMediaUrlFields } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
-import { appendBrNegocioLongTailDetailPairs } from "../../bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
 import { resolveBrNegocioAgentForPairs, resolveBrNegocioBusinessNameForPairs } from "../../bienes-raices/negocio/mapping/brNegocioReadResolvers";
-import { getBienesRaicesPublishStructuredDetailPairs } from "../../bienes-raices/shared/mapping/bienesRaicesPublishDetailPairs";
 import { buildBrNegocioListingData } from "../../bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
 import { BienesRaicesNegocioBasicsWizard } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { MediaStepContactCard } from "../components/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "../components/PublishMediaPreviewPanel";
-import { buildDetailsAppendixFromPairs } from "../../lib/buildDetailsAppendix";
+import { buildDetailsAppendix, getDetailPairs } from "../../lib/publishDetailPairs";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -328,48 +324,6 @@ function getStableSessionId(userId: string | null): string {
     sessionStorage.setItem(key, id);
   }
   return id;
-}
-
-function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>, cityDisplay = "") {
-  const fields = getPublishCategoryFields(cat, details);
-  const out: Array<{ label: string; value: string }> = [];
-  // En Venta: item-selling details come from fields (rama, itemType, condition) only.
-  if (cat === "bienes-raices") {
-    out.push(...getBienesRaicesPublishStructuredDetailPairs(lang, details, cityDisplay));
-  }
-  if (cat === "rentas") {
-    out.push(...getRentasPublishStructuredDetailPairs(lang, details));
-  }
-  for (const f of fields) {
-    if (cat === "rentas" && f.key === "plazo_contrato") continue;
-    // BR: address + optional zone are emitted above with summary-friendly labels; skip legacy row to avoid duplicates/wrong labels.
-    if (cat === "bienes-raices" && f.key === "direccionPropiedad") continue;
-    const raw = (details[f.key] ?? "").toString().trim();
-    if (!raw) continue;
-
-    if (f.type === "select" && f.options && f.options.length > 0) {
-      const opt = f.options.find((o) => o.value === raw);
-      out.push({ label: f.label[lang], value: opt ? opt.label[lang] : raw });
-      continue;
-    }
-
-    if (cat === "en-venta" && f.key === "itemType") {
-      const rama = (details.rama ?? "").trim();
-      const label = getArticuloLabel(rama, raw, lang);
-      out.push({ label: f.label[lang], value: label });
-      continue;
-    }
-
-    out.push({ label: f.label[lang], value: raw });
-  }
-  if (cat === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
-    appendBrNegocioLongTailDetailPairs(lang, details, out);
-  }
-  return out;
-}
-
-function buildDetailsAppendix(cat: string, lang: Lang, details: Record<string, string>, cityDisplay?: string) {
-  return buildDetailsAppendixFromPairs(getDetailPairs(cat, lang, details, cityDisplay ?? ""), lang);
 }
 
 /** Dedicated full-preview content for private bienes-raices (no ListingView). Uses raw form fields; only shows placeholders when field is truly blank. */
