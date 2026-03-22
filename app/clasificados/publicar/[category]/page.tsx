@@ -101,6 +101,12 @@ import {
   buildCompactBrPrivateDetailPairs,
   buildPublishPreviewDisplayStrings,
 } from "../../lib/publishPreviewStrings";
+import {
+  buildPreviewPublishReturnPath,
+  executeClosePublishFullPreviewModal,
+  executeFullPreviewConfirmPublish,
+  getFullPreviewVariantOnOpen,
+} from "../../lib/publishPreviewModalHelpers";
 import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "../../components/MediaUploader";
@@ -2582,10 +2588,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
   const extraPreviewImages = enVentaSnapshot.images.slice(1, 5);
 
   /** Current publish URL (path + query) so `/agente/[id]` can link back to this draft/preview flow. */
-  const previewPublishReturnPath = useMemo(() => {
-    const q = searchParams?.toString() ?? "";
-    return `${pathname ?? ""}${q ? `?${q}` : ""}`;
-  }, [pathname, searchParams]);
+  const previewPublishReturnPath = useMemo(
+    () => buildPreviewPublishReturnPath(pathname, searchParams),
+    [pathname, searchParams]
+  );
 
   // ListingData for in-page full preview modal (same shape as ListingView expects; uses current filePreviews so no navigation).
   const fullPreviewListingData = useMemo(
@@ -2612,8 +2618,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     if (userId && typeof performDbSave === "function") {
       void performDbSave();
     }
-    const q = searchParams?.toString() ?? "";
-    const backToEditUrl = `${pathname ?? ""}${q ? `?${q}` : ""}`;
+    const backToEditUrl = previewPublishReturnPath;
     const snap = enVentaSnapshot;
     setPreviewDraft({
       backToEditUrl,
@@ -2646,8 +2651,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     step,
     userId,
     performDbSave,
-    pathname,
-    searchParams,
+    previewPublishReturnPath,
     enVentaSnapshot,
     lang,
     copy.todayLabel,
@@ -2666,27 +2670,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
       void performDbSave();
     }
     fullPreviewModalOpenRef.current = true;
-    if (isRentasPrivado) {
-      setFullPreviewVariant("pro");
-      setFullPreviewRulesConfirmed(false);
-      setFullPreviewInfoConfirmed(false);
-      setShowFullPreviewModal(true);
-    } else if (isBienesRaicesNegocio) {
-      setFullPreviewVariant("pro");
-      setFullPreviewRulesConfirmed(false);
-      setFullPreviewInfoConfirmed(false);
-      setShowFullPreviewModal(true);
-    } else if (isBienesRaicesPrivado) {
-      setFullPreviewVariant("pro");
-      setFullPreviewRulesConfirmed(false);
-      setFullPreviewInfoConfirmed(false);
-      setShowFullPreviewModal(true);
-    } else {
-      setFullPreviewVariant("free");
-      setFullPreviewRulesConfirmed(false);
-      setFullPreviewInfoConfirmed(false);
-      setShowFullPreviewModal(true);
-    }
+    setFullPreviewVariant(
+      getFullPreviewVariantOnOpen({ isRentasPrivado, isBienesRaicesNegocio, isBienesRaicesPrivado })
+    );
+    setFullPreviewRulesConfirmed(false);
+    setFullPreviewInfoConfirmed(false);
+    setShowFullPreviewModal(true);
   }, [isRentasPrivado, isBienesRaicesNegocio, isBienesRaicesPrivado, userId, performDbSave, draftId, step]);
 
   const handleSharePreview = useCallback(() => {
@@ -2708,21 +2697,24 @@ for (let vi = 0; vi < videoLimit; vi++) {
   };
 
   const closeFullPreviewModal = useCallback(() => {
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      // eslint-disable-next-line no-console
-      console.log("[publish preview] closeFullPreviewModal called");
-    }
-    fullPreviewModalOpenRef.current = false;
-    setShowFullPreviewModal(false);
-    setProHighlightId(null);
+    executeClosePublishFullPreviewModal({
+      setModalOpenTracked: (open) => {
+        fullPreviewModalOpenRef.current = open;
+      },
+      setShowFullPreviewModal,
+      clearProHighlight: () => setProHighlightId(null),
+    });
   }, []);
 
   const handleFullPreviewConfirmPublish = () => {
-    if (!fullPreviewRulesConfirmed || !fullPreviewInfoConfirmed) return;
-    setRulesConfirmedPersisted(true);
-    setPreviewViewed(true);
-    setShowFullPreviewModal(false);
-    setTimeout(() => publish(), 600);
+    executeFullPreviewConfirmPublish({
+      fullPreviewRulesConfirmed,
+      fullPreviewInfoConfirmed,
+      setRulesConfirmedPersisted,
+      setPreviewViewed,
+      setShowFullPreviewModal,
+      publish,
+    });
   };
 
   const basicsShowValidation = publishNextAttempted.basics ?? false;
