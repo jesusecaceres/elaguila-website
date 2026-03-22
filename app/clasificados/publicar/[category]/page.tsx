@@ -31,7 +31,7 @@ import {
 } from "../../lib/listingDraftsDb";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
-import { DETAIL_FIELDS, type DetailField } from "../../config/publishDetailFields";
+import { getPublishCategoryFields } from "../../config/publishCategoryFields";
 import { getStepOrderForCategory } from "../../config/categorySchema";
 import {
   EN_VENTA_SUBCATEGORIES,
@@ -42,7 +42,6 @@ import {
 import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
-  getRentasDetailFields,
 } from "../../rentas/shared/utils/rentasTaxonomy";
 import { mapRentasNegocioDetailsTierToDb } from "../../rentas/shared/utils/rentasPlanTier";
 import { buildRentasNegocioPreviewListingData } from "../../rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
@@ -330,28 +329,8 @@ function getStableSessionId(userId: string | null): string {
   return id;
 }
 
-function getCategoryFields(cat: string, details?: Record<string, string>): DetailField[] {
-  if (cat === "rentas" && details) {
-    const sub = (details.rentasSubcategoria ?? "").trim();
-    const tipo = (details.tipoPropiedad ?? "").trim();
-    if (!sub || !tipo) return [];
-    return getRentasDetailFields(sub, tipo) as DetailField[];
-  }
-  if (cat === "bienes-raices" && details) {
-    const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
-    const pt = (details.enVentaPropertyType ?? "").trim();
-    // BR application branches by sub property type (bienesRaicesSubcategoria / enVentaPropertyType); taxonomy is source of truth.
-    if (brBranch === "negocio") return DETAIL_FIELDS["bienes-raices"] ?? [];
-    if (brBranch === "privado") {
-      if (isBrPrivadoResidential(pt)) return DETAIL_FIELDS["bienes-raices"] ?? [];
-      if (isBrPrivadoLote(pt) || isBrPrivadoComercial(pt) || isBrPrivadoEdificio(pt) || isBrPrivadoProyectoNuevo(pt)) return [];
-    }
-  }
-  return DETAIL_FIELDS[cat] ?? [];
-}
-
 function getDetailPairs(cat: string, lang: Lang, details: Record<string, string>, cityDisplay = "") {
-  const fields = getCategoryFields(cat, details);
+  const fields = getPublishCategoryFields(cat, details);
   const out: Array<{ label: string; value: string }> = [];
   // En Venta: item-selling details come from fields (rama, itemType, condition) only.
   if (cat === "bienes-raices") {
@@ -5950,7 +5929,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         <span className="text-[#111111]/90 font-semibold">{categoryFromUrl}</span>
                       </div>
 
-                      {getCategoryFields(categoryFromUrl, details).length === 0 ? (
+                      {getPublishCategoryFields(categoryFromUrl, details).length === 0 ? (
                         <div className="mt-3 text-sm text-[#111111]/55">
                           {lang === "es"
                             ? "Por ahora no hay campos extra para esta categoría."
@@ -5958,7 +5937,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         </div>
                       ) : (
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {getCategoryFields(categoryFromUrl, details).map((f) => {
+                          {getPublishCategoryFields(categoryFromUrl, details).map((f) => {
                             const v = details[f.key] ?? "";
                             const label = f.label[lang];
                             const placeholder = f.placeholder ? f.placeholder[lang] : undefined;
