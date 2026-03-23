@@ -36,6 +36,13 @@ import { isProListing } from "../components/planHelpers";
 import ProBadge from "../components/ProBadge";
 import { parseBusinessMeta } from "../config/businessListingContract";
 import { inferRentasPlanTierFromListing as inferRentasPlanTier } from "../rentas/shared/utils/rentasPlanTier";
+import {
+  applyAutosBrowseParams as applyAutosParams,
+  EMPTY_AUTOS_BROWSE_PARAMS as EMPTY_AUTOS_PARAMS,
+  type AutosBrowseParams as AutosParams,
+} from "../autos/filters/autosBrowseParams";
+import { buildAutosListingCardScan } from "../autos/shared/utils/autosListingCardScan";
+import { AutosSellerLaneBadge } from "../autos/listing/components/AutosSellerLaneBadge";
 
 type ServicesTier = "standard" | "plus" | "premium";
 
@@ -633,71 +640,6 @@ function setUrlParams(next: Record<string, string | null | undefined>) {
   window.history.replaceState({}, "", final);
 }
 
-
-/** ✓ Autos param helpers (internal only; no exports) */
-type AutosParams = {
-  aymin: string;
-  aymax: string;
-  amake: string;
-  amodel: string;
-  amilesmax: string;
-  acond: string; // "new" | "used" | ""
-  aseller: string; // "personal" | "business" | ""
-};
-
-const EMPTY_AUTOS_PARAMS: AutosParams = {
-  aymin: "",
-  aymax: "",
-  amake: "",
-  amodel: "",
-  amilesmax: "",
-  acond: "",
-  aseller: "",
-};
-
-function applyAutosParams(list: Listing[], ap: AutosParams): Listing[] {
-  const yMin = ap.aymin ? parseNumLoose(ap.aymin) : null;
-  const yMax = ap.aymax ? parseNumLoose(ap.aymax) : null;
-  const milesMax = ap.amilesmax ? parseNumLoose(ap.amilesmax) : null;
-  const makeQ = (ap.amake || "").trim().toLowerCase();
-  const modelQ = (ap.amodel || "").trim().toLowerCase();
-  const cond = (ap.acond || "").trim().toLowerCase();
-
-  return list.filter((x) => {
-    if (yMin !== null && typeof x.year === "number" && x.year < yMin) return false;
-    if (yMax !== null && typeof x.year === "number" && x.year > yMax) return false;
-
-    if (makeQ) {
-      const mk = (x.make || "").toLowerCase();
-      if (!mk.includes(makeQ)) return false;
-    }
-
-    if (modelQ) {
-      const md = (x.model || "").toLowerCase();
-      if (!md.includes(modelQ)) return false;
-    }
-
-    if (milesMax !== null && typeof (x as any).mileage === "number") {
-      const m = (x as any).mileage as number;
-      if (Number.isFinite(m) && m > milesMax) return false;
-    }
-
-    if (cond && typeof (x as any).condition === "string") {
-      const c = String((x as any).condition).toLowerCase();
-      if (cond === "new" && c !== "new") return false;
-      if (cond === "used" && c !== "used") return false;
-    }
-
-    // Seller type (personal/business) when available
-    const seller = (ap.aseller || "").trim().toLowerCase();
-    if (seller) {
-      const st = typeof (x as any).sellerType === "string" ? String((x as any).sellerType).toLowerCase() : "";
-      if (!st || st !== seller) return false;
-    }
-
-    return true;
-  });
-}
 
 /** ✓ Rentas param helpers (internal only; no exports) */
 type RentasParams = {
@@ -3507,45 +3449,6 @@ function normalizeSpace(s: string) {
   return s.replace(/\s+/g, " ").trim();
 }
 
-const parseAutoFromTitle = (title: string) => {
-  const t = normalizeSpace(title);
-  // Extract mileage (supports: 138k miles, 138,000 mi, 138k millas)
-  const mileageMatch = t.match(/\b(\d{1,3}(?:[\.,]\d{3})+|\d+(?:\.\d+)?)\s*(k)?\s*(miles|millas|mi)\b/i);
-  let mileageLabel: string | null = null;
-  if (mileageMatch) {
-    const rawNum = mileageMatch[1];
-    const hasK = Boolean(mileageMatch[2]);
-    const num = Number(String(rawNum).replace(/,/g, "").replace(/\./g, (m: string, off: number, str: string) => {
-      // Keep decimals like 12.5; treat 138.000 as 138000 only if it looks like a thousands separator group.
-      return m;
-    }));
-    if (!Number.isNaN(num)) {
-      const miles = hasK ? Math.round(num * 1000) : Math.round(num);
-      mileageLabel = miles >= 1000 ? `${miles.toLocaleString()} mi` : `${miles} mi`;
-    } else {
-      mileageLabel = normalizeSpace(mileageMatch[0]).replace(/millas|miles/i, "mi");
-    }
-  }
-
-  // Extract year at start if present
-  const yearMatch = t.match(/^(19\d{2}|20\d{2})\b/);
-  const year = yearMatch ? yearMatch[1] : null;
-
-  // Attempt to derive make/model tokens when title starts with year
-  let specLabel: string | null = null;
-  if (year) {
-    // Remove year, remove mileage chunk, split remaining by separators
-    const withoutMileage = mileageMatch ? t.replace(mileageMatch[0], "").trim() : t;
-    const afterYear = normalizeSpace(withoutMileage.replace(new RegExp("^" + year + "\\b"), "").trim());
-    const cleaned = afterYear.replace(/^[\-–—:\s]+/, "").trim();
-    const tokens = cleaned.split(" ").filter(Boolean);
-    const mm = tokens.slice(0, 3).join(" ").trim(); // allow 2–3 word models (e.g., "F-150 XLT")
-    if (mm) specLabel = `${year} • ${mm}`;
-  }
-
-  return { year, specLabel, mileageLabel };
-};
-
 const inferRentasFromTitle = (title: string) => {
   const t = title.toLowerCase();
   if (/(\bcuarto\b|\bhabitaci[oó]n\b|\broom\b)/i.test(t)) return "room";
@@ -4785,26 +4688,9 @@ const ListingCardGrid = (x: Listing) => {
     );
   }
 
-  // Autos: structured scan (AutoTrader-style)
-  const autosParsed = isAutos ? parseAutoFromTitle(x.title[lang]) : null;
-
-  const autosSpec = isAutos
-    ? ([x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" • ") ||
-        autosParsed?.specLabel ||
-        null)
-    : null;
-
-  const autosMileage =
-    isAutos
-      ? (typeof (x as any).mileage === "number"
-          ? `${(x as any).mileage.toLocaleString()} mi`
-          : typeof (x as any).mileage === "string"
-            ? String((x as any).mileage)
-            : autosParsed?.mileageLabel || null)
-      : null;
-
-// Keep autos meta in-scope and simple (avoid duplicate/undefined vars)
-// autosSpec + autosMileage already include safe fallbacks.
+  const autosScan = isAutos ? buildAutosListingCardScan(x as Parameters<typeof buildAutosListingCardScan>[0], lang) : null;
+  const autosSpec = autosScan?.autosSpec ?? null;
+  const autosMileage = autosScan?.autosMileage ?? null;
 
 // Empleos: Indeed-style clarity (safe inference; no fabricated data)
 const empleo = isEmpleos ? parseEmpleoFromText(x.title[lang], x.blurb[lang], x.priceLabel[lang]) : null;
@@ -4932,6 +4818,11 @@ const isComunidadLite = isComunidad;
               {autosMileage}
             </div>
           ) : null}
+          {isAutos ? (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              <AutosSellerLaneBadge lang={lang} listing={x} />
+            </div>
+          ) : null}
 
           {/* Business identity (Autos slightly earlier, stronger trust) */}
           {x.businessName ? (
@@ -5052,16 +4943,9 @@ const ListingRow = (x: Listing, withImg: boolean) => {
   const isComunidadLite = isComunidad;
   const tier = inferVisualTier(x);
 
-  const autosSpec = isAutos
-    ? [x.year ? String(x.year) : null, x.make ?? null, x.model ?? null].filter(Boolean).join(" • ")
-    : null;
-
-  const autosMileage =
-    isAutos && typeof (x as any).mileage === "number"
-      ? `${(x as any).mileage.toLocaleString()} mi`
-      : isAutos && typeof (x as any).mileage === "string"
-        ? String((x as any).mileage)
-        : null;
+  const autosScanRow = isAutos ? buildAutosListingCardScan(x as Parameters<typeof buildAutosListingCardScan>[0], lang) : null;
+  const autosSpec = autosScanRow?.autosSpec ?? null;
+  const autosMileage = autosScanRow?.autosMileage ?? null;
 const empleo = isEmpleos ? parseEmpleoFromText(x.title[lang], x.blurb[lang], x.priceLabel[lang]) : null;
 const empleoJobType = empleo ? empleoJobTypeLabel(empleo.jobType, lang) : null;
 
@@ -5225,6 +5109,11 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 ) : null}
 {isAutos && autosMileage ? (
   <div className="mt-0.5 text-xs font-semibold text-[#111111]">{autosMileage}</div>
+) : null}
+{isAutos ? (
+  <div className="mt-1 flex flex-wrap gap-1">
+    <AutosSellerLaneBadge lang={lang} listing={x} />
+  </div>
 ) : null}
 
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
-import { AUTOS_LANDING_CATEGORY_PILLS, AUTOS_QUICK_CHIPS } from "./shared/fields/autosTaxonomy";
+import { AUTOS_LANDING_CATEGORY_PILLS, AUTOS_QUICK_CHIPS } from "./taxonomy/landingTaxonomy";
 import { buildAutosListaUrl } from "./shared/utils/autosListaUrl";
 
 type Lang = "es" | "en";

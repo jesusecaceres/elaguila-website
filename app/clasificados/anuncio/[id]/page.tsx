@@ -38,6 +38,10 @@ import { EnVentaAnuncioHeroPrice } from "../../en-venta/listing/components/EnVen
 import { EnVentaAnuncioAntiSpamNote } from "../../en-venta/listing/components/EnVentaAnuncioAntiSpamNote";
 import { EnVentaAnuncioMetaSummaryGrid } from "../../en-venta/listing/components/EnVentaAnuncioMetaSummaryGrid";
 import type { EnVentaAnuncioListingLike } from "../../en-venta/listing/types/enVentaAnuncioLiveTypes";
+import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
+import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
+import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
+import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnuncioLiveTypes";
 import { BienesRaicesAnuncioTopChrome } from "../../bienes-raices/listing/components/BienesRaicesAnuncioTopChrome";
 import { BienesRaicesLiveHeroAndSummary } from "../../bienes-raices/listing/components/BienesRaicesLiveHeroAndSummary";
 import { BienesRaicesBusinessMobileBlock } from "../../bienes-raices/listing/components/BienesRaicesBusinessMobileBlock";
@@ -467,6 +471,11 @@ export default function AnuncioDetallePage() {
     listing: listing as EnVentaAnuncioListingLike | undefined,
   });
 
+  const { autosLiveFacts } = useAutosAnuncioDerived({
+    listing: listing as AutosAnuncioListingLike | undefined,
+    lang,
+  });
+
   const idParam = params?.id;
   const showLoading = Boolean(
     idParam && !sampleListing && (remoteState === "uninitialized" || remoteState === "loading")
@@ -512,47 +521,6 @@ export default function AnuncioDetallePage() {
     return { chips, pay, quals };
   }, [listing, lang]);
 
-
-  const autoMeta = useMemo(() => {
-    if (!listing || listing.category !== "autos") return null;
-
-    const title = (listing.title?.[lang] ?? "");
-    const blurb = (listing.blurb?.[lang] ?? "");
-    const blob = `${title} ${blurb} ${(listing.priceLabel?.[lang] ?? "")}`.toLowerCase();
-
-    const yearMatch = title.match(/(19\d{2}|20\d{2})/);
-    const year = yearMatch ? yearMatch[1] : null;
-
-    const mileageMatch =
-      title.match(/(\d{2,3})\s*k\b/) ||
-      title.match(/(\d{1,3}(?:,\d{3})+)\s*(?:miles|millas)\b/i);
-    let mileage: string | null = null;
-    if (mileageMatch) {
-      mileage = mileageMatch[1].includes(",") ? mileageMatch[1] : `${mileageMatch[1]}k`;
-      mileage = lang === "es" ? `${mileage} millas` : `${mileage} miles`;
-    }
-
-    const has = (re: RegExp) => re.test(blob);
-
-    const facts: Array<{ label: string; value: string }> = [];
-
-    if (year) facts.push({ label: lang === "es" ? "Año" : "Year", value: year });
-    if (mileage) facts.push({ label: lang === "es" ? "Millaje" : "Mileage", value: mileage });
-
-    if (has(/t[íi]tulo\s+limpio|clean\s+title/)) {
-      facts.push({ label: lang === "es" ? "Título" : "Title", value: lang === "es" ? "Limpio" : "Clean" });
-    } else if (has(/salvage|reconstru/)) {
-      facts.push({ label: lang === "es" ? "Título" : "Title", value: lang === "es" ? "Salvage/Rebuild" : "Salvage/Rebuild" });
-    }
-
-    if (has(/financ|financing/)) {
-      facts.push({ label: lang === "es" ? "Opciones" : "Options", value: lang === "es" ? "Financiamiento" : "Financing" });
-    } else if (has(/cash\s+only|solo\s+efectivo/)) {
-      facts.push({ label: lang === "es" ? "Opciones" : "Options", value: lang === "es" ? "Solo efectivo" : "Cash only" });
-    }
-
-    return facts.length ? { facts } : null;
-  }, [listing, lang]);
 
   const relatedListings = useMemo(() => {
     if (!listing) return [];
@@ -1259,6 +1227,10 @@ export default function AnuncioDetallePage() {
                 />
               )}
 
+              {listing.category === "autos" && (
+                <AutosAnuncioLaneContextStrip lang={lang} listing={listing} />
+              )}
+
               {/* Rentas Privado: no Pro teaser block — keep page as listing-only, human/direct */}
 
 {proVideoInfos.length > 0 && mediaSlots.length === 0 && (
@@ -1369,15 +1341,9 @@ export default function AnuncioDetallePage() {
                     <div className="text-xs text-[#111111]">{t.metaPosted}</div>
                     <div className="mt-1 text-[#111111] font-semibold">{postedAgoDisplay}</div>
 
-                    {autoMeta?.facts?.slice(0, 4).map((f) => (
-                      <div
-                        key={f.label}
-                        className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
-                      >
-                        <div className="text-xs text-[#111111]">{f.label}</div>
-                        <div className="mt-1 text-[#111111] font-semibold">{f.value}</div>
-                      </div>
-                    ))}
+                    {listing.category === "autos" && autosLiveFacts?.facts && (
+                      <AutosAnuncioMetaFactCards facts={autosLiveFacts.facts} />
+                    )}
 
                     {rentasMeta?.facts && <RentasAnuncioMetaGridCards facts={rentasMeta.facts} />}
                   </div>

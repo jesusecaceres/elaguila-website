@@ -1,5 +1,5 @@
 /**
- * Autos landing: cross-category browse pills and quick-filter chips for lista (`q`).
+ * Autos hub: cross-category browse pills and quick-filter chips for lista (`q`).
  */
 
 export type AutosLandingCategoryPill = { key: string; labelEs: string; labelEn: string };
