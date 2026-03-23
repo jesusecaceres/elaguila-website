@@ -23,6 +23,13 @@ import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { parseBusinessMeta } from "../../config/businessListingContract";
 import { inferRentasPlanTierFromListing as inferRentasPlanTier } from "../../rentas/shared/utils/rentasPlanTier";
+import { useBienesRaicesAnuncioDerived } from "../../bienes-raices/listing/hooks/useBienesRaicesAnuncioDerived";
+import { BienesRaicesAnuncioTopChrome } from "../../bienes-raices/listing/components/BienesRaicesAnuncioTopChrome";
+import { BienesRaicesLiveHeroAndSummary } from "../../bienes-raices/listing/components/BienesRaicesLiveHeroAndSummary";
+import { BienesRaicesBusinessMobileBlock } from "../../bienes-raices/listing/components/BienesRaicesBusinessMobileBlock";
+import { BienesRaicesSameCompanyListingsSection } from "../../bienes-raices/listing/components/BienesRaicesSameCompanyListingsSection";
+import { BienesRaicesPrivadoSellerRail } from "../../bienes-raices/listing/components/BienesRaicesPrivadoSellerRail";
+import { BienesRaicesNegocioDesktopBusinessRail } from "../../bienes-raices/listing/components/BienesRaicesNegocioDesktopBusinessRail";
 
 type Lang = "es" | "en";
 
@@ -445,6 +452,23 @@ export default function AnuncioDetallePage() {
   /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
   const isLiveDbListing = Boolean(listing && !sampleListing);
 
+  const {
+    brNegocioDisplay,
+    bienesRaicesSameCompanyListings,
+    bienesRaicesFacts,
+    brVirtualTourUrl,
+    isBienesRaicesNegocio,
+    isBienesRaicesPrivado,
+    brBaseAddress,
+    brBaseZone,
+    brBaseFeatureTags,
+  } = useBienesRaicesAnuncioDerived({
+    listing: listing as unknown as import("../../bienes-raices/listing/types/brAnuncioLiveTypes").BrAnuncioListingLike | undefined,
+    lang,
+    isLiveDbListing,
+    sampleListings: SAMPLE_LISTINGS as unknown as import("../../bienes-raices/listing/types/brAnuncioLiveTypes").BrSameCompanySampleItem[],
+  });
+
   const idParam = params?.id;
   const showLoading = Boolean(
     idParam && !sampleListing && (remoteState === "uninitialized" || remoteState === "loading")
@@ -693,96 +717,6 @@ export default function AnuncioDetallePage() {
     return list.slice(0, 6);
   }, [isLiveDbListing, listing, rentasBusinessMeta?.negocioPlusMasAnuncios]);
 
-  /** Parsed business_meta for Bienes Raíces (same contract as Rentas). */
-  const bienesRaicesBusinessMeta = useMemo((): Record<string, string> | null => {
-    if (!listing || listing.category !== "bienes-raices") return null;
-    return parseBusinessMeta((listing as any).business_meta);
-  }, [listing]);
-
-  /** Display values for Bienes Raíces negocio business rail (reuses same keys as Rentas). */
-  const brNegocioDisplay = useMemo(() => {
-    const isBiz =
-      listing?.sellerType === "business" || (listing as any)?.seller_type === "business";
-    if (!listing || listing.category !== "bienes-raices" || !isBiz) return null;
-    const name =
-      (listing as any).business_name ?? (listing as any).businessName ?? bienesRaicesBusinessMeta?.negocioNombre ?? "";
-    const meta = bienesRaicesBusinessMeta ?? {};
-    const website = meta.negocioSitioWeb?.trim() || "";
-    const rawSocials = meta.negocioRedes?.trim() || "";
-    const socialLinks = parseRentasSocialLinks(rawSocials);
-    let availabilityRows: Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }> = [];
-    try {
-      const raw = meta.negocioDisponibilidadPrecios?.trim();
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) availabilityRows = parsed;
-      }
-    } catch { /* ignore */ }
-    return {
-      name: name.trim() || (lang === "es" ? "Negocio" : "Business"),
-      agent: meta.negocioAgente?.trim() || "",
-      role: meta.negocioCargo?.trim() || "",
-      agentLicense: meta.negocioLicencia?.trim() || "",
-      officePhone: meta.negocioTelOficina?.trim() || "",
-      website: website || null,
-      socialLinks,
-      rawSocials: socialLinks ? "" : rawSocials,
-      logoUrl: meta.negocioLogoUrl?.trim() || null,
-      agentPhotoUrl: meta.negocioFotoAgenteUrl?.trim() || null,
-      languages: meta.negocioIdiomas?.trim() || "",
-      hours: meta.negocioHorario?.trim() || "",
-      virtualTourUrl: meta.negocioRecorridoVirtual?.trim() || null,
-      plusMoreListings: meta.negocioPlusMasAnuncios === "si",
-      businessDescription: meta.negocioDescripcion?.trim() || "",
-      availabilityRows,
-    };
-  }, [listing, bienesRaicesBusinessMeta, lang]);
-
-  /** Same-business Bienes Raíces listings for Negocio "Más anuncios de esta compañía" (when flag set). */
-  const bienesRaicesSameCompanyListings = useMemo(() => {
-    if (!listing || listing.category !== "bienes-raices") return [];
-    if (isLiveDbListing) return [];
-    const isNegocio =
-      (listing as any).sellerType === "business" || (listing as any).seller_type === "business";
-    const plusMore = bienesRaicesBusinessMeta?.negocioPlusMasAnuncios === "si";
-    if (!isNegocio || !plusMore) return [];
-    const bizName =
-      ((listing as any).business_name ?? (listing as any).businessName ?? "").trim().toLowerCase();
-    if (!bizName) return [];
-    const list = (SAMPLE_LISTINGS as unknown as Listing[]).filter((l) => {
-      if (l.category !== "bienes-raices" || l.id === listing.id) return false;
-      const otherBiz =
-        ((l as any).business_name ?? (l as any).businessName ?? "").trim().toLowerCase();
-      return otherBiz === bizName;
-    });
-    return list.slice(0, 6);
-  }, [isLiveDbListing, listing, bienesRaicesBusinessMeta?.negocioPlusMasAnuncios]);
-
-  /** Quick facts strip for Bienes Raíces. Excludes URL values (video/tour) so mobile summary stays clean; use badges for those. */
-  const bienesRaicesFacts = useMemo((): Array<{ label: string; value: string }> => {
-    if (!listing || listing.category !== "bienes-raices") return [];
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (!Array.isArray(pairs)) return [];
-    return pairs.filter((p) => {
-      const v = (p.value ?? "").trim();
-      if (v.startsWith("http://") || v.startsWith("https://")) return false;
-      return true;
-    });
-  }, [listing]);
-
-  /** BR: virtual tour URL for badge (Negocio from rail; Privado from details/detail_pairs). */
-  const brVirtualTourUrl = useMemo((): string | null => {
-    if (!listing || listing.category !== "bienes-raices") return null;
-    const fromRail = brNegocioDisplay?.virtualTourUrl?.trim();
-    if (fromRail) return fromRail;
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (Array.isArray(pairs)) {
-      const tour = pairs.find((p) => /tour|recorrido|virtual/i.test(p.label ?? "") && /^https?:\/\//i.test((p.value ?? "").trim()));
-      return tour?.value?.trim() || null;
-    }
-    return null;
-  }, [listing, brNegocioDisplay?.virtualTourUrl]);
-
   const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
@@ -1019,113 +953,7 @@ export default function AnuncioDetallePage() {
     () => (listing && listing.category === "rentas" ? inferRentasPlanTier(listing as any) : null),
     [listing]
   );
-  /** BR has only Privado vs Negocio; no Standard/Plus. Used for rail styling and same-company. */
-  const isBienesRaicesNegocio = Boolean(
-    listing?.category === "bienes-raices" &&
-      ((listing as any).sellerType === "business" || (listing as any).seller_type === "business")
-  );
-  /** Private BR (sale-by-owner): use top-half redesign (shell, hero, main info, private seller rail). */
-  const isBienesRaicesPrivado = Boolean(
-    listing?.category === "bienes-raices" && !isBienesRaicesNegocio
-  );
   const verifiedSeller = useMemo(() => isVerifiedSeller(listing as any), [listing]);
-
-  /** Private BR: address line (do not append city if already in address). */
-  const brPrivadoAddress = useMemo((): string => {
-    if (!listing || listing.category !== "bienes-raices" || isBienesRaicesNegocio) return "";
-    const details = (listing as any).details as Record<string, string> | undefined;
-    const addr = details?.enVentaAddress?.trim() ?? "";
-    if (addr) return addr;
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (Array.isArray(pairs)) {
-      const p = pairs.find((x) => /direcci[oó]n|address/i.test(x.label ?? ""));
-      return (p?.value ?? "").trim();
-    }
-    return "";
-  }, [listing, isBienesRaicesNegocio]);
-
-  /** Private BR: zone/neighborhood (secondary line if present). */
-  const brPrivadoZone = useMemo((): string => {
-    if (!listing || listing.category !== "bienes-raices" || isBienesRaicesNegocio) return "";
-    const details = (listing as any).details as Record<string, string> | undefined;
-    const z = details?.enVentaZone?.trim() ?? "";
-    if (z) return z;
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (Array.isArray(pairs)) {
-      const p = pairs.find((x) => /vecindad|neighborhood|zona|zone/i.test(x.label ?? ""));
-      return (p?.value ?? "").trim();
-    }
-    return "";
-  }, [listing, isBienesRaicesNegocio]);
-
-  /** Private BR: quick facts for pills (recámaras, baños, pies²). */
-  const brPrivadoQuickFacts = useMemo((): Array<{ label: string; value: string }> => {
-    if (!listing || listing.category !== "bienes-raices" || isBienesRaicesNegocio) return [];
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (!Array.isArray(pairs)) return [];
-    const keys = [/rec[aá]mara|bedroom/i, /ba[nñ]o|bathroom/i, /pies|sq\.?\s*ft|square/i];
-    return pairs.filter((p) => keys.some((k) => k.test(p.label ?? ""))).slice(0, 6);
-  }, [listing, isBienesRaicesNegocio]);
-
-  /** Private BR: optional feature tags (piscina, lavandería, parking, etc.) only if present; use label for display. */
-  const brPrivadoFeatureTags = useMemo((): string[] => {
-    if (!listing || listing.category !== "bienes-raices" || isBienesRaicesNegocio) return [];
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (!Array.isArray(pairs)) return [];
-    const featureLabels = [/piscina|pool/i, /lavander[ií]a|laundry/i, /estacionamiento|parking|garage/i, /jard[ií]n|garden/i, /gimnasio|gym/i];
-    const out: string[] = [];
-    for (const p of pairs) {
-      const label = (p.label ?? "").trim();
-      const value = (p.value ?? "").trim();
-      if (!value || value.startsWith("http")) continue;
-      if (featureLabels.some((re) => re.test(label))) out.push(label);
-    }
-    return out.slice(0, 8);
-  }, [listing, isBienesRaicesNegocio]);
-
-  /** BR base shell: address for both Privado and Negocio (from details or detail_pairs). */
-  const brBaseAddress = useMemo((): string => {
-    if (!listing || listing.category !== "bienes-raices") return "";
-    const details = (listing as any).details as Record<string, string> | undefined;
-    const addr = details?.enVentaAddress?.trim() ?? "";
-    if (addr) return addr;
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (Array.isArray(pairs)) {
-      const p = pairs.find((x) => /direcci[oó]n|address/i.test(x.label ?? ""));
-      return (p?.value ?? "").trim();
-    }
-    return "";
-  }, [listing]);
-
-  /** BR base shell: zone/neighborhood for both Privado and Negocio. */
-  const brBaseZone = useMemo((): string => {
-    if (!listing || listing.category !== "bienes-raices") return "";
-    const details = (listing as any).details as Record<string, string> | undefined;
-    const z = details?.enVentaZone?.trim() ?? "";
-    if (z) return z;
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (Array.isArray(pairs)) {
-      const p = pairs.find((x) => /vecindad|neighborhood|zona|zone/i.test(x.label ?? ""));
-      return (p?.value ?? "").trim();
-    }
-    return "";
-  }, [listing]);
-
-  /** BR base shell: feature tags for both Privado and Negocio (from detail_pairs). */
-  const brBaseFeatureTags = useMemo((): string[] => {
-    if (!listing || listing.category !== "bienes-raices") return [];
-    const pairs = (listing as any).detailPairs ?? (listing as any).detail_pairs as Array<{ label: string; value: string }> | undefined;
-    if (!Array.isArray(pairs)) return [];
-    const featureLabels = [/piscina|pool/i, /lavander[ií]a|laundry/i, /estacionamiento|parking|garage/i, /jard[ií]n|garden/i, /gimnasio|gym/i];
-    const out: string[] = [];
-    for (const p of pairs) {
-      const label = (p.label ?? "").trim();
-      const value = (p.value ?? "").trim();
-      if (!value || value.startsWith("http")) continue;
-      if (featureLabels.some((re) => re.test(label))) out.push(label);
-    }
-    return out.slice(0, 8);
-  }, [listing]);
 
   const proVideoInfos = useMemo(() => {
     if (!listing) return [];
@@ -1337,48 +1165,7 @@ export default function AnuncioDetallePage() {
           </div>
         </div>
 
-        {(isBienesRaicesPrivado || isBienesRaicesNegocio) && (
-          <>
-            <header className="mt-8 rounded-2xl border border-[#C9B46A]/25 bg-[#FAFAF8] shadow-sm overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-[#111111]">{lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}</span>
-                </div>
-                <div className="flex-1 min-w-0 max-w-md mx-auto">
-                  <div className="rounded-xl border border-[#C9B46A]/30 bg-white/90 px-4 py-2.5 text-sm text-[#111111]/60">
-                    {lang === "es" ? "Buscar anuncios…" : "Search listings…"}
-                  </div>
-                </div>
-                <div>
-                  <a
-                    href={`/clasificados/publicar/bienes-raices?lang=${lang}`}
-                    className="inline-block rounded-xl bg-[#2D5016] text-white px-4 py-2.5 text-sm font-semibold hover:bg-[#244012] transition"
-                  >
-                    {lang === "es" ? "Publicar" : "Post"}
-                  </a>
-                </div>
-              </div>
-            </header>
-            <nav className="mt-3 flex flex-wrap items-center gap-2" aria-label={lang === "es" ? "Secciones del anuncio" : "Listing sections"}>
-              {[
-                { id: "resumen", es: "Resumen", en: "Summary" },
-                { id: "interior", es: "Interior", en: "Interior" },
-                { id: "exterior", es: "Exterior", en: "Exterior" },
-                { id: "detalles", es: "Detalles", en: "Details" },
-                { id: "ubicacion", es: "Ubicación", en: "Location" },
-                { id: "contacto", es: "Contacto", en: "Contact" },
-              ].map(({ id, es: esLabel, en: enLabel }) => (
-                <a
-                  key={id}
-                  href={`#${id}`}
-                  className="rounded-lg border border-[#C9B46A]/30 bg-[#F8F6F0]/80 px-3 py-2 text-xs font-medium text-[#111111]/90 hover:bg-[#EFE7D8] transition"
-                >
-                  {lang === "es" ? esLabel : enLabel}
-                </a>
-              ))}
-            </nav>
-          </>
-        )}
+        {(isBienesRaicesPrivado || isBienesRaicesNegocio) && <BienesRaicesAnuncioTopChrome lang={lang} />}
 
         <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", (isBienesRaicesPrivado || isBienesRaicesNegocio) ? "mt-8" : "mt-10")}>
           {/* Main card */}
@@ -1395,104 +1182,19 @@ export default function AnuncioDetallePage() {
               )}
             >
               {(isBienesRaicesPrivado || isBienesRaicesNegocio) ? (
-                <>
-                  <div id="resumen" className="scroll-mt-24">
-                    {/* Hero gallery: large primary left, stacked right */}
-                    {(() => {
-                      const imageSlots = mediaSlots.filter((s): s is { type: "image"; url: string } => s.type === "image");
-                      const primary = imageSlots[0];
-                      const rest = imageSlots.slice(1, 4);
-                      if (!primary) {
-                        return (
-                          <div className="rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[16/10] flex items-center justify-center mb-6">
-                            <span className="text-[#111111]/50 text-sm">{lang === "es" ? "Sin imagen" : "No image"}</span>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6">
-                          <div className="md:col-span-8 rounded-xl overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[200px] flex items-center justify-center">
-                            <img src={primary.url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                          <div className="md:col-span-4 flex flex-col gap-2">
-                            {rest.slice(0, 3).map((slot, i) => (
-                              <div key={i} className="rounded-lg overflow-hidden bg-[#E8E8E8] border border-[#C9B46A]/20 aspect-[4/3] min-h-[80px] flex items-center justify-center">
-                                <img src={slot.url} alt="" className="w-full h-full object-cover" />
-                              </div>
-                            ))}
-                            {rest.length === 0 && (
-                              <div className="rounded-lg border border-[#C9B46A]/15 bg-[#F8F6F0]/50 aspect-[4/3] min-h-[80px]" aria-hidden />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {/* Main info: price, title, address, zone, quick facts, optional features (shared BR base for Privado and Negocio) */}
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">
-                          {formatListingPrice(listing.priceLabel[lang], { lang })}
-                        </div>
-                        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#111111] leading-tight">
-                          {listing.title[lang]}
-                        </h1>
-                        {(brBaseAddress || listing.city) && (
-                          <p className="mt-2 text-[#111111]/85 text-sm font-medium">
-                            {brBaseAddress || listing.city}
-                          </p>
-                        )}
-                        {brBaseZone && (
-                          <p className="mt-0.5 text-xs text-[#111111]/65">{lang === "es" ? "Vecindad: " : "Neighborhood: "}{brBaseZone}</p>
-                        )}
-                      </div>
-                      {bienesRaicesFacts.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {bienesRaicesFacts.map((f) => (
-                            <span
-                              key={`${f.label}-${f.value}`}
-                              className="rounded-full border border-[#C9B46A]/35 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]"
-                            >
-                              {f.label}: {f.value}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {brBaseFeatureTags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {brBaseFeatureTags.map((tag, i) => (
-                            <span
-                              key={i}
-                              className="rounded-lg border border-[#C9B46A]/25 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#111111]/90"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {(proVideoInfos.length > 0 || brVirtualTourUrl) && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {proVideoInfos.length > 0 && (
-                          <span className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]">
-                            {lang === "es" ? "Video disponible" : "Video available"}
-                          </span>
-                        )}
-                        {brVirtualTourUrl && (
-                          <a
-                            href={brVirtualTourUrl.startsWith("http") ? brVirtualTourUrl : `https://${brVirtualTourUrl}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center rounded-lg border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFE7D8]"
-                          >
-                            {lang === "es" ? "Tour virtual" : "Virtual tour"}
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div id="interior" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />
-                  <div id="exterior" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />
-                </>
+                <BienesRaicesLiveHeroAndSummary
+                  lang={lang}
+                  mediaSlots={mediaSlots}
+                  title={listing.title[lang]}
+                  priceLabel={listing.priceLabel[lang]}
+                  city={listing.city}
+                  brBaseAddress={brBaseAddress}
+                  brBaseZone={brBaseZone}
+                  bienesRaicesFacts={bienesRaicesFacts}
+                  brBaseFeatureTags={brBaseFeatureTags}
+                  proVideoCount={proVideoInfos.length}
+                  brVirtualTourUrl={brVirtualTourUrl}
+                />
               ) : (
                 <>
                   {mediaSlots.length > 0 && (
@@ -1712,41 +1414,12 @@ export default function AnuncioDetallePage() {
               {(isBienesRaicesPrivado || isBienesRaicesNegocio) && <div id="ubicacion" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />}
 
               {listing.category === "bienes-raices" && isBusiness && brNegocioDisplay && (
-                <div
-                  className={cx(
-                    "mt-6 rounded-2xl border p-4 sm:p-5 lg:hidden",
-                    isBienesRaicesNegocio
-                      ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.10)]"
-                      : "border-[#C9B46A]/45 bg-[#F5F5F5] ring-1 ring-[#C9B46A]/25"
-                  )}
-                  data-section="bienes-raices-business-block"
-                >
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
-                      {lang === "es" ? "Información del negocio" : "Business"}
-                    </h3>
-                  </div>
-                  <p className="text-base font-semibold text-[#111111]">{brNegocioDisplay.name}</p>
-                  {brNegocioDisplay.agent && <p className="mt-0.5 text-sm text-[#111111]/90">{brNegocioDisplay.agent}</p>}
-                  {brNegocioDisplay.role && <p className="text-xs text-[#111111]/70">{brNegocioDisplay.role}</p>}
-                  {brNegocioDisplay.officePhone && (
-                    <p className="mt-2 text-sm">
-                      <a href={`tel:${brNegocioDisplay.officePhone.replace(/\D/g, "")}`} className="font-medium hover:underline">{brNegocioDisplay.officePhone}</a>
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    className={cx(
-                      "mt-3 w-full px-4 py-3 rounded-xl font-semibold text-sm",
-                      isBienesRaicesNegocio
-                        ? "bg-[#A98C2A] text-white hover:bg-[#8f7a24]"
-                        : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
-                    )}
-                    onClick={handleContactarVendedor}
-                  >
-                    {lang === "es" ? "Solicitar información" : "Request info"}
-                  </button>
-                </div>
+                <BienesRaicesBusinessMobileBlock
+                  lang={lang}
+                  isBienesRaicesNegocio={isBienesRaicesNegocio}
+                  display={brNegocioDisplay}
+                  onRequestInfo={handleContactarVendedor}
+                />
               )}
 
               {listing.category === "rentas" && rentasAmenities.length > 0 && (
@@ -2128,40 +1801,7 @@ export default function AnuncioDetallePage() {
             {listing.category === "bienes-raices" &&
               isBienesRaicesNegocio &&
               brNegocioDisplay?.plusMoreListings && (
-                <div className="mt-10" data-section="bienes-raices-mas-anuncios">
-                  <h3 className="text-xl font-bold text-[#111111] mb-4">
-                    {lang === "es" ? "Más anuncios de esta compañía" : "More listings from this company"}
-                  </h3>
-                  {bienesRaicesSameCompanyListings.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {bienesRaicesSameCompanyListings.map((item) => (
-                        <Link
-                          key={item.id}
-                          href={`/clasificados/anuncio/${item.id}?lang=${lang}`}
-                          className="block rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 hover:bg-[#EFEFEF] transition"
-                        >
-                          <div className="text-base font-bold text-[#111111] line-clamp-2">
-                            {item.title[lang]}
-                          </div>
-                          <div className="mt-1 text-sm font-semibold text-[#111111]">
-                            {formatListingPrice(item.priceLabel[lang], { lang })}
-                          </div>
-                          <div className="mt-1 text-xs text-[#111111]">
-                            {item.city} · {item.postedAgo[lang]}
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#F8F6F0] p-5 text-center">
-                      <p className="text-sm text-[#111111]/80">
-                        {lang === "es"
-                          ? "No hay otros anuncios de esta empresa por ahora."
-                          : "No other listings from this company at the moment."}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                <BienesRaicesSameCompanyListingsSection lang={lang} items={bienesRaicesSameCompanyListings} />
               )}
 
             {/* También te puede interesar */}
@@ -2196,52 +1836,29 @@ export default function AnuncioDetallePage() {
           {/* Right rail: private BR seller card, or Rentas/BR Negocio business identity. */}
           <div className="lg:col-span-4 space-y-6">
             {isBienesRaicesPrivado ? (
-              <div
-                className="rounded-2xl border border-[#C9B46A]/25 bg-[#FAFAF8] p-5 sm:p-6 shadow-sm scroll-mt-24"
-                data-section="bienes-raices-private-seller-rail"
-                id="contacto"
-              >
-                <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
-                  {lang === "es" ? "Contactar" : "Contact"}
-                </h4>
-                <p className="text-base font-semibold text-[#111111]">
-                  {listing.sellerName ?? (listing as any).seller_name ?? (lang === "es" ? "Propietario" : "Owner")}
-                </p>
-                {(listing as any).contact_phone && (
-                  <p className="mt-2 text-sm text-[#111111]">
-                    <a href={`tel:${String((listing as any).contact_phone).replace(/\D/g, "")}`} className="font-medium hover:underline">
-                      {(listing as any).contact_phone}
-                    </a>
-                  </p>
-                )}
-                {(listing as any).contact_email && (
-                  <p className="mt-1 text-sm text-[#111111]">
-                    <a href={`mailto:${(listing as any).contact_email}`} className="font-medium hover:underline break-all">
-                      {(listing as any).contact_email}
-                    </a>
-                  </p>
-                )}
-                <div className="mt-4 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 rounded-xl font-semibold text-sm bg-[#2D5016] text-white hover:bg-[#244012] transition"
-                    onClick={handleContactarVendedor}
-                  >
-                    {lang === "es" ? "Solicitar información" : "Request info"}
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 rounded-xl font-semibold text-sm border border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8] transition"
-                    onClick={handleContactarVendedor}
-                  >
-                    {lang === "es" ? "Programar visita" : "Schedule visit"}
-                  </button>
-                </div>
-              </div>
-            ) : ((listing.category === "rentas" && isBusiness && rentasNegocioDisplay) || (listing.category === "bienes-raices" && isBusiness && brNegocioDisplay)) ? (
+              <BienesRaicesPrivadoSellerRail
+                lang={lang}
+                sellerName={listing.sellerName ?? (listing as any).seller_name ?? (lang === "es" ? "Propietario" : "Owner")}
+                contactPhone={(listing as any).contact_phone}
+                contactEmail={(listing as any).contact_email}
+                onRequestInfo={handleContactarVendedor}
+                onScheduleVisit={handleContactarVendedor}
+              />
+            ) : listing.category === "bienes-raices" && isBusiness && brNegocioDisplay ? (
+              <BienesRaicesNegocioDesktopBusinessRail
+                lang={lang}
+                display={brNegocioDisplay}
+                listing={{
+                  contact_phone: (listing as any).contact_phone,
+                  contact_email: (listing as any).contact_email,
+                }}
+                onRequestInfo={handleContactarVendedor}
+                onScheduleVisit={handleContactarVendedor}
+              />
+            ) : listing.category === "rentas" && isBusiness && rentasNegocioDisplay ? (
               (() => {
-                const railDisplay = listing.category === "rentas" ? rentasNegocioDisplay! : brNegocioDisplay!;
-                const railTier = listing.category === "rentas" ? rentasPlanTier : (isBienesRaicesNegocio ? "business_plus" : null);
+                const railDisplay = rentasNegocioDisplay!;
+                const railTier = rentasPlanTier;
                 return (
                   <div
                     className={cx(
@@ -2250,13 +1867,12 @@ export default function AnuncioDetallePage() {
                         ? "border-yellow-300/50 bg-[#FAFAF8] ring-1 ring-yellow-300/20 shadow-[0_2px_12px_-4px_rgba(250,204,21,0.12)]"
                         : "border-[#C9B46A]/45 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-sm"
                     )}
-                    data-section={listing.category === "rentas" ? "rentas-business-rail" : "bienes-raices-business-rail"}
+                    data-section="rentas-business-rail"
                   >
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide">
                         {lang === "es" ? "Identidad del negocio" : "Business"}
                       </h4>
-                      {/* No Plus/Standard badges — single Negocio lane for BR and Rentas. */}
                     </div>
                     <div className="flex flex-col gap-4">
                       {(railDisplay.logoUrl || railDisplay.agentPhotoUrl) && (
@@ -2392,24 +2008,14 @@ export default function AnuncioDetallePage() {
                       <div className="mt-3 flex flex-col gap-2">
                         <button
                           type="button"
-                          className={cx(
-                            "w-full px-4 py-3 rounded-xl font-semibold transition text-sm",
-                            listing.category === "bienes-raices" && isBienesRaicesNegocio
-                              ? "bg-[#A98C2A] text-white hover:bg-[#8f7a24] border border-[#A98C2A]"
-                              : "bg-[#111111] text-[#F5F5F5] hover:opacity-95"
-                          )}
+                          className="w-full px-4 py-3 rounded-xl font-semibold transition text-sm bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                           onClick={handleContactarVendedor}
                         >
                           {lang === "es" ? "Solicitar información" : "Request info"}
                         </button>
                         <button
                           type="button"
-                          className={cx(
-                            "w-full px-4 py-3 rounded-xl font-semibold border transition text-sm",
-                            listing.category === "bienes-raices" && isBienesRaicesNegocio
-                              ? "border-[#A98C2A]/60 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
-                              : "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
-                          )}
+                          className="w-full px-4 py-3 rounded-xl font-semibold border transition text-sm border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
                           onClick={handleContactarVendedor}
                         >
                           {lang === "es" ? "Programar visita" : "Schedule visit"}
