@@ -6,7 +6,7 @@
 import { getPublishCategoryFields } from "@/app/clasificados/config/publishCategoryFields";
 import { appendBrNegocioLongTailDetailPairs } from "@/app/clasificados/bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
 import { getBienesRaicesPublishStructuredDetailPairs } from "@/app/clasificados/bienes-raices/shared/mapping/bienesRaicesPublishDetailPairs";
-import { getArticuloLabel } from "@/app/clasificados/en-venta/utils/enVentaTaxonomy";
+import { getArticuloLabel } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 import { getRentasPublishStructuredDetailPairs } from "@/app/clasificados/rentas/shared/mapping/rentasPublishDetailPairs";
 import { buildDetailsAppendixFromPairs, type PublishLang } from "./buildDetailsAppendix";
 

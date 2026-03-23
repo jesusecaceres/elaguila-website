@@ -6,7 +6,7 @@
 import {
   EN_VENTA_PUBLISH_CONDITION_OPTIONS,
   EN_VENTA_SUBCATEGORIES,
-} from "@/app/clasificados/en-venta/utils/enVentaTaxonomy";
+} from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 
 export type DetailField = {
   key: string;

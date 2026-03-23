@@ -37,7 +37,7 @@ import {
   EN_VENTA_SUBCATEGORIES,
   getArticuloOptionsForSubcategory,
   EN_VENTA_PUBLISH_CONDITION_OPTIONS,
-} from "../../en-venta/utils/enVentaTaxonomy";
+} from "../../en-venta/shared/fields/enVentaTaxonomy";
 import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
