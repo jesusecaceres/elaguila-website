@@ -21,5 +21,5 @@ export function buildHubListUrl(lang: Lang, cat?: HubCategoryKey): string {
 }
 
 export function buildHubPostEntryHref(lang: Lang): string {
-  return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
+  return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/bienes-raices?lang=${lang}`)}`;
 }

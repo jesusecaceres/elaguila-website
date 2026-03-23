@@ -64,16 +64,7 @@ export function buildPublishRequirementItems(params: {
       ok: requirements.cityOk,
       step: "basics",
     },
-    ...(categoryFromUrl === "en-venta"
-      ? [
-          {
-            key: "itemDetails" as const,
-            label: lang === "es" ? "Subcategoría, artículo y condición" : "Subcategory, item type and condition",
-            ok: requirements.ventaMarketplaceMetaOk,
-            step: "basics" as const,
-          },
-        ]
-      : categoryFromUrl === "rentas"
+    ...(categoryFromUrl === "rentas"
         ? [
             {
               key: "rentasDetails" as const,
@@ -160,13 +151,7 @@ export function buildMissingBasicsRequirementsText(
 }
 
 export function computeBasicsOk(categoryFromUrl: string, requirements: PublishRequirements): boolean {
-  return categoryFromUrl === "en-venta"
-    ? requirements.ventaMarketplaceMetaOk &&
-      requirements.titleOk &&
-      requirements.descOk &&
-      requirements.priceOk &&
-      requirements.cityOk
-    : categoryFromUrl === "rentas"
+  return categoryFromUrl === "rentas"
       ? requirements.rentasMetaOk &&
         requirements.titleOk &&
         requirements.descOk &&
@@ -187,14 +172,6 @@ export function getFirstBasicsInvalidElementId(
   requirements: PublishRequirements
 ): string | null {
   if (computeBasicsOk(categoryFromUrl, requirements)) return null;
-  if (categoryFromUrl === "en-venta") {
-    if (!requirements.ventaMarketplaceMetaOk) return "publish-basics-venta-marketplace-meta";
-    if (!requirements.titleOk) return "publish-basics-title";
-    if (!requirements.descOk) return "publish-basics-desc";
-    if (!requirements.priceOk) return "publish-basics-price";
-    if (!requirements.cityOk) return "publish-basics-city";
-    return null;
-  }
   if (categoryFromUrl === "rentas") {
     if (!requirements.rentasMetaOk) return "publish-basics-rentas-meta";
     if (!requirements.titleOk) return "publish-basics-title";

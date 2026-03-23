@@ -34,11 +34,6 @@ import { categoryConfig, type CategoryKey } from "../../config/categoryConfig";
 import { getPublishCategoryFields } from "../../config/publishCategoryFields";
 import { getStepOrderForCategory } from "../../config/categorySchema";
 import {
-  EN_VENTA_SUBCATEGORIES,
-  getArticuloOptionsForSubcategory,
-  EN_VENTA_PUBLISH_CONDITION_OPTIONS,
-} from "../../en-venta/shared/fields/enVentaTaxonomy";
-import {
   RENTAS_SUBCATEGORIES,
   getTipoOptionsForSubcategory,
 } from "../../rentas/shared/fields/rentasTaxonomy";
@@ -72,15 +67,15 @@ import {
   BR_NEGOCIO_PRICE_WEEKLY,
   BR_PRIVADO_PRICE_PER_POST,
 } from "../../bienes-raices/shared/publish/brPublishPricing";
-import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
 import { buildPublishDraftSnapshot } from "../../lib/publishDraftSnapshot";
 import {
   coalesceNegocioAgenteFromWizard,
   coalesceNegocioNombreFromWizard,
   coalesceWizardDetailValue,
-} from "../../en-venta/publish/coalesceWizardDetailValue";
-import { LEGACY_WIZARD_BR_DETAIL } from "../../en-venta/publish/wizardDraftLegacyKeys";
-import { stripLegacySharedWizardBrKeys } from "../../en-venta/publish/stripLegacySharedWizardBrKeys";
+} from "../../lib/legacyWizardCoalesce";
+import { LEGACY_WIZARD_BR_DETAIL } from "../../lib/legacyWizardDraftKeys";
+import { stripLegacySharedWizardBrKeys } from "../../lib/stripLegacySharedWizardBrKeys";
+import { EnVentaComingSoon } from "../../en-venta/EnVentaComingSoon";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
 import { BienesRaicesPublishTrackStep } from "../../bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
@@ -345,7 +340,7 @@ function getStableSessionId(userId: string | null): string {
 }
 
 
-export default function PublicarPage() {
+function PublicarCategoryPageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -355,7 +350,7 @@ export default function PublicarPage() {
   const lang: Lang = urlLang === "en" ? "en" : "es";
 
   const slugFromUrl = (params?.category ?? "").trim().toLowerCase();
-  const categoryFromUrl = normalizeCategory(params?.category ?? "") || "en-venta";
+  const categoryFromUrl = normalizeCategory(params?.category ?? "") || "bienes-raices";
   const showFormPlaceholder = slugFromUrl !== "" && normalizeCategory(params?.category ?? "") === "";
 
   // Prefill support (used by category-specific pre-forms like Restaurants)
@@ -372,7 +367,7 @@ export default function PublicarPage() {
   }, [searchParams]);
 
   const redirectForLogin = useMemo(() => {
-    const slug = categoryFromUrl || "en-venta";
+    const slug = categoryFromUrl || "bienes-raices";
     const qs = searchParams?.toString() ?? "";
     const here = qs
       ? `/clasificados/publicar/${slug}?${qs}`
@@ -387,15 +382,15 @@ export default function PublicarPage() {
       if (draftId) p.set("draftId", draftId);
       else p.delete("draftId");
       const qs = p.toString();
-      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
+      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "bienes-raices"}`;
       router.replace(qs ? `${path}?${qs}` : path);
     },
     [router, pathname, searchParams, categoryFromUrl]
   );
 
   const [step, setStep] = useState<PublishStep>(() => {
-    const cat = categoryFromUrl || "en-venta";
-    const steps: PublishStep[] = cat === "en-venta" ? ["category", "basics", "media"] : cat === "rentas" ? ["category", "rentas-track", "basics", "details", "media"] : cat === "bienes-raices" ? ["category", "bienes-raices-track", "basics", "media"] : ["category", "basics", "details", "media"];
+    const cat = categoryFromUrl || "bienes-raices";
+    const steps: PublishStep[] = cat === "rentas" ? ["category", "rentas-track", "basics", "details", "media"] : cat === "bienes-raices" ? ["category", "bienes-raices-track", "basics", "media"] : ["category", "basics", "details", "media"];
     const s = searchParams?.get("step")?.trim();
     if (s && (["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"] as const).includes(s as PublishStep) && steps.includes(s as PublishStep)) return s as PublishStep;
     if (cat === "bienes-raices" && s === "details") return "media";
@@ -405,8 +400,7 @@ export default function PublicarPage() {
 
   /** Full step order for current category. BR has no details step (category → bienes-raices-track → basics → media). */
   const stepsForCategory = useMemo((): PublishStep[] => {
-    const cat = categoryFromUrl || "en-venta";
-    if (cat === "en-venta") return ["category", "basics", "media"];
+    const cat = categoryFromUrl || "bienes-raices";
     if (cat === "rentas") return ["category", "rentas-track", "basics", "details", "media"];
     if (cat === "bienes-raices") return ["category", "bienes-raices-track", "basics", "media"];
     return ["category", "basics", "details", "media"];
@@ -432,7 +426,7 @@ export default function PublicarPage() {
         if (br === "privado" || br === "negocio") p.set("branch", br);
         else p.delete("branch");
       }
-      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
+      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "bienes-raices"}`;
       router.replace(`${path}?${p.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams, categoryFromUrl]
@@ -448,7 +442,7 @@ export default function PublicarPage() {
         if (br === "privado" || br === "negocio") p.set("branch", br);
         else p.delete("branch");
       }
-      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "en-venta"}`;
+      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "bienes-raices"}`;
       router.push(`${path}?${p.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams, categoryFromUrl]
@@ -481,17 +475,6 @@ export default function PublicarPage() {
 
   // Free listing rules: 7 days, 3 photos, no video, no boosts. Free reposts: 2 max.
   const FREE_REPOST_LIMIT = 2;
-  // Garage Mode (Free-only, En Venta only) — +4 temporary listings for 7 days, once per 30 days.
-  const FREE_EN_VENTA_LIMIT = 2;
-  const GARAGE_EXTRA = 4;
-  const GARAGE_WINDOW_DAYS = 7;
-  const GARAGE_COOLDOWN_DAYS = 30;
-
-  const [ventaMarketplaceActiveCount, setVentaMarketplaceActiveCount] = useState<number | null>(null);
-  const [garageActive, setGarageActive] = useState(false);
-  const [garageExpiresAt, setGarageExpiresAt] = useState<string>("");
-  const [garageLastUsedAt, setGarageLastUsedAt] = useState<string>("");
-  const [garageLoading, setGarageLoading] = useState(false);
   const [videoFiles, setVideoFiles] = useState<[File | null, File | null]>([null, null]);
   const [videoThumbBlobs, setVideoThumbBlobs] = useState<[Blob | null, Blob | null]>([null, null]);
   const [videoErrors, setVideoErrors] = useState<[string, string]>(["", ""]);
@@ -565,18 +548,9 @@ export default function PublicarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
-  const stepOrder: PublishStep[] = getStepOrderForCategory(category || "en-venta");
-  const isEnVentaFlow = stepOrder.length === 3;
-  const safeStepForProgress: PublishStep =
-    (isEnVentaFlow && step === "details") || (categoryFromUrl === "bienes-raices" && step === "details") ? "media" : step;
+  const stepOrder: PublishStep[] = getStepOrderForCategory(category || "bienes-raices");
+  const safeStepForProgress: PublishStep = categoryFromUrl === "bienes-raices" && step === "details" ? "media" : step;
   const currentStepIndex = Math.max(0, stepOrder.indexOf(safeStepForProgress));
-
-  // En Venta has no "details" step; normalize invalid ?step=details to media.
-  useEffect(() => {
-    if (categoryFromUrl === "en-venta" && step === "details") {
-      setStep("media");
-    }
-  }, [categoryFromUrl, step]);
 
   // BR has no details step; normalize ?step=details or stray step state to media so BR never lands on the legacy details screen.
   useEffect(() => {
@@ -929,14 +903,6 @@ export default function PublicarPage() {
           "";
         const plan = String(planRaw).toLowerCase();
         setIsPro(plan.includes("pro"));
-
-        const gm = (data.user.user_metadata as any)?.garage_mode_en_venta || null;
-        const lastUsed = (gm && (gm.lastUsedAt || gm.last_used_at || gm.last_used)) ? String(gm.lastUsedAt || gm.last_used_at || gm.last_used) : "";
-        const expires = (gm && (gm.expiresAt || gm.expires_at || gm.expires)) ? String(gm.expiresAt || gm.expires_at || gm.expires) : "";
-        setGarageLastUsedAt(lastUsed);
-        setGarageExpiresAt(expires);
-        const expD = parseIsoMaybe(expires);
-        setGarageActive(!!(expD && expD.getTime() > Date.now()));
 
         setChecking(false);
       } catch {
@@ -1616,53 +1582,6 @@ export default function PublicarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional single run with current publish
   }, [searchParams]);
 
-  // Load active listing count for Garage Mode messaging (Free-only, En Venta).
-  useEffect(() => {
-    if (!signedIn || !userId) return;
-
-    if (category !== "en-venta") {
-      setVentaMarketplaceActiveCount(null);
-      return;
-    }
-
-    let mounted = true;
-    async function loadCount() {
-      setGarageLoading(true);
-      try {
-        const supabase = createSupabaseBrowserClient();
-
-        // Try the most correct query first (status + owner_id). Fall back safely if schema differs.
-        const base = supabase.from("listings").select("id", { count: "exact", head: true }).eq("category", "en-venta");
-
-        // Attempt with owner_id + status=active
-        let r = await base.eq("owner_id", userId).eq("status", "active");
-        if (r.error) {
-          const msg = String(r.error.message || "");
-          // Missing status column
-          if (/status/i.test(msg) && /(does not exist|unknown|column)/i.test(msg)) {
-            r = await base.eq("owner_id", userId);
-          }
-        }
-
-        if (r.error) {
-          // If owner_id column is missing, we can't enforce Garage Mode safely.
-          if (mounted) setVentaMarketplaceActiveCount(null);
-          return;
-        }
-
-        if (mounted) setVentaMarketplaceActiveCount(typeof r.count === "number" ? r.count : 0);
-      } finally {
-        if (mounted) setGarageLoading(false);
-      }
-    }
-
-    loadCount();
-    return () => {
-      mounted = false;
-    };
-  }, [signedIn, userId, category]);
-
-
   // Draft autosave to localStorage (quick resilience) — 250ms debounce
   useEffect(() => {
     if (draftKey === "listing_draft_ssr" || showDraftRestoreModal) return;
@@ -1763,7 +1682,7 @@ export default function PublicarPage() {
         Object.values(payload.details || {}).some((v) => (v || "").trim());
       if (!draftId && !hasContent) return;
 
-      const categorySlug = payload.category || "en-venta";
+      const categorySlug = payload.category || "bienes-raices";
       const rentasBranch = (payload.details?.rentasBranch ?? "").trim().toLowerCase();
       const bienesRaicesBranch = (payload.details?.bienesRaicesBranch ?? "").trim().toLowerCase();
       if (categorySlug === "rentas" && rentasBranch !== "privado" && rentasBranch !== "negocio") {
@@ -2084,58 +2003,6 @@ export default function PublicarPage() {
     [requirementItems, lang]
   );
 
-  const garage = useMemo(() => {
-    if (category !== "en-venta") {
-      return {
-        applicable: false,
-        active: false,
-        eligibleToActivate: false,
-        effectiveLimit: null as number | null,
-        remaining: null as number | null,
-        cooldownDaysLeft: null as number | null,
-      };
-    }
-
-    const now = new Date();
-    const expD = parseIsoMaybe(garageExpiresAt);
-    const lastD = parseIsoMaybe(garageLastUsedAt);
-
-    const active = !!(expD && expD.getTime() > now.getTime());
-    const cooldownDaysLeft =
-      lastD && Number.isFinite(lastD.getTime())
-        ? Math.max(0, GARAGE_COOLDOWN_DAYS - daysBetween(lastD, now))
-        : 0;
-
-    const effectiveLimit = FREE_EN_VENTA_LIMIT + (active ? GARAGE_EXTRA : 0);
-
-    const remaining =
-      typeof ventaMarketplaceActiveCount === "number"
-        ? Math.max(0, effectiveLimit - ventaMarketplaceActiveCount)
-        : null;
-
-    const eligibleToActivate =
-      !isPro && !active && cooldownDaysLeft === 0 && typeof ventaMarketplaceActiveCount === "number" && ventaMarketplaceActiveCount >= FREE_EN_VENTA_LIMIT;
-
-    return {
-      applicable: !isPro,
-      active,
-      eligibleToActivate,
-      effectiveLimit,
-      remaining,
-      cooldownDaysLeft,
-    };
-  }, [
-    category,
-    isPro,
-    ventaMarketplaceActiveCount,
-    garageExpiresAt,
-    garageLastUsedAt,
-    FREE_EN_VENTA_LIMIT,
-    GARAGE_EXTRA,
-    GARAGE_COOLDOWN_DAYS,
-  ]);
-
-
   function deleteDraft() {
     if (draftId && userId) {
       try {
@@ -2293,68 +2160,6 @@ async function publish() {
 
     setPublishing(true);
     try {
-      // Garage Mode enforcement (Free-only, En Venta only).
-      if (!isPro && categoryFromUrl === "en-venta" && typeof ventaMarketplaceActiveCount === "number") {
-        const now = new Date();
-        const expD = parseIsoMaybe(garageExpiresAt);
-        const lastD = parseIsoMaybe(garageLastUsedAt);
-
-        const garageIsActive = !!(expD && expD.getTime() > now.getTime());
-        const cooldownLeft =
-          lastD && Number.isFinite(lastD.getTime())
-            ? Math.max(0, GARAGE_COOLDOWN_DAYS - daysBetween(lastD, now))
-            : 0;
-
-        const effectiveLimit = FREE_EN_VENTA_LIMIT + (garageIsActive ? GARAGE_EXTRA : 0);
-
-        // Hard stop if user is already at/over the maximum possible during the window.
-        if (ventaMarketplaceActiveCount >= effectiveLimit) {
-          const expText = garageIsActive && expD ? expD.toLocaleDateString(lang === "es" ? "es-US" : "en-US") : "";
-          const msg =
-            lang === "es"
-              ? garageIsActive
-                ? `Has alcanzado tu límite actual de En Venta (${effectiveLimit}). Tu Modo Garaje está activo hasta ${expText}. Marca anuncios como vendidos o espera, o mejora a LEONIX Pro.`
-                : `Has alcanzado tu límite de En Venta (${FREE_EN_VENTA_LIMIT}). Para publicar más, mejora a LEONIX Pro.`
-              : garageIsActive
-                ? `You’ve reached your current For Sale limit (${effectiveLimit}). Garage Mode is active until ${expText}. Mark items sold or wait, or upgrade to LEONIX Pro.`
-                : `You’ve reached your For Sale limit (${FREE_EN_VENTA_LIMIT}). To post more, upgrade to LEONIX Pro.`;
-          setPublishError(msg);
-          return;
-        }
-
-        // If user is at/over the free limit and Garage Mode is not active, try to activate once per 30 days.
-        if (!garageIsActive && ventaMarketplaceActiveCount >= FREE_EN_VENTA_LIMIT) {
-          if (cooldownLeft > 0) {
-            const msg =
-              lang === "es"
-                ? `Ya usaste el Modo Garaje recientemente. Podrás usarlo de nuevo en ${cooldownLeft} día(s). Mientras tanto, mejora a LEONIX Pro para publicar sin límites de Free.`
-                : `You’ve used Garage Mode recently. You can use it again in ${cooldownLeft} day(s). Meanwhile, upgrade to LEONIX Pro to post beyond Free limits.`;
-            setPublishError(msg);
-            return;
-          }
-
-          // Activate Garage Mode now (7-day window, +4 listings). Store in user_metadata to persist.
-          const newExpires = isoPlusDays(GARAGE_WINDOW_DAYS);
-          const newMeta: any = {
-            ...(await supabase.auth.getUser()).data.user?.user_metadata,
-            garage_mode_en_venta: {
-              lastUsedAt: now.toISOString(),
-              expiresAt: newExpires,
-            },
-          };
-
-          const up = await supabase.auth.updateUser({ data: newMeta });
-          if (up.error) {
-            // If metadata update fails, we don't risk breaking publish; we just continue with Free rules.
-            console.warn("garage mode metadata update failed", up.error.message);
-          } else {
-            setGarageLastUsedAt(now.toISOString());
-            setGarageExpiresAt(newExpires);
-            setGarageActive(true);
-          }
-        }
-      }
-
       const snap = publishDraftSnapshot;
       const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details, snap.cityCanonical ?? snap.city)).trim();
       const rentasBranch = (snap.details.rentasBranch ?? "").trim();
@@ -2502,11 +2307,6 @@ async function publish() {
       } finally {
         setUploadProgress(null);
       }
-      // Optimistic local count update for Free En Venta caps (keeps UI in sync without extra fetch).
-      if (!isPro && categoryFromUrl === "en-venta" && typeof ventaMarketplaceActiveCount === "number") {
-        setVentaMarketplaceActiveCount((prev) => (typeof prev === "number" ? prev + 1 : prev));
-      }
-
 
 // Pro video upload (optional, Pro-only). BR negocio: 1 video; others: up to 2.
 const videoLimit = categoryFromUrl === "bienes-raices" ? 1 : 2;
@@ -2767,10 +2567,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 {lang === "es" ? "Formulario disponible próximamente." : "Form available soon."}
               </p>
               <Link
-                href={`/clasificados/publicar/en-venta${lang ? `?lang=${lang}` : ""}`}
+                href={`/clasificados/publicar/bienes-raices${lang ? `?lang=${lang}` : ""}`}
                 className="mt-4 inline-block rounded-xl bg-[#A98C2A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f7a24]"
               >
-                {lang === "es" ? "Publicar en En Venta" : "Post in For Sale"}
+                {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real Estate"}
               </Link>
             </div>
           )}
@@ -3050,7 +2850,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               {copy.proPreviewViewFreeCta}
                             </button>
                             <Link
-                              href={categoryFromUrl === "en-venta" ? `/clasificados/publicar/en-venta/pro?lang=${lang}` : `/clasificados/membresias?lang=${lang}`}
+                              href={`/clasificados/membresias?lang=${lang}`}
                               className="flex-1 min-w-0 w-full sm:max-w-none rounded-xl font-semibold py-3.5 text-center transition bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                             >
                               {copy.proPreviewUpgradeCta}
@@ -3364,252 +3164,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 {step === "basics" && (
                   <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
                     <h2 className="text-lg font-semibold text-[#111111]">{copy.basicsTitle}</h2>
-                    {false && !isPro && categoryFromUrl === "en-venta" && (
-                      <div className="mt-4 rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-semibold text-[#111111]">
-                              {lang === "es" ? "Modo Garaje" : "Garage Mode"}
-                            </div>
-                            <p className="mt-1 text-xs text-[#111111] max-w-xl">
-                              {lang === "es"
-                                ? "Solo para usuarios Free en En Venta. Cuando llegas al límite, puedes desbloquear +4 anuncios por 7 días (1 vez cada 30 días)."
-                                : "Free users in For Sale only. When you hit the limit, unlock +4 listings for 7 days (once every 30 days)."}
-                            </p>
-                          </div>
-
-                          <div className="text-xs text-[#111111]">
-                            {garageLoading
-                              ? (lang === "es" ? "Calculando…" : "Calculating…")
-                              : typeof ventaMarketplaceActiveCount === "number"
-                                ? (lang === "es"
-                                    ? `Activos: ${ventaMarketplaceActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`
-                                    : `Active: ${ventaMarketplaceActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`)
-                                : (lang === "es" ? "Activos: —" : "Active: —")}
-                          </div>
-                        </div>
-
-                        {garage.active && garageExpiresAt && (
-                          <div className="mt-3 rounded-xl border border-yellow-400/20 bg-[#F2EFE8] p-3 text-xs text-[#111111]">
-                            {lang === "es"
-                              ? `Modo Garaje activo hasta ${new Date(garageExpiresAt).toLocaleDateString("es-US")}.`
-                              : `Garage Mode active until ${new Date(garageExpiresAt).toLocaleDateString("en-US")}.`}
-                          </div>
-                        )}
-
-                        {!garage.active && typeof garage.cooldownDaysLeft === "number" && (garage.cooldownDaysLeft ?? 0) > 0 && (
-                          <div className="mt-3 rounded-xl border border-black/10 bg-[#F5F5F5] p-3 text-xs text-[#111111]">
-                            {lang === "es"
-                              ? `Disponible de nuevo en ${garage.cooldownDaysLeft ?? 0} día(s).`
-                              : `Available again in ${garage.cooldownDaysLeft ?? 0} day(s).`}
-                          </div>
-                        )}
-
-                        {!garage.active && garage.eligibleToActivate && (
-                          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-xs text-emerald-100">
-                            {lang === "es"
-                              ? "Estás en el límite. Al publicar, activaremos Modo Garaje automáticamente para darte +4 anuncios por 7 días."
-                              : "You’re at the limit. When you publish, we’ll automatically activate Garage Mode to give you +4 listings for 7 days."}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-
                     <div className="mt-4 grid gap-4">
-                      {categoryFromUrl === "en-venta" ? (
-                        <EnVentaPublishShell>
-                        <>
-                          {/* En Venta: item-selling Basics (subcategoría, artículo, condición, title, description, price, city) */}
-                          <div
-                            id="publish-basics-venta-marketplace-meta"
-                            className={cx(
-                              "grid grid-cols-1 sm:grid-cols-2 gap-3",
-                              basicsShowValidation && !requirements.ventaMarketplaceMetaOk && "rounded-xl p-2 ring-2 ring-red-500/45"
-                            )}
-                          >
-                            <div>
-                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subcategoría" : "Subcategory"}{" *"}</label>
-                              <select
-                                value={details.rama ?? ""}
-                                onChange={(e) => setDetails((prev) => ({ ...prev, rama: e.target.value, itemType: "" }))}
-                                aria-invalid={basicsShowValidation && !details.rama?.trim()}
-                                className={cx(
-                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
-                                  basicsShowValidation && !details.rama?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
-                                )}
-                              >
-                                <option value="">{lang === "es" ? "Elige subcategoría…" : "Choose subcategory…"}</option>
-                                {EN_VENTA_SUBCATEGORIES.map((s) => (
-                                  <option key={s.key} value={s.key}>{lang === "es" ? s.label.es : s.label.en}</option>
-                                ))}
-                              </select>
-                              {!details.rama?.trim() && (
-                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
-                              )}
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Artículo" : "Item type"}{" *"}</label>
-                              {(() => {
-                                const articuloResult = getArticuloOptionsForSubcategory(details.rama ?? "");
-                                const disabled = !(details.rama ?? "").trim();
-                                const itemErr = basicsShowValidation && !disabled && !details.itemType?.trim();
-                                if (articuloResult.type === "grouped") {
-                                  return (
-                                    <select
-                                      value={details.itemType ?? ""}
-                                      onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
-                                      disabled={disabled}
-                                      aria-invalid={!!itemErr}
-                                      className={cx(
-                                        "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60",
-                                        itemErr ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
-                                      )}
-                                    >
-                                      <option value="">{disabled ? (lang === "es" ? "Elige subcategoría primero" : "Choose subcategory first") : (lang === "es" ? "Elige artículo…" : "Choose item…")}</option>
-                                      {articuloResult.groups.map((g) => (
-                                        <optgroup key={g.groupLabel.es} label={lang === "es" ? g.groupLabel.es : g.groupLabel.en}>
-                                          {g.options.map((o) => (
-                                            <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>
-                                          ))}
-                                        </optgroup>
-                                      ))}
-                                    </select>
-                                  );
-                                }
-                                return (
-                                  <select
-                                    value={details.itemType ?? ""}
-                                    onChange={(e) => setDetails((prev) => ({ ...prev, itemType: e.target.value }))}
-                                    disabled={disabled}
-                                    aria-invalid={!!itemErr}
-                                    className={cx(
-                                      "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60",
-                                      itemErr ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
-                                    )}
-                                  >
-                                    <option value="">{disabled ? (lang === "es" ? "Elige subcategoría primero" : "Choose subcategory first") : (lang === "es" ? "Elige artículo…" : "Choose item…")}</option>
-                                    {articuloResult.options.map((o) => (
-                                      <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>
-                                    ))}
-                                  </select>
-                                );
-                              })()}
-                              {!details.itemType?.trim() && details.rama?.trim() && (
-                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
-                              )}
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Condición" : "Condition"}{" *"}</label>
-                              <select
-                                value={details.condition ?? ""}
-                                onChange={(e) => setDetails((prev) => ({ ...prev, condition: e.target.value }))}
-                                aria-invalid={basicsShowValidation && !details.condition?.trim()}
-                                className={cx(
-                                  "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
-                                  basicsShowValidation && !details.condition?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
-                                )}
-                              >
-                                <option value="">{lang === "es" ? "Elige condición…" : "Choose condition…"}</option>
-                                {EN_VENTA_PUBLISH_CONDITION_OPTIONS.map((c) => (
-                                  <option key={c.value} value={c.value}>{lang === "es" ? c.labelEs : c.labelEn}</option>
-                                ))}
-                              </select>
-                              {!details.condition?.trim() && (
-                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
-                              )}
-                            </div>
-                          </div>
-                          <div id="publish-basics-title">
-                            <label className="text-sm font-medium text-[#111111]">{copy.fieldTitle}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Un título claro ayuda a que te encuentren." : "A clear title helps people find your listing."}</p>
-                            <input
-                              value={title}
-                              onChange={(e) => setTitle(e.target.value)}
-                              placeholder={lang === "es" ? "Ej: Sofá en excelente condición" : "e.g. Great-condition sofa"}
-                              aria-invalid={basicsShowValidation && !requirements.titleOk}
-                              className={cx(
-                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
-                                basicsShowValidation && !requirements.titleOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
-                              )}
-                            />
-                            {!requirements.titleOk && (
-                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>
-                            )}
-                          </div>
-                          <div id="publish-basics-desc">
-                            <label className="text-sm font-medium text-[#111111]">{copy.fieldDesc}{" *"}</label>
-                            <p className="mt-1 text-xs text-[#111111]/60">{lang === "es" ? "Describe el estado, medidas, entrega, etc." : "Describe condition, size, pickup/delivery, etc."}</p>
-                            <textarea
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
-                              placeholder={lang === "es" ? "Describe el estado, medidas, entrega, etc." : "Describe condition, size, pickup/delivery, etc."}
-                              rows={5}
-                              aria-invalid={basicsShowValidation && !requirements.descOk}
-                              className={cx(
-                                "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
-                                basicsShowValidation && !requirements.descOk ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
-                              )}
-                            />
-                            {!requirements.descOk && (
-                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Mínimo 5 caracteres." : "Min 5 characters."}</div>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="sm:col-span-2" id="publish-basics-price">
-                              <label className="text-sm font-medium text-[#111111]">{copy.fieldPrice}{" *"}</label>
-                              <input
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                                disabled={isFree}
-                                placeholder={lang === "es" ? "Ej: 120" : "e.g. 120"}
-                                aria-invalid={basicsShowValidation && !requirements.priceOk}
-                                className={cx(
-                                  "mt-2 w-full rounded-xl border px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2",
-                                  isFree
-                                    ? "border-white/5 bg-[#F5F5F5] text-[#111111]"
-                                    : basicsShowValidation && !requirements.priceOk
-                                      ? "border-red-500 ring-1 ring-red-500/35 bg-white/90 focus:ring-yellow-400/30"
-                                      : "border-black/10 bg-white/90 focus:ring-yellow-400/30"
-                                )}
-                              />
-                              {!requirements.priceOk && (
-                                <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Agrega un precio o marca Gratis." : "Add a price or mark Free."}</div>
-                              )}
-                            </div>
-                            <div className="sm:col-span-1">
-                              <label className="text-sm font-medium text-[#111111]">{copy.freeToggle}</label>
-                              <button
-                                type="button"
-                                onClick={() => { setIsFree((v) => !v); if (!isFree) setPrice(""); }}
-                                className={cx(
-                                  "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-semibold",
-                                  isFree ? "border-[#C9B46A]/50 bg-[#F8F6F0] text-[#111111]" : "border-black/10 bg-white/90 text-[#111111] hover:bg-white/12"
-                                )}
-                              >
-                                {isFree ? (lang === "es" ? "Sí, es Gratis" : "Yes, it's Free") : (lang === "es" ? "No" : "No")}
-                              </button>
-                            </div>
-                          </div>
-                          <div id="publish-basics-city">
-                            <label className="text-sm font-medium text-[#111111]">{copy.fieldCity}{" *"}</label>
-                            <CityAutocomplete
-                              value={city}
-                              onChange={setCity}
-                              placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
-                              lang={lang}
-                              label=""
-                              variant="light"
-                              className="mt-2"
-                              invalid={basicsShowValidation && !requirements.cityOk}
-                            />
-                            {!requirements.cityOk && (
-                              <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Agrega tu ciudad." : "Add your city."}</div>
-                            )}
-                          </div>
-                        </>
-                        </EnVentaPublishShell>
-                      ) : categoryFromUrl === "bienes-raices" ? (
+                      {categoryFromUrl === "bienes-raices" ? (
                         <BienesRaicesPublishShell>
                         <div
                           id="publish-basics-br-meta"
@@ -4825,7 +4381,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             return;
                           }
                           setPublishNextAttempted((prev) => ({ ...prev, basics: false }));
-                          goToStep(isEnVentaFlow ? "media" : "details");
+                          goToStep("details");
                         }}
                         className="rounded-xl font-semibold px-5 py-3 bg-yellow-500/90 hover:bg-yellow-500 text-black"
                       >
@@ -5035,13 +4591,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         videoPreviewUrls={proVideoPreviewUrls}
                         videoErrors={videoErrors}
                         proUpgradeHref={
-                          categoryFromUrl === "en-venta"
-                            ? `/clasificados/publicar/en-venta/pro?lang=${lang}&return=${encodeURIComponent(
-                                `${pathname ?? "/clasificados/publicar/en-venta"}?lang=${lang}&step=media&fromPro=1`
+                          categoryFromUrl === "bienes-raices"
+                            ? `/clasificados/publicar/bienes-raices/pro?lang=${lang}&return=${encodeURIComponent(
+                                `${pathname ?? "/clasificados/publicar/bienes-raices"}?lang=${lang}&step=media&fromPro=1`
                               )}`
                             : undefined
                         }
-                        onBeforeProNavigate={categoryFromUrl === "en-venta" ? saveDraftAndImagesForProReturn : undefined}
+                        onBeforeProNavigate={categoryFromUrl === "bienes-raices" ? saveDraftAndImagesForProReturn : undefined}
                         maxVideos={categoryFromUrl === "bienes-raices" ? 1 : (isRentasPrivado ? 1 : 2)}
                         copy={{
                           addImages: copy.addImages,
@@ -5406,4 +4962,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
       )}
 </main>
   );
+}
+
+export default function PublicarPage() {
+  const params = useParams<{ category?: string }>();
+  const searchParams = useSearchParams();
+  const slug = (params?.category ?? "").trim().toLowerCase();
+  const categoryFromUrl = normalizeCategory(params?.category ?? "") || "bienes-raices";
+  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  if (slug === "en-venta" || categoryFromUrl === "en-venta") {
+    return <EnVentaComingSoon variant="publish" lang={lang} />;
+  }
+  return <PublicarCategoryPageInner />;
 }

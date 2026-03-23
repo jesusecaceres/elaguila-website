@@ -25,7 +25,7 @@ export default function PublicarRootPage() {
   useEffect(() => {
     const lang = searchParams?.get("lang") ?? "es";
     const catParam = searchParams?.get("cat") ?? "";
-    const slug = normalizeCategory(catParam) || "en-venta";
+    const slug = normalizeCategory(catParam) || "bienes-raices";
     const p = new URLSearchParams(searchParams?.toString() ?? "");
     if (!p.has("lang")) p.set("lang", lang);
     p.delete("cat");

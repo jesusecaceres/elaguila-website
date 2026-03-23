@@ -4,7 +4,6 @@
 
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { computeBienesRaicesPublishMetaOk } from "@/app/clasificados/bienes-raices/publish/computeBienesRaicesPublishMetaOk";
-import { computeVentaMarketplacePublishMetaOk } from "@/app/clasificados/en-venta/publish/computeVentaMarketplacePublishMetaOk";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 import { computeRentasPublishMetaOk } from "@/app/clasificados/rentas/publish/computeRentasPublishMetaOk";
 
@@ -67,7 +66,12 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
     /.+@.+\..+/.test(s.contactEmail.trim()) ||
     (isBienesRaicesNegocioContact && (brNegocioOfficeDigits.length === 10 || brNegocioBizEmailOk));
 
-  const ventaMarketplaceMetaOk = computeVentaMarketplacePublishMetaOk(s);
+  /** En Venta publish is gated (coming soon); keep snapshot validation permissive if category slips through. */
+  const ventaMarketplaceMetaOk =
+    s.category !== "en-venta" ||
+    (!!(s.details.rama ?? "").trim() &&
+      !!(s.details.itemType ?? "").trim() &&
+      !!(s.details.condition ?? "").trim());
   const rentasMetaOk = computeRentasPublishMetaOk(s, contactOk);
   const bienesRaicesMetaOk = computeBienesRaicesPublishMetaOk(s);
 

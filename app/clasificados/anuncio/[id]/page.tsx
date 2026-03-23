@@ -33,11 +33,7 @@ import { RentasSameCompanyListingsSection } from "../../rentas/listing/component
 import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/RentasAnuncioMetaGridCards";
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
-import { useEnVentaAnuncioDerived } from "../../en-venta/listing/hooks/useEnVentaAnuncioDerived";
-import { EnVentaAnuncioHeroPrice } from "../../en-venta/listing/components/EnVentaAnuncioHeroPrice";
-import { EnVentaAnuncioAntiSpamNote } from "../../en-venta/listing/components/EnVentaAnuncioAntiSpamNote";
-import { EnVentaAnuncioMetaSummaryGrid } from "../../en-venta/listing/components/EnVentaAnuncioMetaSummaryGrid";
-import type { EnVentaAnuncioListingLike } from "../../en-venta/listing/types/enVentaAnuncioLiveTypes";
+import { EnVentaComingSoon } from "../../en-venta/EnVentaComingSoon";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
@@ -461,10 +457,6 @@ export default function AnuncioDetallePage() {
     lang,
     isLiveDbListing,
     sampleListings: SAMPLE_LISTINGS as unknown as import("../../rentas/listing/types/rentasAnuncioLiveTypes").RentasSameCompanySampleItem[],
-  });
-
-  const { isEnVenta } = useEnVentaAnuncioDerived({
-    listing: listing as EnVentaAnuncioListingLike | undefined,
   });
 
   const { autosLiveFacts } = useAutosAnuncioDerived({
@@ -955,6 +947,15 @@ export default function AnuncioDetallePage() {
     );
   }
 
+  if (listing.category === "en-venta") {
+    return (
+      <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-24">
+        <Navbar />
+        <EnVentaComingSoon variant="detail" lang={lang} showNavbar={false} />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#D9D9D9] min-h-screen text-[#111111] pb-28">
       <Navbar />
@@ -1137,8 +1138,6 @@ export default function AnuncioDetallePage() {
                           priceLabel={listing.priceLabel[lang]}
                           rentasPlanTier={rentasPlanTier}
                         />
-                      ) : isEnVenta ? (
-                        <EnVentaAnuncioHeroPrice lang={lang} priceLabel={listing.priceLabel[lang]} />
                       ) : (
                         <div className="mt-3 text-2xl font-extrabold text-yellow-200">
                           {formatListingPrice(listing.priceLabel[lang], { lang })}
@@ -1202,16 +1201,13 @@ export default function AnuncioDetallePage() {
                   </span>
                 </div>
 
-{listing.category !== "rentas" &&
-  (isEnVenta ? (
-    <EnVentaAnuncioAntiSpamNote lang={lang} />
-  ) : (
+{listing.category !== "rentas" && (
     <p className="mt-3 text-xs text-[#111111]">
       {lang === "es"
         ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
         : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
     </p>
-  ))}
+  )}
               </div>
 
               {listing.category === "rentas" && rentasMeta?.facts && rentasMeta.facts.length > 0 && (
@@ -1344,18 +1340,7 @@ export default function AnuncioDetallePage() {
   </div>
 )}
 
-              {isEnVenta ? (
-                <EnVentaAnuncioMetaSummaryGrid
-                  metaCategoryTitle={t.metaCategory}
-                  metaConditionTitle={t.metaCondition}
-                  metaCityTitle={t.metaCity}
-                  metaPostedTitle={t.metaPosted}
-                  categoryLabel={categoryLabel[listing.category][lang]}
-                  conditionDisplay={conditionText(listing.condition)}
-                  city={listing.city}
-                  postedAgoDisplay={postedAgoDisplay}
-                />
-              ) : !brLiveParityLayout ? (
+              {!brLiveParityLayout ? (
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
                     <div className="text-xs text-[#111111]">{t.metaCategory}</div>

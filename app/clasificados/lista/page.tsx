@@ -21,6 +21,7 @@ import { serviciosDrawerFilters } from "../config/categoryConfig";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../bienes-raices/shared/fields/bienesRaicesTaxonomy";
 import { BienesRaicesListaCard } from "../bienes-raices/lista/BienesRaicesListaCard";
 import { BienesRaicesListaRow } from "../bienes-raices/lista/BienesRaicesListaRow";
+import { EnVentaComingSoon } from "../en-venta/EnVentaComingSoon";
 import newLogo from "../../../public/logo.png";
 
 import {
@@ -491,10 +492,6 @@ function sellerFilterOptionLabel(category: CategoryKey, type: SellerType, lang: 
 }
 
 /** Category-native chips for the unified search shell (lower row = current category only). */
-const EN_VENTA_CHIPS: Record<Lang, string[]> = {
-  es: ["Electrónicos", "Hogar", "Ropa y accesorios", "Bebés y niños", "Herramientas", "Auto partes", "Deportes", "Juguetes y juegos", "Muebles", "Coleccionables", "Música / foto / video", "Otros"],
-  en: ["Electronics", "Home", "Clothing & accessories", "Baby & kids", "Tools", "Auto parts", "Sports", "Toys & games", "Furniture", "Collectibles", "Music / photo / video", "Other"],
-};
 const RENTAS_CHIPS: Record<Lang, string[]> = {
   es: ["Casa", "Departamento", "Cuarto", "Estudio", "Otro"],
   en: ["House", "Apartment", "Room", "Studio", "Other"],
@@ -5028,6 +5025,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
 };
 
 
+  if (category === "en-venta") {
+    return (
+      <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-28 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
+        <Navbar />
+        <EnVentaComingSoon variant="lista" lang={lang} showNavbar={false} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-28 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
       <Navbar />
@@ -5036,7 +5042,7 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
       <div className="sticky top-[56px] z-40 border-b border-black/10 bg-[#D9D9D9]/85 backdrop-blur">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-center gap-2 px-4 py-2">
           <a
-            href={`/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`}
+            href={`/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/bienes-raices?lang=${lang}`)}`}
             className="rounded-full bg-[#111111] px-3 py-1.5 text-xs font-semibold text-[#F5F5F5] hover:opacity-95 transition sm:px-4 sm:py-2 sm:text-sm"
           >
             {lang === "es" ? "Publicar anuncio" : "Post listing"}
@@ -5373,11 +5379,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                         )}
                       >
                         {lang === "es" ? opt.label.es : opt.label.en}
-                      </button>
-                    ))}
-                    {category === "en-venta" && EN_VENTA_CHIPS[lang].map((label) => (
-                      <button key={label} type="button" onClick={() => { setQ(label); setPage(1); }} className="shrink-0 rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-1 text-[11px] text-[#111111] hover:bg-[#EFEFEF] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30">
-                        {label}
                       </button>
                     ))}
                     {category === "rentas" && RENTAS_CHIPS[lang].map((label) => (

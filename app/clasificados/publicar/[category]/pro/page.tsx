@@ -1,19 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
+import { EnVentaComingSoon } from "../../../en-venta/EnVentaComingSoon";
 
-export default function EnVentaProPage() {
+export default function CategoryProPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const category = (params?.category as string) || "en-venta";
+  const category = (params?.category as string) || "bienes-raices";
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
   const returnUrl = searchParams?.get("return") || `/clasificados/publicar/${category}?lang=${lang}&step=media`;
+
+  if (category === "en-venta") {
+    return <EnVentaComingSoon variant="pro" lang={lang} backHref={returnUrl} showNavbar={false} />;
+  }
 
   const t =
     lang === "es"
       ? {
-          title: "LEONIX Pro — En Venta",
+          title: "LEONIX Pro",
           subtitle: "Mejora este anuncio con más fotos, video y visibilidad.",
           mediaTitle: "Más impacto para tu anuncio",
           benefits: [
@@ -38,7 +42,7 @@ export default function EnVentaProPage() {
           integrationNote: "La pasarela de pago se conectará aquí.",
         }
       : {
-          title: "LEONIX Pro — For Sale",
+          title: "LEONIX Pro",
           subtitle: "Upgrade this listing with more photos, video, and visibility.",
           mediaTitle: "More impact for your listing",
           benefits: [
@@ -66,31 +70,29 @@ export default function EnVentaProPage() {
   return (
     <main className="min-h-screen bg-[#1a1a1a] text-white pt-28 pb-20">
       <div className="max-w-lg mx-auto px-5">
-        {/* Hero */}
         <div className="text-center mb-8">
           <p className="text-[#C9B46A] text-sm font-semibold uppercase tracking-wider">
-            {lang === "es" ? "En Venta" : "For Sale"}
+            {lang === "es" ? "Clasificados" : "Classifieds"}
           </p>
           <h1 className="text-3xl font-extrabold text-white mt-1">{t.title}</h1>
           <p className="mt-3 text-[#E0E0E0]">{t.subtitle}</p>
         </div>
 
-        {/* Card: premium container */}
         <div className="rounded-2xl border border-[#C9B46A]/30 bg-[#252525] shadow-xl overflow-hidden">
-          {/* Core media */}
           <section className="p-6 border-b border-white/10">
             <h2 className="text-lg font-bold text-[#C9B46A]">{t.mediaTitle}</h2>
             <ul className="mt-4 space-y-3 text-[#E8E8E8]">
               {t.benefits.map((b, i) => (
                 <li key={i} className="flex items-center gap-3">
-                  <span className="text-[#C9B46A] shrink-0" aria-hidden>✓</span>
+                  <span className="text-[#C9B46A] shrink-0" aria-hidden>
+                    ✓
+                  </span>
                   {b}
                 </li>
               ))}
             </ul>
           </section>
 
-          {/* Analytics (Pro-only) */}
           <section className="p-6 border-b border-white/10 bg-[#2a2a2a]/60">
             <h2 className="text-lg font-bold text-[#C9B46A]">{t.analyticsTitle}</h2>
             <p className="mt-1 text-sm text-[#B0B0B0]">{t.analyticsSub}</p>
@@ -104,7 +106,6 @@ export default function EnVentaProPage() {
             </ul>
           </section>
 
-          {/* Price + CTAs */}
           <div className="p-6 pt-2 bg-[#1f1f1f] border-t border-white/10">
             <p className="text-sm font-medium text-[#C9B46A]">{t.savedReassurance}</p>
             <p className="mt-3 text-2xl font-bold text-white">{t.price}</p>
@@ -118,12 +119,12 @@ export default function EnVentaProPage() {
               >
                 {t.cta}
               </button>
-              <Link
+              <a
                 href={returnUrl}
                 className="w-full rounded-xl border border-white/20 bg-transparent px-4 py-3.5 text-sm font-semibold text-white hover:bg-white/10 text-center transition"
               >
                 {t.back}
-              </Link>
+              </a>
             </div>
           </div>
         </div>
