@@ -5,28 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { BizCategory, BUSINESS_PRICES, CUENTA_BIZ_CATEGORY_OPTIONS } from "./shared/fields/cuentaTaxonomy";
+import { getCuentaLang } from "./shared/utils/cuentaLang";
 
-type Lang = "es" | "en";
 type SellerMode = "personal" | "business";
-type BizCategory = "rentas" | "autos" | "en-venta" | "empleos" | "servicios" | "clases" | "comunidad";
-
-function getLang(sp: URLSearchParams | null): Lang {
-  const v = (sp?.get("lang") ?? "").toLowerCase();
-  return v === "en" ? "en" : "es";
-}
-
-const BUSINESS_PRICES: Record<Exclude<BizCategory, "clases" | "comunidad">, number> = {
-  rentas: 189,
-  autos: 149,
-  "en-venta": 149,
-  empleos: 135,
-  servicios: 129,
-};
 
 export default function ClasificadosCuentaPage() {
   const sp = useSearchParams();
   const router = useRouter();
-  const lang = useMemo(() => getLang(sp), [sp]);
+  const lang = useMemo(() => getCuentaLang(sp), [sp]);
 
   const t = useMemo(() => {
     const es = lang === "es";
@@ -162,13 +149,11 @@ export default function ClasificadosCuentaPage() {
                 onChange={(e) => setBizCat(e.target.value as BizCategory)}
                 className="mt-2 w-full rounded-xl border border-black/10 bg-black/40 px-3 py-2 text-sm text-[#111111]"
               >
-                <option value="rentas">{lang === "es" ? "Rentas" : "Rentals"}</option>
-                <option value="autos">{lang === "es" ? "Autos" : "Autos"}</option>
-                <option value="en-venta">{lang === "es" ? "En Venta" : "For Sale"}</option>
-                <option value="empleos">{lang === "es" ? "Empleos" : "Jobs"}</option>
-                <option value="servicios">{lang === "es" ? "Servicios" : "Services"}</option>
-                <option value="clases">{lang === "es" ? "Clases (gratis)" : "Classes (free)"}</option>
-                <option value="comunidad">{lang === "es" ? "Comunidad (gratis)" : "Community (free)"}</option>
+                {CUENTA_BIZ_CATEGORY_OPTIONS.map(({ value, labelEs, labelEn }) => (
+                  <option key={value} value={value}>
+                    {lang === "es" ? labelEs : labelEn}
+                  </option>
+                ))}
               </select>
 
               <div className="mt-5 rounded-2xl border border-black/10 bg-black/20 p-5">
