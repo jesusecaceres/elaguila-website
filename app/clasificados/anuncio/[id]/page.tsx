@@ -33,6 +33,11 @@ import { RentasSameCompanyListingsSection } from "../../rentas/listing/component
 import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/RentasAnuncioMetaGridCards";
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
+import { useEnVentaAnuncioDerived } from "../../en-venta/listing/hooks/useEnVentaAnuncioDerived";
+import { EnVentaAnuncioHeroPrice } from "../../en-venta/listing/components/EnVentaAnuncioHeroPrice";
+import { EnVentaAnuncioAntiSpamNote } from "../../en-venta/listing/components/EnVentaAnuncioAntiSpamNote";
+import { EnVentaAnuncioMetaSummaryGrid } from "../../en-venta/listing/components/EnVentaAnuncioMetaSummaryGrid";
+import type { EnVentaAnuncioListingLike } from "../../en-venta/listing/types/enVentaAnuncioLiveTypes";
 import { BienesRaicesAnuncioTopChrome } from "../../bienes-raices/listing/components/BienesRaicesAnuncioTopChrome";
 import { BienesRaicesLiveHeroAndSummary } from "../../bienes-raices/listing/components/BienesRaicesLiveHeroAndSummary";
 import { BienesRaicesBusinessMobileBlock } from "../../bienes-raices/listing/components/BienesRaicesBusinessMobileBlock";
@@ -456,6 +461,10 @@ export default function AnuncioDetallePage() {
     lang,
     isLiveDbListing,
     sampleListings: SAMPLE_LISTINGS as unknown as import("../../rentas/listing/types/rentasAnuncioLiveTypes").RentasSameCompanySampleItem[],
+  });
+
+  const { isEnVenta } = useEnVentaAnuncioDerived({
+    listing: listing as EnVentaAnuncioListingLike | undefined,
   });
 
   const idParam = params?.id;
@@ -1126,6 +1135,8 @@ export default function AnuncioDetallePage() {
                           priceLabel={listing.priceLabel[lang]}
                           rentasPlanTier={rentasPlanTier}
                         />
+                      ) : isEnVenta ? (
+                        <EnVentaAnuncioHeroPrice lang={lang} priceLabel={listing.priceLabel[lang]} />
                       ) : (
                         <div className="mt-3 text-2xl font-extrabold text-yellow-200">
                           {formatListingPrice(listing.priceLabel[lang], { lang })}
@@ -1189,13 +1200,16 @@ export default function AnuncioDetallePage() {
                   </span>
                 </div>
 
-{listing.category !== "rentas" && (
-  <p className="mt-3 text-xs text-[#111111]">
-    {lang === "es"
-      ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
-      : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
-  </p>
-)}
+{listing.category !== "rentas" &&
+  (isEnVenta ? (
+    <EnVentaAnuncioAntiSpamNote lang={lang} />
+  ) : (
+    <p className="mt-3 text-xs text-[#111111]">
+      {lang === "es"
+        ? "Nota: Usamos detección anti‑spam y señales de verificación para mantener anuncios limpios y confiables."
+        : "Note: We use anti-spam detection and verification signals to keep listings clean and trustworthy."}
+    </p>
+  ))}
               </div>
 
               {listing.category === "rentas" && rentasMeta?.facts && rentasMeta.facts.length > 0 && (
@@ -1319,44 +1333,56 @@ export default function AnuncioDetallePage() {
   </div>
 )}
 
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-[#111111]">{t.metaCategory}</div>
-                  <div className="mt-1 text-[#111111] font-semibold">
-                    {categoryLabel[listing.category][lang]}
+              {isEnVenta ? (
+                <EnVentaAnuncioMetaSummaryGrid
+                  metaCategoryTitle={t.metaCategory}
+                  metaConditionTitle={t.metaCondition}
+                  metaCityTitle={t.metaCity}
+                  metaPostedTitle={t.metaPosted}
+                  categoryLabel={categoryLabel[listing.category][lang]}
+                  conditionDisplay={conditionText(listing.condition)}
+                  city={listing.city}
+                  postedAgoDisplay={postedAgoDisplay}
+                />
+              ) : (
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                    <div className="text-xs text-[#111111]">{t.metaCategory}</div>
+                    <div className="mt-1 text-[#111111] font-semibold">
+                      {categoryLabel[listing.category][lang]}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                    <div className="text-xs text-[#111111]">{t.metaCondition}</div>
+                    <div className="mt-1 text-[#111111] font-semibold">
+                      {conditionText(listing.condition)}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                    <div className="text-xs text-[#111111]">{t.metaCity}</div>
+                    <div className="mt-1 text-[#111111] font-semibold">{listing.city}</div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
+                    <div className="text-xs text-[#111111]">{t.metaPosted}</div>
+                    <div className="mt-1 text-[#111111] font-semibold">{postedAgoDisplay}</div>
+
+                    {autoMeta?.facts?.slice(0, 4).map((f) => (
+                      <div
+                        key={f.label}
+                        className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
+                      >
+                        <div className="text-xs text-[#111111]">{f.label}</div>
+                        <div className="mt-1 text-[#111111] font-semibold">{f.value}</div>
+                      </div>
+                    ))}
+
+                    {rentasMeta?.facts && <RentasAnuncioMetaGridCards facts={rentasMeta.facts} />}
                   </div>
                 </div>
-
-                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-[#111111]">{t.metaCondition}</div>
-                  <div className="mt-1 text-[#111111] font-semibold">
-                    {conditionText(listing.condition)}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-[#111111]">{t.metaCity}</div>
-                  <div className="mt-1 text-[#111111] font-semibold">{listing.city}</div>
-                </div>
-
-                <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
-                  <div className="text-xs text-[#111111]">{t.metaPosted}</div>
-                  <div className="mt-1 text-[#111111] font-semibold">{postedAgoDisplay}</div>
-
-                {autoMeta?.facts?.slice(0, 4).map((f) => (
-                  <div
-                    key={f.label}
-                    className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5"
-                  >
-                    <div className="text-xs text-[#111111]">{f.label}</div>
-                    <div className="mt-1 text-[#111111] font-semibold">{f.value}</div>
-                  </div>
-                ))}
-
-                {rentasMeta?.facts && <RentasAnuncioMetaGridCards facts={rentasMeta.facts} />}
-
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Safety note */}
