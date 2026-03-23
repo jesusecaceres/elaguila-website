@@ -206,7 +206,8 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
 
   const sellerType: SellerType = row.seller_type === "business" ? "business" : "personal";
   const statusRaw = row.status;
-  const status: ListingStatus | undefined = statusRaw === "sold" ? "sold" : "active";
+  /** Only `active` | `sold` reach here — guarded before map (same public contract as lista/hub for browse; sold kept for direct links). */
+  const status: ListingStatus = statusRaw === "sold" ? "sold" : "active";
 
   const boostRaw = row.boost_expires;
   const boostUntil =
@@ -392,7 +393,7 @@ export default function AnuncioDetallePage() {
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, created_at, original_price, current_price, price_last_updated, images, boost_expires"
+            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, boost_expires"
           )
           .eq("id", id)
           .maybeSingle();
@@ -402,7 +403,30 @@ export default function AnuncioDetallePage() {
           setRemoteState("error");
           return;
         }
-        setFetchedListing(data ? mapDbListingRowToListing(data as Record<string, unknown>) : undefined);
+        if (!data) {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+        const row = data as Record<string, unknown>;
+        // Public detail: same visibility rules as lista/hub (published + active in browse); direct URL still allows sold.
+        if (row.is_published === false) {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+        const st = row.status;
+        if (st === "removed") {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+        if (st !== "active" && st !== "sold") {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+        setFetchedListing(mapDbListingRowToListing(row));
         setRemoteState("ready");
       } catch (e: unknown) {
         if (cancelled) return;
