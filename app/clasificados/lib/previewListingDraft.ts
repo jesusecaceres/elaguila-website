@@ -1,6 +1,6 @@
 import type { BusinessRailData } from "@/app/clasificados/components/ListingView";
 
-/** SessionStorage key for the listing draft used by /preview-listing */
+/** SessionStorage key for the listing draft used by `/clasificados/preview-listing` (and legacy `/preview-listing` redirect). */
 export const PREVIEW_LISTING_DRAFT_KEY = "preview-listing-draft";
 
 /** Single normalized draft shape for seller preview. imageUrls = exact upload order (data URLs so they survive navigation). */
@@ -33,7 +33,7 @@ export type PreviewListingDraft = {
   /** BR only: branch from publish flow. Used to deterministically route premium vs generic preview. */
   branch?: "privado" | "negocio" | null;
   /**
-   * When set (e.g. BR negocio "Ver anuncio" handoff), `/preview-listing` parses this JSON as `ListingData`
+   * When set (e.g. BR negocio "Ver anuncio" handoff), preview page parses this JSON as `ListingData`
    * so the page matches the publish wizard preview (`BienesRaicesNegocioPremiumDetail`).
    * Flat fields above remain for backward compatibility and fallback.
    */

@@ -4,9 +4,9 @@
  * and so logout clears stale in-progress data.
  */
 
-import { PREVIEW_LISTING_DRAFT_KEY } from "@/app/lib/previewListingDraft";
+import { PREVIEW_LISTING_DRAFT_KEY } from "@/app/clasificados/lib/previewListingDraft";
 
-/** SessionStorage: draft passed to /preview-listing (set when opening full preview). */
+/** SessionStorage: draft passed to `/clasificados/preview-listing` (set when opening full preview). */
 export { PREVIEW_LISTING_DRAFT_KEY };
 
 /** SessionStorage: restore images when returning from preview. */

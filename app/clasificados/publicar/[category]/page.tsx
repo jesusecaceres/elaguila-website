@@ -17,7 +17,7 @@ import {
 } from "react-icons/fi";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../../../lib/supabase/browser";
 import { clearAllClassifiedsDrafts, RULES_CONFIRMED_KEY, getStoredDraftId, setStoredDraftId, clearStoredDraftId } from "../../lib/classifiedsDraftStorage";
-import { setPreviewDraft } from "@/app/lib/previewListingDraft";
+import { setPreviewDraft } from "@/app/clasificados/lib/previewListingDraft";
 import {
   createDraft,
   updateDraft,
@@ -2615,7 +2615,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
   );
 
-  /** BR negocio (media step): full-page preview via `/preview-listing` — same `BienesRaicesNegocioPremiumDetail` family as embedded preview. */
+  /** BR negocio (media step): full-page preview via `/clasificados/preview-listing` — same `BienesRaicesNegocioPremiumDetail` family as embedded preview. */
   const openBrNegocioFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesNegocio || step !== "media") return;
@@ -2649,7 +2649,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId ?? null,
       fullListingDataJson: JSON.stringify(fullPreviewListingData),
     });
-    router.push(`/preview-listing?lang=${lang}&branch=negocio`);
+    router.push(`/clasificados/preview-listing?lang=${lang}&branch=negocio`);
   }, [
     isBienesRaicesNegocio,
     step,

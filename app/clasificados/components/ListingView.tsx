@@ -132,7 +132,7 @@ export type ListingViewProps = {
   onProBenefitClick?: (id: ProHighlightId) => void;
   /** When true, do not render Pro comparison UI (analytics block, benefits panel). Use for Rentas Privado (Pro-only, no upgrade framing). */
   hideProComparisonUI?: boolean;
-  /** BR negocio preview only: `embedded` (wizard) vs `full` (e.g. `/preview-listing`). Ignored for other categories. */
+  /** BR negocio preview only: `embedded` (wizard) vs `full` (e.g. `/clasificados/preview-listing`). Ignored for other categories. */
   brNegocioPreviewVariant?: "embedded" | "full";
 };
 
