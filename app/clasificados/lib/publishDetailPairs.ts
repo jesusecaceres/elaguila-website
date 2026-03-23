@@ -5,6 +5,7 @@
 
 import { getPublishCategoryFields } from "@/app/clasificados/config/publishCategoryFields";
 import { appendBrNegocioLongTailDetailPairs } from "@/app/clasificados/bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
+import { appendBrPrivadoLongTailDetailPairs } from "@/app/clasificados/bienes-raices/privado/mapping/brPrivadoDetailPairsAppend";
 import { getBienesRaicesPublishStructuredDetailPairs } from "@/app/clasificados/bienes-raices/shared/mapping/bienesRaicesPublishDetailPairs";
 import { getArticuloLabel } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 import { getRentasPublishStructuredDetailPairs } from "@/app/clasificados/rentas/shared/mapping/rentasPublishDetailPairs";
@@ -49,8 +50,12 @@ export function getDetailPairs(
 
     out.push({ label: f.label[lang], value: raw });
   }
-  if (cat === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio") {
+  const brBr = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
+  if (cat === "bienes-raices" && brBr === "negocio") {
     appendBrNegocioLongTailDetailPairs(lang, details, out);
+  }
+  if (cat === "bienes-raices" && brBr === "privado") {
+    appendBrPrivadoLongTailDetailPairs(lang, details, out);
   }
   return out;
 }

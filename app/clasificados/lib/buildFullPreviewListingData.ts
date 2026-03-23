@@ -7,6 +7,10 @@ import {
   buildBrNegocioFullPreviewListingData,
   isBienesRaicesNegocioPublishPreviewContext,
 } from "@/app/clasificados/bienes-raices/negocio/preview/buildBrNegocioFullPreviewListingData";
+import {
+  buildBrPrivadoFullPreviewListingData,
+  isBienesRaicesPrivadoPublishPreviewContext,
+} from "@/app/clasificados/bienes-raices/privado/preview/buildBrPrivadoFullPreviewListingData";
 import { buildRentasNegocioPreviewListingData } from "@/app/clasificados/rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 
@@ -52,6 +56,7 @@ export function buildFullPreviewListingData(params: BuildFullPreviewListingDataP
 
   const imgs = snap.images?.length ? snap.images : ["/logo.png"];
   const isBrNegocioPreviewData = isBienesRaicesNegocioPublishPreviewContext(categoryFromUrl, snap, details);
+  const isBrPrivadoPreviewData = isBienesRaicesPrivadoPublishPreviewContext(categoryFromUrl, snap, details);
 
   const base: ListingData = {
     title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
@@ -87,6 +92,18 @@ export function buildFullPreviewListingData(params: BuildFullPreviewListingDataP
       sellerDisplayName,
       userId,
       previewPublishReturnPath,
+    });
+  }
+
+  if (isBrPrivadoPreviewData) {
+    return buildBrPrivadoFullPreviewListingData({
+      publishDraftSnapshot: snap,
+      lang,
+      todayLabel,
+      previewCategoryLabel,
+      sellerDisplayName,
+      userId,
+      contactPhoneDisplay: formatPhoneDisplay(snap.contactPhone),
     });
   }
 

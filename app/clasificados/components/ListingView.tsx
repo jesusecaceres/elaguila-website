@@ -76,7 +76,9 @@ export type ListingData = {
    * back control can return here (BR negocio flow). Same-origin path + query, e.g. `/clasificados/publicar/bienes-raices?branch=negocio&step=media`.
    */
   agentProfileReturnUrl?: string | null;
-  /** BR negocio: typed facts for preview (preferred over inferring only from detailPairs). */
+  /** BR privado: `brLocationDisplayMode === "aproximada"` → approximate-location chip in preview. */
+  listingLocationIsApproximate?: boolean;
+  /** BR privado / negocio: typed facts for preview (preferred over inferring only from detailPairs). */
   structuredFacts?: {
     propertyTypeLabel?: string;
     addressLine?: string;
@@ -92,12 +94,12 @@ export type ListingData = {
     zoning?: string;
     city?: string;
     zip?: string;
-    /** BR negocio: architectural / design style from questionnaire (`brArchitecturalStyle`). */
+    /** Architectural / design style (`brArchitecturalStyle`). */
     architecturalStyle?: string;
   };
-  /** Short teaser under title (BR negocio). */
+  /** Short teaser under title (BR negocio / privado when wired). */
   listingSummaryShort?: string | null;
-  /** User-defined highlight chips (BR negocio). */
+  /** User-defined highlight chips (BR negocio; privado may derive from `comodidades`). */
   highlightChips?: string[];
   /** Display label for listing status (BR negocio). */
   listingStatusLabel?: string | null;
@@ -331,7 +333,7 @@ export default function ListingView({
     if (listing.businessRailTier === "business_plus" || listing.businessRail) {
       return <BienesRaicesPreviewNegocioFresh listing={listing} variant={brNegocioPreviewVariant} />;
     }
-    return <BienesRaicesPreviewListing listing={listing} />;
+    return <BienesRaicesPreviewListing listing={listing} variant={brNegocioPreviewVariant} />;
   }
 
   return (
