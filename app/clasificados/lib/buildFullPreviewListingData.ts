@@ -8,7 +8,7 @@ import {
   isBienesRaicesNegocioPublishPreviewContext,
 } from "@/app/clasificados/bienes-raices/negocio/preview/buildBrNegocioFullPreviewListingData";
 import { buildRentasNegocioPreviewListingData } from "@/app/clasificados/rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
-import type { EnVentaDraftSnapshot } from "@/app/clasificados/en-venta/publish/buildEnVentaDraftSnapshot";
+import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 
 function formatPhoneDigits(raw: string): string {
   return (raw ?? "").replace(/\D/g, "").slice(0, 10);
@@ -22,7 +22,7 @@ function formatPhoneDisplay(raw: string): string {
 }
 
 export type BuildFullPreviewListingDataParams = {
-  enVentaSnapshot: EnVentaDraftSnapshot;
+  publishDraftSnapshot: PublishDraftSnapshot;
   lang: "es" | "en";
   todayLabel: string;
   previewCategoryLabel: string;
@@ -38,7 +38,7 @@ export type BuildFullPreviewListingDataParams = {
 
 export function buildFullPreviewListingData(params: BuildFullPreviewListingDataParams): ListingData {
   const {
-    enVentaSnapshot: snap,
+    publishDraftSnapshot: snap,
     lang,
     todayLabel,
     previewCategoryLabel,
@@ -80,7 +80,7 @@ export function buildFullPreviewListingData(params: BuildFullPreviewListingDataP
 
   if (isBrNegocioPreviewData) {
     return buildBrNegocioFullPreviewListingData({
-      enVentaSnapshot: snap,
+      publishDraftSnapshot: snap,
       lang,
       todayLabel,
       previewCategoryLabel,

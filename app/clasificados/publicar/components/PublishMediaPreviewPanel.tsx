@@ -8,7 +8,7 @@ export type { PreviewDetailPair };
 
 export type PublishMediaPreviewRightPanelInput = Omit<
   PublishMediaPreviewRightPanelProps,
-  "lang" | "coverImage" | "previewTitle" | "previewPrice" | "previewCity" | "previewPosted" | "enVentaIsFree" | "details"
+  "lang" | "coverImage" | "previewTitle" | "previewPrice" | "previewCity" | "previewPosted" | "previewPriceIsFree" | "details"
 >;
 
 export type PublishMediaPreviewPanelProps = {
@@ -27,7 +27,7 @@ export type PublishMediaPreviewPanelProps = {
   previewPosted: string;
   previewShortDescription: string;
   details: Record<string, string>;
-  enVentaIsFree: boolean;
+  previewPriceIsFree: boolean;
   rightPanel: PublishMediaPreviewRightPanelInput;
 };
 
@@ -44,7 +44,7 @@ export function PublishMediaPreviewPanel({
   previewPosted,
   previewShortDescription,
   details,
-  enVentaIsFree,
+  previewPriceIsFree,
   rightPanel,
 }: PublishMediaPreviewPanelProps) {
   return (
@@ -79,7 +79,7 @@ export function PublishMediaPreviewPanel({
             previewCity={previewCity}
             previewPosted={previewPosted}
             previewShortDescription={previewShortDescription}
-            enVentaIsFree={enVentaIsFree}
+            previewPriceIsFree={previewPriceIsFree}
           />
         )}
 
@@ -91,7 +91,7 @@ export function PublishMediaPreviewPanel({
           previewPrice={previewPrice}
           previewCity={previewCity}
           previewPosted={previewPosted}
-          enVentaIsFree={enVentaIsFree}
+          previewPriceIsFree={previewPriceIsFree}
           details={details}
         />
       </div>

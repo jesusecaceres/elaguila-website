@@ -73,7 +73,7 @@ import {
   BR_PRIVADO_PRICE_PER_POST,
 } from "../../bienes-raices/shared/publish/brPublishPricing";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
-import { buildEnVentaDraftSnapshot } from "../../en-venta/publish/buildEnVentaDraftSnapshot";
+import { buildPublishDraftSnapshot } from "../../lib/publishDraftSnapshot";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
 import { BienesRaicesPublishTrackStep } from "../../bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
@@ -1980,7 +1980,7 @@ export default function PublicarPage() {
   }, [images]);
 
   // Single normalized snapshot for preview, validation, and insert (same source of truth).
-  const enVentaSnapshot = useMemo(() => {
+  const publishDraftSnapshot = useMemo(() => {
     const isPrivate = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
     const descriptionForSnapshot =
       category === "bienes-raices"
@@ -1988,7 +1988,7 @@ export default function PublicarPage() {
         : description;
     const cityCanonical = normalizeCity(city) || null;
     const detailPairs = getDetailPairs(category, lang, details, cityCanonical ?? city.trim());
-    return buildEnVentaDraftSnapshot({
+    return buildPublishDraftSnapshot({
       title,
       description: descriptionForSnapshot,
       city,
@@ -2029,8 +2029,8 @@ export default function PublicarPage() {
 
   // Validation from snapshot so we validate what preview/insert use.
   const requirements = useMemo(
-    () => computePublishRequirements(enVentaSnapshot),
-    [enVentaSnapshot]
+    () => computePublishRequirements(publishDraftSnapshot),
+    [publishDraftSnapshot]
   );
 
   /** BR private: type-aware copy profile for placeholders and helpers. Uses bienesRaicesSubcategoria or derives from enVentaPropertyType. */
@@ -2263,7 +2263,7 @@ async function publish() {
       return;
     }
 
-    if (!enVentaSnapshot.cityCanonical) {
+    if (!publishDraftSnapshot.cityCanonical) {
       setPublishError(lang === "es" ? "Selecciona una ciudad válida del Norte de California." : "Select a valid city in Northern California.");
       return;
     }
@@ -2340,7 +2340,7 @@ async function publish() {
         }
       }
 
-      const snap = enVentaSnapshot;
+      const snap = publishDraftSnapshot;
       const finalDescription = (snap.description + buildDetailsAppendix(snap.category, snap.lang, snap.details, snap.cityCanonical ?? snap.city)).trim();
       const rentasBranch = (snap.details.rentasBranch ?? "").trim();
       const bienesRaicesBranch = (snap.details.bienesRaicesBranch ?? "").trim().toLowerCase();
@@ -2567,15 +2567,15 @@ for (let vi = 0; vi < videoLimit; vi++) {
   } = useMemo(
     () =>
       buildPublishPreviewDisplayStrings({
-        snapshot: enVentaSnapshot,
+        snapshot: publishDraftSnapshot,
         lang,
         todayLabel: copy.todayLabel,
       }),
-    [enVentaSnapshot, lang, copy.todayLabel]
+    [publishDraftSnapshot, lang, copy.todayLabel]
   );
-  const previewPhone = enVentaSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(enVentaSnapshot.contactPhone);
-  const previewEmail = enVentaSnapshot.contactMethod === "phone" ? "" : enVentaSnapshot.contactEmail;
-  const previewDetailPairs = enVentaSnapshot.detailPairs;
+  const previewPhone = publishDraftSnapshot.contactMethod === "email" ? "" : formatPhoneDisplay(publishDraftSnapshot.contactPhone);
+  const previewEmail = publishDraftSnapshot.contactMethod === "phone" ? "" : publishDraftSnapshot.contactEmail;
+  const previewDetailPairs = publishDraftSnapshot.detailPairs;
   const compactBrPrivateDetailPairs = useMemo(
     () =>
       buildCompactBrPrivateDetailPairs({
@@ -2586,10 +2586,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
       }),
     [categoryFromUrl, isBienesRaicesPrivado, previewDetailPairs, lang]
   );
-  const previewCategoryLabel = enVentaSnapshot.category ? categoryConfig[enVentaSnapshot.category as CategoryKey]?.label[lang] ?? "" : "";
-  const previewContactMethod = enVentaSnapshot.contactMethod;
-  const coverImage = enVentaSnapshot.images[0] ?? null;
-  const extraPreviewImages = enVentaSnapshot.images.slice(1, 5);
+  const previewCategoryLabel = publishDraftSnapshot.category ? categoryConfig[publishDraftSnapshot.category as CategoryKey]?.label[lang] ?? "" : "";
+  const previewContactMethod = publishDraftSnapshot.contactMethod;
+  const coverImage = publishDraftSnapshot.images[0] ?? null;
+  const extraPreviewImages = publishDraftSnapshot.images.slice(1, 5);
 
   /** Current publish URL (path + query) so `/agente/[id]` can link back to this draft/preview flow. */
   const previewPublishReturnPath = useMemo(
@@ -2601,7 +2601,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
   const fullPreviewListingData = useMemo(
     () =>
       buildFullPreviewListingData({
-        enVentaSnapshot,
+        publishDraftSnapshot,
         lang,
         todayLabel: copy.todayLabel,
         previewCategoryLabel,
@@ -2612,7 +2612,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
         userId,
         previewPublishReturnPath,
       }),
-    [enVentaSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
+    [publishDraftSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
   );
 
   /** BR negocio (media step): full-page preview via `/clasificados/preview-listing` — same `BienesRaicesNegocioPremiumDetail` family as embedded preview. */
@@ -2623,7 +2623,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       void performDbSave();
     }
     const backToEditUrl = previewPublishReturnPath;
-    const snap = enVentaSnapshot;
+    const snap = publishDraftSnapshot;
     setPreviewDraft({
       backToEditUrl,
       lang,
@@ -2656,7 +2656,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     userId,
     performDbSave,
     previewPublishReturnPath,
-    enVentaSnapshot,
+    publishDraftSnapshot,
     lang,
     copy.todayLabel,
     sellerDisplayName,
@@ -2924,13 +2924,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     ) : isBienesRaicesPrivado ? (
                       <PrivateBrPreviewContent
                         lang={lang}
-                        description={enVentaSnapshot.description ?? ""}
+                        description={publishDraftSnapshot.description ?? ""}
                         rawPrice={price}
                         rawTitle={title}
                         rawCity={city}
                         details={details}
                         previewDetailPairs={previewDetailPairs}
-                        images={enVentaSnapshot.images ?? []}
+                        images={publishDraftSnapshot.images ?? []}
                         sellerDisplayName={sellerDisplayName ?? ""}
                         previewPhone={previewPhone}
                         previewEmail={previewEmail}
@@ -3408,10 +3408,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         <>
                           {/* En Venta: item-selling Basics (subcategoría, artículo, condición, title, description, price, city) */}
                           <div
-                            id="publish-basics-enVenta-meta"
+                            id="publish-basics-venta-marketplace-meta"
                             className={cx(
                               "grid grid-cols-1 sm:grid-cols-2 gap-3",
-                              basicsShowValidation && !requirements.enVentaMetaOk && "rounded-xl p-2 ring-2 ring-red-500/45"
+                              basicsShowValidation && !requirements.ventaMarketplaceMetaOk && "rounded-xl p-2 ring-2 ring-red-500/45"
                             )}
                           >
                             <div>
@@ -5143,7 +5143,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           previewPosted={previewPosted}
                           previewShortDescription={previewShortDescription}
                           details={details}
-                          enVentaIsFree={enVentaSnapshot.isFree}
+                          previewPriceIsFree={publishDraftSnapshot.isFree}
                           rightPanel={{
                             copy: {
                               detailPreview: copy.detailPreview,

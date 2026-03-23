@@ -2,7 +2,7 @@
  * Compact preview / card display strings derived from the unified publish snapshot.
  */
 
-import type { EnVentaDraftSnapshot } from "@/app/clasificados/en-venta/publish/buildEnVentaDraftSnapshot";
+import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 
 export type PublishPreviewLang = "es" | "en";
 
@@ -16,7 +16,7 @@ export function getShortPreviewText(raw: string, maxLen = 90): string {
 export const COMPACT_PREVIEW_TEASER_MAX_LEN = 80;
 
 export function buildPublishPreviewDisplayStrings(params: {
-  snapshot: EnVentaDraftSnapshot;
+  snapshot: PublishDraftSnapshot;
   lang: PublishPreviewLang;
   todayLabel: string;
 }): {

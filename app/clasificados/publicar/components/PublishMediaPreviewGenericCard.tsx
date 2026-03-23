@@ -12,7 +12,7 @@ export type PublishMediaPreviewGenericCardProps = {
   previewCity: string;
   previewPosted: string;
   previewShortDescription: string;
-  enVentaIsFree: boolean;
+  previewPriceIsFree: boolean;
 };
 
 /** Media step: left column generic listing card (non–BR-privado). */
@@ -26,7 +26,7 @@ export function PublishMediaPreviewGenericCard({
   previewCity,
   previewPosted,
   previewShortDescription,
-  enVentaIsFree,
+  previewPriceIsFree,
 }: PublishMediaPreviewGenericCardProps) {
   return (
     <div className="rounded-xl border border-black/10 bg-white overflow-hidden shadow-sm max-w-[280px] lg:max-w-none">
@@ -44,7 +44,7 @@ export function PublishMediaPreviewGenericCard({
         </span>
       </div>
       <div className="p-2">
-        <div className="text-sm font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaIsFree })}</div>
+        <div className="text-sm font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: previewPriceIsFree })}</div>
         <h3 className="mt-0.5 text-xs font-semibold text-[#111111] line-clamp-2 leading-tight">{previewTitle}</h3>
         <div className="mt-0.5 text-[10px] text-[#111111]/55">
           {previewCity} · {previewPosted}

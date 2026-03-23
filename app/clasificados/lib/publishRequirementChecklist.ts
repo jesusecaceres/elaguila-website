@@ -69,7 +69,7 @@ export function buildPublishRequirementItems(params: {
           {
             key: "itemDetails" as const,
             label: lang === "es" ? "Subcategoría, artículo y condición" : "Subcategory, item type and condition",
-            ok: requirements.enVentaMetaOk,
+            ok: requirements.ventaMarketplaceMetaOk,
             step: "basics" as const,
           },
         ]
@@ -161,7 +161,7 @@ export function buildMissingBasicsRequirementsText(
 
 export function computeBasicsOk(categoryFromUrl: string, requirements: PublishRequirements): boolean {
   return categoryFromUrl === "en-venta"
-    ? requirements.enVentaMetaOk &&
+    ? requirements.ventaMarketplaceMetaOk &&
       requirements.titleOk &&
       requirements.descOk &&
       requirements.priceOk &&
@@ -188,7 +188,7 @@ export function getFirstBasicsInvalidElementId(
 ): string | null {
   if (computeBasicsOk(categoryFromUrl, requirements)) return null;
   if (categoryFromUrl === "en-venta") {
-    if (!requirements.enVentaMetaOk) return "publish-basics-enVenta-meta";
+    if (!requirements.ventaMarketplaceMetaOk) return "publish-basics-venta-marketplace-meta";
     if (!requirements.titleOk) return "publish-basics-title";
     if (!requirements.descOk) return "publish-basics-desc";
     if (!requirements.priceOk) return "publish-basics-price";

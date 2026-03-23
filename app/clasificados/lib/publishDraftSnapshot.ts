@@ -1,10 +1,11 @@
 /**
- * Normalized snapshot from unified publish form state for preview, validation, and insert.
+ * Neutral publish-wizard snapshot: preview, validation, and insert read the same shape.
+ * Category-specific semantics live in category lanes; this type is not En Venta–branded.
  */
 
-export type EnVentaDraftLang = "es" | "en";
+export type PublishDraftLang = "es" | "en";
 
-export type EnVentaDraftSnapshot = {
+export type PublishDraftSnapshot = {
   category: string;
   title: string;
   description: string;
@@ -24,10 +25,10 @@ export type EnVentaDraftSnapshot = {
   proVideoUrl: string | null;
   proVideoThumbUrl2: string | null;
   proVideoUrl2: string | null;
-  lang: EnVentaDraftLang;
+  lang: PublishDraftLang;
 };
 
-export function buildEnVentaDraftSnapshot(params: {
+export function buildPublishDraftSnapshot(params: {
   title: string;
   description: string;
   city: string;
@@ -38,7 +39,7 @@ export function buildEnVentaDraftSnapshot(params: {
   contactPhone: string;
   contactEmail: string;
   category: string;
-  lang: EnVentaDraftLang;
+  lang: PublishDraftLang;
   isPro: boolean;
   imageUrls: string[];
   proVideoThumbUrl: string | null;
@@ -47,7 +48,7 @@ export function buildEnVentaDraftSnapshot(params: {
   proVideoUrl2?: string | null;
   cityCanonical: string | null;
   detailPairs: Array<{ label: string; value: string }>;
-}): EnVentaDraftSnapshot {
+}): PublishDraftSnapshot {
   const {
     title,
     description,

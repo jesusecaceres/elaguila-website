@@ -4,12 +4,12 @@
  */
 
 import type { ListingData } from "@/app/clasificados/components/ListingView";
-import type { EnVentaDraftSnapshot } from "@/app/clasificados/en-venta/publish/buildEnVentaDraftSnapshot";
+import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 import { buildBrNegocioListingData } from "@/app/clasificados/bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
 
 export function isBienesRaicesNegocioPublishPreviewContext(
   categoryFromUrl: string,
-  snap: EnVentaDraftSnapshot,
+  snap: PublishDraftSnapshot,
   details: Record<string, string>
 ): boolean {
   const brBranch = (snap.details?.bienesRaicesBranch ?? details?.bienesRaicesBranch ?? "").trim().toLowerCase();
@@ -17,7 +17,7 @@ export function isBienesRaicesNegocioPublishPreviewContext(
 }
 
 export type BuildBrNegocioFullPreviewListingDataParams = {
-  enVentaSnapshot: EnVentaDraftSnapshot;
+  publishDraftSnapshot: PublishDraftSnapshot;
   lang: "es" | "en";
   todayLabel: string;
   previewCategoryLabel: string;
@@ -28,7 +28,7 @@ export type BuildBrNegocioFullPreviewListingDataParams = {
 
 export function buildBrNegocioFullPreviewListingData(params: BuildBrNegocioFullPreviewListingDataParams): ListingData {
   const {
-    enVentaSnapshot: snap,
+    publishDraftSnapshot: snap,
     lang,
     todayLabel,
     previewCategoryLabel,

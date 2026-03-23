@@ -23,7 +23,7 @@ export type PublishMediaPreviewRightPanelProps = {
   previewCity: string;
   previewPosted: string;
   previewCategoryLabel: string | null | undefined;
-  enVentaIsFree: boolean;
+  previewPriceIsFree: boolean;
   details: Record<string, string>;
   categoryFromUrl: string;
   isBienesRaicesPrivado: boolean;
@@ -55,7 +55,7 @@ export function PublishMediaPreviewRightPanel({
   previewCity,
   previewPosted,
   previewCategoryLabel,
-  enVentaIsFree,
+  previewPriceIsFree,
   details,
   categoryFromUrl,
   isBienesRaicesPrivado,
@@ -91,7 +91,7 @@ export function PublishMediaPreviewRightPanel({
 
       <h2 className="text-base font-semibold text-[#111111] leading-snug">{previewTitle}</h2>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
-        <span className="font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: enVentaIsFree })}</span>
+        <span className="font-semibold text-[#111111]">{formatListingPrice(previewPrice, { lang, isFree: previewPriceIsFree })}</span>
         <span className="text-[#111111]/40">·</span>
         <span className="text-[#111111]/80">{previewCity}</span>
         <span className="text-[#111111]/40">·</span>
