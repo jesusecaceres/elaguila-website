@@ -16,6 +16,8 @@ type Row = {
   status: string | null;
   owner_id: string | null;
   created_at: string | null;
+  /** Photo URLs (jsonb); aligned with publish + dashboard contract. */
+  images?: unknown;
 };
 
 export default function AdminListingsTable({ listings }: { listings: Row[] }) {

@@ -2476,7 +2476,11 @@ async function publish() {
 
           descriptionForUpdate = (descriptionForUpdate + photosAppendix).trim();
 
-          await supabase.from("listings").update({ description: descriptionForUpdate }).eq("id", id);
+          // Structured URLs for dashboard/mis-anuncios thumbnails (same strings as in description markers).
+          await supabase
+            .from("listings")
+            .update({ description: descriptionForUpdate, images: photoUrls })
+            .eq("id", id);
         }
       } catch (e: any) {
         // If photo upload fails, don't crash the publish flow; listing is already live.

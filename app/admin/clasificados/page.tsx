@@ -9,7 +9,7 @@ export default async function AdminClasificadosPage() {
   const supabase = getAdminSupabase();
   const { data: listings, error } = await supabase
     .from("listings")
-    .select("id, title, description, city, category, price, is_free, status, owner_id, created_at")
+    .select("id, title, description, city, category, price, is_free, status, owner_id, created_at, images")
     .order("created_at", { ascending: false })
     .limit(200);
 
