@@ -19,6 +19,8 @@ import {
 import Navbar from "../../components/Navbar";
 import { serviciosDrawerFilters } from "../config/categoryConfig";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../bienes-raices/shared/fields/bienesRaicesTaxonomy";
+import { BienesRaicesListaCard } from "../bienes-raices/lista/BienesRaicesListaCard";
+import { BienesRaicesListaRow } from "../bienes-raices/lista/BienesRaicesListaRow";
 import newLogo from "../../../public/logo.png";
 
 import {
@@ -34,7 +36,6 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { isProListing } from "../components/planHelpers";
 import ProBadge from "../components/ProBadge";
-import { parseBusinessMeta } from "../config/businessListingContract";
 import { inferRentasPlanTierFromListing as inferRentasPlanTier } from "../rentas/shared/utils/rentasPlanTier";
 import {
   applyAutosBrowseParams as applyAutosParams,
@@ -472,6 +473,22 @@ const UI = {
   clear: { es: "Limpiar", en: "Clear" },
   done: { es: "Listo", en: "Done" },
 };
+
+/** BR lista: clearer owner vs professional wording; other categories keep generic seller labels. */
+function sellerFilterSectionLabel(category: CategoryKey, lang: Lang): string {
+  if (category === "bienes-raices") {
+    return lang === "es" ? "Anunciante" : "Posted by";
+  }
+  return UI.seller[lang];
+}
+
+function sellerFilterOptionLabel(category: CategoryKey, type: SellerType, lang: Lang): string {
+  if (category === "bienes-raices") {
+    if (type === "personal") return lang === "es" ? "Propietario" : "Owner";
+    return lang === "es" ? "Profesional" : "Professional";
+  }
+  return SELLER_LABELS[type][lang];
+}
 
 /** Category-native chips for the unified search shell (lower row = current category only). */
 const EN_VENTA_CHIPS: Record<Lang, string[]> = {
@@ -975,6 +992,18 @@ function mapDbRowToListaListing(row: Record<string, unknown>): Listing | null {
   if (row.owner_id != null) out.owner_id = String(row.owner_id);
   const dp = row.detail_pairs;
   if (Array.isArray(dp)) out.detailPairs = dp;
+  if (mergedImgs.length > 0) (out as { images?: string[] }).images = mergedImgs;
+  const bm = row.business_meta;
+  if (bm != null && String(bm).trim()) (out as { business_meta?: string }).business_meta = String(bm);
+  const bn = row.business_name;
+  if (bn != null && String(bn).trim()) {
+    (out as { business_name?: string }).business_name = String(bn).trim();
+    (out as { businessName?: string }).businessName = String(bn).trim();
+  }
+  const rt = row.rentas_tier ?? row.rentasTier;
+  if (rt != null && String(rt).trim()) (out as { rentas_tier?: string }).rentas_tier = String(rt).trim();
+  const stRow = row.status;
+  if (stRow != null) (out as { status?: string }).status = String(stRow);
   return base;
 }
 
@@ -2766,7 +2795,7 @@ useEffect(() => {
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, title, description, city, zip, category, price, is_free, images, created_at, seller_type, detail_pairs, boost_expires, views, saves, shares, status, owner_id"
+            "id, title, description, city, zip, category, price, is_free, images, created_at, seller_type, detail_pairs, boost_expires, views, saves, shares, status, owner_id, business_meta, business_name, rentas_tier"
           )
           .eq("status", "active")
           .order("created_at", { ascending: false })
@@ -3220,7 +3249,7 @@ const visible = useMemo(() => {
     if (sellerType) {
       chips.push({
         key: "seller",
-        text: `${UI.seller[lang]}: ${SELLER_LABELS[sellerType][lang]}`,
+        text: `${sellerFilterSectionLabel(category, lang)}: ${sellerFilterOptionLabel(category, sellerType, lang)}`,
         clear: () => setSellerType(null),
       });
     }
@@ -3658,17 +3687,6 @@ const inferVisualTier = (x: Listing): VisualTier => {
   if (x.sellerType === "personal" && x.handle) return "joya";
   return null;
 };
-
-/** Bienes Raíces business plan tier (Standard vs Plus). Same contract as Rentas negocio. */
-function inferBienesRaicesPlanTier(x: Listing): "business_standard" | "business_plus" | null {
-  if (x.category !== "bienes-raices") return null;
-  const sellerType = x.sellerType ?? (x as any).seller_type ?? "personal";
-  if (sellerType !== "business") return null;
-  const tier = (x as any).rentasTier ?? (x as any).rentas_tier ?? (x as any).servicesTier;
-  if (tier === "negocio") return "business_plus";
-  if (tier === "plus" || tier === "premium") return "business_plus";
-  return "business_standard";
-}
 
 const TierBadge = ({ tier, lang }: { tier: VisualTier; lang: Lang }) => {
   if (!tier) return null;
@@ -4299,198 +4317,6 @@ function RentasCard({
   );
 }
 
-/** Bienes Raíces result card: premium real-estate layout (hero → price → title → location → facts → summary → business identity). */
-function BienesRaicesCard({
-  x,
-  lang,
-  isFav,
-  onToggleFav,
-  getHref,
-  tier,
-}: {
-  x: Listing;
-  lang: Lang;
-  isFav: boolean;
-  onToggleFav: (id: string) => void;
-  getHref: (x: Listing, lang: Lang) => string;
-  tier: VisualTier | null;
-}) {
-  const href = getHref(x, lang);
-  const brPlanTier = inferBienesRaicesPlanTier(x);
-  const isBusiness = x.sellerType === "business" || (x as any).seller_type === "business";
-  const businessName = (x.businessName ?? (x as any).business_name ?? "").trim();
-  const businessMeta = x.category === "bienes-raices" ? parseBusinessMeta((x as any).business_meta) : null;
-  const agentName = businessMeta?.negocioAgente?.trim() || "";
-
-  const images = (x as any).images ?? (x as any).photos;
-  const imageUrls = Array.isArray(images) ? images.filter((u): u is string => typeof u === "string") : [];
-  const heroUrl = imageUrls[0];
-  const mediaCount = imageUrls.length;
-  const hasVideo = Boolean((x as any).hasVideo ?? (x as any).proVideoId);
-
-  const detailPairs = (x as any).detailPairs as Array<{ label: string; value: string }> | undefined;
-  const facts = Array.isArray(detailPairs) ? detailPairs : [];
-
-  const cardBorderStyles =
-    brPlanTier === "business_plus"
-      ? "border-yellow-300/55 ring-1 ring-yellow-300/25 bg-white shadow-[0_4px_16px_-4px_rgba(0,0,0,0.10),0_0_0_1px_rgba(250,204,21,0.15)]"
-      : brPlanTier === "business_standard"
-        ? "border-yellow-400/30 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)]"
-        : "border-black/10 bg-[#F5F5F5]";
-
-  const topBarGradient =
-    brPlanTier === "business_plus"
-      ? "bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent h-[3px]"
-      : brPlanTier === "business_standard"
-        ? "bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent h-[2px]"
-        : "";
-
-  return (
-    <a
-      key={x.id}
-      href={href}
-      className={cx(
-        "group relative block overflow-hidden rounded-2xl border text-left transition-all duration-200 ease-out",
-        "hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.04)] hover:-translate-y-0.5",
-        cardBorderStyles
-      )}
-    >
-      {brPlanTier ? (
-        <div
-          aria-hidden="true"
-          className={cx("pointer-events-none absolute inset-x-0 top-0 z-10", topBarGradient)}
-        />
-      ) : null}
-
-      {/* Hero image */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E8E8E8]">
-        {heroUrl ? (
-          <img
-            src={heroUrl}
-            alt=""
-            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-          />
-        ) : x.hasImage ? (
-          <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center" />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center text-[#111111]/30 text-3xl" aria-hidden>🏠</div>
-        )}
-        {(mediaCount > 1 || hasVideo) && (
-          <div className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2 py-1 text-[10px] font-medium text-white">
-            {mediaCount > 1 && hasVideo
-              ? `${mediaCount} ${lang === "es" ? "fotos" : "photos"} · ${lang === "es" ? "Video" : "Video"}`
-              : mediaCount > 1
-                ? `${mediaCount} ${lang === "es" ? "fotos" : "photos"}`
-                : lang === "es"
-                  ? "Video"
-                  : "Video"}
-          </div>
-        )}
-        <div className="absolute top-2 right-2 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFav(x.id); }}
-            className="rounded-full bg-white/95 p-2 shadow-sm hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/40"
-            aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
-          >
-            {isFav ? "★" : "☆"}
-          </button>
-        </div>
-      </div>
-
-      <div className="p-3 sm:p-4">
-        {/* Price */}
-        <div className="font-extrabold text-lg sm:text-xl text-[#111111]">
-          {formatListingPrice(x.priceLabel[lang], { lang })}
-        </div>
-
-        {/* Title */}
-        <h3 className="mt-1.5 line-clamp-2 font-semibold tracking-tight text-[#111111] leading-snug text-base sm:text-lg">
-          {x.title[lang]}
-        </h3>
-
-        {/* Location */}
-        <div className="mt-1 text-sm text-[#111111]/90">
-          {x.city}
-        </div>
-
-        {/* Quick facts strip (warm accent for BR continuity with open card) */}
-        {facts.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {facts.slice(0, 5).map((p, i) => (
-              <span
-                key={`${p.label}-${i}`}
-                className="rounded-full border border-[#C9B46A]/25 bg-[#F8F6F0] px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-[#111111]"
-              >
-                {p.label}: {p.value}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Summary */}
-        <p className="mt-2 line-clamp-2 text-sm text-[#111111]/85">
-          {x.blurb[lang]}
-        </p>
-
-        {/* Business identity (business listings only) */}
-        {isBusiness && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {brPlanTier === "business_plus" && (
-              <span
-                className={cx(
-                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide whitespace-nowrap",
-                  "border-yellow-300/70 bg-gradient-to-r from-yellow-500/15 to-yellow-400/10 text-[#111111]"
-                )}
-                title={lang === "es" ? "Negocio Plus" : "Business Plus"}
-              >
-                <span aria-hidden="true">🔑</span>
-                {lang === "es" ? "Negocio Plus" : "Plus"}
-              </span>
-            )}
-            {brPlanTier === "business_standard" && (
-              <span
-                className="inline-flex items-center rounded-full border border-yellow-400/40 bg-[#111111]/05 px-2 py-0.5 text-[10px] font-semibold text-[#111111]/90 whitespace-nowrap"
-                title={lang === "es" ? "Negocio Estándar" : "Business Standard"}
-              >
-                {lang === "es" ? "Negocio" : "Business"}
-              </span>
-            )}
-            {businessName && (
-              <span className="text-xs font-medium text-[#111111]/85 truncate max-w-[140px] sm:max-w-[180px]" title={businessName}>
-                {businessName}
-              </span>
-            )}
-            {agentName && (
-              <span className="text-[11px] text-[#111111]/70 truncate max-w-[120px] sm:max-w-[160px]" title={agentName}>
-                {agentName}
-              </span>
-            )}
-          </div>
-        )}
-
-        {!isBusiness && (
-          <div className="mt-2 text-[11px] text-[#111111]/70">
-            {lang === "es" ? "Privado" : "Private"}
-          </div>
-        )}
-
-        <div className="mt-1.5 text-[11px] text-[#111111]/60">
-          {x.postedAgo[lang]}
-        </div>
-
-        <span
-          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[#111111] group-hover:underline"
-          aria-hidden
-        >
-          {lang === "es" ? "Ver detalle" : "View details"}
-          <span className="opacity-70">→</span>
-        </span>
-      </div>
-    </a>
-  );
-}
-
 /** En Venta card with hover expansion, mobile tap-to-expand, and engagement indicators */
 function EnVentaCard({
   x,
@@ -4677,13 +4503,12 @@ const ListingCardGrid = (x: Listing) => {
   const isBienesRaices = x.category === "bienes-raices";
   if (isBienesRaices) {
     return (
-      <BienesRaicesCard
-        x={x}
+      <BienesRaicesListaCard
+        listing={x as any}
         lang={lang}
         isFav={isFav}
         onToggleFav={toggleFav}
-        getHref={getListingHref}
-        tier={tier}
+        href={getListingHref(x, lang)}
       />
     );
   }
@@ -4936,6 +4761,19 @@ const isComunidadLite = isComunidad;
 
 const ListingRow = (x: Listing, withImg: boolean) => {
   const isFav = favIds.has(x.id);
+  if (x.category === "bienes-raices") {
+    return (
+      <BienesRaicesListaRow
+        key={x.id}
+        listing={x as any}
+        lang={lang}
+        isFav={isFav}
+        onToggleFav={toggleFav}
+        href={getListingHref(x, lang)}
+        withImg={withImg}
+      />
+    );
+  }
   const isAutos = x.category === "autos";
   const isEmpleos = x.category === "empleos";
   const isServicios = x.category === "servicios";
@@ -6260,15 +6098,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#111111]">{UI.seller[lang]}</label>
+                  <label className="block text-[11px] font-semibold text-[#111111]">{sellerFilterSectionLabel(category, lang)}</label>
                   <select
                     value={sellerType ?? "all"}
                     onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as "personal" | "business"))}
                     className="mt-1 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-sm text-[#111111] outline-none"
                   >
                     <option value="all">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                    <option value="personal">{SELLER_LABELS.personal[lang]}</option>
-                    <option value="business">{SELLER_LABELS.business[lang]}</option>
+                    <option value="personal">{sellerFilterOptionLabel(category, "personal", lang)}</option>
+                    <option value="business">{sellerFilterOptionLabel(category, "business", lang)}</option>
                   </select>
                 </div>
                 <div>
@@ -6325,15 +6163,15 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#111111]">{UI.seller[lang]}</label>
+                <label className="block text-xs font-semibold text-[#111111]">{sellerFilterSectionLabel(category, lang)}</label>
                 <select
                   value={sellerType ?? "all"}
                   onChange={(e) => setSellerType(e.target.value === "all" ? null : (e.target.value as SellerType))}
                   className="mt-2 w-full rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-3 text-sm text-[#111111] outline-none"
                 >
                   <option value="all">{lang === "es" ? "Todos" : "All"}</option>
-                  <option value="personal">{SELLER_LABELS.personal[lang]}</option>
-                  <option value="business">{SELLER_LABELS.business[lang]}</option>
+                  <option value="personal">{sellerFilterOptionLabel(category, "personal", lang)}</option>
+                  <option value="business">{sellerFilterOptionLabel(category, "business", lang)}</option>
                 </select>
               </div>
 
