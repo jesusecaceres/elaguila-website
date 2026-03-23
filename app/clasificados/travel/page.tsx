@@ -7,107 +7,17 @@ import { useSearchParams } from "next/navigation";
 
 import Navbar from "../../components/Navbar";
 import newLogo from "../../../public/logo.png";
+import { TravelTile } from "./components/TravelTile";
+import { TRAVEL_LANDING_CATEGORY_PILLS, TRAVEL_QUICK_CHIPS } from "./shared/fields/travelTaxonomy";
+import { buildTravelSectionHref, buildTravelTargetHref } from "./shared/utils/travelUrls";
 
 type Lang = "es" | "en";
-
-type SectionKey =
-  | "deals"
-  | "agents"
-  | "resorts"
-  | "cruises"
-  | "tours"
-  | "car-rentals"
-  | "escapadas";
-
-function buildTargetHref(sp: ReturnType<typeof useSearchParams>, lang: Lang) {
-  const next = new URLSearchParams();
-
-  // Preserve existing params (future-proof: location, radius, search, etc.)
-  if (sp) {
-    sp.forEach((value, key) => {
-      if (typeof value === "string" && value.length > 0) next.set(key, value);
-    });
-  }
-
-  next.set("lang", lang);
-  next.set("cat", "travel");
-
-  return `/clasificados/lista?${next.toString()}`;
-}
-
-function buildSectionHref(
-  baseHref: string,
-  section?: SectionKey,
-  extra?: Record<string, string>
-) {
-  // baseHref already includes query string; we can safely extend it.
-  const [path, qs] = baseHref.split("?");
-  const next = new URLSearchParams(qs || "");
-
-  if (section) next.set("t", section); // informational only; engine may ignore
-  if (extra) {
-    Object.entries(extra).forEach(([k, v]) => {
-      if (v && v.trim().length > 0) next.set(k, v.trim());
-    });
-  }
-
-  return `${path}?${next.toString()}`;
-}
-
-function Tile({
-  title,
-  desc,
-  href,
-  badge,
-  comingSoon,
-}: {
-  title: string;
-  desc: string;
-  href: string;
-  badge?: string;
-  comingSoon?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      className={`group relative overflow-hidden rounded-2xl border border-yellow-500/35 bg-black/35 p-5 text-left shadow-lg transition hover:bg-black/45 ${
-        comingSoon ? "opacity-80" : ""
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="text-lg font-extrabold text-yellow-200">{title}</div>
-            {badge ? (
-              <span className="inline-flex items-center rounded-full border border-yellow-400/25 bg-[#F2EFE8] px-2 py-0.5 text-[11px] font-semibold text-yellow-200">
-                {badge}
-              </span>
-            ) : null}
-            {comingSoon ? (
-              <span className="inline-flex items-center rounded-full border border-black/10 bg-[#F5F5F5] px-2 py-0.5 text-[11px] font-semibold text-[#111111]">
-                Coming soon
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-1 text-sm text-[#111111]">{desc}</div>
-        </div>
-        <div className="mt-0.5 shrink-0 rounded-xl border border-black/10 bg-[#F5F5F5] px-3 py-2 text-xs font-semibold text-[#111111] group-hover:bg-white/10">
-          Ver
-        </div>
-      </div>
-
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
-        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-[#F2EFE8] blur-3xl" />
-      </div>
-    </a>
-  );
-}
 
 export default function TravelPage() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
 
-  const baseHref = useMemo(() => buildTargetHref(sp, lang), [sp, lang]);
+  const baseHref = useMemo(() => buildTravelTargetHref(sp, lang), [sp, lang]);
 
   const t = useMemo(
     () =>
@@ -143,27 +53,7 @@ export default function TravelPage() {
     [lang]
   );
 
-  const travelChips = useMemo(
-    () =>
-      lang === "en"
-        ? [
-            { label: "Packages & Deals", t: "deals" },
-            { label: "Travel Agents", t: "agents" },
-            { label: "Resorts & Hotels", t: "resorts" },
-            { label: "Cruises", t: "cruises" },
-            { label: "Tours & Excursions", t: "tours" },
-            { label: "Other", t: "" },
-          ]
-        : [
-            { label: "Paquetes y Ofertas", t: "deals" },
-            { label: "Agentes de Viajes", t: "agents" },
-            { label: "Resorts y Hoteles", t: "resorts" },
-            { label: "Cruceros", t: "cruises" },
-            { label: "Tours y Excursiones", t: "tours" },
-            { label: "Otro", t: "" },
-          ],
-    [lang]
-  );
+  const travelChips = TRAVEL_QUICK_CHIPS[lang];
 
   const postEntryHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?lang=${lang}&cat=travel`)}`;
 
@@ -189,17 +79,7 @@ export default function TravelPage() {
         <section className="rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
           <p className="text-xs font-semibold text-[#111111]/80">{lang === "en" ? "Browse by category" : "Explorar por categoría"}</p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {[
-              { key: "rentas", es: "Rentas", en: "Rentals" },
-              { key: "en-venta", es: "En venta", en: "For sale" },
-              { key: "empleos", es: "Empleos", en: "Jobs" },
-              { key: "servicios", es: "Servicios", en: "Services" },
-              { key: "restaurantes", es: "Restaurantes", en: "Restaurants" },
-              { key: "travel", es: "Viajes", en: "Travel" },
-              { key: "autos", es: "Autos", en: "Autos" },
-              { key: "clases", es: "Clases", en: "Classes" },
-              { key: "comunidad", es: "Comunidad", en: "Community" },
-            ].map(({ key, es, en }) => (
+            {TRAVEL_LANDING_CATEGORY_PILLS.map(({ key, es, en }) => (
               <Link key={key} href={`/clasificados/lista?cat=${key}&lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
                 {lang === "es" ? es : en}
               </Link>
@@ -294,71 +174,71 @@ export default function TravelPage() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Tile
+            <TravelTile
               title={lang === "en" ? "Packages & Deals" : "Paquetes y Ofertas"}
               desc={
                 lang === "en"
                   ? "Featured offers, bundles, promos and seasonal deals."
                   : "Ofertas destacadas, paquetes, promociones y especiales de temporada."
               }
-              href={buildSectionHref(baseHref, "deals")}
+              href={buildTravelSectionHref(baseHref, "deals")}
               badge={lang === "en" ? "Offers" : "Ofertas"}
             />
-            <Tile
+            <TravelTile
               title={lang === "en" ? "Travel Agents" : "Agentes de Viajes"}
               desc={
                 lang === "en"
                   ? "Book with professionals — appointments, planning and support."
                   : "Reserva con profesionales — citas, planificación y apoyo."
               }
-              href={buildSectionHref(baseHref, "agents")}
+              href={buildTravelSectionHref(baseHref, "agents")}
               badge={lang === "en" ? "Pro" : "Pro"}
             />
-            <Tile
+            <TravelTile
               title={lang === "en" ? "Resorts & Hotels" : "Resorts y Hoteles"}
               desc={
                 lang === "en"
                   ? "Stay options for families, couples, and groups."
                   : "Opciones de hospedaje para familias, parejas y grupos."
               }
-              href={buildSectionHref(baseHref, "resorts")}
+              href={buildTravelSectionHref(baseHref, "resorts")}
             />
-            <Tile
+            <TravelTile
               title={lang === "en" ? "Cruises" : "Cruceros"}
               desc={
                 lang === "en"
                   ? "Departures, itineraries, and limited-time cruise promos."
                   : "Salidas, itinerarios y promociones por tiempo limitado."
               }
-              href={buildSectionHref(baseHref, "cruises")}
+              href={buildTravelSectionHref(baseHref, "cruises")}
             />
-            <Tile
+            <TravelTile
               title={lang === "en" ? "Tours & Excursions" : "Tours y Excursiones"}
               desc={
                 lang === "en"
                   ? "Local experiences, guided tours, and day trips."
                   : "Experiencias locales, tours guiados y excursiones de un día."
               }
-              href={buildSectionHref(baseHref, "tours")}
+              href={buildTravelSectionHref(baseHref, "tours")}
             />
-            <Tile
+            <TravelTile
               title={lang === "en" ? "Car Rentals" : "Renta de Autos"}
               desc={
                 lang === "en"
                   ? "Partners and pricing soon — we’re opening this lane next."
                   : "Pronto: socios y precios — abrimos esta opción muy pronto."
               }
-              href={buildSectionHref(baseHref, "car-rentals")}
+              href={buildTravelSectionHref(baseHref, "car-rentals")}
               comingSoon
             />
-            <Tile
+            <TravelTile
               title={lang === "en" ? "LEONIX Getaways" : "Escapadas LEONIX"}
               desc={
                 lang === "en"
                   ? "Weekend escapes & short stays — curated, family-safe and trusted."
                   : "Escapadas de fin de semana y estancias cortas — curadas, familiares y confiables."
               }
-              href={buildSectionHref(baseHref, "escapadas")}
+              href={buildTravelSectionHref(baseHref, "escapadas")}
               comingSoon
             />
           </div>
