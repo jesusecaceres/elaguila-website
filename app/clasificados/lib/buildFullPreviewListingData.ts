@@ -3,7 +3,10 @@
  */
 
 import type { ListingData } from "@/app/clasificados/components/ListingView";
-import { buildBrNegocioListingData } from "@/app/clasificados/bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
+import {
+  buildBrNegocioFullPreviewListingData,
+  isBienesRaicesNegocioPublishPreviewContext,
+} from "@/app/clasificados/bienes-raices/negocio/preview/buildBrNegocioFullPreviewListingData";
 import { buildRentasNegocioPreviewListingData } from "@/app/clasificados/rentas/negocio/mapping/buildRentasNegocioPreviewListingData";
 import type { EnVentaDraftSnapshot } from "@/app/clasificados/en-venta/publish/buildEnVentaDraftSnapshot";
 
@@ -48,9 +51,7 @@ export function buildFullPreviewListingData(params: BuildFullPreviewListingDataP
   } = params;
 
   const imgs = snap.images?.length ? snap.images : ["/logo.png"];
-  /** Snapshot + live form can diverge briefly; branch must match user selection for preview routing. */
-  const brBranchNormalized = (snap.details?.bienesRaicesBranch ?? details?.bienesRaicesBranch ?? "").trim().toLowerCase();
-  const isBrNegocioPreviewData = categoryFromUrl === "bienes-raices" && brBranchNormalized === "negocio";
+  const isBrNegocioPreviewData = isBienesRaicesNegocioPublishPreviewContext(categoryFromUrl, snap, details);
 
   const base: ListingData = {
     title: snap.title || (lang === "es" ? "(Sin título)" : "(No title)"),
@@ -78,26 +79,14 @@ export function buildFullPreviewListingData(params: BuildFullPreviewListingDataP
   };
 
   if (isBrNegocioPreviewData) {
-    return buildBrNegocioListingData({
-      snap: {
-        title: snap.title,
-        priceLabel: snap.priceLabel,
-        city: snap.city,
-        cityCanonical: snap.cityCanonical,
-        description: snap.description,
-        detailPairs: snap.detailPairs ?? [],
-        details: snap.details,
-        images: imgs,
-        proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
-        proVideoUrl: snap.proVideoUrl ?? null,
-        lang: snap.lang,
-      },
+    return buildBrNegocioFullPreviewListingData({
+      enVentaSnapshot: snap,
       lang,
       todayLabel,
-      previewCategoryLabel: previewCategoryLabel || "",
-      sellerDisplayName: sellerDisplayName ?? null,
-      userId: userId ?? null,
-      agentProfileReturnUrl: previewPublishReturnPath,
+      previewCategoryLabel,
+      sellerDisplayName,
+      userId,
+      previewPublishReturnPath,
     });
   }
 
