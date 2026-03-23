@@ -2629,7 +2629,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     [publishDraftSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
   );
 
-  /** BR negocio (media step): full-page preview via `/clasificados/preview-listing` — same `BienesRaicesNegocioPremiumDetail` family as embedded preview. */
+  /** BR negocio (media step): full-page preview via `/clasificados/preview-listing` — same `BienesRaicesPreviewNegocioFresh` shell as embedded preview. */
   const openBrNegocioFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesNegocio || step !== "media") return;

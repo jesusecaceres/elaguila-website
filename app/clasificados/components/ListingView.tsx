@@ -8,7 +8,7 @@ import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
 import BusinessListingIdentityRail from "./BusinessListingIdentityRail";
 import BienesRaicesPreviewListing from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPreviewListing";
-import BienesRaicesNegocioPremiumDetail from "@/app/clasificados/bienes-raices/negocio/preview/BienesRaicesNegocioPremiumDetail";
+import BienesRaicesPreviewNegocioFresh from "@/app/clasificados/bienes-raices/negocio/preview/BienesRaicesPreviewNegocioFresh";
 
 /** Business rail display (BR negocio / Rentas negocio). Used for preview parity with open card. */
 export type BusinessRailData = {
@@ -92,6 +92,8 @@ export type ListingData = {
     zoning?: string;
     city?: string;
     zip?: string;
+    /** BR negocio: architectural / design style from questionnaire (`brArchitecturalStyle`). */
+    architecturalStyle?: string;
   };
   /** Short teaser under title (BR negocio). */
   listingSummaryShort?: string | null;
@@ -323,11 +325,11 @@ export default function ListingView({
   const highlightClass = "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#D9D9D9] transition";
   const isHighlight = (id: string) => proHighlight === id;
 
-  // BR preview: negocio → BienesRaicesNegocioPremiumDetail (buildBrNegocioListingData sets businessRailTier "business_plus").
+  // BR preview: negocio → premium shell (buildBrNegocioListingData sets businessRailTier "business_plus").
   // Privado → BienesRaicesPreviewListing. Do not route negocio to the privado shell when tier/rail are present.
   if (previewMode && isBienesRaices) {
     if (listing.businessRailTier === "business_plus" || listing.businessRail) {
-      return <BienesRaicesNegocioPremiumDetail listing={listing} variant={brNegocioPreviewVariant} />;
+      return <BienesRaicesPreviewNegocioFresh listing={listing} variant={brNegocioPreviewVariant} />;
     }
     return <BienesRaicesPreviewListing listing={listing} />;
   }

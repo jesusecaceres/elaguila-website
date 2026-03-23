@@ -4,6 +4,8 @@
  */
 
 import type { BusinessRailData, ListingData } from "@/app/clasificados/components/ListingView";
+import { BR_PROPERTY_TYPE_OPTIONS } from "@/app/clasificados/bienes-raices/shared/fields/bienesRaicesTaxonomy";
+import { buildBrNegocioSocialLinksForRail } from "@/app/clasificados/bienes-raices/negocio/utils/brNegocioContactHelpers";
 import {
   resolveBrNegocioAddressStructuredFactsLine,
   resolveBrNegocioAgentForRail,
@@ -52,10 +54,15 @@ export function parseBrNegocioHighlights(raw: string | undefined): string[] {
   return lines.map((s) => s.trim()).filter(Boolean).slice(0, 16);
 }
 
-export function buildStructuredFactsFromDetails(details: Record<string, string>, cityDisplay: string) {
+export function buildStructuredFactsFromDetails(details: Record<string, string>, cityDisplay: string, lang: Lang) {
   const addr = resolveBrNegocioAddressStructuredFactsLine(details);
+  const pt = (details.brPropertyType ?? "").trim();
+  const ptOpt = pt ? BR_PROPERTY_TYPE_OPTIONS.find((o) => o.value === pt) : undefined;
+  const propertyTypeLabel = ptOpt ? ptOpt.label[lang] : undefined;
+  const arch = (details.brArchitecturalStyle ?? "").trim();
   return {
-    propertyTypeLabel: "",
+    propertyTypeLabel: propertyTypeLabel || undefined,
+    architecturalStyle: arch || undefined,
     addressLine: addr || undefined,
     neighborhood: (details.brZone ?? "").trim() || undefined,
     beds: (details.brBedrooms ?? "").trim() || undefined,
@@ -106,7 +113,7 @@ export function buildBrNegocioListingData(params: MapperParams): ListingData {
     coAgentName: (d.negocioCoAgente ?? "").trim() || null,
   };
 
-  const structuredFacts = buildStructuredFactsFromDetails(d, cityDisplay);
+  const structuredFacts = buildStructuredFactsFromDetails(d, cityDisplay, lang);
   const highlights = parseBrNegocioHighlights(d.brNegocioHighlights);
   const summaryShort = (d.brNegocioListingSummary ?? "").trim() || null;
 

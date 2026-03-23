@@ -135,6 +135,12 @@ export default function BusinessListingIdentityRail({
                   {agentRole}
                 </p>
               ) : null}
+              {brFull && businessRail.coAgentName?.trim() ? (
+                <p className="mt-1.5 text-[11px] text-[#111111]/62">
+                  <span className="font-semibold text-[#111111]/45">{lang === "es" ? "Co-agente" : "Co-agent"}:</span>{" "}
+                  {businessRail.coAgentName.trim()}
+                </p>
+              ) : null}
               {brFull && businessRail.agentLicense?.trim() ? (
                 <p className="mt-1.5 text-[11px] text-[#111111]/55">
                   {lang === "es" ? "Licencia" : "License"}: {businessRail.agentLicense.trim()}
@@ -151,7 +157,14 @@ export default function BusinessListingIdentityRail({
                   className={imageBoxClass}
                 />
               ) : null}
-              <p className="text-sm sm:text-[0.94rem] font-semibold text-[#111111] leading-tight break-words">{businessName}</p>
+              <div className="min-w-0">
+                <p className="text-sm sm:text-[0.94rem] font-semibold text-[#111111] leading-tight break-words">{businessName}</p>
+                {brFull && businessRail.brokerageName?.trim() ? (
+                  <p className="mt-1 text-xs text-[#111111]/62 leading-snug break-words">
+                    {lang === "es" ? "Correduría" : "Brokerage"}: {businessRail.brokerageName.trim()}
+                  </p>
+                ) : null}
+              </div>
             </div>
           )}
         </div>
@@ -251,7 +264,7 @@ export default function BusinessListingIdentityRail({
               rel="noopener noreferrer"
               className="w-full px-4 py-3.5 rounded-xl font-semibold text-sm text-center border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)] transition"
             >
-              {lang === "es" ? "Solicitar recorrido" : "Request tour"}
+              {lang === "es" ? "Solicitar tour" : "Request tour"}
             </a>
           ) : null}
           <button

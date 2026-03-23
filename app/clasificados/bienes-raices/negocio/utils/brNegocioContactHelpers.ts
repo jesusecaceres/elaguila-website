@@ -56,3 +56,31 @@ export function buildNegocioRedesPayload(details: Record<string, string | undefi
   }
   return lines.join("\n");
 }
+
+const SOCIAL_LINK_DEFS = [
+  { key: "negocioSocialFacebook" as const, es: "Facebook", en: "Facebook" },
+  { key: "negocioSocialInstagram" as const, es: "Instagram", en: "Instagram" },
+  { key: "negocioSocialYoutube" as const, es: "YouTube", en: "YouTube" },
+  { key: "negocioSocialTiktok" as const, es: "TikTok", en: "TikTok" },
+  { key: "negocioSocialWhatsapp" as const, es: "WhatsApp", en: "WhatsApp" },
+  { key: "negocioSocialX" as const, es: "X", en: "X" },
+];
+
+/** Per-platform links for BR negocio preview rail (same inputs as `buildNegocioRedesPayload`). */
+export function buildBrNegocioSocialLinksForRail(
+  details: Record<string, string | undefined | null>,
+  lang: "es" | "en"
+): Array<{ label: string; url: string }> {
+  const out: Array<{ label: string; url: string }> = [];
+  for (const row of SOCIAL_LINK_DEFS) {
+    const raw = (details[row.key] ?? "").trim();
+    if (!raw) continue;
+    try {
+      const url = normalizeSocialInputToUrl(raw);
+      if (url) out.push({ label: lang === "es" ? row.es : row.en, url });
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
+}

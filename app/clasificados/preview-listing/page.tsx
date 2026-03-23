@@ -11,7 +11,7 @@ import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
-/** Last-resort rail so ListingView BR premium gate + BienesRaicesNegocioPremiumDetail always get a truthy `businessRail`. */
+/** Last-resort rail so ListingView BR premium gate + BienesRaicesPreviewNegocioFresh always get a truthy `businessRail`. */
 function minimalBusinessRailFromDraft(draft: PreviewListingDraft): BusinessRailData {
   const L = draft.lang === "en" ? "en" : "es";
   const name = (draft.sellerName ?? "").trim() || (L === "es" ? "Negocio" : "Business");

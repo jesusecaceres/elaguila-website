@@ -1,5 +1,5 @@
 /**
- * BR Negocio — section → field ownership (target layout: BienesRaicesNegocioPremiumDetail).
+ * BR Negocio — section → field ownership (target layout: BienesRaicesPreviewNegocioFresh).
  *
  * Sections match ANCHOR_IDS / tabs in negocio preview. "Primary" = drives section content.
  */
