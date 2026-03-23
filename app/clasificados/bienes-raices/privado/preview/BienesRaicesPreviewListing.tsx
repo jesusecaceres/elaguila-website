@@ -22,13 +22,27 @@ function cx(...classes: Array<string | false | null | undefined>) {
 export type BienesRaicesPreviewListingProps = {
   listing: ListingData;
   variant?: "embedded" | "full";
+  /** Live public anuncio: match preview layout; hide preview chrome; use `#resumen` … anchors. */
+  liveMode?: boolean;
+  liveContact?: {
+    onRequestInfo: () => void;
+    onScheduleVisit: () => void;
+    onOpenChat: () => void;
+  };
 };
 
-const ANCHOR_IDS = BR_PRIVADO_PREVIEW_ANCHORS;
+const LIVE_PUBLIC_ANCHORS = {
+  resumen: "resumen",
+  detalles: "detalles",
+  ubicacion: "ubicacion",
+  contacto: "contacto",
+} as const;
 
 export default function BienesRaicesPreviewListing({
   listing,
   variant = "embedded",
+  liveMode = false,
+  liveContact,
 }: BienesRaicesPreviewListingProps) {
   const lang = listing.lang;
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -192,7 +206,8 @@ export default function BienesRaicesPreviewListing({
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const tabTargets = [ANCHOR_IDS.resumen, ANCHOR_IDS.detalles, ANCHOR_IDS.ubicacion, ANCHOR_IDS.contacto];
+  const anchorIds = liveMode ? LIVE_PUBLIC_ANCHORS : BR_PRIVADO_PREVIEW_ANCHORS;
+  const tabTargets = [anchorIds.resumen, anchorIds.detalles, anchorIds.ubicacion, anchorIds.contacto];
 
   const tileBase =
     "flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center shadow-sm";
@@ -221,51 +236,57 @@ export default function BienesRaicesPreviewListing({
     <div
       className={cx(
         "relative w-full min-w-0 overflow-x-hidden",
-        variant === "full" ? "bg-[#F5F4F1]" : "rounded-[1.5rem] border border-stone-200/80 bg-gradient-to-b from-white to-stone-50/90 shadow-[0_12px_40px_-20px_rgba(17,17,17,0.18)]"
+        liveMode
+          ? "bg-transparent"
+          : variant === "full"
+            ? "bg-[#F5F4F1]"
+            : "rounded-[1.5rem] border border-stone-200/80 bg-gradient-to-b from-white to-stone-50/90 shadow-[0_12px_40px_-20px_rgba(17,17,17,0.18)]"
       )}
     >
-      {previewToast ? (
+      {!liveMode && previewToast ? (
         <div className="fixed bottom-6 left-1/2 z-[130] -translate-x-1/2 rounded-full border border-stone-200 bg-[#111111] px-4 py-2 text-sm font-medium text-white shadow-lg">
           {previewToast}
         </div>
       ) : null}
 
-      <div className={cx(variant === "full" ? "px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-9" : "p-4 sm:p-5 lg:p-6")}>
-        <header
-          className={cx(
-            "mb-6 w-full min-w-0 border-b border-stone-200/70 pb-5",
-            variant === "full" &&
-              "sticky top-0 z-20 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10 pt-2 bg-[#F5F4F1]/95 backdrop-blur-md"
-          )}
-        >
-          <div className="inline-flex rounded-full border border-stone-300/60 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-600">
-            {t.previewBadge}
-          </div>
-          <div className="mt-3">
-            <p className="text-lg font-bold text-[#111111]">{t.brand}</p>
-            <p className="mt-1 text-sm text-stone-600 max-w-md">{t.previewSubtitle}</p>
-          </div>
-          <nav className="mt-5 flex flex-wrap gap-1.5 border-t border-stone-200/60 pt-4" aria-label={lang === "es" ? "Secciones" : "Sections"}>
-            {t.tabs.map((label, i) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => scrollToId(tabTargets[i]!)}
-                className={cx(
-                  "rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition",
-                  i === 0 ? "border border-stone-300 bg-white text-[#111111]" : "border border-transparent text-stone-600 hover:bg-white/80"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-        </header>
+      <div className={cx(liveMode ? "p-0" : variant === "full" ? "px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-9" : "p-4 sm:p-5 lg:p-6")}>
+        {!liveMode ? (
+          <header
+            className={cx(
+              "mb-6 w-full min-w-0 border-b border-stone-200/70 pb-5",
+              variant === "full" &&
+                "sticky top-0 z-20 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10 pt-2 bg-[#F5F4F1]/95 backdrop-blur-md"
+            )}
+          >
+            <div className="inline-flex rounded-full border border-stone-300/60 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-600">
+              {t.previewBadge}
+            </div>
+            <div className="mt-3">
+              <p className="text-lg font-bold text-[#111111]">{t.brand}</p>
+              <p className="mt-1 text-sm text-stone-600 max-w-md">{t.previewSubtitle}</p>
+            </div>
+            <nav className="mt-5 flex flex-wrap gap-1.5 border-t border-stone-200/60 pt-4" aria-label={lang === "es" ? "Secciones" : "Sections"}>
+              {t.tabs.map((label, i) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => scrollToId(tabTargets[i]!)}
+                  className={cx(
+                    "rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition",
+                    i === 0 ? "border border-stone-300 bg-white text-[#111111]" : "border border-transparent text-stone-600 hover:bg-white/80"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </header>
+        ) : null}
 
         <div className="mx-auto max-w-[86rem] min-w-0">
           <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_19.5rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0 flex flex-col gap-8">
-              <div id={ANCHOR_IDS.resumen} className="scroll-mt-28 space-y-4">
+              <div id={anchorIds.resumen} className="scroll-mt-28 space-y-4">
                 <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,15rem)] lg:gap-4">
                   <div
                     className={cx(
@@ -393,6 +414,11 @@ export default function BienesRaicesPreviewListing({
                       {t.approxChip}
                     </span>
                   ) : null}
+                  {listing.listingStatusLabel ? (
+                    <span className="inline-flex rounded-full border border-emerald-700/25 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-900">
+                      {listing.listingStatusLabel}
+                    </span>
+                  ) : null}
                 </div>
                 {listing.highlightChips && listing.highlightChips.length > 0 ? (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -466,7 +492,7 @@ export default function BienesRaicesPreviewListing({
                 </div>
               </section>
 
-              <section id={ANCHOR_IDS.detalles} className="scroll-mt-28">
+              <section id={anchorIds.detalles} className="scroll-mt-28">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 mb-3">{t.factsTitle}</h2>
                 <div className="space-y-5">
                   {filteredSections.map((sec) => (
@@ -487,7 +513,7 @@ export default function BienesRaicesPreviewListing({
                 </div>
               </section>
 
-              <section id={ANCHOR_IDS.ubicacion} className="scroll-mt-28">
+              <section id={anchorIds.ubicacion} className="scroll-mt-28">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 mb-3">{t.locationTitle}</h2>
                 <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
                   {mapsEmbedSrc ? (
@@ -540,8 +566,12 @@ export default function BienesRaicesPreviewListing({
               </section>
             </div>
 
-            <div id={ANCHOR_IDS.contacto} className="w-full min-w-0 scroll-mt-28 lg:sticky lg:top-24 lg:self-start">
-              <BienesRaicesPrivadoOwnerTrustCard listing={listing} onPreviewAction={showPreviewToast} />
+            <div id={anchorIds.contacto} className="w-full min-w-0 scroll-mt-28 lg:sticky lg:top-24 lg:self-start">
+              <BienesRaicesPrivadoOwnerTrustCard
+                listing={listing}
+                onPreviewAction={liveMode ? undefined : showPreviewToast}
+                liveContact={liveMode ? liveContact : undefined}
+              />
             </div>
           </div>
         </div>

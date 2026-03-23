@@ -9,9 +9,20 @@ function cx(...classes: Array<string | false | null | undefined>) {
 export type BienesRaicesPrivadoOwnerTrustCardProps = {
   listing: ListingData;
   onPreviewAction?: (message: string) => void;
+  /** Live anuncio: real contact handlers (replaces preview toasts). */
+  liveContact?: {
+    onRequestInfo: () => void;
+    onScheduleVisit: () => void;
+    /** Opens chat / message flow (same as seller rail “mensaje”). */
+    onOpenChat: () => void;
+  };
 };
 
-export function BienesRaicesPrivadoOwnerTrustCard({ listing, onPreviewAction }: BienesRaicesPrivadoOwnerTrustCardProps) {
+export function BienesRaicesPrivadoOwnerTrustCard({
+  listing,
+  onPreviewAction,
+  liveContact,
+}: BienesRaicesPrivadoOwnerTrustCardProps) {
   const lang = listing.lang;
   const name = (listing.sellerName ?? "").trim() || (lang === "es" ? "Propietario" : "Owner");
   const phone = (listing.contactPhone ?? "").trim();
@@ -28,6 +39,7 @@ export function BienesRaicesPrivadoOwnerTrustCard({ listing, onPreviewAction }: 
           trustSub: "Sin intermediarios comerciales en esta vista.",
           requestInfo: "Solicitar información",
           message: "Enviar mensaje",
+          scheduleVisit: "Programar visita",
           call: "Llamar",
           memberSince: "Miembro",
           responseNote: "El tiempo de respuesta depende del propietario.",
@@ -44,6 +56,7 @@ export function BienesRaicesPrivadoOwnerTrustCard({ listing, onPreviewAction }: 
         };
 
   const toast = (msg: string) => onPreviewAction?.(msg);
+  const isLive = Boolean(liveContact);
 
   return (
     <aside
@@ -78,18 +91,31 @@ export function BienesRaicesPrivadoOwnerTrustCard({ listing, onPreviewAction }: 
       <div className="mt-5 flex flex-col gap-2.5">
         <button
           type="button"
-          onClick={() => toast(lang === "es" ? "Vista previa: solicitud de información" : "Preview: info request")}
+          onClick={() =>
+            isLive ? liveContact!.onRequestInfo() : toast(lang === "es" ? "Vista previa: solicitud de información" : "Preview: info request")
+          }
           className="w-full rounded-xl border border-[#3F5A43]/60 bg-[#3F5A43] px-4 py-3 text-sm font-semibold text-[#F7F4EC] shadow-sm transition hover:bg-[#36503A]"
         >
           {t.requestInfo}
         </button>
         <button
           type="button"
-          onClick={() => toast(lang === "es" ? "Vista previa: mensaje al propietario" : "Preview: message to owner")}
+          onClick={() =>
+            isLive ? liveContact!.onOpenChat() : toast(lang === "es" ? "Vista previa: mensaje al propietario" : "Preview: message to owner")
+          }
           className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-[#111111] shadow-sm transition hover:bg-stone-50"
         >
           {t.message}
         </button>
+        {isLive ? (
+          <button
+            type="button"
+            onClick={() => liveContact!.onScheduleVisit()}
+            className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-semibold text-[#111111] shadow-sm transition hover:bg-stone-100"
+          >
+            {t.scheduleVisit}
+          </button>
+        ) : null}
         {hasPhone ? (
           <a
             href={`tel:${phoneDigits}`}

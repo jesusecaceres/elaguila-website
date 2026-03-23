@@ -23,16 +23,32 @@ function cx(...classes: Array<string | false | null | undefined>) {
 export type BienesRaicesPreviewNegocioFreshProps = {
   listing: ListingData;
   variant?: "embedded" | "full";
+  /** Live public anuncio: hide preview chrome; anchors `#resumen` … `#contacto`. */
+  liveMode?: boolean;
+  liveBrContactActions?: {
+    onRequestInfo: () => void;
+    onScheduleVisit: () => void;
+    onSendMessage: () => void;
+  };
 };
 
 /** @deprecated Use `BienesRaicesPreviewNegocioFreshProps` — kept for re-exports. */
 export type BienesRaicesNegocioPremiumDetailProps = BienesRaicesPreviewNegocioFreshProps;
 
-const ANCHOR_IDS = BR_NEGOCIO_PREVIEW_ANCHORS;
+const LIVE_PUBLIC_NEGOCIO_ANCHORS = {
+  resumen: "resumen",
+  interior: "interior",
+  exterior: "exterior",
+  detalles: "detalles",
+  ubicacion: "ubicacion",
+  contacto: "contacto",
+} as const;
 
 export default function BienesRaicesPreviewNegocioFresh({
   listing,
   variant = "embedded",
+  liveMode = false,
+  liveBrContactActions = undefined,
 }: BienesRaicesPreviewNegocioFreshProps) {
   const lang = listing.lang;
   const rail = listing.businessRail;
@@ -202,13 +218,14 @@ export default function BienesRaicesPreviewNegocioFresh({
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const anchorIds = liveMode ? LIVE_PUBLIC_NEGOCIO_ANCHORS : BR_NEGOCIO_PREVIEW_ANCHORS;
   const tabTargets = [
-    ANCHOR_IDS.resumen,
-    ANCHOR_IDS.interior,
-    ANCHOR_IDS.exterior,
-    ANCHOR_IDS.detalles,
-    ANCHOR_IDS.ubicacion,
-    ANCHOR_IDS.contacto,
+    anchorIds.resumen,
+    anchorIds.interior,
+    anchorIds.exterior,
+    anchorIds.detalles,
+    anchorIds.ubicacion,
+    anchorIds.contacto,
   ];
 
   const negocioTileInBand =
@@ -289,7 +306,7 @@ export default function BienesRaicesPreviewNegocioFresh({
         <div className="mx-auto w-full max-w-[88rem] min-w-0">
           <div className="min-w-0 flex flex-col gap-8 sm:gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_25rem]">
             <div className="min-w-0 flex flex-col gap-8 sm:gap-10 lg:col-start-1 lg:row-start-1">
-              <div id={ANCHOR_IDS.resumen} className="scroll-mt-28 space-y-4">
+              <div id={anchorIds.resumen} className="scroll-mt-28 space-y-4">
                 <div className="flex w-full min-w-0 flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)] lg:items-stretch lg:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,19rem)]">
                   <div
                     className={cx(
@@ -551,7 +568,7 @@ export default function BienesRaicesPreviewNegocioFresh({
                 </div>
               </section>
 
-              <section id={ANCHOR_IDS.detalles} className="scroll-mt-28">
+              <section id={anchorIds.detalles} className="scroll-mt-28">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]/48 mb-4">{t.factsTitle}</h2>
                 <div className="space-y-6">
                   {filteredSections.map((sec) => (
@@ -559,9 +576,9 @@ export default function BienesRaicesPreviewNegocioFresh({
                       key={sec.id}
                       id={
                         sec.id === "interior"
-                          ? ANCHOR_IDS.interior
+                          ? anchorIds.interior
                           : sec.id === "exteriorLot"
-                            ? ANCHOR_IDS.exterior
+                            ? anchorIds.exterior
                             : undefined
                       }
                       className="rounded-2xl border border-stone-200/65 bg-white p-5 sm:p-7 shadow-sm scroll-mt-28"
@@ -582,7 +599,7 @@ export default function BienesRaicesPreviewNegocioFresh({
                 </div>
               </section>
 
-              <section id={ANCHOR_IDS.ubicacion} className="scroll-mt-28">
+              <section id={anchorIds.ubicacion} className="scroll-mt-28">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]/48 mb-4">{t.locationTitle}</h2>
                 <div className="overflow-hidden rounded-2xl border border-stone-200/75 bg-white shadow-sm">
                   {mapsEmbedSrc ? (
@@ -654,10 +671,11 @@ export default function BienesRaicesPreviewNegocioFresh({
                 ownerId={listing.ownerId ?? null}
                 agentProfileReturnUrl={listing.agentProfileReturnUrl ?? null}
                 premiumBienesRaices
+                liveBrContactActions={liveMode ? liveBrContactActions ?? null : null}
               />
             </aside>
 
-            <section id={ANCHOR_IDS.contacto} className="w-full min-w-0 lg:col-span-2 scroll-mt-28">
+            <section id={anchorIds.contacto} className="w-full min-w-0 lg:col-span-2 scroll-mt-28">
               <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#111111]/48 mb-4">{t.lowerAgentTitle}</h2>
               <LowerAgentBlock rail={rail} lang={lang} />
             </section>

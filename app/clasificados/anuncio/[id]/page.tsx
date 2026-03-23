@@ -48,6 +48,12 @@ import { BienesRaicesBusinessMobileBlock } from "../../bienes-raices/listing/com
 import { BienesRaicesSameCompanyListingsSection } from "../../bienes-raices/listing/components/BienesRaicesSameCompanyListingsSection";
 import { BienesRaicesPrivadoSellerRail } from "../../bienes-raices/listing/components/BienesRaicesPrivadoSellerRail";
 import { BienesRaicesNegocioDesktopBusinessRail } from "../../bienes-raices/listing/components/BienesRaicesNegocioDesktopBusinessRail";
+import BienesRaicesPreviewListing from "../../bienes-raices/privado/preview/BienesRaicesPreviewListing";
+import BienesRaicesPreviewNegocioFresh from "../../bienes-raices/negocio/preview/BienesRaicesPreviewNegocioFresh";
+import {
+  buildBienesRaicesNegocioLiveListingData,
+  buildBienesRaicesPrivadoLiveListingData,
+} from "../../bienes-raices/listing/utils/brAnuncioLiveListingData";
 
 type Lang = "es" | "en";
 
@@ -436,17 +442,8 @@ export default function AnuncioDetallePage() {
   /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
   const isLiveDbListing = Boolean(listing && !sampleListing);
 
-  const {
-    brNegocioDisplay,
-    bienesRaicesSameCompanyListings,
-    bienesRaicesFacts,
-    brVirtualTourUrl,
-    isBienesRaicesNegocio,
-    isBienesRaicesPrivado,
-    brBaseAddress,
-    brBaseZone,
-    brBaseFeatureTags,
-  } = useBienesRaicesAnuncioDerived({
+  const { brNegocioDisplay, bienesRaicesSameCompanyListings, isBienesRaicesNegocio, isBienesRaicesPrivado } =
+    useBienesRaicesAnuncioDerived({
     listing: listing as unknown as import("../../bienes-raices/listing/types/brAnuncioLiveTypes").BrAnuncioListingLike | undefined,
     lang,
     isLiveDbListing,
@@ -794,6 +791,32 @@ export default function AnuncioDetallePage() {
     return listing.postedAgo[lang];
   }, [listing, lang]);
 
+  const brPrivadoLiveListingData = useMemo(() => {
+    if (!listing || listing.category !== "bienes-raices" || !isBienesRaicesPrivado) return null;
+    return buildBienesRaicesPrivadoLiveListingData({
+      listing: listing as import("../../bienes-raices/listing/utils/brAnuncioLiveListingData").BienesRaicesLiveListingRow,
+      lang,
+      postedAgoLabel: postedAgoDisplay,
+      isPro,
+      proVideoInfos,
+    });
+  }, [listing, lang, isBienesRaicesPrivado, postedAgoDisplay, isPro, proVideoInfos]);
+
+  const brNegocioLiveListingData = useMemo(() => {
+    if (!listing || listing.category !== "bienes-raices" || !isBienesRaicesNegocio) return null;
+    return buildBienesRaicesNegocioLiveListingData({
+      listing: listing as import("../../bienes-raices/listing/utils/brAnuncioLiveListingData").BienesRaicesLiveListingRow,
+      lang,
+      postedAgoLabel: postedAgoDisplay,
+      isPro,
+      proVideoInfos,
+    });
+  }, [listing, lang, isBienesRaicesNegocio, postedAgoDisplay, isPro, proVideoInfos]);
+
+  const brLiveParityNegocio = Boolean(isBienesRaicesNegocio && brNegocioLiveListingData?.businessRail);
+  const brLiveParityPrivado = Boolean(isBienesRaicesPrivado && brPrivadoLiveListingData);
+  const brLiveParityLayout = brLiveParityNegocio || brLiveParityPrivado;
+
   const isBoosted = useMemo(() => {
     const until = (listing as any)?.boostUntil;
     return until && new Date(until).getTime() > Date.now();
@@ -984,7 +1007,9 @@ export default function AnuncioDetallePage() {
           </div>
         </div>
 
-        {(isBienesRaicesPrivado || isBienesRaicesNegocio) && <BienesRaicesAnuncioTopChrome lang={lang} />}
+        {(isBienesRaicesPrivado || isBienesRaicesNegocio) && (
+          <BienesRaicesAnuncioTopChrome lang={lang} variant={isBienesRaicesNegocio ? "negocio" : "privado"} />
+        )}
 
         <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", (isBienesRaicesPrivado || isBienesRaicesNegocio) ? "mt-8" : "mt-10")}>
           {/* Main card */}
@@ -1000,20 +1025,30 @@ export default function AnuncioDetallePage() {
                 !rentasPlanTier && !isBienesRaicesNegocio && !isBienesRaicesPrivado && listing?.category !== "bienes-raices" && "border-black/10"
               )}
             >
-              {(isBienesRaicesPrivado || isBienesRaicesNegocio) ? (
-                <BienesRaicesLiveHeroAndSummary
-                  lang={lang}
-                  mediaSlots={mediaSlots}
-                  title={listing.title[lang]}
-                  priceLabel={listing.priceLabel[lang]}
-                  city={listing.city}
-                  brBaseAddress={brBaseAddress}
-                  brBaseZone={brBaseZone}
-                  bienesRaicesFacts={bienesRaicesFacts}
-                  brBaseFeatureTags={brBaseFeatureTags}
-                  proVideoCount={proVideoInfos.length}
-                  brVirtualTourUrl={brVirtualTourUrl}
-                />
+              {brLiveParityLayout ? (
+                brLiveParityNegocio && brNegocioLiveListingData ? (
+                  <BienesRaicesPreviewNegocioFresh
+                    listing={brNegocioLiveListingData}
+                    variant="full"
+                    liveMode
+                    liveBrContactActions={{
+                      onRequestInfo: handleContactarVendedor,
+                      onScheduleVisit: handleContactarVendedor,
+                      onSendMessage: () => setShowChatModal(true),
+                    }}
+                  />
+                ) : brPrivadoLiveListingData ? (
+                  <BienesRaicesPreviewListing
+                    listing={brPrivadoLiveListingData}
+                    variant="full"
+                    liveMode
+                    liveContact={{
+                      onRequestInfo: handleContactarVendedor,
+                      onScheduleVisit: handleContactarVendedor,
+                      onOpenChat: () => setShowChatModal(true),
+                    }}
+                  />
+                ) : null
               ) : (
                 <>
                   {mediaSlots.length > 0 && (
@@ -1195,28 +1230,33 @@ export default function AnuncioDetallePage() {
                 />
               )}
 
-              <div
-                id={(isBienesRaicesPrivado || isBienesRaicesNegocio) ? "detalles" : undefined}
-                className={cx(
-                  "mt-8 rounded-2xl p-6 scroll-mt-24",
-                  listing.category === "rentas" && rentasPlanTier === "privado_pro"
-                    ? "border border-stone-200/80 bg-[#FAFAF9]"
-                    : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
-                  (isBienesRaicesPrivado || isBienesRaicesNegocio) && "border-[#C9B46A]/25 bg-[#FAFAF8]"
-                )}
-              >
-                <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
-              </div>
-              {(isBienesRaicesPrivado || isBienesRaicesNegocio) && <div id="ubicacion" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />}
-
-              {listing.category === "bienes-raices" && isBusiness && brNegocioDisplay && (
-                <BienesRaicesBusinessMobileBlock
-                  lang={lang}
-                  isBienesRaicesNegocio={isBienesRaicesNegocio}
-                  display={brNegocioDisplay}
-                  onRequestInfo={handleContactarVendedor}
-                />
-              )}
+              {!brLiveParityLayout ? (
+                <>
+                  <div
+                    id={(isBienesRaicesPrivado || isBienesRaicesNegocio) ? "detalles" : undefined}
+                    className={cx(
+                      "mt-8 rounded-2xl p-6 scroll-mt-24",
+                      listing.category === "rentas" && rentasPlanTier === "privado_pro"
+                        ? "border border-stone-200/80 bg-[#FAFAF9]"
+                        : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
+                      (isBienesRaicesPrivado || isBienesRaicesNegocio) && "border-[#C9B46A]/25 bg-[#FAFAF8]"
+                    )}
+                  >
+                    <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
+                  </div>
+                  {(isBienesRaicesPrivado || isBienesRaicesNegocio) && (
+                    <div id="ubicacion" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />
+                  )}
+                  {listing.category === "bienes-raices" && isBusiness && brNegocioDisplay && (
+                    <BienesRaicesBusinessMobileBlock
+                      lang={lang}
+                      isBienesRaicesNegocio={isBienesRaicesNegocio}
+                      display={brNegocioDisplay}
+                      onRequestInfo={handleContactarVendedor}
+                    />
+                  )}
+                </>
+              ) : null}
 
               {listing.category === "rentas" && (
                 <RentasAnuncioPostDescriptionSections
@@ -1233,7 +1273,7 @@ export default function AnuncioDetallePage() {
 
               {/* Rentas Privado: no Pro teaser block — keep page as listing-only, human/direct */}
 
-{proVideoInfos.length > 0 && mediaSlots.length === 0 && (
+{!brLiveParityLayout && proVideoInfos.length > 0 && mediaSlots.length === 0 && (
   <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
     <div className="flex items-center justify-between gap-3">
       <div>
@@ -1316,7 +1356,7 @@ export default function AnuncioDetallePage() {
                   city={listing.city}
                   postedAgoDisplay={postedAgoDisplay}
                 />
-              ) : (
+              ) : !brLiveParityLayout ? (
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
                     <div className="text-xs text-[#111111]">{t.metaCategory}</div>
@@ -1348,7 +1388,7 @@ export default function AnuncioDetallePage() {
                     {rentasMeta?.facts && <RentasAnuncioMetaGridCards facts={rentasMeta.facts} />}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Safety note */}
@@ -1512,7 +1552,7 @@ export default function AnuncioDetallePage() {
 
           {/* Right rail: private BR seller card, or Rentas/BR Negocio business identity. */}
           <div className="lg:col-span-4 space-y-6">
-            {isBienesRaicesPrivado ? (
+            {!brLiveParityLayout && isBienesRaicesPrivado ? (
               <BienesRaicesPrivadoSellerRail
                 lang={lang}
                 sellerName={listing.sellerName ?? (listing as any).seller_name ?? (lang === "es" ? "Propietario" : "Owner")}
@@ -1521,7 +1561,7 @@ export default function AnuncioDetallePage() {
                 onRequestInfo={handleContactarVendedor}
                 onScheduleVisit={handleContactarVendedor}
               />
-            ) : listing.category === "bienes-raices" && isBusiness && brNegocioDisplay ? (
+            ) : !brLiveParityLayout && listing.category === "bienes-raices" && isBusiness && brNegocioDisplay ? (
               <BienesRaicesNegocioDesktopBusinessRail
                 lang={lang}
                 display={brNegocioDisplay}
@@ -1651,7 +1691,9 @@ export default function AnuncioDetallePage() {
               </div>
             </div>
 
-            {!(listing.category === "rentas" && isBusiness && rentasNegocioDisplay) && !(listing.category === "bienes-raices" && isBusiness && brNegocioDisplay) && (
+            {!brLiveParityLayout &&
+              !(listing.category === "rentas" && isBusiness && rentasNegocioDisplay) &&
+              !(listing.category === "bienes-raices" && isBusiness && brNegocioDisplay) && (
             <div className={cx(
               "seller-card rounded-2xl border p-6",
               listing.category === "rentas" && rentasPlanTier === "privado_pro"
@@ -1704,35 +1746,41 @@ export default function AnuncioDetallePage() {
             </div>
             )}
 
-            <div className={cx(
-              "rounded-2xl border p-6",
-              rentasPlanTier === "privado_pro" ? "border-stone-200/80 bg-[#FAFAF9]" : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
-            )}>
-              <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                {lang === "es" ? "Ubicación" : "Location"}
-              </h3>
-              <p className="text-sm text-[#111111] mb-2">
-                {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {listing?.city ?? ""}
-              </p>
-              <label className="block text-sm text-[#111111]/80 mb-1">
-                {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
-              </label>
-              <CityAutocomplete
-                value={viewerCityInput}
-                onChange={setViewerCityInput}
-                placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
-                lang={lang}
-                variant="light"
-                className="mt-1"
-              />
-              {distanceMiles !== null && (
-                <p className="mt-2 text-sm text-[#111111]/80">
-                  {lang === "es"
-                    ? `Aproximadamente ${Math.round(distanceMiles)} millas de distancia`
-                    : `Approximately ${Math.round(distanceMiles)} miles away`}
+            {!brLiveParityLayout ? (
+              <div
+                className={cx(
+                  "rounded-2xl border p-6",
+                  rentasPlanTier === "privado_pro"
+                    ? "border-stone-200/80 bg-[#FAFAF9]"
+                    : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+                )}
+              >
+                <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                  {lang === "es" ? "Ubicación" : "Location"}
+                </h3>
+                <p className="text-sm text-[#111111] mb-2">
+                  {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {listing?.city ?? ""}
                 </p>
-              )}
-            </div>
+                <label className="block text-sm text-[#111111]/80 mb-1">
+                  {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
+                </label>
+                <CityAutocomplete
+                  value={viewerCityInput}
+                  onChange={setViewerCityInput}
+                  placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
+                  lang={lang}
+                  variant="light"
+                  className="mt-1"
+                />
+                {distanceMiles !== null && (
+                  <p className="mt-2 text-sm text-[#111111]/80">
+                    {lang === "es"
+                      ? `Aproximadamente ${Math.round(distanceMiles)} millas de distancia`
+                      : `Approximately ${Math.round(distanceMiles)} miles away`}
+                  </p>
+                )}
+              </div>
+            ) : null}
 
             <div className={cx(
               "rounded-2xl border p-6",

@@ -41,6 +41,9 @@ export function buildBrNegocioLiveDisplay(
     "";
   const meta = bienesRaicesBusinessMeta ?? {};
   const website = meta.negocioSitioWeb?.trim() || "";
+  const phoneFmt = meta.negocioTelOficina?.trim() || "";
+  const extFmt = meta.negocioTelExtension?.trim() || "";
+  const officePhoneDisplay = phoneFmt ? (extFmt ? `${phoneFmt} · Ext. ${extFmt}` : phoneFmt) : "";
   const rawSocials = meta.negocioRedes?.trim() || "";
   const socialLinks = parseBrNegocioRedesSocialLinks(rawSocials);
   let availabilityRows: Array<{ title: string; price: string; size: string; ctaText?: string; ctaLink?: string }> = [];
@@ -58,7 +61,7 @@ export function buildBrNegocioLiveDisplay(
     agent: meta.negocioAgente?.trim() || "",
     role: meta.negocioCargo?.trim() || "",
     agentLicense: meta.negocioLicencia?.trim() || "",
-    officePhone: meta.negocioTelOficina?.trim() || "",
+    officePhone: officePhoneDisplay,
     website: website || null,
     socialLinks,
     rawSocials: socialLinks ? "" : rawSocials,

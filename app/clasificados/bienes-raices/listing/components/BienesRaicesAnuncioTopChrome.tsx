@@ -2,7 +2,14 @@
 
 import type { BrAnuncioLang } from "../types/brAnuncioLiveTypes";
 
-const SECTIONS = [
+const SECTIONS_PRIVADO = [
+  { id: "resumen", es: "Resumen", en: "Summary" },
+  { id: "detalles", es: "Detalles", en: "Details" },
+  { id: "ubicacion", es: "Ubicación", en: "Location" },
+  { id: "contacto", es: "Contacto", en: "Contact" },
+] as const;
+
+const SECTIONS_NEGOCIO = [
   { id: "resumen", es: "Resumen", en: "Summary" },
   { id: "interior", es: "Interior", en: "Interior" },
   { id: "exterior", es: "Exterior", en: "Exterior" },
@@ -12,7 +19,15 @@ const SECTIONS = [
 ] as const;
 
 /** BR Privado/Negocio live anuncio: faux hub header + in-page section nav (extracted from anuncio page). */
-export function BienesRaicesAnuncioTopChrome({ lang }: { lang: BrAnuncioLang }) {
+export function BienesRaicesAnuncioTopChrome({
+  lang,
+  variant = "negocio",
+}: {
+  lang: BrAnuncioLang;
+  /** Privado preview uses four sections; negocio adds interior/exterior anchors. */
+  variant?: "privado" | "negocio";
+}) {
+  const sections = variant === "privado" ? SECTIONS_PRIVADO : SECTIONS_NEGOCIO;
   return (
     <>
       <header className="mt-8 rounded-2xl border border-[#C9B46A]/25 bg-[#FAFAF8] shadow-sm overflow-hidden">
@@ -36,7 +51,7 @@ export function BienesRaicesAnuncioTopChrome({ lang }: { lang: BrAnuncioLang }) 
         </div>
       </header>
       <nav className="mt-3 flex flex-wrap items-center gap-2" aria-label={lang === "es" ? "Secciones del anuncio" : "Listing sections"}>
-        {SECTIONS.map(({ id, es: esLabel, en: enLabel }) => (
+        {sections.map(({ id, es: esLabel, en: enLabel }) => (
           <a
             key={id}
             href={`#${id}`}

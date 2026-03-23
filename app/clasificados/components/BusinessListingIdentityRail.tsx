@@ -21,6 +21,12 @@ export type BusinessListingIdentityRailProps = {
    * Default false keeps compact rail for other BR callers.
    */
   premiumBienesRaices?: boolean;
+  /** BR negocio live anuncio: wire primary rail buttons to real handlers. */
+  liveBrContactActions?: {
+    onRequestInfo: () => void;
+    onScheduleVisit: () => void;
+    onSendMessage: () => void;
+  } | null;
 };
 
 /**
@@ -42,6 +48,7 @@ export default function BusinessListingIdentityRail({
   ownerId,
   agentProfileReturnUrl,
   premiumBienesRaices = false,
+  liveBrContactActions = null,
 }: BusinessListingIdentityRailProps) {
   const isBienesRaices = category === "bienes-raices";
   const brFull = isBienesRaices && premiumBienesRaices;
@@ -299,6 +306,7 @@ export default function BusinessListingIdentityRail({
           ) : null}
           <button
             type="button"
+            onClick={() => liveBrContactActions?.onScheduleVisit()}
             className={cx(
               "w-full px-4 py-3.5 rounded-xl font-semibold border text-sm transition",
               isBienesRaices
