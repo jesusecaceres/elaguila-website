@@ -8,7 +8,7 @@
 /**
  * A) First-class typed sources (read from `details` / snapshot, NOT invented in pairs):
  * - Property: tipo, subtipo, recámaras, baños, pies², terreno, niveles, estacionamiento, año, zonificación, servicios
- * - Address: split BR negocio lines OR legacy `enVentaAddress`
+ * - Address: split BR negocio lines OR legacy `brAddress`
  * - Media URLs: video propiedad, tour virtual, plano (duplicated as top-level `floorPlanUrl` / `proVideoUrl` on ListingData where applicable)
  * - Negocio identity rows in pairs: nombre negocio, plan, agente (summary chips only — rail uses raw `negocio*` keys)
  *

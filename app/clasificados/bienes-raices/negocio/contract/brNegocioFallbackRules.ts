@@ -6,7 +6,7 @@
 
 export const BR_NEGOCIO_FALLBACK_RULES = {
   videoTile: {
-    sources: ["listing.proVideoUrl", "enVentaVideoUrl via media normalization"],
+    sources: ["listing.proVideoUrl", "brVideoUrl via media normalization"],
     hideIf: "no normalized video URL after trim",
   },
   virtualTourTile: {
@@ -23,7 +23,7 @@ export const BR_NEGOCIO_FALLBACK_RULES = {
     hideIf: "component chooses compact identity — never hard-error",
   },
   neighborhood: {
-    sources: ["detailPairs neighborhood", "enVentaZone"],
+    sources: ["detailPairs neighborhood", "brZone"],
     fallback: "city-only subtitle",
     hideIf: "optional line omitted if both empty",
   },

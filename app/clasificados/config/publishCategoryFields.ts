@@ -12,6 +12,8 @@ import {
   isBrPrivadoResidential,
 } from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import { getRentasDetailFields } from "@/app/clasificados/rentas/shared/fields/rentasTaxonomy";
+import { coalesceWizardDetailValue } from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
+import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
 
 export function getPublishCategoryFields(
   cat: string,
@@ -25,8 +27,8 @@ export function getPublishCategoryFields(
   }
   if (cat === "bienes-raices" && details) {
     const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
-    const pt = (details.enVentaPropertyType ?? "").trim();
-    // BR application branches by sub property type (bienesRaicesSubcategoria / enVentaPropertyType); taxonomy is source of truth.
+    const pt = coalesceWizardDetailValue(details, "brPropertyType", LEGACY_WIZARD_BR_DETAIL.propertyType);
+    // BR application branches by sub property type (bienesRaicesSubcategoria / brPropertyType); taxonomy is source of truth.
     if (brBranch === "negocio") return DETAIL_FIELDS["bienes-raices"] ?? [];
     if (brBranch === "privado") {
       if (isBrPrivadoResidential(pt)) return DETAIL_FIELDS["bienes-raices"] ?? [];

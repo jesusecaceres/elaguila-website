@@ -48,11 +48,11 @@ export function BienesRaicesPrivadoMediaPreviewCard({
             const d = details;
             type Fact = { type: "bed"; value: string } | { type: "bath"; value: string } | { type: "sqft"; value: string; label: string } | { type: "posted" };
             const parts: Fact[] = [];
-            const br = (d.enVentaBedrooms ?? "").trim();
+            const br = (d.brBedrooms ?? "").trim();
             if (br) parts.push({ type: "bed", value: br });
-            const ba = (d.enVentaBathrooms ?? "").trim();
+            const ba = (d.brBathrooms ?? "").trim();
             if (ba) parts.push({ type: "bath", value: ba });
-            const sqRaw = (d.enVentaSquareFeet ?? "").trim();
+            const sqRaw = (d.brSquareFeet ?? "").trim();
             if (sqRaw) {
               const sqNum = sqRaw.replace(/[^0-9]/g, "");
               const sqDisplay = sqNum && Number.isFinite(Number(sqNum)) ? Number(sqNum).toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
@@ -94,8 +94,8 @@ export function BienesRaicesPrivadoMediaPreviewCard({
             ) : null;
           })()}
           {(() => {
-            const addr = (details.enVentaAddress ?? "").trim();
-            const zone = (details.enVentaZone ?? "").trim();
+            const addr = (details.brAddress ?? "").trim();
+            const zone = (details.brZone ?? "").trim();
             const city = previewCity;
             const mainLine = addr ? addr : zone ? `${zone}, ${city}` : city;
             if (!mainLine) return null;

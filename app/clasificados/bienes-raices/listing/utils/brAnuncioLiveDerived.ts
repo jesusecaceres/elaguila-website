@@ -6,6 +6,8 @@ import type {
   BrSameCompanySampleItem,
 } from "../types/brAnuncioLiveTypes";
 import { parseBrNegocioRedesSocialLinks } from "./brNegocioRedesSocialLinks";
+import { coalesceWizardDetailValue } from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
+import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
 
 function isBusinessSeller(listing: BrAnuncioListingLike): boolean {
   return listing.sellerType === "business" || listing.seller_type === "business";
@@ -135,8 +137,8 @@ export function resolveBrLiveVirtualTourUrl(
 
 export function brBaseAddressFromListing(listing: BrAnuncioListingLike | null | undefined): string {
   if (!listing || listing.category !== "bienes-raices") return "";
-  const details = listing.details;
-  const addr = details?.enVentaAddress?.trim() ?? "";
+  const details = (listing.details ?? {}) as Record<string, string | undefined>;
+  const addr = coalesceWizardDetailValue(details, "brAddress", LEGACY_WIZARD_BR_DETAIL.address);
   if (addr) return addr;
   const pairs = listing.detailPairs ?? listing.detail_pairs;
   if (Array.isArray(pairs)) {
@@ -148,8 +150,8 @@ export function brBaseAddressFromListing(listing: BrAnuncioListingLike | null | 
 
 export function brBaseZoneFromListing(listing: BrAnuncioListingLike | null | undefined): string {
   if (!listing || listing.category !== "bienes-raices") return "";
-  const details = listing.details;
-  const z = details?.enVentaZone?.trim() ?? "";
+  const details = (listing.details ?? {}) as Record<string, string | undefined>;
+  const z = coalesceWizardDetailValue(details, "brZone", LEGACY_WIZARD_BR_DETAIL.zone);
   if (z) return z;
   const pairs = listing.detailPairs ?? listing.detail_pairs;
   if (Array.isArray(pairs)) {

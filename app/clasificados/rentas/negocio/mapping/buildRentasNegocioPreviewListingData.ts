@@ -5,7 +5,7 @@
 
 import type { BusinessRailData, ListingData } from "../../../components/ListingView";
 import { mapRentasNegocioDetailsTierToDb } from "./rentasNegocioDetailsTierToDb";
-import { RENTAS_LEGACY_SHARED_BUSINESS_NAME_KEY } from "../../publish/rentasPublishDraftLegacyKeys";
+import { coalesceNegocioNombreFromWizard } from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
 
 /** Same parsing as anuncio/[id]/page.tsx `parseRentasSocialLinks` (behavior-preserving). */
 function parseRentasSocialLinks(raw: string | null | undefined): Array<{ label: string; url: string }> | null {
@@ -63,10 +63,7 @@ export function buildRentasNegocioPreviewListingData(params: BuildRentasNegocioP
   }
 
   const d = details;
-  const name =
-    (d.negocioNombre ?? "").trim() ||
-    (d[RENTAS_LEGACY_SHARED_BUSINESS_NAME_KEY] ?? "").trim() ||
-    (lang === "es" ? "Negocio" : "Business");
+  const name = coalesceNegocioNombreFromWizard(d) || (lang === "es" ? "Negocio" : "Business");
 
   const rawSocials = (d.negocioRedes ?? "").trim();
   const parsedSocials = parseRentasSocialLinks(rawSocials);

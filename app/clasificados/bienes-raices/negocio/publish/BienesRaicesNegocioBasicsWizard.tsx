@@ -148,14 +148,14 @@ export function BienesRaicesNegocioBasicsWizard({
           <div>
             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
             <select
-              value={details.enVentaPropertyType ?? ""}
+              value={details.brPropertyType ?? ""}
               onChange={(e) => {
                 const v = e.target.value;
-                setDetails((prev) => ({ ...prev, enVentaPropertyType: v, bienesRaicesSubcategoria: getBrSubcategoriaFromPropertyType(v) }));
+                setDetails((prev) => ({ ...prev, brPropertyType: v, bienesRaicesSubcategoria: getBrSubcategoriaFromPropertyType(v) }));
               }}
               className={cxOut(
                 "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111]",
-                basicsShowValidation && !details.enVentaPropertyType?.trim() ? "border-red-500" : "border-black/10"
+                basicsShowValidation && !details.brPropertyType?.trim() ? "border-red-500" : "border-black/10"
               )}
             >
               <option value="">{lang === "es" ? "Elige tipo…" : "Choose type…"}</option>
@@ -169,8 +169,8 @@ export function BienesRaicesNegocioBasicsWizard({
           <div>
             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subtipo" : "Subtype"}</label>
             <input
-              value={details.enVentaPropertySubtype ?? ""}
-              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))}
+              value={details.brPropertySubtype ?? ""}
+              onChange={(e) => setDetails((prev) => ({ ...prev, brPropertySubtype: e.target.value }))}
               className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-sm"
             />
           </div>
@@ -214,8 +214,8 @@ export function BienesRaicesNegocioBasicsWizard({
           <div>
             <label className="text-xs text-[#111111]/80">{lang === "es" ? "Vecindad" : "Neighborhood"}</label>
             <input
-              value={details.enVentaZone ?? ""}
-              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZone: e.target.value }))}
+              value={details.brZone ?? ""}
+              onChange={(e) => setDetails((prev) => ({ ...prev, brZone: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
             />
           </div>
@@ -263,72 +263,72 @@ export function BienesRaicesNegocioBasicsWizard({
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"} *</label>
               <input
-                value={details.enVentaBedrooms ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))}
+                value={details.brBedrooms ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brBedrooms: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Baths"} *</label>
               <input
-                value={details.enVentaBathrooms ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))}
+                value={details.brBathrooms ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brBathrooms: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label>
               <input
-                value={details.enVentaHalfBathrooms ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))}
+                value={details.brHalfBathrooms ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brHalfBathrooms: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"} *</label>
               <input
-                value={formatBrNegocioIntegerInputDisplay(details.enVentaSquareFeet ?? "")}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: brNegocioDigitsOnly(e.target.value) }))}
+                value={formatBrNegocioIntegerInputDisplay(details.brSquareFeet ?? "")}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brSquareFeet: brNegocioDigitsOnly(e.target.value) }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot"}</label>
               <input
-                value={formatBrNegocioIntegerInputDisplay(details.enVentaLotSize ?? "")}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: brNegocioDigitsOnly(e.target.value) }))}
+                value={formatBrNegocioIntegerInputDisplay(details.brLotSize ?? "")}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brLotSize: brNegocioDigitsOnly(e.target.value) }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label>
               <input
-                value={details.enVentaLevels ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))}
+                value={details.brLevels ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brLevels: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label>
               <input
-                value={details.enVentaParkingSpaces ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))}
+                value={details.brParkingSpaces ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brParkingSpaces: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Año" : "Year built"}</label>
               <input
-                value={details.enVentaYearBuilt ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))}
+                value={details.brYearBuilt ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brYearBuilt: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
             <div className="sm:col-span-2">
               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Estilo / tipo de hogar" : "Style / home type"}</label>
               <input
-                value={details.enVentaArchitecturalStyle ?? ""}
-                onChange={(e) => setDetails((prev) => ({ ...prev, enVentaArchitecturalStyle: e.target.value }))}
+                value={details.brArchitecturalStyle ?? ""}
+                onChange={(e) => setDetails((prev) => ({ ...prev, brArchitecturalStyle: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
               />
             </div>
@@ -342,8 +342,8 @@ export function BienesRaicesNegocioBasicsWizard({
           <div>
             <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad" : "Property video URL"}</label>
             <input
-              value={details.enVentaVideoUrl ?? ""}
-              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))}
+              value={details.brVideoUrl ?? ""}
+              onChange={(e) => setDetails((prev) => ({ ...prev, brVideoUrl: e.target.value }))}
               placeholder="https://"
               className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
             />
@@ -351,8 +351,8 @@ export function BienesRaicesNegocioBasicsWizard({
           <div>
             <label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual" : "Virtual tour"}</label>
             <input
-              value={details.enVentaVirtualTourUrl ?? ""}
-              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVirtualTourUrl: e.target.value }))}
+              value={details.brVirtualTourUrl ?? ""}
+              onChange={(e) => setDetails((prev) => ({ ...prev, brVirtualTourUrl: e.target.value }))}
               placeholder="https://"
               className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
             />
@@ -401,8 +401,8 @@ export function BienesRaicesNegocioBasicsWizard({
           <div>
             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción completa" : "Full description"}{" *"}</label>
             <textarea
-              value={details.enVentaFullDescription ?? ""}
-              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))}
+              value={details.brFullDescription ?? ""}
+              onChange={(e) => setDetails((prev) => ({ ...prev, brFullDescription: e.target.value }))}
               rows={8}
               className={cxOut("mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-sm", basicsShowValidation && !requirements.descOk ? "border-red-500" : "border-black/10")}
             />
@@ -423,17 +423,17 @@ export function BienesRaicesNegocioBasicsWizard({
           <h4 className="text-sm font-semibold text-[#111111]">{lang === "es" ? "Hechos y características (opcional)" : "Facts & features (optional)"}</h4>
           {(
             [
-              { k: "enVentaKitchenFeatures", es: "Cocina", en: "Kitchen" },
-              { k: "enVentaHeating", es: "Calefacción", en: "Heating" },
-              { k: "enVentaCooling", es: "Enfriamiento", en: "Cooling" },
-              { k: "enVentaAppliancesIncluded", es: "Electrodomésticos", en: "Appliances" },
-              { k: "enVentaFlooring", es: "Pisos", en: "Flooring" },
-              { k: "enVentaParkingFeatures", es: "Estacionamiento (detalles)", en: "Parking details" },
-              { k: "enVentaLotFeatures", es: "Terreno", en: "Lot" },
-              { k: "enVentaExteriorFeatures", es: "Exterior", en: "Exterior" },
-              { k: "enVentaZoning", es: "Zonificación", en: "Zoning" },
-              { k: "enVentaSpecialConditions", es: "Condiciones especiales", en: "Special conditions" },
-              { k: "enVentaUtilitiesForProperty", es: "Servicios (detalle)", en: "Utilities detail" },
+              { k: "brKitchenFeatures", es: "Cocina", en: "Kitchen" },
+              { k: "brHeating", es: "Calefacción", en: "Heating" },
+              { k: "brCooling", es: "Enfriamiento", en: "Cooling" },
+              { k: "brAppliancesIncluded", es: "Electrodomésticos", en: "Appliances" },
+              { k: "brFlooring", es: "Pisos", en: "Flooring" },
+              { k: "brParkingFeatures", es: "Estacionamiento (detalles)", en: "Parking details" },
+              { k: "brLotFeatures", es: "Terreno", en: "Lot" },
+              { k: "brExteriorFeatures", es: "Exterior", en: "Exterior" },
+              { k: "brZoning", es: "Zonificación", en: "Zoning" },
+              { k: "brSpecialConditions", es: "Condiciones especiales", en: "Special conditions" },
+              { k: "brUtilitiesForProperty", es: "Servicios (detalle)", en: "Utilities detail" },
             ] as const
           ).map(({ k, es, en }) => (
             <div key={k}>
@@ -448,11 +448,11 @@ export function BienesRaicesNegocioBasicsWizard({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {(
               [
-                { key: "enVentaServicioAgua", es: "Agua", en: "Water" },
-                { key: "enVentaServicioElectricidad", es: "Electricidad", en: "Electric" },
-                { key: "enVentaServicioGas", es: "Gas", en: "Gas" },
-                { key: "enVentaServicioDrenaje", es: "Drenaje", en: "Sewer" },
-                { key: "enVentaServicioInternet", es: "Internet", en: "Internet" },
+                { key: "brServicioAgua", es: "Agua", en: "Water" },
+                { key: "brServicioElectricidad", es: "Electricidad", en: "Electric" },
+                { key: "brServicioGas", es: "Gas", en: "Gas" },
+                { key: "brServicioDrenaje", es: "Drenaje", en: "Sewer" },
+                { key: "brServicioInternet", es: "Internet", en: "Internet" },
               ] as const
             ).map(({ key, es, en }) => {
               const val = (details[key] ?? "").toString().trim().toLowerCase();

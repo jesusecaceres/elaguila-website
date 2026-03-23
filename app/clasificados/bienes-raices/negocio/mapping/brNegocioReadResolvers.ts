@@ -4,25 +4,31 @@
  */
 
 import { buildNegocioRedesPayload } from "@/app/clasificados/bienes-raices/negocio/utils/brNegocioContactHelpers";
+import {
+  coalesceNegocioAgenteFromWizard,
+  coalesceNegocioNombreFromWizard,
+  coalesceWizardDetailValue,
+} from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
+import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
 
 type Lang = "es" | "en";
 
 /** Same as getDetailPairs BR negocio block for business name row. */
 export function resolveBrNegocioBusinessNameForPairs(details: Record<string, string>): string {
-  return (details.negocioNombre ?? "").trim() || (details.enVentaBusinessName ?? "").trim();
+  return coalesceNegocioNombreFromWizard(details);
 }
 
-/** Same as buildBrNegocioListingData businessRail.name (no enVentaBusinessName fallback). */
+/** Same as buildBrNegocioListingData businessRail.name (no legacy misrouted name fallback). */
 export function resolveBrNegocioBusinessNameForRail(details: Record<string, string>, lang: Lang): string {
   return (details.negocioNombre ?? "").trim() || (lang === "es" ? "Negocio" : "Business");
 }
 
 /** Same as getDetailPairs BR negocio block for agent row. */
 export function resolveBrNegocioAgentForPairs(details: Record<string, string>): string {
-  return (details.negocioAgente ?? "").trim() || (details.enVentaAgentName ?? "").trim();
+  return coalesceNegocioAgenteFromWizard(details);
 }
 
-/** Same as buildBrNegocioListingData businessRail.agent (no enVentaAgentName fallback). */
+/** Same as buildBrNegocioListingData businessRail.agent (no legacy misrouted agent fallback). */
 export function resolveBrNegocioAgentForRail(details: Record<string, string>): string {
   return (details.negocioAgente ?? "").trim();
 }
@@ -41,26 +47,26 @@ export function resolveBrNegocioAddressDisplayLine(details: Record<string, strin
   if (c) parts.push(c);
   if (stateZip) parts.push(stateZip);
   if (parts.length) return parts.join(", ");
-  return (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
+  return (details.brAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
 }
 
 /** Same as buildStructuredFactsFromDetails address line (street-only + legacy fallbacks). */
 export function resolveBrNegocioAddressStructuredFactsLine(details: Record<string, string>): string {
   return (
     [details.brNegocioStreetNumber, details.brNegocioStreet].filter(Boolean).join(" ").trim() ||
-    (details.enVentaAddress ?? "").trim() ||
+    coalesceWizardDetailValue(details, "brAddress", LEGACY_WIZARD_BR_DETAIL.address) ||
     (details.direccionPropiedad ?? "").trim()
   );
 }
 
-/** Same as getDetailPairs BR block: enVentaVirtualTourUrl first, then negocioRecorridoVirtual. */
+/** Same as getDetailPairs BR block: brVirtualTourUrl first, then negocioRecorridoVirtual. */
 export function resolveBrNegocioVirtualTourForPairs(details: Record<string, string>): string {
-  return (details.enVentaVirtualTourUrl ?? details.negocioRecorridoVirtual ?? "").trim();
+  return (details.brVirtualTourUrl ?? details.negocioRecorridoVirtual ?? "").trim();
 }
 
-/** Same as businessRail.virtualTourUrl: negocioRecorridoVirtual first, then enVentaVirtualTourUrl; empty → null */
+/** Same as businessRail.virtualTourUrl: negocioRecorridoVirtual first, then brVirtualTourUrl; empty → null */
 export function resolveBrNegocioVirtualTourForRail(details: Record<string, string>): string | null {
-  const v = (details.negocioRecorridoVirtual ?? details.enVentaVirtualTourUrl ?? "").trim();
+  const v = (details.negocioRecorridoVirtual ?? details.brVirtualTourUrl ?? "").trim();
   return v || null;
 }
 

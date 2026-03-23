@@ -17,10 +17,10 @@ export const BR_NEGOCIO_BRANCH_VALUE = "negocio" as const;
 export const BR_NEGOCIO_FORM_KEYS = {
   branch: "bienesRaicesBranch",
   subcategoria: "bienesRaicesSubcategoria",
-  propertyType: "enVentaPropertyType",
-  propertySubtype: "enVentaPropertySubtype",
-  zone: "enVentaZone",
-  addressLegacy: "enVentaAddress",
+  propertyType: "brPropertyType",
+  propertySubtype: "brPropertySubtype",
+  zone: "brZone",
+  addressLegacy: "brAddress",
   addressStructured: {
     streetNumber: "brNegocioStreetNumber",
     street: "brNegocioStreet",
@@ -29,25 +29,25 @@ export const BR_NEGOCIO_FORM_KEYS = {
     zip: "brNegocioZip",
   },
   direccionPropiedad: "direccionPropiedad",
-  bedrooms: "enVentaBedrooms",
-  bathrooms: "enVentaBathrooms",
-  halfBathrooms: "enVentaHalfBathrooms",
-  squareFeet: "enVentaSquareFeet",
-  lotSize: "enVentaLotSize",
-  levels: "enVentaLevels",
-  parkingSpaces: "enVentaParkingSpaces",
-  yearBuilt: "enVentaYearBuilt",
-  zoning: "enVentaZoning",
+  bedrooms: "brBedrooms",
+  bathrooms: "brBathrooms",
+  halfBathrooms: "brHalfBathrooms",
+  squareFeet: "brSquareFeet",
+  lotSize: "brLotSize",
+  levels: "brLevels",
+  parkingSpaces: "brParkingSpaces",
+  yearBuilt: "brYearBuilt",
+  zoning: "brZoning",
   utilitiesFlags: {
-    water: "enVentaServicioAgua",
-    electric: "enVentaServicioElectricidad",
-    gas: "enVentaServicioGas",
-    sewer: "enVentaServicioDrenaje",
-    internet: "enVentaServicioInternet",
+    water: "brServicioAgua",
+    electric: "brServicioElectricidad",
+    gas: "brServicioGas",
+    sewer: "brServicioDrenaje",
+    internet: "brServicioInternet",
   },
-  utilitiesDetails: "enVentaUtilitiesForProperty",
-  propertyVideoUrl: "enVentaVideoUrl",
-  virtualTourUrlPrimary: "enVentaVirtualTourUrl",
+  utilitiesDetails: "brUtilitiesForProperty",
+  propertyVideoUrl: "brVideoUrl",
+  virtualTourUrlPrimary: "brVirtualTourUrl",
   virtualTourUrlNegocio: "negocioRecorridoVirtual",
   floorPlanUrl: "negocioFloorPlanUrl",
   negocio: {
@@ -75,12 +75,9 @@ export const BR_NEGOCIO_FORM_KEYS = {
     descripcion: "negocioDescripcion",
     disponibilidadPrecios: "negocioDisponibilidadPrecios",
   },
-  /** Legacy overlap keys — prefer `negocio.*` when writing */
-  legacyAliases: {
-    businessName: "enVentaBusinessName",
-    agentName: "enVentaAgentName",
-  },
 } as const;
+
+/** Misrouted legacy wizard keys (read via coalesce only) live in `en-venta/publish/wizardDraftLegacyKeys`. */
 
 /** Preview / ListingData field names (already in ListingView.tsx) */
 export const BR_NEGOCIO_LISTING_DATA_KEYS = {
@@ -120,10 +117,10 @@ export const BR_NEGOCIO_FIELD_FLOW: ReadonlyArray<{
   { canonicalKey: "negocioIdiomas", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "languages" },
   { canonicalKey: "negocioHorario", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "hours" },
   { canonicalKey: "negocioRecorridoVirtual", businessMeta: true, detailPairs: true, listingDataTopLevel: null, businessRail: "virtualTourUrl" },
-  { canonicalKey: "enVentaVirtualTourUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: null, businessRail: "virtualTourUrl" },
+  { canonicalKey: "brVirtualTourUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: null, businessRail: "virtualTourUrl" },
   { canonicalKey: "negocioPlusMasAnuncios", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "plusMoreListings" },
   { canonicalKey: "negocioDescripcion", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "businessDescription" },
   { canonicalKey: "negocioDisponibilidadPrecios", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "availabilityRows" },
   { canonicalKey: "negocioFloorPlanUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: "floorPlanUrl", businessRail: null },
-  { canonicalKey: "enVentaVideoUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: "proVideoUrl", businessRail: null },
+  { canonicalKey: "brVideoUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: "proVideoUrl", businessRail: null },
 ];

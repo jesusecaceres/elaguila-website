@@ -1,6 +1,9 @@
 /**
  * Publish flow: per-category detail field definitions for the unified publicar orchestrator.
  * Labels, keys, and option lists must stay aligned with `getDetailPairs` (lib/publishDetailPairs) / `getPublishCategoryFields` behavior.
+ *
+ * Guardrail: do not declare `enVenta*` or other category-owned detail keys here for non–En Venta categories;
+ * BR/Rentas/Autos field keys belong under their category trees.
  */
 
 import {

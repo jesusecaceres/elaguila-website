@@ -19,8 +19,8 @@ export function BienesRaicesNegocioMediaUrlFields({ lang, details, setDetails }:
         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad (URL)" : "Property video (URL)"}</label>
         <input
           type="url"
-          value={details.enVentaVideoUrl ?? ""}
-          onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))}
+          value={details.brVideoUrl ?? ""}
+          onChange={(e) => setDetails((prev) => ({ ...prev, brVideoUrl: e.target.value }))}
           placeholder="https://"
           className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
         />
@@ -29,12 +29,12 @@ export function BienesRaicesNegocioMediaUrlFields({ lang, details, setDetails }:
         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual (URL)" : "Virtual tour (URL)"}</label>
         <input
           type="url"
-          value={details.negocioRecorridoVirtual ?? details.enVentaVirtualTourUrl ?? ""}
+          value={details.negocioRecorridoVirtual ?? details.brVirtualTourUrl ?? ""}
           onChange={(e) =>
             setDetails((prev) => ({
               ...prev,
               negocioRecorridoVirtual: e.target.value,
-              enVentaVirtualTourUrl: e.target.value,
+              brVirtualTourUrl: e.target.value,
             }))
           }
           placeholder="https://"

@@ -7,34 +7,30 @@ import {
   isBrPrivadoProyectoNuevo,
 } from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import {
-  BR_PUBLISH_BATHROOMS_KEY,
-  BR_PUBLISH_BEDROOMS_KEY,
-  BR_PUBLISH_BUSINESS_NAME_KEY,
-  BR_PUBLISH_FULL_DESCRIPTION_KEY,
-  BR_PUBLISH_LOT_SIZE_KEY,
-  BR_PUBLISH_PROPERTY_TYPE_KEY,
-  BR_PUBLISH_SQUARE_FEET_KEY,
-} from "./brPublishDraftLegacyKeys";
+  coalesceNegocioNombreFromWizard,
+  coalesceWizardDetailValue,
+} from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
+import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
 
 export function computeBienesRaicesPublishMetaOk(s: PublishDraftSnapshot): boolean {
   const d = s.details;
   const bienesRaicesBranch = (d.bienesRaicesBranch ?? "").trim().toLowerCase();
-  const brDescription = (d[BR_PUBLISH_FULL_DESCRIPTION_KEY] ?? "").trim();
-  const brPt = (d[BR_PUBLISH_PROPERTY_TYPE_KEY] ?? "").trim();
+  const brDescription = coalesceWizardDetailValue(d, "brFullDescription", LEGACY_WIZARD_BR_DETAIL.fullDescription);
+  const brPt = coalesceWizardDetailValue(d, "brPropertyType", LEGACY_WIZARD_BR_DETAIL.propertyType);
   const brSubcat = (d.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType(brPt);
   const brPrivadoTypeOk =
     brSubcat === "terrenos"
-      ? !!(d[BR_PUBLISH_LOT_SIZE_KEY] ?? "").trim()
+      ? !!coalesceWizardDetailValue(d, "brLotSize", LEGACY_WIZARD_BR_DETAIL.lotSize)
       : brSubcat === "comercial" || brSubcat === "industrial"
-        ? !!(d[BR_PUBLISH_SQUARE_FEET_KEY] ?? "").trim()
+        ? !!coalesceWizardDetailValue(d, "brSquareFeet", LEGACY_WIZARD_BR_DETAIL.squareFeet)
         : brSubcat === "residencial" || brSubcat === "condos-townhomes" || brSubcat === "multifamiliar"
-          ? !!(d[BR_PUBLISH_BEDROOMS_KEY] ?? "").trim() &&
-            !!(d[BR_PUBLISH_BATHROOMS_KEY] ?? "").trim() &&
-            !!(d[BR_PUBLISH_SQUARE_FEET_KEY] ?? "").trim()
+          ? !!coalesceWizardDetailValue(d, "brBedrooms", LEGACY_WIZARD_BR_DETAIL.bedrooms) &&
+            !!coalesceWizardDetailValue(d, "brBathrooms", LEGACY_WIZARD_BR_DETAIL.bathrooms) &&
+            !!coalesceWizardDetailValue(d, "brSquareFeet", LEGACY_WIZARD_BR_DETAIL.squareFeet)
           : isBrPrivadoLote(brPt)
-            ? !!(d[BR_PUBLISH_LOT_SIZE_KEY] ?? "").trim()
+            ? !!coalesceWizardDetailValue(d, "brLotSize", LEGACY_WIZARD_BR_DETAIL.lotSize)
             : isBrPrivadoComercial(brPt) || isBrPrivadoEdificio(brPt)
-              ? !!(d[BR_PUBLISH_SQUARE_FEET_KEY] ?? "").trim()
+              ? !!coalesceWizardDetailValue(d, "brSquareFeet", LEGACY_WIZARD_BR_DETAIL.squareFeet)
               : isBrPrivadoProyectoNuevo(brPt)
                 ? true
                 : true;
@@ -45,10 +41,10 @@ export function computeBienesRaicesPublishMetaOk(s: PublishDraftSnapshot): boole
       !!brPt &&
       brDescription.length >= 5 &&
       (bienesRaicesBranch === "negocio"
-        ? !!(d[BR_PUBLISH_BEDROOMS_KEY] ?? "").trim() &&
-          !!(d[BR_PUBLISH_BATHROOMS_KEY] ?? "").trim() &&
-          !!(d[BR_PUBLISH_SQUARE_FEET_KEY] ?? "").trim() &&
-          !!(d.negocioNombre ?? d[BR_PUBLISH_BUSINESS_NAME_KEY] ?? "").trim()
+        ? !!coalesceWizardDetailValue(d, "brBedrooms", LEGACY_WIZARD_BR_DETAIL.bedrooms) &&
+          !!coalesceWizardDetailValue(d, "brBathrooms", LEGACY_WIZARD_BR_DETAIL.bathrooms) &&
+          !!coalesceWizardDetailValue(d, "brSquareFeet", LEGACY_WIZARD_BR_DETAIL.squareFeet) &&
+          !!coalesceNegocioNombreFromWizard(d)
         : brPrivadoTypeOk))
   );
 }

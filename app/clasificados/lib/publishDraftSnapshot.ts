@@ -1,6 +1,9 @@
 /**
  * Neutral publish-wizard snapshot: preview, validation, and insert read the same shape.
  * Category-specific semantics live in category lanes; this type is not En Venta–branded.
+ *
+ * Guardrail: do not add category-prefixed detail field keys (e.g. marketplace- or legacy shared-wizard keys)
+ * to this module — keep snapshots generic; field ownership stays in category folders.
  */
 
 export type PublishDraftLang = "es" | "en";

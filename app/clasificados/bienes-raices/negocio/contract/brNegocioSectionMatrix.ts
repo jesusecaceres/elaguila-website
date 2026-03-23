@@ -27,7 +27,7 @@ export type SectionFieldRule = {
 export const BR_NEGOCIO_SECTION_MATRIX: SectionFieldRule[] = [
   {
     section: "heroMedia",
-    primaryFields: ["images", "enVentaVideoUrl", "negocioFloorPlanUrl", "negocioRecorridoVirtual", "enVentaVirtualTourUrl"],
+    primaryFields: ["images", "brVideoUrl", "negocioFloorPlanUrl", "negocioRecorridoVirtual", "brVirtualTourUrl"],
     optionalFields: ["proVideoUrl", "proVideoThumbUrl"],
     fallbackFields: ["/logo.png placeholder"],
     hideIfEmpty: "Never hide hero shell; show placeholder image if no photos",

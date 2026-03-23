@@ -27,57 +27,57 @@ export function getBienesRaicesPublishStructuredDetailPairs(
 ): Array<{ label: string; value: string }> {
   const out: Array<{ label: string; value: string }> = [];
   const brBranch = (details.bienesRaicesBranch ?? "").trim().toLowerCase();
-  const pt = (details.enVentaPropertyType ?? "").trim();
+  const pt = (details.brPropertyType ?? "").trim();
   if (pt) {
     const opt = BR_PROPERTY_TYPE_OPTIONS.find((o) => o.value === pt);
     out.push({ label: lang === "es" ? "Tipo de propiedad" : "Property type", value: opt ? opt.label[lang] : pt });
   }
-  const subtype = (details.enVentaPropertySubtype ?? "").trim();
+  const subtype = (details.brPropertySubtype ?? "").trim();
   if (subtype) out.push({ label: lang === "es" ? "Subtipo" : "Subtype", value: subtype });
-  const zone = (details.enVentaZone ?? "").trim();
+  const zone = (details.brZone ?? "").trim();
   if (zone) out.push({ label: lang === "es" ? "Nombre de la vecindad" : "Neighborhood name", value: zone });
   const addrLine =
     brBranch === "negocio"
       ? formatBrNegocioAddressLine(details, cityDisplay)
-      : (details.enVentaAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
+      : (details.brAddress ?? "").trim() || (details.direccionPropiedad ?? "").trim();
   if (addrLine) out.push({ label: lang === "es" ? "Dirección" : "Address", value: addrLine });
   if (isBrPrivadoResidential(pt) || brBranch === "negocio") {
-    const br = (details.enVentaBedrooms ?? "").trim();
+    const br = (details.brBedrooms ?? "").trim();
     if (br) out.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: br });
-    const ba = (details.enVentaBathrooms ?? "").trim();
+    const ba = (details.brBathrooms ?? "").trim();
     if (ba) out.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: ba });
-    const hb = (details.enVentaHalfBathrooms ?? "").trim();
+    const hb = (details.brHalfBathrooms ?? "").trim();
     if (hb) out.push({ label: lang === "es" ? "Medios baños" : "Half bathrooms", value: hb });
   }
-  const sq = (details.enVentaSquareFeet ?? "").trim();
+  const sq = (details.brSquareFeet ?? "").trim();
   if (sq) {
     const sqVal = brBranch === "negocio" ? formatBrNegocioDetailNumberDisplay(sq) : sq;
     out.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sqVal });
   }
-  const lot = (details.enVentaLotSize ?? "").trim();
+  const lot = (details.brLotSize ?? "").trim();
   if (lot) {
     const lotVal = brBranch === "negocio" ? formatBrNegocioDetailNumberDisplay(lot) : lot;
     out.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
   }
-  const lv = (details.enVentaLevels ?? "").trim();
+  const lv = (details.brLevels ?? "").trim();
   if (lv) out.push({ label: lang === "es" ? "Niveles" : "Levels", value: lv });
-  const pk = (details.enVentaParkingSpaces ?? "").trim();
+  const pk = (details.brParkingSpaces ?? "").trim();
   if (pk) out.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pk });
-  const videoUrl = (details.enVentaVideoUrl ?? "").trim();
+  const videoUrl = (details.brVideoUrl ?? "").trim();
   if (videoUrl) out.push({ label: lang === "es" ? "Video de la propiedad" : "Property video", value: videoUrl });
   const virtualTour = resolveBrNegocioVirtualTourForPairs(details);
   if (virtualTour) out.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: virtualTour });
   const floorPlan = (details.negocioFloorPlanUrl ?? "").trim();
   if (floorPlan) out.push({ label: lang === "es" ? "Plano / Floorplan" : "Floorplan", value: floorPlan });
-  const yearBuilt = (details.enVentaYearBuilt ?? "").trim();
+  const yearBuilt = (details.brYearBuilt ?? "").trim();
   if (yearBuilt) out.push({ label: lang === "es" ? "Año de construcción" : "Year built", value: yearBuilt });
-  const zoning = (details.enVentaZoning ?? "").trim();
+  const zoning = (details.brZoning ?? "").trim();
   if (zoning) out.push({ label: lang === "es" ? "Zonificación" : "Zoning", value: zoning });
-  const servAgua = (details.enVentaServicioAgua ?? "").trim().toLowerCase();
-  const servElec = (details.enVentaServicioElectricidad ?? "").trim().toLowerCase();
-  const servGas = (details.enVentaServicioGas ?? "").trim().toLowerCase();
-  const servDrenaje = (details.enVentaServicioDrenaje ?? "").trim().toLowerCase();
-  const servInternet = (details.enVentaServicioInternet ?? "").trim().toLowerCase();
+  const servAgua = (details.brServicioAgua ?? "").trim().toLowerCase();
+  const servElec = (details.brServicioElectricidad ?? "").trim().toLowerCase();
+  const servGas = (details.brServicioGas ?? "").trim().toLowerCase();
+  const servDrenaje = (details.brServicioDrenaje ?? "").trim().toLowerCase();
+  const servInternet = (details.brServicioInternet ?? "").trim().toLowerCase();
   const serviciosList: string[] = [];
   if (servAgua === "si" || servAgua === "sí" || servAgua === "yes") serviciosList.push(lang === "es" ? "Agua" : "Water");
   if (servElec === "si" || servElec === "sí" || servElec === "yes") serviciosList.push(lang === "es" ? "Electricidad" : "Electric");
@@ -85,7 +85,7 @@ export function getBienesRaicesPublishStructuredDetailPairs(
   if (servDrenaje === "si" || servDrenaje === "sí" || servDrenaje === "yes") serviciosList.push(lang === "es" ? "Drenaje" : "Sewer");
   if (servInternet === "si" || servInternet === "sí" || servInternet === "yes") serviciosList.push("Internet");
   if (serviciosList.length > 0) out.push({ label: lang === "es" ? "Servicios disponibles" : "Utilities available", value: serviciosList.join(", ") });
-  const utilDetails = (details.enVentaUtilitiesForProperty ?? "").trim();
+  const utilDetails = (details.brUtilitiesForProperty ?? "").trim();
   if (utilDetails && brBranch !== "negocio") {
     out.push({ label: lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details", value: utilDetails });
   }

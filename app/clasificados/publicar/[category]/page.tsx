@@ -74,6 +74,13 @@ import {
 } from "../../bienes-raices/shared/publish/brPublishPricing";
 import { EnVentaPublishShell } from "../../en-venta/publish/EnVentaPublishShell";
 import { buildPublishDraftSnapshot } from "../../lib/publishDraftSnapshot";
+import {
+  coalesceNegocioAgenteFromWizard,
+  coalesceNegocioNombreFromWizard,
+  coalesceWizardDetailValue,
+} from "../../en-venta/publish/coalesceWizardDetailValue";
+import { LEGACY_WIZARD_BR_DETAIL } from "../../en-venta/publish/wizardDraftLegacyKeys";
+import { stripLegacySharedWizardBrKeys } from "../../en-venta/publish/stripLegacySharedWizardBrKeys";
 import { BienesRaicesNegocioPublishShell } from "../../bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
 import { BienesRaicesPublishShell } from "../../bienes-raices/shared/publish/BienesRaicesPublishShell";
 import { BienesRaicesPublishTrackStep } from "../../bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
@@ -480,7 +487,7 @@ export default function PublicarPage() {
   const GARAGE_WINDOW_DAYS = 7;
   const GARAGE_COOLDOWN_DAYS = 30;
 
-  const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
+  const [ventaMarketplaceActiveCount, setVentaMarketplaceActiveCount] = useState<number | null>(null);
   const [garageActive, setGarageActive] = useState(false);
   const [garageExpiresAt, setGarageExpiresAt] = useState<string>("");
   const [garageLastUsedAt, setGarageLastUsedAt] = useState<string>("");
@@ -1614,7 +1621,7 @@ export default function PublicarPage() {
     if (!signedIn || !userId) return;
 
     if (category !== "en-venta") {
-      setEnVentaActiveCount(null);
+      setVentaMarketplaceActiveCount(null);
       return;
     }
 
@@ -1639,11 +1646,11 @@ export default function PublicarPage() {
 
         if (r.error) {
           // If owner_id column is missing, we can't enforce Garage Mode safely.
-          if (mounted) setEnVentaActiveCount(null);
+          if (mounted) setVentaMarketplaceActiveCount(null);
           return;
         }
 
-        if (mounted) setEnVentaActiveCount(typeof r.count === "number" ? r.count : 0);
+        if (mounted) setVentaMarketplaceActiveCount(typeof r.count === "number" ? r.count : 0);
       } finally {
         if (mounted) setGarageLoading(false);
       }
@@ -1729,7 +1736,11 @@ export default function PublicarPage() {
       isFree,
       price,
       city: normalizeCity(city) || city.trim(),
-      details,
+      details: stripLegacySharedWizardBrKeys(
+        Object.fromEntries(
+          Object.entries(details).map(([k, v]) => [k, v ?? ""])
+        ) as Record<string, string>
+      ),
       contactMethod,
       contactPhone,
       contactEmail,
@@ -1984,7 +1995,7 @@ export default function PublicarPage() {
     const isPrivate = category === "rentas" && (details.rentasBranch ?? "").trim() === "privado";
     const descriptionForSnapshot =
       category === "bienes-raices"
-        ? (details.enVentaFullDescription ?? "").trim() || ""
+        ? coalesceWizardDetailValue(details, "brFullDescription", LEGACY_WIZARD_BR_DETAIL.fullDescription)
         : description;
     const cityCanonical = normalizeCity(city) || null;
     const detailPairs = getDetailPairs(category, lang, details, cityCanonical ?? city.trim());
@@ -2033,13 +2044,17 @@ export default function PublicarPage() {
     [publishDraftSnapshot]
   );
 
-  /** BR private: type-aware copy profile for placeholders and helpers. Uses bienesRaicesSubcategoria or derives from enVentaPropertyType. */
+  /** BR private: type-aware copy profile for placeholders and helpers. Uses bienesRaicesSubcategoria or derives from brPropertyType. */
   const brPrivateCopyProfile = useMemo(() => {
     if (categoryFromUrl !== "bienes-raices" || (details.bienesRaicesBranch ?? "").trim().toLowerCase() !== "privado") return null;
-    const subcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType(details.enVentaPropertyType ?? "");
+    const subcat =
+      (details.bienesRaicesSubcategoria ?? "").trim() ||
+      getBrSubcategoriaFromPropertyType(
+        coalesceWizardDetailValue(details, "brPropertyType", LEGACY_WIZARD_BR_DETAIL.propertyType)
+      );
     const key = (["residencial", "condos-townhomes", "multifamiliar", "terrenos", "comercial", "industrial"] as const).includes(subcat as BrSubcategoriaKey) ? subcat as BrSubcategoriaKey : "residencial";
     return BR_PRIVATE_COPY_PROFILES[key];
-  }, [categoryFromUrl, details.bienesRaicesBranch, details.bienesRaicesSubcategoria, details.enVentaPropertyType]);
+  }, [categoryFromUrl, details.bienesRaicesBranch, details.bienesRaicesSubcategoria, details.brPropertyType]);
 
   const basicsOk = useMemo(
     () => computeBasicsOk(categoryFromUrl, requirements),
@@ -2094,12 +2109,12 @@ export default function PublicarPage() {
     const effectiveLimit = FREE_EN_VENTA_LIMIT + (active ? GARAGE_EXTRA : 0);
 
     const remaining =
-      typeof enVentaActiveCount === "number"
-        ? Math.max(0, effectiveLimit - enVentaActiveCount)
+      typeof ventaMarketplaceActiveCount === "number"
+        ? Math.max(0, effectiveLimit - ventaMarketplaceActiveCount)
         : null;
 
     const eligibleToActivate =
-      !isPro && !active && cooldownDaysLeft === 0 && typeof enVentaActiveCount === "number" && enVentaActiveCount >= FREE_EN_VENTA_LIMIT;
+      !isPro && !active && cooldownDaysLeft === 0 && typeof ventaMarketplaceActiveCount === "number" && ventaMarketplaceActiveCount >= FREE_EN_VENTA_LIMIT;
 
     return {
       applicable: !isPro,
@@ -2112,7 +2127,7 @@ export default function PublicarPage() {
   }, [
     category,
     isPro,
-    enVentaActiveCount,
+    ventaMarketplaceActiveCount,
     garageExpiresAt,
     garageLastUsedAt,
     FREE_EN_VENTA_LIMIT,
@@ -2279,7 +2294,7 @@ async function publish() {
     setPublishing(true);
     try {
       // Garage Mode enforcement (Free-only, En Venta only).
-      if (!isPro && categoryFromUrl === "en-venta" && typeof enVentaActiveCount === "number") {
+      if (!isPro && categoryFromUrl === "en-venta" && typeof ventaMarketplaceActiveCount === "number") {
         const now = new Date();
         const expD = parseIsoMaybe(garageExpiresAt);
         const lastD = parseIsoMaybe(garageLastUsedAt);
@@ -2293,7 +2308,7 @@ async function publish() {
         const effectiveLimit = FREE_EN_VENTA_LIMIT + (garageIsActive ? GARAGE_EXTRA : 0);
 
         // Hard stop if user is already at/over the maximum possible during the window.
-        if (enVentaActiveCount >= effectiveLimit) {
+        if (ventaMarketplaceActiveCount >= effectiveLimit) {
           const expText = garageIsActive && expD ? expD.toLocaleDateString(lang === "es" ? "es-US" : "en-US") : "";
           const msg =
             lang === "es"
@@ -2308,7 +2323,7 @@ async function publish() {
         }
 
         // If user is at/over the free limit and Garage Mode is not active, try to activate once per 30 days.
-        if (!garageIsActive && enVentaActiveCount >= FREE_EN_VENTA_LIMIT) {
+        if (!garageIsActive && ventaMarketplaceActiveCount >= FREE_EN_VENTA_LIMIT) {
           if (cooldownLeft > 0) {
             const msg =
               lang === "es"
@@ -2373,13 +2388,12 @@ async function publish() {
         if (isRentasNegocio) {
           const tier = (snap.details.rentasTier ?? "").trim();
           insertPayload.rentas_tier = mapRentasNegocioDetailsTierToDb(tier);
-          insertPayload.business_name =
-            (snap.details.negocioNombre ?? "").trim() || (snap.details.enVentaBusinessName ?? "").trim() || null;
+          insertPayload.business_name = coalesceNegocioNombreFromWizard(snap.details) || null;
           const businessMeta: Record<string, string> = {};
           for (const k of BUSINESS_META_KEYS) {
             let v = (snap.details[k] ?? "").trim();
-            if (!v && k === "negocioNombre") v = (snap.details.enVentaBusinessName ?? "").trim();
-            if (!v && k === "negocioAgente") v = (snap.details.enVentaAgentName ?? "").trim();
+            if (!v && k === "negocioNombre") v = coalesceNegocioNombreFromWizard(snap.details);
+            if (!v && k === "negocioAgente") v = coalesceNegocioAgenteFromWizard(snap.details);
             if (v) businessMeta[k] = v;
           }
           const mergedRedes = buildNegocioRedesPayload(snap.details as Record<string, string | undefined>);
@@ -2489,8 +2503,8 @@ async function publish() {
         setUploadProgress(null);
       }
       // Optimistic local count update for Free En Venta caps (keeps UI in sync without extra fetch).
-      if (!isPro && categoryFromUrl === "en-venta" && typeof enVentaActiveCount === "number") {
-        setEnVentaActiveCount((prev) => (typeof prev === "number" ? prev + 1 : prev));
+      if (!isPro && categoryFromUrl === "en-venta" && typeof ventaMarketplaceActiveCount === "number") {
+        setVentaMarketplaceActiveCount((prev) => (typeof prev === "number" ? prev + 1 : prev));
       }
 
 
@@ -3367,10 +3381,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           <div className="text-xs text-[#111111]">
                             {garageLoading
                               ? (lang === "es" ? "Calculando…" : "Calculating…")
-                              : typeof enVentaActiveCount === "number"
+                              : typeof ventaMarketplaceActiveCount === "number"
                                 ? (lang === "es"
-                                    ? `Activos: ${enVentaActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`
-                                    : `Active: ${enVentaActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`)
+                                    ? `Activos: ${ventaMarketplaceActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`
+                                    : `Active: ${ventaMarketplaceActiveCount} / ${garage.effectiveLimit ?? FREE_EN_VENTA_LIMIT}`)
                                 : (lang === "es" ? "Activos: —" : "Active: —")}
                           </div>
                         </div>
@@ -3651,27 +3665,27 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Tipo de propiedad" : "Property type"}{" *"}</label>
                             <select
-                              value={details.enVentaPropertyType ?? ""}
+                              value={details.brPropertyType ?? ""}
                               onChange={(e) => {
                                 const v = e.target.value;
-                                setDetails((prev) => ({ ...prev, enVentaPropertyType: v, bienesRaicesSubcategoria: getBrSubcategoriaFromPropertyType(v) }));
+                                setDetails((prev) => ({ ...prev, brPropertyType: v, bienesRaicesSubcategoria: getBrSubcategoriaFromPropertyType(v) }));
                               }}
-                              aria-invalid={basicsShowValidation && !details.enVentaPropertyType?.trim()}
+                              aria-invalid={basicsShowValidation && !details.brPropertyType?.trim()}
                               className={cx(
                                 "mt-2 w-full rounded-xl border bg-white/90 px-4 py-3 text-[#111111] focus:outline-none focus:ring-2 focus:ring-yellow-400/30",
-                                basicsShowValidation && !details.enVentaPropertyType?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
+                                basicsShowValidation && !details.brPropertyType?.trim() ? "border-red-500 ring-1 ring-red-500/35" : "border-black/10"
                               )}
                             >
                               <option value="">{lang === "es" ? "Elige tipo de propiedad…" : "Choose property type…"}</option>
                               {BR_PROPERTY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{lang === "es" ? o.label.es : o.label.en}</option>)}
                             </select>
-                            {!details.enVentaPropertyType?.trim() && (
+                            {!details.brPropertyType?.trim() && (
                               <div className={cx("mt-1 text-xs", basicsShowValidation ? "text-red-600" : "text-[#111111]/40")}>{lang === "es" ? "Requerido." : "Required."}</div>
                             )}
                           </div>
                           <div>
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Subtipo de propiedad" : "Property subtype"}</label>
-                            <input value={details.enVentaPropertySubtype ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPropertySubtype: e.target.value }))} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.subtypePlaceholder.es : brPrivateCopyProfile.subtypePlaceholder.en) : (lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex")} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
+                            <input value={details.brPropertySubtype ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brPropertySubtype: e.target.value }))} placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.subtypePlaceholder.es : brPrivateCopyProfile.subtypePlaceholder.en) : (lang === "es" ? "Ej: Casa independiente, Duplex" : "e.g. Single family, Duplex")} className="mt-2 w-full rounded-xl border border-black/10 bg-white/90 px-4 py-3 text-[#111111] placeholder:text-[#111111]/30 focus:outline-none focus:ring-2 focus:ring-yellow-400/30" />
                           </div>
                           <div id="publish-basics-title">
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Título del anuncio" : "Listing title"}{" *"}</label>
@@ -3725,8 +3739,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             <div>
                               <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Modo de precio" : "Price display"}</label>
                               <div className="mt-2 flex rounded-xl border border-black/10 overflow-hidden bg-[#F5F5F5]">
-                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaPriceDisplayMode: "exacto" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaPriceDisplayMode ?? "exacto") === "exacto" ? "bg-[#C9B46A]/40 text-[#111111]" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Exacto" : "Exact"}</button>
-                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaPriceDisplayMode: "desde" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.enVentaPriceDisplayMode ?? "") === "desde" ? "bg-[#C9B46A]/40 text-[#111111]" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Desde" : "From"}</button>
+                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, brPriceDisplayMode: "exacto" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.brPriceDisplayMode ?? "exacto") === "exacto" ? "bg-[#C9B46A]/40 text-[#111111]" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Exacto" : "Exact"}</button>
+                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, brPriceDisplayMode: "desde" }))} className={cx("flex-1 py-3 text-sm font-semibold", (details.brPriceDisplayMode ?? "") === "desde" ? "bg-[#C9B46A]/40 text-[#111111]" : "text-[#111111]/70 hover:bg-[#EFEFEF]")}>{lang === "es" ? "Desde" : "From"}</button>
                               </div>
                             </div>
                           </div>
@@ -3750,7 +3764,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             </div>
                             <div>
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Nombre de la vecindad" : "Neighborhood name"}</label>
-                              <input value={details.enVentaZone ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZone: e.target.value }))} placeholder={lang === "es" ? "Ej: Rose Garden, Downtown, Little Portugal, Willow Glen" : "e.g. Rose Garden, Downtown, Little Portugal, Willow Glen"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                              <input value={details.brZone ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brZone: e.target.value }))} placeholder={lang === "es" ? "Ej: Rose Garden, Downtown, Little Portugal, Willow Glen" : "e.g. Rose Garden, Downtown, Little Portugal, Willow Glen"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                             </div>
                             {(details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio" ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3795,14 +3809,14 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             ) : (
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Dirección (opcional)" : "Address (optional)"}</label>
-                                <input value={details.enVentaAddress ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAddress: e.target.value }))} placeholder={lang === "es" ? "Ej: Calle 5, Av. Central" : "e.g. 123 Main St"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.brAddress ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAddress: e.target.value }))} placeholder={lang === "es" ? "Ej: Calle 5, Av. Central" : "e.g. 123 Main St"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                             )}
                             <div>
                               <label className="text-xs text-[#111111]/80">{lang === "es" ? "Mostrar ubicación" : "Location display"}</label>
                               <div className="mt-1 flex rounded-lg border border-black/10 overflow-hidden bg-[#F5F5F5]">
-                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaLocationDisplayMode: "exacta" }))} className={cx("flex-1 py-2 text-xs font-semibold", (details.enVentaLocationDisplayMode ?? "exacta") === "exacta" ? "bg-[#C9B46A]/30 text-[#111111]" : "text-[#111111]/70")}>{lang === "es" ? "Exacta" : "Exact"}</button>
-                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, enVentaLocationDisplayMode: "aproximada" }))} className={cx("flex-1 py-2 text-xs font-semibold", (details.enVentaLocationDisplayMode ?? "") === "aproximada" ? "bg-[#C9B46A]/30 text-[#111111]" : "text-[#111111]/70")}>{lang === "es" ? "Aproximada" : "Approximate"}</button>
+                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, brLocationDisplayMode: "exacta" }))} className={cx("flex-1 py-2 text-xs font-semibold", (details.brLocationDisplayMode ?? "exacta") === "exacta" ? "bg-[#C9B46A]/30 text-[#111111]" : "text-[#111111]/70")}>{lang === "es" ? "Exacta" : "Exact"}</button>
+                                <button type="button" onClick={() => setDetails((prev) => ({ ...prev, brLocationDisplayMode: "aproximada" }))} className={cx("flex-1 py-2 text-xs font-semibold", (details.brLocationDisplayMode ?? "") === "aproximada" ? "bg-[#C9B46A]/30 text-[#111111]" : "text-[#111111]/70")}>{lang === "es" ? "Aproximada" : "Approximate"}</button>
                               </div>
                             </div>
                           </div>
@@ -3818,40 +3832,40 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="sm:col-span-2">
                                     <label className="text-xs text-[#111111]/80">{lang === "es" ? "Video de la propiedad" : "Property video"}</label>
                                     <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Pega el enlace del video de tu propiedad. Puede ser de YouTube, TikTok, Vimeo, Instagram u otro enlace público." : "Paste the link to your property video. Can be from YouTube, TikTok, Vimeo, Instagram or another public link."}</p>
-                                    <input value={details.enVentaVideoUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVideoUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                    <input value={details.brVideoUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brVideoUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                   </div>
                                   <div className="sm:col-span-2">
                                     <label className="text-xs text-[#111111]/80">{lang === "es" ? "Tour virtual" : "Virtual tour"}</label>
                                     <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Pega el enlace del recorrido virtual o tour 3D de la propiedad. Puede ser de Matterport, YouTube o del sitio web donde esté publicado." : "Paste the link to the virtual tour or 3D walkthrough. Can be Matterport, YouTube or the site where it is published."}</p>
-                                    <input value={details.enVentaVirtualTourUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaVirtualTourUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                    <input value={details.brVirtualTourUrl ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brVirtualTourUrl: e.target.value }))} placeholder="https://" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                   </div>
                                 </>
                               )}
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label>
                                 <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Año en que se construyó la propiedad o la última remodelación importante." : "Year the property was built or last major remodel."}</p>
-                                <input value={details.enVentaYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.brYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                               <div>
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label>
                                 <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Código de uso del suelo. Ej: R-1 (residencial), C-1 (comercial), agrícola." : "Land use code. e.g. R-1 (residential), C-1 (commercial), agricultural."}</p>
-                                <input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} placeholder={lang === "es" ? "Ej: R-1, comercial" : "e.g. R-1, commercial"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.brZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brZoning: e.target.value }))} placeholder={lang === "es" ? "Ej: R-1, comercial" : "e.g. R-1, commercial"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                               <div className="sm:col-span-2">
                                 <label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label>
                                 <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Solo si aplica. Ej: se vende tal como está, short sale, probate, propiedad rentada." : "Only if applicable. e.g. as-is, short sale, probate, tenant-occupied."}</p>
-                                <input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                <input value={details.brSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSpecialConditions: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                               </div>
                               <div className="sm:col-span-2">
                                 <span className="text-xs text-[#111111]/80">{lang === "es" ? "Servicios disponibles" : "Utilities available"}</span>
                                 <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Marca los servicios con los que cuenta la propiedad." : "Check the utilities available at the property."}</p>
                                 <div className="mt-2 flex flex-wrap gap-3">
                                   {[
-                                    { key: "enVentaServicioAgua", labelEs: "Agua", labelEn: "Water" },
-                                    { key: "enVentaServicioElectricidad", labelEs: "Electricidad", labelEn: "Electric" },
-                                    { key: "enVentaServicioGas", labelEs: "Gas", labelEn: "Gas" },
-                                    { key: "enVentaServicioDrenaje", labelEs: "Drenaje", labelEn: "Sewer" },
-                                    { key: "enVentaServicioInternet", labelEs: "Internet", labelEn: "Internet" },
+                                    { key: "brServicioAgua", labelEs: "Agua", labelEn: "Water" },
+                                    { key: "brServicioElectricidad", labelEs: "Electricidad", labelEn: "Electric" },
+                                    { key: "brServicioGas", labelEs: "Gas", labelEn: "Gas" },
+                                    { key: "brServicioDrenaje", labelEs: "Drenaje", labelEn: "Sewer" },
+                                    { key: "brServicioInternet", labelEs: "Internet", labelEn: "Internet" },
                                   ].map(({ key, labelEs, labelEn }) => {
                                     const val = (details[key as keyof typeof details] ?? "").toString().trim().toLowerCase();
                                     const isOn = val === "si" || val === "sí" || val === "yes";
@@ -3867,7 +3881,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="mt-3">
                                     <label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles adicionales de servicios" : "Additional utility details"}</label>
                                     <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: PG&E, San Jose Water, pozo, fosa séptica, panel solar." : "e.g. PG&E, San Jose Water, well, septic, solar."}</p>
-                                    <input value={details.enVentaUtilitiesForProperty ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaUtilitiesForProperty: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                    <input value={details.brUtilitiesForProperty ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brUtilitiesForProperty: e.target.value }))} placeholder={lang === "es" ? "Opcional" : "Optional"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                   </div>
                                 )}
                               </div>
@@ -3878,33 +3892,33 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             <div className="rounded-xl border border-black/10 bg-white/80 p-4">
                               <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos" : "Quick facts"}</h4>
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.brBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.brBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.brHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                 <div>
                                   <label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label>
                                   <input
-                                    value={formatBrNegocioIntegerInputDisplay(details.enVentaSquareFeet ?? "")}
+                                    value={formatBrNegocioIntegerInputDisplay(details.brSquareFeet ?? "")}
                                     onChange={(e) =>
                                       setDetails((prev) => ({
                                         ...prev,
-                                        enVentaSquareFeet: brNegocioDigitsOnly(e.target.value),
+                                        brSquareFeet: brNegocioDigitsOnly(e.target.value),
                                       }))
                                     }
                                     placeholder={lang === "es" ? "Ej: 1,200" : "e.g. 1,200"}
                                     inputMode="numeric"
                                     className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                   />
-                                  {!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                                  {!details.brSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
                                 </div>
                                 <div>
                                   <label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label>
                                   <input
-                                    value={formatBrNegocioIntegerInputDisplay(details.enVentaLotSize ?? "")}
+                                    value={formatBrNegocioIntegerInputDisplay(details.brLotSize ?? "")}
                                     onChange={(e) =>
                                       setDetails((prev) => ({
                                         ...prev,
-                                        enVentaLotSize: brNegocioDigitsOnly(e.target.value),
+                                        brLotSize: brNegocioDigitsOnly(e.target.value),
                                       }))
                                     }
                                     placeholder={lang === "es" ? "Ej: 5,000" : "e.g. 5,000"}
@@ -3912,12 +3926,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
                                   />
                                 </div>
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.brLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label><input value={details.brParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                               </div>
                             </div>
                           ) : (() => {
-                            const pt = (details.enVentaPropertyType ?? "").trim();
+                            const pt = (details.brPropertyType ?? "").trim();
                             const hideBrPrivateTechnical = (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "privado";
                             if (isBrPrivadoResidential(pt)) {
                               return (
@@ -3925,16 +3939,16 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4">
                                     <h4 className="text-sm font-medium text-[#111111] mb-3">{lang === "es" ? "Datos rápidos residenciales" : "Residential quick facts"}</h4>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.enVentaBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.enVentaBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.enVentaHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámaras" : "Bedrooms"}{" *"}</label><input value={details.brBedrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brBedrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brBedrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Baños" : "Bathrooms"}{" *"}</label><input value={details.brBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brBathrooms?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Medios baños" : "Half baths"}</label><input value={details.brHalfBathrooms ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brHalfBathrooms: e.target.value }))} placeholder="0" inputMode="numeric" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.brSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.brLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies²" : "sq ft"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.brLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLevels: e.target.value }))} placeholder="1" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Número de espacios de estacionamiento." : "Number of parking spaces."}</p>
-                                        <input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                     </div>
                                   </div>
@@ -3944,27 +3958,27 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div className="sm:col-span-2">
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Espacios de la propiedad" : "Property spaces"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Marca o escribe los espacios principales que tiene la propiedad. Ej: sala, comedor, oficina, cuarto de lavado, family room." : "List the main spaces. e.g. living room, dining room, office, laundry room, family room."}</p>
-                                        <input value={details.enVentaRoomTypes ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoomTypes: e.target.value }))} placeholder={lang === "es" ? "Ej: sala, comedor, family room" : "e.g. living room, dining, family room"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brRoomTypes ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brRoomTypes: e.target.value }))} placeholder={lang === "es" ? "Ej: sala, comedor, family room" : "e.g. living room, dining, family room"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Recámara principal" : "Primary bedroom"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: walk-in closet, baño completo, vista al jardín." : "e.g. walk-in closet, en suite bath, garden view."}</p>
-                                        <input value={details.enVentaPrimaryBedroomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPrimaryBedroomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brPrimaryBedroomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brPrimaryBedroomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Baño principal" : "Primary bathroom"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: doble lavabo, tina, regadera, acabados de lujo." : "e.g. double vanity, tub, shower, luxury finishes."}</p>
-                                        <input value={details.enVentaPrimaryBathroomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPrimaryBathroomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brPrimaryBathroomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brPrimaryBathroomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Comedor" : "Dining room"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: comedor formal, espacio para 8, conexión con cocina." : "e.g. formal dining, seats 8, open to kitchen."}</p>
-                                        <input value={details.enVentaDiningRoomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaDiningRoomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brDiningRoomFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brDiningRoomFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Cocina" : "Kitchen"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: isla, granito, electrodomésticos de acero inoxidable, desayunador." : "e.g. island, granite, stainless appliances, breakfast nook."}</p>
-                                        <input value={details.enVentaKitchenFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaKitchenFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brKitchenFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brKitchenFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                     </div>
                                   </div>
@@ -3975,22 +3989,22 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Calefacción" : "Heating"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: central de gas, piso radiante, calefactor de pared." : "e.g. central gas, radiant floor, wall heater."}</p>
-                                        <input value={details.enVentaHeating ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaHeating: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brHeating ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brHeating: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Enfriamiento" : "Cooling"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: aire central, mini splits, ventiladores de techo." : "e.g. central A/C, mini splits, ceiling fans."}</p>
-                                        <input value={details.enVentaCooling ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaCooling: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brCooling ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brCooling: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Electrodomésticos incluidos" : "Appliances included"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: refrigerador, estufa, lavavajillas, microondas, lavadora y secadora." : "e.g. fridge, range, dishwasher, microwave, washer & dryer."}</p>
-                                        <input value={details.enVentaAppliancesIncluded ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAppliancesIncluded: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brAppliancesIncluded ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAppliancesIncluded: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Lavandería" : "Laundry"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: cuarto de lavado, área en el garaje, conexiones dentro de la casa." : "e.g. laundry room, garage hookups, in-unit."}</p>
-                                        <input value={details.enVentaLaundryFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLaundryFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brLaundryFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLaundryFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                     </div>
                                   </div>
@@ -4002,13 +4016,13 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Pisos" : "Flooring"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: madera, laminado, loseta, alfombra, concreto pulido." : "e.g. hardwood, laminate, tile, carpet, polished concrete."}</p>
-                                        <input value={details.enVentaFlooring ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFlooring: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brFlooring ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFlooring: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de chimeneas" : "Fireplace count"}</label><input value={details.enVentaFireplaceCount ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFireplaceCount: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de chimeneas" : "Fireplace count"}</label><input value={details.brFireplaceCount ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFireplaceCount: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                       <div className="sm:col-span-2">
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles de chimenea" : "Fireplace features"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: chimenea de leña, gas, piedra, en sala y recámara principal." : "e.g. wood-burning, gas, stone, in living room and primary bedroom."}</p>
-                                        <input value={details.enVentaFireplaceFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFireplaceFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brFireplaceFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFireplaceFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
                                     </div>
                                   </div>
@@ -4020,11 +4034,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                       <div>
                                         <label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento (detalles)" : "Parking features"}</label>
                                         <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: cochera cubierta 2 autos, entrada directa, EV charger." : "e.g. 2-car garage, direct access, EV charger."}</p>
-                                        <input value={details.enVentaParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                        <input value={details.brParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                       </div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cocheras cubiertas" : "Attached garage spaces"}</label><input value={details.enVentaAttachedGarageSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAttachedGarageSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Espacios descubiertos" : "Uncovered spaces"}</label><input value={details.enVentaUncoveredSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaUncoveredSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.enVentaAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cocheras cubiertas" : "Attached garage spaces"}</label><input value={details.brAttachedGarageSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAttachedGarageSpaces: e.target.value }))} placeholder="0" className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Espacios descubiertos" : "Uncovered spaces"}</label><input value={details.brUncoveredSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brUncoveredSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.brAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
@@ -4032,11 +4046,11 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior y terreno" : "Exterior & lot"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cercado" : "Fencing"}</label><input value={details.enVentaFencing ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFencing: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Características del terreno" : "Lot features"}</label><input value={details.enVentaLotFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Patio / portal" : "Patio & porch features"}</label><input value={details.enVentaPatioPorchFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaPatioPorchFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.enVentaExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cercado" : "Fencing"}</label><input value={details.brFencing ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFencing: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Características del terreno" : "Lot features"}</label><input value={details.brLotFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLotFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Patio / portal" : "Patio & porch features"}</label><input value={details.brPatioPorchFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brPatioPorchFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.brExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.brAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
@@ -4044,12 +4058,12 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción y legal" : "Construction & legal"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estilo arquitectónico" : "Architectural style"}</label><input value={details.enVentaArchitecturalStyle ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaArchitecturalStyle: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.enVentaMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.enVentaFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Construcción nueva" : "New construction"}</label><input value={details.enVentaNewConstruction ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaNewConstruction: e.target.value }))} placeholder={lang === "es" ? "Sí/No" : "Yes/No"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estilo arquitectónico" : "Architectural style"}</label><input value={details.brArchitecturalStyle ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brArchitecturalStyle: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.brMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.brFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.brRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Construcción nueva" : "New construction"}</label><input value={details.brNewConstruction ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brNewConstruction: e.target.value }))} placeholder={lang === "es" ? "Sí/No" : "Yes/No"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela" : "Parcel number"}</label><input value={details.brParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
@@ -4057,9 +4071,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.brSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.brWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.brGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
@@ -4075,39 +4089,39 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                     <div>
                                       <label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno (tamaño)" : "Lot size"}{" *"}</label>
                                       <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Superficie en m², pies² o acres. Ej: 500 m², 0.25 acres." : "Area in sq ft, m² or acres. e.g. 500 m², 0.25 acres."}</p>
-                                      <input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies² o acres" : "sq ft, m² or acres"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
-                                      {!details.enVentaLotSize?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
+                                      <input value={details.brLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLotSize: e.target.value }))} placeholder={lang === "es" ? "m² o pies² o acres" : "sq ft, m² or acres"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                      {!details.brLotSize?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}
                                     </div>
                                     <div className="sm:col-span-2">
                                       <label className="text-xs text-[#111111]/80">{lang === "es" ? "Características del terreno" : "Lot features"}</label>
                                       <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Ej: plano, con pendiente, vista, esquina, acceso a calle." : "e.g. flat, sloped, view, corner lot, street access."}</p>
-                                      <input value={details.enVentaLotFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                      <input value={details.brLotFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLotFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                     </div>
-                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cercado" : "Fencing"}</label><input value={details.enVentaFencing ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFencing: e.target.value }))} placeholder={lang === "es" ? "Ej: sí, reja perimetral" : "e.g. yes, perimeter"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cercado" : "Fencing"}</label><input value={details.brFencing ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFencing: e.target.value }))} placeholder={lang === "es" ? "Ej: sí, reja perimetral" : "e.g. yes, perimeter"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     <div>
                                       <label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela / APN" : "Parcel / APN"}</label>
                                       <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Número de parcela o Assessor Parcel Number del catastro." : "Parcel number or Assessor Parcel Number."}</p>
-                                      <input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                      <input value={details.brParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                     </div>
                                     <div>
                                       <label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label>
                                       <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Uso de suelo permitido. Ej: residencial, agrícola, comercial." : "Permitted use. e.g. residential, agricultural, commercial."}</p>
-                                      <input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                      <input value={details.brZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                     </div>
                                     <div className="sm:col-span-2">
                                       <label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label>
                                       <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Solo si aplica. Ej: se vende tal como está, short sale, probate." : "Only if applicable. e.g. as-is, short sale, probate."}</p>
-                                      <input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                      <input value={details.brSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                     </div>
                                     <div className="sm:col-span-2">
                                       <label className="text-xs text-[#111111]/80">{lang === "es" ? "Acceso" : "Access"}</label>
                                       <p className="mt-0.5 text-[11px] text-[#111111]/55">{lang === "es" ? "Cómo se accede al terreno: calle pavimentada, camino de tierra, easement, etc." : "How the lot is accessed: paved road, dirt road, easement, etc."}</p>
-                                      <input value={details.enVentaAccessDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessDescription: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
+                                      <input value={details.brAccessDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAccessDescription: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
                                     </div>
-                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Servicios disponibles: Agua" : "Water available"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} placeholder={lang === "es" ? "Ej: municipal, pozo, no" : "e.g. city, well, none"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} placeholder={lang === "es" ? "Ej: municipal, fosa, no" : "e.g. city, septic, none"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                    <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} placeholder={lang === "es" ? "Ej: bodega, caseta" : "e.g. shed, guardhouse"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Servicios disponibles: Agua" : "Water available"}</label><input value={details.brWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brWater: e.target.value }))} placeholder={lang === "es" ? "Ej: municipal, pozo, no" : "e.g. city, well, none"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.brSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSewer: e.target.value }))} placeholder={lang === "es" ? "Ej: municipal, fosa, no" : "e.g. city, septic, none"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.brGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                    <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.brAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAdditionalStructures: e.target.value }))} placeholder={lang === "es" ? "Ej: bodega, caseta" : "e.g. shed, guardhouse"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                   </div>
                                 </div>
                               );
@@ -4118,30 +4132,30 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Espacio comercial" : "Commercial space"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking spaces"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles estacionamiento" : "Parking features"}</label><input value={details.enVentaParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.enVentaAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.brSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 1200" : "e.g. 1200"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.brLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLotSize: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.brLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLevels: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking spaces"}</label><input value={details.brParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles estacionamiento" : "Parking features"}</label><input value={details.brParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Accesibilidad" : "Accessibility features"}</label><input value={details.brAccessibilityFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAccessibilityFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Uso y legal" : "Use & legal"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} placeholder={lang === "es" ? "Ej: C-1, comercial" : "e.g. C-1, commercial"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela / APN" : "Parcel / APN"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.brZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brZoning: e.target.value }))} placeholder={lang === "es" ? "Ej: C-1, comercial" : "e.g. C-1, commercial"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label><input value={details.brSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela / APN" : "Parcel / APN"}</label><input value={details.brParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción" : "Construction"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.enVentaYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.enVentaMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.enVentaFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.brYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.brMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.brFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.brRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
@@ -4149,17 +4163,17 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.brSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.brWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.brGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior / acceso" : "Exterior / access"}</h4>
                                     <div className="grid grid-cols-1 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.enVentaExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Descripción de acceso" : "Access description"}</label><input value={details.enVentaAccessDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAccessDescription: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.brExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Descripción de acceso" : "Access description"}</label><input value={details.brAccessDescription ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAccessDescription: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                 </>
@@ -4171,29 +4185,29 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Datos del edificio" : "Building data"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.enVentaSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 5000" : "e.g. 5000"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.enVentaSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.enVentaLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLotSize: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.enVentaLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaLevels: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking spaces"}</label><input value={details.enVentaParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles estacionamiento" : "Parking features"}</label><input value={details.enVentaParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Pies²" : "Sq ft"}{" *"}</label><input value={details.brSquareFeet ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSquareFeet: e.target.value }))} placeholder={lang === "es" ? "Ej: 5000" : "e.g. 5000"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />{!details.brSquareFeet?.trim() && <div className="mt-0.5 text-xs text-[#111111]/40">{lang === "es" ? "Requerido." : "Required."}</div>}</div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Terreno" : "Lot size"}</label><input value={details.brLotSize ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLotSize: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Niveles" : "Levels"}</label><input value={details.brLevels ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brLevels: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estacionamiento" : "Parking spaces"}</label><input value={details.brParkingSpaces ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingSpaces: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Detalles estacionamiento" : "Parking features"}</label><input value={details.brParkingFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParkingFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Legal y uso" : "Legal & use"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.enVentaZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela / APN" : "Parcel / APN"}</label><input value={details.enVentaParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label><input value={details.enVentaSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Zonificación" : "Zoning"}</label><input value={details.brZoning ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brZoning: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Número de parcela / APN" : "Parcel / APN"}</label><input value={details.brParcelNumber ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brParcelNumber: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div className="sm:col-span-2"><label className="text-xs text-[#111111]/80">{lang === "es" ? "Condiciones especiales de la venta" : "Special sale conditions"}</label><input value={details.brSpecialConditions ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSpecialConditions: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   {!hideBrPrivateTechnical && (
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Construcción" : "Construction"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.enVentaYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.enVentaMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.enVentaFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.enVentaRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Año de construcción" : "Year built"}</label><input value={details.brYearBuilt ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brYearBuilt: e.target.value }))} placeholder={lang === "es" ? "Ej: 1995" : "e.g. 1995"} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Materiales" : "Materials"}</label><input value={details.brMaterials ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brMaterials: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Cimentación" : "Foundation"}</label><input value={details.brFoundation ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brFoundation: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Techo" : "Roof"}</label><input value={details.brRoof ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brRoof: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
@@ -4201,17 +4215,17 @@ for (let vi = 0; vi < videoLimit; vi++) {
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Servicios" : "Services"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.enVentaSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.enVentaWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.enVentaGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Drenaje" : "Sewer"}</label><input value={details.brSewer ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brSewer: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Agua" : "Water"}</label><input value={details.brWater ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brWater: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Gas" : "Gas"}</label><input value={details.brGas ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brGas: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                   )}
                                   <div className="rounded-xl border border-black/10 bg-white/80 p-4 space-y-3">
                                     <h4 className="text-sm font-medium text-[#111111]">{lang === "es" ? "Exterior" : "Exterior"}</h4>
                                     <div className="grid grid-cols-1 gap-3">
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.enVentaExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
-                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.enVentaAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, enVentaAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Exterior" : "Exterior features"}</label><input value={details.brExteriorFeatures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brExteriorFeatures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
+                                      <div><label className="text-xs text-[#111111]/80">{lang === "es" ? "Estructuras adicionales" : "Additional structures"}</label><input value={details.brAdditionalStructures ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, brAdditionalStructures: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" /></div>
                                     </div>
                                   </div>
                                 </>
@@ -4226,8 +4240,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                             <label className="text-sm font-medium text-[#111111]">{lang === "es" ? "Descripción de la propiedad" : "Property description"}{" *"}</label>
                             <p className="mt-1 text-xs text-[#111111]/60">{brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionHelper.es : brPrivateCopyProfile.descriptionHelper.en) : (lang === "es" ? "Descripción completa del anuncio. Se usará en la ficha y para búsquedas (mín. 5 caracteres)." : "Full listing description for the listing page and search (min 5 characters).")}</p>
                             <textarea
-                              value={details.enVentaFullDescription ?? ""}
-                              onChange={(e) => setDetails((prev) => ({ ...prev, enVentaFullDescription: e.target.value }))}
+                              value={details.brFullDescription ?? ""}
+                              onChange={(e) => setDetails((prev) => ({ ...prev, brFullDescription: e.target.value }))}
                               placeholder={brPrivateCopyProfile ? (lang === "es" ? brPrivateCopyProfile.descriptionPlaceholder.es : brPrivateCopyProfile.descriptionPlaceholder.en) : (lang === "es" ? "Describa la propiedad, ubicación, acabados, características, etc." : "Describe the property, location, finishes, features, etc.")}
                               rows={5}
                               aria-invalid={basicsShowValidation && !requirements.descOk}

@@ -105,8 +105,8 @@ export function PrivateBrPreviewContent(props: {
   const scrollTo = (ref: RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const addr = (details.enVentaAddress ?? "").trim();
-  const zone = (details.enVentaZone ?? "").trim();
+  const addr = (details.brAddress ?? "").trim();
+  const zone = (details.brZone ?? "").trim();
   const addressForMessage = (addr || rawTitle.trim() || zone || (lang === "es" ? "esta propiedad" : "this property")).trim() || (lang === "es" ? "esta propiedad" : "this property");
   const msgSolicitar = lang === "es" ? `Hola, me interesa tu propiedad en ${addressForMessage}. La vi en Leonix Media y me gustaría recibir más información.` : `Hi, I'm interested in your property at ${addressForMessage}. I saw it on Leonix Media and would like more information.`;
   const msgVisita = lang === "es" ? `Hola, me interesa mucho tu propiedad en ${addressForMessage}. La vi en Leonix Media y quería saber cuándo sería posible programar una visita.` : `Hi, I'm very interested in your property at ${addressForMessage}. I saw it on Leonix Media and wanted to know when it might be possible to schedule a visit.`;
@@ -122,10 +122,10 @@ export function PrivateBrPreviewContent(props: {
   const side2 = n > 2 ? images[(safeStart + 2) % n] : null;
   const hasRealCity = rawCity.trim() !== "" && rawCity !== (lang === "es" ? "(Ciudad)" : "(City)");
   const mainLine = addr ? addr : hasRealCity ? rawCity.trim() : "";
-  const brSubcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.enVentaPropertyType ?? "").trim());
-  const br = (details.enVentaBedrooms ?? "").trim();
-  const ba = (details.enVentaBathrooms ?? "").trim();
-  const sqRaw = (details.enVentaSquareFeet ?? "").trim();
+  const brSubcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.brPropertyType ?? "").trim());
+  const br = (details.brBedrooms ?? "").trim();
+  const ba = (details.brBathrooms ?? "").trim();
+  const sqRaw = (details.brSquareFeet ?? "").trim();
   const sqNum = sqRaw ? Number(sqRaw.replace(/,/g, "").replace(/\s/g, "").trim()) : NaN;
   const sqDisplay = Number.isFinite(sqNum) ? sqNum.toLocaleString(lang === "es" ? "es-US" : "en-US") : sqRaw;
   const hideBedrooms = brSubcat === "terrenos" || brSubcat === "comercial" || brSubcat === "industrial";
@@ -135,13 +135,13 @@ export function PrivateBrPreviewContent(props: {
     sqRaw && { label: lang === "es" ? "Pies²" : "Sq ft", value: sqDisplay },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
   const featureTagsFromDetails: Array<{ label: string; value: string }> = [];
-  const zoneVal = (details.enVentaZone ?? "").trim();
+  const zoneVal = (details.brZone ?? "").trim();
   if (zoneVal) featureTagsFromDetails.push({ label: lang === "es" ? "Vecindad" : "Neighborhood", value: zoneVal });
-  const parkingVal = (details.enVentaParkingSpaces ?? "").trim();
+  const parkingVal = (details.brParkingSpaces ?? "").trim();
   if (parkingVal) featureTagsFromDetails.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: parkingVal });
-  const lotVal = (details.enVentaLotSize ?? "").trim();
+  const lotVal = (details.brLotSize ?? "").trim();
   if (lotVal) featureTagsFromDetails.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
-  const levelsVal = (details.enVentaLevels ?? "").trim();
+  const levelsVal = (details.brLevels ?? "").trim();
   if (levelsVal) featureTagsFromDetails.push({ label: lang === "es" ? "Niveles" : "Levels", value: levelsVal });
   const hasPrice = rawPrice.trim() !== "" && /[\d]/.test(rawPrice.replace(/,/g, ""));
   const priceDisplay = hasPrice ? (formatMoneyMaybe(rawPrice, lang) || rawPrice.trim()) : (lang === "es" ? "Precio no indicado" : "Price not specified");
@@ -360,41 +360,41 @@ export function PrivateBrPreviewContent(props: {
           </h3>
           <div className="space-y-5">
             {(() => {
-              const subcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.enVentaPropertyType ?? "").trim());
+              const subcat = (details.bienesRaicesSubcategoria ?? "").trim() || getBrSubcategoriaFromPropertyType((details.brPropertyType ?? "").trim());
               const showResidentialInterior = subcat === "residencial" || subcat === "condos-townhomes" || subcat === "multifamiliar";
               const interiorRows: Array<{ label: string; value: string }> = [];
               if (showResidentialInterior) {
-                const brVal = (details.enVentaBedrooms ?? "").trim();
+                const brVal = (details.brBedrooms ?? "").trim();
                 if (brVal) interiorRows.push({ label: lang === "es" ? "Recámaras" : "Bedrooms", value: brVal });
               }
-              const baVal = (details.enVentaBathrooms ?? "").trim();
+              const baVal = (details.brBathrooms ?? "").trim();
               if (baVal && subcat !== "terrenos") interiorRows.push({ label: lang === "es" ? "Baños" : "Bathrooms", value: baVal });
-              const sqVal = (details.enVentaSquareFeet ?? "").trim();
+              const sqVal = (details.brSquareFeet ?? "").trim();
               if (sqVal) interiorRows.push({ label: lang === "es" ? "Pies²" : "Sq ft", value: sqVal });
-              const lvVal = (details.enVentaLevels ?? "").trim();
+              const lvVal = (details.brLevels ?? "").trim();
               if (lvVal && subcat !== "terrenos") interiorRows.push({ label: lang === "es" ? "Niveles" : "Levels", value: lvVal });
               const exteriorRows: Array<{ label: string; value: string }> = [];
-              const lotVal = (details.enVentaLotSize ?? "").trim();
+              const lotVal = (details.brLotSize ?? "").trim();
               if (lotVal) exteriorRows.push({ label: lang === "es" ? "Terreno" : "Lot size", value: lotVal });
-              const pkVal = (details.enVentaParkingSpaces ?? "").trim();
+              const pkVal = (details.brParkingSpaces ?? "").trim();
               if (pkVal) exteriorRows.push({ label: lang === "es" ? "Estacionamiento" : "Parking", value: pkVal });
-              const zoneVal = (details.enVentaZone ?? "").trim();
+              const zoneVal = (details.brZone ?? "").trim();
               if (zoneVal) exteriorRows.push({ label: lang === "es" ? "Vecindad" : "Neighborhood", value: zoneVal });
               const extraRows: Array<{ label: string; value: string }> = [];
-              const ptVal = (details.enVentaPropertyType ?? "").trim();
+              const ptVal = (details.brPropertyType ?? "").trim();
               if (ptVal) extraRows.push({ label: lang === "es" ? "Tipo de propiedad" : "Property type", value: ptVal });
-              const stVal = (details.enVentaPropertySubtype ?? "").trim();
+              const stVal = (details.brPropertySubtype ?? "").trim();
               if (stVal) extraRows.push({ label: lang === "es" ? "Subtipo" : "Subtype", value: stVal });
-              const ybVal = (details.enVentaYearBuilt ?? "").trim();
+              const ybVal = (details.brYearBuilt ?? "").trim();
               if (ybVal) extraRows.push({ label: lang === "es" ? "Año de construcción" : "Year built", value: ybVal });
-              const utilVal = (details.enVentaUtilitiesForProperty ?? "").trim();
+              const utilVal = (details.brUtilitiesForProperty ?? "").trim();
               if (utilVal) extraRows.push({ label: lang === "es" ? "Servicios disponibles" : "Utilities", value: utilVal });
-              const zonVal = (details.enVentaZoning ?? "").trim();
+              const zonVal = (details.brZoning ?? "").trim();
               if (zonVal) extraRows.push({ label: lang === "es" ? "Zonificación" : "Zoning", value: zonVal });
               const multiRows: Array<{ label: string; value: string }> = [];
-              const vtVal = (details.enVentaVirtualTourUrl ?? "").trim();
+              const vtVal = (details.brVirtualTourUrl ?? "").trim();
               if (vtVal) multiRows.push({ label: lang === "es" ? "Tour virtual" : "Virtual tour", value: vtVal });
-              const vUrlVal = (details.enVentaVideoUrl ?? "").trim();
+              const vUrlVal = (details.brVideoUrl ?? "").trim();
               if (vUrlVal) multiRows.push({ label: lang === "es" ? "Video" : "Video", value: vUrlVal });
               const hasAny = interiorRows.length > 0 || exteriorRows.length > 0 || extraRows.length > 0 || multiRows.length > 0;
               if (!hasAny) return <p className="text-sm text-[#111111]/70">{lang === "es" ? "Sin detalles adicionales." : "No additional details."}</p>;
