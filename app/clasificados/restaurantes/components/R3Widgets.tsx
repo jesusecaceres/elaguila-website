@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { addReview, getAlertPrefs, getReviewStats, saveAlertPrefs, getRecentCities, pushRecentCity, saveGeoState, getGeoState } from "./restaurantR3Storage";
+import { addReview, getAlertPrefs, getReviewStats, saveAlertPrefs, getRecentCities, pushRecentCity, saveGeoState, getGeoState } from "../shared/utils/restaurantR3Storage";
 
 type Lang = "es" | "en";
 

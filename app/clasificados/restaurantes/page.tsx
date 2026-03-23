@@ -6,6 +6,7 @@ import { restaurants } from "../../data/restaurants";
 import RestaurantCard from "../components/RestaurantCard";
 import { AlertsPanel } from "./components/R3Widgets";
 import DiscoveryClient from "./components/DiscoveryClient";
+import { RESTAURANTES_CUISINE_CHIPS, RESTAURANTES_LANDING_CATEGORY_PILLS } from "./shared/fields/restaurantesTaxonomy";
 
 type Lang = "es" | "en";
 
@@ -67,9 +68,7 @@ export default async function Page({
   const listaHref = `/clasificados/lista?cat=restaurantes&lang=${lang}`;
   const postHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=restaurantes&lang=${lang}`)}`;
   const membershipsHref = `/clasificados/membresias?lang=${lang}`;
-  const cuisineChips = lang === "es"
-    ? ["Mexicana", "Italiana", "Americana", "Asiática", "Mariscos", "Otro"]
-    : ["Mexican", "Italian", "American", "Asian", "Seafood", "Other"];
+  const cuisineChips = RESTAURANTES_CUISINE_CHIPS[lang];
 
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111]">
@@ -93,17 +92,7 @@ export default async function Page({
         <section className="rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
           <p className="text-xs font-semibold text-[#111111]/80">{lang === "es" ? "Explorar por categoría" : "Browse by category"}</p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {[
-              { key: "rentas", es: "Rentas", en: "Rentals" },
-              { key: "en-venta", es: "En venta", en: "For sale" },
-              { key: "empleos", es: "Empleos", en: "Jobs" },
-              { key: "servicios", es: "Servicios", en: "Services" },
-              { key: "restaurantes", es: "Restaurantes", en: "Restaurants" },
-              { key: "travel", es: "Viajes", en: "Travel" },
-              { key: "autos", es: "Autos", en: "Autos" },
-              { key: "clases", es: "Clases", en: "Classes" },
-              { key: "comunidad", es: "Comunidad", en: "Community" },
-            ].map(({ key, es, en }) => (
+            {RESTAURANTES_LANDING_CATEGORY_PILLS.map(({ key, es, en }) => (
               <Link key={key} href={`/clasificados/lista?cat=${key}&lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
                 {lang === "es" ? es : en}
               </Link>

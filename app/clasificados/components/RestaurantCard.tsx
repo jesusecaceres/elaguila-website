@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Restaurant } from "../../data/restaurants";
 import { ReviewButton, ReviewSummary } from "../restaurantes/components/R3Widgets";
-import { isFavoriteRestaurant, toggleFavoriteRestaurant } from "../restaurantes/components/restaurantR3Storage";
+import { isFavoriteRestaurant, toggleFavoriteRestaurant } from "../restaurantes/shared/utils/restaurantR3Storage";
 
 type Lang = "es" | "en";
 
