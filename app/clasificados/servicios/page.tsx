@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
+import { SERVICIOS_GROUPS } from "./shared/fields/serviciosTaxonomy";
 
 type Lang = "es" | "en";
 
@@ -39,13 +40,6 @@ const COPY = {
     todo: "All",
   },
 } as const;
-
-const SERVICIOS_GROUPS: { key: string; labelEs: string; labelEn: string }[] = [
-  { key: "home-garden", labelEs: "Hogar y Jardín", labelEn: "Home & Garden" },
-  { key: "autos", labelEs: "Servicios Automotrices", labelEn: "Auto Services" },
-  { key: "health-beauty", labelEs: "Salud y Bienestar", labelEn: "Health & Wellness" },
-  { key: "more", labelEs: "Más servicios", labelEn: "More services" },
-];
 
 function buildListaUrl(cat: string, lang: Lang, q?: string, city?: string, group?: string) {
   const params = new URLSearchParams();

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useMemo } from "react";
@@ -8,15 +8,9 @@ import newLogo from "../../../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../../../data/classifieds/sampleListings";
 import ContactActions from "../../components/ContactActions";
+import { inferServiciosTierFromListing } from "../shared/mapping/serviciosTier";
 
 type Lang = "es" | "en";
-type ServicesTier = "standard" | "plus" | "premium";
-
-function inferTier(x: any): ServicesTier {
-  const v = (typeof x?.servicesTier === "string" ? x.servicesTier : "").toLowerCase().trim();
-  if (v === "premium" || v === "plus" || v === "standard") return v as ServicesTier;
-  return "standard";
-}
 
 export default function ServiciosProfilePage() {
   const params = useParams<{ id: string }>();
@@ -29,7 +23,7 @@ export default function ServiciosProfilePage() {
     return items.find((x) => x.id === id && x.category === "servicios") || null;
   }, [params?.id]);
 
-  const tier = inferTier(listing);
+  const tier = inferServiciosTierFromListing(listing);
 
   if (!listing) {
     return (
