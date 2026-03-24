@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
@@ -9,6 +9,7 @@ import { loadEnVentaPreviewDraft } from "./enVentaPreviewDraft";
 import { buildEnVentaPreviewModel } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
+import { publishEnVentaFromDraft } from "../publish/enVentaPublishFromDraft";
 
 const TOP = {
   es: {
@@ -60,6 +61,7 @@ function ContactIcon({ className }: { className?: string }) {
 }
 
 export function EnVentaPreviewPage() {
+  const router = useRouter();
   const sp = useSearchParams();
   const lang = sp?.get("lang") === "en" ? "en" : "es";
   const plan = sp?.get("plan") === "pro" ? "pro" : "free";
@@ -70,6 +72,8 @@ export function EnVentaPreviewPage() {
 
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishErr, setPublishErr] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(loadEnVentaPreviewDraft(plan));
@@ -80,6 +84,26 @@ export function EnVentaPreviewPage() {
   const hasDraft = draft !== null;
 
   const vm = useMemo(() => buildEnVentaPreviewModel(state, lang, plan), [state, lang, plan]);
+
+  async function onPublish() {
+    setPublishErr(null);
+    const latest = loadEnVentaPreviewDraft(plan) ?? draft;
+    if (!latest) {
+      setPublishErr(lang === "es" ? "No hay borrador." : "No draft.");
+      return;
+    }
+    setPublishing(true);
+    try {
+      const result = await publishEnVentaFromDraft(latest, lang, plan);
+      if (!result.ok) {
+        setPublishErr(result.error);
+        return;
+      }
+      router.push(`/clasificados/anuncio/${result.listingId}?lang=${lang}`);
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   if (!hydrated) {
     return (
@@ -209,16 +233,35 @@ export function EnVentaPreviewPage() {
   return (
     <main className="min-h-screen bg-white text-[#111111]">
       <div className="border-b border-black/[0.08] bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href={editHubHref} className="text-sm font-semibold text-[#111111] hover:underline">
             {tTop.back}
           </Link>
-          <div className="hidden items-center gap-4 text-xs font-medium text-[#111111]/45 sm:flex">
-            <span className="cursor-default">{tTop.share}</span>
-            <span className="cursor-default">{tTop.save}</span>
-            <span className="cursor-default">{tTop.report}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={publishing}
+              onClick={() => void onPublish()}
+              className="rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {publishing
+                ? lang === "es"
+                  ? "Publicando…"
+                  : "Publishing…"
+                : lang === "es"
+                  ? "Publicar"
+                  : "Publish"}
+            </button>
+            <div className="hidden items-center gap-4 text-xs font-medium text-[#111111]/45 sm:flex">
+              <span className="cursor-default">{tTop.share}</span>
+              <span className="cursor-default">{tTop.save}</span>
+              <span className="cursor-default">{tTop.report}</span>
+            </div>
           </div>
         </div>
+        {publishErr ? (
+          <div className="mx-auto max-w-6xl px-4 pb-3 text-sm text-red-600 sm:px-6">{publishErr}</div>
+        ) : null}
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">

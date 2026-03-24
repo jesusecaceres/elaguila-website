@@ -115,6 +115,14 @@ const COPY = {
   },
 } as const;
 
+/** Gallery order: primary (cover) first, then remaining images in stable array order. Matches publish + live listing hero/thumbnail order. */
+export function getOrderedEnVentaImageUrls(state: EnVentaFreeApplicationState): string[] {
+  const n = state.images.length;
+  if (n === 0) return [];
+  const pi = Math.min(Math.max(0, state.primaryImageIndex), n - 1);
+  return [state.images[pi], ...state.images.filter((_, i) => i !== pi)];
+}
+
 export function buildEnVentaPreviewModel(
   state: EnVentaFreeApplicationState,
   lang: "es" | "en",
@@ -224,10 +232,7 @@ export function buildEnVentaPreviewModel(
     else if (state.email.trim()) contactHref = `mailto:${state.email.trim()}`;
   }
 
-  const n = state.images.length;
-  const pi = n === 0 ? 0 : Math.min(Math.max(0, state.primaryImageIndex), n - 1);
-  const orderedImages =
-    n === 0 ? [] : [state.images[pi], ...state.images.filter((_, i) => i !== pi)];
+  const orderedImages = getOrderedEnVentaImageUrls(state);
 
   const videoUrl = state.listingVideoUrl.trim() || null;
   const showVideo = plan === "pro" && !!videoUrl;

@@ -67,6 +67,15 @@ function revokeIfBlob(url: string | undefined) {
   }
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result ?? ""));
+    r.onerror = () => reject(r.error ?? new Error("read failed"));
+    r.readAsDataURL(file);
+  });
+}
+
 export function PhotosSection<S extends EnVentaFreeApplicationState>({
   lang,
   state,
@@ -125,17 +134,30 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
 
   function onImageFiles(files: FileList | null) {
     if (!files?.length) return;
-    setState((s) => {
-      const wasEmpty = s.images.length === 0;
-      const next = [...s.images];
-      for (let i = 0; i < files.length; i++) {
-        if (next.length >= maxPhotos) break;
-        next.push(URL.createObjectURL(files[i]));
+    const list = Array.from(files).filter((f) => !f.type || f.type.startsWith("image/"));
+    if (!list.length) return;
+
+    void (async () => {
+      const dataUrls: string[] = [];
+      for (const file of list) {
+        try {
+          dataUrls.push(await fileToDataUrl(file));
+        } catch {
+          /* skip unreadable file */
+        }
       }
-      const pi =
-        next.length === 0 ? 0 : wasEmpty ? 0 : Math.min(s.primaryImageIndex, next.length - 1);
-      return { ...s, images: next, primaryImageIndex: pi };
-    });
+      if (!dataUrls.length) return;
+
+      setState((s) => {
+        const room = maxPhotos - s.images.length;
+        if (room <= 0) return s;
+        const wasEmpty = s.images.length === 0;
+        const next = [...s.images, ...dataUrls.slice(0, room)];
+        const pi =
+          next.length === 0 ? 0 : wasEmpty ? 0 : Math.min(s.primaryImageIndex, next.length - 1);
+        return { ...s, images: next, primaryImageIndex: pi };
+      });
+    })();
   }
 
   function removeImage(index: number) {
