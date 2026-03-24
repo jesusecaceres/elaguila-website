@@ -111,7 +111,7 @@ type DraftV1 = {
 };
 
 function brPublicarPathForLane(lane: "negocio" | "privado"): string {
-  return `/clasificados/bienes-raices/${lane}/publicar`;
+  return `/clasificados/publicar/BR/${lane}`;
 }
 
 function brPreviewPathForLane(lane: "negocio" | "privado"): string {

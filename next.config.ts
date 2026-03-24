@@ -1,6 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/clasificados/bienes-raices/negocio/publicar",
+        destination: "/clasificados/publicar/BR/negocio",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/bienes-raices/privado/publicar",
+        destination: "/clasificados/publicar/BR/privado",
+        permanent: true,
+      },
+    ];
+  },
   eslint: {
     // TEMPORARY: allow build even if ESLint fails (we will turn this back on later)
     ignoreDuringBuilds: true,

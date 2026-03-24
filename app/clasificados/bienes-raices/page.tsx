@@ -7,7 +7,7 @@ import { FiBriefcase, FiUser } from "react-icons/fi";
 type Lang = "es" | "en";
 
 /**
- * Bienes Raíces: branch chooser only — Negocio vs Privado publish lanes live under each branch folder.
+ * Bienes Raíces: branch chooser — Negocio vs Privado link to `/clasificados/publicar/BR/{negocio|privado}` (coming soon).
  */
 export default function BienesRaicesPublishBranchChooserPage() {
   const searchParams = useSearchParams();
@@ -59,7 +59,7 @@ export default function BienesRaicesPublishBranchChooserPage() {
 
           <div className="mt-8 grid gap-3">
             <Link
-              href={`/clasificados/bienes-raices/negocio/publicar?lang=${lang}`}
+              href={`/clasificados/publicar/BR/negocio?lang=${lang}`}
               className="flex items-start gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
               <FiBriefcase className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />
@@ -69,7 +69,7 @@ export default function BienesRaicesPublishBranchChooserPage() {
               </span>
             </Link>
             <Link
-              href={`/clasificados/bienes-raices/privado/publicar?lang=${lang}`}
+              href={`/clasificados/publicar/BR/privado?lang=${lang}`}
               className="flex items-start gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
               <FiUser className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />
