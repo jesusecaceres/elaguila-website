@@ -34,14 +34,19 @@ export function BienesRaicesPublishTrackStep({
   copyBack,
 }: BienesRaicesPublishTrackStepProps) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5">
+    <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-[#111111]">
         {lang === "es" ? "¿Cómo publicas?" : "How are you posting?"}
       </h2>
-      <p className="mt-2 text-sm text-[#111111]/90">
+      <p className="mt-2 text-sm text-[#111111]/90 leading-relaxed">
         {lang === "es"
-          ? "Elige si publicas como persona o como negocio/profesional inmobiliario."
-          : "Choose whether you post as an individual or as a business/professional."}
+          ? "Leonix separa el listado de propietario del listado comercial para que cada uno reciba el formulario y la vista previa correctos. Elige la opción que describe tu situación."
+          : "Leonix separates owner-led listings from commercial listings so each flow gets the right form and preview. Pick the option that matches your situation."}
+      </p>
+      <p className="mt-2 text-xs text-[#111111]/65 leading-relaxed border-l-2 border-[#C9B46A]/50 pl-3">
+        {lang === "es"
+          ? "Privado = tú vendes tu propiedad. Negocio = equipo profesional, marca o desarrollador — presentación y herramientas de nivel comercial."
+          : "Private = you’re selling your own property. Business = a professional team, brand, or developer — commercial-grade presentation and tools."}
       </p>
 
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -90,12 +95,12 @@ export function BienesRaicesPublishTrackStep({
             )}
           >
             <span className="block text-base font-bold text-[#111111]">
-              {lang === "es" ? "Negocio / Profesional" : "Business / Professional"}
+              {lang === "es" ? "Negocio / profesional" : "Business / professional"}
             </span>
-            <p className="mt-2 text-sm text-[#111111]/85">
+            <p className="mt-2 text-sm text-[#111111]/85 leading-snug">
               {lang === "es"
-                ? "Agentes, brokers, inmobiliarias, desarrolladores o empresas."
-                : "Agents, brokers, offices, developers, or commercial real estate."}
+                ? "Listado insignia: identidad de agente o marca, medios ricos y vista previa pensada para generar leads."
+                : "Flagship listing: agent or brand identity, rich media, and a preview built to generate leads."}
             </p>
             <p className="mt-2 text-sm font-semibold text-[#111111]">
               {lang === "es" ? `${brNegocioPriceWeekly}/semana o ${brNegocioPriceMonthly}/mes` : `${brNegocioPriceWeekly}/week or ${brNegocioPriceMonthly}/month`}

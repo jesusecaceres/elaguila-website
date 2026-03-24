@@ -896,6 +896,14 @@ export default function BienesRaicesPublishApplication() {
       es: {
         title: "Publicar tu anuncio",
         subtitle: "Publica con claridad. Mientras más completo, más confianza y mejores resultados.",
+        brTitle: "Bienes Raíces en Leonix",
+        brSubtitle:
+          "Listados pensados para el Norte de California: elige si publicas como propietario o como negocio, completa la ficha y revisa una vista previa lista para publicar.",
+        brSteps: {
+          "bienes-raices-track": "Perfil",
+          basics: "La propiedad",
+          media: "Revisar y publicar",
+        },
         steps: { category: "Categoría", "rentas-track": "Rama", "bienes-raices-track": "Tipo de anunciante", basics: "Básicos", details: "Detalles", media: "Media + Contacto + Vista previa" },
         deleteDraft: "Eliminar progreso guardado",
         basicsTitle: "Básicos",
@@ -971,6 +979,14 @@ export default function BienesRaicesPublishApplication() {
       en: {
         title: "Post your ad",
         subtitle: "Post with clarity. The more complete it is, the more trust—and better results.",
+        brTitle: "Real estate on Leonix",
+        brSubtitle:
+          "Built for Northern California: choose owner-led or business, complete your listing, and preview before you publish.",
+        brSteps: {
+          "bienes-raices-track": "Profile",
+          basics: "Property",
+          media: "Review & publish",
+        },
         steps: { category: "Category", "rentas-track": "Track", "bienes-raices-track": "Seller type", basics: "Basics", details: "Details", media: "Media + Contact + Preview" },
         deleteDraft: "Delete application",
         basicsTitle: "Basics",
@@ -985,7 +1001,7 @@ export default function BienesRaicesPublishApplication() {
         back: "Back",
         detailsTitle: "Details (per category)",
         detailsNote:
-          "We’ll add structured category fields in the next batch. For now, we keep the experience clean and safe.",
+          "Add what applies. Structured details help buyers compare listings and trust what they see.",
         mediaTitle: "Media + Contact",
         images: "Photos (min 1)",
         addImages: "Add photos",
@@ -2364,10 +2380,10 @@ for (let vi = 0; vi < videoLimit; vi++) {
         <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111111] text-center">
-              {copy.title}
+              {categoryFromUrl === "bienes-raices" ? copy.brTitle : copy.title}
             </h1>
             <p className="text-[#111111] text-center max-w-2xl mx-auto">
-              {checking ? copy.checking : copy.subtitle}
+              {checking ? copy.checking : categoryFromUrl === "bienes-raices" ? copy.brSubtitle : copy.subtitle}
             </p>
             {authError && (
               <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
@@ -2682,7 +2698,20 @@ for (let vi = 0; vi < videoLimit; vi++) {
                     const isActive = safeStepForProgress === s;
                     const isPast = stepOrder.indexOf(s) < currentStepIndex;
                     const isUpcoming = !isActive && !isPast;
-                    const label = s === "category" ? copy.steps.category : s === "rentas-track" ? copy.steps["rentas-track"] : s === "bienes-raices-track" ? copy.steps["bienes-raices-track"] : s === "basics" ? copy.steps.basics : s === "details" ? copy.steps.details : copy.steps.media;
+                    const label =
+                      categoryFromUrl === "bienes-raices" && (s === "bienes-raices-track" || s === "basics" || s === "media")
+                        ? copy.brSteps[s as "bienes-raices-track" | "basics" | "media"]
+                        : s === "category"
+                          ? copy.steps.category
+                          : s === "rentas-track"
+                            ? copy.steps["rentas-track"]
+                            : s === "bienes-raices-track"
+                              ? copy.steps["bienes-raices-track"]
+                              : s === "basics"
+                                ? copy.steps.basics
+                                : s === "details"
+                                  ? copy.steps.details
+                                  : copy.steps.media;
                     return (
                       <span
                         key={s}

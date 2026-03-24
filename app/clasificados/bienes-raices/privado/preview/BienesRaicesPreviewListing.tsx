@@ -180,7 +180,7 @@ export default function BienesRaicesPreviewListing({
         : {
             tabs: ["Overview", "Details", "Location", "Contact"] as const,
             previewBadge: "Preview",
-            previewSubtitle: "Owner view — clear and trustworthy.",
+            previewSubtitle: "Owner-led listing: polished, calm, and built to earn trust.",
             brand: "Leonix Clasificados",
             aboutTitle: "About this home",
             factsTitle: "Facts & features",
@@ -232,6 +232,7 @@ export default function BienesRaicesPreviewListing({
       .filter((v): v is { label: string; value: string; icon: string; _key: string } => Boolean(v));
   }, [quickFacts]);
 
+  const hooks = listing.managementHooks;
   return (
     <div
       className={cx(
@@ -242,6 +243,9 @@ export default function BienesRaicesPreviewListing({
             ? "bg-[#F5F4F1]"
             : "rounded-[1.5rem] border border-stone-200/80 bg-gradient-to-b from-white to-stone-50/90 shadow-[0_12px_40px_-20px_rgba(17,17,17,0.18)]"
       )}
+      data-br-branch="privado"
+      data-publish-ready={hooks?.branch === "privado" ? (hooks.publishReady ? "true" : "false") : undefined}
+      data-analytics-ready={hooks?.branch === "privado" ? (hooks.analyticsReady ? "true" : "false") : undefined}
     >
       {!liveMode && previewToast ? (
         <div className="fixed bottom-6 left-1/2 z-[130] -translate-x-1/2 rounded-full border border-stone-200 bg-[#111111] px-4 py-2 text-sm font-medium text-white shadow-lg">

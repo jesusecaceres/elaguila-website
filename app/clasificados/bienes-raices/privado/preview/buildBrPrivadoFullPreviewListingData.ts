@@ -4,6 +4,7 @@
 
 import type { ListingData } from "@/app/clasificados/components/ListingView";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
+import { computePublishRequirements } from "@/app/clasificados/lib/publishRequirements";
 import { buildBrPrivadoListingData } from "@/app/clasificados/bienes-raices/privado/mapping/buildBrPrivadoPreviewListingData";
 
 function formatPhoneDigits(raw: string): string {
@@ -47,7 +48,7 @@ export function buildBrPrivadoFullPreviewListingData(params: BuildBrPrivadoFullP
     contactPhoneDisplay,
   } = params;
 
-  return buildBrPrivadoListingData({
+  const base = buildBrPrivadoListingData({
     snap: {
       title: snap.title,
       priceLabel: snap.priceLabel,
@@ -74,6 +75,21 @@ export function buildBrPrivadoFullPreviewListingData(params: BuildBrPrivadoFullP
     userId,
     contactPhoneDisplay,
   });
+  const reqs = computePublishRequirements(snap);
+  return {
+    ...base,
+    managementHooks: {
+      branch: "privado",
+      publishReady: reqs.allOk,
+      analyticsReady: true,
+      boostEligible: Boolean(snap.isPro),
+      adminReviewReady: true,
+      listingTrace: {
+        ownerAccountId: userId?.trim() ? userId.trim() : null,
+        cityCanonical: snap.cityCanonical,
+      },
+    },
+  };
 }
 
 export { formatPhoneDisplay as formatBrPrivadoPreviewPhoneDisplay };

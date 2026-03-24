@@ -206,6 +206,18 @@ export function buildBienesRaicesPrivadoLiveListingData(options: {
     listingStatusLabel:
       listing.status === "sold" ? (lang === "es" ? "Vendido" : "Sold") : lang === "es" ? "Activo" : "Active",
     listingLocationIsApproximate: approximateLocationFromPairs(pairs),
+    managementHooks: {
+      branch: "privado",
+      publishReady: true,
+      analyticsReady: true,
+      boostEligible: isPro,
+      adminReviewReady: true,
+      listingTrace: {
+        listingId: listing.id,
+        ownerAccountId: listing.owner_id?.trim() ? listing.owner_id.trim() : null,
+        cityCanonical: (listing.city ?? "").trim() || null,
+      },
+    },
   };
 }
 

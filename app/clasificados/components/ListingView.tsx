@@ -106,11 +106,11 @@ export type ListingData = {
   /** Display label for listing status (BR negocio). */
   listingStatusLabel?: string | null;
   /**
-   * BR negocio: readiness + traceability for dashboard / manage / analytics / boosts (no UI required here).
+   * BR: readiness + traceability for dashboard / manage / analytics / boosts (no UI required here).
    * Populated in publish preview and live listing assembly where applicable.
    */
   managementHooks?: {
-    branch: "negocio";
+    branch: "privado" | "negocio";
     publishReady: boolean;
     analyticsReady: boolean;
     boostEligible: boolean;
