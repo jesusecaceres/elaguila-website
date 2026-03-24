@@ -324,7 +324,7 @@ export default function PreviewListingPage() {
           <div className="max-w-[min(100%,92rem)] mx-auto flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3">
             <button
               type="button"
-              onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+              onClick={pushBackToEditWithPreviewSeen}
               className="rounded-xl border border-emerald-800/25 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#111111] hover:bg-emerald-50/90 transition"
             >
               ← {t.backToEdit}

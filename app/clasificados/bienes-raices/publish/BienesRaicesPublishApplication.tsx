@@ -2189,7 +2189,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
       setShowSuccessModal(true);
       deleteDraft();
     } catch (e: any) {
-      setPublishError((e?.message as string) || "Unknown error");
+      setPublishError(
+        (e?.message as string) || (lang === "es" ? "Error desconocido al publicar." : "Unknown error.")
+      );
     } finally {
       setPublishing(false);
     }
