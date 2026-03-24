@@ -20,6 +20,7 @@ export function buildHubListUrl(lang: Lang, cat?: HubCategoryKey): string {
   return `${base}?${sp.toString()}`;
 }
 
+/** Post-login redirect: category chooser first (`/clasificados/publicar`), not a single category slug. */
 export function buildHubPostEntryHref(lang: Lang): string {
-  return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/bienes-raices?lang=${lang}`)}`;
+  return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?lang=${lang}`)}`;
 }

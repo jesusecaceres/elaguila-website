@@ -9,6 +9,8 @@ import ListingView, { type BusinessRailData, type ListingData } from "@/app/clas
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
+// Canonical full-page publish preview for Clasificados (BR + legacy drafts). Populated via setPreviewDraft before navigation; legacy /preview-listing redirects to this route.
+
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
 /** Last-resort rail so ListingView BR premium gate + BienesRaicesPreviewNegocioFresh always get a truthy `businessRail`. */
