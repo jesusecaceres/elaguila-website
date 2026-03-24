@@ -1,13 +1,40 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { EnVentaComingSoon } from "../../../en-venta/EnVentaComingSoon";
+
+function normalizeCategory(raw: string): CategoryKey | "" {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (!v) return "";
+  const mapped = v === "viajes" ? "travel" : v;
+  const keys = Object.keys(categoryConfig) as CategoryKey[];
+  return keys.includes(mapped as CategoryKey) ? (mapped as CategoryKey) : "";
+}
 
 export default function CategoryProPage() {
   const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const category = (params?.category as string) || "bienes-raices";
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
+  const normalized = normalizeCategory((params?.category as string) ?? "");
+  const category = normalized === "all" ? "" : normalized;
+
+  useEffect(() => {
+    if (!category) {
+      router.replace(`/clasificados/publicar?lang=${lang}`);
+    }
+  }, [category, lang, router]);
+
+  if (!category) {
+    return (
+      <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
+        {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
+      </main>
+    );
+  }
+
   const returnUrl = searchParams?.get("return") || `/clasificados/publicar/${category}?lang=${lang}&step=media`;
 
   if (category === "en-venta") {

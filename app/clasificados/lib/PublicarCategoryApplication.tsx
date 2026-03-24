@@ -50,8 +50,8 @@ import { stripLegacySharedWizardBrKeys } from "@/app/clasificados/lib/stripLegac
 import { RentasNegocioPublishShell } from "@/app/clasificados/rentas/negocio/publish/RentasNegocioPublishShell";
 import { RentasPublishShell } from "@/app/clasificados/rentas/shared/publish/RentasPublishShell";
 import { RentasPublishTrackStep } from "@/app/clasificados/rentas/shared/publish/RentasPublishTrackStep";
-import { MediaStepContactCard } from "@/app/clasificados/publicar/components/MediaStepContactCard";
-import { PublishMediaPreviewPanel } from "@/app/clasificados/publicar/components/PublishMediaPreviewPanel";
+import { MediaStepContactCard } from "@/app/clasificados/lib/publishUi/MediaStepContactCard";
+import { PublishMediaPreviewPanel } from "@/app/clasificados/lib/publishUi/PublishMediaPreviewPanel";
 import { buildDetailsAppendix, getDetailPairs } from "@/app/clasificados/lib/publishDetailPairs";
 import { computePublishRequirements } from "@/app/clasificados/lib/publishRequirements";
 import {

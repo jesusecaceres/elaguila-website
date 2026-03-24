@@ -1,6 +1,6 @@
 "use client";
 
-import { BienesRaicesPrivadoMediaPreviewCard } from "../../bienes-raices/privado/preview/BienesRaicesPrivadoMediaPreviewCard";
+import { BienesRaicesPrivadoMediaPreviewCard } from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPrivadoMediaPreviewCard";
 import { PublishMediaPreviewGenericCard } from "./PublishMediaPreviewGenericCard";
 import { PublishMediaPreviewRightPanel, type PreviewDetailPair, type PublishMediaPreviewRightPanelProps } from "./PublishMediaPreviewRightPanel";
 

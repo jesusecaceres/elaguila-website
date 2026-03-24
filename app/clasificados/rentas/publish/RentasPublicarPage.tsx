@@ -1,6 +1,6 @@
 "use client";
 
-import PublicarCategoryApplication from "@/app/clasificados/publicar/PublicarCategoryApplication";
+import PublicarCategoryApplication from "@/app/clasificados/lib/PublicarCategoryApplication";
 
 /** Rentas–owned entry for `/clasificados/publicar/rentas` (dispatched from shared route). */
 export default function RentasPublicarPage() {

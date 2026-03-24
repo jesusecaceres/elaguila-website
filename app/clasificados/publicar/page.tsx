@@ -1,8 +1,9 @@
 "use client";
 
 import type { ComponentType } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FiBook,
   FiBriefcase,
@@ -39,17 +40,41 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+/** Deep-link from hub/login (`?cat=` / `?categoria=`): forward to category-owned route without hosting wizard here. */
+function normalizeChooserDeepLink(raw: string | null | undefined): Exclude<CategoryKey, "all"> | "" {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (!v) return "";
+  const mapped = v === "viajes" ? "travel" : v;
+  if (mapped === "all") return "";
+  const keys = Object.keys(categoryConfig) as CategoryKey[];
+  if (!keys.includes(mapped as CategoryKey)) return "";
+  return mapped as Exclude<CategoryKey, "all">;
+}
+
 /**
  * Category selection only for `/clasificados/publicar`.
  * Each card links to the category-owned publish route; auth/session is enforced on the destination.
  */
 export default function PublicarRootPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const otherLang: Lang = lang === "es" ? "en" : "es";
   const qs = new URLSearchParams(searchParams?.toString() ?? "");
   qs.set("lang", otherLang);
   const toggleHref = `/clasificados/publicar?${qs.toString()}`;
+
+  const deepLinkCat = normalizeChooserDeepLink(searchParams?.get("cat") || searchParams?.get("categoria"));
+  const deepLinkDoneRef = useRef(false);
+  useEffect(() => {
+    if (!deepLinkCat || deepLinkDoneRef.current) return;
+    deepLinkDoneRef.current = true;
+    const p = new URLSearchParams(searchParams?.toString() ?? "");
+    p.delete("cat");
+    p.delete("categoria");
+    if (!p.get("lang")) p.set("lang", lang);
+    router.replace(`/clasificados/publicar/${deepLinkCat}?${p.toString()}`);
+  }, [deepLinkCat, lang, router, searchParams]);
 
   const copy = {
     title: lang === "es" ? "Publicar anuncio" : "Post a listing",

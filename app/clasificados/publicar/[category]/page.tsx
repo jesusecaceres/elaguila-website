@@ -1,8 +1,8 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
-import PublicarCategoryApplication from "@/app/clasificados/publicar/PublicarCategoryApplication";
 import EnVentaPublicarPage from "@/app/clasificados/en-venta/publish/EnVentaPublicarPage";
 import BienesRaicesPublicarPage from "@/app/clasificados/bienes-raices/publish/BienesRaicesPublicarPage";
 import RentasPublicarPage from "@/app/clasificados/rentas/publish/RentasPublicarPage";
@@ -23,12 +23,30 @@ function normalizeCategory(raw: string): CategoryKey | "" {
 }
 
 /**
- * Dispatcher only: map slug → category-owned publish entry. No wizard logic here.
- * Fallback to shared application for `all` or unexpected keys only.
+ * Dispatcher only: slug → category-owned publish entry.
+ * Invalid slug, empty slug, or `all` → redirect to `/clasificados/publicar` (chooser). No shared wizard here.
  */
 export default function PublicarCategoryPage() {
   const params = useParams<{ category?: string }>();
-  const categoryFromUrl = normalizeCategory(params?.category ?? "") || "bienes-raices";
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const normalized = normalizeCategory(params?.category ?? "");
+  const categoryFromUrl = normalized === "all" ? ("" as const) : normalized;
+
+  useEffect(() => {
+    if (!categoryFromUrl) {
+      router.replace(`/clasificados/publicar?lang=${lang}`);
+    }
+  }, [categoryFromUrl, lang, router]);
+
+  if (!categoryFromUrl) {
+    return (
+      <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
+        {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
+      </main>
+    );
+  }
 
   switch (categoryFromUrl) {
     case "en-venta":
@@ -52,6 +70,6 @@ export default function PublicarCategoryPage() {
     case "travel":
       return <TravelPublicarPage />;
     default:
-      return <PublicarCategoryApplication />;
+      return null;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import PublicarCategoryApplication from "@/app/clasificados/publicar/PublicarCategoryApplication";
+import PublicarCategoryApplication from "@/app/clasificados/lib/PublicarCategoryApplication";
 
 /** Clases–owned publish entry for `/clasificados/publicar/clases` (wizard body still shared until split). */
 export default function ClasesPublicarPage() {

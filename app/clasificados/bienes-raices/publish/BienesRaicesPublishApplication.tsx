@@ -64,8 +64,8 @@ import { BienesRaicesNegocioMediaUrlFields } from "@/app/clasificados/bienes-rai
 import { resolveBrNegocioAgentForPairs, resolveBrNegocioBusinessNameForPairs } from "@/app/clasificados/bienes-raices/negocio/mapping/brNegocioReadResolvers";
 import { BienesRaicesNegocioBasicsWizard } from "@/app/clasificados/bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { PrivateBrPreviewContent } from "@/app/clasificados/bienes-raices/privado/preview/PrivateBrPublishFullPreviewContent";
-import { MediaStepContactCard } from "@/app/clasificados/publicar/components/MediaStepContactCard";
-import { PublishMediaPreviewPanel } from "@/app/clasificados/publicar/components/PublishMediaPreviewPanel";
+import { MediaStepContactCard } from "@/app/clasificados/lib/publishUi/MediaStepContactCard";
+import { PublishMediaPreviewPanel } from "@/app/clasificados/lib/publishUi/PublishMediaPreviewPanel";
 import { buildDetailsAppendix, getDetailPairs } from "@/app/clasificados/lib/publishDetailPairs";
 import { computePublishRequirements } from "@/app/clasificados/lib/publishRequirements";
 import {

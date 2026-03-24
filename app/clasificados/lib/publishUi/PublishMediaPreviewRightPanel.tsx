@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
-import { getBienesRaicesSubcategoryLabel } from "../../bienes-raices/shared/fields/bienesRaicesTaxonomy";
+import { getBienesRaicesSubcategoryLabel } from "@/app/clasificados/bienes-raices/shared/fields/bienesRaicesTaxonomy";
 
 export type PreviewDetailPair = { label: string; value: string };
 
