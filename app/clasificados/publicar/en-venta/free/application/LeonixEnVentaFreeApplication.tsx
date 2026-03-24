@@ -8,6 +8,7 @@ import {
   EN_VENTA_PUBLICAR_PRO,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
+import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { createEmptyEnVentaFreeState } from "./schema/enVentaFreeFormState";
 import { CategorySelectionSection } from "./sections/CategorySelectionSection";
@@ -95,6 +96,7 @@ export default function LeonixEnVentaFreeApplication() {
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
+          <EnVentaPreviewBeforePublishCta lang={lang} variant="light" />
           <ListingRulesConfirmationSection
             lang={lang}
             confirmAccurate={state.confirmListingAccurate}
