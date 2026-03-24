@@ -1,7 +1,26 @@
-export function EnVentaModerationFields({ lang }: { lang: "es" | "en" }) {
+"use client";
+
+import { EN_VENTA_MODERATION_REASONS } from "../contracts/enVentaPublishContract";
+
+type Lang = "es" | "en";
+
+const LABELS: Record<(typeof EN_VENTA_MODERATION_REASONS)[number], { es: string; en: string }> = {
+  prohibited_item: { es: "Artículo prohibido", en: "Prohibited item" },
+  counterfeit: { es: "Falso / réplica", en: "Counterfeit" },
+  misleading_price: { es: "Precio engañoso", en: "Misleading price" },
+  spam: { es: "Spam", en: "Spam" },
+  duplicate: { es: "Duplicado", en: "Duplicate" },
+};
+
+export function EnVentaModerationFields({ lang }: { lang: Lang }) {
   return (
-    <p className="text-xs text-white/60">
-      {lang === "es" ? "Campos de moderación En Venta (configuración futura)." : "En Venta moderation fields (future configuration)."}
-    </p>
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/90">
+      <div className="font-semibold text-yellow-200">{lang === "es" ? "Moderación En Venta" : "En Venta moderation"}</div>
+      <ul className="mt-2 list-inside list-disc text-white/70">
+        {EN_VENTA_MODERATION_REASONS.map((r) => (
+          <li key={r}>{LABELS[r][lang]}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

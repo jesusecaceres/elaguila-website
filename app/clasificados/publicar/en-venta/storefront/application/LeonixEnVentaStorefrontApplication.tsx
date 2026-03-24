@@ -14,7 +14,6 @@ import {
   EN_VENTA_PUBLICAR_HUB,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
-import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
 import { BasicInfoSection } from "../../free/application/sections/BasicInfoSection";
@@ -110,7 +109,6 @@ export default function LeonixEnVentaStorefrontApplication() {
           <InventoryDetailsSection lang={lang} state={state} setState={setState} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
           <PoliciesTrustSection lang={lang} state={state} setState={setState} />
-          <EnVentaPreviewBeforePublishCta lang={lang} variant="dark" />
           <ListingRulesConfirmationSection
             lang={lang}
             variant="dark"

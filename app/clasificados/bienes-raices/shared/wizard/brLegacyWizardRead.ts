@@ -1,13 +1,10 @@
-/** Legacy wizard field keys merged with current BR detail keys. */
-
-export const LEGACY_WIZARD_BR_DETAIL = {
-  propertyType: "propertyType",
-} as const;
-
-export function coalesceWizardDetailValue(
-  details: Record<string, string>,
-  primaryKey: string,
-  legacyKey: string
-): string {
-  return (details[primaryKey] ?? details[legacyKey] ?? "").trim();
-}
+/**
+ * Bienes Raíces reads legacy shared-wizard detail keys only through `app/clasificados/lib/**`.
+ * Do not import legacy coalesce or key maps via another category (e.g. en-venta re-exports).
+ */
+export {
+  coalesceWizardDetailValue,
+  coalesceNegocioNombreFromWizard,
+  coalesceNegocioAgenteFromWizard,
+} from "@/app/clasificados/lib/legacyWizardCoalesce";
+export { LEGACY_WIZARD_BR_DETAIL, LEGACY_WIZARD_SHARED_NEGOCIO } from "@/app/clasificados/lib/legacyWizardDraftKeys";

@@ -60,7 +60,8 @@ const STOREFRONT = {
 type Plan = "free" | "pro" | "storefront";
 
 export default function EnVentaPlanIntakeCallout({ lang, plan }: { lang: "es" | "en"; plan: Plan }) {
-  const pack = plan === "free" ? FREE[lang] : plan === "pro" ? PRO[lang] : STOREFRONT[lang];
+  const pack =
+    plan === "free" ? FREE[lang] : plan === "pro" ? PRO[lang] : STOREFRONT[lang];
   const box =
     plan === "free"
       ? "rounded-2xl border border-black/10 bg-white p-4 shadow-sm"

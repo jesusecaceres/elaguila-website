@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import SectionShell from "./SectionShell";
+import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 
 const COPY = {
   es: {

@@ -1,24 +1,109 @@
-/**
- * Stub implementation — restores bundle resolution when the full BR listing module
- * is not present. Returns safe defaults so `/clasificados/anuncio/[id]` can compile.
- */
-export type BienesRaicesAnuncioNegocioDisplayStub = {
-  plusMoreListings?: boolean;
-  officePhone?: string | null;
-  website?: string | null;
-  name?: string;
+"use client";
+
+import { useMemo } from "react";
+import type {
+  BrAnuncioLang,
+  BrAnuncioListingLike,
+  BrNegocioLiveDisplay,
+  BrSameCompanySampleItem,
+} from "../types/brAnuncioLiveTypes";
+import {
+  brBaseAddressFromListing,
+  brBaseFeatureTagsFromListing,
+  brBaseZoneFromListing,
+  buildBienesRaicesLiveFacts,
+  buildBrNegocioLiveDisplay,
+  filterBienesRaicesSameCompanySampleListings,
+  isBienesRaicesNegocioLive,
+  isBienesRaicesPrivadoLive,
+  parseBienesRaicesBusinessMeta,
+  resolveBrLiveVirtualTourUrl,
+} from "../utils/brAnuncioLiveDerived";
+
+export type BienesRaicesAnuncioDerived = {
+  bienesRaicesBusinessMeta: Record<string, string> | null;
+  brNegocioDisplay: BrNegocioLiveDisplay | null;
+  bienesRaicesSameCompanyListings: BrSameCompanySampleItem[];
+  bienesRaicesFacts: Array<{ label: string; value: string }>;
+  brVirtualTourUrl: string | null;
+  isBienesRaicesNegocio: boolean;
+  isBienesRaicesPrivado: boolean;
+  brBaseAddress: string;
+  brBaseZone: string;
+  brBaseFeatureTags: string[];
 };
 
-export function useBienesRaicesAnuncioDerived(_args: {
-  listing: unknown;
-  lang: "es" | "en";
+export function useBienesRaicesAnuncioDerived(options: {
+  listing: BrAnuncioListingLike | null | undefined;
+  lang: BrAnuncioLang;
   isLiveDbListing: boolean;
-  sampleListings: unknown[];
-}) {
+  sampleListings: readonly BrSameCompanySampleItem[];
+}): BienesRaicesAnuncioDerived {
+  const { listing, lang, isLiveDbListing, sampleListings } = options;
+  const active = listing?.category === "bienes-raices";
+
+  const bienesRaicesBusinessMeta = useMemo(
+    () => (active ? parseBienesRaicesBusinessMeta(listing) : null),
+    [active, listing]
+  );
+
+  const brNegocioDisplay = useMemo(
+    () => (active ? buildBrNegocioLiveDisplay(listing, bienesRaicesBusinessMeta, lang) : null),
+    [active, listing, bienesRaicesBusinessMeta, lang]
+  );
+
+  const bienesRaicesSameCompanyListings = useMemo(
+    () =>
+      active
+        ? filterBienesRaicesSameCompanySampleListings(
+            listing,
+            isLiveDbListing,
+            bienesRaicesBusinessMeta,
+            sampleListings
+          )
+        : [],
+    [active, listing, isLiveDbListing, bienesRaicesBusinessMeta, sampleListings]
+  );
+
+  const bienesRaicesFacts = useMemo(
+    () => (active ? buildBienesRaicesLiveFacts(listing) : []),
+    [active, listing]
+  );
+
+  const brVirtualTourUrl = useMemo(
+    () => (active ? resolveBrLiveVirtualTourUrl(listing, brNegocioDisplay?.virtualTourUrl ?? null) : null),
+    [active, listing, brNegocioDisplay?.virtualTourUrl]
+  );
+
+  const isBienesRaicesNegocio = useMemo(
+    () => (active ? isBienesRaicesNegocioLive(listing) : false),
+    [active, listing]
+  );
+
+  const isBienesRaicesPrivado = useMemo(
+    () => (active ? isBienesRaicesPrivadoLive(listing) : false),
+    [active, listing]
+  );
+
+  const brBaseAddress = useMemo(() => (active ? brBaseAddressFromListing(listing) : ""), [active, listing]);
+
+  const brBaseZone = useMemo(() => (active ? brBaseZoneFromListing(listing) : ""), [active, listing]);
+
+  const brBaseFeatureTags = useMemo(
+    () => (active ? brBaseFeatureTagsFromListing(listing) : []),
+    [active, listing]
+  );
+
   return {
-    brNegocioDisplay: null as BienesRaicesAnuncioNegocioDisplayStub | null,
-    bienesRaicesSameCompanyListings: [] as unknown[],
-    isBienesRaicesNegocio: false,
-    isBienesRaicesPrivado: false,
+    bienesRaicesBusinessMeta,
+    brNegocioDisplay,
+    bienesRaicesSameCompanyListings,
+    bienesRaicesFacts,
+    brVirtualTourUrl,
+    isBienesRaicesNegocio,
+    isBienesRaicesPrivado,
+    brBaseAddress,
+    brBaseZone,
+    brBaseFeatureTags,
   };
 }
