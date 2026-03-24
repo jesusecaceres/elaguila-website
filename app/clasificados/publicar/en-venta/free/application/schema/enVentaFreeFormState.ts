@@ -16,6 +16,8 @@ export type EnVentaFreeApplicationState = {
   brand: string;
   model: string;
   images: string[];
+  /** Which thumbnail index is the principal listing image (0-based). */
+  primaryImageIndex: number;
   city: string;
   neighborhood: string;
   zip: string;
@@ -63,6 +65,7 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     brand: "",
     model: "",
     images: [],
+    primaryImageIndex: 0,
     city: "",
     neighborhood: "",
     zip: "",

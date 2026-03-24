@@ -11,16 +11,16 @@ const COPY = {
     desc: "La honestidad genera confianza y menos devoluciones. Ya elegiste la condición general arriba; aquí detalla el uso real.",
     wear: "Desgaste / uso",
     wearH: "Describe rayones, batería, horas de uso, etc.",
-    acc: "Accesorios incluidos",
-    accH: "Cargador, caja, manual, funda…",
+    acc: "Accesorios incluidos (si aplica)",
+    accH: "Solo si aplica: cargador, caja, manual, funda…",
   },
   en: {
     title: "Condition & wear",
     desc: "Honest detail builds trust. You already picked overall condition — add real-world wear here.",
     wear: "Wear & usage",
     wearH: "Scratches, battery health, hours of use…",
-    acc: "Included accessories",
-    accH: "Charger, box, manual, case…",
+    acc: "Included accessories (if any)",
+    accH: "Only if relevant: charger, box, manual, case…",
   },
 } as const;
 

@@ -4,6 +4,7 @@ import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionS
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
 import { inputClass, labelClass } from "../helpers/fieldCx";
+import { formatPriceInputDisplay, normalizePriceForState } from "../helpers/priceInput";
 
 const COPY = {
   es: {
@@ -12,6 +13,7 @@ const COPY = {
     titleL: "Título del anuncio",
     titleH: "Escribe un título claro para que tu artículo se entienda rápido.",
     price: "Precio",
+    priceH: "Se muestra en pesos con separadores de miles; solo guardamos el valor numérico.",
     neg: "Precio negociable",
     qty: "Cantidad (si aplica)",
     brand: "Marca (opcional)",
@@ -25,6 +27,7 @@ const COPY = {
     titleL: "Listing title",
     titleH: "Use a clear title so buyers understand instantly.",
     price: "Price",
+    priceH: "Shown with $ and comma grouping; we store the plain number only.",
     neg: "Negotiable price",
     qty: "Quantity (if relevant)",
     brand: "Brand (optional)",
@@ -54,12 +57,26 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>{t.price}</label>
-          <input
-            className={`${inputClass} mt-2`}
-            inputMode="decimal"
-            value={state.price}
-            onChange={(e) => setState((s) => ({ ...s, price: e.target.value }))}
-          />
+          <p className="mt-1 text-xs text-[#111111]/60">{t.priceH}</p>
+          <div className="mt-2 flex overflow-hidden rounded-xl border border-black/15 bg-white focus-within:ring-2 focus-within:ring-[#A98C2A]/35">
+            <span
+              className="flex shrink-0 items-center border-r border-black/10 bg-[#F3F3F3] px-3 text-sm font-semibold text-[#111111]"
+              aria-hidden
+            >
+              $
+            </span>
+            <input
+              className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2.5 text-sm text-[#111111] outline-none placeholder:text-[#111111]/40"
+              inputMode="decimal"
+              autoComplete="off"
+              value={formatPriceInputDisplay(state.price)}
+              onChange={(e) =>
+                setState((s) => ({ ...s, price: normalizePriceForState(e.target.value) }))
+              }
+              placeholder={lang === "es" ? "0" : "0"}
+              aria-label={t.price}
+            />
+          </div>
         </div>
         <div>
           <label className={labelClass}>{t.neg}</label>
