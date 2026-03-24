@@ -43,6 +43,8 @@ export type EnVentaProApplicationState = EnVentaFreeApplicationState & {
 export function createEmptyEnVentaProState(): EnVentaProApplicationState {
   return {
     ...createEmptyEnVentaFreeState(),
+    /** Pro lane: user selects individual vs business in contact section. */
+    seller_kind: "",
     businessDisplayName: "",
     legalBusinessName: "",
     logoUrl: "",

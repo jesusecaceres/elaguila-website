@@ -93,7 +93,7 @@ export default function LeonixEnVentaFreeApplication() {
           />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
-          <SellerContactSection lang={lang} state={state} setState={setState} />
+          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
           <ListingRulesConfirmationSection
             lang={lang}

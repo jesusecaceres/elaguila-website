@@ -9,6 +9,8 @@ export type EnVentaFreeApplicationState = {
   itemType: string;
   condition: string;
   title: string;
+  /** When true, listing is free; `price` stays empty and is not used. */
+  priceIsFree: boolean;
   price: string;
   negotiable: "" | "yes";
   description: string;
@@ -32,6 +34,7 @@ export type EnVentaFreeApplicationState = {
   meetupDetailNotes: string;
   /** Shown when local delivery is enabled — radius, fees, or timing if you want. */
   localDeliveryDetailNotes: string;
+  /** Free lane fixes `individual`; Pro may set `business` where applicable. */
   seller_kind: "individual" | "business" | "";
   displayName: string;
   phone: string;
@@ -44,9 +47,9 @@ export type EnVentaFreeApplicationState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
-  conditionDetails: string;
   wearNotes: string;
   accessoriesNotes: string;
+  /** Specs, measurements, compatibility — not duplicate condition notes. */
   itemExtraDetails: string;
 };
 
@@ -57,6 +60,7 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     itemType: "",
     condition: "",
     title: "",
+    priceIsFree: false,
     price: "",
     negotiable: "",
     description: "",
@@ -75,7 +79,7 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     pickupDetailNotes: "",
     meetupDetailNotes: "",
     localDeliveryDetailNotes: "",
-    seller_kind: "",
+    seller_kind: "individual",
     displayName: "",
     phone: "",
     email: "",
@@ -85,7 +89,6 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     confirmListingAccurate: false,
     confirmPhotosRepresentItem: false,
     confirmCommunityRules: false,
-    conditionDetails: "",
     wearNotes: "",
     accessoriesNotes: "",
     itemExtraDetails: "",

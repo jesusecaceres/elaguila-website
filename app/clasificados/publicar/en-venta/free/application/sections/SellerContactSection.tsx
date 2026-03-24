@@ -48,27 +48,30 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
   lang,
   state,
   setState,
-}: EnVentaFreeSectionProps<S>) {
+  showSellerKind = true,
+}: EnVentaFreeSectionProps<S> & { showSellerKind?: boolean }) {
   const t = COPY[lang];
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
-      <div>
-        <label className={labelClass}>{t.kind}</label>
-        <select
-          className={`${inputClass} mt-2`}
-          value={state.seller_kind}
-          onChange={(e) =>
-            setState((s) => ({
-              ...s,
-              seller_kind: e.target.value as EnVentaFreeApplicationState["seller_kind"],
-            }))
-          }
-        >
-          <option value="">{lang === "es" ? "Selecciona…" : "Choose…"}</option>
-          <option value="individual">{t.ind}</option>
-          <option value="business">{t.biz}</option>
-        </select>
-      </div>
+      {showSellerKind ? (
+        <div>
+          <label className={labelClass}>{t.kind}</label>
+          <select
+            className={`${inputClass} mt-2`}
+            value={state.seller_kind}
+            onChange={(e) =>
+              setState((s) => ({
+                ...s,
+                seller_kind: e.target.value as EnVentaFreeApplicationState["seller_kind"],
+              }))
+            }
+          >
+            <option value="">{lang === "es" ? "Selecciona…" : "Choose…"}</option>
+            <option value="individual">{t.ind}</option>
+            <option value="business">{t.biz}</option>
+          </select>
+        </div>
+      ) : null}
       <div>
         <label className={labelClass}>{t.name}</label>
         <p className="mt-1 text-xs text-[#111111]/60">{t.nameH}</p>

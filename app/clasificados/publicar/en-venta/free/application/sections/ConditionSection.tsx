@@ -8,7 +8,7 @@ import { inputClass, labelClass } from "../helpers/fieldCx";
 const COPY = {
   es: {
     title: "Condición y uso",
-    desc: "La honestidad genera confianza y menos devoluciones. Ya elegiste la condición general arriba; aquí detalla el uso real.",
+    desc: "La honestidad genera confianza. Aquí va el desgaste real y los defectos; la descripción general del artículo va arriba.",
     wear: "Desgaste / uso",
     wearH: "Describe rayones, batería, horas de uso, etc.",
     acc: "Accesorios incluidos (si aplica)",
@@ -16,7 +16,7 @@ const COPY = {
   },
   en: {
     title: "Condition & wear",
-    desc: "Honest detail builds trust. You already picked overall condition — add real-world wear here.",
+    desc: "Honest detail builds trust. Put real wear and flaws here; the main pitch lives in Basic info.",
     wear: "Wear & usage",
     wearH: "Scratches, battery health, hours of use…",
     acc: "Included accessories (if any)",

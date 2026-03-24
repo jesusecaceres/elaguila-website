@@ -7,20 +7,16 @@ import { inputClass, labelClass } from "../helpers/fieldCx";
 
 const COPY = {
   es: {
-    title: "Detalles del artículo",
-    desc: "Especificaciones o matices que un comprador necesita para decidir. Opcional salvo lo que marque la categoría.",
-    cond: "Detalle de condición",
-    condH: "Menciona imperfecciones visibles.",
-    extra: "Detalles adicionales",
-    extraH: "Especificaciones, medidas, compatibilidad…",
+    title: "Especificaciones (opcional)",
+    desc: "Solo si aplica: medidas, compatibilidad, modelo exacto, número de serie parcial, etc. No repitas aquí el desgaste o la condición — eso va en «Condición y uso».",
+    extra: "Detalles técnicos / compatibilidad",
+    extraH: "Ej: talla, voltaje, puertos, compatibilidad con…",
   },
   en: {
-    title: "Item details",
-    desc: "Specs or nuances buyers need to decide. Optional unless your category requires them.",
-    cond: "Condition detail",
-    condH: "Call out visible imperfections.",
-    extra: "Additional details",
-    extraH: "Specs, measurements, compatibility…",
+    title: "Specs (optional)",
+    desc: "Only if useful: measurements, compatibility, exact model, partial serial, etc. Don’t repeat wear or condition here — that belongs in Condition & wear.",
+    extra: "Technical / compatibility details",
+    extraH: "e.g. size, voltage, ports, works with…",
   },
 } as const;
 
@@ -32,15 +28,6 @@ export function ItemDetailsSection<S extends EnVentaFreeApplicationState>({
   const t = COPY[lang];
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
-      <div>
-        <label className={labelClass}>{t.cond}</label>
-        <p className="mt-1 text-xs text-[#111111]/60">{t.condH}</p>
-        <textarea
-          className={`${inputClass} mt-2 min-h-[80px]`}
-          value={state.conditionDetails}
-          onChange={(e) => setState((s) => ({ ...s, conditionDetails: e.target.value }))}
-        />
-      </div>
       <div>
         <label className={labelClass}>{t.extra}</label>
         <p className="mt-1 text-xs text-[#111111]/60">{t.extraH}</p>
