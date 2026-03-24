@@ -75,7 +75,7 @@ export type ListingData = {
   ownerId?: string | null;
   /**
    * When opening `/agente/[id]` from publish preview, pass current publish URL so the agent page
-   * back control can return here (BR negocio flow). Same-origin path + query, e.g. `/clasificados/publicar/BR/negocio?branch=negocio&step=media`.
+   * back control can return here. Same-origin path + query, e.g. `/clasificados/publicar/bienes-raices?lang=es`.
    */
   agentProfileReturnUrl?: string | null;
   /** BR privado: `brLocationDisplayMode === "aproximada"` → approximate-location chip in preview. */

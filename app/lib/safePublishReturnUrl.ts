@@ -1,6 +1,6 @@
 /**
  * Validates a return URL for `/agente/[id]` → publish preview flow.
- * Allows paths under `/clasificados/publicar` (including BR lanes `/clasificados/publicar/BR/...`).
+ * Allows paths under `/clasificados/publicar` (category landings and chooser).
  */
 export function safePublishFlowReturnUrl(raw: string | undefined | null): string | null {
   if (raw == null || typeof raw !== "string") return null;
