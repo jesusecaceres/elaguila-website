@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import { buildCategoryBrowseUrl } from "@/app/clasificados/lib/hubUrl";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 
 export default function EnVentaHubPage() {
@@ -41,8 +42,7 @@ export default function EnVentaHubPage() {
           <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-[#111111] md:text-5xl">{t.hero}</h1>
           <p className="mt-3 max-w-2xl text-base text-[#111111]/75">{t.sub}</p>
 
-          <form className="mt-8 flex flex-col gap-3 sm:flex-row" action="/clasificados/lista" method="get">
-            <input type="hidden" name="cat" value="en-venta" />
+          <form className="mt-8 flex flex-col gap-3 sm:flex-row" action="/clasificados/en-venta" method="get">
             <input type="hidden" name="lang" value={lang} />
             <input
               name="q"
@@ -65,7 +65,7 @@ export default function EnVentaHubPage() {
               {t.publish}
             </Link>
             <Link
-              href={`/clasificados/lista?cat=en-venta&lang=${lang}`}
+              href={buildCategoryBrowseUrl("en-venta", lang)}
               className="rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
             >
               {t.lista}
@@ -79,7 +79,7 @@ export default function EnVentaHubPage() {
             {EN_VENTA_DEPARTMENTS.map((d) => (
               <Link
                 key={d.key}
-                href={`/clasificados/lista?cat=en-venta&evDept=${encodeURIComponent(d.key)}&lang=${lang}`}
+                href={buildCategoryBrowseUrl("en-venta", lang, { evDept: d.key })}
                 className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="font-semibold text-[#111111]">{d.label[lang]}</div>

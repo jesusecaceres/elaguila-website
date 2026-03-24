@@ -1,5 +1,5 @@
 /**
- * Clasificados hub (/clasificados): UI strings and route fragments (per language).
+ * Clasificados hub (/clasificados): UI strings (per language).
  */
 
 import type { Lang } from "./clasificadosHub";
@@ -13,14 +13,10 @@ const CLASIFICADOS_HUB_UI = {
     authCreate: "Crear cuenta",
 
     ctaPost: "Publicar anuncio",
-    ctaView: "Ver anuncios",
-    ctaMemberships: "Membresías",
-    ctaSeeOptions: "Ver opciones y precios",
 
     sectionBrowse: "Explorar por categoría",
     sectionFeatured: "Destacados por categoría",
-    sectionFeaturedHint:
-      "Una vista previa de anuncios destacados. Explora todo en la lista completa.",
+    sectionFeaturedHint: "Una vista previa de anuncios por categoría. Entra a cada categoría para explorar.",
 
     viewMore: "Ver más",
 
@@ -49,57 +45,9 @@ const CLASIFICADOS_HUB_UI = {
       },
     },
 
-    membershipsTitle: "Membresías",
-    membershipsSubtitle:
-      "Opciones claras para personas y negocios. Elige la que mejor se adapta a cómo publicas y vendes.",
-
-    personalHeading: "Personal",
-    negociosHeading: "Negocios",
-
-    freeTitle: "Gratis",
-    freeBullets: [
-      "7 días por anuncio; menos fotos; sin video",
-      "Límite bajo de republicaciones",
-      "Ideal para anuncios ocasionales",
-    ] as const,
-
-    proTitle: "LEONIX Pro",
-    proBullets: [
-      "Por anuncio: $9.99 (en venta), $24.99 (rentas/empleos)",
-      "30 días por anuncio; más fotos y video",
-      "Vistas, guardados, compartidos; 1 asistencia de visibilidad",
-      "Formas de contacto (llamar o texto)",
-    ] as const,
-
-    standardTitle: "Standard",
-    standardPrice: "$49 al mes",
-    standardBullets: [
-      "Perfil profesional para tu negocio",
-      "Presencia por categoría",
-      "Solo imágenes (sin video); contacto por llamada",
-      "1 asistencia de visibilidad por anuncio activo / 30 días",
-    ] as const,
-
-    plusTitle: "Plus",
-    plusPrice: "$125 al mes",
-    plusBullets: [
-      "Perfil premium para vender mejor",
-      "Más formas de contacto (mensaje, email, videollamada, cotización)",
-      "Mayor visibilidad y prioridad",
-      "2 asistencias de visibilidad por anuncio activo / 30 días",
-    ] as const,
-
-    printTitle: "¿Quieres más exposición en revista?",
-    printBody:
-      "Los paquetes de revista y perfil premium se manejan por separado para proteger el valor de la edición impresa.",
-    printCta: "Solicita el Media Kit",
-
     trustLine:
       "Un espacio confiable, familiar y comunitario. Los anuncios gratis siempre permanecen visibles en la búsqueda.",
 
-    routePost: "/clasificados/publicar",
-    routeList: "/clasificados/lista",
-    routeMemberships: "/clasificados/membresias",
     routeLogin: "/clasificados/login",
     routeContacto: "/contacto",
   },
@@ -111,14 +59,10 @@ const CLASIFICADOS_HUB_UI = {
     authCreate: "Create account",
 
     ctaPost: "Post listing",
-    ctaView: "View listings",
-    ctaMemberships: "Memberships",
-    ctaSeeOptions: "See options & pricing",
 
     sectionBrowse: "Browse by category",
     sectionFeatured: "Featured by category",
-    sectionFeaturedHint:
-      "A preview of featured listings. Browse everything in the full results.",
+    sectionFeaturedHint: "A preview of listings by category. Open a category to explore.",
 
     viewMore: "View more",
 
@@ -138,57 +82,9 @@ const CLASIFICADOS_HUB_UI = {
       travel: { label: "Travel", hint: "Deals, agents, and car rentals." },
     },
 
-    membershipsTitle: "Memberships",
-    membershipsSubtitle:
-      "Clear options for personal sellers and businesses. Choose the one that fits how you post and sell.",
-
-    personalHeading: "Personal",
-    negociosHeading: "Business",
-
-    freeTitle: "Gratis",
-    freeBullets: [
-      "7 days per listing; fewer photos; no video",
-      "Low repost limit",
-      "Best for occasional posts",
-    ] as const,
-
-    proTitle: "LEONIX Pro",
-    proBullets: [
-      "Per listing: $9.99 (for sale), $24.99 (rentals/jobs)",
-      "30 days per listing; more photos and video",
-      "Views, saves, shares; 1 visibility assist",
-      "Contact options (call or text)",
-    ] as const,
-
-    standardTitle: "Standard",
-    standardPrice: "$49/month",
-    standardBullets: [
-      "Professional business profile",
-      "Category presence",
-      "Images only (no video); contact by call",
-      "1 visibility assist per active listing / 30 days",
-    ] as const,
-
-    plusTitle: "Plus",
-    plusPrice: "$125/month",
-    plusBullets: [
-      "Premium profile built to convert",
-      "More contact options (message, email, video call, quote)",
-      "More visibility and priority",
-      "2 visibility assists per active listing / 30 days",
-    ] as const,
-
-    printTitle: "Want more exposure in print?",
-    printBody:
-      "Magazine packages and premium profile opportunities are handled separately to protect the value of print.",
-    printCta: "Request the Media Kit",
-
     trustLine:
       "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
 
-    routePost: "/clasificados/publicar",
-    routeList: "/clasificados/lista",
-    routeMemberships: "/clasificados/membresias",
     routeLogin: "/clasificados/login",
     routeContacto: "/contacto",
   },

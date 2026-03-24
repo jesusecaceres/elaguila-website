@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { CLASES_LANDING_CATEGORY_PILLS, CLASES_QUICK_CHIPS } from "./shared/fields/clasesTaxonomy";
 import { buildClasesListaUrl } from "./shared/utils/clasesListaUrl";
 
@@ -23,7 +24,6 @@ const COPY = {
     hint: "Usa el botón para ver resultados con filtros.",
     ctaPost: "Publicar anuncio",
     ctaView: "Ver anuncios",
-    ctaMemberships: "Membresías",
   },
   en: {
     title: "Classes",
@@ -36,7 +36,6 @@ const COPY = {
     hint: "Use the button below to see results with filters.",
     ctaPost: "Post listing",
     ctaView: "View listings",
-    ctaMemberships: "Memberships",
   },
 } as const;
 
@@ -48,8 +47,6 @@ export default function Page() {
 
   const listaHref = useMemo(() => buildClasesListaUrl(CATEGORY, lang), [lang]);
   const postHref = useMemo(() => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`, [lang]);
-  const membershipsHref = useMemo(() => `/clasificados/membresias?lang=${lang}`, [lang]);
-
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-20 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
       <Navbar />
@@ -59,11 +56,8 @@ export default function Page() {
           <Link href={postHref} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
             {t.ctaPost}
           </Link>
-          <Link href="/clasificados/lista" className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
+          <Link href={listaHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
             {t.ctaView}
-          </Link>
-          <Link href={membershipsHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
-            {t.ctaMemberships}
           </Link>
         </div>
       </div>
@@ -80,7 +74,7 @@ export default function Page() {
             {CLASES_LANDING_CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
               <Link
                 key={key}
-                href={`/clasificados/lista?cat=${key}&lang=${lang}`}
+                href={appendLangToPath(`/clasificados/${key}`, lang)}
                 className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
               >
                 {lang === "es" ? labelEs : labelEn}

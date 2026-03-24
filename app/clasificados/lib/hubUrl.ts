@@ -1,5 +1,19 @@
 import type { HubCategoryKey, Lang } from "../config/clasificadosHub";
 
+/** Canonical path for each hub category (category-owned listing surface). */
+export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {
+  "en-venta": "/clasificados/en-venta",
+  "bienes-raices": "/clasificados/bienes-raices",
+  rentas: "/clasificados/rentas",
+  autos: "/clasificados/autos",
+  servicios: "/clasificados/servicios",
+  empleos: "/clasificados/empleos",
+  clases: "/clasificados/clases",
+  comunidad: "/clasificados/comunidad",
+  restaurantes: "/clasificados/restaurantes",
+  travel: "/clasificados/travel",
+};
+
 /** Append `lang` to a path, preserving `#hash` if present. */
 export function appendLangToPath(path: string, lang: Lang): string {
   const [base, hash] = path.split("#");
@@ -8,16 +22,31 @@ export function appendLangToPath(path: string, lang: Lang): string {
   return hash ? `${withParam}#${hash}` : withParam;
 }
 
-export function buildHubCategoryListUrl(cat: HubCategoryKey, lang: Lang): string {
-  return appendLangToPath(`/clasificados/lista?cat=${cat}`, lang);
+/** Hub → category landing (replaces old `/clasificados/lista?cat=`). */
+export function buildHubCategoryPageUrl(cat: HubCategoryKey, lang: Lang): string {
+  const base = HUB_CATEGORY_PATH[cat];
+  return appendLangToPath(base, lang);
 }
 
-export function buildHubListUrl(lang: Lang, cat?: HubCategoryKey): string {
-  const base = "/clasificados/lista";
+/**
+ * Category browse URL with optional filters (GET query only; category pages own behavior).
+ * `cat` must be a hub category key or a slug that maps to `/clasificados/{cat}`.
+ */
+export function buildCategoryBrowseUrl(
+  cat: string,
+  lang: Lang,
+  extra?: Record<string, string | undefined>
+): string {
+  const path =
+    cat in HUB_CATEGORY_PATH ? HUB_CATEGORY_PATH[cat as HubCategoryKey] : `/clasificados/${cat}`;
   const sp = new URLSearchParams();
   sp.set("lang", lang);
-  if (cat) sp.set("cat", cat);
-  return `${base}?${sp.toString()}`;
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) {
+      if (v != null && v !== "") sp.set(k, v);
+    }
+  }
+  return `${path}?${sp.toString()}`;
 }
 
 /** Post-login redirect: category chooser first (`/clasificados/publicar`), not a single category slug. */

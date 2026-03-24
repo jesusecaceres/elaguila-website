@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const urlLang = searchParams?.get("lang");
   const lang: Lang = urlLang === "en" ? "en" : "es";
 
-  const membershipHref = `/clasificados/membresias?lang=${lang}`;
+  const publishExploreHref = `/clasificados/publicar?lang=${lang}`;
 
 
   const t = useMemo(
@@ -605,7 +605,7 @@ export default function DashboardPage() {
                         {lang === "es" ? "Publicar en En Venta" : "Post in For Sale"}
                       </Link>
                       <Link
-                        href={membershipHref}
+                        href={publishExploreHref}
                         className="inline-flex items-center justify-center rounded-full bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
                       >
                         {lang === "es" ? "Mejorar a Pro" : "Upgrade to Pro"}
@@ -617,7 +617,7 @@ export default function DashboardPage() {
                 {!isPro && (
                       <div className="mt-4">
                         <Link
-                          href={membershipHref}
+                          href={publishExploreHref}
                           className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
                         >
                           {lang === "es" ? "Ver LEONIX Pro ($24.99/mes)" : "View LEONIX Pro ($24.99/mo)"}
@@ -634,13 +634,13 @@ export default function DashboardPage() {
 
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link
-                        href={membershipHref}
+                        href={publishExploreHref}
                         className="inline-flex items-center justify-center rounded-full bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
                       >
                         {lang === "es" ? "Ver LEONIX Pro ($24.99/mes)" : "View LEONIX Pro ($24.99/mo)"}
                       </Link>
                       <Link
-                        href={`/clasificados/lista?lang=${lang}`}
+                        href={`/clasificados?lang=${lang}`}
                         className="inline-flex items-center justify-center rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
                       >
                         {lang === "es" ? "Seguir explorando" : "Keep browsing"}

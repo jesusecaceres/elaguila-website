@@ -51,7 +51,7 @@ export default async function Page({
               {lang === "es" ? "← Volver" : "← Back"}
             </Link>
             <Link
-              href={`/clasificados/lista?cat=restaurantes&lang=${lang}`}
+              href={`/clasificados/restaurantes?lang=${lang}`}
               className="rounded-full border border-yellow-400/45 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
             >
               {lang === "es" ? "Ver restaurantes" : "Browse restaurants"}

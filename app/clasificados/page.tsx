@@ -11,11 +11,10 @@ import { SAMPLE_LISTINGS } from "../data/classifieds/sampleListings";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { HubCategoryTile } from "./components/HubCategoryTile";
 import { HubListingCardCompact } from "./components/HubListingCardCompact";
-import { HubPlanCard } from "./components/HubPlanCard";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { HUB_CATEGORY_ORDER, type HubListing, type Lang } from "./config/clasificadosHub";
 import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
-import { appendLangToPath, buildHubCategoryListUrl, buildHubListUrl, buildHubPostEntryHref } from "./lib/hubUrl";
+import { appendLangToPath, buildHubCategoryPageUrl, buildHubPostEntryHref } from "./lib/hubUrl";
 import { buildHubFeaturedLimits } from "./lib/hubFeaturedLimits";
 import { buildFeaturedByCategory } from "./lib/hubFeaturedSelection";
 import { dedupeHubListingsById, mapDbRowToHubListing } from "./lib/mapDbRowToHubListing";
@@ -112,12 +111,8 @@ export default function ClasificadosPage() {
 
           <Image src={newLogo} alt="LEONIX" width={320} className="mx-auto mb-6" />
 
-          <h1 className="text-6xl md:text-7xl font-bold text-[#111111]">
-            {t.pageTitle}
-          </h1>
-          <p className="mt-5 text-[#111111] max-w-3xl mx-auto text-lg md:text-xl">
-            {t.subtitle}
-          </p>
+          <h1 className="text-6xl md:text-7xl font-bold text-[#111111]">{t.pageTitle}</h1>
+          <p className="mt-5 text-[#111111] max-w-3xl mx-auto text-lg md:text-xl">{t.subtitle}</p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
@@ -126,35 +121,15 @@ export default function ClasificadosPage() {
             >
               {t.ctaPost}
             </a>
-
-            <Link
-              href={buildHubListUrl(lang)}
-              className="px-5 py-2.5 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
-              aria-label={t.ctaView}
-            >
-              {t.ctaView}
-            </Link>
-
-            <Link
-              href={withLang(t.routeMemberships)}
-              className="px-5 py-2.5 text-sm rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] text-[#111111] font-semibold hover:bg-[#F5F5F5] transition"
-              aria-label={t.ctaMemberships}
-            >
-              {t.ctaMemberships}
-            </Link>
           </div>
 
-          <div className="mt-8 text-sm text-[#111111] max-w-3xl mx-auto">
-            {t.trustLine}
-          </div>
+          <div className="mt-8 text-sm text-[#111111] max-w-3xl mx-auto">{t.trustLine}</div>
         </div>
       </section>
 
       <section className="max-w-screen-2xl mx-auto px-6">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
-            {t.sectionBrowse}
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">{t.sectionBrowse}</h2>
         </div>
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -163,7 +138,7 @@ export default function ClasificadosPage() {
             return (
               <HubCategoryTile
                 key={k}
-                href={buildHubCategoryListUrl(k, lang)}
+                href={buildHubCategoryPageUrl(k, lang)}
                 label={meta.label}
                 hint={meta.hint}
               />
@@ -188,7 +163,7 @@ export default function ClasificadosPage() {
                 <div className="flex items-end justify-between gap-3 flex-wrap">
                   <h3 className="text-xl font-bold text-[#111111]">{meta.label}</h3>
                   <Link
-                    href={buildHubListUrl(lang, cat)}
+                    href={buildHubCategoryPageUrl(cat, lang)}
                     className="text-sm font-semibold text-[#111111] underline underline-offset-2 hover:opacity-90"
                   >
                     {t.viewMore}
@@ -207,70 +182,6 @@ export default function ClasificadosPage() {
 
       <section className="max-w-screen-2xl mx-auto px-6 mt-12">
         <RecentlyViewedSection lang={lang} />
-      </section>
-
-      <section id="memberships" className="max-w-screen-2xl mx-auto px-6 mt-16">
-        <div className="border border-[#C9B46A]/70 rounded-2xl p-8 bg-[#EFEFEF]">
-          <div className="mb-6">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#111111]">
-              {t.membershipsTitle}
-            </h2>
-            <p className="mt-2 text-sm text-[#111111] max-w-3xl">
-              {t.membershipsSubtitle}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#111111]/70 mb-3">
-                {t.personalHeading}
-              </p>
-              <div className="space-y-4">
-                <HubPlanCard title={t.freeTitle} bullets={t.freeBullets} />
-                <HubPlanCard title={t.proTitle} bullets={t.proBullets} accent="gold" />
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#111111]/70 mb-3">
-                {t.negociosHeading}
-              </p>
-              <div className="space-y-4">
-                <HubPlanCard
-                  title={t.standardTitle}
-                  price={t.standardPrice}
-                  bullets={t.standardBullets}
-                  accent="strong"
-                />
-                <HubPlanCard
-                  title={t.plusTitle}
-                  price={t.plusPrice}
-                  bullets={t.plusBullets}
-                  accent="strong"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-xl border border-[#C9B46A]/30 bg-[#F5F5F5] p-5">
-            <h3 className="text-base font-semibold text-[#111111]">{t.printTitle}</h3>
-            <p className="mt-2 text-sm text-[#111111]">{t.printBody}</p>
-            <a
-              href={withLang(t.routeContacto)}
-              className="mt-3 inline-flex items-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition"
-            >
-              {t.printCta}
-            </a>
-          </div>
-
-          <div className="mt-6 flex justify-center">
-            <Link
-              href={withLang(t.routeMemberships)}
-              className="inline-flex items-center rounded-full bg-[#111111] text-[#F5F5F5] font-semibold px-5 py-2.5 text-sm hover:opacity-95 transition"
-            >
-              {t.ctaSeeOptions}
-            </Link>
-          </div>
-        </div>
       </section>
     </div>
   );

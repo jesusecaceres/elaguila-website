@@ -2631,7 +2631,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               {copy.proPreviewViewFreeCta}
                             </button>
                             <Link
-                              href={`/clasificados/membresias?lang=${lang}`}
+                              href={`/clasificados/publicar?lang=${lang}`}
                               className="flex-1 min-w-0 w-full sm:max-w-none rounded-xl font-semibold py-3.5 text-center transition bg-[#111111] text-[#F5F5F5] hover:opacity-95"
                             >
                               {copy.proPreviewUpgradeCta}

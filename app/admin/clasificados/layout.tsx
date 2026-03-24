@@ -32,7 +32,7 @@ export default async function AdminClasificadosLayout({
           </Link>
         </nav>
         <div className="mt-6 pt-4 border-t border-black/10">
-          <Link href="/clasificados/lista" className="text-xs text-[#A98C2A] hover:underline">
+          <Link href="/clasificados" className="text-xs text-[#A98C2A] hover:underline">
             View lista →
           </Link>
         </div>

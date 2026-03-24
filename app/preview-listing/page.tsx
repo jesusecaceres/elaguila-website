@@ -16,12 +16,12 @@ function toQueryString(sp: SearchParams): string {
   return s ? `?${s}` : "";
 }
 
-/** Legacy URL: `/preview-listing` → canonical Clasificados publish preview route (same query preserved). */
+/** Legacy full-page publish preview URL — category publish flows own preview; land at publish entry. */
 export default async function LegacyPreviewListingRedirect({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  redirect(`/clasificados/preview-listing${toQueryString(sp)}`);
+  redirect(`/clasificados/publicar${toQueryString(sp)}`);
 }

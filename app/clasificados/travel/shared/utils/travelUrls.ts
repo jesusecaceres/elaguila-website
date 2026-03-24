@@ -1,5 +1,5 @@
 /**
- * Travel landing: lista URL builders (`cat=travel`, optional `t=` section hints).
+ * Travel landing: category-owned URL builders (`/clasificados/travel`, optional `t=` section hints).
  */
 
 export type TravelSectionKey =
@@ -13,7 +13,7 @@ export type TravelSectionKey =
 
 type Lang = "es" | "en";
 
-/** Preserve query params and force Travel lista target. */
+/** Preserve query params and target the Travel category page. */
 export function buildTravelTargetHref(
   sp: { forEach: (cb: (value: string, key: string) => void) => void } | null | undefined,
   lang: Lang
@@ -22,17 +22,17 @@ export function buildTravelTargetHref(
 
   if (sp) {
     sp.forEach((value, key) => {
+      if (key === "cat") return;
       if (typeof value === "string" && value.length > 0) next.set(key, value);
     });
   }
 
   next.set("lang", lang);
-  next.set("cat", "travel");
 
-  return `/clasificados/lista?${next.toString()}`;
+  return `/clasificados/travel?${next.toString()}`;
 }
 
-/** Extend lista href with optional section hint (`t`) and extra params. */
+/** Extend travel href with optional section hint (`t`) and extra params. */
 export function buildTravelSectionHref(
   baseHref: string,
   section?: TravelSectionKey,

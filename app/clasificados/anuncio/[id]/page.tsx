@@ -972,7 +972,7 @@ export default function AnuncioDetallePage() {
           contact_email: ev.contact_email ?? null,
         }}
         lang={lang}
-        backHref={`/clasificados/lista?cat=en-venta&lang=${lang}`}
+        backHref={`/clasificados/en-venta?lang=${lang}`}
       />
     );
   }

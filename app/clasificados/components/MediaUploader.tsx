@@ -36,7 +36,7 @@ export type MediaUploaderProps = {
   videoPreviewUrls?: [string, string];
   videoErrors?: [string, string];
   onVideoRemove?: (index: number) => void;
-  /** When set (e.g. En Venta flow), upgrade CTA goes here instead of generic membresias */
+  /** When set (e.g. En Venta flow), upgrade CTA navigates here; otherwise publish entry. */
   proUpgradeHref?: string;
   /** Call before navigating to Pro page so draft/images are persisted for return. */
   onBeforeProNavigate?: () => Promise<void>;
@@ -477,7 +477,7 @@ export function MediaUploader({
                   </button>
                 ) : (
                   <a
-                    href={`/clasificados/membresias?lang=${lang}`}
+                    href={`/clasificados/publicar?lang=${lang}`}
                     target="_blank"
                     rel="noreferrer"
                     className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"

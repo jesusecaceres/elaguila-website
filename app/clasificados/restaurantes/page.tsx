@@ -65,9 +65,8 @@ export default async function Page({
   });
 
 
-  const listaHref = `/clasificados/lista?cat=restaurantes&lang=${lang}`;
+  const listaHref = `/clasificados/restaurantes?lang=${lang}`;
   const postHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=restaurantes&lang=${lang}`)}`;
-  const membershipsHref = `/clasificados/membresias?lang=${lang}`;
   const cuisineChips = RESTAURANTES_CUISINE_CHIPS[lang];
 
   return (
@@ -82,9 +81,6 @@ export default async function Page({
           <Link href={listaHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
             {lang === "es" ? "Ver anuncios" : "View listings"}
           </Link>
-          <Link href={membershipsHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
-            {lang === "es" ? "Membresías" : "Memberships"}
-          </Link>
         </div>
       </div>
 
@@ -93,7 +89,7 @@ export default async function Page({
           <p className="text-xs font-semibold text-[#111111]/80">{lang === "es" ? "Explorar por categoría" : "Browse by category"}</p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {RESTAURANTES_LANDING_CATEGORY_PILLS.map(({ key, es, en }) => (
-              <Link key={key} href={`/clasificados/lista?cat=${key}&lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+              <Link key={key} href={`/clasificados/${key}?lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
                 {lang === "es" ? es : en}
               </Link>
             ))}

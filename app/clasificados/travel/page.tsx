@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import Navbar from "../../components/Navbar";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import newLogo from "../../../public/logo.png";
 import { TravelTile } from "./components/TravelTile";
 import { TRAVEL_LANDING_CATEGORY_PILLS, TRAVEL_QUICK_CHIPS } from "./shared/fields/travelTaxonomy";
@@ -69,9 +70,6 @@ export default function TravelPage() {
           <Link href={baseHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
             {t.primary}
           </Link>
-          <Link href={`/clasificados/membresias?lang=${lang}`} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
-            {lang === "en" ? "Memberships" : "Membresías"}
-          </Link>
         </div>
       </div>
 
@@ -80,7 +78,7 @@ export default function TravelPage() {
           <p className="text-xs font-semibold text-[#111111]/80">{lang === "en" ? "Browse by category" : "Explorar por categoría"}</p>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TRAVEL_LANDING_CATEGORY_PILLS.map(({ key, es, en }) => (
-              <Link key={key} href={`/clasificados/lista?cat=${key}&lang=${lang}`} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
+              <Link key={key} href={appendLangToPath(`/clasificados/${key}`, lang)} className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
                 {lang === "es" ? es : en}
               </Link>
             ))}

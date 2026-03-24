@@ -7,7 +7,7 @@ type Lang = "es" | "en";
 export function EnVentaRelatedRail({ lang, q }: { lang: Lang; q: string }) {
   const qq = q.trim().slice(0, 48);
   if (!qq) return null;
-  const href = `/clasificados/lista?cat=en-venta&q=${encodeURIComponent(qq)}&lang=${lang}`;
+  const href = `/clasificados/en-venta?lang=${lang}&q=${encodeURIComponent(qq)}`;
   return (
     <section className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
       <h2 className="text-sm font-bold text-[#111111]">{lang === "es" ? "Relacionados" : "Related"}</h2>
