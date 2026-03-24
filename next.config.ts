@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/clasificados/publicar/bienes-raices",
+        destination: "/clasificados/publicar/BR",
+        permanent: false,
+      },
+      {
         source: "/clasificados/bienes-raices/negocio/publicar",
         destination: "/clasificados/publicar/BR/negocio",
         permanent: true,

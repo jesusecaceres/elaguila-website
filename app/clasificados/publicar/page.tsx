@@ -73,7 +73,12 @@ export default function PublicarRootPage() {
     p.delete("cat");
     p.delete("categoria");
     if (!p.get("lang")) p.set("lang", lang);
-    router.replace(`/clasificados/publicar/${deepLinkCat}?${p.toString()}`);
+    // BR uses the dedicated hub lane flow, not the generic [category] coming-soon terminal.
+    const dest =
+      deepLinkCat === "bienes-raices"
+        ? `/clasificados/publicar/BR?${p.toString()}`
+        : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+    router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
   const copy = {
@@ -108,7 +113,10 @@ export default function PublicarRootPage() {
           <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {CHOOSER_CATEGORIES.map(({ key, Icon }) => {
               const label = categoryConfig[key].label[lang];
-              const href = `/clasificados/publicar/${key}?lang=${lang}`;
+              const href =
+                key === "bienes-raices"
+                  ? `/clasificados/publicar/BR?lang=${lang}`
+                  : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}
