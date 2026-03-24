@@ -2,46 +2,66 @@
 
 const FREE = {
   es: {
-    title: "Plan Gratis — publicación ligera",
+    title: "Plan Gratis — publicación básica",
     bullets: [
       "Hasta 3 fotos; sin video en este plan.",
-      "Ideal para ventas rápidas y particulares.",
-      "Presentación de vendedor más simple; menos campos de negocio.",
+      "Flujo corto para ventas ocasionales y particulares.",
+      "Ideal cuando quieres publicar rápido sin extras.",
     ],
   },
   en: {
-    title: "Free plan — lighter listing",
+    title: "Free plan — basic listing",
     bullets: [
       "Up to 3 photos; no video on Free.",
-      "Great for quick, casual sales.",
-      "Simpler seller presentation with fewer business fields.",
+      "Short flow for occasional, casual sales.",
+      "Best when you want to post fast without extras.",
     ],
   },
 } as const;
 
 const PRO = {
   es: {
-    title: "Plan Pro — vitrina más completa",
+    title: "Plan Pro — anuncio premium",
     bullets: [
       "Hasta 12 fotos y 1 video corto para destacar el artículo.",
-      "Más datos de negocio, contacto y confianza para compradores serios.",
-      "Mejor presencia tipo tienda sin convertirse en otro vertical.",
+      "Presentación y contacto más sólidos para generar confianza.",
+      "Mejor visibilidad y pulido del anuncio — sin perfil de tienda.",
     ],
   },
   en: {
-    title: "Pro plan — richer storefront",
+    title: "Pro plan — premium listing",
     bullets: [
       "Up to 12 photos plus 1 short video to showcase the item.",
-      "More business, contact, and trust signals for serious buyers.",
-      "Stronger shop-style presence without leaving En Venta.",
+      "Stronger presentation and contact polish to build trust.",
+      "Better listing visibility — not a store profile product.",
     ],
   },
 } as const;
 
-type Plan = "free" | "pro";
+const STOREFRONT = {
+  es: {
+    title: "Storefront — perfil de vendedor (futuro)",
+    bullets: [
+      "Identidad de tienda, enlaces y profundidad de negocio.",
+      "Para vendedores frecuentes y presencia tipo eBay/tienda.",
+      "Producto separado del anuncio Pro; lanzamiento próximo.",
+    ],
+  },
+  en: {
+    title: "Storefront — seller profile (future)",
+    bullets: [
+      "Store identity, links, and deeper business fields.",
+      "For frequent sellers and eBay-style presence.",
+      "Separate from Pro listings; launching later.",
+    ],
+  },
+} as const;
+
+type Plan = "free" | "pro" | "storefront";
 
 export default function EnVentaPlanIntakeCallout({ lang, plan }: { lang: "es" | "en"; plan: Plan }) {
-  const pack = plan === "free" ? FREE[lang] : PRO[lang];
+  const pack =
+    plan === "free" ? FREE[lang] : plan === "pro" ? PRO[lang] : STOREFRONT[lang];
   const box =
     plan === "free"
       ? "rounded-2xl border border-black/10 bg-white p-4 shadow-sm"

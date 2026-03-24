@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Full storefront / business-seller intake — preserved for a future launch.
+ * The public `/clasificados/publicar/en-venta/storefront` route shows Coming Soon only;
+ * wire this component when Storefront goes live.
+ */
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -17,35 +23,36 @@ import { LocationSection } from "../../free/application/sections/LocationSection
 import { FulfillmentSection } from "../../free/application/sections/FulfillmentSection";
 import { SellerContactSection } from "../../free/application/sections/SellerContactSection";
 import { ItemDetailsSection } from "../../free/application/sections/ItemDetailsSection";
-import { createEmptyEnVentaProState } from "./schema/enVentaProFormState";
+import { createEmptyEnVentaStorefrontState } from "./schema/enVentaStorefrontFormState";
+import { SellerBusinessSection } from "./sections/SellerBusinessSection";
+import { BusinessContactProSection } from "./sections/BusinessContactProSection";
+import { BusinessLinksSection } from "./sections/BusinessLinksSection";
+import { InventoryDetailsSection } from "./sections/InventoryDetailsSection";
+import { PoliciesTrustSection } from "./sections/PoliciesTrustSection";
 
 type Lang = "es" | "en";
 
-/**
- * Pro lane — premium listing upgrade (`/clasificados/publicar/en-venta/pro`).
- * Business/storefront onboarding lives in the Storefront lane (coming soon).
- */
-export default function LeonixEnVentaProApplication() {
+export default function LeonixEnVentaStorefrontApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const [state, setState] = useState(createEmptyEnVentaProState);
+  const [state, setState] = useState(createEmptyEnVentaStorefrontState);
 
   const copy = useMemo(
     () =>
       lang === "es"
         ? {
-            title: "Publicar — En Venta (Pro)",
-            subtitle: "Anuncio premium: más fotos, video y mejor presentación por listado.",
+            title: "Storefront — En Venta (borrador)",
+            subtitle: "Perfil de tienda y capa de negocio (producto futuro).",
             back: "Elegir plan",
             switchFree: "Cambiar a Gratis",
-            draft: "Borrador local en el navegador; publicación y pagos se conectan después.",
+            draft: "Borrador local; no expuesto públicamente hasta el lanzamiento de Storefront.",
           }
         : {
-            title: "Post — For Sale (Pro)",
-            subtitle: "Premium listing: more photos, video, and stronger presentation per ad.",
+            title: "Storefront — For Sale (draft)",
+            subtitle: "Store profile and business layer (future product).",
             back: "Choose plan",
             switchFree: "Switch to Free",
-            draft: "Local browser draft; publish and billing hook up later.",
+            draft: "Local draft; not public until Storefront launches.",
           },
     [lang]
   );
@@ -78,11 +85,12 @@ export default function LeonixEnVentaProApplication() {
         </div>
 
         <div className="mb-6">
-          <EnVentaPlanIntakeCallout lang={lang} plan="pro" />
+          <EnVentaPlanIntakeCallout lang={lang} plan="storefront" />
         </div>
 
         <div className="space-y-6 [&_section]:border-white/10 [&_section]:bg-[#1a1a1a] [&_h2]:text-white [&_label]:text-white/55 [&_input]:border-white/15 [&_input]:bg-[#111111] [&_input]:text-white [&_select]:border-white/15 [&_select]:bg-[#111111] [&_select]:text-white [&_textarea]:border-white/15 [&_textarea]:bg-[#111111] [&_textarea]:text-white [&_p]:text-white/65">
           <CategorySelectionSection lang={lang} state={state} setState={setState} />
+          <SellerBusinessSection lang={lang} state={state} setState={setState} />
           <BasicInfoSection lang={lang} state={state} setState={setState} />
           <ConditionSection lang={lang} state={state} setState={setState} />
           <PhotosSection
@@ -95,8 +103,12 @@ export default function LeonixEnVentaProApplication() {
           />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
-          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
+          <BusinessContactProSection lang={lang} state={state} setState={setState} />
+          <BusinessLinksSection lang={lang} state={state} setState={setState} />
+          <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind />
+          <InventoryDetailsSection lang={lang} state={state} setState={setState} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
+          <PoliciesTrustSection lang={lang} state={state} setState={setState} />
           <ListingRulesConfirmationSection
             lang={lang}
             variant="dark"

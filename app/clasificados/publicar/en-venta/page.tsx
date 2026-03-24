@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   EN_VENTA_PUBLICAR_FREE,
   EN_VENTA_PUBLICAR_PRO,
+  EN_VENTA_PUBLICAR_STOREFRONT,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 
 type Lang = "es" | "en";
@@ -24,21 +25,25 @@ export default function EnVentaPublishHubPage() {
     lang === "es"
       ? {
           title: "En Venta — elige tu plan",
-          subtitle: "Gratis para publicar rápido. Pro para tiendas y vendedores frecuentes.",
+          subtitle: "Gratis para publicar rápido. Pro mejora un anuncio concreto. Storefront (próximamente) será para tiendas y presencia de vendedor.",
           freeTitle: "Gratis",
-          freeDesc: "Flujo corto y claro. Ideal para ventas ocasionales.",
+          freeDesc: "Listado básico y flujo corto. Ideal para ventas ocasionales.",
           proTitle: "Pro",
-          proDesc: "Más campos de negocio, inventario y confianza.",
+          proDesc: "Anuncio premium: más fotos, video y mejor presentación por listado.",
+          sfTitle: "Storefront",
+          sfDesc: "Próximamente — perfil de tienda y capa de negocio para vendedores frecuentes.",
           back: "Todas las categorías",
           langToggle: "English",
         }
       : {
           title: "For sale — pick your lane",
-          subtitle: "Free for fast posts. Pro for shops and power sellers.",
+          subtitle: "Free for quick posts. Pro upgrades a single listing. Storefront (coming soon) is for shop-style seller presence.",
           freeTitle: "Free",
-          freeDesc: "Short, clear flow. Best for occasional sales.",
+          freeDesc: "Basic listing and a short flow. Best for occasional sellers.",
           proTitle: "Pro",
-          proDesc: "Business fields, inventory, and stronger trust signals.",
+          proDesc: "Premium listing: more photos, video, and stronger presentation per ad.",
+          sfTitle: "Storefront",
+          sfDesc: "Coming soon — store profile and business layer for frequent sellers.",
           back: "All categories",
           langToggle: "Español",
         };
@@ -77,6 +82,13 @@ export default function EnVentaPublishHubPage() {
             >
               <span className="text-lg font-bold text-[#C9B46A]">{copy.proTitle}</span>
               <span className="mt-1 text-sm text-white/80">{copy.proDesc}</span>
+            </Link>
+            <Link
+              href={`${EN_VENTA_PUBLICAR_STOREFRONT}?${laneQs.toString()}`}
+              className="flex flex-col rounded-xl border border-black/15 bg-white/90 px-4 py-5 text-left transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+            >
+              <span className="text-lg font-bold text-[#111111]">{copy.sfTitle}</span>
+              <span className="mt-1 text-sm text-[#111111]/70">{copy.sfDesc}</span>
             </Link>
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
-import type { EnVentaProApplicationState } from "../schema/enVentaProFormState";
+import type { EnVentaStorefrontApplicationState } from "../schema/enVentaStorefrontFormState";
 import type { EnVentaFreeSectionProps } from "../../../free/application/types/sectionProps";
 import { inputClass, labelClass } from "../../../free/application/helpers/fieldCx";
 
@@ -36,7 +36,7 @@ export function BusinessLinksSection({
   lang,
   state,
   setState,
-}: EnVentaFreeSectionProps<EnVentaProApplicationState>) {
+}: EnVentaFreeSectionProps<EnVentaStorefrontApplicationState>) {
   const t = COPY[lang];
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
