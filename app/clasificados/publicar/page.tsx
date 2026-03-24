@@ -75,7 +75,7 @@ export default function PublicarRootPage() {
     if (!p.get("lang")) p.set("lang", lang);
     const base =
       deepLinkCat === "bienes-raices"
-        ? "/clasificados/bienes-raices/publicar"
+        ? "/clasificados/bienes-raices"
         : `/clasificados/publicar/${deepLinkCat}`;
     router.replace(`${base}?${p.toString()}`);
   }, [deepLinkCat, lang, router, searchParams]);
@@ -114,7 +114,7 @@ export default function PublicarRootPage() {
               const label = categoryConfig[key].label[lang];
               const href =
                 key === "bienes-raices"
-                  ? `/clasificados/bienes-raices/publicar?lang=${lang}`
+                  ? `/clasificados/bienes-raices?lang=${lang}`
                   : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link

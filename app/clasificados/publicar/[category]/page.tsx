@@ -39,11 +39,11 @@ export default function PublicarCategoryPage() {
     }
   }, [categoryFromUrl, lang, router]);
 
-  /** BR publish lives under `/clasificados/bienes-raices/publicar` — keep old `/publicar/bienes-raices` URLs working. */
+  /** BR: branch chooser at `/clasificados/bienes-raices` — keep old `/publicar/bienes-raices` URLs working. */
   useEffect(() => {
     if (categoryFromUrl !== "bienes-raices") return;
     const p = new URLSearchParams(searchParams?.toString() ?? "");
-    router.replace(`/clasificados/bienes-raices/publicar?${p.toString()}`);
+    router.replace(`/clasificados/bienes-raices?${p.toString()}`);
   }, [categoryFromUrl, router, searchParams]);
 
   if (!categoryFromUrl) {

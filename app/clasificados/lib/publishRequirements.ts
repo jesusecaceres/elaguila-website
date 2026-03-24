@@ -3,7 +3,7 @@
  */
 
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
-import { computeBienesRaicesPublishMetaOk } from "@/app/clasificados/bienes-raices/publish/computeBienesRaicesPublishMetaOk";
+import { computeBienesRaicesPublishMetaOk } from "@/app/clasificados/bienes-raices/shared/publish/computeBienesRaicesPublishMetaOk";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 import { computeRentasPublishMetaOk } from "@/app/clasificados/rentas/publish/computeRentasPublishMetaOk";
 

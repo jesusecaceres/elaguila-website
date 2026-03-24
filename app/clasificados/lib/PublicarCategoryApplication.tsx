@@ -2319,7 +2319,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 {lang === "es" ? "Formulario disponible próximamente." : "Form available soon."}
               </p>
               <Link
-                href={`/clasificados/bienes-raices/publicar${lang ? `?lang=${lang}` : ""}`}
+                href={`/clasificados/bienes-raices${lang ? `?lang=${lang}` : ""}`}
                 className="mt-4 inline-block rounded-xl bg-[#A98C2A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f7a24]"
               >
                 {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real Estate"}

@@ -6,7 +6,7 @@
 
 import { PREVIEW_LISTING_DRAFT_KEY } from "@/app/clasificados/lib/previewListingDraft";
 
-/** SessionStorage: draft passed to `/clasificados/bienes-raices/preview` (BR) or shared preview hub (legacy). */
+/** SessionStorage: draft passed to BR branch preview routes or shared preview hub (legacy). */
 export { PREVIEW_LISTING_DRAFT_KEY };
 
 /** SessionStorage: restore images when returning from preview. */

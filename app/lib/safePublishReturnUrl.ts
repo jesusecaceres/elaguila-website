@@ -1,6 +1,6 @@
 /**
  * Validates a return URL for `/agente/[id]` → publish preview flow.
- * Allows `/clasificados/publicar` and category-owned BR publish `/clasificados/bienes-raices/publicar`.
+ * Allows `/clasificados/publicar` and BR branch publish under `/clasificados/bienes-raices/{negocio|privado}/publicar`.
  */
 export function safePublishFlowReturnUrl(raw: string | undefined | null): string | null {
   if (raw == null || typeof raw !== "string") return null;
@@ -23,10 +23,10 @@ export function safePublishFlowReturnUrl(raw: string | undefined | null): string
     }
   }
 
-  if (
-    !pathAndQuery.startsWith("/clasificados/publicar") &&
-    !pathAndQuery.startsWith("/clasificados/bienes-raices/publicar")
-  ) {
+  const isBrBranchPublish =
+    pathAndQuery.startsWith("/clasificados/bienes-raices/negocio/publicar") ||
+    pathAndQuery.startsWith("/clasificados/bienes-raices/privado/publicar");
+  if (!pathAndQuery.startsWith("/clasificados/publicar") && !isBrBranchPublish) {
     return null;
   }
   if (pathAndQuery.startsWith("//")) return null;

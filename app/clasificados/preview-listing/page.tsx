@@ -6,8 +6,7 @@ import { getPreviewDraft } from "@/app/clasificados/lib/previewListingDraft";
 import PreviewListingNonBrPage from "./PreviewListingNonBrPage";
 
 /**
- * Legacy shared preview hub: BR drafts redirect to category-owned `/clasificados/bienes-raices/preview`.
- * Non-BR drafts keep the generic preview UI below.
+ * Legacy shared preview hub: BR drafts redirect to branch-owned preview (non-BR keeps generic UI below).
  */
 export default function PreviewListingPage() {
   const router = useRouter();
@@ -19,7 +18,8 @@ export default function PreviewListingPage() {
     const qs = searchParams?.toString() ?? "";
     const suff = qs ? `?${qs}` : "";
     if (d?.category === "bienes-raices") {
-      router.replace(`/clasificados/bienes-raices/preview${suff}`);
+      const lane = d.branch === "privado" ? "privado" : "negocio";
+      router.replace(`/clasificados/bienes-raices/${lane}/preview${suff}`);
       return;
     }
     setLegacy(true);

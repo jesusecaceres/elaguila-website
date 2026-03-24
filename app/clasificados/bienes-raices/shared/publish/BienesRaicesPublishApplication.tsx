@@ -110,13 +110,12 @@ type DraftV1 = {
   updatedAt: string;
 };
 
-/** Canonical category-owned BR URLs (not `/clasificados/publicar/bienes-raices`). */
-const BR_PUBLICAR_PATH = "/clasificados/bienes-raices/publicar";
-const BR_PREVIEW_PATH = "/clasificados/bienes-raices/preview";
+function brPublicarPathForLane(lane: "negocio" | "privado"): string {
+  return `/clasificados/bienes-raices/${lane}/publicar`;
+}
 
-function publicarPathForCategory(cat: CategoryKey | ""): string {
-  if (cat === "bienes-raices") return BR_PUBLICAR_PATH;
-  return `/clasificados/publicar/${cat}`;
+function brPreviewPathForLane(lane: "negocio" | "privado"): string {
+  return `/clasificados/bienes-raices/${lane}/preview`;
 }
 
 function safeInternalRedirect(raw: string | null | undefined) {
@@ -314,6 +313,26 @@ export default function BienesRaicesPublishApplication() {
   const searchParams = useSearchParams();
   const params = useParams<{ category?: string }>();
 
+  const brLane = useMemo((): "negocio" | "privado" => {
+    const p = pathname ?? "";
+    if (p.includes("/bienes-raices/privado/")) return "privado";
+    return "negocio";
+  }, [pathname]);
+
+  const BR_PUBLICAR_PATH = brPublicarPathForLane(brLane);
+  const BR_PREVIEW_PATH = brPreviewPathForLane(brLane);
+
+  const publicarPathForCategory = useCallback(
+    (cat: CategoryKey | "", branchHint?: "privado" | "negocio" | "") => {
+      if (cat === "bienes-raices") {
+        const lane = branchHint === "privado" || branchHint === "negocio" ? branchHint : brLane;
+        return brPublicarPathForLane(lane);
+      }
+      return `/clasificados/publicar/${cat}`;
+    },
+    [brLane]
+  );
+
   const urlLang = searchParams?.get("lang");
   const lang: Lang = urlLang === "en" ? "en" : "es";
 
@@ -339,7 +358,7 @@ export default function BienesRaicesPublishApplication() {
     const qs = searchParams?.toString() ?? "";
     const here = qs ? `${BR_PUBLICAR_PATH}?${qs}` : `${BR_PUBLICAR_PATH}?lang=${lang}`;
     return safeInternalRedirect(here) || `${BR_PUBLICAR_PATH}?lang=${lang}`;
-  }, [lang, searchParams]);
+  }, [lang, searchParams, BR_PUBLICAR_PATH]);
 
   /** Sync draftId in URL (canonical source for which draft is being edited). Preserves lang and other params. */
   const syncDraftIdInUrl = useCallback(
@@ -356,6 +375,8 @@ export default function BienesRaicesPublishApplication() {
 
   const [step, setStep] = useState<PublishStep>(() => {
     const steps: PublishStep[] = ["bienes-raices-track", "basics", "media"];
+    const p = pathname ?? "";
+    const laneEntry = p.includes("/bienes-raices/privado/") || p.includes("/bienes-raices/negocio/");
     const s = searchParams?.get("step")?.trim();
     if (s === "category" || s === "rentas-track") return "bienes-raices-track";
     if (
@@ -366,6 +387,7 @@ export default function BienesRaicesPublishApplication() {
       return s as PublishStep;
     }
     if (s === "details") return "media";
+    if (laneEntry && !s) return "basics";
     return "bienes-raices-track";
   });
   const [category, setCategory] = useState<CategoryKey | "">(() => categoryFromUrl);
@@ -476,17 +498,25 @@ export default function BienesRaicesPublishApplication() {
     setStep(urlStep as PublishStep);
   }, [searchParams]);
 
-  // BR only: hydrate branch from URL so details.bienesRaicesBranch and ?branch= stay in sync (load, refresh, restore).
+  // BR only: hydrate branch from URL path (lane) and ?branch= so details stay in sync (load, refresh, restore).
   useEffect(() => {
     if (categoryFromUrl !== "bienes-raices") return;
     const urlBranch = searchParams?.get("branch")?.trim().toLowerCase();
-    if (urlBranch !== "privado" && urlBranch !== "negocio") return;
+    const path = pathname ?? "";
+    const pathBranch = path.includes("/bienes-raices/privado/") ? "privado" : path.includes("/bienes-raices/negocio/") ? "negocio" : "";
+    const effective =
+      urlBranch === "privado" || urlBranch === "negocio"
+        ? urlBranch
+        : pathBranch === "privado" || pathBranch === "negocio"
+          ? pathBranch
+          : "";
+    if (effective !== "privado" && effective !== "negocio") return;
     setDetails((prev) => {
       const cur = (prev?.bienesRaicesBranch ?? "").trim().toLowerCase();
-      if (cur === urlBranch) return prev;
-      return { ...prev, bienesRaicesBranch: urlBranch };
+      if (cur === effective) return prev;
+      return { ...prev, bienesRaicesBranch: effective };
     });
-  }, [categoryFromUrl, searchParams]);
+  }, [categoryFromUrl, searchParams, pathname]);
 
   // When step changes in-app, sync step to URL (replace). Skip when we just pushed in goToStep or when URL already matches (avoids re-run on searchParams change and double sync).
   useEffect(() => {
@@ -1186,7 +1216,9 @@ export default function BienesRaicesPublishApplication() {
               const p = new URLSearchParams(searchParams?.toString() ?? "");
               p.set("draftId", row.id);
               if (!p.has("lang")) p.set("lang", lang);
-              router.replace(`${publicarPathForCategory(draftCat)}?${p.toString()}`);
+              const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+              const bh = brBranch === "privado" || brBranch === "negocio" ? brBranch : undefined;
+              router.replace(`${publicarPathForCategory(draftCat, bh)}?${p.toString()}`);
               return;
             }
             applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
@@ -1203,8 +1235,15 @@ export default function BienesRaicesPublishApplication() {
         // Only Start new / Eliminar aplicación should clear; do not leave an empty form behind a blocking modal.
         {
           const branchInUrl = searchParams?.get("branch")?.trim().toLowerCase();
+          const pathBranch = (pathname ?? "").includes("/bienes-raices/privado/")
+            ? "privado"
+            : (pathname ?? "").includes("/bienes-raices/negocio/")
+              ? "negocio"
+              : "";
+          const effectivePickBranch =
+            branchInUrl === "privado" || branchInUrl === "negocio" ? branchInUrl : pathBranch;
           let pick: ListingDraftRow | null = null;
-          if (branchInUrl === "privado" || branchInUrl === "negocio") {
+          if (effectivePickBranch === "privado" || effectivePickBranch === "negocio") {
             const rows = await getDraftsForCategory(supabase, userId, "bienes-raices", 20);
             if (cancelled) return;
             pick =
@@ -1212,7 +1251,7 @@ export default function BienesRaicesPublishApplication() {
                 (row) =>
                   ((row.draft_data?.details as Record<string, string> | undefined)?.bienesRaicesBranch ?? "")
                     .trim()
-                    .toLowerCase() === branchInUrl
+                    .toLowerCase() === effectivePickBranch
               ) ?? null;
           }
           if (!pick) {
@@ -1267,7 +1306,7 @@ export default function BienesRaicesPublishApplication() {
       }
     })();
     return () => { cancelled = true; };
-  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, syncDraftIdInUrl, syncStepInUrl, router, lang]);
+  }, [draftKey, signedIn, userId, categoryFromUrl, searchParams, pathname, syncDraftIdInUrl, syncStepInUrl, router, lang, publicarPathForCategory]);
 
   /** Restore only form values from draft; step is not restored (avoids random step jumps). Never sync category from draft when it would differ from URL (route must be updated elsewhere first). */
   function applyDraftToForm(parsed: Partial<DraftV1>) {
@@ -1326,13 +1365,14 @@ export default function BienesRaicesPublishApplication() {
             const p = new URLSearchParams(searchParams?.toString() ?? "");
             p.set("draftId", draftId);
             if (!p.has("lang")) p.set("lang", lang);
+            const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
             if (draftCat === "bienes-raices") {
               const stepVal = (payload as DraftDataPayload).step;
               if (stepVal && ["category", "rentas-track", "bienes-raices-track", "basics", "details", "media"].includes(stepVal)) p.set("step", stepVal);
-              const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
               if (brBranch === "privado" || brBranch === "negocio") p.set("branch", brBranch);
             }
-            router.replace(`${publicarPathForCategory(draftCat)}?${p.toString()}`);
+            const bh = brBranch === "privado" || brBranch === "negocio" ? brBranch : undefined;
+            router.replace(`${publicarPathForCategory(draftCat, bh)}?${p.toString()}`);
             return;
           }
           applyDraftPayloadFromDb(payload);
@@ -1360,7 +1400,9 @@ export default function BienesRaicesPublishApplication() {
           const brBranch = (parsed.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
           if (brBranch === "privado" || brBranch === "negocio") p.set("branch", brBranch);
         }
-        router.replace(`${publicarPathForCategory(parsedCat)}?${p.toString()}`);
+        const brBranchHint = (parsed.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
+        const bh = brBranchHint === "privado" || brBranchHint === "negocio" ? brBranchHint : undefined;
+        router.replace(`${publicarPathForCategory(parsedCat, bh)}?${p.toString()}`);
         return;
       }
       applyDraftToForm(parsed);
@@ -2273,7 +2315,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     [publishDraftSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
   );
 
-  /** BR negocio (media step): full-page preview on `/clasificados/bienes-raices/preview` — same shell as embedded preview. */
+  /** BR negocio (media step): full-page preview on branch-owned `/clasificados/bienes-raices/negocio/preview`. */
   const openBrNegocioFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesNegocio || step !== "media") return;
@@ -2307,7 +2349,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId ?? null,
       fullListingDataJson: JSON.stringify(fullPreviewListingData),
     });
-    router.push(`${BR_PREVIEW_PATH}?lang=${lang}&branch=negocio`);
+    router.push(`${brPreviewPathForLane("negocio")}?lang=${lang}`);
   }, [
     isBienesRaicesNegocio,
     step,
@@ -2322,7 +2364,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     router,
   ]);
 
-  /** BR privado (media step): same full-page preview route as negocio — owner-led premium shell on `/clasificados/bienes-raices/preview`. */
+  /** BR privado (media step): branch-owned `/clasificados/bienes-raices/privado/preview`. */
   const openBrPrivadoFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesPrivado || step !== "media") return;
@@ -2356,7 +2398,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId ?? null,
       fullListingDataJson: JSON.stringify(fullPreviewListingData),
     });
-    router.push(`${BR_PREVIEW_PATH}?lang=${lang}&branch=privado`);
+    router.push(`${brPreviewPathForLane("privado")}?lang=${lang}`);
   }, [
     isBienesRaicesPrivado,
     step,
@@ -3748,7 +3790,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         videoErrors={videoErrors}
                         proUpgradeHref={
                           categoryFromUrl === "bienes-raices"
-                            ? `/clasificados/bienes-raices/publicar/pro?lang=${lang}&return=${encodeURIComponent(
+                            ? `/clasificados/bienes-raices/${brLane}/publicar/pro?lang=${lang}&return=${encodeURIComponent(
                                 `${pathname ?? BR_PUBLICAR_PATH}?lang=${lang}&step=media&fromPro=1`
                               )}`
                             : undefined

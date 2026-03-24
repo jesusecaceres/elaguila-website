@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import { getPreviewDraft, type PreviewListingDraft } from "@/app/clasificados/lib/previewListingDraft";
 import ListingView, { type BusinessRailData, type ListingData } from "@/app/clasificados/components/ListingView";
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
-/** Canonical BR full-page publish preview — category-owned route `/clasificados/bienes-raices/preview`. */
+/** BR full-page publish preview — branch-owned routes `/clasificados/bienes-raices/{negocio|privado}/preview`. */
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
@@ -62,9 +62,16 @@ function normalizeBrNegocioListingDataForPremiumGate(
 
 export default function BienesRaicesPublishPreviewPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
-  const branchFromUrl = searchParams?.get("branch")?.trim().toLowerCase();
+  const branchFromQuery = searchParams?.get("branch")?.trim().toLowerCase();
+  const branchFromPath =
+    (pathname ?? "").includes("/bienes-raices/negocio/preview") ? "negocio"
+    : (pathname ?? "").includes("/bienes-raices/privado/preview") ? "privado"
+    : undefined;
+  const branchFromUrl =
+    branchFromQuery === "negocio" || branchFromQuery === "privado" ? branchFromQuery : branchFromPath;
   const [draft, setDraft] = useState<ReturnType<typeof getPreviewDraft>>(null);
   const [rulesConfirmed, setRulesConfirmed] = useState(false);
   const [infoConfirmed, setInfoConfirmed] = useState(false);
@@ -142,7 +149,7 @@ export default function BienesRaicesPublishPreviewPage() {
     }
 
     return normalizeBrNegocioListingDataForPremiumGate(built, draft, branchFromUrl);
-  }, [draft, branchFromUrl]);
+  }, [draft, branchFromUrl, pathname]);
 
   /** BR Negocio: deterministic from route/draft context. No fallback to generic shell when category=bienes-raices and branch=negocio. */
   const isBrNegocioFromContext =

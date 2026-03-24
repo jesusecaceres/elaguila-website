@@ -1,16 +1,17 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 /**
- * BR-owned Pro upsell: canonical return path is `/clasificados/bienes-raices/publicar`.
+ * BR Pro upsell: return URL defaults to the branch lane publish route (path-derived).
  */
 export default function BienesRaicesPublicarProPage() {
   const searchParams = useSearchParams();
+  const pathname = usePathname() ?? "";
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
-  const returnUrl =
-    searchParams?.get("return") ||
-    `/clasificados/bienes-raices/publicar?lang=${lang}&step=media`;
+  const lane = pathname.includes("/privado/") ? "privado" : "negocio";
+  const basePublicar = `/clasificados/bienes-raices/${lane}/publicar`;
+  const returnUrl = searchParams?.get("return") || `${basePublicar}?lang=${lang}&step=media`;
 
   const t =
     lang === "es"
