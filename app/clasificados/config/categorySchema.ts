@@ -77,8 +77,8 @@ export type CategorySchema = {
 
 const PUBLISH_STEPS_FULL: PublishStep[] = ["category", "basics", "details", "media"];
 const PUBLISH_STEPS_EN_VENTA: PublishStep[] = ["category", "basics", "media"];
-/** Bienes Raíces: track (privado vs negocio/profesional) then basics → media. Reuses business contract for negocio. */
-const PUBLISH_STEPS_BIENES_RAICES: PublishStep[] = ["category", "bienes-raices-track", "basics", "media"];
+/** Bienes Raíces: track (privado vs negocio) then basics → media; category pick happens on `/publicar` only. */
+const PUBLISH_STEPS_BIENES_RAICES: PublishStep[] = ["bienes-raices-track", "basics", "media"];
 /** Rentas: track selection (Privado vs Negocio + plan) before basics. */
 const PUBLISH_STEPS_RENTAS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
 

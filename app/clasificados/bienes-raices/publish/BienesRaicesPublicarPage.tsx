@@ -1,8 +1,8 @@
 "use client";
 
-import PublicarCategoryApplication from "@/app/clasificados/publicar/PublicarCategoryApplication";
+import BienesRaicesPublishApplication from "@/app/clasificados/bienes-raices/publish/BienesRaicesPublishApplication";
 
-/** Bienes Raíces–owned entry for `/clasificados/publicar/bienes-raices` (dispatched from shared route). */
+/** Route entry: full BR publish flow lives in `BienesRaicesPublishApplication`, not shared publicar. */
 export default function BienesRaicesPublicarPage() {
-  return <PublicarCategoryApplication />;
+  return <BienesRaicesPublishApplication />;
 }
