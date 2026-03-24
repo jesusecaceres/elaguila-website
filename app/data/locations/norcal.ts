@@ -1,10 +1,10 @@
 // app/data/locations/norcal.ts
-// Phase 1 (LOCKED): California counties + cities list for the Clasificados Lista engine.
-// Source demonstrated in prior implementation: U.S. Census Bureau Gazetteer (Places) (CA places).
-// Notes:
-// - CA_CITIES is the canonical list used for chips + anchors.
-// - CITY_ALIASES maps user input → canonical city name.
-// - ZIP_GEO is lat/lng ONLY (do NOT assume ZIP → city name).
+// Canonical California city foundation (Leonix): Census-style places with county/region/lat/lng.
+//
+// - CA_CITIES — single source of truth for canonical city names + coordinates + optional record aliases.
+// - CITY_ALIASES — extra user-input → canonical name shortcuts (lowercase keys).
+// - ZIP_GEO — USPS/ZCTA-style centroid lat/lng ONLY; no city labels here. For ZIP → canonical city and
+//   city → ZIP lists see `californiaZipMap.ts`, `californiaCityZipIndex.ts`, `californiaLocationHelpers.ts`.
 
 export const DEFAULT_CITY = "San José";
 export const DEFAULT_RADIUS_MI = 25;

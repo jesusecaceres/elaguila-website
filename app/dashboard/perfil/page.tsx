@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import CityAutocomplete from "../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { CA_CITIES, CITY_ALIASES } from "../../data/locations/norcal";
+import { getCanonicalCityName } from "../../data/locations/californiaLocationHelpers";
 
 type Lang = "es" | "en";
 
@@ -24,33 +24,6 @@ function accountRefFromId(id: string): string {
   const first = s.slice(0, 4).toUpperCase();
   const last = s.slice(-4).toUpperCase();
   return `${first}-${last}`;
-}
-
-/** Normalize string for city lookup: trim, lower, remove accents, remove punctuation, collapse spaces */
-function toCityKey(s: string): string {
-  return (s || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** Returns canonical city string or "" if invalid. Uses CA_CITIES + CITY_ALIASES. */
-function normalizeCity(raw: string): string {
-  const key = toCityKey(raw);
-  if (!key) return "";
-
-  const fromAlias = CITY_ALIASES[key];
-  if (fromAlias) return fromAlias;
-
-  for (const record of CA_CITIES) {
-    if (toCityKey(record.city) === key) return record.city;
-    if (record.aliases?.some((a) => toCityKey(a) === key)) return record.city;
-  }
-  return "";
 }
 
 /** Digits only from raw input */
@@ -232,7 +205,7 @@ export default function ProfilePage() {
       }
 
       const digits = phoneDigits(phone);
-      const canonicalCity = normalizeCity(city);
+      const canonicalCity = getCanonicalCityName(city);
 
       if (requirePost) {
         if (digits.length !== 10) {

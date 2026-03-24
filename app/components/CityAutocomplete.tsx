@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
+import { CA_CITIES } from "@/app/data/locations/norcal";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 
 const MAX_SUGGESTIONS = 30;
 const BLUR_DELAY_MS = 120;
@@ -17,17 +18,9 @@ function toCityKey(s: string): string {
     .trim();
 }
 
-/** Canonical normalization: same source of truth as lista/filters (CITY_ALIASES + CA_CITIES). */
+/** Canonical normalization: shared with lista/filters via californiaLocationHelpers. */
 function normalizeToCanonical(raw: string): string {
-  const key = toCityKey(raw);
-  if (!key) return "";
-  const fromAlias = CITY_ALIASES[key];
-  if (fromAlias) return fromAlias;
-  for (const record of CA_CITIES) {
-    if (toCityKey(record.city) === key) return record.city;
-    if (record.aliases?.some((a) => toCityKey(a) === key)) return record.city;
-  }
-  return "";
+  return getCanonicalCityName(raw);
 }
 
 /** Suggestions from full NorCal list (CA_CITIES). Matches city + aliases; returns canonical record.city. */

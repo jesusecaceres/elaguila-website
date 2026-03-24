@@ -86,7 +86,8 @@ import {
   executeFullPreviewConfirmPublish,
   getFullPreviewVariantOnOpen,
 } from "@/app/clasificados/lib/publishPreviewModalHelpers";
-import { CA_CITIES, CITY_ALIASES } from "@/app/data/locations/norcal";
+import { getCanonicalCityName, getCanonicalCityRecord } from "@/app/data/locations/californiaLocationHelpers";
+import { haversineMiles } from "@/app/data/locations/locationGeo";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MediaUploader } from "@/app/clasificados/components/MediaUploader";
 import ListingView from "@/app/clasificados/components/ListingView";
@@ -183,47 +184,9 @@ function getPhoneDigits(raw: string): string {
   return (raw ?? "").replace(/\D/g, "").slice(0, 10);
 }
 
-const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
-  sacramento: { lat: 38.5816, lng: -121.4944 },
-  "san jose": { lat: 37.3382, lng: -121.8863 },
-  "san francisco": { lat: 37.7749, lng: -122.4194 },
-  oakland: { lat: 37.8044, lng: -122.2712 },
-  berkeley: { lat: 37.8715, lng: -122.273 },
-  fremont: { lat: 37.5483, lng: -121.9886 },
-  stockton: { lat: 37.9577, lng: -121.2908 },
-  modesto: { lat: 37.6391, lng: -120.9969 },
-  "palo alto": { lat: 37.4419, lng: -122.143 },
-  "santa clara": { lat: 37.3541, lng: -121.9552 },
-  sunnyvale: { lat: 37.3688, lng: -122.0363 },
-  hayward: { lat: 37.6688, lng: -122.0808 },
-  concord: { lat: 37.978, lng: -122.0311 },
-  vallejo: { lat: 38.1041, lng: -122.2566 },
-  "san leandro": { lat: 37.7249, lng: -122.1561 },
-};
-
-function normalizeCityKey(input: string): string {
-  return stripDiacritics((input ?? "").trim().toLowerCase()).replace(/\s+/g, " ").trim();
-}
-
 function getCityCoords(cityName: string): { lat: number; lng: number } | null {
-  const key = normalizeCityKey(cityName);
-  if (!key) return null;
-  if (CITY_COORDS[key]) return CITY_COORDS[key];
-  const record = CA_CITIES.find(
-    (r) => normalizeCityKey(r.city) === key || r.aliases?.some((a) => normalizeCityKey(a) === key)
-  );
-  return record ? { lat: record.lat, lng: record.lng } : null;
-}
-
-function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3959;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  const rec = getCanonicalCityRecord(cityName);
+  return rec ? { lat: rec.lat, lng: rec.lng } : null;
 }
 
 function getRoughDistanceMiles(viewerCity: string, listingCity: string): number | null {
@@ -269,29 +232,6 @@ function isoPlusDays(days: number) {
 function daysBetween(a: Date, b: Date) {
   const ms = b.getTime() - a.getTime();
   return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
-
-function stripDiacritics(s: string): string {
-  return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-function toCityKey(raw: string): string {
-  return stripDiacritics((raw || "").trim().toLowerCase())
-    .replace(/[.,']/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function normalizeCity(raw: string): string {
-  const key = toCityKey(raw);
-  if (!key) return "";
-  const fromAlias = CITY_ALIASES[key];
-  if (fromAlias) return fromAlias;
-  for (const record of CA_CITIES) {
-    if (toCityKey(record.city) === key) return record.city;
-    if (record.aliases?.some((a) => toCityKey(a) === key)) return record.city;
-  }
-  return "";
 }
 
 function getStableSessionId(userId: string | null): string {
@@ -347,7 +287,7 @@ export default function BienesRaicesNegocioApplication() {
     const bizName = get("bizName") || get("name");
     const placeType = get("placeType");
     const cuisine = get("cuisine");
-    const prefillCity = normalizeCity(get("city"));
+    const prefillCity = getCanonicalCityName(get("city"));
     const phone = get("phone");
     const website = get("website");
     const notes = get("notes");
@@ -837,7 +777,7 @@ export default function BienesRaicesNegocioApplication() {
 
         const meta = data.user.user_metadata || {};
         const profilePhoneDigits = (meta.phone || meta.contact_phone || "").toString().replace(/\D/g, "");
-        const profileCityCanonical = normalizeCity((meta.city || meta.location || "").toString().trim());
+        const profileCityCanonical = getCanonicalCityName((meta.city || meta.location || "").toString().trim());
         const profileCompleteForPost = profilePhoneDigits.length === 10 && Boolean(profileCityCanonical);
         if (!profileCompleteForPost) {
           if (fullPreviewModalOpenRef.current) {
@@ -1280,7 +1220,7 @@ export default function BienesRaicesNegocioApplication() {
     setIsFree(Boolean(parsed.isFree));
     setPrice(typeof parsed.price === "string" ? parsed.price : "");
     const loadedCity = typeof parsed.city === "string" ? parsed.city : "";
-    setCity(loadedCity ? (normalizeCity(loadedCity) || loadedCity.trim()) : "");
+    setCity(loadedCity ? (getCanonicalCityName(loadedCity) || loadedCity.trim()) : "");
     const draftCat = typeof parsed.category === "string" ? normalizeCategory(parsed.category) : "";
     if (draftCat && draftCat === categoryFromUrl) setCategory(draftCat);
     setDetails(typeof (parsed as any).details === "object" && (parsed as any).details ? ((parsed as any).details as Record<string, string>) : {});
@@ -1476,7 +1416,7 @@ export default function BienesRaicesNegocioApplication() {
         description,
         isFree,
         price,
-        city: normalizeCity(city) || city.trim(),
+        city: getCanonicalCityName(city) || city.trim(),
         category,
         details,
         contactMethod,
@@ -1536,7 +1476,7 @@ export default function BienesRaicesNegocioApplication() {
       description,
       isFree,
       price,
-      city: normalizeCity(city) || city.trim(),
+      city: getCanonicalCityName(city) || city.trim(),
       details: stripLegacySharedWizardBrKeys(
         Object.fromEntries(
           Object.entries(details).map(([k, v]) => [k, v ?? ""])
@@ -1694,7 +1634,7 @@ export default function BienesRaicesNegocioApplication() {
         description,
         isFree,
         price,
-        city: normalizeCity(city) || city.trim(),
+        city: getCanonicalCityName(city) || city.trim(),
         category,
         details,
         contactMethod,
@@ -1787,7 +1727,7 @@ export default function BienesRaicesNegocioApplication() {
       category === "bienes-raices"
         ? coalesceWizardDetailValue(details, "brFullDescription", LEGACY_WIZARD_BR_DETAIL.fullDescription)
         : description;
-    const cityCanonical = normalizeCity(city) || null;
+    const cityCanonical = getCanonicalCityName(city) || null;
     const detailPairs = getDetailPairs(category, lang, details, cityCanonical ?? city.trim());
     return buildPublishDraftSnapshot({
       title,
