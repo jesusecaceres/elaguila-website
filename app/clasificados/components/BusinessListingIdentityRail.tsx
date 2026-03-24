@@ -171,6 +171,12 @@ export default function BusinessListingIdentityRail({
                     {lang === "es" ? "Correduría" : "Brokerage"}: {businessRail.brokerageName.trim()}
                   </p>
                 ) : null}
+                {brFull && businessRail.lenderPartnerName?.trim() ? (
+                  <p className="mt-1.5 text-[11px] text-[#111111]/58 leading-snug break-words">
+                    <span className="font-semibold text-[#111111]/45">{lang === "es" ? "Financiamiento" : "Financing"}:</span>{" "}
+                    {businessRail.lenderPartnerName.trim()}
+                  </p>
+                ) : null}
               </div>
             </div>
           )}

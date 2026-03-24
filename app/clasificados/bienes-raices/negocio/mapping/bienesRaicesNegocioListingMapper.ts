@@ -99,7 +99,7 @@ export function buildBrNegocioListingData(params: MapperParams): ListingData {
     officePhone: officeDisplay,
     agentEmail: (d.negocioEmail ?? "").trim() || null,
     website: (d.negocioSitioWeb ?? "").trim() || null,
-    socialLinks: [],
+    socialLinks: buildBrNegocioSocialLinksForRail(d, lang),
     rawSocials: rawSocialsPreview,
     logoUrl: (d.negocioLogoUrl ?? "").trim() || null,
     agentPhotoUrl: (d.negocioFotoAgenteUrl ?? "").trim() || null,
@@ -111,6 +111,7 @@ export function buildBrNegocioListingData(params: MapperParams): ListingData {
     availabilityRows: availabilityRows.length > 0 ? availabilityRows : undefined,
     brokerageName: (d.negocioNombreCorreduria ?? "").trim() || null,
     coAgentName: (d.negocioCoAgente ?? "").trim() || null,
+    lenderPartnerName: (d.negocioSocioFinanciero ?? "").trim() || null,
   };
 
   const structuredFacts = buildStructuredFactsFromDetails(d, cityDisplay, lang);

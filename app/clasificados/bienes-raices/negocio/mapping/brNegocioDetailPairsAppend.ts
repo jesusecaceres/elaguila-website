@@ -53,6 +53,9 @@ export function appendBrNegocioLongTailDetailPairs(
   const co = (details.negocioCoAgente ?? "").trim();
   if (co) push(lang === "es" ? "Co-agente" : "Co-agent", co);
 
+  const lender = (details.negocioSocioFinanciero ?? "").trim();
+  if (lender) push(lang === "es" ? "Socio financiero / banco" : "Lender / bank partner", lender);
+
   for (const row of EXTRA) {
     const v = (details[row.key] ?? "").trim();
     if (v) push(lang === "es" ? row.es : row.en, v);

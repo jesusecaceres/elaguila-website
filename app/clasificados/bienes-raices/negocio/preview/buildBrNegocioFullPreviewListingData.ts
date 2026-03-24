@@ -5,6 +5,7 @@
 
 import type { ListingData } from "@/app/clasificados/components/ListingView";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
+import { computePublishRequirements } from "@/app/clasificados/lib/publishRequirements";
 import { buildBrNegocioListingData } from "@/app/clasificados/bienes-raices/negocio/mapping/bienesRaicesNegocioListingMapper";
 
 export function isBienesRaicesNegocioPublishPreviewContext(
@@ -40,7 +41,7 @@ export function buildBrNegocioFullPreviewListingData(params: BuildBrNegocioFullP
   const imgs = snap.images?.length ? snap.images : ["/logo.png"];
 
   /** Caller must gate with `isBienesRaicesNegocioPublishPreviewContext` (see `buildFullPreviewListingData`). */
-  return buildBrNegocioListingData({
+  const base = buildBrNegocioListingData({
     snap: {
       title: snap.title,
       priceLabel: snap.priceLabel,
@@ -61,4 +62,23 @@ export function buildBrNegocioFullPreviewListingData(params: BuildBrNegocioFullP
     userId: userId ?? null,
     agentProfileReturnUrl: previewPublishReturnPath,
   });
+  const reqs = computePublishRequirements(snap);
+  const d = snap.details;
+  return {
+    ...base,
+    managementHooks: {
+      branch: "negocio",
+      publishReady: reqs.allOk,
+      analyticsReady: true,
+      boostEligible: true,
+      adminReviewReady: true,
+      listingTrace: {
+        ownerAccountId: userId?.trim() ? userId.trim() : null,
+        businessName: (d.negocioNombre ?? "").trim() || null,
+        brokerageName: (d.negocioNombreCorreduria ?? "").trim() || null,
+        agentName: (d.negocioAgente ?? "").trim() || null,
+        cityCanonical: snap.cityCanonical,
+      },
+    },
+  };
 }

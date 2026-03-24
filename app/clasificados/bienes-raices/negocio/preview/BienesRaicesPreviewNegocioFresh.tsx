@@ -253,6 +253,7 @@ export default function BienesRaicesPreviewNegocioFresh({
       .filter((v): v is { label: string; value: string; icon: string; _key: string } => Boolean(v));
   }, [quickFacts]);
 
+  const hooks = listing.managementHooks;
   return (
     <div
       className={cx(
@@ -261,6 +262,9 @@ export default function BienesRaicesPreviewNegocioFresh({
           ? "bg-[#F4F1EB]"
           : "rounded-[1.75rem] border border-stone-200/90 bg-gradient-to-b from-[#FBFAF7] via-[#F8F6F1] to-[#F0EBE3] shadow-[0_16px_56px_-24px_rgba(17,17,17,0.22)]"
       )}
+      data-br-branch="negocio"
+      data-publish-ready={hooks && hooks.branch === "negocio" ? (hooks.publishReady ? "true" : "false") : undefined}
+      data-analytics-ready={hooks && hooks.branch === "negocio" ? (hooks.analyticsReady ? "true" : "false") : undefined}
     >
       <div className={cx(variant === "full" ? "px-4 py-5 sm:px-8 sm:py-8 lg:px-12 lg:py-10" : "p-4 sm:p-5 lg:p-6")}>
         <header

@@ -15,6 +15,8 @@ export const BUSINESS_META_KEYS = [
   "negocioAgente",
   /** Co-listing agent when provided (BR negocio). */
   "negocioCoAgente",
+  /** Preferred lender / bank / financing partner (optional; BR negocio flagship). */
+  "negocioSocioFinanciero",
   /** Brokerage / brand name separate from listing business display name (BR negocio). */
   "negocioNombreCorreduria",
   /** Mirrors `listings.business_name` when saved from publish (redundant but ensures meta merge has a name). */

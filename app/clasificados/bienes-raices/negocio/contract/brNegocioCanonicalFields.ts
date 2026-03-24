@@ -74,6 +74,8 @@ export const BR_NEGOCIO_FORM_KEYS = {
     plusMasAnuncios: "negocioPlusMasAnuncios",
     descripcion: "negocioDescripcion",
     disponibilidadPrecios: "negocioDisponibilidadPrecios",
+    /** Optional lender / bank / financing partner (display + rail). */
+    socioFinanciero: "negocioSocioFinanciero",
   },
 } as const;
 
@@ -121,6 +123,7 @@ export const BR_NEGOCIO_FIELD_FLOW: ReadonlyArray<{
   { canonicalKey: "negocioPlusMasAnuncios", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "plusMoreListings" },
   { canonicalKey: "negocioDescripcion", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "businessDescription" },
   { canonicalKey: "negocioDisponibilidadPrecios", businessMeta: true, detailPairs: false, listingDataTopLevel: null, businessRail: "availabilityRows" },
+  { canonicalKey: "negocioSocioFinanciero", businessMeta: true, detailPairs: true, listingDataTopLevel: null, businessRail: "lenderPartnerName" },
   { canonicalKey: "negocioFloorPlanUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: "floorPlanUrl", businessRail: null },
   { canonicalKey: "brVideoUrl", businessMeta: false, detailPairs: true, listingDataTopLevel: "proVideoUrl", businessRail: null },
 ];

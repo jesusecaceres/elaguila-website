@@ -19,6 +19,8 @@ export type BusinessRailData = {
   brokerageName?: string | null;
   /** Secondary agent on the listing (BR negocio). */
   coAgentName?: string | null;
+  /** Preferred lender / bank / financing partner named on the listing (BR negocio). */
+  lenderPartnerName?: string | null;
   /** License or credential line when provided in business meta (`negocioLicencia`). */
   agentLicense?: string | null;
   officePhone: string;
@@ -103,6 +105,26 @@ export type ListingData = {
   highlightChips?: string[];
   /** Display label for listing status (BR negocio). */
   listingStatusLabel?: string | null;
+  /**
+   * BR negocio: readiness + traceability for dashboard / manage / analytics / boosts (no UI required here).
+   * Populated in publish preview and live listing assembly where applicable.
+   */
+  managementHooks?: {
+    branch: "negocio";
+    publishReady: boolean;
+    analyticsReady: boolean;
+    boostEligible: boolean;
+    /** Future: moderation queue / compliance flags without blocking preview. */
+    adminReviewReady?: boolean;
+    listingTrace?: {
+      listingId?: string | null;
+      ownerAccountId?: string | null;
+      businessName?: string | null;
+      brokerageName?: string | null;
+      agentName?: string | null;
+      cityCanonical?: string | null;
+    };
+  };
 };
 
 type MediaSlot =

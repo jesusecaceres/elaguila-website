@@ -26,6 +26,9 @@ export type BrNegocioBusinessRailData = {
   name: string;
   agent: string;
   role: string;
+  brokerageName?: string | null;
+  coAgentName?: string | null;
+  lenderPartnerName?: string | null;
   agentLicense?: string | null;
   officePhone: string;
   agentEmail?: string | null;

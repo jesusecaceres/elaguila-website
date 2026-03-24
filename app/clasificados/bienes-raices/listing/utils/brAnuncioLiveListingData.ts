@@ -124,6 +124,7 @@ export function brNegocioLiveToBusinessRail(
     agentLicense: display.agentLicense?.trim() || undefined,
     brokerageName: (m.negocioNombreCorreduria ?? "").trim() || null,
     coAgentName: (m.negocioCoAgente ?? "").trim() || null,
+    lenderPartnerName: (m.negocioSocioFinanciero ?? "").trim() || null,
     officePhone: display.officePhone,
     agentEmail: email,
     website: display.website,
@@ -279,5 +280,20 @@ export function buildBienesRaicesNegocioLiveListingData(options: {
     listingStatusLabel: sold ? (lang === "es" ? "Vendido" : "Sold") : statusFromPairs || (lang === "es" ? "Activo" : "Active"),
     listingLocationIsApproximate: approximateLocationFromPairs(pairs),
     approximateArea: pickDetailPairValue(pairs, (lab) => /[áa]rea aproximada|approximate area|zona aprox/i.test(lab)) || null,
+    managementHooks: {
+      branch: "negocio",
+      publishReady: true,
+      analyticsReady: true,
+      boostEligible: true,
+      adminReviewReady: true,
+      listingTrace: {
+        listingId: listing.id,
+        ownerAccountId: listing.owner_id?.trim() ? listing.owner_id.trim() : null,
+        businessName: (meta?.negocioNombre ?? "").trim() || null,
+        brokerageName: (meta?.negocioNombreCorreduria ?? "").trim() || null,
+        agentName: (meta?.negocioAgente ?? "").trim() || null,
+        cityCanonical: (listing.city ?? "").trim() || null,
+      },
+    },
   };
 }

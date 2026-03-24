@@ -511,6 +511,22 @@ export function BienesRaicesNegocioBasicsWizard({
             </div>
           </div>
           <div>
+            <label className="text-xs text-[#111111]/80">
+              {lang === "es" ? "Socio financiero / banco (opcional)" : "Lender / bank partner (optional)"}
+            </label>
+            <p className="mt-0.5 text-[11px] text-[#111111]/55">
+              {lang === "es"
+                ? "Si ofreces un programa o banco preferido, úsalo para generar confianza y conversiones."
+                : "If you promote a preferred lender or bank program, show it here for trust and conversion."}
+            </p>
+            <input
+              value={details.negocioSocioFinanciero ?? ""}
+              onChange={(e) => setDetails((prev) => ({ ...prev, negocioSocioFinanciero: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+              placeholder={lang === "es" ? "Ej. banco o programa de préstamo" : "e.g. bank or loan program"}
+            />
+          </div>
+          <div>
             <label className="text-xs text-[#111111]/80">{lang === "es" ? "Cargo" : "Role"}</label>
             <input value={details.negocioCargo ?? ""} onChange={(e) => setDetails((prev) => ({ ...prev, negocioCargo: e.target.value }))} className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" />
           </div>
