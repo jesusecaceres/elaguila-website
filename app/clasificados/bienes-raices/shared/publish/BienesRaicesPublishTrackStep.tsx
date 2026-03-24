@@ -3,7 +3,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { PublishStep } from "../../../config/categorySchema";
 import { BienesRaicesNegocioPublishShell } from "../../negocio/publish/BienesRaicesNegocioPublishShell";
-import { BienesRaicesPrivadoPublishShell } from "../../privado/publish/BienesRaicesPrivadoPublishShell";
 
 type StepSyncOptions = { branch?: "privado" | "negocio" };
 
@@ -50,7 +49,7 @@ export function BienesRaicesPublishTrackStep({
       </p>
 
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <BienesRaicesPrivadoPublishShell>
+        <div className="contents" data-publish-owner="bienes-raices" data-publish-branch="privado">
           <button
             type="button"
             onClick={() => {
@@ -77,7 +76,7 @@ export function BienesRaicesPublishTrackStep({
               {brPrivadoPricePerPost} {lang === "es" ? "por anuncio" : "per post"}
             </p>
           </button>
-        </BienesRaicesPrivadoPublishShell>
+        </div>
 
         <BienesRaicesNegocioPublishShell>
           <button
