@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FiHome } from "react-icons/fi";
+import { FiBriefcase, FiUser } from "react-icons/fi";
 
 type Lang = "es" | "en";
 
-/** Bienes Raíces hub: single entry to the category publish landing (Coming Soon). */
+/** Bienes Raíces hub: elige negocio vs particular → formularios Leonix en `/clasificados/publicar/BR/*`. */
 export default function BienesRaicesHubPage() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -19,15 +19,21 @@ export default function BienesRaicesHubPage() {
     lang === "es"
       ? {
           title: "Bienes Raíces",
-          subtitle: "Publica tu anuncio desde la sección de publicación de esta categoría.",
-          cta: "Ir a publicar",
+          subtitle: "Elige cómo quieres publicar: como negocio o como particular.",
+          negocio: "Negocio o profesional",
+          negocioHint: "Inmobiliaria, desarrollador, agente certificado",
+          privado: "Vendedor particular",
+          privadoHint: "Dueño o familiar que vende o renta directo",
           langToggle: "English",
           back: "Volver a Clasificados",
         }
       : {
           title: "Real Estate",
-          subtitle: "Post your listing from this category’s publish section.",
-          cta: "Go to publish",
+          subtitle: "Choose business or private seller to start the listing form.",
+          negocio: "Business or professional",
+          negocioHint: "Brokerage, developer, licensed agent",
+          privado: "Private seller",
+          privadoHint: "Owner or family selling or renting directly",
           langToggle: "Español",
           back: "Back to Classifieds",
         };
@@ -49,13 +55,26 @@ export default function BienesRaicesHubPage() {
             </Link>
           </div>
 
-          <div className="mt-8">
+          <div className="mt-8 grid gap-3">
             <Link
-              href={`/clasificados/publicar/bienes-raices?lang=${lang}`}
-              className="flex items-center gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+              href={`/clasificados/publicar/BR/negocio?lang=${lang}`}
+              className="flex items-start gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
-              <FiHome className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />
-              <span className="block font-semibold text-[#111111]">{copy.cta}</span>
+              <FiBriefcase className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />
+              <span>
+                <span className="block font-semibold text-[#111111]">{copy.negocio}</span>
+                <span className="mt-1 block text-sm text-[#111111]/70">{copy.negocioHint}</span>
+              </span>
+            </Link>
+            <Link
+              href={`/clasificados/publicar/BR/privado?lang=${lang}`}
+              className="flex items-start gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+            >
+              <FiUser className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />
+              <span>
+                <span className="block font-semibold text-[#111111]">{copy.privado}</span>
+                <span className="mt-1 block text-sm text-[#111111]/70">{copy.privadoHint}</span>
+              </span>
             </Link>
           </div>
 

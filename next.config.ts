@@ -5,12 +5,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/clasificados/bienes-raices/negocio/publicar",
-        destination: "/clasificados/publicar/bienes-raices",
+        destination: "/clasificados/publicar/BR/negocio",
         permanent: true,
       },
       {
         source: "/clasificados/bienes-raices/privado/publicar",
-        destination: "/clasificados/publicar/bienes-raices",
+        destination: "/clasificados/publicar/BR/privado",
         permanent: true,
       },
     ];
