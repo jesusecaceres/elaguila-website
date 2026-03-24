@@ -307,7 +307,7 @@ function getStableSessionId(userId: string | null): string {
 }
 
 
-export default function BienesRaicesPublishApplication() {
+export default function BienesRaicesPrivadoApplication() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -3747,14 +3747,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         uploadProgress={uploadProgress}
                         videoPreviewUrls={proVideoPreviewUrls}
                         videoErrors={videoErrors}
-                        proUpgradeHref={
-                          categoryFromUrl === "bienes-raices"
-                            ? `/clasificados/bienes-raices/${brLane}/publicar/pro?lang=${lang}&return=${encodeURIComponent(
-                                `${pathname ?? BR_PUBLICAR_PATH}?lang=${lang}&step=media&fromPro=1`
-                              )}`
-                            : undefined
-                        }
-                        onBeforeProNavigate={categoryFromUrl === "bienes-raices" ? saveDraftAndImagesForProReturn : undefined}
+                        proUpgradeHref={undefined}
+                        onBeforeProNavigate={undefined}
                         maxVideos={categoryFromUrl === "bienes-raices" ? 1 : (isRentasPrivado ? 1 : 2)}
                         copy={{
                           addImages: copy.addImages,
