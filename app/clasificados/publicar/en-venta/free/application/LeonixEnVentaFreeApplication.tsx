@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
@@ -29,6 +30,11 @@ export default function LeonixEnVentaFreeApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const [state, setState] = useState(createEmptyEnVentaFreeState);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => saveEnVentaPreviewDraft("free", state), 350);
+    return () => window.clearTimeout(t);
+  }, [state]);
 
   const copy = useMemo(
     () =>

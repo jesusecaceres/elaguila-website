@@ -532,12 +532,12 @@ export default function AnuncioDetallePage() {
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
   const [savedSyncDone, setSavedSyncDone] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
   const [sellerStats, setSellerStats] = useState<{ avgRating: number | null; totalRatings: number } | null>(null);
-  const [showChatModal, setShowChatModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender_id: string; message: string; created_at: string }>>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [chatSending, setChatSending] = useState(false);
@@ -1033,7 +1033,6 @@ export default function AnuncioDetallePage() {
         )}
 
         <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", (isBienesRaicesPrivado || isBienesRaicesNegocio) ? "mt-8" : "mt-10")}>
-          {/* Main card */}
           <div className="lg:col-span-8">
             <div
               className={cx(
@@ -1287,9 +1286,7 @@ export default function AnuncioDetallePage() {
                 <AutosAnuncioLaneContextStrip lang={lang} listing={listing} />
               )}
 
-              {/* Rentas Privado: no Pro teaser block — keep page as listing-only, human/direct */}
-
-{!brLiveParityLayout && proVideoInfos.length > 0 && mediaSlots.length === 0 && (
+              {!brLiveParityLayout && proVideoInfos.length > 0 && mediaSlots.length === 0 && (
   <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
     <div className="flex items-center justify-between gap-3">
       <div>
@@ -1322,7 +1319,6 @@ export default function AnuncioDetallePage() {
             className="group relative block w-full overflow-hidden rounded-xl border border-black/10"
             aria-label={lang === "es" ? "Reproducir video" : "Play video"}
           >
-            {/* Use <img> to avoid Next/Image remote domain config issues */}
             <img
               src={proVideoInfos[0].thumbUrl}
               alt={lang === "es" ? "Miniatura del video" : "Video thumbnail"}
@@ -1396,7 +1392,6 @@ export default function AnuncioDetallePage() {
               ) : null}
             </div>
 
-            {/* Safety note */}
             <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
               <div className="text-lg font-bold text-yellow-200">{t.guardTitle}</div>
               <div className="mt-2 text-[#111111]">{t.guardBody}</div>
@@ -1412,8 +1407,7 @@ export default function AnuncioDetallePage() {
               </div>
             </div>
 
-            {/* Report modal */}
-            {showReportModal && (
+            {showReportModal ? (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
                 <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-[#111111]">
                   <h3 className="text-lg font-bold">{t.report}</h3>
@@ -1450,10 +1444,9 @@ export default function AnuncioDetallePage() {
                   )}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Chat modal — Contactar vendedor */}
-            {showChatModal && (
+            {showChatModal ? (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
                 <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col text-[#111111]">
                   <div className="p-4 border-b border-black/10 flex justify-between items-center">
@@ -1487,7 +1480,7 @@ export default function AnuncioDetallePage() {
                       </>
                     )}
                   </div>
-                  {chatCurrentUserId && (listing as any)?.owner_id && (
+                  {chatCurrentUserId && (listing as any)?.owner_id ? (
                     <div className="p-4 border-t border-black/10 flex gap-2">
                       <input
                         type="text"
@@ -1495,38 +1488,37 @@ export default function AnuncioDetallePage() {
                         placeholder={lang === "es" ? "Escribe tu mensaje…" : "Type your message…"}
                         value={chatDraft}
                         onChange={(e) => setChatDraft(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) void handleSendMessage();
+                        }}
                         disabled={chatSending}
                       />
                       <button
                         type="button"
                         className="px-4 py-2 rounded-xl bg-[#C9B46A] text-[#111111] font-semibold text-sm hover:opacity-90 disabled:opacity-50"
-                        onClick={handleSendMessage}
+                        onClick={() => void handleSendMessage()}
                         disabled={chatSending || !chatDraft.trim()}
                       >
                         {chatSending ? (lang === "es" ? "…" : "…") : (lang === "es" ? "Enviar" : "Send")}
                       </button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Más anuncios de esta compañía (Rentas Plus only, when flag set) */}
             {listing.category === "rentas" &&
               rentasPlanTier === "business_plus" &&
               rentasNegocioDisplay?.plusMoreListings && (
                 <RentasSameCompanyListingsSection lang={lang} items={rentasSameCompanyListings} />
               )}
 
-            {/* Más anuncios de esta compañía (Bienes Raíces Plus only, when flag set) */}
             {listing.category === "bienes-raices" &&
               isBienesRaicesNegocio &&
               brNegocioDisplay?.plusMoreListings && (
                 <BienesRaicesSameCompanyListingsSection lang={lang} items={bienesRaicesSameCompanyListings} />
               )}
 
-            {/* También te puede interesar */}
             {relatedListings.length > 0 && (
               <div className="mt-10">
                 <h3 className="text-xl font-bold text-[#111111] mb-4">
@@ -1555,7 +1547,6 @@ export default function AnuncioDetallePage() {
             )}
           </div>
 
-          {/* Right rail: private BR seller card, or Rentas/BR Negocio business identity. */}
           <div className="lg:col-span-4 space-y-6">
             {!brLiveParityLayout && isBienesRaicesPrivado ? (
               <BienesRaicesPrivadoSellerRail
