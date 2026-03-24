@@ -72,6 +72,17 @@ export default function PreviewListingPage() {
     confirmSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  /** So publish flow can set `previewViewed` when seller returns after full-page “Ver anuncio”. */
+  const pushBackToEditWithPreviewSeen = () => {
+    if (!draft?.backToEditUrl) {
+      router.back();
+      return;
+    }
+    const url = new URL(draft.backToEditUrl, window.location.origin);
+    url.searchParams.set("fromPreview", "1");
+    router.push(url.pathname + "?" + url.searchParams.toString());
+  };
+
   useEffect(() => {
     setDraft(getPreviewDraft());
   }, []);
@@ -246,7 +257,7 @@ export default function PreviewListingPage() {
         <div className="flex flex-col sm:flex-row gap-2 pt-1">
           <button
             type="button"
-            onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+            onClick={pushBackToEditWithPreviewSeen}
             className="flex-1 w-full max-w-full rounded-xl border border-[#C9B46A]/55 bg-[#F5F5F5] text-[#111111] font-semibold py-3.5 text-center hover:bg-[#E8E8E8] transition"
           >
             {t.editListing}
@@ -277,7 +288,7 @@ export default function PreviewListingPage() {
           <div className="max-w-[min(100%,92rem)] mx-auto flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3">
             <button
               type="button"
-              onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+              onClick={pushBackToEditWithPreviewSeen}
               className="rounded-xl border border-[#C9B46A]/50 bg-[#FFFCF7] px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
             >
               ← {t.backToEdit}
@@ -360,7 +371,7 @@ export default function PreviewListingPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-2.5 border-t border-[#C9B46A]/15 bg-[#FFFCF7]/60">
               <button
                 type="button"
-                onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+                onClick={pushBackToEditWithPreviewSeen}
                 className="self-start rounded-xl border border-[#C9B46A]/50 bg-[#FFFCF7] px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] transition"
               >
                 ← {t.backToEdit}

@@ -3841,8 +3841,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                           </p>
                           <p className="mt-1 text-xs text-[#111111]/60">
                             {lang === "es"
-                              ? "Abre la vista previa a pantalla completa — el mismo diseño premium que verán los compradores en Leonix."
-                              : "Open the full-page preview — the same premium layout buyers will see on Leonix."}
+                              ? "Abre la vista previa a pantalla completa (como la verán los compradores), vuelve a editar o publica cuando estés listo."
+                              : "Open the full-page preview as buyers will see it, go back to edit, or publish when ready."}
                           </p>
                           <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
                             <button
@@ -3858,6 +3858,19 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               className="rounded-xl border border-emerald-800/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-emerald-50/80 transition"
                             >
                               {lang === "es" ? "Volver a editar" : "Back to edit"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={publishing || !requirements.allOk || !previewViewed || !rulesConfirmed}
+                              onClick={() => void publish()}
+                              className={cx(
+                                "rounded-xl px-4 py-2.5 text-sm font-semibold",
+                                publishing || !requirements.allOk || !previewViewed || !rulesConfirmed
+                                  ? "bg-yellow-500/40 text-black/70 cursor-not-allowed"
+                                  : "bg-yellow-500/90 hover:bg-yellow-500 text-black"
+                              )}
+                            >
+                              {publishing ? copy.publishing : copy.publish}
                             </button>
                           </div>
                         </div>
@@ -4008,7 +4021,9 @@ for (let vi = 0; vi < videoLimit; vi++) {
                       </div>
                       {!previewViewed && (
                         <p className="mt-2 text-sm text-amber-700">
-                          Debes revisar el anuncio completo antes de publicarlo.
+                          {lang === "es"
+                            ? "Marca la casilla de arriba para confirmar que revisaste el anuncio, o vuelve desde “Ver anuncio” para registrar la vista previa."
+                            : "Check the box above to confirm you reviewed the listing, or return from “View listing” so we know you saw the preview."}
                         </p>
                       )}
                     </div>
