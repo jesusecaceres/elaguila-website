@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
 import BusinessListingIdentityRail from "@/app/clasificados/components/BusinessListingIdentityRail";
@@ -60,6 +60,7 @@ export default function BienesRaicesPreviewNegocioFresh({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [viewerCityInput, setViewerCityInput] = useState("");
+  const lightboxTouchStartX = useRef(0);
 
   const photoUrls = useMemo(() => {
     const incoming = listing.images ?? [];
@@ -167,7 +168,7 @@ export default function BienesRaicesPreviewNegocioFresh({
         ? {
             tabs: ["Resumen", "Interior", "Exterior", "Detalles", "Ubicación", "Contacto"] as const,
             previewBadge: "Vista previa",
-            previewSubtitle: "Así verán tu listado los compradores.",
+            previewSubtitle: "Así verán los compradores tu anuncio en Leonix.",
             laneChip: "Leonix · Negocio",
             brand: "Leonix Clasificados",
             aboutTitle: "Acerca de esta propiedad",
@@ -293,7 +294,7 @@ export default function BienesRaicesPreviewNegocioFresh({
             </div>
           </div>
           <nav
-            className="mt-5 flex flex-wrap gap-1.5 border-t border-stone-200/50 pt-5"
+            className="mt-5 flex gap-1.5 overflow-x-auto overflow-y-hidden border-t border-stone-200/50 pt-5 pb-0.5 flex-nowrap sm:flex-wrap sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label={lang === "es" ? "Secciones del anuncio" : "Listing sections"}
           >
             {t.tabs.map((label, tabIdx) => (
@@ -302,7 +303,7 @@ export default function BienesRaicesPreviewNegocioFresh({
                 type="button"
                 onClick={() => scrollToId(tabTargets[tabIdx]!)}
                 className={cx(
-                  "rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition",
+                  "shrink-0 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition",
                   tabIdx === 0
                     ? "border border-[#C9B46A]/50 bg-[#FAF3E4] text-[#111111]"
                     : "border border-transparent text-[#111111]/65 hover:border-stone-200/80 hover:bg-white/70 hover:text-[#111111]"
@@ -694,8 +695,8 @@ export default function BienesRaicesPreviewNegocioFresh({
         </div>
 
         {lightboxOpen && (
-          <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-[2px] p-3 sm:p-6">
-            <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col rounded-2xl border border-white/10 bg-black/55">
+          <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-[2px] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6 sm:pt-6 sm:pb-6">
+            <div className="relative mx-auto flex h-full w-full max-w-6xl min-h-0 flex-col rounded-2xl border border-white/10 bg-black/55">
               <div className="flex items-center justify-between px-4 py-3 text-white">
                 <p className="text-sm font-medium">
                   {t.gallery} {lightboxIndex + 1}/{photoUrls.length}
@@ -727,11 +728,24 @@ export default function BienesRaicesPreviewNegocioFresh({
                   </button>
                 </div>
               </div>
-              <div className="relative flex-1 overflow-hidden">
+              <div
+                className="relative flex-1 min-h-0 overflow-hidden touch-pan-y"
+                onTouchStart={(e) => {
+                  lightboxTouchStartX.current = e.touches[0]?.clientX ?? 0;
+                }}
+                onTouchEnd={(e) => {
+                  if (photoUrls.length <= 1) return;
+                  const endX = e.changedTouches[0]?.clientX ?? 0;
+                  const dx = endX - lightboxTouchStartX.current;
+                  if (dx > 50) prevLightbox();
+                  else if (dx < -50) nextLightbox();
+                }}
+              >
                 <img
                   src={photoUrls[lightboxIndex] ?? "/logo.png"}
                   alt=""
-                  className="h-full w-full object-contain transition-transform duration-200"
+                  className="h-full w-full object-contain transition-transform duration-200 select-none"
+                  draggable={false}
                   style={{ transform: `scale(${lightboxZoom})` }}
                 />
                 {photoUrls.length > 1 && (

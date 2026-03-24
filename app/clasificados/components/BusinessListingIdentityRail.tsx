@@ -59,6 +59,8 @@ export default function BusinessListingIdentityRail({
     ((!isBienesRaices && (businessRailTier === "business_plus" || businessRailTier === "business_standard")) || brFull);
   const showContactRows = !isBienesRaices || brFull;
   const tourHrefBr = brFull && businessRail.virtualTourUrl ? hrefForTour(businessRail.virtualTourUrl) : "";
+  /** BR negocio full rail in publish/preview: no live handlers — avoid dead “message / visit” CTAs. */
+  const brNegocioPreviewRail = brFull && liveBrContactActions == null;
 
   const businessName = businessRail.name || (lang === "es" ? "Negocio" : "Business");
   const agentName = businessRail.agent?.trim() || businessName;
@@ -270,6 +272,13 @@ export default function BusinessListingIdentityRail({
           </div>
         )}
         <div className={cx("flex flex-col", isBienesRaices && !brFull ? "mt-1 gap-2 sm:gap-2.5" : "mt-2 gap-2.5 sm:gap-3")}>
+          {brNegocioPreviewRail ? (
+            <p className="rounded-xl border border-stone-200/80 bg-stone-50/90 px-3 py-2.5 text-[11px] leading-snug text-[#111111]/70">
+              {lang === "es"
+                ? "Vista previa: al publicar, los compradores podrán enviar mensaje y agendar visita desde aquí."
+                : "Preview: once live, buyers can message and schedule visits from here."}
+            </p>
+          ) : null}
           {tourHrefBr ? (
             <a
               href={tourHrefBr}
@@ -277,29 +286,32 @@ export default function BusinessListingIdentityRail({
               rel="noopener noreferrer"
               className="w-full px-4 py-3.5 rounded-xl font-semibold text-sm text-center border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)] transition"
             >
-              {lang === "es" ? "Solicitar tour" : "Request tour"}
+              {lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
             </a>
           ) : null}
-          <button
-            type="button"
-            className={cx(
-              "w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition",
-              brFull && tourHrefBr
-                ? "border border-stone-300/90 bg-white text-[#111111] hover:bg-stone-50 shadow-sm"
-                : isBienesRaices
-                  ? "border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
-                  : "border border-[#111111]/18 bg-white text-[#111111] hover:bg-[#F5F5F5]"
-            )}
-          >
-            {brFull ? (lang === "es" ? "Enviar mensaje" : "Send message") : lang === "es" ? "Solicitar información" : "Request info"}
-          </button>
+          {!brNegocioPreviewRail ? (
+            <button
+              type="button"
+              onClick={() => liveBrContactActions?.onSendMessage()}
+              className={cx(
+                "w-full px-4 py-3.5 rounded-xl font-semibold text-sm transition",
+                brFull && tourHrefBr
+                  ? "border border-stone-300/90 bg-white text-[#111111] hover:bg-stone-50 shadow-sm"
+                  : isBienesRaices
+                    ? "border border-[#3F5A43]/70 bg-[#3F5A43] text-[#F7F4EC] hover:bg-[#36503A] shadow-[0_8px_18px_-12px_rgba(33,58,39,0.8)]"
+                    : "border border-[#111111]/18 bg-white text-[#111111] hover:bg-[#F5F5F5]"
+              )}
+            >
+              {brFull ? (lang === "es" ? "Enviar mensaje" : "Send message") : lang === "es" ? "Solicitar información" : "Request info"}
+            </button>
+          ) : null}
           {isBienesRaices && agentProfileHref ? (
             <Link
               href={agentProfileHref}
               prefetch={false}
               className="block w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition text-center"
             >
-              {lang === "es" ? "Más información sobre este agente" : "More information about this agent"}
+              {lang === "es" ? "Ver perfil del agente" : "View agent profile"}
             </Link>
           ) : null}
           {brFull && businessRail.officePhone ? (
@@ -310,18 +322,20 @@ export default function BusinessListingIdentityRail({
               {lang === "es" ? "Llamar" : "Call"}
             </a>
           ) : null}
-          <button
-            type="button"
-            onClick={() => liveBrContactActions?.onScheduleVisit()}
-            className={cx(
-              "w-full px-4 py-3.5 rounded-xl font-semibold border text-sm transition",
-              isBienesRaices
-                ? "border-[#C9B46A]/65 bg-[#F8F2E3] text-[#4A4536] hover:bg-[#F2E9D4]"
-                : "border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
-            )}
-          >
-            {lang === "es" ? "Programar visita" : "Schedule visit"}
-          </button>
+          {!brNegocioPreviewRail ? (
+            <button
+              type="button"
+              onClick={() => liveBrContactActions?.onScheduleVisit()}
+              className={cx(
+                "w-full px-4 py-3.5 rounded-xl font-semibold border text-sm transition",
+                isBienesRaices
+                  ? "border-[#C9B46A]/65 bg-[#F8F2E3] text-[#4A4536] hover:bg-[#F2E9D4]"
+                  : "border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"
+              )}
+            >
+              {lang === "es" ? "Programar visita" : "Schedule visit"}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

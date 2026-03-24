@@ -293,7 +293,7 @@ export default function PreviewListingPage() {
             >
               ← {t.backToEdit}
             </button>
-            <span className="text-[11px] sm:text-sm text-[#111111]/50 text-center flex-1 min-w-[12rem]">{t.previewSubtitle}</span>
+            <span className="text-[11px] sm:text-sm text-[#111111]/50 text-center flex-1 min-w-0 px-1 leading-snug">{t.previewSubtitle}</span>
             <button
               type="button"
               onClick={scrollToConfirmSection}
@@ -329,7 +329,7 @@ export default function PreviewListingPage() {
             >
               ← {t.backToEdit}
             </button>
-            <span className="text-[11px] sm:text-sm text-[#111111]/50 text-center flex-1 min-w-[12rem]">{t.previewSubtitle}</span>
+            <span className="text-[11px] sm:text-sm text-[#111111]/50 text-center flex-1 min-w-0 px-1 leading-snug">{t.previewSubtitle}</span>
             <button
               type="button"
               onClick={scrollToConfirmSection}

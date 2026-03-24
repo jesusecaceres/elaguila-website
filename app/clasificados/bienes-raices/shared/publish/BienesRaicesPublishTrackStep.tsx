@@ -40,13 +40,13 @@ export function BienesRaicesPublishTrackStep({
       </h2>
       <p className="mt-2 text-sm text-[#111111]/90 leading-relaxed">
         {lang === "es"
-          ? "Leonix separa el listado de propietario del listado comercial para que cada uno reciba el formulario y la vista previa correctos. Elige la opción que describe tu situación."
-          : "Leonix separates owner-led listings from commercial listings so each flow gets the right form and preview. Pick the option that matches your situation."}
+          ? "En Leonix, el anuncio de propietario y el de negocio son flujos distintos: cada uno tiene su formulario y su vista previa. Elige la que te corresponde."
+          : "On Leonix, owner and business listings use separate flows—each has its own form and preview. Choose the one that fits you."}
       </p>
       <p className="mt-2 text-xs text-[#111111]/65 leading-relaxed border-l-2 border-[#C9B46A]/50 pl-3">
         {lang === "es"
-          ? "Privado = tú vendes tu propiedad. Negocio = equipo profesional, marca o desarrollador — presentación y herramientas de nivel comercial."
-          : "Private = you’re selling your own property. Business = a professional team, brand, or developer — commercial-grade presentation and tools."}
+          ? "Privado: vendes tu propiedad tú mismo. Negocio: agencia, correduría, marca o desarrollador — con identidad profesional y más herramientas para captar clientes."
+          : "Private: you’re selling your own place. Business: agency, brokerage, brand, or developer—with pro identity and more tools to attract leads."}
       </p>
 
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -99,8 +99,8 @@ export function BienesRaicesPublishTrackStep({
             </span>
             <p className="mt-2 text-sm text-[#111111]/85 leading-snug">
               {lang === "es"
-                ? "Listado insignia: identidad de agente o marca, medios ricos y vista previa pensada para generar leads."
-                : "Flagship listing: agent or brand identity, rich media, and a preview built to generate leads."}
+                ? "Incluye identidad de agente o marca, más fotos y video, tour virtual y vista previa lista para impresionar a compradores."
+                : "Includes agent or brand identity, more photos and video, virtual tour, and a preview built to impress buyers."}
             </p>
             <p className="mt-2 text-sm font-semibold text-[#111111]">
               {lang === "es" ? `${brNegocioPriceWeekly}/semana o ${brNegocioPriceMonthly}/mes` : `${brNegocioPriceWeekly}/week or ${brNegocioPriceMonthly}/month`}
