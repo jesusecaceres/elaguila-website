@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
-import { EnVentaComingSoon } from "../../../en-venta/EnVentaComingSoon";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -27,6 +26,12 @@ export default function CategoryProPage() {
     }
   }, [category, lang, router]);
 
+  useEffect(() => {
+    if (category === "en-venta") {
+      router.replace(`/clasificados/publicar/en-venta?lang=${lang}`);
+    }
+  }, [category, lang, router]);
+
   if (!category) {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
@@ -38,7 +43,11 @@ export default function CategoryProPage() {
   const returnUrl = searchParams?.get("return") || `/clasificados/publicar/${category}?lang=${lang}&step=media`;
 
   if (category === "en-venta") {
-    return <EnVentaComingSoon variant="pro" lang={lang} backHref={returnUrl} showNavbar={false} />;
+    return (
+      <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
+        {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
+      </main>
+    );
   }
 
   const t =

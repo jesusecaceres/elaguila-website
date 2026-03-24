@@ -5,7 +5,7 @@
 
 import type { BusinessRailData, ListingData } from "../../../components/ListingView";
 import { mapRentasNegocioDetailsTierToDb } from "./rentasNegocioDetailsTierToDb";
-import { coalesceNegocioNombreFromWizard } from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
+import { coalesceNegocioNombreFromWizard } from "@/app/clasificados/lib/legacyWizardCoalesce";
 
 /** Same parsing as anuncio/[id]/page.tsx `parseRentasSocialLinks` (behavior-preserving). */
 function parseRentasSocialLinks(raw: string | null | undefined): Array<{ label: string; url: string }> | null {

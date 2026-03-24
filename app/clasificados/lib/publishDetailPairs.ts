@@ -7,7 +7,7 @@ import { getPublishCategoryFields } from "@/app/clasificados/config/publishCateg
 import { appendBrNegocioLongTailDetailPairs } from "@/app/clasificados/bienes-raices/negocio/mapping/brNegocioDetailPairsAppend";
 import { appendBrPrivadoLongTailDetailPairs } from "@/app/clasificados/bienes-raices/privado/mapping/brPrivadoDetailPairsAppend";
 import { getBienesRaicesPublishStructuredDetailPairs } from "@/app/clasificados/bienes-raices/shared/mapping/bienesRaicesPublishDetailPairs";
-import { getArticuloLabel } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
+import { appendEnVentaDetailPairs } from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
 import { getRentasPublishStructuredDetailPairs } from "@/app/clasificados/rentas/shared/mapping/rentasPublishDetailPairs";
 import { buildDetailsAppendixFromPairs, type PublishLang } from "./buildDetailsAppendix";
 
@@ -29,6 +29,7 @@ export function getDetailPairs(
     out.push(...getRentasPublishStructuredDetailPairs(lang, details));
   }
   for (const f of fields) {
+    if (cat === "en-venta" && f.key === "evSub") continue;
     if (cat === "rentas" && f.key === "plazo_contrato") continue;
     // BR: address + optional zone are emitted above with summary-friendly labels; skip legacy row to avoid duplicates/wrong labels.
     if (cat === "bienes-raices" && f.key === "direccionPropiedad") continue;
@@ -37,14 +38,16 @@ export function getDetailPairs(
 
     if (f.type === "select" && f.options && f.options.length > 0) {
       const opt = f.options.find((o) => o.value === raw);
+      if (cat === "en-venta" && (f.key === "rama" || f.key === "condition")) {
+        out.push({ label: f.label[lang], value: raw });
+        continue;
+      }
       out.push({ label: f.label[lang], value: opt ? opt.label[lang] : raw });
       continue;
     }
 
     if (cat === "en-venta" && f.key === "itemType") {
-      const rama = (details.rama ?? "").trim();
-      const label = getArticuloLabel(rama, raw, lang);
-      out.push({ label: f.label[lang], value: label });
+      out.push({ label: f.label[lang], value: raw });
       continue;
     }
 
@@ -56,6 +59,9 @@ export function getDetailPairs(
   }
   if (cat === "bienes-raices" && brBr === "privado") {
     appendBrPrivadoLongTailDetailPairs(lang, details, out);
+  }
+  if (cat === "en-venta") {
+    appendEnVentaDetailPairs(lang, details, out);
   }
   return out;
 }

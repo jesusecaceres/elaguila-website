@@ -33,7 +33,7 @@ import { RentasSameCompanyListingsSection } from "../../rentas/listing/component
 import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/RentasAnuncioMetaGridCards";
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
-import { EnVentaComingSoon } from "../../en-venta/EnVentaComingSoon";
+import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
@@ -948,11 +948,32 @@ export default function AnuncioDetallePage() {
   }
 
   if (listing.category === "en-venta") {
+    const ev = listing as Listing & {
+      detailPairs?: unknown;
+      contact_phone?: string | null;
+      contact_email?: string | null;
+    };
     return (
-      <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-24">
-        <Navbar />
-        <EnVentaComingSoon variant="detail" lang={lang} showNavbar={false} />
-      </div>
+      <EnVentaAnuncioLayout
+        listing={{
+          id: listing.id,
+          title: listing.title,
+          priceLabel: listing.priceLabel,
+          city: listing.city,
+          blurb: listing.blurb,
+          images: listing.images ?? null,
+          sellerType: listing.sellerType,
+          businessName: listing.businessName ?? null,
+          business_name: listing.business_name ?? null,
+          detailPairs: Array.isArray(ev.detailPairs) ? (ev.detailPairs as Array<{ label: string; value: string }>) : null,
+          created_at: listing.created_at ?? null,
+          status: listing.status,
+          contact_phone: ev.contact_phone ?? null,
+          contact_email: ev.contact_email ?? null,
+        }}
+        lang={lang}
+        backHref={`/clasificados/lista?cat=en-venta&lang=${lang}`}
+      />
     );
   }
 

@@ -88,16 +88,65 @@ export const DETAIL_FIELDS: Record<string, DetailField[]> = {
   "en-venta": [
     {
       key: "rama",
-      label: { es: "Subcategoría", en: "Subcategory" },
+      label: { es: "Departamento", en: "Department" },
       type: "select",
       options: EN_VENTA_SUBCATEGORIES.map((s) => ({ value: s.key, label: s.label })),
     },
-    { key: "itemType", label: { es: "Artículo", en: "Item type" }, type: "text", placeholder: { es: "Definido por subcategoría", en: "Set by subcategory" } },
+    { key: "evSub", label: { es: "Clasificación (opcional)", en: "Shelf / type (optional)" }, type: "text", placeholder: { es: "Clave interna", en: "Internal key" } },
+    { key: "itemType", label: { es: "Artículo / tipo", en: "Item / type" }, type: "text", placeholder: { es: "Elige en el asistente", en: "Choose in the wizard" } },
     {
       key: "condition",
       label: { es: "Condición", en: "Condition" },
       type: "select",
       options: EN_VENTA_PUBLISH_CONDITION_OPTIONS.map((c) => ({ value: c.value, label: { es: c.labelEs, en: c.labelEn } })),
+    },
+    {
+      key: "negotiable",
+      label: { es: "Precio negociable", en: "Negotiable price" },
+      type: "select",
+      options: [
+        { value: "", label: { es: "No", en: "No" } },
+        { value: "yes", label: { es: "Sí", en: "Yes" } },
+      ],
+    },
+    { key: "brand", label: { es: "Marca (opcional)", en: "Brand (optional)" }, type: "text", placeholder: { es: "Ej: Apple", en: "e.g. Apple" } },
+    { key: "model", label: { es: "Modelo (opcional)", en: "Model (optional)" }, type: "text", placeholder: { es: "Ej: iPhone 13", en: "e.g. iPhone 13" } },
+    { key: "zip", label: { es: "ZIP (opcional)", en: "ZIP (optional)" }, type: "text", placeholder: { es: "Ej: 95112", en: "e.g. 95112" } },
+    {
+      key: "pickup",
+      label: { es: "Recogida local", en: "Local pickup" },
+      type: "select",
+      options: [
+        { value: "", label: { es: "No", en: "No" } },
+        { value: "1", label: { es: "Sí", en: "Yes" } },
+      ],
+    },
+    {
+      key: "shipping",
+      label: { es: "Envío disponible", en: "Shipping available" },
+      type: "select",
+      options: [
+        { value: "", label: { es: "No", en: "No" } },
+        { value: "1", label: { es: "Sí", en: "Yes" } },
+      ],
+    },
+    {
+      key: "delivery",
+      label: { es: "Entrega local", en: "Local delivery" },
+      type: "select",
+      options: [
+        { value: "", label: { es: "No", en: "No" } },
+        { value: "1", label: { es: "Sí", en: "Yes" } },
+      ],
+    },
+    {
+      key: "seller_kind",
+      label: { es: "Tipo de vendedor", en: "Seller type" },
+      type: "select",
+      options: [
+        { value: "individual", label: { es: "Persona", en: "Individual" } },
+        { value: "business", label: { es: "Negocio", en: "Business" } },
+      ],
     },
   ],
   restaurantes: [

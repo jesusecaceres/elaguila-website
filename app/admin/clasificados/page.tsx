@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import AdminListingsTable from "./AdminListingsTable";
+import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 
 /** Prevent static generation: admin page must fetch live data at request time. */
 export const dynamic = "force-dynamic";
@@ -28,6 +29,10 @@ export default async function AdminClasificadosPage() {
           <AdminListingsTable listings={listings ?? []} />
         )}
       </div>
+      <div className="mt-8 rounded-2xl border border-black/10 bg-[#111111] p-5">
+        <EnVentaModerationFields lang="es" />
+      </div>
+
       <div className="mt-8">
         <Link
           href="/admin"

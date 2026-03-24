@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 
 type Lang = "es" | "en";
 
@@ -333,6 +334,37 @@ export default function MyListingsPage() {
                 const priceText = formatPrice(x.price, lang);
                 const busy = busyId === x.id;
                 const canEdit = canEditListing(createdIso);
+                const stats = analyticsByListing[x.id];
+                const thumbUrl = getFirstListingImageUrl(x.images);
+
+                if (x.category === "en-venta") {
+                  return (
+                    <EnVentaListingManageCard
+                      key={x.id}
+                      row={{
+                        id: x.id,
+                        title: x.title,
+                        price: x.price,
+                        city: x.city,
+                        status: x.status,
+                        created_at: x.created_at,
+                        thumbUrl,
+                        views: stats?.views,
+                        messages: stats?.messages,
+                        saves: stats?.saves,
+                      }}
+                      lang={lang}
+                      priceText={priceText}
+                      dateText={dateText}
+                      busy={busy}
+                      onMarkSold={() => markStatus(x.id, "sold")}
+                      onMarkActive={() => markStatus(x.id, "active")}
+                      onDelete={() => deleteListing(x.id)}
+                      canEdit={canEdit}
+                      editHref={`/dashboard/mis-anuncios/${x.id}/editar?lang=${lang}`}
+                    />
+                  );
+                }
 
                 return (
                   <div

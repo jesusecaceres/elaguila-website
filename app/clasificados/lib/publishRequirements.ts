@@ -6,6 +6,7 @@ import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/cate
 import { computeBienesRaicesPublishMetaOk } from "@/app/clasificados/bienes-raices/shared/publish/computeBienesRaicesPublishMetaOk";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 import { computeRentasPublishMetaOk } from "@/app/clasificados/rentas/publish/computeRentasPublishMetaOk";
+import { computeEnVentaPublishMetaOk } from "@/app/clasificados/en-venta/publish/computeEnVentaPublishMetaOk";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -42,11 +43,18 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
   const titleOk = s.title.length >= 5;
   const descOk = s.description.length >= 5;
   const cityOk = Boolean(s.cityCanonical);
-  const priceNum = (s.priceRaw ?? "").replace(/[^0-9.]/g, "");
+  const priceNumStr = (s.priceRaw ?? "").replace(/[^0-9.]/g, "");
+  const priceNum = Number(priceNumStr);
+  const enVentaNeg =
+    s.category === "en-venta" && (s.details.negotiable ?? "").trim() === "yes";
   const priceOk =
     s.category === "rentas" || s.category === "bienes-raices"
-      ? priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0
-      : s.isFree || (priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0);
+      ? priceNumStr !== "" && Number.isFinite(priceNum) && priceNum >= 0
+      : s.category === "en-venta"
+        ? enVentaNeg
+          ? s.priceRaw.trim() === "" || (Number.isFinite(priceNum) && priceNum >= 0)
+          : priceNumStr !== "" && Number.isFinite(priceNum) && priceNum > 0
+        : s.isFree || (priceNumStr !== "" && Number.isFinite(priceNum) && priceNum >= 0);
   const imagesOk = s.images.length >= 1;
   const bienesRaicesBranchEarly = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
   const isBienesRaicesNegocioContact = s.category === "bienes-raices" && bienesRaicesBranchEarly === "negocio";
@@ -66,12 +74,7 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
     /.+@.+\..+/.test(s.contactEmail.trim()) ||
     (isBienesRaicesNegocioContact && (brNegocioOfficeDigits.length === 10 || brNegocioBizEmailOk));
 
-  /** En Venta publish is gated (coming soon); keep snapshot validation permissive if category slips through. */
-  const ventaMarketplaceMetaOk =
-    s.category !== "en-venta" ||
-    (!!(s.details.rama ?? "").trim() &&
-      !!(s.details.itemType ?? "").trim() &&
-      !!(s.details.condition ?? "").trim());
+  const ventaMarketplaceMetaOk = s.category !== "en-venta" || computeEnVentaPublishMetaOk(s);
   const rentasMetaOk = computeRentasPublishMetaOk(s, contactOk);
   const bienesRaicesMetaOk = computeBienesRaicesPublishMetaOk(s);
 

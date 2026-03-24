@@ -21,7 +21,9 @@ import { serviciosDrawerFilters } from "../config/categoryConfig";
 import { BIENES_RAICES_SUBCATEGORIES, getBienesRaicesSubcategoryLabel } from "../bienes-raices/shared/fields/bienesRaicesTaxonomy";
 import { BienesRaicesListaCard } from "../bienes-raices/lista/BienesRaicesListaCard";
 import { BienesRaicesListaRow } from "../bienes-raices/lista/BienesRaicesListaRow";
-import { EnVentaComingSoon } from "../en-venta/EnVentaComingSoon";
+import { EnVentaListaCard } from "../en-venta/lista/EnVentaListaCard";
+import { EnVentaResultsEmpty } from "../en-venta/lista/EnVentaResultsEmpty";
+import { enVentaDeptChipText, enVentaSubChipText } from "../en-venta/filters/enVentaFilterChips";
 import newLogo from "../../../public/logo.png";
 
 import {
@@ -360,6 +362,12 @@ type Listing = {
   address?: string;
   businessName?: string;
   handle?: string; // e.g., @dealername
+
+  evDept?: string;
+  evSub?: string;
+  conditionKey?: string;
+  itemType?: string;
+  condition?: string;
 };
 
 const CATEGORY_LABELS: Record<CategoryKey, { es: string; en: string }> = {
@@ -1001,7 +1009,21 @@ function mapDbRowToListaListing(row: Record<string, unknown>): Listing | null {
   if (rt != null && String(rt).trim()) (out as { rentas_tier?: string }).rentas_tier = String(rt).trim();
   const stRow = row.status;
   if (stRow != null) (out as { status?: string }).status = String(stRow);
-  return base;
+
+  if (category === "en-venta" && Array.isArray(dp)) {
+    for (const p of dp as { label?: string; value?: string }[]) {
+      if (!p?.label || !p?.value) continue;
+      if (p.label === "Leonix:evSub") (out as { evSub?: string }).evSub = p.value.trim();
+      const lb = p.label.toLowerCase();
+      if (lb.includes("departamento") || lb.includes("department")) (out as { evDept?: string }).evDept = p.value.trim();
+      if (lb.includes("condición") || lb.includes("condicion") || (lb.includes("condition") && !lb.includes("air")))
+        (out as { conditionKey?: string }).conditionKey = p.value.trim();
+      if (lb.includes("artículo") || lb.includes("articulo") || (lb.includes("item") && lb.includes("type")))
+        (out as { itemType?: string }).itemType = p.value.trim();
+    }
+  }
+
+  return out as Listing;
 }
 
 function dedupeListingsById(items: Listing[]): Listing[] {
@@ -1223,6 +1245,8 @@ type VentaParams = {
   vtype: string;   // item type key or ""
   vneg: string;    // "yes" | ""
   vpostedToday: boolean;
+  evDept: string;
+  evSub: string;
 };
 
 const EMPTY_VENTA_PARAMS: VentaParams = {
@@ -1232,6 +1256,8 @@ const EMPTY_VENTA_PARAMS: VentaParams = {
   vtype: "",
   vneg: "",
   vpostedToday: false,
+  evDept: "",
+  evSub: "",
 };
 
 type VentaCondition = "new" | "like-new" | "good" | "fair";
@@ -1761,10 +1787,21 @@ function applyVentaParams(list: Listing[], vp: VentaParams): Listing[] {
     const title = x.title.es || x.title.en || "";
     const blurb = x.blurb.es || x.blurb.en || "";
 
+    const wantDept = (vp.evDept || "").trim().toLowerCase();
+    const wantSub = (vp.evSub || "").trim().toLowerCase();
+    if (wantDept) {
+      const got = ((x as Listing).evDept ?? "").trim().toLowerCase();
+      if (got !== wantDept) return false;
+    }
+    if (wantSub) {
+      const gotS = ((x as Listing).evSub ?? "").trim().toLowerCase();
+      if (gotS !== wantSub) return false;
+    }
+
     const explicitCond = (x as any).condition ? String((x as any).condition) : "";
     const inferredCond = inferVentaCondition(title, blurb, explicitCond);
-    const inferredType = (x as any).itemType
-      ? String((x as any).itemType).toLowerCase()
+    const inferredType = (x as Listing).itemType
+      ? String((x as Listing).itemType).toLowerCase()
       : inferVentaType(title, blurb);
 
     const inferredNeg = /(negociable|obo|best offer|mejor oferta|or best offer)/i.test(`${title} ${blurb}`);
@@ -2089,6 +2126,8 @@ useEffect(() => {
           vtype: get("vtype"),
           vneg: get("vneg"),
           vpostedToday: get("vpostedToday") === "1",
+          evDept: get("evDept"),
+          evSub: get("evSub"),
         });
       } else {
         setVentaParams(EMPTY_VENTA_PARAMS);
@@ -2264,6 +2303,8 @@ useEffect(() => {
         vtype: params?.get("vtype") ?? "",
         vneg: params?.get("vneg") ?? "",
         vpostedToday: params?.get("vpostedToday") === "1",
+        evDept: params?.get("evDept") ?? "",
+        evSub: params?.get("evSub") ?? "",
       });
     } else {
       setVentaParams(EMPTY_VENTA_PARAMS);
@@ -3215,6 +3256,20 @@ const visible = useMemo(() => {
 
     // ✓ En Venta chips (only show when in en-venta + has params)
     if (category === "en-venta") {
+      if (ventaParams.evDept) {
+        chips.push({
+          key: "evDept",
+          text: `${lang === "es" ? "Departamento" : "Department"}: ${enVentaDeptChipText(ventaParams.evDept, lang)}`,
+          clear: () => setVentaParams((p) => ({ ...p, evDept: "" })),
+        });
+      }
+      if (ventaParams.evSub) {
+        chips.push({
+          key: "evSub",
+          text: `${lang === "es" ? "Clasificación" : "Shelf"}: ${enVentaSubChipText(ventaParams.evDept, ventaParams.evSub, lang)}`,
+          clear: () => setVentaParams((p) => ({ ...p, evSub: "" })),
+        });
+      }
       if (ventaParams.vpmin) chips.push({ key: "vpmin", text: `${lang === "es" ? "Precio mín" : "Price min"}: $${ventaParams.vpmin}`, clear: () => setVentaParams((p) => ({ ...p, vpmin: "" })) });
       if (ventaParams.vpmax) chips.push({ key: "vpmax", text: `${lang === "es" ? "Precio máx" : "Price max"}: $${ventaParams.vpmax}`, clear: () => setVentaParams((p) => ({ ...p, vpmax: "" })) });
       if (ventaParams.vcond) chips.push({ key: "vcond", text: `${lang === "es" ? "Condición" : "Condition"}: ${ventaConditionLabel(ventaParams.vcond as any, lang)}`, clear: () => setVentaParams((p) => ({ ...p, vcond: "" })) });
@@ -3322,6 +3377,8 @@ const visible = useMemo(() => {
       vtype: category === "en-venta" && ventaParams.vtype ? ventaParams.vtype : null,
       vneg: category === "en-venta" && ventaParams.vneg ? ventaParams.vneg : null,
       vpostedToday: category === "en-venta" && ventaParams.vpostedToday ? "1" : null,
+      evDept: category === "en-venta" && ventaParams.evDept ? ventaParams.evDept : null,
+      evSub: category === "en-venta" && ventaParams.evSub ? ventaParams.evSub : null,
 
       // ✓ Clases params are preserved in URL only when cat=clases
       csub: category === "clases" && clasesParams.csub ? clasesParams.csub : null,
@@ -4314,154 +4371,6 @@ function RentasCard({
   );
 }
 
-/** En Venta card with hover expansion, mobile tap-to-expand, and engagement indicators */
-function EnVentaCard({
-  x,
-  lang,
-  isFav,
-  onToggleFav,
-  getHref,
-}: {
-  x: Listing;
-  lang: Lang;
-  isFav: boolean;
-  onToggleFav: (id: string) => void;
-  getHref: (x: Listing, lang: Lang) => string;
-}) {
-  const router = useRouter();
-  const [expanded, setExpanded] = useState(false);
-  const [touchDevice, setTouchDevice] = useState(false);
-  useEffect(() => {
-    setTouchDevice(typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
-  }, []);
-
-  const href = getHref(x, lang);
-  const boostUntil = (x as any).boostUntil as string | undefined;
-  const isBoosted = boostUntil && new Date(boostUntil).getTime() > Date.now();
-  const hasVideo = Boolean((x as any).hasVideo || (x as any).proVideoId);
-  const images = (x as any).images as string[] | undefined;
-  const imageCount = Array.isArray(images) ? images.length : x.hasImage ? 1 : 0;
-  const multiImage = Array.isArray(images) && images.length > 1;
-  const viewCount = typeof (x as any).viewCount === "number" ? (x as any).viewCount : null;
-  const viewsToday = typeof (x as any).viewsToday === "number" ? (x as any).viewsToday : null;
-  const orig = (x as any).original_price != null ? Number((x as any).original_price) : null;
-  const curr = (x as any).current_price != null ? Number((x as any).current_price) : null;
-  const priceDrop = orig != null && curr != null && curr < orig;
-  const isPopular = (viewsToday != null && viewsToday >= 5) || (viewCount != null && viewCount >= 20);
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    if (touchDevice) {
-      if (!expanded) {
-        e.preventDefault();
-        setExpanded(true);
-      } else {
-        e.preventDefault();
-        router.push(href);
-      }
-    }
-  };
-
-  return (
-    <a
-      key={x.id}
-      href={href}
-      onClick={touchDevice ? handleCardClick : undefined}
-      className={cx(
-        "group relative block overflow-hidden rounded-2xl border border-black/10 bg-[#F5F5F5]",
-        "transition-all duration-200 ease-out",
-        "hover:scale-[1.03] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(0,0,0,0.06)]",
-        "hover:-translate-y-[1px] hover:bg-[#EFEFEF]",
-        (touchDevice && expanded) && "ring-2 ring-[#A98C2A]/50 shadow-lg"
-      )}
-    >
-      {/* Image on top */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#E5E5E5]">
-        {x.hasImage ? (
-          <div className="h-full w-full bg-[url('/classifieds-placeholder-bilingual.png')] bg-cover bg-center transition-transform duration-200 group-hover:scale-105" />
-        ) : (
-          <div className="h-full w-full bg-[#E5E5E5]" />
-        )}
-        {hasVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <span className="rounded bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-              ▶ VIDEO
-            </span>
-          </div>
-        )}
-        {multiImage && (
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-            {images!.slice(0, 5).map((_, i) => (
-              <span key={i} className="h-1.5 w-1.5 rounded-full bg-white/80" aria-hidden />
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="p-3">
-        {isPopular && (
-          <div className="mb-1 text-[11px] font-semibold text-[#111111]">
-            🔥 {lang === "es" ? "Popular hoy" : "Popular today"}
-          </div>
-        )}
-        {isBoosted && (
-          <div className="mb-1 text-[11px] font-medium text-[#111111]">
-            🚀 {lang === "es" ? "Impulso de visibilidad" : "Visibility boost"}
-          </div>
-        )}
-        {priceDrop && (
-          <div className="mb-1 text-[11px] font-medium text-emerald-700">
-            ⬇ {lang === "es" ? "Precio reducido" : "Price drop"}
-          </div>
-        )}
-        <div className="text-lg font-extrabold text-[#111111]">{formatListingPrice(x.priceLabel[lang], { lang })}</div>
-        <div className="mt-0.5 line-clamp-2 text-base font-semibold text-[#111111]">{x.title[lang]}</div>
-        <div className="mt-1 text-sm text-[#111111]">{x.city}</div>
-        <div className="text-xs text-[#111111]/80">
-          {lang === "es" ? "Publicado" : "Posted"} {x.postedAgo[lang]}
-        </div>
-        {/* Media count */}
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#111111]/80">
-          {imageCount > 0 && (
-            <span>📷 {imageCount} {lang === "es" ? "fotos" : "photos"}</span>
-          )}
-          {hasVideo && (
-            <span>🎥 {lang === "es" ? "video incluido" : "video included"}</span>
-          )}
-        </div>
-        {/* Expanded / hover indicators */}
-        <div
-          className={cx(
-            "mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#111111]/70",
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            touchDevice && expanded && "opacity-100"
-          )}
-        >
-          {viewCount != null && (
-            <span>👁 {viewCount} {lang === "es" ? "vistas" : "views"}</span>
-          )}
-          {imageCount > 0 && <span>📷 {imageCount}</span>}
-          {isBoosted && <span>🚀</span>}
-          {priceDrop && <span>⬇</span>}
-        </div>
-        {touchDevice && expanded && (
-          <div className="mt-2 text-center">
-            <span className="inline-block rounded-full bg-[#111111] px-4 py-1.5 text-xs font-semibold text-white">
-              {lang === "es" ? "Toca de nuevo para ver" : "Tap again to view"}
-            </span>
-          </div>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFav(x.id); }}
-        className="absolute right-2 top-2 z-10 rounded-full border border-black/10 bg-white/90 p-1.5 shadow hover:bg-white"
-        aria-label={isFav ? (lang === "es" ? "Quitar de favoritos" : "Remove favorite") : (lang === "es" ? "Guardar favorito" : "Save favorite")}
-      >
-        {isFav ? "★" : "☆"}
-      </button>
-    </a>
-  );
-}
-
 const ListingCardGrid = (x: Listing) => {
   const isFav = favIds.has(x.id);
   const isAutos = x.category === "autos";
@@ -4473,13 +4382,26 @@ const ListingCardGrid = (x: Listing) => {
   const tier = inferVisualTier(x);
 
   if (isEnVenta) {
+    const imgs = (x as { images?: string[] }).images;
     return (
-      <EnVentaCard
-        x={x}
+      <EnVentaListaCard
+        x={{
+          id: x.id,
+          title: x.title,
+          priceLabel: x.priceLabel,
+          city: x.city,
+          postedAgo: x.postedAgo,
+          hasImage: x.hasImage,
+          images: Array.isArray(imgs) ? imgs : undefined,
+          evDept: x.evDept,
+          evSub: x.evSub,
+          itemType: x.itemType,
+          conditionKey: x.conditionKey ?? x.condition,
+        }}
         lang={lang}
         isFav={isFav}
         onToggleFav={toggleFav}
-        getHref={getListingHref}
+        href={getListingHref(x, lang)}
       />
     );
   }
@@ -5024,15 +4946,6 @@ const serviceTags = isServicios ? serviceTagsFromText(x.title[lang], x.blurb[lan
   );
 };
 
-
-  if (category === "en-venta") {
-    return (
-      <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-28 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
-        <Navbar />
-        <EnVentaComingSoon variant="lista" lang={lang} showNavbar={false} />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-28 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">

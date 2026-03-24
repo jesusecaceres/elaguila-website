@@ -1,207 +1,117 @@
 /**
- * En Venta taxonomy: subcategories and artículo options per subcategory.
- * Single source of truth for the publish form (Subcategoría + Artículo).
- * Clean Spanish UI labels; no slang. Search synonyms live elsewhere.
+ * En Venta taxonomy — single import surface for config + publish + lista delegates.
+ * `EN_VENTA_SUBCATEGORIES` remains the schema/publish “rama” list (here: departments).
  */
 
-export type SubcategoryOption = {
-  key: string;
-  label: { es: string; en: string };
-};
+import { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
+import { getSubcategoriesForDept } from "../../taxonomy/subcategories";
+export { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
+export { EN_VENTA_SUBCATEGORY_ROWS, getSubcategoriesForDept, findSubcategory } from "../../taxonomy/subcategories";
+export { expandEnVentaSearchTerms, inferDeptFromQuery, KEYWORD_TO_DEPT_HINT } from "../../taxonomy/synonyms";
+export { getEnVentaAttributeFields, type EnVentaAttributeField } from "../../taxonomy/attributeMatrix";
 
-export type ArticuloOption = {
-  value: string;
-  label: { es: string; en: string };
-};
+/** Back-compat: category schema + publish “rama” = department. */
+export const EN_VENTA_SUBCATEGORIES = EN_VENTA_DEPARTMENTS.map((d) => ({
+  key: d.key,
+  label: d.label,
+}));
 
-/** Article options can be flat or grouped (e.g. Vehículos y partes: Vehículos | Autopartes). */
-export type ArticuloOptionGroup = {
-  groupLabel: { es: string; en: string };
-  options: ArticuloOption[];
-};
-
-export type ArticuloOptionsResult =
-  | { type: "flat"; options: ArticuloOption[] }
-  | { type: "grouped"; groups: ArticuloOptionGroup[] };
-
-/** Subcategories for En Venta. Order and keys drive the Subcategoría dropdown. */
-export const EN_VENTA_SUBCATEGORIES: SubcategoryOption[] = [
-  { key: "electronicos", label: { es: "Electrónicos", en: "Electronics" } },
-  { key: "hogar", label: { es: "Hogar", en: "Home" } },
-  { key: "muebles", label: { es: "Muebles", en: "Furniture" } },
-  { key: "ropa-accesorios", label: { es: "Ropa y accesorios", en: "Clothing & accessories" } },
-  { key: "bebes-ninos", label: { es: "Bebés y niños", en: "Babies & kids" } },
-  { key: "herramientas", label: { es: "Herramientas", en: "Tools" } },
-  { key: "vehiculos-partes", label: { es: "Vehículos y partes", en: "Vehicles & parts" } },
-  { key: "deportes", label: { es: "Deportes", en: "Sports" } },
-  { key: "juguetes-juegos", label: { es: "Juguetes y juegos", en: "Toys & games" } },
-  { key: "coleccionables", label: { es: "Coleccionables", en: "Collectibles" } },
-  { key: "musica-foto-video", label: { es: "Música / foto / video", en: "Music / photo / video" } },
-  { key: "otros", label: { es: "Otros", en: "Other" } },
-];
-
-/** Artículo options for "Vehículos y partes": two groups. */
-const ARTICULOS_VEHICULOS_PARTES: ArticuloOptionGroup[] = [
-  {
-    groupLabel: { es: "Vehículos", en: "Vehicles" },
-    options: [
-      { value: "carros", label: { es: "Carros", en: "Cars" } },
-      { value: "camionetas", label: { es: "Camionetas", en: "Trucks / pickups" } },
-      { value: "motocicletas", label: { es: "Motocicletas", en: "Motorcycles" } },
-      { value: "botes", label: { es: "Botes", en: "Boats" } },
-      { value: "rvs", label: { es: "RVs", en: "RVs" } },
-      { value: "vehiculos-comerciales", label: { es: "Vehículos comerciales", en: "Commercial vehicles" } },
-    ],
-  },
-  {
-    groupLabel: { es: "Autopartes", en: "Auto parts" },
-    options: [
-      { value: "llantas", label: { es: "Llantas", en: "Tires" } },
-      { value: "rines", label: { es: "Rines", en: "Rims" } },
-      { value: "accesorios-carro", label: { es: "Accesorios para carro", en: "Car accessories" } },
-      { value: "partes-motor", label: { es: "Partes de motor", en: "Engine parts" } },
-    ],
-  },
-];
-
-/** Flat artículo options per subcategory (existing ramas). */
-const ARTICULOS_FLAT: Record<string, ArticuloOption[]> = {
-  electronicos: [
-    { value: "celular", label: { es: "Celular", en: "Phone" } },
-    { value: "laptop", label: { es: "Laptop", en: "Laptop" } },
-    { value: "tablet", label: { es: "Tablet", en: "Tablet" } },
-    { value: "tv", label: { es: "TV", en: "TV" } },
-    { value: "bocina", label: { es: "Bocina", en: "Speaker" } },
-    { value: "audifonos", label: { es: "Audífonos", en: "Headphones" } },
-    { value: "camara", label: { es: "Cámara", en: "Camera" } },
-    { value: "videojuego-consola", label: { es: "Videojuego / consola", en: "Video game / console" } },
-    { value: "accesorios", label: { es: "Accesorios", en: "Accessories" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  hogar: [
-    { value: "electrodomestico", label: { es: "Electrodoméstico", en: "Appliance" } },
-    { value: "decoracion", label: { es: "Decoración", en: "Decor" } },
-    { value: "cocina", label: { es: "Cocina", en: "Kitchen" } },
-    { value: "organizacion", label: { es: "Organización", en: "Organization" } },
-    { value: "limpieza", label: { es: "Limpieza", en: "Cleaning" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  muebles: [
-    { value: "sofa", label: { es: "Sofá", en: "Sofa" } },
-    { value: "mesa", label: { es: "Mesa", en: "Table" } },
-    { value: "silla", label: { es: "Silla", en: "Chair" } },
-    { value: "cama", label: { es: "Cama", en: "Bed" } },
-    { value: "comoda", label: { es: "Cómoda", en: "Dresser" } },
-    { value: "escritorio", label: { es: "Escritorio", en: "Desk" } },
-    { value: "estante", label: { es: "Estante", en: "Shelf" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  "ropa-accesorios": [
-    { value: "camisa", label: { es: "Camisa", en: "Shirt" } },
-    { value: "pantalon", label: { es: "Pantalón", en: "Pants" } },
-    { value: "zapatos", label: { es: "Zapatos", en: "Shoes" } },
-    { value: "bolsa", label: { es: "Bolsa", en: "Bag" } },
-    { value: "joyeria", label: { es: "Joyería", en: "Jewelry" } },
-    { value: "accesorios", label: { es: "Accesorios", en: "Accessories" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  "bebes-ninos": [
-    { value: "ropa", label: { es: "Ropa", en: "Clothing" } },
-    { value: "juguete", label: { es: "Juguete", en: "Toy" } },
-    { value: "carriola", label: { es: "Carriola", en: "Stroller" } },
-    { value: "cuna", label: { es: "Cuna", en: "Crib" } },
-    { value: "silla-carro", label: { es: "Silla para carro", en: "Car seat" } },
-    { value: "accesorios", label: { es: "Accesorios", en: "Accessories" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  herramientas: [
-    { value: "taladro", label: { es: "Taladro", en: "Drill" } },
-    { value: "caja-herramientas", label: { es: "Caja de herramientas", en: "Toolbox" } },
-    { value: "sierra", label: { es: "Sierra", en: "Saw" } },
-    { value: "generador", label: { es: "Generador", en: "Generator" } },
-    { value: "jardineria", label: { es: "Jardinería", en: "Gardening" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  deportes: [
-    { value: "bicicleta", label: { es: "Bicicleta", en: "Bicycle" } },
-    { value: "pesas", label: { es: "Pesas", en: "Weights" } },
-    { value: "equipo", label: { es: "Equipo", en: "Equipment" } },
-    { value: "ropa-deportiva", label: { es: "Ropa deportiva", en: "Sportswear" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  "juguetes-juegos": [
-    { value: "juguetes", label: { es: "Juguetes", en: "Toys" } },
-    { value: "juegos-mesa", label: { es: "Juegos de mesa", en: "Board games" } },
-    { value: "consola", label: { es: "Consola", en: "Console" } },
-    { value: "videojuego", label: { es: "Videojuego", en: "Video game" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  coleccionables: [
-    { value: "monedas", label: { es: "Monedas", en: "Coins" } },
-    { value: "tarjetas", label: { es: "Tarjetas", en: "Cards" } },
-    { value: "antiguedades", label: { es: "Antigüedades", en: "Antiques" } },
-    { value: "figuras", label: { es: "Figuras", en: "Figures" } },
-    { value: "memorabilia", label: { es: "Memorabilia", en: "Memorabilia" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  "musica-foto-video": [
-    { value: "instrumento", label: { es: "Instrumento", en: "Instrument" } },
-    { value: "microfono", label: { es: "Micrófono", en: "Microphone" } },
-    { value: "camara", label: { es: "Cámara", en: "Camera" } },
-    { value: "lente", label: { es: "Lente", en: "Lens" } },
-    { value: "iluminacion", label: { es: "Iluminación", en: "Lighting" } },
-    { value: "audio", label: { es: "Audio", en: "Audio" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-  otros: [{ value: "otro", label: { es: "Otro", en: "Other" } }],
-  /** Legacy: drafts saved with "auto-partes" still resolve. Not shown in subcategory dropdown. */
-  "auto-partes": [
-    { value: "llantas", label: { es: "Llantas", en: "Tires" } },
-    { value: "rines", label: { es: "Rines", en: "Rims" } },
-    { value: "bateria", label: { es: "Batería", en: "Battery" } },
-    { value: "luces", label: { es: "Luces", en: "Lights" } },
-    { value: "estereo", label: { es: "Estéreo", en: "Stereo" } },
-    { value: "accesorios", label: { es: "Accesorios", en: "Accessories" } },
-    { value: "otro", label: { es: "Otro", en: "Other" } },
-  ],
-};
-
-/**
- * Returns artículo options for a subcategory. Use for the Artículo dropdown.
- * For "vehiculos-partes" returns grouped options (Vehículos | Autopartes); otherwise flat.
- */
-export function getArticuloOptionsForSubcategory(subcategoryKey: string): ArticuloOptionsResult {
-  if (subcategoryKey === "vehiculos-partes") {
-    return { type: "grouped", groups: ARTICULOS_VEHICULOS_PARTES };
-  }
-  const flat = ARTICULOS_FLAT[subcategoryKey] ?? [];
-  return { type: "flat", options: flat };
-}
-
-/**
- * Resolves artículo display label for a given subcategory + value (e.g. for detail pairs / preview).
- */
-export function getArticuloLabel(
-  subcategoryKey: string,
-  itemTypeValue: string,
-  lang: "es" | "en"
-): string {
-  const result = getArticuloOptionsForSubcategory(subcategoryKey);
-  if (result.type === "flat") {
-    const opt = result.options.find((o) => o.value === itemTypeValue);
-    return opt ? opt.label[lang] : itemTypeValue;
-  }
-  for (const g of result.groups) {
-    const opt = g.options.find((o) => o.value === itemTypeValue);
-    if (opt) return opt.label[lang];
-  }
-  return itemTypeValue;
-}
-
-/** Publish form (Basics): condition dropdown for En Venta detail fields. */
-export const EN_VENTA_PUBLISH_CONDITION_OPTIONS: Array<{ value: string; labelEs: string; labelEn: string }> = [
+export const EN_VENTA_PUBLISH_CONDITION_OPTIONS = [
   { value: "new", labelEs: "Nuevo", labelEn: "New" },
   { value: "like-new", labelEs: "Como nuevo", labelEn: "Like new" },
-  { value: "good", labelEs: "Buen estado", labelEn: "Good" },
+  { value: "good", labelEs: "Bueno", labelEn: "Good" },
   { value: "fair", labelEs: "Regular", labelEn: "Fair" },
-];
+] as const;
+
+export type EnVentaConditionValue = (typeof EN_VENTA_PUBLISH_CONDITION_OPTIONS)[number]["value"];
+
+const ARTICLES: Record<EnVentaDepartmentKey, Array<{ value: string; label: { es: string; en: string } }>> = {
+  electronicos: [
+    { value: "phone", label: { es: "Teléfono", en: "Phone" } },
+    { value: "tablet", label: { es: "Tablet", en: "Tablet" } },
+    { value: "laptop", label: { es: "Laptop / PC", en: "Laptop / PC" } },
+    { value: "desktop", label: { es: "Escritorio", en: "Desktop" } },
+    { value: "tv", label: { es: "TV", en: "TV" } },
+    { value: "audio", label: { es: "Audio", en: "Audio" } },
+    { value: "wearable", label: { es: "Wearable", en: "Wearable" } },
+    { value: "other-el", label: { es: "Otro electrónico", en: "Other electronics" } },
+  ],
+  hogar: [
+    { value: "kitchen", label: { es: "Cocina", en: "Kitchen" } },
+    { value: "decor", label: { es: "Decoración", en: "Decor" } },
+    { value: "bath", label: { es: "Baño", en: "Bath" } },
+    { value: "garden", label: { es: "Jardín", en: "Garden" } },
+    { value: "other-hogar", label: { es: "Otro hogar", en: "Other home" } },
+  ],
+  muebles: [
+    { value: "sofa", label: { es: "Sofá / sala", en: "Sofa / living" } },
+    { value: "bed", label: { es: "Cama / recámara", en: "Bed / bedroom" } },
+    { value: "desk", label: { es: "Escritorio / oficina", en: "Desk / office" } },
+    { value: "storage", label: { es: "Almacenaje", en: "Storage" } },
+    { value: "other-mueble", label: { es: "Otro mueble", en: "Other furniture" } },
+  ],
+  "ropa-accesorios": [
+    { value: "tops", label: { es: "Ropa superior", en: "Tops" } },
+    { value: "bottoms", label: { es: "Ropa inferior", en: "Bottoms" } },
+    { value: "shoes", label: { es: "Calzado", en: "Footwear" } },
+    { value: "bags", label: { es: "Bolsas / mochilas", en: "Bags" } },
+    { value: "other-ropa", label: { es: "Otro", en: "Other" } },
+  ],
+  "bebes-ninos": [
+    { value: "gear", label: { es: "Equipo (coche, silla)", en: "Gear (stroller, seat)" } },
+    { value: "clothes-kids", label: { es: "Ropa infantil", en: "Kids clothes" } },
+    { value: "toys-small", label: { es: "Juguetes", en: "Toys" } },
+    { value: "other-ninos", label: { es: "Otro", en: "Other" } },
+  ],
+  herramientas: [
+    { value: "hand", label: { es: "Manuales", en: "Hand tools" } },
+    { value: "power", label: { es: "Eléctricas", en: "Power tools" } },
+    { value: "other-tools", label: { es: "Otro", en: "Other" } },
+  ],
+  "vehiculos-partes": [
+    { value: "wheels", label: { es: "Llantas / rines", en: "Wheels / tires" } },
+    { value: "audio-car", label: { es: "Audio / electrónica", en: "Audio / electronics" } },
+    { value: "parts", label: { es: "Partes / accesorios", en: "Parts / accessories" } },
+    { value: "other-auto", label: { es: "Otro", en: "Other" } },
+  ],
+  deportes: [
+    { value: "bike", label: { es: "Bicicleta", en: "Bicycle" } },
+    { value: "fitness", label: { es: "Fitness", en: "Fitness" } },
+    { value: "team", label: { es: "Deportes de equipo", en: "Team sports" } },
+    { value: "outdoor", label: { es: "Outdoor", en: "Outdoor" } },
+    { value: "other-sport", label: { es: "Otro", en: "Other" } },
+  ],
+  "juguetes-juegos": [
+    { value: "console", label: { es: "Consola / videojuegos", en: "Console / video games" } },
+    { value: "board", label: { es: "Juegos de mesa", en: "Board games" } },
+    { value: "other-game", label: { es: "Otro", en: "Other" } },
+  ],
+  coleccionables: [
+    { value: "art", label: { es: "Arte", en: "Art" } },
+    { value: "coins", label: { es: "Monedas / medallas", en: "Coins / medals" } },
+    { value: "memorabilia", label: { es: "Memorabilia", en: "Memorabilia" } },
+    { value: "other-coll", label: { es: "Otro", en: "Other" } },
+  ],
+  "musica-foto-video": [
+    { value: "instrument", label: { es: "Instrumento", en: "Instrument" } },
+    { value: "camera", label: { es: "Cámara / lentes", en: "Camera / lenses" } },
+    { value: "other-media", label: { es: "Otro", en: "Other" } },
+  ],
+  otros: [{ value: "misc", label: { es: "Artículo general", en: "General item" } }],
+};
+
+export function getArticulosForDepartment(deptKey: string) {
+  const k = deptKey.trim().toLowerCase() as EnVentaDepartmentKey;
+  return ARTICLES[k] ?? ARTICLES.otros;
+}
+
+export function getArticuloLabel(deptKey: string, articleValue: string, lang: "es" | "en"): string {
+  const opts = getArticulosForDepartment(deptKey);
+  const hit = opts.find((o) => o.value === articleValue.trim());
+  return hit ? hit.label[lang] : articleValue.trim();
+}
+
+export function departmentLabel(deptKey: string, lang: "es" | "en"): string {
+  const hit = EN_VENTA_DEPARTMENTS.find((d) => d.key === deptKey.trim().toLowerCase());
+  return hit ? hit.label[lang] : deptKey;
+}
