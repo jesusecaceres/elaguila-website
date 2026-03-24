@@ -136,6 +136,11 @@ export default function PreviewListingPage() {
     draft?.category === "bienes-raices" &&
     (draft?.branch === "negocio" || branchFromUrl === "negocio");
 
+  /** BR Privado: full-page owner preview — parity with negocio route (`branch=privado`). */
+  const isBrPrivadoFromContext =
+    draft?.category === "bienes-raices" &&
+    (draft?.branch === "privado" || branchFromUrl === "privado");
+
   const t = useMemo(
     () =>
       lang === "es"
@@ -282,6 +287,42 @@ export default function PreviewListingPage() {
               type="button"
               onClick={scrollToConfirmSection}
               className="shrink-0 rounded-xl border border-[#3F5A43]/60 bg-[#3F5A43] px-4 py-2 text-sm font-semibold text-[#F7F4EC] shadow-sm hover:bg-[#36503A] transition"
+            >
+              {t.publishGoToReview}
+            </button>
+          </div>
+        </div>
+        <div className="max-w-[min(100%,92rem)] mx-auto px-4 sm:px-8 lg:px-12 py-6 pb-10 w-full">
+          <ListingView
+            listing={draftListingData}
+            previewMode
+            hideProComparisonUI
+            brNegocioPreviewVariant="full"
+          />
+        </div>
+        <div className="max-w-[min(100%,92rem)] mx-auto px-4 sm:px-6 pb-14 w-full">{confirmSection}</div>
+      </main>
+    );
+  }
+
+  if (isBrPrivadoFromContext && draftListingData) {
+    return (
+      <main className="min-h-screen bg-[#F0F4F1] text-[#111111] overflow-x-hidden">
+        <Navbar />
+        <div className="sticky top-0 z-30 border-b border-emerald-900/15 bg-[#F7FAF7]/95 backdrop-blur-md shadow-sm">
+          <div className="max-w-[min(100%,92rem)] mx-auto flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3">
+            <button
+              type="button"
+              onClick={() => (draft?.backToEditUrl ? router.push(draft.backToEditUrl) : router.back())}
+              className="rounded-xl border border-emerald-800/25 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#111111] hover:bg-emerald-50/90 transition"
+            >
+              ← {t.backToEdit}
+            </button>
+            <span className="text-[11px] sm:text-sm text-[#111111]/50 text-center flex-1 min-w-[12rem]">{t.previewSubtitle}</span>
+            <button
+              type="button"
+              onClick={scrollToConfirmSection}
+              className="shrink-0 rounded-xl border border-[#2D5016]/80 bg-[#2D5016] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#244012] transition"
             >
               {t.publishGoToReview}
             </button>

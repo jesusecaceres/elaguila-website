@@ -21,6 +21,9 @@ export function BienesRaicesPrivadoSellerRail(props: {
       <h4 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-3">
         {lang === "es" ? "Contactar" : "Contact"}
       </h4>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-900/70 mb-2">
+        {lang === "es" ? "Leonix · Propietario" : "Leonix · Owner"}
+      </p>
       <p className="text-base font-semibold text-[#111111]">{sellerName}</p>
       {contactPhone && (
         <p className="mt-2 text-sm text-[#111111]">

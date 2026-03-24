@@ -2314,6 +2314,55 @@ for (let vi = 0; vi < videoLimit; vi++) {
     router,
   ]);
 
+  /** BR privado (media step): same full-page preview route as negocio — owner-led premium shell on `/clasificados/preview-listing`. */
+  const openBrPrivadoFullListingPreview = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!isBienesRaicesPrivado || step !== "media") return;
+    if (userId && typeof performDbSave === "function") {
+      void performDbSave();
+    }
+    const backToEditUrl = previewPublishReturnPath;
+    const snap = publishDraftSnapshot;
+    setPreviewDraft({
+      backToEditUrl,
+      lang,
+      category: "bienes-raices",
+      branch: "privado",
+      title: snap.title,
+      description: snap.description,
+      isFree: snap.isFree,
+      price: snap.priceRaw || "",
+      city: snap.city,
+      todayLabel: copy.todayLabel,
+      detailPairs: snap.detailPairs ?? [],
+      contactMethod: snap.contactMethod,
+      contactPhone: snap.contactPhone,
+      contactEmail: snap.contactEmail,
+      imageUrls: snap.images ?? [],
+      proVideoThumbUrl: snap.proVideoThumbUrl ?? null,
+      proVideoUrl: snap.proVideoUrl ?? null,
+      isPro: snap.isPro,
+      sellerName: sellerDisplayName ?? null,
+      businessRail: null,
+      businessRailTier: null,
+      ownerId: userId ?? null,
+      fullListingDataJson: JSON.stringify(fullPreviewListingData),
+    });
+    router.push(`/clasificados/preview-listing?lang=${lang}&branch=privado`);
+  }, [
+    isBienesRaicesPrivado,
+    step,
+    userId,
+    performDbSave,
+    previewPublishReturnPath,
+    publishDraftSnapshot,
+    lang,
+    copy.todayLabel,
+    sellerDisplayName,
+    fullPreviewListingData,
+    router,
+  ]);
+
   // Open in-page full preview modal. No route change, no auth round-trip. Preserves draft and form state.
   const openFullPreview = useCallback(() => {
     if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
@@ -3780,6 +3829,35 @@ for (let vi = 0; vi < videoLimit; vi++) {
                               )}
                             >
                               {publishing ? copy.publishing : copy.publish}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {isBienesRaicesPrivado && (
+                        <div className="rounded-2xl border border-emerald-800/20 bg-gradient-to-b from-[#F4FAF6] to-[#F5F5F5] p-4 sm:p-5 shadow-sm">
+                          <p className="text-sm font-semibold text-[#111111]">
+                            {lang === "es" ? "Revisión final (propietario)" : "Final review (owner)"}
+                          </p>
+                          <p className="mt-1 text-xs text-[#111111]/60">
+                            {lang === "es"
+                              ? "Abre la vista previa a pantalla completa — el mismo diseño premium que verán los compradores en Leonix."
+                              : "Open the full-page preview — the same premium layout buyers will see on Leonix."}
+                          </p>
+                          <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                            <button
+                              type="button"
+                              onClick={() => void openBrPrivadoFullListingPreview()}
+                              className="rounded-xl border border-[#2D5016]/80 bg-[#2D5016] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#244012] transition"
+                            >
+                              {lang === "es" ? "Ver anuncio" : "View listing"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => goToStep("basics")}
+                              className="rounded-xl border border-emerald-800/25 bg-white px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-emerald-50/80 transition"
+                            >
+                              {lang === "es" ? "Volver a editar" : "Back to edit"}
                             </button>
                           </div>
                         </div>
