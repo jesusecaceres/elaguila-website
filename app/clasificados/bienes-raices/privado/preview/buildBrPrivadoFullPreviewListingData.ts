@@ -1,5 +1,5 @@
 /**
- * BR privado: assemble `ListingData` for publish preview + `/clasificados/preview-listing`.
+ * BR privado: assemble `ListingData` for publish preview + `/clasificados/bienes-raices/preview`.
  */
 
 import type { ListingData } from "@/app/clasificados/components/ListingView";

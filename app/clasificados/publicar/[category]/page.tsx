@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import EnVentaPublicarPage from "@/app/clasificados/en-venta/publish/EnVentaPublicarPage";
-import BienesRaicesPublicarPage from "@/app/clasificados/bienes-raices/publish/BienesRaicesPublicarPage";
 import RentasPublicarPage from "@/app/clasificados/rentas/publish/RentasPublicarPage";
 import AutosPublicarPage from "@/app/clasificados/autos/publish/AutosPublicarPage";
 import RestaurantesPublicarPage from "@/app/clasificados/restaurantes/publish/RestaurantesPublicarPage";
@@ -40,7 +39,22 @@ export default function PublicarCategoryPage() {
     }
   }, [categoryFromUrl, lang, router]);
 
+  /** BR publish lives under `/clasificados/bienes-raices/publicar` — keep old `/publicar/bienes-raices` URLs working. */
+  useEffect(() => {
+    if (categoryFromUrl !== "bienes-raices") return;
+    const p = new URLSearchParams(searchParams?.toString() ?? "");
+    router.replace(`/clasificados/bienes-raices/publicar?${p.toString()}`);
+  }, [categoryFromUrl, router, searchParams]);
+
   if (!categoryFromUrl) {
+    return (
+      <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
+        {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
+      </main>
+    );
+  }
+
+  if (categoryFromUrl === "bienes-raices") {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
@@ -51,8 +65,6 @@ export default function PublicarCategoryPage() {
   switch (categoryFromUrl) {
     case "en-venta":
       return <EnVentaPublicarPage />;
-    case "bienes-raices":
-      return <BienesRaicesPublicarPage />;
     case "rentas":
       return <RentasPublicarPage />;
     case "autos":

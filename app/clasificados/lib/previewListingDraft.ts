@@ -1,6 +1,6 @@
 import type { BusinessRailData } from "@/app/clasificados/components/ListingView";
 
-/** SessionStorage key for the listing draft used by `/clasificados/preview-listing` (and legacy `/preview-listing` redirect). */
+/** SessionStorage key for full-page publish preview draft (BR: `/clasificados/bienes-raices/preview`; legacy non-BR: `/clasificados/preview-listing`). */
 export const PREVIEW_LISTING_DRAFT_KEY = "preview-listing-draft";
 
 /** Single normalized draft shape for seller preview. imageUrls = exact upload order (data URLs so they survive navigation). */

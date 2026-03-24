@@ -62,7 +62,7 @@ export function BienesRaicesAnuncioTopChrome({
           </div>
           <div>
             <a
-              href={`/clasificados/publicar/bienes-raices?lang=${lang}`}
+              href={`/clasificados/bienes-raices/publicar?lang=${lang}`}
               className="inline-block rounded-xl bg-[#2D5016] text-white px-4 py-2.5 text-sm font-semibold hover:bg-[#244012] transition"
             >
               {lang === "es" ? "Publicar" : "Post"}

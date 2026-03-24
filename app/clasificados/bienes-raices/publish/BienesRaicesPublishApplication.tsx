@@ -110,6 +110,15 @@ type DraftV1 = {
   updatedAt: string;
 };
 
+/** Canonical category-owned BR URLs (not `/clasificados/publicar/bienes-raices`). */
+const BR_PUBLICAR_PATH = "/clasificados/bienes-raices/publicar";
+const BR_PREVIEW_PATH = "/clasificados/bienes-raices/preview";
+
+function publicarPathForCategory(cat: CategoryKey | ""): string {
+  if (cat === "bienes-raices") return BR_PUBLICAR_PATH;
+  return `/clasificados/publicar/${cat}`;
+}
+
 function safeInternalRedirect(raw: string | null | undefined) {
   const v = (raw ?? "").trim();
   if (!v) return "";
@@ -327,13 +336,10 @@ export default function BienesRaicesPublishApplication() {
   }, [searchParams]);
 
   const redirectForLogin = useMemo(() => {
-    const slug = categoryFromUrl || "bienes-raices";
     const qs = searchParams?.toString() ?? "";
-    const here = qs
-      ? `/clasificados/publicar/${slug}?${qs}`
-      : `/clasificados/publicar/${slug}?lang=${lang}`;
-    return safeInternalRedirect(here) || `/clasificados/publicar/${slug}?lang=${lang}`;
-  }, [lang, searchParams, categoryFromUrl]);
+    const here = qs ? `${BR_PUBLICAR_PATH}?${qs}` : `${BR_PUBLICAR_PATH}?lang=${lang}`;
+    return safeInternalRedirect(here) || `${BR_PUBLICAR_PATH}?lang=${lang}`;
+  }, [lang, searchParams]);
 
   /** Sync draftId in URL (canonical source for which draft is being edited). Preserves lang and other params. */
   const syncDraftIdInUrl = useCallback(
@@ -342,7 +348,7 @@ export default function BienesRaicesPublishApplication() {
       if (draftId) p.set("draftId", draftId);
       else p.delete("draftId");
       const qs = p.toString();
-      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "bienes-raices"}`;
+      const path = pathname ?? BR_PUBLICAR_PATH;
       router.replace(qs ? `${path}?${qs}` : path);
     },
     [router, pathname, searchParams, categoryFromUrl]
@@ -387,7 +393,7 @@ export default function BienesRaicesPublishApplication() {
         if (br === "privado" || br === "negocio") p.set("branch", br);
         else p.delete("branch");
       }
-      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "bienes-raices"}`;
+      const path = pathname ?? BR_PUBLICAR_PATH;
       router.replace(`${path}?${p.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams, categoryFromUrl]
@@ -403,7 +409,7 @@ export default function BienesRaicesPublishApplication() {
         if (br === "privado" || br === "negocio") p.set("branch", br);
         else p.delete("branch");
       }
-      const path = pathname ?? `/clasificados/publicar/${categoryFromUrl || "bienes-raices"}`;
+      const path = pathname ?? BR_PUBLICAR_PATH;
       router.push(`${path}?${p.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams, categoryFromUrl]
@@ -415,7 +421,7 @@ export default function BienesRaicesPublishApplication() {
       if (categoryFromUrl !== "bienes-raices") return;
       const p = new URLSearchParams(searchParams?.toString() ?? "");
       p.set("branch", branch);
-      const path = pathname ?? `/clasificados/publicar/bienes-raices`;
+      const path = pathname ?? BR_PUBLICAR_PATH;
       router.replace(`${path}?${p.toString()}`);
     },
     [router, pathname, searchParams, categoryFromUrl]
@@ -1180,7 +1186,7 @@ export default function BienesRaicesPublishApplication() {
               const p = new URLSearchParams(searchParams?.toString() ?? "");
               p.set("draftId", row.id);
               if (!p.has("lang")) p.set("lang", lang);
-              router.replace(`/clasificados/publicar/${draftCat}?${p.toString()}`);
+              router.replace(`${publicarPathForCategory(draftCat)}?${p.toString()}`);
               return;
             }
             applyDraftPayloadFromDb(row.draft_data as DraftDataPayload);
@@ -1326,7 +1332,7 @@ export default function BienesRaicesPublishApplication() {
               const brBranch = (payload.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
               if (brBranch === "privado" || brBranch === "negocio") p.set("branch", brBranch);
             }
-            router.replace(`/clasificados/publicar/${draftCat}?${p.toString()}`);
+            router.replace(`${publicarPathForCategory(draftCat)}?${p.toString()}`);
             return;
           }
           applyDraftPayloadFromDb(payload);
@@ -1354,7 +1360,7 @@ export default function BienesRaicesPublishApplication() {
           const brBranch = (parsed.details as Record<string, string> | undefined)?.bienesRaicesBranch?.trim().toLowerCase();
           if (brBranch === "privado" || brBranch === "negocio") p.set("branch", brBranch);
         }
-        router.replace(`/clasificados/publicar/${parsedCat}?${p.toString()}`);
+        router.replace(`${publicarPathForCategory(parsedCat)}?${p.toString()}`);
         return;
       }
       applyDraftToForm(parsed);
@@ -2267,7 +2273,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     [publishDraftSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
   );
 
-  /** BR negocio (media step): full-page preview via `/clasificados/preview-listing` — same `BienesRaicesPreviewNegocioFresh` shell as embedded preview. */
+  /** BR negocio (media step): full-page preview on `/clasificados/bienes-raices/preview` — same shell as embedded preview. */
   const openBrNegocioFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesNegocio || step !== "media") return;
@@ -2301,7 +2307,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId ?? null,
       fullListingDataJson: JSON.stringify(fullPreviewListingData),
     });
-    router.push(`/clasificados/preview-listing?lang=${lang}&branch=negocio`);
+    router.push(`${BR_PREVIEW_PATH}?lang=${lang}&branch=negocio`);
   }, [
     isBienesRaicesNegocio,
     step,
@@ -2316,7 +2322,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     router,
   ]);
 
-  /** BR privado (media step): same full-page preview route as negocio — owner-led premium shell on `/clasificados/preview-listing`. */
+  /** BR privado (media step): same full-page preview route as negocio — owner-led premium shell on `/clasificados/bienes-raices/preview`. */
   const openBrPrivadoFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesPrivado || step !== "media") return;
@@ -2350,7 +2356,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
       ownerId: userId ?? null,
       fullListingDataJson: JSON.stringify(fullPreviewListingData),
     });
-    router.push(`/clasificados/preview-listing?lang=${lang}&branch=privado`);
+    router.push(`${BR_PREVIEW_PATH}?lang=${lang}&branch=privado`);
   }, [
     isBienesRaicesPrivado,
     step,
@@ -2454,7 +2460,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
                 {lang === "es" ? "Formulario disponible próximamente." : "Form available soon."}
               </p>
               <Link
-                href={`/clasificados/publicar/bienes-raices${lang ? `?lang=${lang}` : ""}`}
+                href={`${BR_PUBLICAR_PATH}${lang ? `?lang=${lang}` : ""}`}
                 className="mt-4 inline-block rounded-xl bg-[#A98C2A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f7a24]"
               >
                 {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real Estate"}
@@ -3742,8 +3748,8 @@ for (let vi = 0; vi < videoLimit; vi++) {
                         videoErrors={videoErrors}
                         proUpgradeHref={
                           categoryFromUrl === "bienes-raices"
-                            ? `/clasificados/publicar/bienes-raices/pro?lang=${lang}&return=${encodeURIComponent(
-                                `${pathname ?? "/clasificados/publicar/bienes-raices"}?lang=${lang}&step=media&fromPro=1`
+                            ? `/clasificados/bienes-raices/publicar/pro?lang=${lang}&return=${encodeURIComponent(
+                                `${pathname ?? BR_PUBLICAR_PATH}?lang=${lang}&step=media&fromPro=1`
                               )}`
                             : undefined
                         }
