@@ -8,23 +8,27 @@ import { inputClass, labelClass } from "../../../free/application/helpers/fieldC
 const COPY = {
   es: {
     title: "Contacto y redes",
-    desc: "Da más canales de contacto sin perder claridad.",
+    desc: "Enlaces públicos opcionales — ayudan a validar tu tienda sin llenar el formulario.",
     web: "Sitio web",
+    webH: "Tu tienda o catálogo si ya existe.",
     fb: "Facebook",
     ig: "Instagram",
     tt: "TikTok",
     yt: "YouTube",
     other: "Otro perfil / URL",
+    otherH: "Mercado, blog u otro enlace útil.",
   },
   en: {
     title: "Business links",
-    desc: "More ways to reach you — still En Venta, not a corporate portal.",
+    desc: "Optional public links — they help buyers trust you without bloating the form.",
     web: "Website",
+    webH: "Your shop or catalog if you already have one.",
     fb: "Facebook",
     ig: "Instagram",
     tt: "TikTok",
     yt: "YouTube",
     other: "Other profile URL",
+    otherH: "Another useful public link.",
   },
 } as const;
 
@@ -39,6 +43,7 @@ export function BusinessLinksSection({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className={labelClass}>{t.web}</label>
+          <p className="mt-1 text-xs text-white/55">{t.webH}</p>
           <input
             className={`${inputClass} mt-2`}
             value={state.website}
@@ -79,6 +84,7 @@ export function BusinessLinksSection({
         </div>
         <div className="sm:col-span-2">
           <label className={labelClass}>{t.other}</label>
+          <p className="mt-1 text-xs text-white/55">{t.otherH}</p>
           <input
             className={`${inputClass} mt-2`}
             value={state.otherProfileUrl}

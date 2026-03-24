@@ -8,33 +8,39 @@ import { inputClass, labelClass } from "../helpers/fieldCx";
 const COPY = {
   es: {
     title: "Vendedor y contacto",
-    desc: "Elige cómo quieres que te contacten los compradores.",
+    desc: "Datos de contacto claros generan más respuestas serias. Marca lo opcional sin miedo.",
     kind: "Tipo de vendedor",
     ind: "Persona",
     biz: "Negocio",
     name: "Nombre para mostrar",
+    nameH: "Cómo quieres aparecer frente a los compradores.",
     phone: "Teléfono",
     email: "Correo",
     wa: "WhatsApp (opcional)",
-    pref: "Método preferido",
+    waH: "Si lo dejas, los compradores pueden escribirte por WhatsApp.",
+    pref: "Método de contacto preferido",
     pPhone: "Teléfono",
     pEmail: "Correo",
-    pBoth: "Ambos",
+    pBoth: "Teléfono y correo",
+    pWa: "WhatsApp",
   },
   en: {
     title: "Seller & contact",
-    desc: "Choose how buyers should reach you.",
+    desc: "Clear contact details get more serious replies. Optional fields can stay blank.",
     kind: "Seller type",
     ind: "Individual",
     biz: "Business",
     name: "Display name",
+    nameH: "How you want to appear to buyers.",
     phone: "Phone",
     email: "Email",
     wa: "WhatsApp (optional)",
-    pref: "Preferred method",
+    waH: "If provided, buyers can reach you on WhatsApp.",
+    pref: "Preferred contact method",
     pPhone: "Phone",
     pEmail: "Email",
-    pBoth: "Both",
+    pBoth: "Phone & email",
+    pWa: "WhatsApp",
   },
 } as const;
 
@@ -65,6 +71,7 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
       </div>
       <div>
         <label className={labelClass}>{t.name}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{t.nameH}</p>
         <input
           className={`${inputClass} mt-2`}
           value={state.displayName}
@@ -94,6 +101,7 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
       </div>
       <div>
         <label className={labelClass}>{t.wa}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{t.waH}</p>
         <input
           className={`${inputClass} mt-2`}
           inputMode="tel"
@@ -103,6 +111,11 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
       </div>
       <div>
         <label className={labelClass}>{t.pref}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">
+          {lang === "es"
+            ? "Elige cómo prefieres que te contacten primero."
+            : "Choose how buyers should reach you first."}
+        </p>
         <select
           className={`${inputClass} mt-2`}
           value={state.contactMethod}
@@ -116,6 +129,7 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
           <option value="phone">{t.pPhone}</option>
           <option value="email">{t.pEmail}</option>
           <option value="both">{t.pBoth}</option>
+          <option value="whatsapp">{t.pWa}</option>
         </select>
       </div>
     </SectionShell>

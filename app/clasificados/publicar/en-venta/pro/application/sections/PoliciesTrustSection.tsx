@@ -12,6 +12,10 @@ const COPY = {
     ret: "Notas de devolución / cambios",
     war: "Garantía (si aplica)",
     appt: "Citas / visitas",
+    del: "Notas de entrega / envío",
+    delH: "Tiempos, costos o zonas de envío para este anuncio.",
+    pick: "Notas de recogida",
+    pickH: "Cómo coordinar recogida o qué esperar al recoger.",
     bio: "Bio del vendedor",
     exp: "Experiencia / historial",
     lang: "Idiomas",
@@ -24,6 +28,10 @@ const COPY = {
     ret: "Return / exchange notes",
     war: "Warranty (if any)",
     appt: "Appointments / visits",
+    del: "Delivery / shipping notes",
+    delH: "Timing, cost, or zones for this listing.",
+    pick: "Pickup notes",
+    pickH: "How pickup works or what buyers should expect.",
     bio: "Seller bio",
     exp: "Experience / track record",
     lang: "Languages",
@@ -65,6 +73,26 @@ export function PoliciesTrustSection({
           value={state.appointmentNotes}
           onChange={(e) => setState((s) => ({ ...s, appointmentNotes: e.target.value }))}
         />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={labelClass}>{t.del}</label>
+          <p className="mt-1 text-xs text-white/45">{t.delH}</p>
+          <textarea
+            className={`${inputClass} mt-2 min-h-[72px]`}
+            value={state.deliveryPolicyNotes}
+            onChange={(e) => setState((s) => ({ ...s, deliveryPolicyNotes: e.target.value }))}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>{t.pick}</label>
+          <p className="mt-1 text-xs text-white/45">{t.pickH}</p>
+          <textarea
+            className={`${inputClass} mt-2 min-h-[72px]`}
+            value={state.pickupPolicyNotes}
+            onChange={(e) => setState((s) => ({ ...s, pickupPolicyNotes: e.target.value }))}
+          />
+        </div>
       </div>
       <div>
         <label className={labelClass}>{t.bio}</label>

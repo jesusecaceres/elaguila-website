@@ -7,6 +7,8 @@ import {
   EN_VENTA_PUBLICAR_FREE,
   EN_VENTA_PUBLICAR_HUB,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
+import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
 import { BasicInfoSection } from "../../free/application/sections/BasicInfoSection";
 import { ConditionSection } from "../../free/application/sections/ConditionSection";
@@ -79,12 +81,23 @@ export default function LeonixEnVentaProApplication() {
           </div>
         </div>
 
+        <div className="mb-6">
+          <EnVentaPlanIntakeCallout lang={lang} plan="pro" />
+        </div>
+
         <div className="space-y-6 [&_section]:border-white/10 [&_section]:bg-[#1a1a1a] [&_h2]:text-white [&_label]:text-white/55 [&_input]:border-white/15 [&_input]:bg-[#111111] [&_input]:text-white [&_select]:border-white/15 [&_select]:bg-[#111111] [&_select]:text-white [&_textarea]:border-white/15 [&_textarea]:bg-[#111111] [&_textarea]:text-white [&_p]:text-white/65">
           <CategorySelectionSection lang={lang} state={state} setState={setState} />
           <SellerBusinessSection lang={lang} state={state} setState={setState} />
           <BasicInfoSection lang={lang} state={state} setState={setState} />
           <ConditionSection lang={lang} state={state} setState={setState} />
-          <PhotosSection lang={lang} state={state} setState={setState} />
+          <PhotosSection
+            lang={lang}
+            state={state}
+            setState={setState}
+            maxPhotos={12}
+            allowVideo
+            surface="dark"
+          />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <BusinessContactProSection lang={lang} state={state} setState={setState} />
@@ -93,6 +106,16 @@ export default function LeonixEnVentaProApplication() {
           <InventoryDetailsSection lang={lang} state={state} setState={setState} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
           <PoliciesTrustSection lang={lang} state={state} setState={setState} />
+          <ListingRulesConfirmationSection
+            lang={lang}
+            variant="dark"
+            confirmAccurate={state.confirmListingAccurate}
+            confirmPhotos={state.confirmPhotosRepresentItem}
+            confirmRules={state.confirmCommunityRules}
+            onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+            onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
+            onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+          />
         </div>
 
         <p className="mt-8 text-center text-xs text-white/45">{copy.draft}</p>

@@ -7,6 +7,8 @@ import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
+import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { createEmptyEnVentaFreeState } from "./schema/enVentaFreeFormState";
 import { CategorySelectionSection } from "./sections/CategorySelectionSection";
 import { BasicInfoSection } from "./sections/BasicInfoSection";
@@ -74,15 +76,34 @@ export default function LeonixEnVentaFreeApplication() {
           </div>
         </div>
 
+        <div className="mb-6">
+          <EnVentaPlanIntakeCallout lang={lang} plan="free" />
+        </div>
+
         <div className="space-y-6">
           <CategorySelectionSection lang={lang} state={state} setState={setState} />
           <BasicInfoSection lang={lang} state={state} setState={setState} />
           <ConditionSection lang={lang} state={state} setState={setState} />
-          <PhotosSection lang={lang} state={state} setState={setState} />
+          <PhotosSection
+            lang={lang}
+            state={state}
+            setState={setState}
+            maxPhotos={3}
+            allowVideo={false}
+          />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
+          <ListingRulesConfirmationSection
+            lang={lang}
+            confirmAccurate={state.confirmListingAccurate}
+            confirmPhotos={state.confirmPhotosRepresentItem}
+            confirmRules={state.confirmCommunityRules}
+            onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
+            onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
+            onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+          />
         </div>
 
         <p className="mt-8 text-center text-xs text-[#111111]/55">{copy.draft}</p>

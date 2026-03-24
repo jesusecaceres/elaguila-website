@@ -25,9 +25,14 @@ export type EnVentaProApplicationState = EnVentaFreeApplicationState & {
   returnNotes: string;
   warrantyNotes: string;
   appointmentNotes: string;
+  deliveryPolicyNotes: string;
+  pickupPolicyNotes: string;
   sku: string;
   internalRef: string;
   inventoryQty: string;
+  inventoryNotes: string;
+  /** Optional self-ID: sells regularly as a business on the marketplace. */
+  repeatSellerIndicator: boolean;
   storePolicyNotes: string;
   sellerBio: string;
   storeExperience: string;
@@ -59,9 +64,13 @@ export function createEmptyEnVentaProState(): EnVentaProApplicationState {
     returnNotes: "",
     warrantyNotes: "",
     appointmentNotes: "",
+    deliveryPolicyNotes: "",
+    pickupPolicyNotes: "",
     sku: "",
     internalRef: "",
     inventoryQty: "",
+    inventoryNotes: "",
+    repeatSellerIndicator: false,
     storePolicyNotes: "",
     sellerBio: "",
     storeExperience: "",

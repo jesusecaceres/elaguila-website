@@ -8,7 +8,7 @@ import { inputClass, labelClass } from "../helpers/fieldCx";
 const COPY = {
   es: {
     title: "Detalles del artículo",
-    desc: "Detalles específicos según categoría (extensible con la taxonomía).",
+    desc: "Especificaciones o matices que un comprador necesita para decidir. Opcional salvo lo que marque la categoría.",
     cond: "Detalle de condición",
     condH: "Menciona imperfecciones visibles.",
     extra: "Detalles adicionales",
@@ -16,7 +16,7 @@ const COPY = {
   },
   en: {
     title: "Item details",
-    desc: "Category-specific details (extensible via taxonomy).",
+    desc: "Specs or nuances buyers need to decide. Optional unless your category requires them.",
     cond: "Condition detail",
     condH: "Call out visible imperfections.",
     extra: "Additional details",
