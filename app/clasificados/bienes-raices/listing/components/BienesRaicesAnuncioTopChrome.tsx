@@ -2,6 +2,10 @@
 
 import type { BrAnuncioLang } from "../types/brAnuncioLiveTypes";
 
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
 const SECTIONS_PRIVADO = [
   { id: "resumen", es: "Resumen", en: "Summary" },
   { id: "detalles", es: "Detalles", en: "Details" },
@@ -32,8 +36,24 @@ export function BienesRaicesAnuncioTopChrome({
     <>
       <header className="mt-8 rounded-2xl border border-[#C9B46A]/25 bg-[#FAFAF8] shadow-sm overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <span className="text-lg font-bold text-[#111111]">{lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}</span>
+            <span
+              className={cx(
+                "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                variant === "negocio"
+                  ? "border-[#C9B46A]/45 bg-[#FAF3E4] text-[#5C4D1F]"
+                  : "border-emerald-800/25 bg-emerald-50/95 text-emerald-950"
+              )}
+            >
+              {variant === "negocio"
+                ? lang === "es"
+                  ? "Bienes Raíces · Negocio"
+                  : "Real estate · Business"
+                : lang === "es"
+                  ? "Bienes Raíces · Propietario"
+                  : "Real estate · Owner"}
+            </span>
           </div>
           <div className="flex-1 min-w-0 max-w-md mx-auto">
             <div className="rounded-xl border border-[#C9B46A]/30 bg-white/90 px-4 py-2.5 text-sm text-[#111111]/60">

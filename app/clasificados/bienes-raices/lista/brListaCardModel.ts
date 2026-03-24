@@ -105,6 +105,8 @@ export type BienesRaicesListaCardModel = {
   brPlanTier: "business_standard" | "business_plus" | null;
   businessName: string;
   agentName: string;
+  /** Brokerage / office brand from `business_meta.negocioNombreCorreduria` when present. */
+  brokerageName: string;
   quickFacts: Array<{ label: string; value: string; icon: string }>;
   highlightChips: string[];
   addressLine: string;
@@ -113,6 +115,20 @@ export type BienesRaicesListaCardModel = {
   approximateLocation: boolean;
   trustCaption: string | null;
 };
+
+/** Primary branch badge for grid/row cards (data-backed: seller type + plan tier). */
+export function brListaPrimaryBranchBadge(
+  lang: BrListaLang,
+  m: Pick<BienesRaicesListaCardModel, "isNegocio" | "brPlanTier">
+): string {
+  if (!m.isNegocio) {
+    return lang === "es" ? "Leonix · Propietario" : "Leonix · Owner";
+  }
+  if (m.brPlanTier === "business_plus") {
+    return lang === "es" ? "Leonix · Negocio" : "Leonix · Business";
+  }
+  return lang === "es" ? "Negocio" : "Business";
+}
 
 export function buildBienesRaicesListaCardModel(
   x: BienesRaicesListaListingLike,
@@ -151,6 +167,7 @@ export function buildBienesRaicesListaCardModel(
   )
     .trim();
   const agentName = (meta?.negocioAgente ?? "").trim();
+  const brokerageName = (meta?.negocioNombreCorreduria ?? "").trim();
 
   const highlightChips = highlightChipsFromFeatureTags(featureTags, lang);
 
@@ -159,9 +176,11 @@ export function buildBienesRaicesListaCardModel(
 
   const trustCaption = !isNegocio
     ? lang === "es"
-      ? "Publicado por el propietario"
-      : "Posted by the owner"
-    : null;
+      ? "Listado de propietario en Leonix"
+      : "Owner listing on Leonix"
+    : lang === "es"
+      ? "Listado comercial Leonix"
+      : "Leonix business listing";
 
   return {
     heroUrl,
@@ -172,6 +191,7 @@ export function buildBienesRaicesListaCardModel(
     brPlanTier,
     businessName,
     agentName,
+    brokerageName,
     quickFacts,
     highlightChips,
     addressLine,

@@ -2,6 +2,7 @@
 
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import {
+  brListaPrimaryBranchBadge,
   buildBienesRaicesListaCardModel,
   type BienesRaicesListaListingLike,
 } from "@/app/clasificados/bienes-raices/lista/brListaCardModel";
@@ -176,14 +177,23 @@ export function BienesRaicesListaCard(props: {
 
         <p className="mt-2 line-clamp-2 text-sm leading-snug text-[#111111]/80">{x.blurb[lang]}</p>
 
-        {m.isNegocio && (m.businessName || m.agentName) && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#111111]/80">
-            {m.businessName ? <span className="max-w-[200px] truncate font-semibold text-[#111111]">{m.businessName}</span> : null}
-            {m.agentName ? <span className="max-w-[160px] truncate text-[#111111]/65">{m.agentName}</span> : null}
+        {m.isNegocio && (m.businessName || m.agentName || m.brokerageName) && (
+          <div className="mt-2 flex flex-col gap-0.5 text-xs text-[#111111]/80">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              {m.businessName ? <span className="max-w-[220px] truncate font-semibold text-[#111111]">{m.businessName}</span> : null}
+              {m.agentName ? <span className="max-w-[180px] truncate text-[#111111]/70">{m.agentName}</span> : null}
+            </div>
+            {m.brokerageName ? (
+              <span className="max-w-full truncate text-[11px] text-[#111111]/60">
+                {lang === "es" ? "Correduría" : "Brokerage"}: {m.brokerageName}
+              </span>
+            ) : null}
           </div>
         )}
 
-        {m.trustCaption ? <p className="mt-1.5 text-[11px] font-medium text-emerald-900/80">{m.trustCaption}</p> : null}
+        {m.trustCaption ? (
+          <p className={cx("mt-1.5 text-[11px] font-medium", m.isNegocio ? "text-[#5C4D1F]/90" : "text-emerald-900/80")}>{m.trustCaption}</p>
+        ) : null}
 
         <div className="mt-1 text-[11px] text-[#111111]/50">{x.postedAgo[lang]}</div>
 

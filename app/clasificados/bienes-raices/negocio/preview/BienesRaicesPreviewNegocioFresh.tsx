@@ -168,6 +168,7 @@ export default function BienesRaicesPreviewNegocioFresh({
             tabs: ["Resumen", "Interior", "Exterior", "Detalles", "Ubicación", "Contacto"] as const,
             previewBadge: "Vista previa",
             previewSubtitle: "Así verán tu listado los compradores.",
+            laneChip: "Leonix · Negocio",
             brand: "Leonix Clasificados",
             aboutTitle: "Acerca de esta propiedad",
             factsTitle: "Datos y características",
@@ -191,6 +192,7 @@ export default function BienesRaicesPreviewNegocioFresh({
             tabs: ["Summary", "Interior", "Exterior", "Details", "Location", "Contact"] as const,
             previewBadge: "Preview",
             previewSubtitle: "This is how buyers will see your listing.",
+            laneChip: "Leonix · Business",
             brand: "Leonix Clasificados",
             aboutTitle: "About this home",
             factsTitle: "Facts & features",
@@ -276,8 +278,13 @@ export default function BienesRaicesPreviewNegocioFresh({
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#C9B46A]/40 bg-[#FFFCF6] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#5C4D1F]">
-                {t.previewBadge}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#C9B46A]/40 bg-[#FFFCF6] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#5C4D1F]">
+                  {t.previewBadge}
+                </div>
+                <span className="inline-flex rounded-full border border-[#C9B46A]/50 bg-[#FAF3E4] px-2.5 py-1 text-[10px] font-semibold text-[#5C4D1F]">
+                  {t.laneChip}
+                </span>
               </div>
               <div>
                 <p className="text-lg sm:text-xl font-bold tracking-tight text-[#111111]">{t.brand}</p>

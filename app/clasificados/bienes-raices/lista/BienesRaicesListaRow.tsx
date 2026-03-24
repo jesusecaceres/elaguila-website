@@ -2,6 +2,7 @@
 
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import {
+  brListaPrimaryBranchBadge,
   buildBienesRaicesListaCardModel,
   type BienesRaicesListaListingLike,
 } from "@/app/clasificados/bienes-raices/lista/brListaCardModel";
@@ -66,21 +67,14 @@ export function BienesRaicesListaRow(props: {
         <div className="flex items-start justify-between gap-2">
           <a href={href} className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              {m.isNegocio ? (
-                m.brPlanTier === "business_plus" ? (
-                  <span className="rounded-full border border-[#C9B46A]/45 bg-[#FAF3E4] px-2 py-0.5 text-[10px] font-semibold text-[#5C4D1F]">
-                    {lang === "es" ? "Profesional Plus" : "Pro Plus"}
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-[#C9B46A]/30 bg-[#FFFCF6] px-2 py-0.5 text-[10px] font-semibold text-[#4A4536]">
-                    {lang === "es" ? "Profesional" : "Professional"}
-                  </span>
-                )
-              ) : (
-                <span className="rounded-full border border-emerald-800/20 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-950">
-                  {lang === "es" ? "Propietario" : "Owner"}
-                </span>
-              )}
+              <span
+                className={cx(
+                  "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                  m.isNegocio ? "border-[#C9B46A]/45 bg-[#FAF3E4] text-[#5C4D1F]" : "border-emerald-800/22 bg-emerald-50 text-emerald-950"
+                )}
+              >
+                {brListaPrimaryBranchBadge(lang, m)}
+              </span>
               {m.approximateLocation && (
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-950">
                   {lang === "es" ? "Aprox." : "Approx."}
@@ -121,13 +115,14 @@ export function BienesRaicesListaRow(props: {
               </div>
             )}
             <p className="mt-1 line-clamp-2 text-sm text-[#111111]/75">{x.blurb[lang]}</p>
-            {m.isNegocio && (m.businessName || m.agentName) && (
-              <p className="mt-1 line-clamp-1 text-xs text-[#111111]/70">
+            {m.isNegocio && (m.businessName || m.agentName || m.brokerageName) && (
+              <p className="mt-1 line-clamp-2 text-xs text-[#111111]/75">
                 {[m.businessName, m.agentName].filter(Boolean).join(" · ")}
+                {m.brokerageName ? ` · ${lang === "es" ? "Correduría" : "Brokerage"}: ${m.brokerageName}` : ""}
               </p>
             )}
-            {!m.isNegocio && m.trustCaption ? (
-              <p className="mt-1 text-[11px] font-medium text-emerald-900/75">{m.trustCaption}</p>
+            {m.trustCaption ? (
+              <p className={cx("mt-1 text-[11px] font-medium", m.isNegocio ? "text-[#5C4D1F]/85" : "text-emerald-900/75")}>{m.trustCaption}</p>
             ) : null}
             <div className="mt-1 text-[11px] text-[#111111]/50">{x.postedAgo[lang]}</div>
           </a>

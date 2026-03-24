@@ -159,6 +159,7 @@ export default function BienesRaicesPreviewListing({
             tabs: ["Resumen", "Detalles", "Ubicación", "Contacto"] as const,
             previewBadge: "Vista previa",
             previewSubtitle: "Vista de propietario — clara y confiable.",
+            laneChip: "Leonix · Propietario",
             brand: "Leonix Clasificados",
             aboutTitle: "Acerca de esta propiedad",
             factsTitle: "Datos y características",
@@ -181,6 +182,7 @@ export default function BienesRaicesPreviewListing({
             tabs: ["Overview", "Details", "Location", "Contact"] as const,
             previewBadge: "Preview",
             previewSubtitle: "Owner-led listing: polished, calm, and built to earn trust.",
+            laneChip: "Leonix · Owner",
             brand: "Leonix Clasificados",
             aboutTitle: "About this home",
             factsTitle: "Facts & features",
@@ -262,8 +264,13 @@ export default function BienesRaicesPreviewListing({
                 "sticky top-0 z-20 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10 pt-2 bg-[#F5F4F1]/95 backdrop-blur-md"
             )}
           >
-            <div className="inline-flex rounded-full border border-stone-300/60 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-600">
-              {t.previewBadge}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-full border border-stone-300/60 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-600">
+                {t.previewBadge}
+              </div>
+              <span className="inline-flex rounded-full border border-emerald-800/20 bg-emerald-50/90 px-2.5 py-1 text-[10px] font-semibold text-emerald-950">
+                {t.laneChip}
+              </span>
             </div>
             <div className="mt-3">
               <p className="text-lg font-bold text-[#111111]">{t.brand}</p>
