@@ -4,7 +4,7 @@
  */
 
 import { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
-import { getSubcategoriesForDept } from "../../taxonomy/subcategories";
+import { findSubcategory, getSubcategoriesForDept } from "../../taxonomy/subcategories";
 export { EN_VENTA_DEPARTMENTS, type EnVentaDepartmentKey } from "../../taxonomy/categories";
 export { EN_VENTA_SUBCATEGORY_ROWS, getSubcategoriesForDept, findSubcategory } from "../../taxonomy/subcategories";
 export { expandEnVentaSearchTerms, inferDeptFromQuery, KEYWORD_TO_DEPT_HINT } from "../../taxonomy/synonyms";
@@ -103,6 +103,25 @@ const ARTICLES: Record<EnVentaDepartmentKey, Array<{ value: string; label: { es:
 export function getArticulosForDepartment(deptKey: string) {
   const k = deptKey.trim().toLowerCase() as EnVentaDepartmentKey;
   return ARTICLES[k] ?? ARTICLES.otros;
+}
+
+/**
+ * Publish item-type options for department + optional subcategory.
+ * - No subcategory: full department list (users can publish without Level 2).
+ * - Subcategory with `itemTypeValues`: narrowed list.
+ * - Subcategory without `itemTypeValues`: full department list (optional refiner only).
+ * - If a narrowed filter ever matches nothing (data bug), falls back to the department list.
+ */
+export function getItemTypesForSelection(deptKey: string, subKey?: string | null) {
+  const base = getArticulosForDepartment(deptKey);
+  const trimmed = subKey?.trim();
+  if (!trimmed) return base;
+  const sub = findSubcategory(deptKey, trimmed);
+  const filter = sub?.itemTypeValues;
+  if (!filter?.length) return base;
+  const allowed = new Set(filter);
+  const narrowed = base.filter((a) => allowed.has(a.value));
+  return narrowed.length > 0 ? narrowed : base;
 }
 
 export function getArticuloLabel(deptKey: string, articleValue: string, lang: "es" | "en"): string {

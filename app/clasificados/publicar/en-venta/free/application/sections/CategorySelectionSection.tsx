@@ -4,7 +4,7 @@ import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionS
 import {
   EN_VENTA_DEPARTMENTS,
   EN_VENTA_PUBLISH_CONDITION_OPTIONS,
-  getArticulosForDepartment,
+  getItemTypesForSelection,
 } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 import { getSubcategoriesForDept } from "@/app/clasificados/en-venta/taxonomy/subcategories";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
@@ -27,13 +27,13 @@ const COPY: Record<
     title: "Categoría y artículo",
     desc: "Así los compradores encuentran tu anuncio más rápido.",
     dept: "Departamento",
-    sub: "Clasificación (subcategoría)",
+    sub: "Subcategoría (opcional)",
     item: "Tipo de artículo",
     cond: "Condición",
     hints: [
-      "Elige el departamento que mejor describe tu artículo.",
-      "Refina la vitrina: elige una clasificación opcional.",
-      "Elige el tipo de artículo que mejor coincide con lo que vendes.",
+      "Primero elige el departamento que mejor describe tu artículo.",
+      "Si quieres, refina con una subcategoría.",
+      "Después selecciona el tipo exacto de artículo. Si no ves una opción exacta, elige «Otro».",
       "Selecciona el estado real del artículo para evitar malos entendidos.",
     ],
   },
@@ -41,13 +41,13 @@ const COPY: Record<
     title: "Category & item",
     desc: "Helps buyers find your listing faster.",
     dept: "Department",
-    sub: "Shelf / subcategory",
+    sub: "Subcategory (optional)",
     item: "Item type",
     cond: "Condition",
     hints: [
-      "Pick the department that best matches your item.",
-      "Optional: narrow the shelf / subcategory.",
-      "Choose the item type that matches what you’re selling.",
+      "First, pick the department that best describes your item.",
+      "Optionally narrow with a subcategory.",
+      "Then pick the exact item type. If nothing fits, choose “Other”.",
       "Pick the real condition to avoid misunderstandings.",
     ],
   },
@@ -60,7 +60,7 @@ export function CategorySelectionSection<S extends EnVentaFreeApplicationState>(
 }: EnVentaFreeSectionProps<S>) {
   const t = COPY[lang];
   const subs = state.rama ? getSubcategoriesForDept(state.rama) : [];
-  const articles = state.rama ? getArticulosForDepartment(state.rama) : [];
+  const articles = state.rama ? getItemTypesForSelection(state.rama, state.evSub) : [];
 
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
@@ -90,7 +90,14 @@ export function CategorySelectionSection<S extends EnVentaFreeApplicationState>(
           className={cx(inputClass, "mt-2")}
           value={state.evSub}
           disabled={!state.rama}
-          onChange={(e) => setState((s) => ({ ...s, evSub: e.target.value }))}
+          onChange={(e) =>
+            setState((s) => {
+              const nextSub = e.target.value;
+              const opts = s.rama ? getItemTypesForSelection(s.rama, nextSub) : [];
+              const keep = opts.some((o) => o.value === s.itemType);
+              return { ...s, evSub: nextSub, itemType: keep ? s.itemType : "" };
+            })
+          }
         >
           <option value="">{lang === "es" ? "Opcional" : "Optional"}</option>
           {subs.map((s) => (
