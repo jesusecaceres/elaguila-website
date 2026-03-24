@@ -7,7 +7,7 @@ import { FiBriefcase, FiUser } from "react-icons/fi";
 type Lang = "es" | "en";
 
 /**
- * Bienes Raíces: branch chooser — Negocio vs Privado link to `/clasificados/publicar/BR/{negocio|privado}` (coming soon).
+ * Bienes Raíces: branch chooser — Negocio vs Privado link to `/clasificados/publicar/BR/{negocio|privado}` (formulario Leonix).
  */
 export default function BienesRaicesPublishBranchChooserPage() {
   const searchParams = useSearchParams();

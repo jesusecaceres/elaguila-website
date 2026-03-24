@@ -1,9 +1,16 @@
-import BienesRaicesComingSoon from "../BienesRaicesComingSoon";
+import { Suspense } from "react";
+import LeonixBRPrivadoApplication from "./application/LeonixBRPrivadoApplication";
 
-type SearchParams = Promise<{ lang?: string }>;
-
-export default async function PublicarBrPrivadoComingSoonPage({ searchParams }: { searchParams: SearchParams }) {
-  const sp = await searchParams;
-  const lang = sp?.lang === "en" ? "en" : "es";
-  return <BienesRaicesComingSoon lane="privado" lang={lang} />;
+export default function PublicarBrPrivadoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#D9D9D9] pt-24 text-sm font-medium text-[#111111]/70">
+          Cargando formulario…
+        </div>
+      }
+    >
+      <LeonixBRPrivadoApplication />
+    </Suspense>
+  );
 }
