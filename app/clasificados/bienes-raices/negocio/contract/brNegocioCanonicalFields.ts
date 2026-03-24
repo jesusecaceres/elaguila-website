@@ -77,7 +77,7 @@ export const BR_NEGOCIO_FORM_KEYS = {
   },
 } as const;
 
-/** Misrouted legacy wizard keys (read via coalesce only) live in `en-venta/publish/wizardDraftLegacyKeys`. */
+/** Misrouted legacy wizard keys (read via coalesce only) are defined in `app/clasificados/lib/legacyWizardDraftKeys`. */
 
 /** Preview / ListingData field names (already in ListingView.tsx) */
 export const BR_NEGOCIO_LISTING_DATA_KEYS = {

@@ -8,8 +8,8 @@ import {
   coalesceNegocioAgenteFromWizard,
   coalesceNegocioNombreFromWizard,
   coalesceWizardDetailValue,
-} from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
-import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
+  LEGACY_WIZARD_BR_DETAIL,
+} from "@/app/clasificados/bienes-raices/shared/wizard/brLegacyWizardRead";
 
 type Lang = "es" | "en";
 

@@ -12,8 +12,10 @@ import {
   isBrPrivadoResidential,
 } from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import { getRentasDetailFields } from "@/app/clasificados/rentas/shared/fields/rentasTaxonomy";
-import { coalesceWizardDetailValue } from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
-import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
+import {
+  coalesceWizardDetailValue,
+  LEGACY_WIZARD_BR_DETAIL,
+} from "@/app/clasificados/bienes-raices/shared/wizard/brLegacyWizardRead";
 
 export function getPublishCategoryFields(
   cat: string,

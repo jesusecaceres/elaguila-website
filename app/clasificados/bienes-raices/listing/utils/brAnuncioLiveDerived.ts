@@ -6,8 +6,10 @@ import type {
   BrSameCompanySampleItem,
 } from "../types/brAnuncioLiveTypes";
 import { parseBrNegocioRedesSocialLinks } from "./brNegocioRedesSocialLinks";
-import { coalesceWizardDetailValue } from "@/app/clasificados/en-venta/publish/coalesceWizardDetailValue";
-import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/en-venta/publish/wizardDraftLegacyKeys";
+import {
+  coalesceWizardDetailValue,
+  LEGACY_WIZARD_BR_DETAIL,
+} from "@/app/clasificados/bienes-raices/shared/wizard/brLegacyWizardRead";
 
 function isBusinessSeller(listing: BrAnuncioListingLike): boolean {
   return listing.sellerType === "business" || listing.seller_type === "business";
