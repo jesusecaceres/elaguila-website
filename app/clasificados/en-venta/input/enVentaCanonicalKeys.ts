@@ -11,6 +11,7 @@ export const EN_VENTA_CANONICAL_DETAIL_KEYS = [
   "negotiable",
   "brand",
   "model",
+  "city",
   "zip",
   "pickup",
   "shipping",

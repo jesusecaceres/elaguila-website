@@ -17,6 +17,8 @@ export type EnVentaDraftDetails = {
   brand?: string;
   model?: string;
   negotiable?: "" | "yes";
+  /** Canonical California city when resolved (matches `CA_CITIES`). */
+  city?: string;
   zip?: string;
   pickup?: "" | "1";
   shipping?: "" | "1";

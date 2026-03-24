@@ -1,26 +1,28 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
+import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { getZipRecord, normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
 import { inputClass, labelClass } from "../helpers/fieldCx";
+import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
 
 const COPY = {
   es: {
     title: "Ubicación",
-    desc: "Mostramos ciudad y zona aproximada; no publiques tu dirección exacta si no quieres.",
+    desc: "Usa ciudad o ZIP para ubicar tu anuncio. Puedes escribir ciudad, ZIP o ambos. Si agregas ambos, deben coincidir. Esto ayuda a resultados cercanos y distancia aproximada más adelante.",
     city: "Ciudad",
-    area: "Colonia / zona",
     zip: "ZIP (opcional)",
-    approx: "Mostrar ubicación aproximada en el mapa",
+    zipHint: "5 dígitos",
   },
   en: {
     title: "Location",
-    desc: "We show city and approximate area — don’t share exact address unless you want to.",
+    desc: "Use city or ZIP to place your listing. You can enter city, ZIP, or both. If you enter both, they must match. This helps nearby results and approximate distance later.",
     city: "City",
-    area: "Neighborhood / area",
     zip: "ZIP (optional)",
-    approx: "Show approximate location on the map",
+    zipHint: "5 digits",
   },
 } as const;
 
@@ -30,42 +32,67 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
   setState,
 }: EnVentaFreeSectionProps<S>) {
   const t = COPY[lang];
+  const validation = useMemo(
+    () => validateEnVentaLocation(state.city, state.zip),
+    [state.city, state.zip]
+  );
+
+  useEffect(() => {
+    if (state.city.trim()) return;
+    const zip5 = normalizeZipInput(state.zip);
+    if (!zip5) return;
+    const rec = getZipRecord(zip5);
+    if (rec) {
+      setState((s) => (s.city === rec.city ? s : { ...s, city: rec.city }));
+    }
+  }, [state.zip, state.city, setState]);
+
+  const msg = validation.ok ? null : lang === "es" ? validation.messageEs : validation.messageEn;
+  const cityInvalid =
+    !validation.ok &&
+    (validation.code === "bad_city" || validation.code === "mismatch" || validation.code === "missing_both");
+  const zipInvalid =
+    !validation.ok &&
+    (validation.code === "bad_zip" ||
+      validation.code === "mismatch" ||
+      validation.code === "incomplete_zip" ||
+      validation.code === "missing_both");
+
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
       <div>
-        <label className={labelClass}>{t.city}</label>
-        <input
-          className={`${inputClass} mt-2`}
+        <CityAutocomplete
+          lang={lang}
+          variant="light"
+          label={t.city}
           value={state.city}
-          onChange={(e) => setState((s) => ({ ...s, city: e.target.value }))}
-        />
-      </div>
-      <div>
-        <label className={labelClass}>{t.area}</label>
-        <input
-          className={`${inputClass} mt-2`}
-          value={state.neighborhood}
-          onChange={(e) => setState((s) => ({ ...s, neighborhood: e.target.value }))}
+          onChange={(v) => setState((s) => ({ ...s, city: v }))}
+          placeholder={lang === "es" ? "Ej: Modesto, San José…" : "e.g. Modesto, San Jose…"}
+          invalid={cityInvalid}
         />
       </div>
       <div>
         <label className={labelClass}>{t.zip}</label>
+        <p className="mt-1 text-xs text-[#111111]/60">{t.zipHint}</p>
         <input
-          className={`${inputClass} mt-2`}
+          className={`${inputClass} mt-2 ${zipInvalid ? "border-red-500 ring-1 ring-red-500/35" : ""}`}
+          inputMode="numeric"
+          autoComplete="postal-code"
+          maxLength={5}
           value={state.zip}
-          onChange={(e) => setState((s) => ({ ...s, zip: e.target.value }))}
+          onChange={(e) => {
+            const d = e.target.value.replace(/\D/g, "").slice(0, 5);
+            setState((s) => ({ ...s, zip: d }));
+          }}
+          placeholder={lang === "es" ? "Ej: 95350" : "e.g. 95350"}
+          aria-invalid={zipInvalid}
         />
       </div>
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-[#111111]">
-        <input
-          type="checkbox"
-          checked={state.approximateLocationOk}
-          onChange={(e) =>
-            setState((s) => ({ ...s, approximateLocationOk: e.target.checked }))
-          }
-        />
-        {t.approx}
-      </label>
+      {msg ? (
+        <p className="mt-3 rounded-xl border border-red-300/80 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">
+          {msg}
+        </p>
+      ) : null}
     </SectionShell>
   );
 }

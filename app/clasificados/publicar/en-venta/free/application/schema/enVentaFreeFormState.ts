@@ -18,10 +18,9 @@ export type EnVentaFreeApplicationState = {
   images: string[];
   /** Which thumbnail index is the principal listing image (0-based). */
   primaryImageIndex: number;
+  /** Raw or canonical California city (CityAutocomplete normalizes on blur). */
   city: string;
-  neighborhood: string;
   zip: string;
-  approximateLocationOk: boolean;
   pickup: boolean;
   meetup: boolean;
   localDelivery: boolean;
@@ -67,9 +66,7 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     images: [],
     primaryImageIndex: 0,
     city: "",
-    neighborhood: "",
     zip: "",
-    approximateLocationOk: true,
     pickup: false,
     meetup: false,
     localDelivery: false,
