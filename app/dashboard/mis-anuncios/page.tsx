@@ -26,6 +26,11 @@ type ListingRow = {
   detail_pairs?: unknown;
   boost_expires?: unknown;
   views?: number | null;
+  /** When set and lower than original, UI may show “price reduced” (contract-ready). */
+  original_price?: number | string | null;
+  current_price?: number | string | null;
+  price_last_updated?: string | null;
+  is_published?: boolean | null;
 };
 
 const EDIT_WINDOW_MINUTES = 30;
@@ -95,9 +100,25 @@ function passesTab(row: ListingRow, tab: Tab): boolean {
   if (st === "removed") return false;
   if (tab === "all") return true;
   if (tab === "active") return st === "active";
-  if (tab === "expired") return st === "sold";
+  if (tab === "expired") return st === "sold" || st === "expired";
   if (tab === "moderation") return st === "pending" || st === "flagged";
   return true;
+}
+
+function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
+  const o = row.original_price;
+  const c = row.current_price ?? row.price;
+  if (o == null || c == null) return null;
+  const toNum = (x: unknown) => {
+    if (typeof x === "number" && Number.isFinite(x)) return x;
+    const s = String(x).replace(/[^0-9.]/g, "");
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const on = toNum(o);
+  const cn = toNum(c);
+  if (!Number.isFinite(on) || !Number.isFinite(cn) || cn >= on) return null;
+  return lang === "es" ? "Precio reducido" : "Reduced price";
 }
 
 export default function MyListingsPage() {
@@ -214,7 +235,7 @@ export default function MyListingsPage() {
       const { data: rows, error: qErr } = await supabase
         .from("listings")
         .select(
-          "id,title,price,city,zip,status,created_at,category,images,detail_pairs,boost_expires,views"
+          "id,title,price,city,zip,status,created_at,category,images,detail_pairs,boost_expires,views,original_price,current_price,price_last_updated,is_published"
         )
         .eq("owner_id", u.id)
         .order("created_at", { ascending: false });
@@ -519,6 +540,8 @@ export default function MyListingsPage() {
                         dbViews: typeof x.views === "number" ? x.views : 0,
                       }}
                       maxViews={maxViews}
+                      priceDropLabel={listingPriceDropLabel(x, lang)}
+                      showDraftBadge={x.is_published === false}
                     />
                   );
                 }

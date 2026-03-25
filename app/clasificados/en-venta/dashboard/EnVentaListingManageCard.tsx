@@ -56,6 +56,8 @@ export function EnVentaListingManageCard({
   boosted,
   analytics,
   maxViews,
+  priceDropLabel,
+  showDraftBadge,
 }: {
   row: EnVentaManageRow;
   lang: Lang;
@@ -71,6 +73,10 @@ export function EnVentaListingManageCard({
   boosted: boolean;
   analytics: EnVentaManageAnalytics;
   maxViews: number;
+  /** When original/current prices support a reduced-price signal. */
+  priceDropLabel?: string | null;
+  /** True when listing exists but is not published to browse yet. */
+  showDraftBadge?: boolean;
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -83,12 +89,13 @@ export function EnVentaListingManageCard({
           sold: "Finalizar / vendido",
           active: "Reactivar",
           delete: "Eliminar",
-          upgrade: "Mejorar a Pro",
-          upgradeHint: "Más fotos, video, visibilidad y analíticas.",
+          upgradeTitle: "Mejorar este anuncio a Pro",
+          upgradeBullets: ["Más fotos y video", "Mayor visibilidad", "Analíticas e insights"],
           pro: "PRO",
           feat: "DESTACADO",
           activeSt: "Activo",
           soldSt: "Vendido",
+          draft: "Borrador",
           views: "Vistas",
           uniq: "Únicas",
           msg: "Mensajes",
@@ -96,6 +103,8 @@ export function EnVentaListingManageCard({
           shares: "Compartidos",
           prof: "Clics perfil",
           details: "Ver detalles",
+          perf: "Rendimiento",
+          insights: "Revisa vistas y mensajes para afinar precio o fotos.",
         }
       : {
           view: "View listing",
@@ -104,12 +113,13 @@ export function EnVentaListingManageCard({
           sold: "Mark sold",
           active: "Reactivate",
           delete: "Delete",
-          upgrade: "Upgrade to Pro",
-          upgradeHint: "More photos, video, visibility, and analytics.",
+          upgradeTitle: "Upgrade this listing to Pro",
+          upgradeBullets: ["More photos & video", "More visibility", "Analytics & insights"],
           pro: "PRO",
           feat: "FEATURED",
           activeSt: "Active",
           soldSt: "Sold",
+          draft: "Draft",
           views: "Views",
           uniq: "Unique",
           msg: "Messages",
@@ -117,6 +127,8 @@ export function EnVentaListingManageCard({
           shares: "Shares",
           prof: "Profile clicks",
           details: "View details",
+          perf: "Performance",
+          insights: "Compare views and messages to tune price or photos.",
         };
 
   const frame = isPro
@@ -162,8 +174,18 @@ export function EnVentaListingManageCard({
               >
                 {isSold ? L.soldSt : L.activeSt}
               </span>
+              {showDraftBadge ? (
+                <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+                  {L.draft}
+                </span>
+              ) : null}
             </div>
             <p className="mt-1 text-lg font-bold text-[#1E1810]">{priceText}</p>
+            {priceDropLabel ? (
+              <p className="mt-1 inline-flex rounded-full border border-[#C9B46A]/40 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-bold text-[#5C4E2E]">
+                {priceDropLabel}
+              </p>
+            ) : null}
             <p className="mt-1 text-sm text-[#5C5346]/90">
               {(row.city || "").trim()}
               {dateText ? ` · ${dateText}` : ""}
@@ -171,16 +193,27 @@ export function EnVentaListingManageCard({
 
             {!isPro ? (
               <div className="mt-3 rounded-2xl border border-[#C9B46A]/30 bg-[#FBF7EF]/80 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.upgrade}</p>
-                <p className="mt-1 text-xs text-[#5C5346]/95">{L.upgradeHint}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.upgradeTitle}</p>
+                <ul className="mt-2 grid gap-1 text-xs text-[#5C5346]/95">{L.upgradeBullets.map((b) => (
+                  <li key={b} className="flex gap-2">
+                    <span className="text-[#C9A84A]" aria-hidden>
+                      ✦
+                    </span>
+                    <span>{b}</span>
+                  </li>
+                ))}</ul>
                 <Link
                   href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
                   className="mt-2 inline-flex rounded-xl bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
                 >
-                  {L.upgrade} →
+                  {lang === "es" ? "Mejorar a Pro →" : "Upgrade to Pro →"}
                 </Link>
               </div>
-            ) : null}
+            ) : (
+              <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
+                <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
+              </p>
+            )}
           </div>
         </div>
 
@@ -197,13 +230,13 @@ export function EnVentaListingManageCard({
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
                 {L.saves}: {analytics.saves}
               </span>
+              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
+                {L.shares}: {analytics.shares}
+              </span>
               {isPro ? (
                 <>
                   <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
                     {L.uniq}: {analytics.uniqueViews}
-                  </span>
-                  <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
-                    {L.shares}: {analytics.shares}
                   </span>
                   <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
                     {L.prof}: {analytics.profileClicks}

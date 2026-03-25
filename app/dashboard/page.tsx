@@ -21,16 +21,6 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-function parseIsoMaybe(v: unknown): Date | null {
-  if (!v) return null;
-  const d = new Date(String(v));
-  return Number.isFinite(d.getTime()) ? d : null;
-}
-
-function daysBetween(a: Date, b: Date) {
-  return Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard";
@@ -51,21 +41,24 @@ export default function DashboardPage() {
             earningsSoon: "Próximamente",
             quick: "Acciones rápidas",
             post: "Publicar anuncio",
-            myAds: "Ver mis anuncios",
+            myAds: "Mis anuncios",
             browse: "Explorar clasificados",
-            activity: "Actividad reciente",
+            activity: "Actividad de tus anuncios",
             activityBody:
-              "Gestiona todos tus anuncios, métricas y estado en un solo lugar. Los anuncios nuevos aparecen primero.",
+              "Revisa métricas, estado y plan (Gratis o Pro) por cada publicación. Los anuncios más recientes aparecen primero.",
             ctaManage: "Ir a gestión de anuncios",
-            garage: "Modo Garaje (En Venta)",
-            garageBody:
-              "Si alcanzas el límite gratuito en En Venta, puedes desbloquear espacio extra por tiempo limitado.",
-            enVentaActive: "Activos En Venta",
             upgrade: "Mejorar a Pro",
             proPitch: "Más fotos, video, visibilidad y analíticas por anuncio con Leonix Pro.",
             loading: "Cargando…",
             signIn: "Inicia sesión para ver tu panel.",
             login: "Iniciar sesión",
+            enVentaTitle: "En Venta",
+            enVentaBody:
+              "Cada anuncio tiene su propio plan (Gratis o Pro). Puedes tener ambos tipos a la vez; el plan se aplica al publicar o al mejorar.",
+            enVentaActive: "Activos en En Venta",
+            enVentaCta: "Gestionar anuncios En Venta",
+            enVentaPost: "Publicar en En Venta",
+            freeHint: "En Gratis: menos fotos por anuncio y sin video. Pro desbloquea más medios, visibilidad y métricas por publicación.",
           }
         : {
             title: "Account overview",
@@ -79,19 +72,23 @@ export default function DashboardPage() {
             post: "Post an ad",
             myAds: "My listings",
             browse: "Browse classifieds",
-            activity: "Listing activity",
+            activity: "Your listing activity",
             activityBody:
-              "Manage all your listings, metrics, and status in one place. Newest listings appear first.",
+              "Review metrics, status, and plan (Free or Pro) per listing. Newest listings appear first.",
             ctaManage: "Go to listing management",
-            garage: "Garage mode (For Sale)",
-            garageBody:
-              "If you hit the free For Sale limit, you can unlock extra slots for a limited time.",
-            enVentaActive: "For Sale active",
             upgrade: "Upgrade to Pro",
             proPitch: "More photos, video, visibility, and per-listing analytics with Leonix Pro.",
             loading: "Loading…",
             signIn: "Sign in to view your dashboard.",
             login: "Sign in",
+            enVentaTitle: "For Sale",
+            enVentaBody:
+              "Each listing has its own plan (Free or Pro). You can mix both; the plan is set when you publish or upgrade.",
+            enVentaActive: "Active For Sale listings",
+            enVentaCta: "Manage For Sale listings",
+            enVentaPost: "Post in For Sale",
+            freeHint:
+              "Free: fewer photos per listing and no video. Pro unlocks more media, visibility, and metrics per listing.",
           },
     [lang]
   );
@@ -101,14 +98,12 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [homeCity, setHomeCity] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [activeListings, setActiveListings] = useState<number | null>(null);
   const [totalViews, setTotalViews] = useState<number | null>(null);
   const [totalSaves, setTotalSaves] = useState<number | null>(null);
   const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
-  const [garageActive, setGarageActive] = useState(false);
-  const [garageExpiresAt, setGarageExpiresAt] = useState("");
-  const [garageCooldownDaysLeft, setGarageCooldownDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -138,24 +133,6 @@ export default function DashboardPage() {
         setName(inferredName);
         setPlan("free");
 
-        const gm = (u.user_metadata as Record<string, unknown>)?.garage_mode_en_venta || null;
-        const gmObj = gm && typeof gm === "object" ? (gm as Record<string, unknown>) : null;
-        const lastUsed = gmObj
-          ? String(gmObj.lastUsedAt ?? gmObj.last_used_at ?? gmObj.last_used ?? "")
-          : "";
-        const expires = gmObj ? String(gmObj.expiresAt ?? gmObj.expires_at ?? gmObj.expires ?? "") : "";
-        setGarageExpiresAt(expires);
-        const expD = parseIsoMaybe(expires);
-        setGarageActive(Boolean(expD && expD.getTime() > Date.now()));
-
-        const lastD = parseIsoMaybe(lastUsed);
-        if (lastD) {
-          const left = Math.max(0, 30 - daysBetween(lastD, new Date()));
-          setGarageCooldownDaysLeft(left);
-        } else {
-          setGarageCooldownDaysLeft(null);
-        }
-
         try {
           await supabase.from("profiles").upsert(
             {
@@ -172,7 +149,7 @@ export default function DashboardPage() {
         try {
           const { data: pData, error: pErr } = await supabase
             .from("profiles")
-            .select("display_name, email, membership_tier")
+            .select("display_name, email, membership_tier, home_city")
             .eq("id", u.id)
             .maybeSingle();
 
@@ -181,10 +158,12 @@ export default function DashboardPage() {
               display_name?: string | null;
               email?: string | null;
               membership_tier?: string | null;
+              home_city?: string | null;
             };
             setName(row.display_name ?? inferredName);
             setEmail(row.email ?? u.email ?? null);
             setPlan(normalizePlanFromMembershipTier(row.membership_tier));
+            setHomeCity(row.home_city?.trim() || null);
           }
         } catch {
           /* ignore */
@@ -293,6 +272,11 @@ export default function DashboardPage() {
           <header className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)] sm:p-8">
             <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
+            {homeCity ? (
+              <p className="mt-3 text-sm font-medium text-[#3D3428]/90">
+                {lang === "es" ? "Ciudad" : "City"}: {homeCity}
+              </p>
+            ) : null}
           </header>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -356,50 +340,40 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {plan === "free" ? (
-              <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.2)]">
-                <h2 className="text-lg font-bold text-[#1E1810]">Leonix Pro</h2>
-                <p className="mt-2 text-sm text-[#5C5346]/95">{t.proPitch}</p>
+            <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.2)]">
+              <h2 className="text-lg font-bold text-[#1E1810]">{t.enVentaTitle}</h2>
+              <p className="mt-2 text-sm text-[#5C5346]/95">{t.enVentaBody}</p>
+              <p className="mt-3 text-sm text-[#5C5346]/90">{t.freeHint}</p>
+              <p className="mt-4 text-sm font-semibold text-[#3D3428]">
+                {typeof enVentaActiveCount === "number" ? `${t.enVentaActive}: ${fmtNum(enVentaActiveCount)}` : `${t.enVentaActive}: —`}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href={`/clasificados/publicar?${q}`}
-                  className="mt-4 inline-flex rounded-2xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  href={`/dashboard/mis-anuncios?${q}`}
+                  className="inline-flex rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
                 >
-                  {t.upgrade}
+                  {t.enVentaCta}
+                </Link>
+                <Link
+                  href={`/clasificados/publicar/en-venta?${q}`}
+                  className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                >
+                  {t.enVentaPost}
                 </Link>
               </div>
-            ) : null}
+            </div>
           </div>
 
           {plan === "free" ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6">
-              <h3 className="text-base font-bold text-[#1E1810]">{t.garage}</h3>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.garageBody}</p>
-              <p className="mt-3 text-sm font-semibold text-[#3D3428]">
-                {typeof enVentaActiveCount === "number"
-                  ? `${t.enVentaActive}: ${enVentaActiveCount} / ${2 + (garageActive ? 4 : 0)}`
-                  : `${t.enVentaActive}: —`}
-              </p>
-              {garageActive && garageExpiresAt ? (
-                <p className="mt-1 text-xs text-emerald-800/90">
-                  {lang === "es" ? "Activo hasta " : "Active until "}
-                  {new Date(garageExpiresAt).toLocaleDateString(lang === "es" ? "es-MX" : "en-US")}
-                </p>
-              ) : null}
-              {!garageActive && typeof garageCooldownDaysLeft === "number" && garageCooldownDaysLeft > 0 ? (
-                <p className="mt-1 text-xs text-[#7A7164]">
-                  {lang === "es"
-                    ? `Disponible de nuevo en ${garageCooldownDaysLeft} día(s)`
-                    : `Available again in ${garageCooldownDaysLeft} day(s)`}
-                </p>
-              ) : null}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link
-                  href={`/clasificados/publicar?${q}&categoria=en-venta`}
-                  className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
-                >
-                  {lang === "es" ? "Publicar en En Venta" : "Post in For Sale"}
-                </Link>
-              </div>
+            <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-6 shadow-inner">
+              <h3 className="text-base font-bold text-[#1E1810]">Leonix Pro</h3>
+              <p className="mt-2 text-sm text-[#5C5346]/95">{t.proPitch}</p>
+              <Link
+                href={`/clasificados/publicar/en-venta/pro?${q}`}
+                className="mt-4 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
+              >
+                {t.upgrade}
+              </Link>
             </div>
           ) : null}
         </>
