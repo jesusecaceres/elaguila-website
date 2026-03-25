@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import Navbar from "../../components/Navbar";
-import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
+import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
+import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 
 type Lang = "es" | "en";
-
-type ListingStatus = "active" | "sold" | string;
+type Plan = "free" | "pro";
+type Tab = "all" | "active" | "expired" | "moderation";
 
 type ListingRow = {
   id: string;
@@ -17,10 +19,13 @@ type ListingRow = {
   price?: number | string | null;
   city?: string | null;
   zip?: string | null;
-  status?: ListingStatus | null;
+  status?: string | null;
   created_at?: string | null;
   category?: string | null;
   images?: unknown;
+  detail_pairs?: unknown;
+  boost_expires?: unknown;
+  views?: number | null;
 };
 
 const EDIT_WINDOW_MINUTES = 30;
@@ -69,85 +74,87 @@ function canEditListing(createdAtIso?: string | null) {
   return minutes <= EDIT_WINDOW_MINUTES;
 }
 
+function normalizePlanFromMembershipTier(raw: unknown): Plan {
+  const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
+  if (v === "pro" || v === "business_lite" || v === "business_premium") return "pro";
+  return "free";
+}
+
+function accountRefFromId(id: string): string {
+  const s = (id ?? "").replace(/-/g, "").trim();
+  if (s.length < 8) return "—";
+  return `${s.slice(0, 4).toUpperCase()}-${s.slice(-4).toUpperCase()}`;
+}
+
+function normalizeStatus(s: string | null | undefined): string {
+  return String(s ?? "active").toLowerCase() || "active";
+}
+
+function passesTab(row: ListingRow, tab: Tab): boolean {
+  const st = normalizeStatus(row.status);
+  if (st === "removed") return false;
+  if (tab === "all") return true;
+  if (tab === "active") return st === "active";
+  if (tab === "expired") return st === "sold";
+  if (tab === "moderation") return st === "pending" || st === "flagged";
+  return true;
+}
+
 export default function MyListingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/mis-anuncios";
 
-  const urlLang = searchParams?.get("lang");
-  const lang: Lang = urlLang === "en" ? "en" : "es";
+  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const q = `lang=${lang}`;
 
   const t = useMemo(
-    () => ({
-      es: {
-        title: "Mis anuncios",
-        back: "Volver a mi cuenta",
-        subtitle: "Administra tus anuncios publicados en LEONIX.",
-        cta: "Publicar anuncio",
-        loading: "Cargando…",
-        emptyTitle: "Aún no tienes anuncios",
-        emptyBody: "Publica tu primer anuncio para empezar.",
-        view: "Ver",
-        edit: "Editar",
-        editLocked: `Editar (solo ${EDIT_WINDOW_MINUTES} min)`,
-        markSold: "Marcar como vendido",
-        markActive: "Marcar como activo",
-        deleting: "Eliminando…",
-        delete: "Eliminar",
-        confirmDelete: "¿Eliminar este anuncio? Esta acción no se puede deshacer.",
-        deleteGuard:
-          "Nota: eliminar no permite volver a publicar lo mismo para evadir límites. El sistema detecta duplicados.",
-        statusActive: "Activo",
-        statusSold: "Vendido",
-        views: "Vistas",
-        uniqueViews: "Vistas únicas",
-        messages: "Mensajes",
-        saves: "Guardados",
-        shares: "Compartidos",
-        profileClicks: "Clics en perfil",
-        errorTitle: "No pudimos cargar tus anuncios",
-        errorHint:
-          "Si esto ocurre en desarrollo, dime el mensaje exacto para ajustar la consulta según tu esquema (nombre de tabla/columnas).",
-      },
-      en: {
-        title: "My listings",
-        back: "Back to my account",
-        subtitle: "Manage your posted listings on LEONIX.",
-        cta: "Post an ad",
-        loading: "Loading…",
-        emptyTitle: "You don't have any listings yet",
-        emptyBody: "Post your first listing to get started.",
-        view: "View",
-        edit: "Edit",
-        editLocked: `Edit (${EDIT_WINDOW_MINUTES} min only)`,
-        markSold: "Mark sold",
-        markActive: "Mark active",
-        deleting: "Deleting…",
-        delete: "Delete",
-        confirmDelete: "Delete this listing? This can't be undone.",
-        deleteGuard:
-          "Note: deleting doesn't let you repost the same item to bypass limits. The system detects duplicates.",
-        statusActive: "Active",
-        statusSold: "Sold",
-        views: "Views",
-        uniqueViews: "Unique views",
-        messages: "Messages",
-        saves: "Saves",
-        shares: "Shares",
-        profileClicks: "Profile clicks",
-        errorTitle: "We couldn't load your listings",
-        errorHint:
-          "If this happens in development, send me the exact error so we can match your table/column names.",
-      },
-    }),
-    []
+    () =>
+      lang === "es"
+        ? {
+            title: "Mis anuncios",
+            subtitle: "Gestiona, mide y promociona tus publicaciones.",
+            searchPh: "Buscar por título…",
+            tabAll: "Todos",
+            tabActive: "Activos",
+            tabExpired: "Expirados",
+            tabMod: "Moderación",
+            statActive: "Activos",
+            statViews: "Vistas",
+            statMsg: "Mensajes",
+            loading: "Cargando…",
+            empty: "No hay anuncios en esta vista.",
+            emptyAll: "Aún no tienes anuncios.",
+            cta: "Publicar anuncio",
+            errorTitle: "No pudimos cargar tus anuncios",
+            back: "Volver al resumen",
+          }
+        : {
+            title: "My listings",
+            subtitle: "Manage, measure, and promote your posts.",
+            searchPh: "Search by title…",
+            tabAll: "All",
+            tabActive: "Active",
+            tabExpired: "Ended",
+            tabMod: "Moderation",
+            statActive: "Active",
+            statViews: "Views",
+            statMsg: "Messages",
+            loading: "Loading…",
+            empty: "No listings in this view.",
+            emptyAll: "You don't have any listings yet.",
+            cta: "Post an ad",
+            errorTitle: "We couldn't load your listings",
+            back: "Back to overview",
+          },
+    [lang]
   );
-  const L = t[lang];
 
   const [authLoading, setAuthLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
-  const [isPro, setIsPro] = useState(false);
+  const [accountPlan, setAccountPlan] = useState<Plan>("free");
 
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
@@ -157,6 +164,8 @@ export default function MyListingsPage() {
   >({});
 
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -167,20 +176,36 @@ export default function MyListingsPage() {
       if (!mounted) return;
 
       if (!data.user) {
-        const redirect = encodeURIComponent(`${pathname}${window.location.search || ""}`);
+        const redirect = encodeURIComponent(`${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`);
         router.replace(`/login?redirect=${redirect}`);
         return;
       }
 
       const u = data.user;
+      setUserId(u.id);
       setEmail(u.email ?? null);
       setName(
         (u.user_metadata?.full_name as string | undefined) ||
           (u.user_metadata?.name as string | undefined) ||
           null
       );
-      const plan = (u.user_metadata?.plan as string | undefined) ?? "";
-      setIsPro(plan.includes("pro"));
+
+      try {
+        const { data: pData } = await supabase
+          .from("profiles")
+          .select("display_name, email, membership_tier")
+          .eq("id", u.id)
+          .maybeSingle();
+        if (pData) {
+          const row = pData as { display_name?: string | null; email?: string | null; membership_tier?: string | null };
+          setName(row.display_name ?? (u.user_metadata?.full_name as string) ?? null);
+          setEmail(row.email ?? u.email ?? null);
+          setAccountPlan(normalizePlanFromMembershipTier(row.membership_tier));
+        }
+      } catch {
+        /* ignore */
+      }
+
       setAuthLoading(false);
 
       setListingsLoading(true);
@@ -188,7 +213,9 @@ export default function MyListingsPage() {
 
       const { data: rows, error: qErr } = await supabase
         .from("listings")
-        .select("id,title,price,city,zip,status,created_at,category,images")
+        .select(
+          "id,title,price,city,zip,status,created_at,category,images,detail_pairs,boost_expires,views"
+        )
         .eq("owner_id", u.id)
         .order("created_at", { ascending: false });
 
@@ -237,7 +264,7 @@ export default function MyListingsPage() {
       }
     }
 
-    run();
+    void run();
     return () => {
       mounted = false;
     };
@@ -261,7 +288,7 @@ export default function MyListingsPage() {
   }
 
   async function deleteListing(id: string) {
-    if (!confirm(L.confirmDelete)) return;
+    if (!confirm(lang === "es" ? "¿Eliminar este anuncio?" : "Delete this listing?")) return;
 
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
@@ -279,55 +306,170 @@ export default function MyListingsPage() {
     setBusyId(null);
   }
 
+  const needle = search.trim().toLowerCase();
+  const filteredByTab = useMemo(
+    () => listings.filter((x) => passesTab(x, tab)),
+    [listings, tab]
+  );
+  const visible = useMemo(() => {
+    if (!needle) return filteredByTab;
+    return filteredByTab.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
+  }, [filteredByTab, needle]);
+
+  function resolveViews(x: ListingRow, stats?: { views: number }) {
+    const ev = stats?.views ?? 0;
+    const db = typeof x.views === "number" ? x.views : 0;
+    return Math.max(ev, db);
+  }
+
+  const maxViews = useMemo(() => {
+    let m = 1;
+    for (const x of listings) {
+      m = Math.max(m, resolveViews(x, analyticsByListing[x.id]));
+    }
+    return m;
+  }, [listings, analyticsByListing]);
+
+  const totalActive = listings.filter((x) => normalizeStatus(x.status) === "active").length;
+  const totalViewsSum = useMemo(() => {
+    let s = 0;
+    for (const x of listings) {
+      s += resolveViews(x, analyticsByListing[x.id]);
+    }
+    return s;
+  }, [listings, analyticsByListing]);
+
+  const totalMessages = useMemo(() => {
+    let s = 0;
+    for (const x of listings) s += analyticsByListing[x.id]?.messages ?? 0;
+    return s;
+  }, [listings, analyticsByListing]);
+
+  const firstPreview = listings[0];
+  const firstStats = firstPreview ? analyticsByListing[firstPreview.id] : undefined;
+  const previewTitle = firstPreview?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
+  const previewPrice = firstPreview ? formatPrice(firstPreview.price, lang) : "—";
+  const previewCity = (firstPreview?.city ?? "").trim() || "—";
+  const pv = firstPreview ? resolveViews(firstPreview, firstStats) : 0;
+  const ps = firstStats?.saves ?? 0;
+  const pm = firstStats?.messages ?? 0;
+
   const showLoading = authLoading || listingsLoading;
+  const accountRef = userId ? accountRefFromId(userId) : null;
+
+  const tabBtn = (id: Tab, label: string) => (
+    <button
+      type="button"
+      onClick={() => setTab(id)}
+      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+        tab === id
+          ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
+          : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
+      }`}
+    >
+      {label}
+    </button>
+  );
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Navbar />
-      <main className="max-w-6xl mx-auto px-6 pt-28 pb-16">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-400">{L.title}</h1>
-            <p className="mt-2 text-gray-300">{L.subtitle}</p>
-          </div>
-          <Link
-            href={`/clasificados/publicar?lang=${lang}`}
-            className="inline-flex items-center justify-center rounded-full bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
-          >
-            {L.cta}
-          </Link>
-        </div>
+    <LeonixDashboardShell
+      lang={lang}
+      activeNav="listings"
+      plan={accountPlan}
+      userName={name}
+      email={email}
+      accountRef={accountRef}
+      rightPanel={
+        <DashboardMobilePreview
+          lang={lang}
+          title={previewTitle}
+          priceLine={previewPrice}
+          city={previewCity}
+          views={pv}
+          saves={ps}
+          messages={pm}
+        />
+      }
+    >
+      {showLoading ? (
+        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
+      ) : (
+        <>
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
+              <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
+            </div>
+            <Link
+              href={`/clasificados/publicar?${q}`}
+              className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
+            >
+              {t.cta}
+            </Link>
+          </header>
 
-        <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/40 p-6">
-          <div className="text-sm text-white/70">
-            {name || "—"} · {email || "—"}
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {[
+              { label: t.statActive, value: totalActive, icon: "📣" },
+              { label: t.statViews, value: totalViewsSum, icon: "👁" },
+              { label: t.statMsg, value: totalMessages, icon: "💬" },
+            ].map((c) => (
+              <div
+                key={c.label}
+                className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{c.label}</p>
+                  <span className="text-lg opacity-80" aria-hidden>
+                    {c.icon}
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-bold tabular-nums text-[#1E1810]">{c.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {tabBtn("all", t.tabAll)}
+              {tabBtn("active", t.tabActive)}
+              {tabBtn("expired", t.tabExpired)}
+              {tabBtn("moderation", t.tabMod)}
+            </div>
+            <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t.searchPh}
+                className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-10 text-sm text-[#1E1810] outline-none"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">⌕</span>
+            </div>
           </div>
 
           {error ? (
-            <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
-              <div className="text-base font-semibold text-red-200">{L.errorTitle}</div>
-              <p className="mt-2 text-sm text-red-100/80">{error}</p>
-              <p className="mt-2 text-xs text-red-100/60">{L.errorHint}</p>
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/90 p-4 text-sm text-red-900">
+              <strong>{t.errorTitle}</strong>
+              <p className="mt-1 opacity-90">{error}</p>
             </div>
           ) : null}
 
-          {showLoading ? (
-            <div className="mt-6 text-white/70">{L.loading}</div>
-          ) : listings.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="text-base font-semibold text-white">{L.emptyTitle}</div>
-              <p className="mt-2 text-sm text-white/70">{L.emptyBody}</p>
+          {listings.length === 0 ? (
+            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
+              <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
               <Link
-                href={`/clasificados/publicar?lang=${lang}`}
-                className="mt-4 inline-flex items-center rounded-full bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                href={`/clasificados/publicar?${q}`}
+                className="mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2]"
               >
-                {L.cta}
+                {t.cta}
               </Link>
             </div>
+          ) : visible.length === 0 ? (
+            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center text-[#5C5346]">{t.empty}</div>
           ) : (
-            <div className="mt-6 grid gap-4">
-              {listings.map((x) => {
-                const status = (x.status || "active").toLowerCase();
+            <div className="mt-8 flex flex-col gap-5">
+              {visible.map((x) => {
+                const status = normalizeStatus(x.status);
                 const isSold = status === "sold";
                 const createdIso = x.created_at ?? null;
                 const dateText = formatDateIso(createdIso) || "";
@@ -336,6 +478,9 @@ export default function MyListingsPage() {
                 const canEdit = canEditListing(createdIso);
                 const stats = analyticsByListing[x.id];
                 const thumbUrl = getFirstListingImageUrl(x.images);
+                const listingPlan = listingPlanFromDetailPairs(x.detail_pairs);
+                const boosted = isListingBoosted(x.boost_expires);
+                const viewsTotal = resolveViews(x, stats);
 
                 if (x.category === "en-venta") {
                   return (
@@ -349,7 +494,7 @@ export default function MyListingsPage() {
                         status: x.status,
                         created_at: x.created_at,
                         thumbUrl,
-                        views: stats?.views,
+                        views: viewsTotal,
                         messages: stats?.messages,
                         saves: stats?.saves,
                       }}
@@ -361,7 +506,19 @@ export default function MyListingsPage() {
                       onMarkActive={() => markStatus(x.id, "active")}
                       onDelete={() => deleteListing(x.id)}
                       canEdit={canEdit}
-                      editHref={`/dashboard/mis-anuncios/${x.id}/editar?lang=${lang}`}
+                      editHref={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}
+                      listingPlan={listingPlan}
+                      boosted={boosted}
+                      analytics={{
+                        views: stats?.views ?? 0,
+                        uniqueViews: stats?.uniqueViews ?? 0,
+                        messages: stats?.messages ?? 0,
+                        saves: stats?.saves ?? 0,
+                        shares: stats?.shares ?? 0,
+                        profileClicks: stats?.profileClicks ?? 0,
+                        dbViews: typeof x.views === "number" ? x.views : 0,
+                      }}
+                      maxViews={maxViews}
                     />
                   );
                 }
@@ -369,115 +526,60 @@ export default function MyListingsPage() {
                 return (
                   <div
                     key={x.id}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                    className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="text-lg font-semibold text-white truncate">{x.title || "—"}</div>
-                        <span
-                          className={
-                            "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold " +
-                            (isSold
-                              ? "bg-white/10 text-white/80 border border-white/10"
-                              : "bg-yellow-500/15 text-yellow-200 border border-yellow-500/20")
-                          }
-                        >
-                          {isSold ? L.statusSold : L.statusActive}
-                        </span>
-                        <span className="text-sm text-white/70">{priceText}</span>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-lg font-bold text-[#1E1810]">{x.title || "—"}</span>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                              isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900"
+                            }`}
+                          >
+                            {isSold ? (lang === "es" ? "Vendido" : "Sold") : lang === "es" ? "Activo" : "Active"}
+                          </span>
+                          <span className="text-sm font-semibold text-[#1E1810]">{priceText}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-[#5C5346]/90">
+                          {(x.city || "").trim()}
+                          {dateText ? ` · ${dateText}` : ""}
+                        </p>
+                        {stats ? (
+                          <p className="mt-2 text-sm text-[#7A7164]">
+                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}:{" "}
+                            {stats.messages}
+                          </p>
+                        ) : null}
                       </div>
-
-                      <div className="mt-2 text-sm text-white/60">
-                        {(x.city || "").trim()}
-                        {x.zip ? ` · ${x.zip}` : ""}
-                        {dateText ? ` · ${dateText}` : ""}
-                      </div>
-                      {(() => {
-                        const stats = analyticsByListing[x.id];
-                        if (!stats) return null;
-                        const parts: string[] = [];
-                        parts.push(`${L.views}: ${stats.views}`);
-                        parts.push(`${L.messages}: ${stats.messages}`);
-                        if (isPro) {
-                          parts.push(`${L.uniqueViews}: ${stats.uniqueViews}`);
-                          parts.push(`${L.saves}: ${stats.saves}`);
-                          parts.push(`${L.shares}: ${stats.shares}`);
-                          parts.push(`${L.profileClicks}: ${stats.profileClicks}`);
-                        }
-                        return (
-                          <div className="mt-1 text-xs text-white/50">
-                            {parts.join(" · ")}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap justify-end">
-                      <Link
-                        href={`/clasificados/anuncio/${x.id}?lang=${lang}`}
-                        className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
-                      >
-                        {L.view}
-                      </Link>
-
-                      {canEdit ? (
+                      <div className="flex flex-wrap gap-2">
                         <Link
-                          href={`/dashboard/mis-anuncios/${x.id}/editar?lang=${lang}`}
-                          className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
+                          href={`/clasificados/anuncio/${x.id}?${q}`}
+                          className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
-                          {L.edit}
+                          {lang === "es" ? "Ver" : "View"}
                         </Link>
-                      ) : (
-                        <span
-                          title={L.editLocked}
-                          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/40 cursor-not-allowed"
-                        >
-                          {L.editLocked}
-                        </span>
-                      )}
-
-                      {isSold ? (
                         <button
-                          onClick={() => markStatus(x.id, "active")}
+                          type="button"
                           disabled={busy}
-                          className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition disabled:opacity-50"
+                          onClick={() => deleteListing(x.id)}
+                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 disabled:opacity-50"
                         >
-                          {busy ? "…" : L.markActive}
+                          {lang === "es" ? "Eliminar" : "Delete"}
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => markStatus(x.id, "sold")}
-                          disabled={busy}
-                          className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition disabled:opacity-50"
-                        >
-                          {busy ? "…" : L.markSold}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => deleteListing(x.id)}
-                        disabled={busy}
-                        className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/15 transition disabled:opacity-50"
-                      >
-                        {busy ? L.deleting : L.delete}
-                      </button>
+                      </div>
                     </div>
-
-                    <div className="text-xs text-white/50 md:text-right">{L.deleteGuard}</div>
                   </div>
                 );
               })}
             </div>
           )}
 
-          <Link
-            href={`/dashboard?lang=${lang}`}
-            className="mt-8 inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
-          >
-            {L.back}
+          <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
+            ← {t.back}
           </Link>
-        </div>
-      </main>
-    </div>
+        </>
+      )}
+    </LeonixDashboardShell>
   );
 }
