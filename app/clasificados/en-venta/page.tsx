@@ -9,24 +9,7 @@ import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import newLogo from "../../../public/logo.png";
 
-/** Landing grid: nine departments from the approved mockup, in display order. */
-const LANDING_DEPT_ORDER: EnVentaDepartmentKey[] = [
-  "electronicos",
-  "hogar",
-  "muebles",
-  "ropa-accesorios",
-  "bebes-ninos",
-  "vehiculos-partes",
-  "deportes",
-  "herramientas",
-  "juguetes-juegos",
-];
-
-/** Mockup-aligned titles where taxonomy wording differs slightly. */
-const LANDING_TITLE_OVERRIDE: Partial<Record<EnVentaDepartmentKey, { es: string; en: string }>> = {
-  electronicos: { es: "Electrónica", en: "Electronics" },
-};
-
+/** Emoji panels per department — visuals only; labels/hints come from taxonomy. */
 const DEPT_VISUAL: Record<EnVentaDepartmentKey, { icon: string; panel: string }> = {
   electronicos: { icon: "📱", panel: "📲" },
   hogar: { icon: "🏠", panel: "🪴" },
@@ -74,9 +57,8 @@ export default function EnVentaHubPage() {
   const publishHref = `/clasificados/publicar/en-venta?lang=${lang}`;
   const allListingsHref = buildCategoryBrowseUrl("en-venta", lang);
 
-  const departments = LANDING_DEPT_ORDER.map((key) => EN_VENTA_DEPARTMENTS.find((d) => d.key === key)).filter(
-    (d): d is (typeof EN_VENTA_DEPARTMENTS)[number] => d != null
-  );
+  /** Same order and copy as `CategorySelectionSection` / publish flow (`EN_VENTA_DEPARTMENTS`). */
+  const departments = EN_VENTA_DEPARTMENTS;
 
   return (
     <div
@@ -184,10 +166,10 @@ export default function EnVentaHubPage() {
 
         {/* Category grid */}
         <section className="mt-20">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-6">
             {departments.map((d) => {
               const href = buildCategoryBrowseUrl("en-venta", lang, { evDept: d.key });
-              const title = LANDING_TITLE_OVERRIDE[d.key]?.[lang] ?? d.label[lang];
+              const title = d.label[lang];
               const hint = d.browseHint[lang];
               const vis = DEPT_VISUAL[d.key];
 
