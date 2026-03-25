@@ -1,5 +1,6 @@
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { formatPriceInputDisplay } from "@/app/clasificados/publicar/en-venta/free/application/helpers/priceInput";
+import { departmentLabel, findSubcategory } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 
 /** Local labels when taxonomy module is unavailable at build time in some environments. */
 const CONDITION_FALLBACK: Record<string, { es: string; en: string }> = {
@@ -39,6 +40,7 @@ export type EnVentaPreviewViewModel = {
   negotiable: boolean;
   previewBadge: string;
   chips: EnVentaPreviewChip[];
+  classificationLine: string;
   locationLine: string;
   postedLine: string;
   description: string;
@@ -52,6 +54,8 @@ export type EnVentaPreviewViewModel = {
   sellerName: string;
   sellerInitials: string;
   sellerSubline: string;
+  /** Non-empty when `seller_kind` is set on the draft. */
+  sellerKindLabel: string;
   viewProfileLabel: string;
   gallery: {
     orderedImages: string[];
@@ -71,6 +75,8 @@ const COPY = {
     pickup: "Recogida local",
     meetup: "Punto de encuentro",
     localDel: "Entrega local",
+    kindIndividual: "Particular",
+    kindBusiness: "Comercial",
     deliveryH: "Entrega y pago",
     contact: "Contactar al vendedor",
     trust: "Compra con confianza: mantén la comunicación dentro de Leonix cuando sea posible.",
@@ -97,6 +103,8 @@ const COPY = {
     pickup: "Local pickup",
     meetup: "Meetup",
     localDel: "Local delivery",
+    kindIndividual: "Individual",
+    kindBusiness: "Business",
     deliveryH: "Delivery & payment",
     contact: "Contact seller",
     trust: "Shop with confidence — keep communication on Leonix when possible.",
@@ -150,23 +158,36 @@ export function buildEnVentaPreviewModel(
     chips.push({ key: "condition", text: condLabel, tone: "success" });
   }
   if (state.shipping) {
-    chips.push({ key: "ship", text: `🚚 ${t.ship}`, tone: "success" });
+    chips.push({ key: "ship", text: t.ship, tone: "neutral" });
   }
   if (state.pickup) {
-    chips.push({ key: "pickup", text: `📦 ${t.pickup}`, tone: "neutral" });
+    chips.push({ key: "pickup", text: t.pickup, tone: "neutral" });
   }
   if (state.meetup) {
-    chips.push({ key: "meetup", text: `📍 ${t.meetup}`, tone: "neutral" });
+    chips.push({ key: "meetup", text: t.meetup, tone: "neutral" });
   }
   if (state.localDelivery) {
-    chips.push({ key: "local", text: `🛵 ${t.localDel}`, tone: "neutral" });
+    chips.push({ key: "local", text: t.localDel, tone: "neutral" });
   }
   if (negotiable) {
     chips.push({ key: "neg", text: t.negotiableChip, tone: "muted" });
   }
 
+  const dept = state.rama.trim();
+  const sub = state.evSub.trim();
+  let classificationLine = "";
+  if (dept) {
+    const deptLabel = departmentLabel(dept, lang);
+    if (sub) {
+      const row = findSubcategory(dept, sub);
+      classificationLine = row ? `${deptLabel} · ${row.label[lang]}` : deptLabel;
+    } else {
+      classificationLine = deptLabel;
+    }
+  }
+
   const loc = t.location(state.city.trim(), state.zip.trim());
-  const locationLine = loc ? `📍 ${loc}` : "";
+  const locationLine = loc ? loc : "";
 
   const specRows: Array<{ label: string; value: string }> = [];
   if (condLabel) {
@@ -198,16 +219,16 @@ export function buildEnVentaPreviewModel(
 
   const deliveryLines: string[] = [];
   if (state.shipping && state.shippingNotes.trim()) {
-    deliveryLines.push(`🚚 ${state.shippingNotes.trim()}`);
+    deliveryLines.push(`${t.ship} — ${state.shippingNotes.trim()}`);
   }
   if (state.pickup && state.pickupDetailNotes.trim()) {
-    deliveryLines.push(`📦 ${state.pickupDetailNotes.trim()}`);
+    deliveryLines.push(`${t.pickup} — ${state.pickupDetailNotes.trim()}`);
   }
   if (state.meetup && state.meetupDetailNotes.trim()) {
-    deliveryLines.push(`📍 ${state.meetupDetailNotes.trim()}`);
+    deliveryLines.push(`${t.meetup} — ${state.meetupDetailNotes.trim()}`);
   }
   if (state.localDelivery && state.localDeliveryDetailNotes.trim()) {
-    deliveryLines.push(`🛵 ${state.localDeliveryDetailNotes.trim()}`);
+    deliveryLines.push(`${t.localDel} — ${state.localDeliveryDetailNotes.trim()}`);
   }
   if (deliveryLines.length === 0 && (state.shipping || state.pickup || state.meetup || state.localDelivery)) {
     if (state.shipping) deliveryLines.push(t.ship);
@@ -217,6 +238,13 @@ export function buildEnVentaPreviewModel(
   }
 
   const sellerName = state.displayName.trim() || t.sellerFallback;
+
+  const sellerKindLabel =
+    state.seller_kind === "business"
+      ? t.kindBusiness
+      : state.seller_kind === "individual"
+        ? t.kindIndividual
+        : "";
 
   let contactHref = "#";
   const method = state.contactMethod;
@@ -244,6 +272,7 @@ export function buildEnVentaPreviewModel(
     negotiable,
     previewBadge: t.previewBadge,
     chips,
+    classificationLine,
     locationLine,
     postedLine: t.posted,
     description: state.description.trim(),
@@ -264,6 +293,7 @@ export function buildEnVentaPreviewModel(
         : plan === "pro"
           ? "Pro listing · draft"
           : "Free listing · draft",
+    sellerKindLabel,
     viewProfileLabel: t.profile,
     gallery: {
       orderedImages,
