@@ -1,22 +1,15 @@
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { formatPriceInputDisplay } from "@/app/clasificados/publicar/en-venta/free/application/helpers/priceInput";
-import { departmentLabel, findSubcategory } from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
-
-/** Local labels when taxonomy module is unavailable at build time in some environments. */
-const CONDITION_FALLBACK: Record<string, { es: string; en: string }> = {
-  new: { es: "Nuevo", en: "New" },
-  like_new: { es: "Como nuevo", en: "Like new" },
-  excellent: { es: "Excelente estado", en: "Excellent" },
-  good: { es: "Buen estado", en: "Good" },
-  fair: { es: "Estado aceptable", en: "Fair" },
-  poor: { es: "Para repuesto / reparar", en: "For parts / repair" },
-  used: { es: "Usado", en: "Used" },
-};
+import {
+  departmentLabel,
+  EN_VENTA_PUBLISH_CONDITION_OPTIONS,
+  findSubcategory,
+} from "@/app/clasificados/en-venta/shared/fields/enVentaTaxonomy";
 
 function resolveConditionLabel(value: string, lang: "es" | "en"): string {
   if (!value.trim()) return "";
-  const fb = CONDITION_FALLBACK[value];
-  if (fb) return lang === "es" ? fb.es : fb.en;
+  const opt = EN_VENTA_PUBLISH_CONDITION_OPTIONS.find((c) => c.value === value);
+  if (opt) return lang === "es" ? opt.labelEs : opt.labelEn;
   return value;
 }
 
@@ -33,16 +26,27 @@ export type EnVentaPreviewChip = {
   tone: "success" | "neutral" | "muted";
 };
 
+/** Buyer-facing contact / utility links built from application fields. */
+export type EnVentaPreviewContactAction = {
+  id: "call" | "sms" | "email" | "whatsapp" | "maps";
+  label: string;
+  href: string;
+};
+
 export type EnVentaPreviewViewModel = {
   title: string;
   priceLine: string;
   priceIsFree: boolean;
   negotiable: boolean;
-  previewBadge: string;
+  /** Shell-only: plan label for seller wrapper. */
+  shellPlanLabel: string;
+  /** Shell-only: short line (draft). */
+  shellStatusLine: string;
   chips: EnVentaPreviewChip[];
   classificationLine: string;
   locationLine: string;
-  postedLine: string;
+  /** Buyer-facing note — approximate area, not exact address unless seller chose. */
+  locationApproximateNote: string;
   description: string;
   extraParagraphs: Array<{ title: string; body: string }>;
   specRows: Array<{ label: string; value: string }>;
@@ -54,23 +58,32 @@ export type EnVentaPreviewViewModel = {
   sellerName: string;
   sellerInitials: string;
   sellerSubline: string;
-  /** Non-empty when `seller_kind` is set on the draft. */
   sellerKindLabel: string;
   viewProfileLabel: string;
+  contactActions: EnVentaPreviewContactAction[];
+  /** Price-drop UI: only when draft carries both prices (optional future fields). Not in current schema. */
+  priceDrop: null | { previousLine: string; currentLine: string };
+  /** Buyer mailto when negotiable + email — “hacer oferta” style (no server workflow). */
+  offerMailtoHref: string | null;
   gallery: {
     orderedImages: string[];
     videoUrl: string | null;
     showVideo: boolean;
+    photoCountLabel: string;
   };
 };
 
 const COPY = {
   es: {
-    previewBadge: "Vista previa antes de publicar",
-    posted: "Vista previa · datos de tu borrador",
+    shellFree: "Vista previa Gratis",
+    shellPro: "Vista previa Pro",
+    posted: "Borrador · no publicado aún",
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
+    approxLoc:
+      "Ubicación general indicada por el vendedor; el punto exacto se acuerda al contactar.",
     negotiableChip: "Precio negociable",
+    makeOfferHint: "Puedes contactar al vendedor para acordar.",
     ship: "Envío disponible",
     pickup: "Recogida local",
     meetup: "Punto de encuentro",
@@ -92,13 +105,17 @@ const COPY = {
     acc: "Accesorios incluidos",
     noTitle: "Sin título",
     sellerFallback: "Vendedor",
+    photoCount: (n: number, max: number) => `${n} / ${max} fotos`,
   },
   en: {
-    previewBadge: "Preview before publishing",
-    posted: "Preview · from your draft",
+    shellFree: "Free preview",
+    shellPro: "Pro preview",
+    posted: "Draft · not published yet",
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
+    approxLoc: "General area from the seller; exact meeting point is arranged when you contact them.",
     negotiableChip: "Negotiable price",
+    makeOfferHint: "Message the seller to make an offer.",
     ship: "Shipping available",
     pickup: "Local pickup",
     meetup: "Meetup",
@@ -120,15 +137,90 @@ const COPY = {
     acc: "Included accessories",
     noTitle: "Untitled listing",
     sellerFallback: "Seller",
+    photoCount: (n: number, max: number) => `${n} / ${max} photos`,
   },
 } as const;
 
-/** Gallery order: primary (cover) first, then remaining images in stable array order. Matches publish + live listing hero/thumbnail order. */
+const SMS_PREFILL_ES = "Hola, ¿sigue disponible este artículo?";
+const SMS_PREFILL_EN = "Hi — is this item still available?";
+const EMAIL_SUBJ_ES = "Interés en tu anuncio Leonix";
+const EMAIL_SUBJ_EN = "Question about your Leonix listing";
+
+/** Gallery caps align with publish product copy: Free 3 photos, Pro 12 (+ video). */
+export const EN_VENTA_PREVIEW_MAX_PHOTOS = { free: 3, pro: 12 } as const;
+
 export function getOrderedEnVentaImageUrls(state: EnVentaFreeApplicationState): string[] {
   const n = state.images.length;
   if (n === 0) return [];
   const pi = Math.min(Math.max(0, state.primaryImageIndex), n - 1);
   return [state.images[pi], ...state.images.filter((_, i) => i !== pi)];
+}
+
+function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "en"): EnVentaPreviewContactAction[] {
+  const actions: EnVentaPreviewContactAction[] = [];
+  const phone = state.phone.replace(/\s/g, "");
+  const email = state.email.trim();
+  const wa = state.whatsapp.replace(/\D/g, "");
+  const city = state.city.trim();
+  const zip = state.zip.trim();
+  const query = [city, zip].filter(Boolean).join(" ");
+
+  if (phone) {
+    actions.push({
+      id: "call",
+      label: lang === "es" ? "Llamar" : "Call",
+      href: `tel:${phone}`,
+    });
+    const smsBody = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    actions.push({
+      id: "sms",
+      label: "SMS",
+      href: `sms:${phone}?body=${smsBody}`,
+    });
+  }
+
+  if (email) {
+    const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
+    const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    actions.push({
+      id: "email",
+      label: lang === "es" ? "Correo" : "Email",
+      href: `mailto:${email}?subject=${sub}&body=${body}`,
+    });
+  }
+
+  if (wa) {
+    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    actions.push({
+      id: "whatsapp",
+      label: "WhatsApp",
+      href: `https://wa.me/${wa}?text=${text}`,
+    });
+  }
+
+  if (query) {
+    actions.push({
+      id: "maps",
+      label: lang === "es" ? "Mapa / zona" : "Map / area",
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
+    });
+  }
+
+  const pref = state.contactMethod;
+  const rank = (id: EnVentaPreviewContactAction["id"]): number => {
+    const orderPhone = { call: 0, sms: 1, whatsapp: 2, email: 3, maps: 4 } as const;
+    const orderEmail = { email: 0, call: 1, sms: 2, whatsapp: 3, maps: 4 } as const;
+    const orderWa = { whatsapp: 0, call: 1, sms: 2, email: 3, maps: 4 } as const;
+    const orderBoth = { call: 0, sms: 1, email: 2, whatsapp: 3, maps: 4 } as const;
+    if (pref === "phone") return orderPhone[id];
+    if (pref === "email") return orderEmail[id];
+    if (pref === "whatsapp") return orderWa[id];
+    return orderBoth[id];
+  };
+
+  actions.sort((a, b) => rank(a.id) - rank(b.id));
+
+  return actions;
 }
 
 export function buildEnVentaPreviewModel(
@@ -246,35 +338,61 @@ export function buildEnVentaPreviewModel(
         ? t.kindIndividual
         : "";
 
-  let contactHref = "#";
   const method = state.contactMethod;
+  let contactHref = "#";
   if (method === "phone" && state.phone.trim()) {
     contactHref = `tel:${state.phone.replace(/\s/g, "")}`;
   } else if (method === "email" && state.email.trim()) {
-    contactHref = `mailto:${state.email.trim()}`;
+    const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
+    const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    contactHref = `mailto:${state.email.trim()}?subject=${sub}&body=${body}`;
   } else if (method === "whatsapp" && state.whatsapp.trim()) {
     const n = state.whatsapp.replace(/\D/g, "");
-    contactHref = n ? `https://wa.me/${n}` : "#";
+    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    contactHref = n ? `https://wa.me/${n}?text=${text}` : "#";
   } else if (method === "both") {
     if (state.phone.trim()) contactHref = `tel:${state.phone.replace(/\s/g, "")}`;
-    else if (state.email.trim()) contactHref = `mailto:${state.email.trim()}`;
+    else if (state.email.trim()) {
+      const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
+      const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+      contactHref = `mailto:${state.email.trim()}?subject=${sub}&body=${body}`;
+    }
   }
 
-  const orderedImages = getOrderedEnVentaImageUrls(state);
+  let offerMailtoHref: string | null = null;
+  if (negotiable && state.email.trim()) {
+    const sub = encodeURIComponent(lang === "es" ? "Oferta por tu artículo Leonix" : "Offer on your Leonix listing");
+    const body = encodeURIComponent(
+      lang === "es"
+        ? "Hola, me gustaría hacer una oferta por tu artículo."
+        : "Hi — I'd like to make an offer on your item."
+    );
+    offerMailtoHref = `mailto:${state.email.trim()}?subject=${sub}&body=${body}`;
+  }
+
+  const orderedFull = getOrderedEnVentaImageUrls(state);
+  const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
+  const orderedImages = orderedFull.slice(0, maxPhotos);
 
   const videoUrl = state.listingVideoUrl.trim() || null;
   const showVideo = plan === "pro" && !!videoUrl;
+
+  const contactActions = buildContactActions(state, lang);
+
+  const shellPlanLabel = plan === "pro" ? t.shellPro : t.shellFree;
+  const shellStatusLine = t.posted;
 
   return {
     title,
     priceLine,
     priceIsFree,
     negotiable,
-    previewBadge: t.previewBadge,
+    shellPlanLabel,
+    shellStatusLine,
     chips,
     classificationLine,
     locationLine,
-    postedLine: t.posted,
+    locationApproximateNote: t.approxLoc,
     description: state.description.trim(),
     extraParagraphs,
     specRows,
@@ -295,10 +413,14 @@ export function buildEnVentaPreviewModel(
           : "Free listing · draft",
     sellerKindLabel,
     viewProfileLabel: t.profile,
+    contactActions,
+    priceDrop: null,
+    offerMailtoHref,
     gallery: {
       orderedImages,
       videoUrl,
       showVideo,
+      photoCountLabel: t.photoCount(orderedImages.length, maxPhotos),
     },
   };
 }

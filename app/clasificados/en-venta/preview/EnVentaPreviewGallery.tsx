@@ -6,11 +6,12 @@ type Props = {
   orderedImages: string[];
   videoUrl: string | null;
   showVideo: boolean;
+  photoCountLabel: string;
   lang: "es" | "en";
   plan: "free" | "pro";
 };
 
-export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, lang, plan }: Props) {
+export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, photoCountLabel, lang, plan }: Props) {
   const [active, setActive] = useState(0);
 
   const slides = useMemo(() => {
@@ -57,6 +58,8 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, lang
           ) : null}
         </div>
       </div>
+
+      <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]/90">{photoCountLabel}</p>
 
       {slides.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
