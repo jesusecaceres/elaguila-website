@@ -112,7 +112,7 @@ export function EnVentaAnuncioLayout({
             ← {lang === "es" ? "Volver" : "Back"}
           </Link>
           <Link
-            href={`/clasificados/en-venta?lang=${lang}`}
+            href={`/clasificados/en-venta/results?lang=${lang}`}
             className="text-sm font-semibold text-[#111111]/70 underline"
           >
             {lang === "es" ? "Más en En Venta" : "More in For Sale"}

@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
-import { buildCategoryBrowseUrl } from "@/app/clasificados/lib/hubUrl";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes";
 import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import newLogo from "../../../public/logo.png";
@@ -55,7 +56,7 @@ export default function EnVentaHubPage() {
   }[lang];
 
   const publishHref = `/clasificados/publicar/en-venta?lang=${lang}`;
-  const allListingsHref = buildCategoryBrowseUrl("en-venta", lang);
+  const allListingsHref = buildEnVentaResultsUrl(lang);
 
   /** Same order and copy as `CategorySelectionSection` / publish flow (`EN_VENTA_DEPARTMENTS`). */
   const departments = EN_VENTA_DEPARTMENTS;
@@ -105,7 +106,7 @@ export default function EnVentaHubPage() {
           {/* Search — pill bar, icon left, dark CTA inside right */}
           <form
             className="mt-10 w-full max-w-2xl"
-            action="/clasificados/en-venta"
+            action="/clasificados/en-venta/results"
             method="get"
             role="search"
           >
@@ -168,7 +169,7 @@ export default function EnVentaHubPage() {
         <section className="mt-20">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-6">
             {departments.map((d) => {
-              const href = buildCategoryBrowseUrl("en-venta", lang, { evDept: d.key });
+              const href = buildEnVentaResultsUrl(lang, { evDept: d.key });
               const title = d.label[lang];
               const hint = d.browseHint[lang];
               const vis = DEPT_VISUAL[d.key];
