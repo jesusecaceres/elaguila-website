@@ -1,0 +1,142 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { deleteListingAction } from "../../actions";
+import { useState } from "react";
+import { adminTableWrap } from "../../_components/adminTheme";
+
+type Row = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  city: string | null;
+  category: string | null;
+  price: number | null;
+  is_free: boolean | null;
+  status: string | null;
+  owner_id: string | null;
+  created_at: string | null;
+  images?: unknown;
+};
+
+export default function AdminListingsTable({ listings }: { listings: Row[] }) {
+  const router = useRouter();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete(id: string) {
+    if (!confirm("¿Marcar este anuncio como eliminado (removed)?")) return;
+    setDeletingId(id);
+    setError(null);
+    try {
+      await deleteListingAction(id);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al eliminar");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function formatDate(iso: string | null): string {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      return Number.isFinite(d.getTime())
+        ? d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "—";
+    } catch {
+      return "—";
+    }
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-sm text-[#5C5346]">No hay anuncios.</div>
+    );
+  }
+
+  return (
+    <div className={adminTableWrap}>
+      {error && <div className="border-b border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
+              <th className="p-3 font-semibold text-[#5C4E2E]">ID</th>
+              <th className="min-w-[180px] p-3 font-semibold text-[#5C4E2E]">Título</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Categoría</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Ciudad</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Precio</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Estado</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Owner</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {listings.map((row) => (
+              <tr key={row.id} className="border-b border-[#E8DFD0]/60">
+                <td className="p-3 font-mono text-xs text-[#3D3428]">{row.id.slice(0, 8)}…</td>
+                <td className="max-w-[200px] truncate p-3 text-[#1E1810]" title={row.title ?? ""}>
+                  {row.title ?? "—"}
+                </td>
+                <td className="p-3">
+                  <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-xs font-semibold text-[#5C4E2E]">
+                    {row.category ?? "—"}
+                  </span>
+                </td>
+                <td className="p-3 text-[#3D3428]">{row.city ?? "—"}</td>
+                <td className="p-3">{row.is_free ? "Gratis" : row.price != null ? `$${row.price}` : "—"}</td>
+                <td className="p-3">
+                  <span
+                    className={
+                      row.status === "removed"
+                        ? "text-red-700"
+                        : row.status === "pending" || row.status === "flagged"
+                          ? "font-bold text-amber-800"
+                          : "text-[#5C5346]"
+                    }
+                  >
+                    {row.status ?? "active"}
+                  </span>
+                </td>
+                <td className="p-3">
+                  {row.owner_id ? (
+                    <Link href={`/admin/usuarios/${row.owner_id}`} className="text-xs font-semibold text-[#6B5B2E] underline">
+                      Ver
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
+                <td className="p-3">
+                  <Link
+                    href={`/clasificados/anuncio/${row.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mr-2 font-semibold text-[#6B5B2E] underline"
+                  >
+                    Ver
+                  </Link>
+                  {row.status !== "removed" && (
+                    <button
+                      type="button"
+                      disabled={deletingId === row.id}
+                      onClick={() => handleDelete(row.id)}
+                      className="text-sm font-semibold text-red-700 hover:underline disabled:opacity-50"
+                    >
+                      {deletingId === row.id ? "…" : "Eliminar"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
