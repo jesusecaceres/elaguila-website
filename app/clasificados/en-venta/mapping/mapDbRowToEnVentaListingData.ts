@@ -58,6 +58,31 @@ function postedAgoBilingual(createdAt: string | null | undefined): { es: string;
   };
 }
 
+function listingHasVideo(description: string): boolean {
+  const d = description.trim();
+  if (!d) return false;
+  if (/\bVideo:\s*https?:\/\//i.test(d)) return true;
+  return /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\b/i.test(d);
+}
+
+function resolvePlanTier(
+  row: Record<string, unknown>,
+  pairs: Array<{ label: string; value: string }>,
+  description: string
+): "free" | "pro" {
+  for (const p of pairs) {
+    if (p.label === "Leonix:plan") {
+      const v = p.value.trim().toLowerCase();
+      if (v === "pro") return "pro";
+      if (v === "free") return "free";
+    }
+  }
+  const rt = String(row.rentas_tier ?? "").trim().toLowerCase();
+  if (rt === "pro" || rt === "plus") return "pro";
+  if (listingHasVideo(description)) return "pro";
+  return "free";
+}
+
 function pairsFromRow(row: Record<string, unknown>): Array<{ label: string; value: string }> {
   const dp = row.detail_pairs;
   if (!Array.isArray(dp)) return [];
@@ -116,6 +141,13 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
 
   const postedAgoOut = postedAgoBilingual(typeof row.created_at === "string" ? row.created_at : null);
 
+  const viewsRaw = row.views;
+  const views =
+    typeof viewsRaw === "number" && Number.isFinite(viewsRaw) && viewsRaw >= 0 ? Math.floor(viewsRaw) : 0;
+
+  const planTier = resolvePlanTier(row, pairs, rawDesc);
+  const hasListingVideo = listingHasVideo(rawDesc);
+
   let pickup = false;
   let shipping = false;
   let delivery = false;
@@ -150,5 +182,8 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     contactPhone: phone,
     contactEmail: email,
     ownerId: row.owner_id != null ? String(row.owner_id) : null,
+    planTier,
+    hasListingVideo,
+    views,
   };
 }

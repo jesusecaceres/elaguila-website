@@ -10,6 +10,7 @@ import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
 import { EN_VENTA_SUBCATEGORY_ROWS } from "../taxonomy/subcategories";
 import { mapDbRowToEnVentaAnuncioDTO } from "../mapping/mapDbRowToEnVentaListingData";
+import { buildEnVentaResultsCardModel } from "./buildEnVentaResultsCardModel";
 import { inferEnVentaDeptFromSubKey } from "../mapping/enVentaInferDeptFromSub";
 import {
   EN_VENTA_SORT_OPTIONS,
@@ -18,7 +19,7 @@ import {
 } from "../filters/enVentaFilterGroups";
 import { buildEnVentaResultsUrl, EN_VENTA_RESULTS_PATH } from "../shared/constants/enVentaResultsRoutes";
 import newLogo from "../../../../public/logo.png";
-import { EnVentaResultListingCard, type EnVentaResultCardListing } from "./EnVentaResultListingCard";
+import { EnVentaResultListingCard } from "./EnVentaResultListingCard";
 import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 
@@ -57,22 +58,6 @@ function resolveEffectiveDept(dto: EnVentaAnuncioDTO): string | null {
     if (byLabel) return byLabel.key;
   }
   return inferEnVentaDeptFromSubKey(dto.subKey);
-}
-
-function dtoToCardListing(dto: EnVentaAnuncioDTO, effectiveDept: string | null): EnVentaResultCardListing {
-  return {
-    id: dto.id,
-    title: dto.title,
-    priceLabel: dto.priceLabel,
-    city: dto.city,
-    postedAgo: dto.postedAgo,
-    hasImage: dto.images.length > 0,
-    images: dto.images,
-    evDept: effectiveDept ?? dto.departmentKey ?? undefined,
-    evSub: dto.subKey ?? undefined,
-    itemType: dto.articleKey ?? undefined,
-    conditionKey: dto.conditionKey ?? undefined,
-  };
 }
 
 function textMatch(q: string, dto: EnVentaAnuncioDTO): boolean {
@@ -121,7 +106,7 @@ export function EnVentaResultsClient() {
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, boost_expires"
+            "id, owner_id, title, description, city, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, boost_expires, views, rentas_tier"
           )
           .eq("category", "en-venta")
           .eq("status", "active")
@@ -552,13 +537,16 @@ export function EnVentaResultsClient() {
                   {promotedPool.map((p) => (
                     <EnVentaResultListingCard
                       key={p.dto.id}
-                      x={dtoToCardListing(p.dto, p.effectiveDept)}
+                      model={buildEnVentaResultsCardModel(p.dto, {
+                        lang,
+                        effectiveDeptKey: p.effectiveDept,
+                        boosted: p.boosted,
+                      })}
                       lang={lang}
                       isFav={isFav(p.dto.id)}
                       onToggleFav={onFav}
                       href={`/clasificados/anuncio/${p.dto.id}?lang=${lang}`}
                       layout="grid"
-                      promotedLabel={t.promoted}
                     />
                   ))}
                 </div>
@@ -592,7 +580,11 @@ export function EnVentaResultsClient() {
                 {standardSlice.map((p) => (
                   <EnVentaResultListingCard
                     key={p.dto.id}
-                    x={dtoToCardListing(p.dto, p.effectiveDept)}
+                    model={buildEnVentaResultsCardModel(p.dto, {
+                      lang,
+                      effectiveDeptKey: p.effectiveDept,
+                      boosted: false,
+                    })}
                     lang={lang}
                     isFav={isFav(p.dto.id)}
                     onToggleFav={onFav}

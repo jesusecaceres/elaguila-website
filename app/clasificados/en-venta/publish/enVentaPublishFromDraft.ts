@@ -41,7 +41,11 @@ function buildDetailsRecord(state: EnVentaFreeApplicationState): Record<string, 
   };
 }
 
-function buildDetailPairs(state: EnVentaFreeApplicationState, lang: PublishLang): Array<{ label: string; value: string }> {
+function buildDetailPairs(
+  state: EnVentaFreeApplicationState,
+  lang: PublishLang,
+  plan: "free" | "pro"
+): Array<{ label: string; value: string }> {
   const pairs: Array<{ label: string; value: string }> = [];
   appendEnVentaDetailPairs(lang, buildDetailsRecord(state), pairs);
   if (state.meetup) {
@@ -56,6 +60,7 @@ function buildDetailPairs(state: EnVentaFreeApplicationState, lang: PublishLang)
       value: state.quantity.trim(),
     });
   }
+  pairs.push({ label: "Leonix:plan", value: plan });
   return pairs;
 }
 
@@ -129,7 +134,7 @@ export async function publishEnVentaFromDraft(
   }
   const userId = auth.user.id;
 
-  const pairs = buildDetailPairs(state, lang);
+  const pairs = buildDetailPairs(state, lang, plan);
   const descriptionBase = buildDescriptionBody(state, lang);
   const contact = resolveContactForInsert(state);
 

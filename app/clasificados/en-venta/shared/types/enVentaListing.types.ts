@@ -40,6 +40,12 @@ export type EnVentaAnuncioDTO = {
   contactPhone: string | null;
   contactEmail: string | null;
   ownerId?: string | null;
+  /** Publishing plan from `Leonix:plan` detail pair, with legacy inference when missing. */
+  planTier: "free" | "pro";
+  /** Listing includes a video (stored URL in description or known hosts). */
+  hasListingVideo: boolean;
+  /** `listings.views` engagement counter when present. */
+  views: number;
 };
 
 export type EnVentaDashboardRowDTO = {
