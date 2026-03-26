@@ -80,28 +80,30 @@ export default function LeonixEnVentaProApplication() {
   return (
     <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
       <div className="mx-auto max-w-2xl px-4">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold text-[#3D2C12]">{copy.title}</h1>
-            <p className="mt-2 text-[#6E4E18]">{copy.subtitle}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`}
-              className="rounded-xl border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
-            >
-              {copy.back}
-            </Link>
-            <Link
-              href={`${EN_VENTA_PUBLICAR_FREE}?${qs.toString()}`}
-              className="rounded-xl border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
-            >
-              {copy.switchFree}
-            </Link>
+        <div className="mb-5 rounded-2xl border border-[#D8C79A]/70 bg-[#FFFCF4] p-4 shadow-[0_8px_22px_rgba(113,84,22,0.08)] sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-extrabold text-[#3D2C12]">{copy.title}</h1>
+              <p className="mt-1.5 text-[#6E4E18]">{copy.subtitle}</p>
+            </div>
+            <div className="inline-flex w-fit flex-wrap items-center gap-2 rounded-xl border border-[#D8C79A]/65 bg-[#FFF7E7] p-1.5 shadow-sm">
+              <Link
+                href={`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`}
+                className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
+              >
+                {copy.back}
+              </Link>
+              <Link
+                href={`${EN_VENTA_PUBLICAR_FREE}?${qs.toString()}`}
+                className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
+              >
+                {copy.switchFree}
+              </Link>
+            </div>
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-5">
           <EnVentaPlanIntakeCallout lang={lang} plan="pro" />
         </div>
 
