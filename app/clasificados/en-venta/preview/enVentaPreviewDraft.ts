@@ -6,6 +6,10 @@ import {
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
 export const EN_VENTA_PREVIEW_DRAFT_META_KEY = "en-venta-preview-draft-meta";
+type EnVentaPreviewDraftMeta = {
+  plan: "free" | "pro";
+  updatedAt: number;
+};
 
 function keyForPlan(plan: "free" | "pro") {
   return plan === "free" ? EN_VENTA_PREVIEW_DRAFT_KEY_FREE : EN_VENTA_PREVIEW_DRAFT_KEY_PRO;
@@ -63,4 +67,23 @@ export function loadLatestEnVentaPreviewDraft(
     /* ignore */
   }
   return preferred ? { plan: preferredPlan, draft: preferred } : other ? { plan: otherPlan, draft: other } : null;
+}
+
+export function loadEnVentaPreviewDraftMeta(): EnVentaPreviewDraftMeta | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<EnVentaPreviewDraftMeta>;
+    if (
+      (parsed.plan !== "free" && parsed.plan !== "pro") ||
+      typeof parsed.updatedAt !== "number" ||
+      !Number.isFinite(parsed.updatedAt)
+    ) {
+      return null;
+    }
+    return { plan: parsed.plan, updatedAt: parsed.updatedAt };
+  } catch {
+    return null;
+  }
 }

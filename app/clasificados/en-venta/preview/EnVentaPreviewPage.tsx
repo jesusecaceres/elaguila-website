@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
-import { loadEnVentaPreviewDraft, loadLatestEnVentaPreviewDraft } from "./enVentaPreviewDraft";
+import { loadEnVentaPreviewDraft, loadLatestEnVentaPreviewDraft, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
 import { buildEnVentaPreviewModel } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
@@ -78,10 +78,21 @@ function chipClass(tone: "success" | "neutral" | "muted") {
 }
 
 function chipIcon(key: string): string {
-  if (key === "ship") return "📦";
   if (key === "pickup" || key === "meetup" || key === "local") return "📍";
   if (key === "condition") return "✓";
   return "";
+}
+
+function relativeTimeLabel(ts: number, lang: "es" | "en"): string {
+  const diffMs = Date.now() - ts;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return lang === "es" ? "Hace un momento" : "Just now";
+  const mins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (mins < 1) return lang === "es" ? "Hace un momento" : "Just now";
+  if (mins < 60) return lang === "es" ? `Hace ${mins} min` : `${mins} min ago`;
+  if (hours < 24) return lang === "es" ? (hours === 1 ? "Hace 1 hora" : `Hace ${hours} horas`) : (hours === 1 ? "1 hour ago" : `${hours} hours ago`);
+  return lang === "es" ? (days === 1 ? "Hace 1 día" : `Hace ${days} días`) : (days === 1 ? "1 day ago" : `${days} days ago`);
 }
 
 function ContactIcon({ className }: { className?: string }) {
@@ -155,6 +166,11 @@ export function EnVentaPreviewPage() {
   const hasDraft = draft !== null;
 
   const vm = useMemo(() => buildEnVentaPreviewModel(state, lang, plan), [state, lang, plan]);
+  const draftMeta = useMemo(() => loadEnVentaPreviewDraftMeta(), [plan]);
+  const shellStatusLine = useMemo(() => {
+    if (draftMeta?.updatedAt) return relativeTimeLabel(draftMeta.updatedAt, lang);
+    return vm.shellStatusLine;
+  }, [draftMeta?.updatedAt, lang, vm.shellStatusLine]);
 
   async function onPublish() {
     setPublishErr(null);
@@ -311,22 +327,6 @@ export function EnVentaPreviewPage() {
         </div>
       ) : null}
 
-      {plan === "pro" ? (
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]">
-            ✨ {lang === "es" ? "Destacado Pro" : "Pro featured"}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]">
-            📊 {lang === "es" ? "Analíticas básicas" : "Basic analytics"}
-          </span>
-          {vm.gallery.showVideo ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]">
-              🎥 {lang === "es" ? "Video incluido" : "Video included"}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
       {vm.negotiable && vm.offerMailtoHref ? (
         <p className="text-sm text-[#3D3428]/90">
           <a
@@ -351,7 +351,19 @@ export function EnVentaPreviewPage() {
       ) : null}
 
       {vm.locationLine ? (
-        <p className="text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
+        <div className="space-y-2">
+          <p className="text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
+          {vm.locationMapHref ? (
+            <a
+              href={vm.locationMapHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[38px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
+            >
+              📍 {lang === "es" ? "Mapa / zona" : "Map / area"}
+            </a>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
@@ -472,7 +484,7 @@ export function EnVentaPreviewPage() {
         lang={lang}
         plan={plan}
         shellPlanLabel={vm.shellPlanLabel}
-        shellStatusLine={vm.shellStatusLine}
+        shellStatusLine={shellStatusLine}
         editHubHref={editHubHref}
         previewHrefFree={previewHrefFree}
         previewHrefPro={previewHrefPro}
@@ -484,15 +496,42 @@ export function EnVentaPreviewPage() {
         <main className="relative pb-8 text-[#2C2416] lg:pb-12">
           <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-x-10 lg:gap-y-8">
-              <div className="order-1 lg:col-span-5 lg:row-span-2 lg:row-start-1">
-                <EnVentaPreviewGallery
-                  orderedImages={vm.gallery.orderedImages}
-                  videoUrl={vm.gallery.videoUrl}
-                  showVideo={vm.gallery.showVideo}
-                  photoCountLabel={vm.gallery.photoCountLabel}
-                  lang={lang}
-                  plan={plan}
-                />
+              <div className="order-1 lg:col-span-5 lg:row-start-1">
+                <div className="space-y-4">
+                  <EnVentaPreviewGallery
+                    orderedImages={vm.gallery.orderedImages}
+                    videoUrl={vm.gallery.videoUrl}
+                    showVideo={vm.gallery.showVideo}
+                    photoCountLabel={vm.gallery.photoCountLabel}
+                    lang={lang}
+                    plan={plan}
+                  />
+                  <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                        {lang === "es" ? "Analíticas" : "Analytics"}
+                      </p>
+                      <p className="text-[11px] font-medium text-[#7A7164]/90">
+                        {lang === "es" ? "Vista previa" : "Preview"}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { k: "views", icon: "👁️", label: lang === "es" ? "Vistas" : "Views" },
+                        { k: "shares", icon: "📤", label: lang === "es" ? "Compartidos" : "Shares" },
+                        { k: "saves", icon: "💛", label: lang === "es" ? "Guardados" : "Saves" },
+                        { k: "contacts", icon: "💬", label: lang === "es" ? "Contactos" : "Contacts" },
+                      ].map((m) => (
+                        <div key={m.k} className="rounded-2xl border border-[#E8DFD0]/90 bg-white/70 px-3 py-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
+                            {m.icon} {m.label}
+                          </p>
+                          <p className="mt-0.5 text-lg font-extrabold tracking-tight text-[#1E1810]">—</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="order-2 lg:col-span-4 lg:col-start-6 lg:row-start-1">{mainTop}</div>

@@ -13,6 +13,7 @@ type Props = {
 
 export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, photoCountLabel, lang, plan }: Props) {
   const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false);
 
   const slides = useMemo(() => {
     const imgs: Array<{ type: "image"; src: string; i: number } | { type: "video"; src: string; i: number }> =
@@ -30,6 +31,10 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
   const current = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
 
   const videoLabel = lang === "es" ? "Video" : "Video";
+  const openLabel = lang === "es" ? "Abrir medios" : "Open media";
+  const closeLabel = lang === "es" ? "Cerrar" : "Close";
+  const prevLabel = lang === "es" ? "Anterior" : "Previous";
+  const nextLabel = lang === "es" ? "Siguiente" : "Next";
 
   if (slides.length === 0) {
     return (
@@ -49,14 +54,22 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
             Pro
           </span>
         ) : null}
-        <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-[#FAF7F2] to-[#EDE6DC]">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="group relative block w-full text-left"
+          aria-label={openLabel}
+        >
+          <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-[#FAF7F2] to-[#EDE6DC]">
           {current?.type === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={current.src} alt="" className="h-full w-full object-cover" />
           ) : current?.type === "video" ? (
-            <VideoEmbed url={current.src} lang={lang} />
+            <VideoCover lang={lang} />
           ) : null}
-        </div>
+          </div>
+          <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/10" />
+        </button>
       </div>
 
       <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]/90">{photoCountLabel}</p>
@@ -87,13 +100,123 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
           ))}
         </div>
       ) : null}
+
+      {open ? (
+        <Lightbox
+          lang={lang}
+          slides={slides}
+          active={active}
+          onClose={() => setOpen(false)}
+          onPrev={() => setActive((i) => (i <= 0 ? slides.length - 1 : i - 1))}
+          onNext={() => setActive((i) => (i >= slides.length - 1 ? 0 : i + 1))}
+          closeLabel={closeLabel}
+          prevLabel={prevLabel}
+          nextLabel={nextLabel}
+        />
+      ) : null}
     </div>
   );
 }
 
-function VideoEmbed({ url, lang }: { url: string; lang: "es" | "en" }) {
+function VideoCover({ lang }: { lang: "es" | "en" }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-[#2A2620] to-[#15110B] p-6 text-center">
+      <span className="text-3xl" aria-hidden>
+        🎥
+      </span>
+      <p className="text-sm font-semibold text-[#FAF7F2]">{lang === "es" ? "Video" : "Video"}</p>
+      <p className="text-xs text-[#FAF7F2]/70">{lang === "es" ? "Toca para ver" : "Tap to view"}</p>
+    </div>
+  );
+}
+
+function Lightbox({
+  lang,
+  slides,
+  active,
+  onClose,
+  onPrev,
+  onNext,
+  closeLabel,
+  prevLabel,
+  nextLabel,
+}: {
+  lang: "es" | "en";
+  slides: Array<{ type: "image" | "video"; src: string; i: number }>;
+  active: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  closeLabel: string;
+  prevLabel: string;
+  nextLabel: string;
+}) {
+  const current = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") onPrev();
+      else if (e.key === "ArrowRight") onNext();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, onPrev, onNext]);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#0f0d09] shadow-2xl">
+        <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-black/20 px-3 py-2">
+          <div className="text-xs font-semibold text-white/75">
+            {lang === "es" ? "Vista de medios" : "Media viewer"}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/15"
+            aria-label={closeLabel}
+          >
+            {closeLabel}
+          </button>
+        </div>
+
+        <div className="relative aspect-[16/10] w-full bg-black">
+          {current?.type === "image" ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={current.src} alt="" className="h-full w-full object-contain" />
+          ) : current?.type === "video" ? (
+            <VideoPlayer url={current.src} lang={lang} />
+          ) : null}
+
+          {slides.length > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={onPrev}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white hover:bg-white/15"
+                aria-label={prevLabel}
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={onNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white hover:bg-white/15"
+                aria-label={nextLabel}
+              >
+                →
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VideoPlayer({ url, lang }: { url: string; lang: "es" | "en" }) {
   if (url.startsWith("blob:")) {
-    return <video src={url} controls className="h-full w-full object-cover" />;
+    return <video src={url} controls className="h-full w-full object-contain" />;
   }
   const yt = extractYoutubeId(url);
   if (yt) {
@@ -107,19 +230,8 @@ function VideoEmbed({ url, lang }: { url: string; lang: "es" | "en" }) {
       />
     );
   }
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center">
-      <p className="text-sm font-semibold text-[#3D3428]">{lang === "es" ? "Video" : "Video"}</p>
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="rounded-full border border-[#C9B46A]/50 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#2A2620] shadow-sm transition hover:bg-white"
-      >
-        {lang === "es" ? "Abrir enlace" : "Open link"}
-      </a>
-    </div>
-  );
+  // HLS (Mux) or direct URL
+  return <video src={url} controls className="h-full w-full object-contain" />;
 }
 
 function extractYoutubeId(url: string): string | null {

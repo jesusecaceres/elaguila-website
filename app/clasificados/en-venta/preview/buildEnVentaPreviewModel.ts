@@ -28,7 +28,7 @@ export type EnVentaPreviewChip = {
 
 /** Buyer-facing contact / utility links built from application fields. */
 export type EnVentaPreviewContactAction = {
-  id: "call" | "sms" | "email" | "whatsapp" | "maps";
+  id: "call" | "sms" | "email" | "whatsapp";
   label: string;
   href: string;
 };
@@ -61,6 +61,7 @@ export type EnVentaPreviewViewModel = {
   sellerKindLabel: string;
   viewProfileLabel: string;
   contactActions: EnVentaPreviewContactAction[];
+  locationMapHref: string | null;
   /** Price-drop UI: only when draft carries both prices (optional future fields). Not in current schema. */
   priceDrop: null | { previousLine: string; currentLine: string };
   /** Buyer mailto when negotiable + email — “hacer oferta” style (no server workflow). */
@@ -161,9 +162,6 @@ function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "e
   const phone = state.phone.replace(/\s/g, "");
   const email = state.email.trim();
   const wa = state.whatsapp.replace(/\D/g, "");
-  const city = state.city.trim();
-  const zip = state.zip.trim();
-  const query = [city, zip].filter(Boolean).join(" ");
 
   if (phone) {
     actions.push({
@@ -198,20 +196,12 @@ function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "e
     });
   }
 
-  if (query) {
-    actions.push({
-      id: "maps",
-      label: lang === "es" ? "Mapa / zona" : "Map / area",
-      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-    });
-  }
-
   const pref = state.contactMethod;
   const rank = (id: EnVentaPreviewContactAction["id"]): number => {
-    const orderPhone = { call: 0, sms: 1, whatsapp: 2, email: 3, maps: 4 } as const;
-    const orderEmail = { email: 0, call: 1, sms: 2, whatsapp: 3, maps: 4 } as const;
-    const orderWa = { whatsapp: 0, call: 1, sms: 2, email: 3, maps: 4 } as const;
-    const orderBoth = { call: 0, sms: 1, email: 2, whatsapp: 3, maps: 4 } as const;
+    const orderPhone = { call: 0, sms: 1, whatsapp: 2, email: 3 } as const;
+    const orderEmail = { email: 0, call: 1, sms: 2, whatsapp: 3 } as const;
+    const orderWa = { whatsapp: 0, call: 1, sms: 2, email: 3 } as const;
+    const orderBoth = { call: 0, sms: 1, email: 2, whatsapp: 3 } as const;
     if (pref === "phone") return orderPhone[id];
     if (pref === "email") return orderEmail[id];
     if (pref === "whatsapp") return orderWa[id];
@@ -249,18 +239,6 @@ export function buildEnVentaPreviewModel(
   if (condLabel) {
     chips.push({ key: "condition", text: condLabel, tone: "success" });
   }
-  if (state.shipping) {
-    chips.push({ key: "ship", text: t.ship, tone: "neutral" });
-  }
-  if (state.pickup) {
-    chips.push({ key: "pickup", text: t.pickup, tone: "neutral" });
-  }
-  if (state.meetup) {
-    chips.push({ key: "meetup", text: t.meetup, tone: "neutral" });
-  }
-  if (state.localDelivery) {
-    chips.push({ key: "local", text: t.localDel, tone: "neutral" });
-  }
   if (negotiable) {
     chips.push({ key: "neg", text: t.negotiableChip, tone: "muted" });
   }
@@ -280,6 +258,11 @@ export function buildEnVentaPreviewModel(
 
   const loc = t.location(state.city.trim(), state.zip.trim());
   const locationLine = loc ? loc : "";
+  const locationMapHref = locationLine
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        [state.city.trim(), state.zip.trim()].filter(Boolean).join(" ")
+      )}`
+    : null;
 
   const specRows: Array<{ label: string; value: string }> = [];
   if (condLabel) {
@@ -414,6 +397,7 @@ export function buildEnVentaPreviewModel(
     sellerKindLabel,
     viewProfileLabel: t.profile,
     contactActions,
+    locationMapHref,
     priceDrop: null,
     offerMailtoHref,
     gallery: {
