@@ -65,6 +65,12 @@ function listingHasVideo(description: string): boolean {
   return /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\b/i.test(d);
 }
 
+function rowHasMuxVideo(row: Record<string, unknown>): boolean {
+  const p1 = String(row.mux_playback_id ?? "").trim();
+  const p2 = String(row.mux_playback_id_2 ?? "").trim();
+  return Boolean(p1 || p2);
+}
+
 function resolvePlanTier(
   row: Record<string, unknown>,
   pairs: Array<{ label: string; value: string }>,
@@ -79,6 +85,7 @@ function resolvePlanTier(
   }
   const rt = String(row.rentas_tier ?? "").trim().toLowerCase();
   if (rt === "pro" || rt === "plus") return "pro";
+  if (rowHasMuxVideo(row)) return "pro";
   if (listingHasVideo(description)) return "pro";
   return "free";
 }
@@ -146,7 +153,7 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     typeof viewsRaw === "number" && Number.isFinite(viewsRaw) && viewsRaw >= 0 ? Math.floor(viewsRaw) : 0;
 
   const planTier = resolvePlanTier(row, pairs, rawDesc);
-  const hasListingVideo = listingHasVideo(rawDesc);
+  const hasListingVideo = rowHasMuxVideo(row) || listingHasVideo(rawDesc);
 
   let pickup = false;
   let shipping = false;

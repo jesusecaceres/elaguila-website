@@ -30,6 +30,11 @@ const COPY = {
     videoClear: "Quitar video",
     noVideoFree: "El plan Gratis no incluye video; cambia a Pro para añadir video.",
     hint: "La publicación final conectará al almacenamiento; esto es tu borrador de medios.",
+    uploadRequest: "Solicitando carga segura...",
+    uploading: "Subiendo video...",
+    preparing: "Procesando video en Mux...",
+    ready: "Video listo",
+    failed: "Error al subir el video",
   },
   en: {
     title: "Photos & media",
@@ -54,6 +59,11 @@ const COPY = {
     videoClear: "Remove video",
     noVideoFree: "Free doesn’t include video; switch to Pro to add video.",
     hint: "Publish will connect storage; this is your draft media.",
+    uploadRequest: "Requesting secure upload...",
+    uploading: "Uploading video...",
+    preparing: "Processing video in Mux...",
+    ready: "Video ready",
+    failed: "Video upload failed",
   },
 } as const;
 
@@ -73,6 +83,39 @@ function fileToDataUrl(file: File): Promise<string> {
     r.onload = () => resolve(String(r.result ?? ""));
     r.onerror = () => reject(r.error ?? new Error("read failed"));
     r.readAsDataURL(file);
+  });
+}
+
+function setVideoSlot<S extends EnVentaFreeApplicationState>(
+  setState: EnVentaPhotosSectionProps<S>["setState"],
+  slotIndex: 0 | 1,
+  patch: Partial<EnVentaFreeApplicationState["listingVideoSlots"][0]>
+) {
+  setState((s) => {
+    const next = [...s.listingVideoSlots] as EnVentaFreeApplicationState["listingVideoSlots"];
+    next[slotIndex] = { ...next[slotIndex], ...patch };
+    const nextLegacy =
+      slotIndex === 0
+        ? next[0].playbackUrl || (next[0].status === "ready" ? s.listingVideoUrl : s.listingVideoUrl)
+        : s.listingVideoUrl;
+    return { ...s, listingVideoSlots: next, listingVideoUrl: nextLegacy };
+  });
+}
+
+function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.upload.onprogress = (ev) => {
+      if (!ev.lengthComputable) return;
+      onProgress(Math.max(0, Math.min(100, Math.round((ev.loaded / ev.total) * 100))));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.send(file);
   });
 }
 
@@ -194,17 +237,103 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   function onVideoFile(files: FileList | null) {
     const f = files?.[0];
     if (!f) return;
-    setState((s) => {
-      revokeIfBlob(s.listingVideoUrl);
-      return { ...s, listingVideoUrl: URL.createObjectURL(f) };
+    const slot: 0 | 1 = 0;
+    setVideoSlot(setState, slot, {
+      fileName: f.name,
+      status: "requesting_upload",
+      errorMessage: "",
+      progressPct: 0,
+      uploadId: "",
+      assetId: "",
+      playbackId: "",
+      playbackUrl: "",
+      thumbnailUrl: "",
+      durationSeconds: null,
     });
+
+    void (async () => {
+      try {
+        const req = await fetch("/api/mux/direct-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slot }),
+        });
+        const payload = (await req.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+          uploadId?: string;
+          uploadUrl?: string;
+        };
+        if (!req.ok || !payload.ok || !payload.uploadId || !payload.uploadUrl) {
+          throw new Error(payload.error || "Failed to start upload");
+        }
+
+        setVideoSlot(setState, slot, {
+          uploadId: payload.uploadId,
+          status: "uploading",
+        });
+        await uploadFileToUrl(f, payload.uploadUrl, (pct) => {
+          setVideoSlot(setState, slot, { progressPct: pct, status: "uploading" });
+        });
+        setVideoSlot(setState, slot, { status: "preparing", progressPct: 100 });
+
+        let tries = 0;
+        while (tries < 40) {
+          tries += 1;
+          await new Promise((r) => setTimeout(r, 2500));
+          const statusRes = await fetch(`/api/mux/upload-status?uploadId=${encodeURIComponent(payload.uploadId)}`, {
+            cache: "no-store",
+          });
+          const statusPayload = (await statusRes.json().catch(() => ({}))) as {
+            ok?: boolean;
+            error?: string;
+            assetId?: string;
+            playbackId?: string;
+            muxStatus?: string;
+            thumbnailUrl?: string;
+            playbackUrl?: string;
+            durationSeconds?: number | null;
+          };
+          if (!statusRes.ok || !statusPayload.ok) {
+            throw new Error(statusPayload.error || "Failed to check upload status");
+          }
+          const muxStatus = (statusPayload.muxStatus ?? "").toLowerCase();
+          const ready = muxStatus === "ready";
+          setVideoSlot(setState, slot, {
+            assetId: statusPayload.assetId ?? "",
+            playbackId: statusPayload.playbackId ?? "",
+            playbackUrl: statusPayload.playbackUrl ?? "",
+            thumbnailUrl: statusPayload.thumbnailUrl ?? "",
+            durationSeconds:
+              typeof statusPayload.durationSeconds === "number" ? statusPayload.durationSeconds : null,
+            status: ready ? "ready" : "preparing",
+          });
+          if (ready) break;
+        }
+      } catch (e: unknown) {
+        setVideoSlot(setState, slot, {
+          status: "error",
+          errorMessage: e instanceof Error ? e.message : "Video upload failed",
+        });
+      }
+    })();
   }
 
   function clearVideo() {
-    setState((s) => {
-      revokeIfBlob(s.listingVideoUrl);
-      return { ...s, listingVideoUrl: "" };
+    const slot: 0 | 1 = 0;
+    setVideoSlot(setState, slot, {
+      uploadId: "",
+      assetId: "",
+      playbackId: "",
+      playbackUrl: "",
+      thumbnailUrl: "",
+      durationSeconds: null,
+      status: "idle",
+      progressPct: 0,
+      fileName: "",
+      errorMessage: "",
     });
+    setState((s) => ({ ...s, listingVideoUrl: "" }));
   }
 
   return (
@@ -335,23 +464,42 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
             <button type="button" onClick={() => videoInputRef.current?.click()} className={c.btnVideo}>
               {t.videoFile}
             </button>
-            {state.listingVideoUrl ? (
+            {state.listingVideoSlots[0].fileName || state.listingVideoSlots[0].playbackUrl || state.listingVideoUrl ? (
               <button type="button" onClick={clearVideo} className={c.btnGhost}>
                 {t.videoClear}
               </button>
             ) : null}
           </div>
+          {state.listingVideoSlots[0].status !== "idle" ? (
+            <p className={cx("mt-2 text-xs", c.vidStatus)}>
+              {state.listingVideoSlots[0].status === "requesting_upload"
+                ? t.uploadRequest
+                : state.listingVideoSlots[0].status === "uploading"
+                  ? `${t.uploading} ${state.listingVideoSlots[0].progressPct}%`
+                  : state.listingVideoSlots[0].status === "preparing"
+                    ? t.preparing
+                    : state.listingVideoSlots[0].status === "ready"
+                      ? t.ready
+                      : `${t.failed}: ${state.listingVideoSlots[0].errorMessage || "unknown"}`}
+            </p>
+          ) : null}
           <div className="mt-3">
             <label className={c.label}>{t.videoLink}</label>
             <input
               className={c.input}
-              value={state.listingVideoUrl.startsWith("blob:") ? "" : state.listingVideoUrl}
+              value={state.listingVideoUrl}
               onChange={(e) =>
                 setState((s) => {
                   const v = e.target.value.trim();
                   if (v.startsWith("http") || v === "") {
-                    revokeIfBlob(s.listingVideoUrl);
-                    return { ...s, listingVideoUrl: v };
+                    const next = [...s.listingVideoSlots] as EnVentaFreeApplicationState["listingVideoSlots"];
+                    next[0] = {
+                      ...next[0],
+                      playbackUrl: v,
+                      status: v ? "ready" : "idle",
+                      errorMessage: "",
+                    };
+                    return { ...s, listingVideoUrl: v, listingVideoSlots: next };
                   }
                   return s;
                 })
@@ -364,12 +512,10 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                 : "If you upload a file, you can leave the link blank."}
             </p>
           </div>
-          {state.listingVideoUrl ? (
+          {state.listingVideoSlots[0].fileName || state.listingVideoUrl ? (
             <p className={cx("mt-2 text-xs", c.vidStatus)}>
-              {state.listingVideoUrl.startsWith("blob:")
-                ? lang === "es"
-                  ? "Video local seleccionado (vista previa en el paso de publicación)."
-                  : "Local video selected (preview when publish is wired)."
+              {state.listingVideoSlots[0].fileName
+                ? `${lang === "es" ? "Archivo seleccionado" : "Selected file"}: ${state.listingVideoSlots[0].fileName}`
                 : state.listingVideoUrl}
             </p>
           ) : null}

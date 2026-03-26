@@ -1,4 +1,7 @@
-import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import {
+  createEmptyEnVentaFreeState,
+  type EnVentaFreeApplicationState,
+} from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
@@ -21,7 +24,16 @@ export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplic
   try {
     const raw = sessionStorage.getItem(keyForPlan(plan));
     if (!raw) return null;
-    return JSON.parse(raw) as EnVentaFreeApplicationState;
+    const parsed = JSON.parse(raw) as Partial<EnVentaFreeApplicationState>;
+    const base = createEmptyEnVentaFreeState();
+    return {
+      ...base,
+      ...parsed,
+      listingVideoSlots:
+        Array.isArray(parsed.listingVideoSlots) && parsed.listingVideoSlots.length === 2
+          ? [ { ...base.listingVideoSlots[0], ...parsed.listingVideoSlots[0] }, { ...base.listingVideoSlots[1], ...parsed.listingVideoSlots[1] } ]
+          : base.listingVideoSlots,
+    };
   } catch {
     return null;
   }

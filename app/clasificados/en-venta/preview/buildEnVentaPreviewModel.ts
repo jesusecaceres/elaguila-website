@@ -374,7 +374,7 @@ export function buildEnVentaPreviewModel(
   const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
   const orderedImages = orderedFull.slice(0, maxPhotos);
 
-  const videoUrl = state.listingVideoUrl.trim() || null;
+  const videoUrl = state.listingVideoSlots?.[0]?.playbackUrl?.trim() || state.listingVideoUrl.trim() || null;
   const showVideo = plan === "pro" && !!videoUrl;
 
   const contactActions = buildContactActions(state, lang);

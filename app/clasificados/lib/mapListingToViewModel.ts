@@ -38,6 +38,12 @@ export type ListingRow = Record<string, unknown> & {
   proVideoUrl2?: string | null;
   pro_video_thumb_url?: string | null;
   pro_video_url?: string | null;
+  mux_playback_id?: string | null;
+  mux_playback_id_2?: string | null;
+  mux_thumbnail_url?: string | null;
+  mux_thumbnail_url_2?: string | null;
+  mux_status?: string | null;
+  mux_status_2?: string | null;
   lang?: "es" | "en" | null;
   itemType?: string | null;
   condition?: string | null;
@@ -65,6 +71,18 @@ function normalizeImages(row: ListingRow): string[] {
   if (!Array.isArray(raw)) return [];
   const urls = raw.filter((u): u is string => typeof u === "string");
   return urls.length > 0 ? urls : ["/logo.png"];
+}
+
+function muxPlaybackUrl(id: string | null | undefined): string | null {
+  const clean = String(id ?? "").trim();
+  return clean ? `https://stream.mux.com/${clean}.m3u8` : null;
+}
+
+function muxThumbUrl(id: string | null | undefined, directThumb: string | null | undefined): string | null {
+  const cleanDirect = String(directThumb ?? "").trim();
+  if (cleanDirect) return cleanDirect;
+  const cleanId = String(id ?? "").trim();
+  return cleanId ? `https://image.mux.com/${cleanId}/thumbnail.jpg` : null;
 }
 
 function normalizeContactMethod(row: ListingRow): "phone" | "email" | "both" {
@@ -139,10 +157,19 @@ export function mapListingToViewModel(row: ListingRow | null, lang: "es" | "en")
 
   const isPro = isProListing(row);
   const proVideosFromDesc = extractProVideoInfos(row.description as string | undefined);
-  const proVideoThumbUrl = (proVideosFromDesc[0]?.thumbUrl ?? row.proVideoThumbUrl ?? row.pro_video_thumb_url ?? null) as string | null;
-  const proVideoUrl = (proVideosFromDesc[0]?.url ?? row.proVideoUrl ?? row.pro_video_url ?? null) as string | null;
-  const proVideoThumbUrl2 = (proVideosFromDesc[1]?.thumbUrl ?? row.proVideoThumbUrl2 ?? null) as string | null;
-  const proVideoUrl2 = (proVideosFromDesc[1]?.url ?? row.proVideoUrl2 ?? null) as string | null;
+  const muxPlayback1 = muxPlaybackUrl(row.mux_playback_id as string | null | undefined);
+  const muxPlayback2 = muxPlaybackUrl(row.mux_playback_id_2 as string | null | undefined);
+  const muxThumb1 = muxThumbUrl(row.mux_playback_id as string | null | undefined, row.mux_thumbnail_url as string | null | undefined);
+  const muxThumb2 = muxThumbUrl(
+    row.mux_playback_id_2 as string | null | undefined,
+    row.mux_thumbnail_url_2 as string | null | undefined
+  );
+  const proVideoThumbUrl = (muxThumb1 ?? proVideosFromDesc[0]?.thumbUrl ?? row.proVideoThumbUrl ?? row.pro_video_thumb_url ?? null) as
+    | string
+    | null;
+  const proVideoUrl = (muxPlayback1 ?? proVideosFromDesc[0]?.url ?? row.proVideoUrl ?? row.pro_video_url ?? null) as string | null;
+  const proVideoThumbUrl2 = (muxThumb2 ?? proVideosFromDesc[1]?.thumbUrl ?? row.proVideoThumbUrl2 ?? null) as string | null;
+  const proVideoUrl2 = (muxPlayback2 ?? proVideosFromDesc[1]?.url ?? row.proVideoUrl2 ?? null) as string | null;
   const sellerName = (row.sellerName ?? row.seller_name ?? null) as string | null;
 
   const categoryRaw = row.category;

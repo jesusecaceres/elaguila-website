@@ -3,6 +3,28 @@
  * Persisted mapping to DB / preview is a later pipeline step; this is the application source of truth.
  */
 
+export type EnVentaMuxVideoStatus =
+  | "idle"
+  | "requesting_upload"
+  | "uploading"
+  | "preparing"
+  | "ready"
+  | "error";
+
+export type EnVentaMuxVideoSlotState = {
+  slot: 0 | 1;
+  uploadId: string;
+  assetId: string;
+  playbackId: string;
+  playbackUrl: string;
+  thumbnailUrl: string;
+  durationSeconds: number | null;
+  status: EnVentaMuxVideoStatus;
+  progressPct: number;
+  fileName: string;
+  errorMessage: string;
+};
+
 export type EnVentaFreeApplicationState = {
   rama: string;
   evSub: string;
@@ -43,6 +65,8 @@ export type EnVentaFreeApplicationState = {
   contactMethod: "phone" | "email" | "both" | "whatsapp";
   /** Placeholder for Pro video; Free UI does not collect video. */
   listingVideoUrl: string;
+  /** Slot-based Mux-ready video metadata (up to 2 videos). */
+  listingVideoSlots: [EnVentaMuxVideoSlotState, EnVentaMuxVideoSlotState];
   /** Intake confirmations before submit wiring. */
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
@@ -54,6 +78,20 @@ export type EnVentaFreeApplicationState = {
 };
 
 export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
+  const emptySlot = (slot: 0 | 1): EnVentaMuxVideoSlotState => ({
+    slot,
+    uploadId: "",
+    assetId: "",
+    playbackId: "",
+    playbackUrl: "",
+    thumbnailUrl: "",
+    durationSeconds: null,
+    status: "idle",
+    progressPct: 0,
+    fileName: "",
+    errorMessage: "",
+  });
+
   return {
     rama: "",
     evSub: "",
@@ -86,6 +124,7 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     whatsapp: "",
     contactMethod: "both",
     listingVideoUrl: "",
+    listingVideoSlots: [emptySlot(0), emptySlot(1)],
     confirmListingAccurate: false,
     confirmPhotosRepresentItem: false,
     confirmCommunityRules: false,

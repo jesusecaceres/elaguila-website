@@ -87,6 +87,27 @@ function buildDescriptionBody(state: EnVentaFreeApplicationState, lang: PublishL
   return d.trim();
 }
 
+function resolveMuxVideoCols(state: EnVentaFreeApplicationState) {
+  const first = state.listingVideoSlots?.[0];
+  const second = state.listingVideoSlots?.[1];
+  const hasFirst = Boolean(first?.assetId || first?.playbackId || first?.playbackUrl);
+  const hasSecond = Boolean(second?.assetId || second?.playbackId || second?.playbackUrl);
+  const layout = hasFirst && hasSecond ? "virtual_tour_plus_video" : hasFirst ? "single" : null;
+  return {
+    mux_asset_id: first?.assetId || null,
+    mux_playback_id: first?.playbackId || null,
+    mux_status: first?.status || null,
+    mux_thumbnail_url: first?.thumbnailUrl || null,
+    mux_duration_seconds: first?.durationSeconds ?? null,
+    mux_asset_id_2: second?.assetId || null,
+    mux_playback_id_2: second?.playbackId || null,
+    mux_status_2: second?.status || null,
+    mux_thumbnail_url_2: second?.thumbnailUrl || null,
+    mux_duration_seconds_2: second?.durationSeconds ?? null,
+    video_layout_type: layout,
+  };
+}
+
 async function fetchAsBlob(src: string): Promise<Blob> {
   const res = await fetch(src);
   if (!res.ok) throw new Error("fetch blob failed");
@@ -139,6 +160,7 @@ export async function publishEnVentaFromDraft(
   const contact = resolveContactForInsert(state);
 
   const sellerType = mapEnVentaSellerKindToDb(state.seller_kind);
+  const muxCols = resolveMuxVideoCols(state);
   const insertPayload: Record<string, unknown> = {
     owner_id: userId,
     title: state.title.trim(),
@@ -153,6 +175,7 @@ export async function publishEnVentaFromDraft(
     is_published: true,
     seller_type: sellerType,
     detail_pairs: pairs.length ? pairs : null,
+    ...muxCols,
   };
 
   if (state.seller_kind === "business" && state.displayName.trim()) {
@@ -201,26 +224,11 @@ export async function publishEnVentaFromDraft(
       await supabase.from("listings").update({ description: descriptionForUpdate, images: photoUrls }).eq("id", listingId);
     }
 
-    if (plan === "pro" && state.listingVideoUrl.startsWith("blob:")) {
-      try {
-        const vBlob = await fetchAsBlob(state.listingVideoUrl);
-        const vExt = vBlob.type.includes("webm") ? "webm" : vBlob.type.includes("quicktime") ? "mov" : "mp4";
-        const vPath = `${userId}/${listingId}/video/01.${vExt}`;
-        const vUp = await supabase.storage
-          .from("listing-images")
-          .upload(vPath, vBlob, { upsert: true, contentType: vBlob.type || "video/mp4" });
-        if (!vUp.error) {
-          const vUrl = supabase.storage.from("listing-images").getPublicUrl(vPath).data.publicUrl;
-          if (vUrl) {
-            const note = lang === "es" ? `\n\nVideo: ${vUrl}` : `\n\nVideo: ${vUrl}`;
-            const { data: cur } = await supabase.from("listings").select("description").eq("id", listingId).maybeSingle();
-            const prev = String((cur as { description?: string } | null)?.description ?? "");
-            await supabase.from("listings").update({ description: `${prev}${note}`.trim() }).eq("id", listingId);
-          }
-        }
-      } catch {
-        /* video optional */
-      }
+    if (plan === "pro" && state.listingVideoUrl.trim() && !state.listingVideoSlots?.[0]?.playbackId) {
+      const note = lang === "es" ? `\n\nVideo: ${state.listingVideoUrl.trim()}` : `\n\nVideo: ${state.listingVideoUrl.trim()}`;
+      const { data: cur } = await supabase.from("listings").select("description").eq("id", listingId).maybeSingle();
+      const prev = String((cur as { description?: string } | null)?.description ?? "");
+      await supabase.from("listings").update({ description: `${prev}${note}`.trim() }).eq("id", listingId);
     }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);
