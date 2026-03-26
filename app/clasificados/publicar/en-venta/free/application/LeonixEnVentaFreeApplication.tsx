@@ -60,23 +60,23 @@ export default function LeonixEnVentaFreeApplication() {
   qs.set("lang", lang);
 
   return (
-    <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16">
+    <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#111111]">{copy.title}</h1>
-            <p className="mt-2 text-[#111111]/75">{copy.subtitle}</p>
+            <h1 className="text-3xl font-extrabold text-[#3D2C12]">{copy.title}</h1>
+            <p className="mt-2 text-[#5D4A25]/80">{copy.subtitle}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               href={`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`}
-              className="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+              className="rounded-xl border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
             >
               {copy.back}
             </Link>
             <Link
               href={`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`}
-              className="rounded-xl border border-black/15 bg-[#111111] px-3 py-2 text-sm font-semibold text-[#F5F5F5] hover:bg-black/90"
+              className="rounded-xl border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
             >
               {copy.switchPro}
             </Link>
@@ -114,7 +114,7 @@ export default function LeonixEnVentaFreeApplication() {
           />
         </div>
 
-        <p className="mt-8 text-center text-xs text-[#111111]/55">{copy.draft}</p>
+        <p className="mt-8 text-center text-xs text-[#5D4A25]/70">{copy.draft}</p>
       </div>
     </main>
   );

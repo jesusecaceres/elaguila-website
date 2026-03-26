@@ -61,23 +61,23 @@ export default function LeonixEnVentaProApplication() {
   qs.set("lang", lang);
 
   return (
-    <main className="min-h-screen bg-[#0f0f0f] text-[#F5F5F5] pt-28 pb-16">
+    <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold text-white">{copy.title}</h1>
-            <p className="mt-2 text-[#C9B46A]">{copy.subtitle}</p>
+            <h1 className="text-3xl font-extrabold text-[#3D2C12]">{copy.title}</h1>
+            <p className="mt-2 text-[#6E4E18]">{copy.subtitle}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               href={`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`}
-              className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+              className="rounded-xl border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
             >
               {copy.back}
             </Link>
             <Link
               href={`${EN_VENTA_PUBLICAR_FREE}?${qs.toString()}`}
-              className="rounded-xl border border-[#C9B46A]/40 bg-[#C9B46A]/15 px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#C9B46A]/25"
+              className="rounded-xl border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
             >
               {copy.switchFree}
             </Link>
@@ -88,7 +88,7 @@ export default function LeonixEnVentaProApplication() {
           <EnVentaPlanIntakeCallout lang={lang} plan="pro" />
         </div>
 
-        <div className="space-y-6 [&_section]:border-white/10 [&_section]:bg-[#1a1a1a] [&_h2]:text-white [&_label]:text-white/55 [&_input]:border-white/15 [&_input]:bg-[#111111] [&_input]:text-white [&_select]:border-white/15 [&_select]:bg-[#111111] [&_select]:text-white [&_textarea]:border-white/15 [&_textarea]:bg-[#111111] [&_textarea]:text-white [&_p]:text-white/65">
+        <div className="space-y-6 [&_section]:border-[#E5D6B0] [&_section]:bg-[#FFFCF4] [&_h2]:text-[#3D2C12] [&_label]:text-[#5D4A25]/80 [&_input]:border-[#DCCAA0] [&_input]:bg-white [&_input]:text-[#3D2C12] [&_select]:border-[#DCCAA0] [&_select]:bg-white [&_select]:text-[#3D2C12] [&_textarea]:border-[#DCCAA0] [&_textarea]:bg-white [&_textarea]:text-[#3D2C12] [&_p]:text-[#5D4A25]/80">
           <CategorySelectionSection lang={lang} state={state} setState={setState} />
           <BasicInfoSection lang={lang} state={state} setState={setState} />
           <ConditionSection lang={lang} state={state} setState={setState} />
@@ -98,16 +98,14 @@ export default function LeonixEnVentaProApplication() {
             setState={setState}
             maxPhotos={12}
             allowVideo
-            surface="dark"
           />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
-          <EnVentaPreviewBeforePublishCta lang={lang} variant="dark" />
+          <EnVentaPreviewBeforePublishCta lang={lang} />
           <ListingRulesConfirmationSection
             lang={lang}
-            variant="dark"
             confirmAccurate={state.confirmListingAccurate}
             confirmPhotos={state.confirmPhotosRepresentItem}
             confirmRules={state.confirmCommunityRules}
@@ -117,7 +115,7 @@ export default function LeonixEnVentaProApplication() {
           />
         </div>
 
-        <p className="mt-8 text-center text-xs text-white/45">{copy.draft}</p>
+        <p className="mt-8 text-center text-xs text-[#5D4A25]/70">{copy.draft}</p>
       </div>
     </main>
   );
