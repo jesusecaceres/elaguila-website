@@ -52,7 +52,9 @@ const BUYER = {
     openMaps: "Abrir en Google Maps",
     distanceH: "Distancia",
     distanceZero: "Ingresa tu ZIP, ciudad o usa tu ubicación actual.",
-    distanceSoon: "Por calcular (próximamente).",
+    distanceSoon: "Calculando…",
+    distanceUnknown: "No disponible para esta ubicación.",
+    approxMiles: (n: number) => `Aprox. ${n} millas`,
     startPointLabel: "Tu punto de partida",
     startPointPlaceholder: "ZIP o ciudad",
     useMyLocation: "Usar mi ubicación",
@@ -77,7 +79,9 @@ const BUYER = {
     openMaps: "Open in Google Maps",
     distanceH: "Distance",
     distanceZero: "Enter your ZIP, city, or use your current location.",
-    distanceSoon: "To be calculated (coming soon).",
+    distanceSoon: "Calculating…",
+    distanceUnknown: "Not available for this location.",
+    approxMiles: (n: number) => `Approx. ${n} mi`,
     startPointLabel: "Your starting point",
     startPointPlaceholder: "ZIP or city",
     useMyLocation: "Use my location",
@@ -89,6 +93,25 @@ const BUYER = {
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
+}
+
+function roundMiles(miles: number): number {
+  if (!Number.isFinite(miles)) return 0;
+  return Math.max(1, Math.round(miles));
+}
+
+function googleMapsDirHref(origin: string, destination: string): string {
+  const o = origin.trim();
+  const d = destination.trim();
+  if (!o || !d) return "";
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(d)}`;
+}
+
+function googleMapsDirHrefFromCoords(origin: { lat: number; lng: number }, destination: string): string {
+  if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return "";
+  const d = destination.trim();
+  if (!d) return "";
+  return googleMapsDirHref(`${origin.lat},${origin.lng}`, d);
 }
 
 function chipClass(tone: "success" | "neutral" | "muted") {
@@ -169,6 +192,9 @@ export function EnVentaPreviewPage() {
   const [buyerGeoStatus, setBuyerGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
     "idle"
   );
+  const [buyerCoords, setBuyerCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
+  const [distanceStatus, setDistanceStatus] = useState<"idle" | "computing" | "ready" | "unavailable">("idle");
 
   useEffect(() => {
     const loaded = loadLatestEnVentaPreviewDraft(plan);
@@ -249,6 +275,86 @@ export function EnVentaPreviewPage() {
     }
     setToast(next ? tBuyer.toastSaveOn : tBuyer.toastSaveOff);
   }, [plan, savedLocal, tBuyer.toastSaveOff, tBuyer.toastSaveOn]);
+
+  const listingDistanceKey = useMemo(() => {
+    const city = state.city.trim();
+    const zip = state.zip.trim();
+    // Prefer ZIP if available (works for more inputs), else fall back to city.
+    return zip || city;
+  }, [state.city, state.zip]);
+
+  const destinationForMaps = useMemo(() => {
+    // Prefer explicit city/zip string, fall back to rendered location line.
+    const city = state.city.trim();
+    const zip = state.zip.trim();
+    return [city, zip].filter(Boolean).join(" ") || vm.locationLine || "";
+  }, [state.city, state.zip, vm.locationLine]);
+
+  const mapsHref = useMemo(() => {
+    if (!destinationForMaps) return vm.locationMapHref ?? null;
+    if (buyerCoords) {
+      const href = googleMapsDirHrefFromCoords(buyerCoords, destinationForMaps);
+      return href || (vm.locationMapHref ?? null);
+    }
+    if (buyerStart.trim()) {
+      const href = googleMapsDirHref(buyerStart, destinationForMaps);
+      return href || (vm.locationMapHref ?? null);
+    }
+    return vm.locationMapHref ?? null;
+  }, [buyerCoords, buyerStart, destinationForMaps, vm.locationMapHref]);
+
+  useEffect(() => {
+    if (!listingDistanceKey.trim()) {
+      setDistanceMiles(null);
+      setDistanceStatus("idle");
+      return;
+    }
+
+    const viewerText = buyerStart.trim();
+    const viewerCoords = buyerCoords;
+    if (!viewerText && !viewerCoords) {
+      setDistanceMiles(null);
+      setDistanceStatus("idle");
+      return;
+    }
+
+    setDistanceStatus("computing");
+    const ctrl = new AbortController();
+    const t = window.setTimeout(() => {
+      const url = new URL("/api/clasificados/distance", window.location.origin);
+      url.searchParams.set("listing", listingDistanceKey);
+      if (viewerCoords) {
+        url.searchParams.set("viewerLat", String(viewerCoords.lat));
+        url.searchParams.set("viewerLng", String(viewerCoords.lng));
+      } else {
+        url.searchParams.set("viewer", viewerText);
+      }
+
+      fetch(url.toString(), { signal: ctrl.signal })
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`distance_http_${r.status}`);
+          const data = (await r.json()) as { miles: number | null };
+          const miles = typeof data?.miles === "number" && Number.isFinite(data.miles) ? data.miles : null;
+          if (miles === null) {
+            setDistanceMiles(null);
+            setDistanceStatus("unavailable");
+          } else {
+            setDistanceMiles(miles);
+            setDistanceStatus("ready");
+          }
+        })
+        .catch((e) => {
+          if (e?.name === "AbortError") return;
+          setDistanceMiles(null);
+          setDistanceStatus("unavailable");
+        });
+    }, 450);
+
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(t);
+    };
+  }, [buyerCoords, buyerStart, listingDistanceKey]);
 
   const shell = (children: ReactNode) => (
     <div className="relative min-h-screen text-[#2C2416]" style={PAGE_BG_STYLE}>
@@ -398,7 +504,13 @@ export function EnVentaPreviewPage() {
               <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
             </div>
             <p className="mt-1 text-sm font-semibold text-[#1E1810]">
-              {buyerStart.trim() || buyerGeoStatus === "granted" ? tBuyer.distanceSoon : tBuyer.distanceZero}
+              {distanceStatus === "ready" && distanceMiles !== null
+                ? tBuyer.approxMiles(roundMiles(distanceMiles))
+                : distanceStatus === "computing"
+                  ? tBuyer.distanceSoon
+                  : distanceStatus === "unavailable"
+                    ? tBuyer.distanceUnknown
+                    : tBuyer.distanceZero}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label className="flex-1 min-w-[180px]">
@@ -421,9 +533,10 @@ export function EnVentaPreviewPage() {
                   }
                   setBuyerGeoStatus("requesting");
                   navigator.geolocation.getCurrentPosition(
-                    () => {
+                    (pos) => {
                       setBuyerGeoStatus("granted");
-                      setToast(lang === "es" ? "Ubicación lista (distancia próximamente)." : "Location ready (distance coming soon).");
+                      setBuyerCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                      setToast(lang === "es" ? "Ubicación lista." : "Location ready.");
                     },
                     (err) => {
                       if (err?.code === 1) {
@@ -673,13 +786,20 @@ export function EnVentaPreviewPage() {
             <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-4">
               <p className="text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
               <p className="mt-3 text-sm font-semibold text-[#1E1810]">
-                {tBuyer.distanceH}: {buyerStart.trim() || buyerGeoStatus === "granted" ? tBuyer.distanceSoon : tBuyer.distanceZero}
+                {tBuyer.distanceH}:{" "}
+                {distanceStatus === "ready" && distanceMiles !== null
+                  ? tBuyer.approxMiles(roundMiles(distanceMiles))
+                  : distanceStatus === "computing"
+                    ? tBuyer.distanceSoon
+                    : distanceStatus === "unavailable"
+                      ? tBuyer.distanceUnknown
+                      : tBuyer.distanceZero}
               </p>
             </div>
 
-            {vm.locationMapHref ? (
+            {mapsHref ? (
               <a
-                href={vm.locationMapHref}
+                href={mapsHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-4 inline-flex w-full min-h-[44px] items-center justify-center rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1a1814]"
