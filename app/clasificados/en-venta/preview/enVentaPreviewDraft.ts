@@ -5,6 +5,7 @@ import {
 
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
+export const EN_VENTA_PREVIEW_DRAFT_META_KEY = "en-venta-preview-draft-meta";
 
 function keyForPlan(plan: "free" | "pro") {
   return plan === "free" ? EN_VENTA_PREVIEW_DRAFT_KEY_FREE : EN_VENTA_PREVIEW_DRAFT_KEY_PRO;
@@ -14,6 +15,10 @@ export function saveEnVentaPreviewDraft(plan: "free" | "pro", state: EnVentaFree
   if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(keyForPlan(plan), JSON.stringify(state));
+    sessionStorage.setItem(
+      EN_VENTA_PREVIEW_DRAFT_META_KEY,
+      JSON.stringify({ plan, updatedAt: Date.now() })
+    );
   } catch {
     /* ignore quota / private mode */
   }
@@ -37,4 +42,25 @@ export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplic
   } catch {
     return null;
   }
+}
+
+export function loadLatestEnVentaPreviewDraft(
+  preferredPlan: "free" | "pro"
+): { plan: "free" | "pro"; draft: EnVentaFreeApplicationState } | null {
+  if (typeof window === "undefined") return null;
+  const preferred = loadEnVentaPreviewDraft(preferredPlan);
+  const otherPlan: "free" | "pro" = preferredPlan === "free" ? "pro" : "free";
+  const other = loadEnVentaPreviewDraft(otherPlan);
+  if (preferred && !other) return { plan: preferredPlan, draft: preferred };
+  if (!preferred && other) return { plan: otherPlan, draft: other };
+  if (!preferred && !other) return null;
+
+  try {
+    const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
+    const meta = raw ? (JSON.parse(raw) as { plan?: "free" | "pro" }) : null;
+    if (meta?.plan === otherPlan && other) return { plan: otherPlan, draft: other };
+  } catch {
+    /* ignore */
+  }
+  return preferred ? { plan: preferredPlan, draft: preferred } : other ? { plan: otherPlan, draft: other } : null;
 }

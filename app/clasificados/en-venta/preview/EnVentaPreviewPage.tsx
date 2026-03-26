@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
-import { loadEnVentaPreviewDraft } from "./enVentaPreviewDraft";
+import { loadEnVentaPreviewDraft, loadLatestEnVentaPreviewDraft } from "./enVentaPreviewDraft";
 import { buildEnVentaPreviewModel } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
@@ -77,6 +77,13 @@ function chipClass(tone: "success" | "neutral" | "muted") {
   return "inline-flex items-center gap-1 rounded-full border border-[#E8DFD0]/80 bg-white/80 px-2.5 py-1 text-xs font-semibold text-[#5C5346]/85";
 }
 
+function chipIcon(key: string): string {
+  if (key === "ship") return "📦";
+  if (key === "pickup" || key === "meetup" || key === "local") return "📍";
+  if (key === "condition") return "✓";
+  return "";
+}
+
 function ContactIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -124,7 +131,8 @@ export function EnVentaPreviewPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    setDraft(loadEnVentaPreviewDraft(plan));
+    const loaded = loadLatestEnVentaPreviewDraft(plan);
+    setDraft(loaded?.draft ?? null);
     setHydrated(true);
   }, [plan]);
 
@@ -150,7 +158,7 @@ export function EnVentaPreviewPage() {
 
   async function onPublish() {
     setPublishErr(null);
-    const latest = loadEnVentaPreviewDraft(plan) ?? draft;
+    const latest = loadLatestEnVentaPreviewDraft(plan)?.draft ?? loadEnVentaPreviewDraft(plan) ?? draft;
     if (!latest) {
       setPublishErr(lang === "es" ? "No hay borrador." : "No draft.");
       return;
@@ -271,7 +279,7 @@ export function EnVentaPreviewPage() {
                 : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
             )}
           >
-            <span aria-hidden>{savedLocal ? "♥" : "♡"}</span>
+            <span aria-hidden>{savedLocal ? "❤️" : "💛"}</span>
             {savedLocal ? tBuyer.saved : tBuyer.save}
           </button>
           <button
@@ -279,7 +287,7 @@ export function EnVentaPreviewPage() {
             onClick={() => void onShare()}
             className="inline-flex min-h-[40px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
           >
-            {tBuyer.share}
+            ↗️ {tBuyer.share}
           </button>
           <button
             type="button"
@@ -287,7 +295,7 @@ export function EnVentaPreviewPage() {
             title={tBuyer.reportHint}
             className="inline-flex min-h-[40px] cursor-not-allowed items-center rounded-2xl border border-[#E8DFD0]/80 bg-white/50 px-3 py-2 text-xs font-bold text-[#7A7164]/70"
           >
-            {tBuyer.report}
+            🚩 {tBuyer.report}
           </button>
         </div>
       </div>
@@ -296,10 +304,26 @@ export function EnVentaPreviewPage() {
         <div className="flex flex-wrap gap-2">
           {vm.chips.map((c) => (
             <span key={c.key} className={chipClass(c.tone)}>
-              {c.key === "condition" ? <span aria-hidden>✓ </span> : null}
+              {chipIcon(c.key) ? <span aria-hidden>{chipIcon(c.key)} </span> : null}
               {c.text}
             </span>
           ))}
+        </div>
+      ) : null}
+
+      {plan === "pro" ? (
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]">
+            ✨ {lang === "es" ? "Destacado Pro" : "Pro featured"}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]">
+            📊 {lang === "es" ? "Analíticas básicas" : "Basic analytics"}
+          </span>
+          {vm.gallery.showVideo ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]">
+              🎥 {lang === "es" ? "Video incluido" : "Video included"}
+            </span>
+          ) : null}
         </div>
       ) : null}
 
