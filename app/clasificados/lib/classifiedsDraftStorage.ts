@@ -20,6 +20,20 @@ export const DRAFT_SESSION_ID_KEY = "leonix_listing_draft_session_id";
 
 /** localStorage key prefix for form draft; suffix = userId or anon session id. */
 export const DRAFT_KEY_PREFIX = "listing_draft_";
+export const CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY = "leonix_classifieds_latest_application_draft_v1";
+
+export type ClassifiedsApplicationDraftMeta = {
+  categoryKey: string;
+  categoryLabel: string;
+  resumeRoute: string;
+  plan: string;
+  updatedAt: number;
+};
+
+export type ClassifiedsApplicationDraftRecord<TState = unknown> = {
+  meta: ClassifiedsApplicationDraftMeta;
+  state: TState;
+};
 
 /** localStorage: current DB draft id for user (key = getDraftIdStorageKey(userId)). */
 export function getDraftIdStorageKey(userId: string): string {
@@ -62,7 +76,52 @@ export const CLASSIFIEDS_DRAFT_STORAGE_KEYS = {
   ] as const,
   /** localStorage keys are dynamic: listing_draft_<userId|anonId> */
   localStoragePrefix: DRAFT_KEY_PREFIX,
+  latestApplicationDraftKey: CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY,
 } as const;
+
+export function saveLatestClassifiedsApplicationDraft<TState>(
+  record: ClassifiedsApplicationDraftRecord<TState>
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY, JSON.stringify(record));
+  } catch {
+    // ignore
+  }
+}
+
+export function getLatestClassifiedsApplicationDraft<TState = unknown>():
+  | ClassifiedsApplicationDraftRecord<TState>
+  | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ClassifiedsApplicationDraftRecord<TState>>;
+    if (!parsed?.meta) return null;
+    if (
+      typeof parsed.meta.categoryKey !== "string" ||
+      typeof parsed.meta.categoryLabel !== "string" ||
+      typeof parsed.meta.resumeRoute !== "string" ||
+      typeof parsed.meta.plan !== "string" ||
+      typeof parsed.meta.updatedAt !== "number"
+    ) {
+      return null;
+    }
+    return parsed as ClassifiedsApplicationDraftRecord<TState>;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLatestClassifiedsApplicationDraft(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 /**
  * Clear all classifieds draft/autosave storage so no stale data is restored.
@@ -85,6 +144,7 @@ export function clearAllClassifiedsDrafts(options?: {
       localStorage.removeItem(`${DRAFT_KEY_PREFIX}${options.userId}`);
       clearStoredDraftId(options.userId);
     }
+    localStorage.removeItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY);
   } catch {
     // ignore
   }

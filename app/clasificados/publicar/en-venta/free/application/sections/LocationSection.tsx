@@ -8,6 +8,7 @@ import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
 import { inputClass, labelClass } from "../helpers/fieldCx";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
+import { nextCityZipFromCityInput, nextCityZipFromZipInput } from "@/app/clasificados/lib/locationPairUx";
 
 const COPY = {
   es: {
@@ -66,7 +67,12 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
           variant="light"
           label={t.city}
           value={state.city}
-          onChange={(v) => setState((s) => ({ ...s, city: v }))}
+          onChange={(v) =>
+            setState((s) => {
+              const next = nextCityZipFromCityInput({ city: s.city, zip: s.zip }, v);
+              return { ...s, city: next.city, zip: next.zip };
+            })
+          }
           placeholder={lang === "es" ? "Ej: Modesto, San José…" : "e.g. Modesto, San Jose…"}
           invalid={cityInvalid}
         />
@@ -81,8 +87,10 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
           maxLength={5}
           value={state.zip}
           onChange={(e) => {
-            const d = e.target.value.replace(/\D/g, "").slice(0, 5);
-            setState((s) => ({ ...s, zip: d }));
+            setState((s) => {
+              const next = nextCityZipFromZipInput({ city: s.city, zip: s.zip }, e.target.value);
+              return { ...s, city: next.city, zip: next.zip };
+            });
           }}
           placeholder={lang === "es" ? "Ej: 95350" : "e.g. 95350"}
           aria-invalid={zipInvalid}

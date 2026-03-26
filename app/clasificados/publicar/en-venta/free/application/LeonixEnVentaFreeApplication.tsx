@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import { loadEnVentaPreviewDraft, saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import { saveLatestClassifiedsApplicationDraft } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
@@ -30,11 +31,27 @@ export default function LeonixEnVentaFreeApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const [state, setState] = useState(createEmptyEnVentaFreeState);
+  useEffect(() => {
+    const restored = loadEnVentaPreviewDraft("free");
+    if (restored) setState(restored);
+  }, []);
 
   useEffect(() => {
-    const t = window.setTimeout(() => saveEnVentaPreviewDraft("free", state), 350);
+    const t = window.setTimeout(() => {
+      saveEnVentaPreviewDraft("free", state);
+      saveLatestClassifiedsApplicationDraft({
+        meta: {
+          categoryKey: "en-venta",
+          categoryLabel: lang === "es" ? "En Venta" : "For Sale",
+          resumeRoute: `/clasificados/publicar/en-venta/free?lang=${lang}`,
+          plan: "free",
+          updatedAt: Date.now(),
+        },
+        state,
+      });
+    }, 350);
     return () => window.clearTimeout(t);
-  }, [state]);
+  }, [lang, state]);
 
   const copy = useMemo(
     () =>

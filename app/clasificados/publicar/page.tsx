@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentType } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -17,6 +17,12 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
+import {
+  clearAllClassifiedsDrafts,
+  clearLatestClassifiedsApplicationDraft,
+  getLatestClassifiedsApplicationDraft,
+  type ClassifiedsApplicationDraftRecord,
+} from "@/app/clasificados/lib/classifiedsDraftStorage";
 
 type Lang = "es" | "en";
 
@@ -56,6 +62,8 @@ function normalizeChooserDeepLink(raw: string | null | undefined): Exclude<Categ
  * Each card links to the category-owned publish route; auth/session is enforced on the destination.
  */
 export default function PublicarRootPage() {
+  const [latestDraft, setLatestDraft] = useState<ClassifiedsApplicationDraftRecord | null>(null);
+  const [promptDismissed, setPromptDismissed] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -81,6 +89,12 @@ export default function PublicarRootPage() {
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
+  useEffect(() => {
+    if (deepLinkCat) return;
+    const latest = getLatestClassifiedsApplicationDraft();
+    setLatestDraft(latest);
+  }, [deepLinkCat]);
+
   const copy = {
     title: lang === "es" ? "Publicar anuncio" : "Post a listing",
     subtitle:
@@ -89,12 +103,57 @@ export default function PublicarRootPage() {
         : "Choose a category to continue.",
     back: lang === "es" ? "Volver a Clasificados" : "Back to Classifieds",
     langToggle: lang === "es" ? "English" : "Español",
+    inProgressTitle:
+      lang === "es" ? "Tienes una aplicación en progreso" : "You have an application in progress",
+    continue: (label: string) =>
+      lang === "es"
+        ? `Continuar con tu última aplicación de ${label}`
+        : `Continue your last ${label} application`,
+    startNew: lang === "es" ? "Comenzar una aplicación nueva" : "Start a new application",
   };
+
+  const showResumePrompt = useMemo(
+    () => Boolean(!deepLinkCat && latestDraft?.meta?.resumeRoute && !promptDismissed),
+    [deepLinkCat, latestDraft, promptDismissed]
+  );
+  const resumeCategoryLabel = useMemo(() => {
+    const key = latestDraft?.meta?.categoryKey as CategoryKey | undefined;
+    if (key && key in categoryConfig) {
+      return categoryConfig[key].label[lang];
+    }
+    return latestDraft?.meta?.categoryLabel ?? (lang === "es" ? "Clasificados" : "Classifieds");
+  }, [lang, latestDraft]);
 
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16">
       <div className="max-w-4xl mx-auto px-6">
         <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
+          {showResumePrompt ? (
+            <div className="mb-6 rounded-xl border border-[#C9B46A]/45 bg-[#FFFCF4] p-4">
+              <p className="text-sm font-bold text-[#3D2C12]">{copy.inProgressTitle}</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => router.push(latestDraft!.meta.resumeRoute)}
+                  className="rounded-xl border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
+                >
+                  {copy.continue(resumeCategoryLabel)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearLatestClassifiedsApplicationDraft();
+                    clearAllClassifiedsDrafts();
+                    setLatestDraft(null);
+                    setPromptDismissed(true);
+                  }}
+                  className="rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF]"
+                >
+                  {copy.startNew}
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111111] text-center sm:text-left">
