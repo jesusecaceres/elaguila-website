@@ -18,6 +18,9 @@ export function EnVentaPreviewSellerCard({
   viewProfileLabel,
   showProBadge = false,
 }: Props) {
+  const isBusiness =
+    sellerKindLabel.trim().toLowerCase() === "comercial" || sellerKindLabel.trim().toLowerCase() === "business";
+
   return (
     <aside className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14),inset_0_1px_0_rgba(255,255,255,0.85)]">
       <div className="flex items-start gap-3">
@@ -44,12 +47,14 @@ export function EnVentaPreviewSellerCard({
           ) : null}
         </div>
       </div>
-      <div
-        className="mt-4 w-full rounded-2xl border border-[#C9B46A]/45 bg-white/70 px-4 py-2.5 text-center text-sm font-semibold text-[#6B5B2E]/70"
-        role="presentation"
-      >
-        {viewProfileLabel}
-      </div>
+      {isBusiness ? (
+        <div
+          className="mt-4 w-full rounded-2xl border border-[#C9B46A]/45 bg-white/70 px-4 py-2.5 text-center text-sm font-semibold text-[#6B5B2E]/70"
+          role="presentation"
+        >
+          {viewProfileLabel}
+        </div>
+      ) : null}
     </aside>
   );
 }
