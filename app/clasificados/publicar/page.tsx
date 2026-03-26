@@ -3,6 +3,7 @@
 import type { ComponentType } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FiBook,
@@ -17,12 +18,14 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
+import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisuals";
 import {
   clearAllClassifiedsDrafts,
   clearLatestClassifiedsApplicationDraft,
   getLatestClassifiedsApplicationDraft,
   type ClassifiedsApplicationDraftRecord,
 } from "@/app/clasificados/lib/classifiedsDraftStorage";
+import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 
@@ -125,11 +128,33 @@ export default function PublicarRootPage() {
   }, [lang, latestDraft]);
 
   return (
-    <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
+    <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
+      <div className="mx-auto max-w-6xl px-6">
+        <section className="rounded-3xl border border-[#D8C79A]/70 bg-[#FFFDF7] p-6 shadow-[0_18px_48px_rgba(113,84,22,0.10)] sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <Image src={newLogo} alt="LEONIX" width={180} className="h-auto w-[150px] sm:w-[180px]" />
+              <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-[#3D2C12] sm:text-5xl">{copy.title}</h1>
+              <p className="mt-2 max-w-2xl text-base text-[#5D4A25]/85 sm:text-lg">{copy.subtitle}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 self-start rounded-xl border border-[#D8C79A]/65 bg-[#FFF6E7] p-1.5 shadow-sm">
+              <Link
+                href={toggleHref}
+                className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF0DA]"
+              >
+                {copy.langToggle}
+              </Link>
+              <Link
+                href={`/clasificados?lang=${lang}`}
+                className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
+              >
+                {copy.back}
+              </Link>
+            </div>
+          </div>
+
           {showResumePrompt ? (
-            <div className="mb-6 rounded-xl border border-[#C9B46A]/45 bg-[#FFFCF4] p-4">
+            <div className="mt-6 rounded-2xl border border-[#C9B46A]/45 bg-[#FFF7E8] p-4 shadow-sm sm:p-5">
               <p className="text-sm font-bold text-[#3D2C12]">{copy.inProgressTitle}</p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <button
@@ -154,24 +179,11 @@ export default function PublicarRootPage() {
               </div>
             </div>
           ) : null}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111111] text-center sm:text-left">
-                {copy.title}
-              </h1>
-              <p className="mt-2 text-[#111111]/80 text-center sm:text-left max-w-xl">{copy.subtitle}</p>
-            </div>
-            <Link
-              href={toggleHref}
-              className="shrink-0 self-center sm:self-start rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#E8E8E8]"
-            >
-              {copy.langToggle}
-            </Link>
-          </div>
 
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {CHOOSER_CATEGORIES.map(({ key, Icon }) => {
               const label = categoryConfig[key].label[lang];
+              const visual = LEONIX_CATEGORY_VISUALS[key];
               const href =
                 key === "bienes-raices"
                   ? `/clasificados/publicar/BR?lang=${lang}`
@@ -181,27 +193,29 @@ export default function PublicarRootPage() {
                   key={key}
                   href={href}
                   className={cx(
-                    "flex flex-col items-center justify-center gap-2 rounded-xl border py-4 px-3 transition-colors",
-                    "border-black/10 bg-white text-[#111111] hover:bg-[#F5F5F5] active:bg-[#EFEFEF]",
-                    "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
+                    "group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
+                    "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
+                    visual.tint,
+                    visual.border,
+                    visual.glow
                   )}
                 >
-                  <Icon className="h-7 w-7 shrink-0 text-[#111111]" aria-hidden />
-                  <span className="text-sm font-medium leading-tight text-center">{label}</span>
+                  <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12] ${visual.chipBg}`}>
+                    {visual.emoji}
+                  </span>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Icon className="h-5 w-5 shrink-0 text-[#5D4A25]" aria-hidden />
+                    <span className="text-sm font-bold leading-tight text-[#3D2C12]">{label}</span>
+                  </div>
+                  <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
+                    {lang === "es" ? "Continuar" : "Continue"}
+                  </span>
+                  <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
                 </Link>
               );
             })}
           </div>
-
-          <div className="mt-8 flex justify-center">
-            <Link
-              href={`/clasificados?lang=${lang}`}
-              className="text-sm font-semibold text-[#111111]/80 underline hover:text-[#111111]"
-            >
-              {copy.back}
-            </Link>
-          </div>
-        </div>
+        </section>
       </div>
     </main>
   );
