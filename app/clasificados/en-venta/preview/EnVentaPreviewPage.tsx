@@ -47,6 +47,18 @@ const BUYER = {
     contactH: "Contactar al vendedor",
     makeOffer: "Hacer oferta",
     makeOfferHint: "Puedes proponer un precio por correo.",
+    locationH: "Ubicación",
+    mapArea: "Mapa / zona",
+    openMaps: "Abrir en Google Maps",
+    distanceH: "Distancia",
+    distanceZero: "Ingresa tu ZIP, ciudad o usa tu ubicación actual.",
+    distanceSoon: "Por calcular (próximamente).",
+    startPointLabel: "Tu punto de partida",
+    startPointPlaceholder: "ZIP o ciudad",
+    useMyLocation: "Usar mi ubicación",
+    locationNotAvailable: "Ubicación no disponible en este dispositivo.",
+    locationDenied: "Permiso denegado. Puedes ingresar tu ZIP o ciudad.",
+    close: "Cerrar",
   },
   en: {
     share: "Share",
@@ -60,6 +72,18 @@ const BUYER = {
     contactH: "Contact the seller",
     makeOffer: "Make an offer",
     makeOfferHint: "You can propose a price by email.",
+    locationH: "Location",
+    mapArea: "Map / area",
+    openMaps: "Open in Google Maps",
+    distanceH: "Distance",
+    distanceZero: "Enter your ZIP, city, or use your current location.",
+    distanceSoon: "To be calculated (coming soon).",
+    startPointLabel: "Your starting point",
+    startPointPlaceholder: "ZIP or city",
+    useMyLocation: "Use my location",
+    locationNotAvailable: "Location is not available on this device.",
+    locationDenied: "Permission denied. You can enter your ZIP or city instead.",
+    close: "Close",
   },
 } as const;
 
@@ -140,6 +164,11 @@ export function EnVentaPreviewPage() {
   const [publishErr, setPublishErr] = useState<string | null>(null);
   const [savedLocal, setSavedLocal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [buyerStart, setBuyerStart] = useState("");
+  const [buyerGeoStatus, setBuyerGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
+    "idle"
+  );
 
   useEffect(() => {
     const loaded = loadLatestEnVentaPreviewDraft(plan);
@@ -344,25 +373,81 @@ export function EnVentaPreviewPage() {
       ) : null}
 
       {vm.locationLine ? (
-        <p className="flex items-start gap-2 text-sm font-medium text-[#3D3428]/90">
-          <MapPinIcon className="mt-0.5 shrink-0 text-[#8A8070]" />
-          <span>{vm.locationLine}</span>
-        </p>
-      ) : null}
-
-      {vm.locationLine ? (
-        <div className="space-y-2">
-          <p className="text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
-          {vm.locationMapHref ? (
-            <a
-              href={vm.locationMapHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[38px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
+        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/82 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.locationH}</p>
+              <p className="mt-2 flex items-start gap-2 text-sm font-semibold text-[#1E1810]">
+                <MapPinIcon className="mt-0.5 shrink-0 text-[#8A8070]" />
+                <span className="min-w-0 truncate">{vm.locationLine}</span>
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMapOpen(true)}
+              className="shrink-0 inline-flex min-h-[38px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
             >
-              📍 {lang === "es" ? "Mapa / zona" : "Map / area"}
-            </a>
-          ) : null}
+              📍 {tBuyer.mapArea}
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
+              <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
+            </div>
+            <p className="mt-1 text-sm font-semibold text-[#1E1810]">
+              {buyerStart.trim() || buyerGeoStatus === "granted" ? tBuyer.distanceSoon : tBuyer.distanceZero}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="flex-1 min-w-[180px]">
+                <span className="sr-only">{tBuyer.startPointLabel}</span>
+                <input
+                  value={buyerStart}
+                  onChange={(e) => setBuyerStart(e.target.value)}
+                  placeholder={tBuyer.startPointPlaceholder}
+                  className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
+                  inputMode="search"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof navigator === "undefined" || !navigator.geolocation) {
+                    setBuyerGeoStatus("unavailable");
+                    setToast(tBuyer.locationNotAvailable);
+                    return;
+                  }
+                  setBuyerGeoStatus("requesting");
+                  navigator.geolocation.getCurrentPosition(
+                    () => {
+                      setBuyerGeoStatus("granted");
+                      setToast(lang === "es" ? "Ubicación lista (distancia próximamente)." : "Location ready (distance coming soon).");
+                    },
+                    (err) => {
+                      if (err?.code === 1) {
+                        setBuyerGeoStatus("denied");
+                        setToast(tBuyer.locationDenied);
+                      } else {
+                        setBuyerGeoStatus("unavailable");
+                        setToast(tBuyer.locationNotAvailable);
+                      }
+                    },
+                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+                  );
+                }}
+                className={cx(
+                  "inline-flex min-h-[40px] items-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                  buyerGeoStatus === "requesting"
+                    ? "cursor-wait border-[#E8DFD0]/80 bg-white/60 text-[#7A7164]"
+                    : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
+                )}
+              >
+                {buyerGeoStatus === "requesting" ? (lang === "es" ? "Solicitando…" : "Requesting…") : `📡 ${tBuyer.useMyLocation}`}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -557,6 +642,54 @@ export function EnVentaPreviewPage() {
           </div>
         </main>
       </EnVentaPreviewShell>
+
+      {mapOpen ? (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center p-4 sm:items-center" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/35 backdrop-blur-[1px]"
+            onClick={() => setMapOpen(false)}
+            aria-label={tBuyer.close}
+          />
+          <div className="relative w-full max-w-lg rounded-[1.75rem] border border-[#E8DFD0]/90 bg-[#FFFCF7] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.35)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[#1E1810]">{tBuyer.mapArea}</p>
+                {vm.locationLine ? (
+                  <p className="mt-1 text-xs font-medium text-[#7A7164]">
+                    {lang === "es" ? "Zona aproximada:" : "Approximate area:"} <span className="text-[#3D3428]">{vm.locationLine}</span>
+                  </p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMapOpen(false)}
+                className="inline-flex min-h-[36px] items-center rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#3D3428]"
+              >
+                {tBuyer.close}
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-4">
+              <p className="text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
+              <p className="mt-3 text-sm font-semibold text-[#1E1810]">
+                {tBuyer.distanceH}: {buyerStart.trim() || buyerGeoStatus === "granted" ? tBuyer.distanceSoon : tBuyer.distanceZero}
+              </p>
+            </div>
+
+            {vm.locationMapHref ? (
+              <a
+                href={vm.locationMapHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex w-full min-h-[44px] items-center justify-center rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1a1814]"
+              >
+                ↗️ {tBuyer.openMaps}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
