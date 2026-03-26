@@ -407,54 +407,66 @@ export function EnVentaPreviewPage() {
     </div>
   );
 
-  const mainBody = (
-    <div className="flex flex-col gap-6">
-      {vm.description ? (
-        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#2C2416]/90">{vm.description}</p>
-        </div>
-      ) : null}
+  const descriptionCard = vm.description ? (
+    <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#2C2416]/90">{vm.description}</p>
+    </div>
+  ) : null;
 
-      {vm.specRows.length > 0 ? (
-        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-5 shadow-inner">
-          <dl className="space-y-3">
-            {vm.specRows.map((row, idx) => (
-              <div
-                key={`${row.label}-${idx}`}
-                className="grid grid-cols-1 gap-1 border-b border-[#E8DFD0]/60 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,38%)_1fr] sm:gap-4"
-              >
-                <dt className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{row.label}</dt>
-                <dd className="text-sm font-medium text-[#1E1810]">{row.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      ) : null}
+  const specsCard =
+    vm.specRows.length > 0 ? (
+      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-5 shadow-inner">
+        <dl className="space-y-3">
+          {vm.specRows.map((row, idx) => (
+            <div
+              key={`${row.label}-${idx}`}
+              className="grid grid-cols-1 gap-1 border-b border-[#E8DFD0]/60 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,38%)_1fr] sm:gap-4"
+            >
+              <dt className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{row.label}</dt>
+              <dd className="text-sm font-medium text-[#1E1810]">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    ) : null;
 
+  const extrasCards = vm.extraParagraphs.length ? (
+    <div className="flex flex-col gap-4">
       {vm.extraParagraphs.map((block) => (
         <div key={block.title} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/70 p-5">
           <h3 className="text-sm font-bold text-[#1E1810]">{block.title}</h3>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#2C2416]/88">{block.body}</p>
         </div>
       ))}
+    </div>
+  ) : null;
 
-      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-5">
-        <h3 className="text-sm font-bold text-[#1E1810]">{vm.deliveryHeading}</h3>
-        {vm.deliveryLines.length > 0 ? (
-          <ul className="mt-3 space-y-2 text-sm text-[#2C2416]/88">
-            {vm.deliveryLines.map((line, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#C9B46A]/80" aria-hidden />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-sm text-[#7A7164]/90">
-            {lang === "es" ? "Sin opciones de entrega indicadas." : "No delivery options specified."}
-          </p>
-        )}
-      </div>
+  const deliveryCard = (
+    <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-5">
+      <h3 className="text-sm font-bold text-[#1E1810]">{vm.deliveryHeading}</h3>
+      {vm.deliveryLines.length > 0 ? (
+        <ul className="mt-3 space-y-2 text-sm text-[#2C2416]/88">
+          {vm.deliveryLines.map((line, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#C9B46A]/80" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-[#7A7164]/90">
+          {lang === "es" ? "Sin opciones de entrega indicadas." : "No delivery options specified."}
+        </p>
+      )}
+    </div>
+  );
+
+  const lowerContent = (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
+      <div className="lg:col-span-8">{descriptionCard}</div>
+      <div className="lg:col-span-4">{specsCard}</div>
+      <div className="lg:col-span-7">{extrasCards}</div>
+      <div className="lg:col-span-5">{deliveryCard}</div>
     </div>
   );
 
@@ -541,7 +553,7 @@ export function EnVentaPreviewPage() {
                 <div className="flex flex-col gap-4 lg:sticky lg:top-[calc(9rem+1px)]">{seller}</div>
               </div>
 
-              <div className="order-4 lg:col-span-4 lg:col-start-6 lg:row-start-2">{mainBody}</div>
+              <div className="order-4 lg:col-span-9 lg:row-start-2">{lowerContent}</div>
             </div>
             </div>
           </div>
