@@ -494,8 +494,9 @@ export function EnVentaPreviewPage() {
         onPublish={onPublish}
       >
         <main className="relative pb-8 text-[#2C2416] lg:pb-12">
-          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-x-10 lg:gap-y-8">
+          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
+            <div className="rounded-[2rem] border border-[#E8DFD0]/90 bg-[#FFFDF7]/80 p-4 shadow-[0_18px_48px_rgba(42,36,22,0.12),inset_0_1px_0_rgba(255,255,255,0.85)] sm:p-6 lg:p-7">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-6">
               <div className="order-1 lg:col-span-5 lg:row-start-1">
                 <div className="space-y-4">
                   <EnVentaPreviewGallery
@@ -541,6 +542,7 @@ export function EnVentaPreviewPage() {
               </div>
 
               <div className="order-4 lg:col-span-4 lg:col-start-6 lg:row-start-2">{mainBody}</div>
+            </div>
             </div>
           </div>
         </main>
