@@ -70,7 +70,12 @@ function NavbarContent() {
     }
   }, [pathname, signedOutParam, router, searchParams]);
 
-  if (pathname === "/") return null;
+  const isPreviewSurface =
+    pathname === "/preview-listing" ||
+    pathname.endsWith("/preview") ||
+    pathname.includes("/preview/");
+
+  if (pathname === "/" || isPreviewSurface) return null;
 
   useEffect(() => {
     if (urlLang === "es" || urlLang === "en") setLang(urlLang);

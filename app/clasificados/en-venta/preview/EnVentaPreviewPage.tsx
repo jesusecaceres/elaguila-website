@@ -475,8 +475,6 @@ export function EnVentaPreviewPage() {
       initials={vm.sellerInitials}
       name={vm.sellerName}
       subline={vm.sellerSubline}
-      sellerKindLabel={vm.sellerKindLabel}
-      viewProfileLabel={vm.viewProfileLabel}
       showProBadge={plan === "pro"}
     />
   );
