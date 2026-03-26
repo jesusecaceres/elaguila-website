@@ -146,7 +146,9 @@ export default function ClasificadosPage() {
                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12] ${visual.chipBg}`}>
                   {visual.emoji}
                 </span>
-                <h3 className="mt-2 text-lg font-bold text-[#3D2C12]">{meta.label}</h3>
+                <h3 className="mt-2 text-lg font-bold text-[#3D2C12]">
+                  {visual.emoji} {meta.label}
+                </h3>
                 <p className="mt-1 text-sm text-[#5D4A25]/82">{meta.hint}</p>
                 <span className="mt-3 inline-flex text-xs font-semibold text-[#6E4E18]">
                   {lang === "es" ? "Explorar" : "Explore"}

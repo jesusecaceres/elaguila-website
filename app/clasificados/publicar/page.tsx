@@ -205,7 +205,9 @@ export default function PublicarRootPage() {
                   </span>
                   <div className="mt-2 flex items-center gap-2">
                     <Icon className="h-5 w-5 shrink-0 text-[#5D4A25]" aria-hidden />
-                    <span className="text-sm font-bold leading-tight text-[#3D2C12]">{label}</span>
+                    <span className="text-sm font-bold leading-tight text-[#3D2C12]">
+                      {visual.emoji} {label}
+                    </span>
                   </div>
                   <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
                     {lang === "es" ? "Continuar" : "Continue"}
