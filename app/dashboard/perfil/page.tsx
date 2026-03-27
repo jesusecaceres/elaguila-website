@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import Navbar from "../../components/Navbar";
 import CityAutocomplete from "../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../data/locations/californiaLocationHelpers";
+import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 
 type Lang = "es" | "en";
+type Plan = "free" | "pro";
 
 function safeInternalRedirect(raw: string | null | undefined) {
   const v = (raw ?? "").trim();
@@ -17,7 +18,6 @@ function safeInternalRedirect(raw: string | null | undefined) {
   return "";
 }
 
-/** First 4 + last 4 meaningful UUID chars (no hyphens), uppercase, e.g. CDCC-3790 */
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
   if (s.length < 8) return "—";
@@ -26,17 +26,21 @@ function accountRefFromId(id: string): string {
   return `${first}-${last}`;
 }
 
-/** Digits only from raw input */
 function phoneDigits(raw: string): string {
   return (raw || "").replace(/\D/g, "");
 }
 
-/** Format as (###) ###-####, max 10 digits */
 function formatPhoneInput(raw: string): string {
   const d = phoneDigits(raw).slice(0, 10);
   if (d.length <= 3) return d;
   if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+function normalizePlanFromMembershipTier(raw: unknown): Plan {
+  const v = (typeof raw === "string" ? raw : "").toLowerCase().trim();
+  if (v === "pro" || v === "business_lite" || v === "business_premium") return "pro";
+  return "free";
 }
 
 export default function ProfilePage() {
@@ -46,6 +50,7 @@ export default function ProfilePage() {
 
   const urlLang = searchParams?.get("lang");
   const lang: Lang = urlLang === "en" ? "en" : "es";
+  const q = `lang=${lang}`;
 
   const onboarding = searchParams?.get("onboarding") === "1";
   const requirePost = searchParams?.get("require") === "post";
@@ -67,7 +72,7 @@ export default function ProfilePage() {
         subtitleOnboarding: "Tu cuenta ya está lista. Solo confirma tu nombre para empezar.",
         subtitleNormal: "Información básica de tu cuenta.",
         postHelper: "Esto es necesario para que compradores puedan contactarte.",
-        back: "Volver a mi cuenta",
+        back: "Volver al resumen",
         name: "Nombre",
         email: "Correo",
         phone: "Teléfono",
@@ -81,6 +86,7 @@ export default function ProfilePage() {
         errCityRequired: "Elige una ciudad de la lista (California).",
         errCityOptional: "Si escribes ciudad, debe ser una de la lista (California).",
         accountRef: "Cuenta #",
+        loading: "Cargando…",
       },
       en: {
         titlePost: "Complete your profile to post",
@@ -90,7 +96,7 @@ export default function ProfilePage() {
         subtitleOnboarding: "Your account is ready. Just confirm your name to get started.",
         subtitleNormal: "Basic account information.",
         postHelper: "This is required so buyers can contact you.",
-        back: "Back to my account",
+        back: "Back to overview",
         name: "Name",
         email: "Email",
         phone: "Phone",
@@ -104,6 +110,7 @@ export default function ProfilePage() {
         errCityRequired: "Select a city from the list (California).",
         errCityOptional: "If you enter a city, it must be from the list (California).",
         accountRef: "Account #",
+        loading: "Loading…",
       },
     }),
     []
@@ -116,6 +123,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [shellName, setShellName] = useState<string | null>(null);
+  const [accountPlan, setAccountPlan] = useState<Plan>("free");
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [city, setCity] = useState<string>("");
@@ -147,6 +156,7 @@ export default function ProfilePage() {
         (u.user_metadata?.name as string | undefined) ||
         "";
       setName(existingName);
+      setShellName(existingName.trim() || null);
 
       const existingPhone =
         (u.user_metadata?.phone as string | undefined) ||
@@ -160,6 +170,30 @@ export default function ProfilePage() {
         "";
       setCity(String(existingCity ?? "").trim());
 
+      try {
+        const { data: pData } = await supabase
+          .from("profiles")
+          .select("display_name, email, membership_tier")
+          .eq("id", u.id)
+          .maybeSingle();
+        if (pData && mounted) {
+          const row = pData as {
+            display_name?: string | null;
+            email?: string | null;
+            membership_tier?: string | null;
+          };
+          const dn = row.display_name?.trim();
+          if (dn) {
+            setShellName(dn);
+            setName((n) => (n.trim() ? n : dn));
+          }
+          if (row.email?.trim()) setEmail(row.email.trim());
+          setAccountPlan(normalizePlanFromMembershipTier(row.membership_tier));
+        }
+      } catch {
+        /* ignore */
+      }
+
       setLoading(false);
     }
 
@@ -171,14 +205,14 @@ export default function ProfilePage() {
 
   function closeCard() {
     if (requirePost) {
-      router.replace(redirectTo || `/dashboard?lang=${lang}`);
+      router.replace(redirectTo || `/dashboard?${q}`);
       return;
     }
     if (onboarding) {
-      router.replace(`/clasificados?lang=${lang}`);
+      router.replace(`/clasificados?${q}`);
       return;
     }
-    router.replace(`/dashboard?lang=${lang}`);
+    router.replace(`/dashboard?${q}`);
   }
 
   async function saveAndContinue() {
@@ -248,11 +282,10 @@ export default function ProfilePage() {
         }
 
         if (redirectTo) router.replace(redirectTo);
-        else router.replace(`/clasificados/publicar?lang=${lang}`);
+        else router.replace(`/clasificados/publicar?${q}`);
         return;
       }
 
-      // Not requirePost: phone and city optional, but if provided must be valid
       if (digits.length > 0 && digits.length !== 10) {
         setMsg(L.errPhoneOptional);
         setSaving(false);
@@ -295,9 +328,9 @@ export default function ProfilePage() {
       }
 
       if (onboarding) {
-        router.replace(`/clasificados?lang=${lang}`);
+        router.replace(`/clasificados?${q}`);
       } else {
-        router.replace(`/dashboard?lang=${lang}`);
+        router.replace(`/dashboard?${q}`);
       }
     } catch (e: unknown) {
       setMsg((e as { message?: string })?.message ?? "Unknown error");
@@ -306,140 +339,132 @@ export default function ProfilePage() {
     }
   }
 
+  const accountRef = userId ? accountRefFromId(userId) : null;
+
+  const primaryBtn =
+    "w-full sm:w-auto rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-[1.03] disabled:opacity-60";
+
+  const secondaryLink =
+    "inline-flex items-center rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-2.5 text-sm font-semibold text-[#3D3428] transition hover:bg-[#FAF7F2]";
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Navbar />
-      <main className="max-w-6xl mx-auto px-6 pt-28 pb-16">
-        <h1 className="text-3xl md:text-4xl font-semibold text-yellow-400">
-          {title}
-        </h1>
-        <p className="mt-2 text-gray-300">{subtitle}</p>
-        {userId && (
-          <p className="mt-1 text-xs text-white/50 font-mono">
-            {L.accountRef} {accountRefFromId(userId)}
-          </p>
-        )}
+    <LeonixDashboardShell
+      lang={lang}
+      activeNav="profile"
+      plan={accountPlan}
+      userName={shellName}
+      email={email}
+      accountRef={accountRef}
+    >
+      {loading ? (
+        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
+          {L.loading}
+        </div>
+      ) : (
+        <>
+          <header>
+            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{title}</h1>
+            <p className="mt-2 text-sm text-[#5C5346]/95">{subtitle}</p>
+            {userId ? (
+              <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
+                {L.accountRef} {accountRefFromId(userId)}
+              </p>
+            ) : null}
+            {requirePost ? <p className="mt-2 text-sm font-medium text-[#6B5B2E]">{L.postHelper}</p> : null}
+          </header>
 
-        {requirePost && (
-          <p className="mt-2 text-sm text-white/60">{L.postHelper}</p>
-        )}
+          <div className="relative mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-7">
+            {showClose ? (
+              <button
+                type="button"
+                onClick={closeCard}
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#E8DFD0] bg-[#FAF7F2] text-lg font-bold text-[#5C5346] transition hover:bg-[#F3EBDD]"
+                aria-label={L.close}
+              >
+                ×
+              </button>
+            ) : null}
 
-        <div className="mt-8 rounded-2xl border border-yellow-600/20 bg-black/40 p-6 relative">
-          {showClose && (
-            <button
-              type="button"
-              onClick={closeCard}
-              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition"
-              aria-label={L.close}
-            >
-              ×
-            </button>
-          )}
+            {msg ? (
+              <div className="mb-4 rounded-2xl border border-red-200/80 bg-red-50/90 p-4 text-sm font-medium text-red-900">
+                {msg}
+              </div>
+            ) : null}
 
-          {loading ? (
-            <div className="text-white/70">Loading…</div>
-          ) : (
-            <>
-              {msg ? (
-                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-gray-200">
-                  {msg}
-                </div>
-              ) : null}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="text-xs text-white/60">{L.name}</div>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={lang === "es" ? "Tu nombre" : "Your name"}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
-                  />
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="text-xs text-white/60">{L.email}</div>
-                  <div className="mt-1 text-base font-semibold text-white">
-                    {email || "—"}
-                  </div>
-                </div>
-
-                {(requirePost || !onboarding) && (
-                  <>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                      <div className="text-xs text-white/60">
-                        {L.phone}
-                        {requirePost && <span className="text-yellow-400/90"> *</span>}
-                      </div>
-                      <input
-                        value={phone}
-                        onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-                        placeholder="(555) 123-4567"
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/60"
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={14}
-                      />
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                      <CityAutocomplete
-                        value={city}
-                        onChange={setCity}
-                        placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
-                        lang={lang}
-                        label={L.city}
-                        required={requirePost}
-                        variant="dark"
-                        onSelect={() => setMsg(null)}
-                      />
-                    </div>
-                  </>
-                )}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-[#E8DFD0]/90 bg-white/80 p-5">
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.name}</div>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={lang === "es" ? "Tu nombre" : "Your name"}
+                  className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none placeholder:text-[#7A7164]/60 focus:border-[#C9B46A]/70"
+                />
               </div>
 
-              {onboarding ? (
-                <div className="mt-6">
-                  <button
-                    onClick={saveAndContinue}
-                    disabled={saving}
-                    className="w-full sm:w-auto rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3 disabled:opacity-60"
-                  >
-                    {saving ? L.saving : L.save}
-                  </button>
-                </div>
-              ) : requirePost ? (
-                <div className="mt-6">
-                  <button
-                    onClick={saveAndContinue}
-                    disabled={saving}
-                    className="w-full sm:w-auto rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3 disabled:opacity-60"
-                  >
-                    {saving ? L.saving : L.save}
-                  </button>
-                </div>
-              ) : (
+              <div className="rounded-2xl border border-[#E8DFD0]/90 bg-white/80 p-5">
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.email}</div>
+                <div className="mt-2 text-base font-semibold text-[#1E1810]">{email || "—"}</div>
+              </div>
+
+              {(requirePost || !onboarding) && (
                 <>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <button
-                      onClick={saveAndContinue}
-                      disabled={saving}
-                      className="w-full sm:w-auto rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold px-5 py-3 disabled:opacity-60"
-                    >
-                      {saving ? L.saving : L.save}
-                    </button>
-                    <Link
-                      href={`/dashboard?lang=${lang}`}
-                      className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
-                    >
-                      {L.back}
-                    </Link>
+                  <div className="rounded-2xl border border-[#E8DFD0]/90 bg-white/80 p-5">
+                    <div className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+                      {L.phone}
+                      {requirePost ? <span className="text-[#A67C00]"> *</span> : null}
+                    </div>
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                      placeholder="(555) 123-4567"
+                      className="mt-2 w-full rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 text-sm text-[#1E1810] outline-none placeholder:text-[#7A7164]/60 focus:border-[#C9B46A]/70"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={14}
+                    />
+                  </div>
+                  <div className="rounded-2xl border border-[#E8DFD0]/90 bg-white/80 p-5">
+                    <CityAutocomplete
+                      value={city}
+                      onChange={setCity}
+                      placeholder={lang === "es" ? "Ej: San José" : "e.g. San Jose"}
+                      lang={lang}
+                      label={L.city}
+                      required={requirePost}
+                      variant="light"
+                      onSelect={() => setMsg(null)}
+                    />
                   </div>
                 </>
               )}
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+            </div>
+
+            {onboarding ? (
+              <div className="mt-6">
+                <button type="button" onClick={() => void saveAndContinue()} disabled={saving} className={primaryBtn}>
+                  {saving ? L.saving : L.save}
+                </button>
+              </div>
+            ) : requirePost ? (
+              <div className="mt-6">
+                <button type="button" onClick={() => void saveAndContinue()} disabled={saving} className={primaryBtn}>
+                  {saving ? L.saving : L.save}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button type="button" onClick={() => void saveAndContinue()} disabled={saving} className={primaryBtn}>
+                  {saving ? L.saving : L.save}
+                </button>
+                <Link href={`/dashboard?${q}`} className={secondaryLink}>
+                  {L.back}
+                </Link>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </LeonixDashboardShell>
   );
 }
