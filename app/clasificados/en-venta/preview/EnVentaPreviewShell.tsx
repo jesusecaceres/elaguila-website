@@ -31,7 +31,8 @@ export type EnVentaPreviewShellProps = {
   plan: "free" | "pro";
   shellPlanLabel: string;
   shellStatusLine: string;
-  editHubHref: string;
+  /** Full URL for back-to-edit (full page load via native anchor). */
+  editBackHref: string;
   previewHrefFree: string;
   previewHrefPro: string;
   proUpgradeHref: string;
@@ -46,7 +47,7 @@ export function EnVentaPreviewShell({
   plan,
   shellPlanLabel,
   shellStatusLine,
-  editHubHref,
+  editBackHref,
   previewHrefFree,
   previewHrefPro,
   proUpgradeHref,
@@ -73,12 +74,12 @@ export function EnVentaPreviewShell({
               </span>
               <span className="text-xs font-medium text-[#7A7164]/95">{shellStatusLine}</span>
             </div>
-            <Link
-              href={editHubHref}
+            <a
+              href={editBackHref}
               className="shrink-0 text-sm font-semibold text-[#3D3428] underline-offset-2 hover:underline"
             >
               ← {t.back}
-            </Link>
+            </a>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

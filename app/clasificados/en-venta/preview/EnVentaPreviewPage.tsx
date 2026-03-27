@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
@@ -176,7 +175,10 @@ export function EnVentaPreviewPage() {
   const tEmpty = EMPTY[lang];
   const tBuyer = BUYER[lang];
 
-  const editHubHref = `/clasificados/publicar/en-venta?lang=${lang}`;
+  const editBackHref =
+    plan === "pro"
+      ? `/clasificados/publicar/en-venta/pro?lang=${lang}`
+      : `/clasificados/publicar/en-venta/free?lang=${lang}`;
   const previewHrefFree = `/clasificados/en-venta/preview?lang=${lang}&plan=free`;
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
   const proUpgradeHref = `/clasificados/publicar/en-venta/pro?lang=${lang}`;
@@ -385,12 +387,12 @@ export function EnVentaPreviewPage() {
         <div className="mx-auto max-w-lg px-4 pb-16 pt-24">
           <h1 className="text-xl font-bold text-[#1E1810]">{tEmpty.title}</h1>
           <p className="mt-2 text-sm text-[#5C5346]/90">{tEmpty.body}</p>
-          <Link
-            href={editHubHref}
+          <a
+            href={editBackHref}
             className="mt-6 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2] shadow-md transition hover:bg-[#1a1814]"
           >
             {tEmpty.edit}
-          </Link>
+          </a>
         </div>
       </main>
     );
@@ -693,7 +695,7 @@ export function EnVentaPreviewPage() {
         plan={plan}
         shellPlanLabel={vm.shellPlanLabel}
         shellStatusLine={shellStatusLine}
-        editHubHref={editHubHref}
+        editBackHref={editBackHref}
         previewHrefFree={previewHrefFree}
         previewHrefPro={previewHrefPro}
         proUpgradeHref={proUpgradeHref}
