@@ -66,8 +66,8 @@ export function EnVentaPreviewShell({
     <div className="flex min-h-screen flex-col">
       {/* Sticky top — seller-only */}
       <div className="sticky top-0 z-40 border-b border-[#E8DFD0]/90 bg-[#FFFCF7]/95 shadow-[0_8px_24px_-12px_rgba(42,36,22,0.12)] backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-3 py-2 sm:px-5">
-          <div className="relative flex items-center gap-2">
+        <div className="mx-auto max-w-6xl px-2 py-1.5 sm:px-4">
+          <div className="relative flex items-center gap-1.5">
             <div className="min-w-0 flex-1" aria-hidden />
             <h1
               className="pointer-events-none absolute left-1/2 z-0 max-w-[min(100%,14rem)] -translate-x-1/2 text-center text-sm font-extrabold leading-tight tracking-tight sm:max-w-[min(100%,22rem)] sm:text-[0.9375rem]"
