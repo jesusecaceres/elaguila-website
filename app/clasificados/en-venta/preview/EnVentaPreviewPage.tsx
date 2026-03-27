@@ -38,12 +38,11 @@ const BUYER = {
   es: {
     share: "Compartir",
     save: "Guardar",
-    saved: "Guardado",
     report: "Reportar",
     reportHint: "Disponible cuando el anuncio esté publicado.",
     toastShare: "Enlace copiado",
-    toastSaveOn: "Marcado en esta vista previa",
-    toastSaveOff: "Quitado de esta vista previa",
+    saveDraftHint:
+      "Los guardados reales usan tu cuenta: publica el anuncio y guárdalo desde la página del anuncio, o abre un anuncio ya publicado.",
     contactH: "Contactar al vendedor",
     makeOffer: "Hacer oferta",
     makeOfferHint: "Puedes proponer un precio por correo.",
@@ -64,12 +63,11 @@ const BUYER = {
   en: {
     share: "Share",
     save: "Save",
-    saved: "Saved",
     report: "Report",
     reportHint: "Available once the listing is published.",
     toastShare: "Link copied",
-    toastSaveOn: "Saved for this preview",
-    toastSaveOff: "Removed from this preview",
+    saveDraftHint:
+      "Saved listings use your account: publish the ad and save from the live listing page, or open an already published ad.",
     contactH: "Contact the seller",
     makeOffer: "Make an offer",
     makeOfferHint: "You can propose a price by email.",
@@ -162,10 +160,6 @@ function MapPinIcon({ className }: { className?: string }) {
   );
 }
 
-function previewHeartKey(plan: "free" | "pro") {
-  return `en-venta-preview-heart-${plan}`;
-}
-
 export function EnVentaPreviewPage() {
   const sp = useSearchParams();
   const lang = sp?.get("lang") === "en" ? "en" : "es";
@@ -181,7 +175,6 @@ export function EnVentaPreviewPage() {
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [savedLocal, setSavedLocal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [correoOpen, setCorreoOpen] = useState(false);
@@ -198,15 +191,6 @@ export function EnVentaPreviewPage() {
     const loaded = loadLatestEnVentaPreviewDraft(plan);
     setDraft(loaded?.draft ?? null);
     setHydrated(true);
-  }, [plan]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      setSavedLocal(sessionStorage.getItem(previewHeartKey(plan)) === "1");
-    } catch {
-      setSavedLocal(false);
-    }
   }, [plan]);
 
   useEffect(() => {
@@ -265,17 +249,6 @@ export function EnVentaPreviewPage() {
       setToast(lang === "es" ? "No se pudo copiar" : "Could not copy");
     }
   }, [lang, tBuyer.toastShare, vm.title]);
-
-  const onToggleSave = useCallback(() => {
-    const next = !savedLocal;
-    setSavedLocal(next);
-    try {
-      sessionStorage.setItem(previewHeartKey(plan), next ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-    setToast(next ? tBuyer.toastSaveOn : tBuyer.toastSaveOff);
-  }, [plan, savedLocal, tBuyer.toastSaveOff, tBuyer.toastSaveOn]);
 
   const listingDistanceKey = useMemo(() => {
     const city = state.city.trim();
@@ -424,16 +397,13 @@ export function EnVentaPreviewPage() {
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={onToggleSave}
-            className={cx(
-              "inline-flex min-h-[40px] items-center gap-1.5 rounded-2xl border px-3 py-2 text-xs font-bold transition",
-              savedLocal
-                ? "border-[#C9A84A] bg-[#FBF7EF] text-[#3D3428]"
-                : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
-            )}
+            disabled
+            title={tBuyer.saveDraftHint}
+            className="inline-flex min-h-[40px] cursor-not-allowed items-center gap-1.5 rounded-2xl border border-[#E8DFD0]/90 bg-[#EFEAE0] px-3 py-2 text-xs font-bold text-[#5C5346]"
           >
-            <span aria-hidden>{savedLocal ? "❤️" : "💛"}</span>
-            {savedLocal ? tBuyer.saved : tBuyer.save}
+            <span aria-hidden>💛</span>
+            {tBuyer.save}
+            <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
           </button>
           <button
             type="button"
@@ -754,30 +724,15 @@ export function EnVentaPreviewPage() {
                     lang={lang}
                     plan={plan}
                   />
-                  <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
-                        {lang === "es" ? "Analíticas" : "Analytics"}
-                      </p>
-                      <p className="text-[11px] font-medium text-[#7A7164]/90">
-                        {lang === "es" ? "Vista previa" : "Preview"}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { k: "views", icon: "👁️", label: lang === "es" ? "Vistas" : "Views" },
-                        { k: "shares", icon: "📤", label: lang === "es" ? "Compartidos" : "Shares" },
-                        { k: "saves", icon: "💛", label: lang === "es" ? "Guardados" : "Saves" },
-                        { k: "contacts", icon: "💬", label: lang === "es" ? "Contactos" : "Contacts" },
-                      ].map((m) => (
-                        <div key={m.k} className="rounded-2xl border border-[#E8DFD0]/90 bg-white/70 px-3 py-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                            {m.icon} {m.label}
-                          </p>
-                          <p className="mt-0.5 text-lg font-extrabold tracking-tight text-[#1E1810]">—</p>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="rounded-3xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FBF7EF] to-[#F3EBDD] p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">
+                      {lang === "es" ? "Analíticas" : "Analytics"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-snug text-[#1E1810]">
+                      {lang === "es"
+                        ? "Aquí verás vistas, compartidos, guardados y contactos reales cuando el anuncio esté publicado. Revisa el panel «Mis anuncios» para métricas en vivo."
+                        : "You’ll see real views, shares, saves, and contacts here once the listing is live. Use “My listings” in your dashboard for live metrics."}
+                    </p>
                   </div>
                 </div>
               </div>

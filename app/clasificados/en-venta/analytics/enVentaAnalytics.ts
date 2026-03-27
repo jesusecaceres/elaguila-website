@@ -4,8 +4,16 @@ export function trackEnVentaListingView(listingId: string, userId?: string | nul
   void trackEvent(listingId, "listing_view", userId);
 }
 
+export function trackEnVentaListingOpen(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "listing_open", userId);
+}
+
 export function trackEnVentaSaveClick(listingId: string, userId?: string | null) {
   void trackEvent(listingId, "listing_save", userId);
+}
+
+export function trackEnVentaShare(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "listing_share", userId);
 }
 
 export function trackEnVentaMessageIntent(listingId: string, userId?: string | null) {

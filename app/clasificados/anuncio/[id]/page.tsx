@@ -12,7 +12,6 @@ import { extractProVideoInfos } from "../../components/proVideo";
 import ProBadge from "../../components/ProBadge";
 import { isProListing } from "../../components/planHelpers";
 import { isVerifiedSeller } from "../../components/verifiedSeller";
-import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "../../components/savedListings";
 import ContactActions from "../../components/ContactActions";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -528,7 +527,7 @@ export default function AnuncioDetallePage() {
     return sorted.slice(0, 6);
   }, [isLiveDbListing, listing?.id, listing?.category, listing?.priceLabel, listing?.city]);
 
-  const [saved, setSaved] = useState<boolean>(() => (listing ? isListingSaved(listing.id) : false));
+  const [saved, setSaved] = useState(false);
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
   const [savedSyncDone, setSavedSyncDone] = useState(false);
@@ -545,9 +544,21 @@ export default function AnuncioDetallePage() {
 
   useEffect(() => {
     if (!listing) return;
-    trackEvent(listing.id, "listing_view");
-    trackEvent(listing.id, "listing_open");
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const uid = user?.id ?? null;
+      void trackEvent(listing.id, "listing_view", uid);
+      void trackEvent(listing.id, "listing_open", uid);
+    })();
     addListingView(listing.id);
+    return () => {
+      cancelled = true;
+    };
   }, [listing?.id]);
 
   // Sync saved state from Supabase when user is logged in
@@ -603,11 +614,6 @@ export default function AnuncioDetallePage() {
       .catch(() => setSellerStats(null));
   }, [(listing as any)?.owner_id]);
 
-  useEffect(() => {
-    if (!listing) return;
-    return onSavedListingsChange(() => setSaved(isListingSaved(listing.id)));
-  }, [listing?.id]);
-
   const copyText = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -628,15 +634,21 @@ export default function AnuncioDetallePage() {
   };
 
   const handleShare = async () => {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const uid = user?.id ?? null;
     const url = typeof window !== "undefined" ? window.location.href : "";
     const title = listing ? listing.title[lang] : (lang === "es" ? "Anuncio" : "Listing");
     const text = listing ? listing.blurb[lang] : "";
-    const nav: any = navigator as any;
+    const nav: unknown = typeof navigator !== "undefined" ? navigator : null;
+    const shareFn = nav && typeof (nav as { share?: unknown }).share === "function" ? (nav as { share: (opts: unknown) => Promise<void> }).share : null;
 
     try {
-      if (nav?.share) {
-        await nav.share({ title, text, url });
-        if (listing) trackEvent(listing.id, "listing_share");
+      if (shareFn) {
+        await shareFn({ title, text, url });
+        if (listing) void trackEvent(listing.id, "listing_share", uid);
         return;
       }
     } catch {
@@ -644,25 +656,25 @@ export default function AnuncioDetallePage() {
     }
 
     await copyText(url || buildShareMessage());
-    if (listing) trackEvent(listing.id, "listing_share");
+    if (listing) void trackEvent(listing.id, "listing_share", uid);
   };
 
   const handleGuardarAnuncio = async () => {
     if (!listing) return;
     const supabase = createSupabaseBrowserClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      if (saved) {
-        await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
-        setSaved(false);
-      } else {
-        await supabase.from("user_saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
-        setSaved(true);
-        trackEvent(listing.id, "listing_save");
-      }
+    if (!user) {
+      const here = `${window.location.pathname}${window.location.search || ""}`;
+      window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+      return;
+    }
+    if (saved) {
+      await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
+      setSaved(false);
     } else {
-      setSaved(toggleListingSaved(listing.id));
-      trackEvent(listing.id, "listing_save");
+      await supabase.from("user_saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
+      setSaved(true);
+      void trackEvent(listing.id, "listing_save", user.id);
     }
   };
 
@@ -722,7 +734,7 @@ export default function AnuncioDetallePage() {
       if (error) throw error;
       setChatMessages((prev) => [...prev, { id: (inserted as any).id, sender_id: (inserted as any).sender_id, message: (inserted as any).message, created_at: (inserted as any).created_at }]);
       setChatDraft("");
-      if (listing) trackEvent(listing.id, "message_sent");
+      if (listing) void trackEvent(listing.id, "message_sent", user.id);
     } catch {
       alert(lang === "es" ? "No se pudo enviar el mensaje." : "Could not send message.");
     } finally {
@@ -1864,7 +1876,19 @@ export default function AnuncioDetallePage() {
                   email={(listing as any)?.contact_email ?? (listing as any)?.email}
                   website={rentasNegocioDisplay?.website ?? brNegocioDisplay?.website ?? (listing as any)?.website}
                   mapsUrl={(listing as any)?.mapsUrl}
-                  onContact={listing ? () => trackEvent(listing.id, "message_sent") : undefined}
+                  onContact={
+                    listing
+                      ? () => {
+                          void (async () => {
+                            const sb = createSupabaseBrowserClient();
+                            const {
+                              data: { user },
+                            } = await sb.auth.getUser();
+                            void trackEvent(listing.id, "message_sent", user?.id ?? null);
+                          })();
+                        }
+                      : undefined
+                  }
                 />
               </div>
 

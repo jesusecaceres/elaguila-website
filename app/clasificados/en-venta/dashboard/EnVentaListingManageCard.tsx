@@ -135,7 +135,7 @@ export function EnVentaListingManageCard({
     ? "rounded-3xl border-2 border-[#D4BC6A]/75 bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF4EA] shadow-[0_14px_44px_-12px_rgba(201,164,74,0.28)]"
     : "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)]";
 
-  const v = typeof row.views === "number" ? row.views : 0;
+  const v = analytics.views;
 
   return (
     <div className={`${frame} p-4 sm:p-5`}>

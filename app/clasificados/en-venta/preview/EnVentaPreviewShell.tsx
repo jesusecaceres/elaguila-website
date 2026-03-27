@@ -69,11 +69,8 @@ export function EnVentaPreviewShell({
         <div className="mx-auto max-w-6xl px-2 py-1.5 sm:px-4">
           <div className="relative flex items-center gap-1.5">
             <div className="min-w-0 flex-1" aria-hidden />
-            <h1
-              className="pointer-events-none absolute left-1/2 z-0 max-w-[min(100%,14rem)] -translate-x-1/2 text-center text-sm font-extrabold leading-tight tracking-tight sm:max-w-[min(100%,22rem)] sm:text-[0.9375rem]"
-              style={{ textShadow: "0 1px 0 rgba(255,252,247,0.9)" }}
-            >
-              <span className="bg-gradient-to-r from-[#3D3428] via-[#1E1810] to-[#3D3428] bg-clip-text text-transparent">
+            <h1 className="pointer-events-none absolute left-1/2 z-0 max-w-[min(100%,16rem)] -translate-x-1/2 text-center text-sm font-extrabold leading-tight tracking-tight text-[#1E1810] sm:max-w-[min(100%,24rem)] sm:text-base">
+              <span className="relative inline-block border-b-2 border-[#C9A84A]/90 pb-0.5 text-[#2C2416] drop-shadow-[0_1px_0_rgba(255,252,247,0.95)]">
                 {previewTitle}
               </span>
             </h1>

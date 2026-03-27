@@ -170,28 +170,35 @@ export default function DashboardPage() {
         }
 
         let activeCt = 0;
-        let vSum = 0;
         const ids: string[] = [];
 
         try {
-          const { data: lst } = await supabase.from("listings").select("id, views, status").eq("owner_id", u.id);
+          const { data: lst } = await supabase.from("listings").select("id, status").eq("owner_id", u.id);
           if (lst && Array.isArray(lst)) {
             for (const row of lst) {
-              const r = row as { id?: string; views?: unknown; status?: string | null };
+              const r = row as { id?: string; status?: string | null };
               if (r.id) ids.push(r.id);
-              vSum += typeof r.views === "number" && Number.isFinite(r.views) ? r.views : 0;
               if (String(r.status ?? "active").toLowerCase() === "active") activeCt++;
             }
           }
-          if (mounted) {
-            setActiveListings(activeCt);
-            setTotalViews(vSum);
-          }
+          if (mounted) setActiveListings(activeCt);
         } catch {
-          if (mounted) {
-            setActiveListings(null);
-            setTotalViews(null);
+          if (mounted) setActiveListings(null);
+        }
+
+        if (ids.length > 0) {
+          try {
+            const { count: viewEvCt } = await supabase
+              .from("listing_analytics")
+              .select("id", { count: "exact", head: true })
+              .in("listing_id", ids)
+              .eq("event_type", "listing_view");
+            if (mounted) setTotalViews(typeof viewEvCt === "number" ? viewEvCt : 0);
+          } catch {
+            if (mounted) setTotalViews(null);
           }
+        } else if (mounted) {
+          setTotalViews(0);
         }
 
         if (ids.length > 0) {

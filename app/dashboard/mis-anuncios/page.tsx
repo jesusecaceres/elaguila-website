@@ -337,10 +337,8 @@ export default function MyListingsPage() {
     return filteredByTab.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
   }, [filteredByTab, needle]);
 
-  function resolveViews(x: ListingRow, stats?: { views: number }) {
-    const ev = stats?.views ?? 0;
-    const db = typeof x.views === "number" ? x.views : 0;
-    return Math.max(ev, db);
+  function resolveViews(_x: ListingRow, stats?: { views: number }) {
+    return stats?.views ?? 0;
   }
 
   const maxViews = useMemo(() => {
@@ -537,7 +535,7 @@ export default function MyListingsPage() {
                         saves: stats?.saves ?? 0,
                         shares: stats?.shares ?? 0,
                         profileClicks: stats?.profileClicks ?? 0,
-                        dbViews: typeof x.views === "number" ? x.views : 0,
+                        dbViews: stats?.views ?? 0,
                       }}
                       maxViews={maxViews}
                       priceDropLabel={listingPriceDropLabel(x, lang)}

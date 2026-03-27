@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "@/app/components/Navbar";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
@@ -10,7 +11,12 @@ import { EnVentaSellerCard } from "./EnVentaSellerCard";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
-import { trackEnVentaListingView } from "../analytics/enVentaAnalytics";
+import {
+  trackEnVentaListingOpen,
+  trackEnVentaListingView,
+  trackEnVentaSaveClick,
+  trackEnVentaShare,
+} from "../analytics/enVentaAnalytics";
 
 type Lang = "es" | "en";
 
@@ -82,6 +88,8 @@ export function EnVentaAnuncioLayout({
   const sellerKind = listing.sellerType === "business" ? "business" : "personal";
   const biz = listing.businessName || listing.business_name || null;
   const [correoOpen, setCorreoOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveReady, setSaveReady] = useState(false);
 
   const sellerNameForModal =
     sellerKind === "business"
@@ -98,8 +106,80 @@ export function EnVentaAnuncioLayout({
   }, [rows]);
 
   useEffect(() => {
-    trackEnVentaListingView(listing.id);
+    let cancelled = false;
+    (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const uid = user?.id ?? null;
+      trackEnVentaListingView(listing.id, uid);
+      trackEnVentaListingOpen(listing.id, uid);
+      if (uid) {
+        const { data } = await supabase
+          .from("user_saved_listings")
+          .select("listing_id")
+          .eq("user_id", uid)
+          .eq("listing_id", listing.id)
+          .maybeSingle();
+        if (!cancelled) setSaved(!!data);
+      } else {
+        setSaved(false);
+      }
+      if (!cancelled) setSaveReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [listing.id]);
+
+  const onToggleSave = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      const here = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search || ""}` : "/clasificados";
+      window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+      return;
+    }
+    if (saved) {
+      await supabase.from("user_saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
+      setSaved(false);
+    } else {
+      await supabase
+        .from("user_saved_listings")
+        .upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
+      setSaved(true);
+      trackEnVentaSaveClick(listing.id, user.id);
+    }
+  }, [listing.id, saved]);
+
+  const onShareListing = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const title = listing.title[lang];
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ title, url });
+      } else {
+        throw new Error("no_share");
+      }
+    } catch {
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(url);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    trackEnVentaShare(listing.id, user?.id ?? null);
+  }, [lang, listing.id, listing.title]);
 
   const jsonLd = enVentaClassifiedAdJsonLd({
     title: listing.title[lang],
@@ -119,6 +199,13 @@ export function EnVentaAnuncioLayout({
   const primary = "bg-yellow-500 text-black hover:bg-yellow-400";
 
   const listingIdLabel = lang === "es" ? "ID del anuncio" : "Listing ID";
+  const saveLabel =
+    lang === "es" ? (saved ? "★ Guardado" : "☆ Guardar") : saved ? "★ Saved" : "☆ Save";
+  const saveHint =
+    lang === "es"
+      ? "Guarda este anuncio en tu cuenta para verlo en el dashboard."
+      : "Save this listing to your account to see it on your dashboard.";
+  const shareLabel = lang === "es" ? "Compartir" : "Share";
 
   return (
     <div className="min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]">
@@ -167,6 +254,24 @@ export function EnVentaAnuncioLayout({
                 <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#111111]/50">{listingIdLabel}</span>
                 <span className="ml-2 select-all">{listing.id}</span>
               </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  title={saveHint}
+                  disabled={!saveReady}
+                  onClick={() => void onToggleSave()}
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#C9B46A]/55 bg-[#FBF7EF] px-3 py-2 text-xs font-bold text-[#1E1810] shadow-sm transition hover:bg-[#F3EBDD] disabled:opacity-50"
+                >
+                  {saveLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onShareListing()}
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:bg-[#F5F5F5]"
+                >
+                  ↗️ {shareLabel}
+                </button>
+              </div>
               {fulfillmentLine ? (
                 <p className="mt-3 text-sm font-medium text-[#111111]/85">
                   {lang === "es" ? "Entrega: " : "Fulfillment: "}

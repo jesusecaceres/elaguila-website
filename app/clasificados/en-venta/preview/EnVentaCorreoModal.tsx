@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { trackEnVentaMessageIntent } from "@/app/clasificados/en-venta/analytics/enVentaAnalytics";
 
 const COPY = {
   es: {
@@ -252,6 +253,11 @@ export function EnVentaCorreoModal({
       if (!res.ok) {
         setLeonixErr(data.error ?? t.sendErr);
         return;
+      }
+      const uid = session.user?.id ?? null;
+      const lid = listingId?.trim() || null;
+      if (lid) {
+        trackEnVentaMessageIntent(lid, uid);
       }
       setLeonixOk(true);
       window.setTimeout(() => {
