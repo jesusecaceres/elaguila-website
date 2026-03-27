@@ -253,7 +253,7 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
             {leonixSending ? t.sending : t.sendLeonix}
           </button>
           {selfInquiry ? <p className="text-xs text-[#7A7164]">{t.selfBlock}</p> : null}
-        {hasSession === false ? <p className="text-xs text-[#7A7164]">{t.loginHint}</p> : null}
+          {hasSession === false ? <p className="text-xs text-[#7A7164]">{t.loginHint}</p> : null}
 
           <a href={gmailUrl} target="_blank" rel="noopener noreferrer" onClick={onClose} className={btnRowClass()}>
             {t.openGmail}
