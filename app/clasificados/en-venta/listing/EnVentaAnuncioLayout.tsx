@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/app/components/Navbar";
-import ContactActions from "../../components/ContactActions";
+import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
 import { EnVentaSellerCard } from "./EnVentaSellerCard";
@@ -10,7 +11,6 @@ import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
 import { trackEnVentaListingView } from "../analytics/enVentaAnalytics";
-import { useEffect, useMemo } from "react";
 
 type Lang = "es" | "en";
 
@@ -29,6 +29,7 @@ type AnuncioListingLike = {
   status?: string;
   contact_phone?: string | null;
   contact_email?: string | null;
+  owner_id?: string | null;
 };
 
 function pairsFromListing(l: AnuncioListingLike): Array<{ label: string; value: string }> {
@@ -62,6 +63,10 @@ function conditionFromPairs(rows: Array<{ label: string; value: string }>, lang:
   return null;
 }
 
+function normalizePhoneForTel(raw: string) {
+  return String(raw || "").replace(/[^0-9+]/g, "");
+}
+
 export function EnVentaAnuncioLayout({
   listing,
   lang,
@@ -76,6 +81,14 @@ export function EnVentaAnuncioLayout({
   const condition = conditionFromPairs(rows, lang);
   const sellerKind = listing.sellerType === "business" ? "business" : "personal";
   const biz = listing.businessName || listing.business_name || null;
+  const [correoOpen, setCorreoOpen] = useState(false);
+
+  const sellerNameForModal =
+    sellerKind === "business"
+      ? biz || (lang === "es" ? "Negocio" : "Business")
+      : lang === "es"
+        ? "Particular"
+        : "Private seller";
 
   const fulfillmentLine = useMemo(() => {
     for (const r of rows) {
@@ -97,6 +110,15 @@ export function EnVentaAnuncioLayout({
   });
 
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
+  const phoneTel = listing.contact_phone ? normalizePhoneForTel(String(listing.contact_phone)) : "";
+  const email = String(listing.contact_email || "").trim();
+  const ownerId = listing.owner_id?.trim() || null;
+
+  const BtnBase = "px-4 py-2 rounded-xl font-semibold transition";
+  const secondary = "bg-white/5 border border-white/10 hover:bg-white/10 text-white";
+  const primary = "bg-yellow-500 text-black hover:bg-yellow-400";
+
+  const listingIdLabel = lang === "es" ? "ID del anuncio" : "Listing ID";
 
   return (
     <div className="min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]">
@@ -141,6 +163,10 @@ export function EnVentaAnuncioLayout({
                   </>
                 ) : null}
               </div>
+              <p className="mt-3 rounded-lg border border-black/10 bg-[#F5F5F5] px-3 py-2 font-mono text-[11px] text-[#111111]/85">
+                <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#111111]/50">{listingIdLabel}</span>
+                <span className="ml-2 select-all">{listing.id}</span>
+              </p>
               {fulfillmentLine ? (
                 <p className="mt-3 text-sm font-medium text-[#111111]/85">
                   {lang === "es" ? "Entrega: " : "Fulfillment: "}
@@ -155,17 +181,39 @@ export function EnVentaAnuncioLayout({
               <div className="text-sm font-bold text-[#111111]">{lang === "es" ? "Contacto" : "Contact"}</div>
               <div className="mt-3">
                 {listing.contact_phone || listing.contact_email ? (
-                  <ContactActions
-                    lang={lang}
-                    phone={listing.contact_phone ? String(listing.contact_phone) : null}
-                    text={listing.contact_phone ? String(listing.contact_phone) : null}
-                    email={listing.contact_email ? String(listing.contact_email) : null}
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    {phoneTel ? (
+                      <a href={`tel:${phoneTel}`} className={`${BtnBase} ${primary}`}>
+                        {lang === "es" ? "Llamar" : "Call"}
+                      </a>
+                    ) : null}
+                    {phoneTel ? (
+                      <a href={`sms:${phoneTel}`} className={`${BtnBase} ${secondary}`}>
+                        {lang === "es" ? "Texto" : "Text"}
+                      </a>
+                    ) : null}
+                    {email ? (
+                      <button
+                        type="button"
+                        className={`${BtnBase} ${secondary}`}
+                        onClick={() => setCorreoOpen(true)}
+                      >
+                        {lang === "es" ? "Correo (Leonix)" : "Email (Leonix)"}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : (
                   <p className="text-sm text-[#111111]/65">
                     {lang === "es" ? "El vendedor no mostró contacto público." : "The seller did not expose public contact."}
                   </p>
                 )}
+                {email ? (
+                  <p className="mt-2 text-[11px] text-[#111111]/55">
+                    {lang === "es"
+                      ? "«Correo (Leonix)» guarda la consulta en tu cuenta. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
+                      : "“Email (Leonix)” saves the inquiry to your account. From the same modal you can open Gmail, Yahoo, or your default mail app."}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -184,6 +232,20 @@ export function EnVentaAnuncioLayout({
           </div>
         </div>
       </section>
+
+      {email ? (
+        <EnVentaCorreoModal
+          open={correoOpen}
+          onClose={() => setCorreoOpen(false)}
+          lang={lang}
+          sellerName={sellerNameForModal}
+          sellerEmail={email}
+          listingTitle={listing.title[lang]}
+          listingId={listing.id}
+          sellerOwnerId={ownerId}
+          listingIdDisplay={listing.id}
+        />
+      ) : null}
     </div>
   );
 }

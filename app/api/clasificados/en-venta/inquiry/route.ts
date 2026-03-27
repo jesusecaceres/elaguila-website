@@ -7,6 +7,7 @@ type Body = {
   sellerEmail?: string;
   message: string;
   listingTitle?: string;
+  /** Ignored for identity — server derives buyer from auth + profiles. */
   buyerName?: string;
   buyerEmail?: string;
   /** Published listing UUID — preferred when provided. */
@@ -23,19 +24,54 @@ function isUuid(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s.trim());
 }
 
-function buildStoredMessage(body: Body): string {
+async function resolveBuyerFromSender(
+  admin: ReturnType<typeof getAdminSupabase>,
+  senderId: string
+): Promise<{ buyerName: string; buyerEmail: string }> {
+  const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(senderId);
+  if (authErr || !authUser.user) {
+    return { buyerName: "", buyerEmail: "" };
+  }
+  const u = authUser.user;
+  const buyerEmail = (u.email ?? "").trim();
+  const meta = u.user_metadata as Record<string, unknown> | undefined;
+  const fromMeta =
+    (typeof meta?.full_name === "string" && meta.full_name.trim()) ||
+    (typeof meta?.name === "string" && meta.name.trim()) ||
+    "";
+
+  const { data: profile } = await admin.from("profiles").select("display_name").eq("id", senderId).maybeSingle();
+  const row = profile as { display_name?: string | null } | null;
+  const buyerName =
+    (row?.display_name?.trim() || "").trim() ||
+    fromMeta ||
+    (buyerEmail ? buyerEmail.split("@")[0] : "");
+
+  return { buyerName, buyerEmail };
+}
+
+function buildStoredMessage(input: {
+  buyerName: string;
+  buyerEmail: string;
+  listingTitle?: string;
+  listingId: string;
+  message: string;
+}): string {
   const parts: string[] = [];
-  const name = (body.buyerName ?? "").trim();
-  const be = (body.buyerEmail ?? "").trim();
+  const name = input.buyerName.trim();
+  const be = input.buyerEmail.trim();
   if (name || be) {
     const who = [name, be ? `<${be}>` : ""].filter(Boolean).join(" ");
     parts.push(`[${who}]`);
   }
-  const title = (body.listingTitle ?? "").trim();
+  if (input.listingId) {
+    parts.push(`[Listing ID: ${input.listingId}]`);
+  }
+  const title = (input.listingTitle ?? "").trim();
   if (title) {
     parts.push(`[Anuncio: ${title}]`);
   }
-  parts.push((body.message ?? "").trim());
+  parts.push((input.message ?? "").trim());
   return parts.filter(Boolean).join("\n\n").slice(0, 2000);
 }
 
@@ -71,7 +107,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing message" }, { status: 400 });
   }
 
-  const message = buildStoredMessage({ ...json, message: rawMsg });
   const sellerEmailNorm = normalizeEmail(String(json.sellerEmail ?? ""));
 
   const listingIdIn = String(json.listingId ?? "").trim();
@@ -165,6 +200,16 @@ export async function POST(req: Request) {
   if (receiverId === senderId) {
     return NextResponse.json({ error: "Cannot send an inquiry to yourself." }, { status: 400 });
   }
+
+  const { buyerName, buyerEmail } = await resolveBuyerFromSender(admin, senderId);
+
+  const message = buildStoredMessage({
+    buyerName,
+    buyerEmail,
+    listingTitle: json.listingTitle,
+    listingId: listingIdOut!,
+    message: rawMsg,
+  });
 
   const { error: insErr } = await admin.from("messages").insert({
     sender_id: senderId,

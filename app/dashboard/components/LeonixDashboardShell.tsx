@@ -11,7 +11,7 @@ import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
-type ActiveNav = "home" | "listings" | "profile" | "saved" | "recent";
+type ActiveNav = "home" | "listings" | "messages" | "profile" | "saved" | "recent";
 
 const PAGE_BG: CSSProperties = {
   backgroundColor: "#F3EBDD",
@@ -55,6 +55,7 @@ export function LeonixDashboardShell({
           home: "Resumen",
           profile: "Mi cuenta",
           listings: "Mis anuncios",
+          messages: "Mensajes",
           saved: "Anuncios guardados",
           recent: "Vistos recientemente",
           activity: "Mi actividad",
@@ -68,6 +69,7 @@ export function LeonixDashboardShell({
           home: "Overview",
           profile: "My account",
           listings: "My listings",
+          messages: "Messages",
           saved: "Saved listings",
           recent: "Recently viewed",
           activity: "My activity",
@@ -159,6 +161,7 @@ export function LeonixDashboardShell({
               {navItem("home", `/dashboard?${q}`, L.home)}
               {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
               {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings)}
+              {navItem("messages", `/dashboard/mensajes?${q}`, L.messages)}
               {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}
               <div className="pt-3">
                 <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]/90">{L.activity}</p>

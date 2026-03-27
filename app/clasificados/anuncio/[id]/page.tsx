@@ -970,6 +970,7 @@ export default function AnuncioDetallePage() {
           status: listing.status,
           contact_phone: ev.contact_phone ?? null,
           contact_email: ev.contact_email ?? null,
+          owner_id: listing.owner_id ?? null,
         }}
         lang={lang}
         backHref={`/clasificados/en-venta/results?lang=${lang}`}
