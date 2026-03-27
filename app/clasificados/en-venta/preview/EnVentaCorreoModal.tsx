@@ -24,10 +24,7 @@ const COPY = {
     sendErr: "No se pudo enviar. Inténtalo de nuevo.",
     copyOk: "Correo copiado",
     subj: "Interés en tu anuncio Leonix",
-    defaultMsg: (title: string) =>
-      title.trim()
-        ? `Hola, me interesa tu anuncio «${title}». ¿Sigue disponible?`
-        : "Hola, me interesa tu anuncio. ¿Sigue disponible?",
+    defaultMsg: () => "Hola, me interesa tu anuncio. ¿Sigue disponible?",
   },
   en: {
     title: "Email contact",
@@ -49,10 +46,7 @@ const COPY = {
     sendErr: "Could not send. Please try again.",
     copyOk: "Email copied",
     subj: "Question about your Leonix listing",
-    defaultMsg: (title: string) =>
-      title.trim()
-        ? `Hi — I'm interested in your listing “${title}”. Is it still available?`
-        : "Hi — I'm interested in your listing. Is it still available?",
+    defaultMsg: () => "Hi — I'm interested in your listing. Is it still available?",
   },
 } as const;
 
@@ -73,7 +67,7 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
   const t = COPY[lang];
   const emailAddr = sellerEmail.trim();
 
-  const defaultBody = useMemo(() => t.defaultMsg(listingTitle), [listingTitle, t]);
+  const defaultBody = useMemo(() => t.defaultMsg(), [t]);
 
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");

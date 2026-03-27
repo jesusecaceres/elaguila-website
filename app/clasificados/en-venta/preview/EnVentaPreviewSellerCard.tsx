@@ -1,11 +1,15 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 type Props = {
   initials: string;
   name: string;
   subline: string;
   /** Buyer-facing Pro signal on published-style card (preview Pro plan). */
   showProBadge?: boolean;
+  /** Desktop-only contact entry (e.g. Correo); hidden on small screens. */
+  desktopContact?: ReactNode;
 };
 
 export function EnVentaPreviewSellerCard({
@@ -13,6 +17,7 @@ export function EnVentaPreviewSellerCard({
   name,
   subline,
   showProBadge = false,
+  desktopContact,
 }: Props) {
   return (
     <aside className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14),inset_0_1px_0_rgba(255,255,255,0.85)]">
@@ -35,6 +40,9 @@ export function EnVentaPreviewSellerCard({
           <p className="mt-1 text-xs font-medium text-[#5C5346]/90">{subline}</p>
         </div>
       </div>
+      {desktopContact ? (
+        <div className="mt-4 hidden border-t border-[#E8DFD0]/80 pt-4 lg:block">{desktopContact}</div>
+      ) : null}
     </aside>
   );
 }

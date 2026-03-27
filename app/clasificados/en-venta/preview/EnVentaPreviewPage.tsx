@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
@@ -8,7 +8,6 @@ import { loadEnVentaPreviewDraft, loadLatestEnVentaPreviewDraft, loadEnVentaPrev
 import { buildEnVentaPreviewModel } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
-import { publishEnVentaFromDraft } from "../publish/enVentaPublishFromDraft";
 import { EnVentaPreviewShell } from "./EnVentaPreviewShell";
 import { EnVentaCorreoModal } from "./EnVentaCorreoModal";
 
@@ -167,7 +166,6 @@ function previewHeartKey(plan: "free" | "pro") {
 }
 
 export function EnVentaPreviewPage() {
-  const router = useRouter();
   const sp = useSearchParams();
   const lang = sp?.get("lang") === "en" ? "en" : "es";
   const plan = sp?.get("plan") === "pro" ? "pro" : "free";
@@ -182,8 +180,6 @@ export function EnVentaPreviewPage() {
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [publishErr, setPublishErr] = useState<string | null>(null);
   const [savedLocal, setSavedLocal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -226,26 +222,6 @@ export function EnVentaPreviewPage() {
     if (draftMeta?.updatedAt) return relativeTimeLabel(draftMeta.updatedAt, lang);
     return vm.shellStatusLine;
   }, [draftMeta?.updatedAt, lang, vm.shellStatusLine]);
-
-  async function onPublish() {
-    setPublishErr(null);
-    const latest = loadLatestEnVentaPreviewDraft(plan)?.draft ?? loadEnVentaPreviewDraft(plan) ?? draft;
-    if (!latest) {
-      setPublishErr(lang === "es" ? "No hay borrador." : "No draft.");
-      return;
-    }
-    setPublishing(true);
-    try {
-      const result = await publishEnVentaFromDraft(latest, lang, plan);
-      if (!result.ok) {
-        setPublishErr(result.error);
-        return;
-      }
-      router.push(`/clasificados/anuncio/${result.listingId}?lang=${lang}`);
-    } finally {
-      setPublishing(false);
-    }
-  }
 
   const onShare = useCallback(async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -487,12 +463,12 @@ export function EnVentaPreviewPage() {
               <MapPinIcon className="mt-0.5 shrink-0 text-[#8A8070]" />
               <span className="min-w-0 break-words">{vm.locationLine}</span>
             </p>
-            <p className="mt-1.5 max-w-xl text-[11px] leading-tight text-[#7A7164]/95">
+            <p className="mt-1 max-w-xl text-[11px] leading-snug text-[#7A7164]/95">
               {vm.locationApproximateNote}
             </p>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3.5 sm:p-4">
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3.5 sm:p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
               <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
@@ -508,8 +484,8 @@ export function EnVentaPreviewPage() {
                     : tBuyer.distanceUnknown}
               </p>
             ) : null}
-            <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-2">
-              <label className="min-w-0 w-full sm:flex-1 sm:min-w-[12rem]">
+            <div className="mt-3 flex min-w-0 flex-col gap-2">
+              <label className="block min-w-0">
                 <span className="sr-only">{tBuyer.startPointLabel}</span>
                 <input
                   value={buyerStart}
@@ -519,7 +495,7 @@ export function EnVentaPreviewPage() {
                   inputMode="search"
                 />
               </label>
-              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+              <div className="grid min-w-0 grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -548,20 +524,22 @@ export function EnVentaPreviewPage() {
                     );
                   }}
                   className={cx(
-                    "inline-flex min-h-[40px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                    "inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border px-2 py-2 text-center text-[11px] font-bold leading-tight transition sm:text-xs",
                     buyerGeoStatus === "requesting"
                       ? "cursor-wait border-[#E8DFD0]/80 bg-white/60 text-[#7A7164]"
                       : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
                   )}
                 >
-                  {buyerGeoStatus === "requesting" ? (lang === "es" ? "Solicitando…" : "Requesting…") : `📡 ${tBuyer.useMyLocation}`}
+                  <span className="line-clamp-2">
+                    {buyerGeoStatus === "requesting" ? (lang === "es" ? "Solicitando…" : "Requesting…") : tBuyer.useMyLocation}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setMapOpen(true)}
-                  className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
+                  className="inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-2 py-2 text-center text-[11px] font-bold leading-tight text-[#3D3428] transition hover:border-[#D4C4A8] sm:text-xs"
                 >
-                  📍 {tBuyer.mapArea}
+                  <span className="line-clamp-2">{tBuyer.mapArea}</span>
                 </button>
               </div>
             </div>
@@ -569,7 +547,7 @@ export function EnVentaPreviewPage() {
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
+      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)] lg:hidden">
         <h2 className="text-sm font-bold text-[#1E1810]">{tBuyer.contactH}</h2>
         {vm.contactActions.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -689,12 +667,32 @@ export function EnVentaPreviewPage() {
     </div>
   );
 
+  const emailActionLabel =
+    vm.contactActions.find((a) => a.id === "email")?.label ?? (lang === "es" ? "Correo" : "Email");
+
   const seller = (
     <EnVentaPreviewSellerCard
       initials={vm.sellerInitials}
       name={vm.sellerName}
       subline={vm.sellerSubline}
       showProBadge={plan === "pro"}
+      desktopContact={
+        state.email.trim() ? (
+          <button
+            type="button"
+            onClick={() => setCorreoOpen(true)}
+            className={cx(
+              "inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition",
+              plan === "pro"
+                ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
+                : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
+            )}
+          >
+            <ContactIcon className="h-5 w-5 shrink-0" />
+            {emailActionLabel}
+          </button>
+        ) : undefined
+      }
     />
   );
 
@@ -716,9 +714,6 @@ export function EnVentaPreviewPage() {
         editBackHref={editBackHref}
         previewHrefFree={previewHrefFree}
         previewHrefPro={previewHrefPro}
-        publishing={publishing}
-        publishErr={publishErr}
-        onPublish={onPublish}
       >
         <main className="relative pb-8 text-[#2C2416] lg:pb-12">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
@@ -765,7 +760,10 @@ export function EnVentaPreviewPage() {
               <div className="order-2 lg:col-span-4 lg:col-start-6 lg:row-start-1">{mainTop}</div>
 
               <div className="order-3 lg:col-span-3 lg:col-start-10 lg:row-span-2 lg:row-start-1">
-                <div className="flex flex-col gap-4 lg:sticky lg:top-[calc(9rem+1px)]">{seller}</div>
+                <div className="flex flex-col gap-3 lg:sticky lg:top-[calc(9rem+1px)]">
+                  {seller}
+                  <p className="hidden text-center text-[11px] leading-relaxed text-[#7A7164]/95 lg:block">{vm.trustNote}</p>
+                </div>
               </div>
 
               <div className="order-4 lg:col-span-9 lg:row-start-2">{lowerContent}</div>
