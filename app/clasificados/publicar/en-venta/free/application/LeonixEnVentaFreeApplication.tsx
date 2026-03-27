@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { loadEnVentaPreviewDraft, saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import { useMemo, useState } from "react";
+import { saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
-import { saveLatestClassifiedsApplicationDraft } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
@@ -31,27 +30,6 @@ export default function LeonixEnVentaFreeApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const [state, setState] = useState(createEmptyEnVentaFreeState);
-  useEffect(() => {
-    const restored = loadEnVentaPreviewDraft("free");
-    if (restored) setState(restored);
-  }, []);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      saveEnVentaPreviewDraft("free", state);
-      saveLatestClassifiedsApplicationDraft({
-        meta: {
-          categoryKey: "en-venta",
-          categoryLabel: lang === "es" ? "En Venta" : "For Sale",
-          resumeRoute: `/clasificados/publicar/en-venta/free?lang=${lang}`,
-          plan: "free",
-          updatedAt: Date.now(),
-        },
-        state,
-      });
-    }, 350);
-    return () => window.clearTimeout(t);
-  }, [lang, state]);
 
   const copy = useMemo(
     () =>
@@ -61,14 +39,12 @@ export default function LeonixEnVentaFreeApplication() {
             subtitle: "Flujo rápido para vendedores particulares.",
             back: "Elegir plan",
             switchPro: "Cambiar a Pro",
-            draft: "Borrador guardado localmente en tu navegador (próximo paso: publicar).",
           }
         : {
             title: "Post — For Sale (Free)",
             subtitle: "Fast path for casual sellers.",
             back: "Choose plan",
             switchPro: "Switch to Pro",
-            draft: "Draft stays in this browser until publish is wired.",
           },
     [lang]
   );
@@ -121,7 +97,11 @@ export default function LeonixEnVentaFreeApplication() {
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
-          <EnVentaPreviewBeforePublishCta lang={lang} variant="light" />
+          <EnVentaPreviewBeforePublishCta
+            lang={lang}
+            variant="light"
+            onBeforePreview={(plan) => saveEnVentaPreviewDraft(plan, state)}
+          />
           <ListingRulesConfirmationSection
             lang={lang}
             confirmAccurate={state.confirmListingAccurate}
@@ -132,8 +112,6 @@ export default function LeonixEnVentaFreeApplication() {
             onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
           />
         </div>
-
-        <p className="mt-8 text-center text-xs text-[#5D4A25]/70">{copy.draft}</p>
       </div>
     </main>
   );

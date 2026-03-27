@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 const PREVIEW_CTA = {
   es: {
     title: "Antes de publicar, revisa tu anuncio",
@@ -26,15 +24,22 @@ export type EnVentaPreviewCtaVariant = "light" | "dark";
 type Props = {
   lang: "es" | "en";
   variant?: EnVentaPreviewCtaVariant;
+  /** Runs synchronously before full navigation; use to persist preview draft once (no background autosave). */
+  onBeforePreview?: (plan: "free" | "pro") => void;
 };
 
 /**
  * Preview call-to-action shown above the legal/rules confirmation block in En Venta publish flows.
  */
-export function EnVentaPreviewBeforePublishCta({ lang, variant = "light" }: Props) {
+export function EnVentaPreviewBeforePublishCta({ lang, variant = "light", onBeforePreview }: Props) {
   const t = PREVIEW_CTA[lang];
   const freeHref = `${PREVIEW_HREF_BASE}?lang=${lang}&plan=free`;
   const proHref = `${PREVIEW_HREF_BASE}?lang=${lang}&plan=pro`;
+
+  function goPreview(plan: "free" | "pro", href: string) {
+    onBeforePreview?.(plan);
+    window.location.assign(href);
+  }
 
   const shell =
     variant === "dark"
@@ -60,12 +65,26 @@ export function EnVentaPreviewBeforePublishCta({ lang, variant = "light" }: Prop
       <h2 className={titleCls}>{t.title}</h2>
       <p className={bodyCls}>{t.body}</p>
       <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-        <Link href={freeHref} className={freeBtn}>
+        <a
+          href={freeHref}
+          className={freeBtn}
+          onClick={(e) => {
+            e.preventDefault();
+            goPreview("free", freeHref);
+          }}
+        >
           {t.freeBtn}
-        </Link>
-        <Link href={proHref} className={proBtn}>
+        </a>
+        <a
+          href={proHref}
+          className={proBtn}
+          onClick={(e) => {
+            e.preventDefault();
+            goPreview("pro", proHref);
+          }}
+        >
           {t.proBtn}
-        </Link>
+        </a>
       </div>
     </div>
   );

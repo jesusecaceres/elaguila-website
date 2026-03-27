@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { loadEnVentaPreviewDraft, saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import { useMemo, useState } from "react";
+import { saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
   EN_VENTA_PUBLICAR_FREE,
   EN_VENTA_PUBLICAR_HUB,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
-import { saveLatestClassifiedsApplicationDraft } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
@@ -32,27 +31,6 @@ export default function LeonixEnVentaProApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const [state, setState] = useState(createEmptyEnVentaProState);
-  useEffect(() => {
-    const restored = loadEnVentaPreviewDraft("pro");
-    if (restored) setState(restored);
-  }, []);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      saveEnVentaPreviewDraft("pro", state);
-      saveLatestClassifiedsApplicationDraft({
-        meta: {
-          categoryKey: "en-venta",
-          categoryLabel: lang === "es" ? "En Venta" : "For Sale",
-          resumeRoute: `/clasificados/publicar/en-venta/pro?lang=${lang}`,
-          plan: "pro",
-          updatedAt: Date.now(),
-        },
-        state,
-      });
-    }, 350);
-    return () => window.clearTimeout(t);
-  }, [lang, state]);
 
   const copy = useMemo(
     () =>
@@ -62,14 +40,12 @@ export default function LeonixEnVentaProApplication() {
             subtitle: "Anuncio premium: más fotos, video y mejor presentación por listado.",
             back: "Elegir plan",
             switchFree: "Cambiar a Gratis",
-            draft: "Borrador local en el navegador; publicación y pagos se conectan después.",
           }
         : {
             title: "Post — For Sale (Pro)",
             subtitle: "Premium listing: more photos, video, and stronger presentation per ad.",
             back: "Choose plan",
             switchFree: "Switch to Free",
-            draft: "Local browser draft; publish and billing hook up later.",
           },
     [lang]
   );
@@ -122,7 +98,10 @@ export default function LeonixEnVentaProApplication() {
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
-          <EnVentaPreviewBeforePublishCta lang={lang} />
+          <EnVentaPreviewBeforePublishCta
+            lang={lang}
+            onBeforePreview={(plan) => saveEnVentaPreviewDraft(plan, state)}
+          />
           <ListingRulesConfirmationSection
             lang={lang}
             confirmAccurate={state.confirmListingAccurate}
@@ -133,8 +112,6 @@ export default function LeonixEnVentaProApplication() {
             onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
           />
         </div>
-
-        <p className="mt-8 text-center text-xs text-[#5D4A25]/70">{copy.draft}</p>
       </div>
     </main>
   );
