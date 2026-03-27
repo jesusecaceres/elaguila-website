@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { loadEnVentaPreviewDraft, loadLatestEnVentaPreviewDraft, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
@@ -184,6 +185,7 @@ export function EnVentaPreviewPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [correoOpen, setCorreoOpen] = useState(false);
+  const [inquirySellerOwnerId, setInquirySellerOwnerId] = useState<string | null>(null);
   const [buyerStart, setBuyerStart] = useState("");
   const [buyerGeoStatus, setBuyerGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
     "idle"
@@ -215,6 +217,29 @@ export function EnVentaPreviewPage() {
 
   const state = draft ?? createEmptyEnVentaFreeState();
   const hasDraft = draft !== null;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (cancelled) return;
+        const se = state.email.trim().toLowerCase();
+        const ue = user?.email?.trim().toLowerCase() ?? "";
+        if (user?.id && se && ue === se) setInquirySellerOwnerId(user.id);
+        else setInquirySellerOwnerId(null);
+      } catch {
+        if (!cancelled) setInquirySellerOwnerId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.email]);
 
   const vm = useMemo(() => buildEnVentaPreviewModel(state, lang, plan), [state, lang, plan]);
   const draftMeta = useMemo(() => loadEnVentaPreviewDraftMeta(), [plan]);
@@ -838,6 +863,7 @@ export function EnVentaPreviewPage() {
           sellerName={vm.sellerName}
           sellerEmail={state.email.trim()}
           listingTitle={vm.title}
+          sellerOwnerId={inquirySellerOwnerId}
         />
       ) : null}
     </>

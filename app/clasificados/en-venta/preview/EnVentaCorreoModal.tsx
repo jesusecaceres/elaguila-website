@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const COPY = {
@@ -18,7 +18,8 @@ const COPY = {
     copyEmail: "Copiar email",
     cancel: "Cerrar",
     loginHint: "Inicia sesión para enviar tu consulta por Leonix.",
-    selfBlock: "No puedes enviarte un mensaje a ti mismo en esta vista.",
+    selfBlock:
+      "Eres el vendedor de este anuncio: no puedes enviarte una consulta Leonix a ti mismo. Usa otra cuenta o las opciones de correo externo.",
     sending: "Enviando…",
     sentOk: "Mensaje enviado.",
     sendErr: "No se pudo enviar. Inténtalo de nuevo.",
@@ -40,7 +41,8 @@ const COPY = {
     copyEmail: "Copy email",
     cancel: "Close",
     loginHint: "Sign in to send your inquiry through Leonix.",
-    selfBlock: "You can’t send a message to yourself in this view.",
+    selfBlock:
+      "You’re the seller of this listing — you can’t send a Leonix inquiry to yourself. Use another account or the external email options.",
     sending: "Sending…",
     sentOk: "Message sent.",
     sendErr: "Could not send. Please try again.",
@@ -57,13 +59,30 @@ type Props = {
   sellerName: string;
   sellerEmail: string;
   listingTitle: string;
+  /** Published listing UUID when known (strongest server routing). */
+  listingId?: string | null;
+  /** Seller auth user id when known (e.g. seller’s session matches draft email). */
+  sellerOwnerId?: string | null;
 };
 
 function btnRowClass() {
   return "flex w-full min-h-[44px] items-center gap-3 rounded-xl bg-[#F5F5F5] px-4 py-3 text-sm font-medium text-[#111111] transition hover:bg-[#E8E8E8] sm:py-2.5";
 }
 
-export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmail, listingTitle }: Props) {
+function normEmail(e: string): string {
+  return e.trim().toLowerCase();
+}
+
+export function EnVentaCorreoModal({
+  open,
+  onClose,
+  lang,
+  sellerName,
+  sellerEmail,
+  listingTitle,
+  listingId = null,
+  sellerOwnerId = null,
+}: Props) {
   const t = COPY[lang];
   const emailAddr = sellerEmail.trim();
 
@@ -77,36 +96,55 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
   const [leonixSending, setLeonixSending] = useState(false);
   const [hasSession, setHasSession] = useState<boolean | null>(null);
   const [selfInquiry, setSelfInquiry] = useState(false);
+  const openGenerationRef = useRef(0);
 
   useEffect(() => {
     if (!open) return;
+
+    const gen = ++openGenerationRef.current;
+
+    setBuyerName("");
     setMessage(defaultBody);
     setLeonixErr(null);
     setLeonixOk(false);
+    setLeonixSending(false);
+    setHasSession(null);
+    setSelfInquiry(false);
+    setBuyerEmail("");
+
     let cancelled = false;
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (cancelled) return;
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (cancelled || gen !== openGenerationRef.current) return;
+
+        const uid = user?.id ?? null;
+        const sessionEmail = user?.email?.trim() ?? "";
         setHasSession(!!user);
-        const u = user?.email?.trim().toLowerCase() ?? "";
-        const se = emailAddr.trim().toLowerCase();
-        setSelfInquiry(Boolean(u && se && u === se));
-        if (user?.email) {
-          setBuyerEmail((prev) => prev || user.email || "");
-        }
+        setBuyerEmail(sessionEmail);
+
+        const se = normEmail(emailAddr);
+        const ue = normEmail(sessionEmail);
+        const ownerId = sellerOwnerId?.trim() || null;
+        const isSelf =
+          Boolean(uid && ownerId && uid === ownerId) || Boolean(ue && se && ue === se);
+        setSelfInquiry(isSelf);
       } catch {
-        if (!cancelled) {
+        if (!cancelled && gen === openGenerationRef.current) {
           setHasSession(false);
+          setBuyerEmail("");
           setSelfInquiry(false);
         }
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [open, defaultBody, emailAddr]);
+  }, [open, defaultBody, emailAddr, sellerOwnerId]);
 
   const subj = lang === "es" ? COPY.es.subj : COPY.en.subj;
 
@@ -143,7 +181,9 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
     setLeonixErr(null);
     setLeonixOk(false);
     const supabase = createSupabaseBrowserClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session?.access_token) {
       setLeonixErr(t.loginHint);
       return;
@@ -151,6 +191,7 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
     const msg = message.trim();
     if (!msg) return;
 
+    const gen = openGenerationRef.current;
     setLeonixSending(true);
     try {
       const res = await fetch("/api/clasificados/en-venta/inquiry", {
@@ -165,9 +206,12 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
           listingTitle,
           buyerName: buyerName.trim() || undefined,
           buyerEmail: buyerEmail.trim() || undefined,
+          listingId: listingId?.trim() || undefined,
+          sellerOwnerId: sellerOwnerId?.trim() || undefined,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (gen !== openGenerationRef.current) return;
       if (!res.ok) {
         setLeonixErr(data.error ?? t.sendErr);
         return;
@@ -178,11 +222,33 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
         onClose();
       }, 1200);
     } catch {
-      setLeonixErr(t.sendErr);
+      if (gen === openGenerationRef.current) {
+        setLeonixErr(t.sendErr);
+      }
     } finally {
-      setLeonixSending(false);
+      if (gen === openGenerationRef.current) {
+        setLeonixSending(false);
+      }
     }
-  }, [buyerEmail, buyerName, emailAddr, listingTitle, message, onClose, selfInquiry, t]);
+  }, [
+    buyerEmail,
+    buyerName,
+    emailAddr,
+    listingId,
+    listingTitle,
+    message,
+    onClose,
+    selfInquiry,
+    sellerOwnerId,
+    t,
+  ]);
+
+  const sendBlocked =
+    leonixSending ||
+    !message.trim() ||
+    selfInquiry ||
+    hasSession === false ||
+    hasSession === null;
 
   if (!open) return null;
 
@@ -240,13 +306,13 @@ export function EnVentaCorreoModal({ open, onClose, lang, sellerName, sellerEmai
         <div className="mt-4 space-y-2">
           <button
             type="button"
-            disabled={leonixSending || !message.trim() || selfInquiry}
+            disabled={sendBlocked}
             onClick={() => void sendLeonix()}
             className="flex w-full min-h-[44px] items-center justify-center rounded-xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-bold text-[#1E1810] shadow-md disabled:opacity-50"
           >
             {leonixSending ? t.sending : t.sendLeonix}
           </button>
-          {selfInquiry ? <p className="text-xs text-[#7A7164]">{t.selfBlock}</p> : null}
+          {selfInquiry ? <p className="text-xs font-medium text-[#5C5346]">{t.selfBlock}</p> : null}
           {hasSession === false ? <p className="text-xs text-[#7A7164]">{t.loginHint}</p> : null}
 
           <a href={gmailUrl} target="_blank" rel="noopener noreferrer" onClick={onClose} className={btnRowClass()}>

@@ -4,15 +4,23 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 export const runtime = "nodejs";
 
 type Body = {
-  sellerEmail: string;
+  sellerEmail?: string;
   message: string;
   listingTitle?: string;
   buyerName?: string;
   buyerEmail?: string;
+  /** Published listing UUID — preferred when provided. */
+  listingId?: string;
+  /** Seller auth user id — must match sellerEmail via Auth when used. */
+  sellerOwnerId?: string;
 };
 
 function normalizeEmail(e: string): string {
   return e.trim().toLowerCase();
+}
+
+function isUuid(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s.trim());
 }
 
 function buildStoredMessage(body: Body): string {
@@ -48,7 +56,7 @@ export async function POST(req: Request) {
   let admin;
   try {
     admin = getAdminSupabase();
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
@@ -58,38 +66,95 @@ export async function POST(req: Request) {
   }
   const senderId = userData.user.id;
 
-  const sellerEmail = normalizeEmail(String(json.sellerEmail ?? ""));
   const rawMsg = String(json.message ?? "").trim();
-  if (!sellerEmail || !rawMsg) {
-    return NextResponse.json({ error: "Missing sellerEmail or message" }, { status: 400 });
+  if (!rawMsg) {
+    return NextResponse.json({ error: "Missing message" }, { status: 400 });
   }
 
   const message = buildStoredMessage({ ...json, message: rawMsg });
+  const sellerEmailNorm = normalizeEmail(String(json.sellerEmail ?? ""));
+
+  const listingIdIn = String(json.listingId ?? "").trim();
+  const sellerOwnerIdIn = String(json.sellerOwnerId ?? "").trim();
 
   let receiverId: string | null = null;
-  let listingId: string;
+  let listingIdOut: string;
 
-  const { data: listing } = await admin
-    .from("listings")
-    .select("id, owner_id")
-    .eq("category", "en-venta")
-    .ilike("contact_email", sellerEmail)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // 1) Explicit listing id (strongest)
+  if (listingIdIn && isUuid(listingIdIn)) {
+    const { data: row, error: listErr } = await admin
+      .from("listings")
+      .select("id, owner_id")
+      .eq("id", listingIdIn)
+      .eq("category", "en-venta")
+      .maybeSingle();
 
-  if (listing?.owner_id && listing?.id) {
-    receiverId = String(listing.owner_id);
-    listingId = String(listing.id);
-  } else {
-    const { data: page, error: listErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (listErr) {
       return NextResponse.json({ error: listErr.message }, { status: 500 });
     }
-    const match = page?.users?.find((u) => (u.email ?? "").toLowerCase() === sellerEmail);
-    if (match?.id) {
-      receiverId = match.id;
-      listingId = `en-venta-preview:${receiverId}`;
+    if (!row?.owner_id) {
+      return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+    }
+    receiverId = String(row.owner_id);
+    listingIdOut = String(row.id);
+  }
+
+  // 2) Seller owner id + verified email (Auth must match sellerEmail)
+  if (!receiverId && sellerOwnerIdIn && isUuid(sellerOwnerIdIn)) {
+    if (!sellerEmailNorm) {
+      return NextResponse.json({ error: "Missing sellerEmail for this inquiry." }, { status: 400 });
+    }
+
+    const { data: ownerAuth, error: ownerErr } = await admin.auth.admin.getUserById(sellerOwnerIdIn);
+    if (ownerErr || !ownerAuth.user) {
+      return NextResponse.json({ error: "Seller account not found." }, { status: 404 });
+    }
+    const ownerEmail = normalizeEmail(ownerAuth.user.email ?? "");
+    if (!ownerEmail || ownerEmail !== sellerEmailNorm) {
+      return NextResponse.json({ error: "Seller context does not match." }, { status: 400 });
+    }
+
+    const { data: ownedListing } = await admin
+      .from("listings")
+      .select("id")
+      .eq("category", "en-venta")
+      .eq("owner_id", sellerOwnerIdIn)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    receiverId = sellerOwnerIdIn;
+    listingIdOut = ownedListing?.id ? String(ownedListing.id) : `en-venta-preview:${sellerOwnerIdIn}`;
+  }
+
+  // 3) Email fallback (last resort)
+  if (!receiverId) {
+    if (!sellerEmailNorm) {
+      return NextResponse.json({ error: "Missing seller contact or listing context." }, { status: 400 });
+    }
+
+    const { data: listing } = await admin
+      .from("listings")
+      .select("id, owner_id")
+      .eq("category", "en-venta")
+      .ilike("contact_email", sellerEmailNorm)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (listing?.owner_id && listing?.id) {
+      receiverId = String(listing.owner_id);
+      listingIdOut = String(listing.id);
+    } else {
+      const { data: page, error: listErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (listErr) {
+        return NextResponse.json({ error: listErr.message }, { status: 500 });
+      }
+      const match = page?.users?.find((u) => (u.email ?? "").toLowerCase() === sellerEmailNorm);
+      if (match?.id) {
+        receiverId = match.id;
+        listingIdOut = `en-venta-preview:${receiverId}`;
+      }
     }
   }
 
@@ -104,7 +169,7 @@ export async function POST(req: Request) {
   const { error: insErr } = await admin.from("messages").insert({
     sender_id: senderId,
     receiver_id: receiverId,
-    listing_id: listingId!,
+    listing_id: listingIdOut!,
     message,
   });
 
