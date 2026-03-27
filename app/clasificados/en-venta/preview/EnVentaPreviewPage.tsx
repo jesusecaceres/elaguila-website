@@ -50,7 +50,6 @@ const BUYER = {
     mapArea: "Mapa / zona",
     openMaps: "Abrir en Google Maps",
     distanceH: "Distancia",
-    distanceZero: "Ingresa tu ZIP, ciudad o usa tu ubicación actual.",
     distanceSoon: "Calculando…",
     distanceUnknown: "No disponible para esta ubicación.",
     approxMiles: (n: number) => `Aproximadamente ${n} millas`,
@@ -77,7 +76,6 @@ const BUYER = {
     mapArea: "Map / area",
     openMaps: "Open in Google Maps",
     distanceH: "Distance",
-    distanceZero: "Enter your ZIP, city, or use your current location.",
     distanceSoon: "Calculating…",
     distanceUnknown: "Not available for this location.",
     approxMiles: (n: number) => `Approximately ${n} miles`,
@@ -487,7 +485,7 @@ export function EnVentaPreviewPage() {
               <MapPinIcon className="mt-0.5 shrink-0 text-[#8A8070]" />
               <span className="min-w-0 break-words">{vm.locationLine}</span>
             </p>
-            <p className="mt-2 max-w-2xl text-xs leading-snug text-[#7A7164]/95">
+            <p className="mt-1.5 max-w-xl text-[11px] leading-tight text-[#7A7164]/95">
               {vm.locationApproximateNote}
             </p>
           </div>
@@ -497,15 +495,17 @@ export function EnVentaPreviewPage() {
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
               <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
             </div>
-            <p className="mt-1 text-sm font-semibold leading-snug text-[#1E1810]">
-              {distanceStatus === "ready" && distanceMiles !== null
-                ? tBuyer.approxMiles(roundMiles(distanceMiles))
-                : distanceStatus === "computing"
-                  ? tBuyer.distanceSoon
-                  : distanceStatus === "unavailable"
-                    ? tBuyer.distanceUnknown
-                    : tBuyer.distanceZero}
-            </p>
+            {(distanceStatus === "ready" && distanceMiles !== null) ||
+            distanceStatus === "computing" ||
+            distanceStatus === "unavailable" ? (
+              <p className="mt-1 text-sm font-semibold leading-snug text-[#1E1810]">
+                {distanceStatus === "ready" && distanceMiles !== null
+                  ? tBuyer.approxMiles(roundMiles(distanceMiles))
+                  : distanceStatus === "computing"
+                    ? tBuyer.distanceSoon
+                    : tBuyer.distanceUnknown}
+              </p>
+            ) : null}
             <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-2">
               <label className="min-w-0 w-full sm:flex-1 sm:min-w-[12rem]">
                 <span className="sr-only">{tBuyer.startPointLabel}</span>
@@ -513,7 +513,7 @@ export function EnVentaPreviewPage() {
                   value={buyerStart}
                   onChange={(e) => setBuyerStart(e.target.value)}
                   placeholder={tBuyer.startPointPlaceholder}
-                  className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
+                  className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:font-normal placeholder:text-sm placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
                   inputMode="search"
                 />
               </label>
@@ -785,17 +785,19 @@ export function EnVentaPreviewPage() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-4">
-              <p className="text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
-              <p className="mt-3 text-sm font-semibold text-[#1E1810]">
-                {tBuyer.distanceH}:{" "}
-                {distanceStatus === "ready" && distanceMiles !== null
-                  ? tBuyer.approxMiles(roundMiles(distanceMiles))
-                  : distanceStatus === "computing"
-                    ? tBuyer.distanceSoon
-                    : distanceStatus === "unavailable"
-                      ? tBuyer.distanceUnknown
-                      : tBuyer.distanceZero}
-              </p>
+              <p className="text-[11px] leading-tight text-[#7A7164]/95">{vm.locationApproximateNote}</p>
+              {(distanceStatus === "ready" && distanceMiles !== null) ||
+              distanceStatus === "computing" ||
+              distanceStatus === "unavailable" ? (
+                <p className="mt-2 text-sm font-semibold text-[#1E1810]">
+                  {tBuyer.distanceH}:{" "}
+                  {distanceStatus === "ready" && distanceMiles !== null
+                    ? tBuyer.approxMiles(roundMiles(distanceMiles))
+                    : distanceStatus === "computing"
+                      ? tBuyer.distanceSoon
+                      : tBuyer.distanceUnknown}
+                </p>
+              ) : null}
             </div>
 
             {mapsHref ? (
