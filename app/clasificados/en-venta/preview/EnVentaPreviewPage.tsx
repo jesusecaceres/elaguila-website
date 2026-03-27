@@ -53,9 +53,9 @@ const BUYER = {
     distanceZero: "Ingresa tu ZIP, ciudad o usa tu ubicación actual.",
     distanceSoon: "Calculando…",
     distanceUnknown: "No disponible para esta ubicación.",
-    approxMiles: (n: number) => `Aprox. ${n} millas`,
+    approxMiles: (n: number) => `Aproximadamente ${n} millas`,
     startPointLabel: "Tu punto de partida",
-    startPointPlaceholder: "ZIP o ciudad",
+    startPointPlaceholder: "Código postal o ciudad",
     useMyLocation: "Usar mi ubicación",
     locationNotAvailable: "Ubicación no disponible en este dispositivo.",
     locationDenied: "Permiso denegado. Puedes ingresar tu ZIP o ciudad.",
@@ -80,9 +80,9 @@ const BUYER = {
     distanceZero: "Enter your ZIP, city, or use your current location.",
     distanceSoon: "Calculating…",
     distanceUnknown: "Not available for this location.",
-    approxMiles: (n: number) => `Approx. ${n} mi`,
+    approxMiles: (n: number) => `Approximately ${n} miles`,
     startPointLabel: "Your starting point",
-    startPointPlaceholder: "ZIP or city",
+    startPointPlaceholder: "ZIP code or city",
     useMyLocation: "Use my location",
     locationNotAvailable: "Location is not available on this device.",
     locationDenied: "Permission denied. You can enter your ZIP or city instead.",
@@ -481,31 +481,33 @@ export function EnVentaPreviewPage() {
       ) : null}
 
       {vm.locationLine ? (
-        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/82 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/82 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)] sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0 flex-1 sm:max-w-[min(100%,26rem)]">
               <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.locationH}</p>
-              <p className="mt-2 flex items-start gap-2 text-sm font-semibold text-[#1E1810]">
+              <p className="mt-2 flex items-start gap-2 text-sm font-semibold leading-snug text-[#1E1810]">
                 <MapPinIcon className="mt-0.5 shrink-0 text-[#8A8070]" />
-                <span className="min-w-0 truncate">{vm.locationLine}</span>
+                <span className="min-w-0 break-words">{vm.locationLine}</span>
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
+              <p className="mt-2 max-w-lg text-xs leading-snug text-[#7A7164]/95 sm:text-[13px] sm:leading-relaxed">
+                {vm.locationApproximateNote}
+              </p>
             </div>
             <button
               type="button"
               onClick={() => setMapOpen(true)}
-              className="shrink-0 inline-flex min-h-[38px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
+              className="inline-flex min-h-[40px] shrink-0 items-center justify-center self-start rounded-2xl border border-[#E8DFD0] bg-white/90 px-3.5 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
             >
               📍 {tBuyer.mapArea}
             </button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
-              <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
+          <div className="mt-5 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3.5 sm:p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
+              <p className="text-[11px] font-medium text-[#7A7164]/85">{lang === "es" ? "Vista previa" : "Preview"}</p>
             </div>
-            <p className="mt-1 text-sm font-semibold text-[#1E1810]">
+            <p className="mt-2 text-sm font-semibold leading-snug text-[#1E1810]">
               {distanceStatus === "ready" && distanceMiles !== null
                 ? tBuyer.approxMiles(roundMiles(distanceMiles))
                 : distanceStatus === "computing"
@@ -514,14 +516,14 @@ export function EnVentaPreviewPage() {
                     ? tBuyer.distanceUnknown
                     : tBuyer.distanceZero}
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <label className="flex-1 min-w-[180px]">
+            <div className="mt-3.5 flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
+              <label className="min-w-0 flex-1">
                 <span className="sr-only">{tBuyer.startPointLabel}</span>
                 <input
                   value={buyerStart}
                   onChange={(e) => setBuyerStart(e.target.value)}
                   placeholder={tBuyer.startPointPlaceholder}
-                  className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
+                  className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2.5 text-sm font-medium text-[#1E1810] placeholder:normal-case placeholder:text-[#8A8070]/90 outline-none transition focus:border-[#C9B46A]/70"
                   inputMode="search"
                 />
               </label>
@@ -553,7 +555,7 @@ export function EnVentaPreviewPage() {
                   );
                 }}
                 className={cx(
-                  "inline-flex min-h-[40px] items-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                  "inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-2xl border px-4 py-2.5 text-xs font-bold transition sm:min-w-[11.5rem]",
                   buyerGeoStatus === "requesting"
                     ? "cursor-wait border-[#E8DFD0]/80 bg-white/60 text-[#7A7164]"
                     : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
