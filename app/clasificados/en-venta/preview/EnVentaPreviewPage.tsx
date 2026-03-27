@@ -181,8 +181,6 @@ export function EnVentaPreviewPage() {
       : `/clasificados/publicar/en-venta/free?lang=${lang}`;
   const previewHrefFree = `/clasificados/en-venta/preview?lang=${lang}&plan=free`;
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
-  const proUpgradeHref = `/clasificados/publicar/en-venta/pro?lang=${lang}`;
-
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -409,6 +407,7 @@ export function EnVentaPreviewPage() {
             </span>
           ) : null}
         </div>
+        <p className="mt-1.5 text-xs font-semibold tracking-wide text-[#7A7164]">{shellStatusLine}</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <p className="text-3xl font-bold tracking-tight text-[#1E1810] sm:text-[2.15rem]">{vm.priceLine}</p>
           {vm.priceDrop ? (
@@ -695,12 +694,10 @@ export function EnVentaPreviewPage() {
       <EnVentaPreviewShell
         lang={lang}
         plan={plan}
-        shellPlanLabel={vm.shellPlanLabel}
-        shellStatusLine={shellStatusLine}
+        previewTitle={vm.shellPlanLabel}
         editBackHref={editBackHref}
         previewHrefFree={previewHrefFree}
         previewHrefPro={previewHrefPro}
-        proUpgradeHref={proUpgradeHref}
         publishing={publishing}
         publishErr={publishErr}
         onPublish={onPublish}

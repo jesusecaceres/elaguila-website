@@ -59,37 +59,39 @@ export default function ListingRulesConfirmationSection({
       : "mt-3 inline-block text-sm font-semibold text-[#111111] underline underline-offset-2 hover:opacity-90";
 
   return (
-    <SectionShell lang={lang} title={t.title} description={t.desc}>
-      <Link href={rulesHref} className={linkClass}>
-        {t.rulesLink}
-      </Link>
-      <label className={`${row} mt-4`}>
-        <input
-          type="checkbox"
-          className="mt-1 shrink-0"
-          checked={confirmAccurate}
-          onChange={(e) => onAccurate(e.target.checked)}
-        />
-        <span>{t.a}</span>
-      </label>
-      <label className={row}>
-        <input
-          type="checkbox"
-          className="mt-1 shrink-0"
-          checked={confirmPhotos}
-          onChange={(e) => onPhotos(e.target.checked)}
-        />
-        <span>{t.b}</span>
-      </label>
-      <label className={row}>
-        <input
-          type="checkbox"
-          className="mt-1 shrink-0"
-          checked={confirmRules}
-          onChange={(e) => onRules(e.target.checked)}
-        />
-        <span>{t.c}</span>
-      </label>
-    </SectionShell>
+    <div id="listing-publish" className="scroll-mt-28">
+      <SectionShell lang={lang} title={t.title} description={t.desc}>
+        <Link href={rulesHref} className={linkClass}>
+          {t.rulesLink}
+        </Link>
+        <label className={`${row} mt-4`}>
+          <input
+            type="checkbox"
+            className="mt-1 shrink-0"
+            checked={confirmAccurate}
+            onChange={(e) => onAccurate(e.target.checked)}
+          />
+          <span>{t.a}</span>
+        </label>
+        <label className={row}>
+          <input
+            type="checkbox"
+            className="mt-1 shrink-0"
+            checked={confirmPhotos}
+            onChange={(e) => onPhotos(e.target.checked)}
+          />
+          <span>{t.b}</span>
+        </label>
+        <label className={row}>
+          <input
+            type="checkbox"
+            className="mt-1 shrink-0"
+            checked={confirmRules}
+            onChange={(e) => onRules(e.target.checked)}
+          />
+          <span>{t.c}</span>
+        </label>
+      </SectionShell>
+    </div>
   );
 }
