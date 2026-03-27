@@ -10,6 +10,7 @@ import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
 import { publishEnVentaFromDraft } from "../publish/enVentaPublishFromDraft";
 import { EnVentaPreviewShell } from "./EnVentaPreviewShell";
+import { EnVentaCorreoModal } from "./EnVentaCorreoModal";
 
 const PAGE_BG_STYLE: CSSProperties = {
   backgroundColor: "#F3EBDD",
@@ -186,6 +187,7 @@ export function EnVentaPreviewPage() {
   const [savedLocal, setSavedLocal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [correoOpen, setCorreoOpen] = useState(false);
   const [buyerStart, setBuyerStart] = useState("");
   const [buyerGeoStatus, setBuyerGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
     "idle"
@@ -571,20 +573,36 @@ export function EnVentaPreviewPage() {
         <h2 className="text-sm font-bold text-[#1E1810]">{tBuyer.contactH}</h2>
         {vm.contactActions.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {vm.contactActions.map((a) => (
-              <a
-                key={a.id}
-                href={a.href}
-                className={cx(
-                  "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
-                  plan === "pro"
-                    ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                    : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-                )}
-              >
-                {a.label}
-              </a>
-            ))}
+            {vm.contactActions.map((a) =>
+              a.id === "email" ? (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setCorreoOpen(true)}
+                  className={cx(
+                    "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                    plan === "pro"
+                      ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
+                      : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
+                  )}
+                >
+                  {a.label}
+                </button>
+              ) : (
+                <a
+                  key={a.id}
+                  href={a.href}
+                  className={cx(
+                    "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                    plan === "pro"
+                      ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
+                      : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
+                  )}
+                >
+                  {a.label}
+                </a>
+              )
+            )}
           </div>
         ) : (
           <p className="mt-2 text-sm text-[#7A7164]/90">
@@ -812,6 +830,17 @@ export function EnVentaPreviewPage() {
             ) : null}
           </div>
         </div>
+      ) : null}
+
+      {state.email.trim() ? (
+        <EnVentaCorreoModal
+          open={correoOpen}
+          onClose={() => setCorreoOpen(false)}
+          lang={lang}
+          sellerName={vm.sellerName}
+          sellerEmail={state.email.trim()}
+          listingTitle={vm.title}
+        />
       ) : null}
     </>
   );
