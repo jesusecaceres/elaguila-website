@@ -388,6 +388,65 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
   );
 }
 
+function FactRowsList({ rows }: { rows: Array<{ label: string; value: string }> }) {
+  return (
+    <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+      {rows.map((r) => (
+        <div key={`${r.label}-${r.value}`}>
+          <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+            {r.label}
+          </dt>
+          <dd className="mt-1 text-sm font-medium leading-snug" style={{ color: CHARCOAL }}>
+            {r.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function LowerModuleCard({
+  eyebrow,
+  title,
+  subtitle,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+      style={{ borderColor: BORDER, background: CREAM_CARD }}
+    >
+      {eyebrow ? (
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+          {eyebrow}
+        </p>
+      ) : null}
+      <h3 className={`font-bold tracking-tight ${eyebrow ? "mt-2 text-base" : "text-base"}`} style={{ color: CHARCOAL_DEEP }}>
+        {title}
+      </h3>
+      {subtitle ? (
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: MUTED }}>
+          {subtitle}
+        </p>
+      ) : null}
+      <div className={subtitle || eyebrow ? "mt-5" : "mt-4"}>{children}</div>
+    </div>
+  );
+}
+
+function communityModuleTitle(pub: BienesRaicesNegocioPreviewVm["publicationType"]): string {
+  if (pub === "proyecto_nuevo") return "Comunidad y proyecto";
+  if (pub === "comercial") return "Entorno comercial";
+  if (pub === "terreno") return "Contexto del terreno";
+  if (pub === "multifamiliar_inversion") return "Vecindario y comunidad";
+  return "Vecindario y movilidad";
+}
+
 function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading: string; items: string[] }) {
   return (
     <div
@@ -846,6 +905,116 @@ export function BienesRaicesNegocioPreviewView({
           </aside>
         </section>
 
+        {vm.location.hasMeaningfulAddress ||
+        vm.community.showModule ||
+        vm.schools.showModule ||
+        vm.hoaDevelopment.showModule ? (
+          <section className="mt-20 space-y-10">
+            <div className="text-center">
+              <h2
+                className="text-xl font-bold uppercase tracking-[0.12em] sm:text-2xl"
+                style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, serif" }}
+              >
+                Ubicación y entorno
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm" style={{ color: MUTED }}>
+                Contexto para decidir: escuelas, mapa, comunidad y HOA según lo que proporcionaste. Sin datos externos
+                inventados.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+              {vm.location.hasMeaningfulAddress ? (
+                <LowerModuleCard
+                  eyebrow="Mapa"
+                  title="Ubicación"
+                  subtitle="Dirección del anuncio y enlace para abrir en Google Maps."
+                >
+                  {vm.location.line1 ? (
+                    <p className="text-sm font-semibold" style={{ color: CHARCOAL }}>
+                      {vm.location.line1}
+                    </p>
+                  ) : null}
+                  {vm.location.colonia ? (
+                    <p className="mt-1 text-sm" style={{ color: CHARCOAL }}>
+                      {vm.location.colonia}
+                    </p>
+                  ) : null}
+                  {vm.location.cityStateZip ? (
+                    <p className="mt-1 text-sm" style={{ color: MUTED }}>
+                      {vm.location.cityStateZip}
+                    </p>
+                  ) : null}
+                  {vm.location.mapsUrl ? (
+                    <a
+                      href={vm.location.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex items-center justify-center rounded-xl border-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
+                      style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
+                    >
+                      Ver en mapa
+                    </a>
+                  ) : null}
+                </LowerModuleCard>
+              ) : null}
+
+              {vm.community.showModule ? (
+                <LowerModuleCard
+                  eyebrow="Entorno"
+                  title={communityModuleTitle(vm.publicationType)}
+                  subtitle={
+                    vm.publicationType === "comercial"
+                      ? "Referencias de zona y accesos según la ficha."
+                      : "Vecindario, transporte y puntos de referencia desde tu captura."
+                  }
+                >
+                  <FactRowsList rows={vm.community.rows} />
+                </LowerModuleCard>
+              ) : null}
+            </div>
+
+            {vm.schools.showModule ? (
+              <LowerModuleCard
+                eyebrow="Educación"
+                title="Escuelas y distrito"
+                subtitle="Información que capturaste en la ficha técnica. Leonix no asigna calificaciones ni datos de terceros."
+              >
+                <FactRowsList rows={vm.schools.rows} />
+              </LowerModuleCard>
+            ) : null}
+
+            {vm.hoaDevelopment.showModule ? (
+              <LowerModuleCard
+                eyebrow="Comunidad"
+                title={
+                  vm.publicationType === "proyecto_nuevo" || vm.publicationType === "terreno"
+                    ? "HOA, comunidad y desarrollo"
+                    : "HOA y desarrollo"
+                }
+                subtitle={
+                  vm.publicationType === "comercial"
+                    ? "Cuotas de asociación o complejo cuando apliquen."
+                    : "Reglas de comunidad, amenidades y cronograma del proyecto cuando corresponda."
+                }
+              >
+                {vm.hoaDevelopment.rows.length > 0 ? <FactRowsList rows={vm.hoaDevelopment.rows} /> : null}
+                {vm.hoaDevelopment.sitePlanCallout ? (
+                  <p
+                    className={`text-sm leading-relaxed ${vm.hoaDevelopment.rows.length > 0 ? "mt-6 border-t border-[rgba(61,54,48,0.12)] pt-5" : ""}`}
+                    style={{ color: MUTED }}
+                  >
+                    <span className="font-semibold" style={{ color: CHARCOAL_DEEP }}>
+                      Plano de sitio:{" "}
+                    </span>
+                    cargado en la galería (flujo desarrollador). Los compradores lo verán junto al resto de medios.
+                  </p>
+                ) : null}
+              </LowerModuleCard>
+            ) : null}
+          </section>
+        ) : null}
+
         <section className="mt-20">
           <div className="mb-10 text-center">
             <h2
@@ -855,15 +1024,35 @@ export function BienesRaicesNegocioPreviewView({
               Detalles completos del inmueble
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm" style={{ color: MUTED }}>
-              Ficha técnica organizada: lo que captures en el formulario se refleja aquí.
+              Ficha técnica agrupada: interior, exterior, sistemas y observaciones. Las escuelas y HOA también aparecen arriba
+              cuando aplica.
             </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
-            {vm.deepBlocks.map((b) => (
-              <DeepSection key={b.id} icon={deepIcon(b.id)} heading={b.heading} items={b.bullets} />
-            ))}
-          </div>
+          {vm.detailClusters.length === 0 ? (
+            <p className="mx-auto max-w-xl text-center text-sm leading-relaxed" style={{ color: MUTED }}>
+              Aún no hay detalles técnicos en la ficha. Complétalos en el paso de detalles completos del formulario para
+              enriquecer esta sección.
+            </p>
+          ) : (
+            <div className="space-y-12">
+              {vm.detailClusters.map((cluster) => (
+                <div key={cluster.id}>
+                  <h3
+                    className="mb-5 text-center text-sm font-bold uppercase tracking-[0.12em]"
+                    style={{ color: BRONZE_SOFT }}
+                  >
+                    {cluster.title}
+                  </h3>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    {cluster.blocks.map((b) => (
+                      <DeepSection key={b.id} icon={deepIcon(b.id)} heading={b.heading} items={b.bullets} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <footer className="mt-16 border-t pt-8 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>

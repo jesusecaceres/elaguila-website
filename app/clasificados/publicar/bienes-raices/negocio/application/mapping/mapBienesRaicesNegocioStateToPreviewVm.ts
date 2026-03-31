@@ -9,7 +9,9 @@ import { BR_HIGHLIGHT_PRESET_DEFS } from "../schema/brHighlightMeta";
 import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewDeepBlockVm,
+  BienesRaicesPreviewDetailClusterVm,
   BienesRaicesPreviewFact,
+  BienesRaicesPreviewLocationVm,
   BienesRaicesPreviewQuickFactVm,
 } from "./bienesRaicesNegocioPreviewVm";
 
@@ -238,8 +240,114 @@ function buildHighlights(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFa
   return rows.length ? rows : [{ label: "Destacados", value: "Agrega características en el formulario." }];
 }
 
-function buildDeepBlocks(s: BienesRaicesNegocioFormState): BienesRaicesPreviewDeepBlockVm[] {
-  const keys = deepDetailGroupsForPublication(s.publicationType);
+const LOWER_PAGE_EXCLUDED_FROM_TECHNICAL: DeepDetailGroupKey[] = ["escuelasUbicacion", "comunidadHoa"];
+
+const DETAIL_CLUSTER_DEFS: { id: string; title: string; blockIds: DeepDetailGroupKey[] }[] = [
+  { id: "diseno", title: "Diseño y estructura", blockIds: ["tipoYEstilo", "construccion"] },
+  { id: "espacios", title: "Interior y exterior", blockIds: ["interior", "exterior"] },
+  { id: "servicios", title: "Estacionamiento y utilidades", blockIds: ["estacionamiento", "utilidades"] },
+  { id: "lote", title: "Lote y terreno", blockIds: ["loteTerreno"] },
+  { id: "finanzas", title: "Finanzas e identificación", blockIds: ["financiera", "identificadores"] },
+  { id: "agente", title: "Observaciones y visitas", blockIds: ["observacionesAgente"] },
+];
+
+function factsFromPartialGroup(
+  group: DeepDetailGroupKey,
+  data: Record<string, string>,
+  labels: Record<string, string>,
+  onlyKeys?: string[]
+): BienesRaicesPreviewFact[] {
+  const rows: BienesRaicesPreviewFact[] = [];
+  const entries: [string, string][] = onlyKeys
+    ? onlyKeys.map((k) => [k, labels[k] ?? k])
+    : Object.entries(labels);
+  for (const [key, label] of entries) {
+    if (!label) continue;
+    const v = trim(data[key] ?? "");
+    if (!v) continue;
+    if (group === "observacionesAgente" && key === "observacionesPrivadas") continue;
+    rows.push({ label, value: v });
+  }
+  return rows;
+}
+
+function buildSchoolRows(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
+  return factsFromPartialGroup(
+    "escuelasUbicacion",
+    s.deepDetails.escuelasUbicacion,
+    BR_DEEP_FIELD_LABELS.escuelasUbicacion,
+    ["distrito", "primaria", "secundaria", "preparatoria"]
+  );
+}
+
+function buildCommunityRows(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
+  const rows = factsFromPartialGroup(
+    "escuelasUbicacion",
+    s.deepDetails.escuelasUbicacion,
+    BR_DEEP_FIELD_LABELS.escuelasUbicacion,
+    ["vecindario", "zona", "puntosCercanos", "transporte"]
+  );
+  const pub = s.publicationType;
+  if (pub === "proyecto_nuevo") {
+    if (trim(s.proyectoComunidad)) rows.push({ label: "Comunidad / desarrollo", value: trim(s.proyectoComunidad) });
+    if (trim(s.proyectoAmenidades)) rows.push({ label: "Amenidades del desarrollo", value: trim(s.proyectoAmenidades) });
+  }
+  return rows;
+}
+
+function buildHoaDevelopmentRows(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
+  const rows: BienesRaicesPreviewFact[] = factsFromPartialGroup(
+    "comunidadHoa",
+    s.deepDetails.comunidadHoa,
+    BR_DEEP_FIELD_LABELS.comunidadHoa
+  );
+  const pub = s.publicationType;
+  const hoaLine =
+    trim(s.hoaSiNo) || trim(s.cuotaHoa)
+      ? [
+          trim(s.hoaSiNo) === "si" ? "HOA: sí" : trim(s.hoaSiNo) === "no" ? "HOA: no" : trim(s.hoaSiNo) || "",
+          trim(s.cuotaHoa) ? `Cuota: ${trim(s.cuotaHoa)}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "";
+  if (hoaLine) rows.unshift({ label: "Resumen HOA (listado)", value: hoaLine });
+  if (pub === "proyecto_nuevo") {
+    if (trim(s.proyectoModelo)) rows.push({ label: "Modelo (desarrollo)", value: trim(s.proyectoModelo) });
+    if (trim(s.proyectoEtapa)) rows.push({ label: "Etapa", value: trim(s.proyectoEtapa) });
+    if (trim(s.proyectoEntregaEstimada))
+      rows.push({ label: "Entrega estimada", value: trim(s.proyectoEntregaEstimada) });
+    if (trim(s.proyectoUnidadesDisponibles))
+      rows.push({ label: "Unidades disponibles", value: trim(s.proyectoUnidadesDisponibles) });
+  }
+  return rows;
+}
+
+function buildLocationVm(s: BienesRaicesNegocioFormState): BienesRaicesPreviewLocationVm {
+  const line1 = trim(s.direccion);
+  const colonia = trim(s.colonia);
+  const city = trim(s.ciudad);
+  const st = trim(s.estado);
+  const zip = trim(s.codigoPostal);
+  const cityPart = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const fullAddress = buildAddress(s);
+  const mapsQuery = [line1, colonia, city, st, zip].filter(Boolean).join(", ");
+  const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : null;
+  const hasMeaningfulAddress = Boolean(line1 || colonia || (city && st) || zip);
+  return {
+    line1,
+    colonia,
+    cityStateZip: cityPart,
+    fullAddress,
+    mapsUrl,
+    hasMeaningfulAddress,
+  };
+}
+
+function buildTechnicalDeepBlocks(s: BienesRaicesNegocioFormState): BienesRaicesPreviewDeepBlockVm[] {
+  const keys = deepDetailGroupsForPublication(s.publicationType).filter(
+    (k) => !LOWER_PAGE_EXCLUDED_FROM_TECHNICAL.includes(k)
+  );
   return keys.map((key) => {
     const bullets = bulletsFromGroup(key, s.deepDetails[key], BR_DEEP_FIELD_LABELS[key]);
     return {
@@ -249,6 +357,30 @@ function buildDeepBlocks(s: BienesRaicesNegocioFormState): BienesRaicesPreviewDe
       hasContent: bullets.length > 0,
     };
   });
+}
+
+function buildDetailClusters(blocksById: Map<string, BienesRaicesPreviewDeepBlockVm>): BienesRaicesPreviewDetailClusterVm[] {
+  const clusters: BienesRaicesPreviewDetailClusterVm[] = [];
+  for (const def of DETAIL_CLUSTER_DEFS) {
+    const blocks = def.blockIds
+      .map((id) => blocksById.get(id))
+      .filter((b): b is BienesRaicesPreviewDeepBlockVm => Boolean(b && b.hasContent));
+    if (blocks.length) clusters.push({ id: def.id, title: def.title, blocks });
+  }
+  return clusters;
+}
+
+function showSchoolsModule(pub: BienesRaicesNegocioFormState["publicationType"], schoolRows: BienesRaicesPreviewFact[]): boolean {
+  if (schoolRows.length === 0) return false;
+  if (pub === "terreno" || pub === "comercial") return false;
+  return true;
+}
+
+function showCommunityModule(
+  _pub: BienesRaicesNegocioFormState["publicationType"],
+  communityRows: BienesRaicesPreviewFact[]
+): boolean {
+  return communityRows.length > 0;
 }
 
 function primaryPhone(s: BienesRaicesNegocioFormState, adv: BienesRaicesAdvertiserType): string {
@@ -492,7 +624,16 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const virtualTourUrl = trim(s.media.virtualTourUrl) || null;
   const sitePlanUrl = s.advertiserType === "constructor_desarrollador" ? trim(s.media.sitePlanUrl) || null : null;
 
+  const technicalDeepBlocks = buildTechnicalDeepBlocks(s);
+  const detailClusters = buildDetailClusters(new Map(technicalDeepBlocks.map((b) => [b.id, b])));
+  const schoolRows = buildSchoolRows(s);
+  const communityRows = buildCommunityRows(s);
+  const hoaDevRows = buildHoaDevelopmentRows(s);
+  const sitePlanCallout = Boolean(sitePlanUrl && s.advertiserType === "constructor_desarrollador");
+  const showHoaDev = hoaDevRows.length > 0 || sitePlanCallout;
+
   return {
+    publicationType: s.publicationType,
     heroTitle: trim(s.titulo) || "Título del anuncio",
     addressLine: buildAddress(s),
     priceDisplay: formatPrice(s.precio),
@@ -530,7 +671,22 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       secondAgent: buildSecondAgentVm(s),
       lender: buildLenderVm(s),
     },
-    deepBlocks: buildDeepBlocks(s),
+    deepBlocks: technicalDeepBlocks,
+    detailClusters,
+    location: buildLocationVm(s),
+    schools: {
+      rows: schoolRows,
+      showModule: showSchoolsModule(s.publicationType, schoolRows),
+    },
+    community: {
+      rows: communityRows,
+      showModule: showCommunityModule(s.publicationType, communityRows),
+    },
+    hoaDevelopment: {
+      rows: hoaDevRows,
+      showModule: showHoaDev,
+      sitePlanCallout,
+    },
     footerNote: "Vista previa generada por Leonix · Podrás editar toda la información antes de publicar.",
   };
 }

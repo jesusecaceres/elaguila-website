@@ -32,7 +32,12 @@ export const BR_NEGOCIO_PREVIEW_TARGETS = {
   propertyDetailsRows: "Datos principales + tipo de publicación",
   highlightsRows: "Detalles destacados → presets + líneas personalizadas",
   description: "Descripción completa (y fallback descripción corta)",
-  deepBlocks: "Detalles completos del inmueble → acordeones A–L",
+  deepBlocks: "Detalles técnicos (sin escuelas/HOA duplicados; esos van a módulos inferiores)",
+  detailClusters: "Agrupación escaneable: diseño, espacios, servicios, lote, finanzas, observaciones",
+  location: "Información principal → dirección estructurada + enlace a mapa",
+  schools: "Detalle profundo → escuelas (distrito, primaria, secundaria, prepa)",
+  community: "Detalle profundo → vecindario / transporte + campos de proyecto cuando aplica",
+  hoaDevelopment: "HOA profundo + resumen de listado + proyecto; plano de sitio (constructor)",
   contact: {
     rail: "Contacto y CTAs → toggles solicitar info, visita, llamar, WhatsApp",
     secondAgent: "Segundo agente (agente individual con toggle) o nombres en Equipo",

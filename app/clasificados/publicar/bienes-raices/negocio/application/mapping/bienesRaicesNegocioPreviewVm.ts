@@ -3,6 +3,8 @@
  * Built exclusively via `mapBienesRaicesNegocioStateToPreviewVm` (contrato en `brNegocioInputToPreviewMap.ts`).
  */
 
+import type { BienesRaicesPublicationType } from "../schema/bienesRaicesNegocioFormState";
+
 export type BienesRaicesPreviewFact = { label: string; value: string };
 
 export type BienesRaicesPreviewIdentityVm = {
@@ -71,7 +73,24 @@ export type BienesRaicesPreviewDeepBlockVm = {
   hasContent: boolean;
 };
 
+/** Grouped deep-detail blocks for scannable lower-page output (Phase 5). */
+export type BienesRaicesPreviewDetailClusterVm = {
+  id: string;
+  title: string;
+  blocks: BienesRaicesPreviewDeepBlockVm[];
+};
+
+export type BienesRaicesPreviewLocationVm = {
+  line1: string;
+  colonia: string;
+  cityStateZip: string;
+  fullAddress: string;
+  mapsUrl: string | null;
+  hasMeaningfulAddress: boolean;
+};
+
 export type BienesRaicesNegocioPreviewVm = {
+  publicationType: BienesRaicesPublicationType | "";
   heroTitle: string;
   addressLine: string;
   priceDisplay: string;
@@ -87,6 +106,12 @@ export type BienesRaicesNegocioPreviewVm = {
   hasDescription: boolean;
   hasHighlights: boolean;
   contact: BienesRaicesPreviewContactVm;
+  /** @deprecated Prefer `detailClusters` for render; retained for any legacy consumers */
   deepBlocks: BienesRaicesPreviewDeepBlockVm[];
+  detailClusters: BienesRaicesPreviewDetailClusterVm[];
+  location: BienesRaicesPreviewLocationVm;
+  schools: { rows: BienesRaicesPreviewFact[]; showModule: boolean };
+  community: { rows: BienesRaicesPreviewFact[]; showModule: boolean };
+  hoaDevelopment: { rows: BienesRaicesPreviewFact[]; showModule: boolean; sitePlanCallout: boolean };
   footerNote: string;
 };
