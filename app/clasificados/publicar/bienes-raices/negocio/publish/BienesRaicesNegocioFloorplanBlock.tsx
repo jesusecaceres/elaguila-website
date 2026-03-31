@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { isFloorplanUrlProbablyImage, isFloorplanUrlProbablyPdf } from "../utils/floorplanUrlGuards";
+import { isFloorplanUrlProbablyImage, isFloorplanUrlProbablyPdf } from "@/app/clasificados/bienes-raices/negocio/utils/floorplanUrlGuards";
 
 export type BienesRaicesNegocioFloorplanBlockProps = {
   lang: "es" | "en";

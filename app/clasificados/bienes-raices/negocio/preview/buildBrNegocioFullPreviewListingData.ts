@@ -1,5 +1,5 @@
 /**
- * BR negocio: assemble `ListingData` for publish full preview + `/clasificados/bienes-raices/negocio/preview` JSON payload.
+ * BR negocio: assemble `ListingData` for publish full preview + `/clasificados/publicar/bienes-raices/negocio/preview` JSON payload.
  * Keeps branch detection and snapshot→ListingData mapping in the negocio lane (lib stays a thin router).
  */
 

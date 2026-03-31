@@ -4,7 +4,7 @@
  */
 
 import { BR_PROPERTY_TYPE_OPTIONS } from "@/app/clasificados/bienes-raices/shared/fields/bienesRaicesTaxonomy";
-import { isBrPrivadoResidential } from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
+import { isBrPrivadoResidential } from "@/app/clasificados/publicar/bienes-raices/privado/publish/brPrivadoPublishConstants";
 
 export type BrPrivadoPublishLang = "es" | "en";
 

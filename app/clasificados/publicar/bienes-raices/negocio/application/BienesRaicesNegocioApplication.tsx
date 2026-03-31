@@ -37,17 +37,17 @@ import {
   isBrPrivadoProyectoNuevo,
   isBrPrivadoResidential,
   type BrSubcategoriaKey,
-} from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
+} from "@/app/clasificados/publicar/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import {
   brNegocioDigitsOnly,
   formatBrNegocioIntegerInputDisplay,
   formatBrNegocioPriceInputDisplay,
-} from "@/app/clasificados/bienes-raices/negocio/publish/brNegocioPublishFormatting";
+} from "@/app/clasificados/publicar/bienes-raices/negocio/publish/brNegocioPublishFormatting";
 import {
   BR_NEGOCIO_PRICE_MONTHLY,
   BR_NEGOCIO_PRICE_WEEKLY,
   BR_PRIVADO_PRICE_PER_POST,
-} from "@/app/clasificados/bienes-raices/shared/publish/brPublishPricing";
+} from "@/app/clasificados/publicar/bienes-raices/shared/publish/brPublishPricing";
 import { buildPublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 import {
   coalesceNegocioAgenteFromWizard,
@@ -56,13 +56,13 @@ import {
 } from "@/app/clasificados/lib/legacyWizardCoalesce";
 import { LEGACY_WIZARD_BR_DETAIL } from "@/app/clasificados/lib/legacyWizardDraftKeys";
 import { stripLegacySharedWizardBrKeys } from "@/app/clasificados/lib/stripLegacySharedWizardBrKeys";
-import { BienesRaicesNegocioPublishShell } from "@/app/clasificados/bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
-import { BienesRaicesPublishShell } from "@/app/clasificados/bienes-raices/shared/publish/BienesRaicesPublishShell";
-import { BienesRaicesPublishTrackStep } from "@/app/clasificados/bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
-import { BienesRaicesNegocioFloorplanBlock } from "@/app/clasificados/bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
-import { BienesRaicesNegocioMediaUrlFields } from "@/app/clasificados/bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
+import { BienesRaicesNegocioPublishShell } from "@/app/clasificados/publicar/bienes-raices/negocio/publish/BienesRaicesNegocioPublishShell";
+import { BienesRaicesPublishShell } from "@/app/clasificados/publicar/bienes-raices/shared/publish/BienesRaicesPublishShell";
+import { BienesRaicesPublishTrackStep } from "@/app/clasificados/publicar/bienes-raices/shared/publish/BienesRaicesPublishTrackStep";
+import { BienesRaicesNegocioFloorplanBlock } from "@/app/clasificados/publicar/bienes-raices/negocio/publish/BienesRaicesNegocioFloorplanBlock";
+import { BienesRaicesNegocioMediaUrlFields } from "@/app/clasificados/publicar/bienes-raices/negocio/publish/BienesRaicesNegocioMediaUrlFields";
 import { resolveBrNegocioAgentForPairs, resolveBrNegocioBusinessNameForPairs } from "@/app/clasificados/bienes-raices/negocio/mapping/brNegocioReadResolvers";
-import { BienesRaicesNegocioBasicsWizard } from "@/app/clasificados/bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
+import { BienesRaicesNegocioBasicsWizard } from "@/app/clasificados/publicar/bienes-raices/negocio/publish/BienesRaicesNegocioBasicsWizard";
 import { PrivateBrPreviewContent } from "@/app/clasificados/bienes-raices/privado/preview/PrivateBrPublishFullPreviewContent";
 import { MediaStepContactCard } from "@/app/clasificados/lib/publishUi/MediaStepContactCard";
 import { PublishMediaPreviewPanel } from "@/app/clasificados/lib/publishUi/PublishMediaPreviewPanel";
@@ -111,11 +111,11 @@ type DraftV1 = {
 };
 
 function brPublicarPathForLane(lane: "negocio" | "privado"): string {
-  return `/clasificados/publicar/BR/${lane}`;
+  return `/clasificados/publicar/bienes-raices/${lane}`;
 }
 
 function brPreviewPathForLane(lane: "negocio" | "privado"): string {
-  return `/clasificados/bienes-raices/${lane}/preview`;
+  return `/clasificados/publicar/bienes-raices/${lane}/preview`;
 }
 
 function safeInternalRedirect(raw: string | null | undefined) {
@@ -315,7 +315,7 @@ export default function BienesRaicesNegocioApplication() {
 
   const brLane = useMemo((): "negocio" | "privado" => {
     const p = pathname ?? "";
-    if (p.includes("/bienes-raices/privado/")) return "privado";
+    if (p.includes("/publicar/bienes-raices/privado")) return "privado";
     return "negocio";
   }, [pathname]);
 
@@ -376,7 +376,7 @@ export default function BienesRaicesNegocioApplication() {
   const [step, setStep] = useState<PublishStep>(() => {
     const steps: PublishStep[] = ["bienes-raices-track", "basics", "media"];
     const p = pathname ?? "";
-    const laneEntry = p.includes("/bienes-raices/privado/") || p.includes("/bienes-raices/negocio/");
+    const laneEntry = p.includes("/publicar/bienes-raices/privado") || p.includes("/publicar/bienes-raices/negocio");
     const s = searchParams?.get("step")?.trim();
     if (s === "category" || s === "rentas-track") return "bienes-raices-track";
     if (
@@ -478,7 +478,7 @@ export default function BienesRaicesNegocioApplication() {
   useEffect(() => {
     if (categoryFromUrl !== "bienes-raices") return;
     const path = pathname ?? "";
-    const pathBranch = path.includes("/bienes-raices/privado/") ? "privado" : path.includes("/bienes-raices/negocio/") ? "negocio" : "";
+    const pathBranch = path.includes("/publicar/bienes-raices/privado") ? "privado" : path.includes("/publicar/bienes-raices/negocio") ? "negocio" : "";
     const effective = pathBranch === "privado" || pathBranch === "negocio" ? pathBranch : "";
     if (effective !== "privado" && effective !== "negocio") return;
     setDetails((prev) => {
@@ -1203,9 +1203,9 @@ export default function BienesRaicesNegocioApplication() {
         // 2) No draftId in URL: Bienes Raíces auto-hydrate latest in-progress draft (e.g. return from /agente with returnTo missing draftId).
         // Only Start new / Eliminar aplicación should clear; do not leave an empty form behind a blocking modal.
         {
-          const pathBranch = (pathname ?? "").includes("/bienes-raices/privado/")
+          const pathBranch = (pathname ?? "").includes("/publicar/bienes-raices/privado")
             ? "privado"
-            : (pathname ?? "").includes("/bienes-raices/negocio/")
+            : (pathname ?? "").includes("/publicar/bienes-raices/negocio")
               ? "negocio"
               : "";
           const effectivePickBranch = pathBranch;
@@ -2274,7 +2274,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     [publishDraftSnapshot, lang, copy.todayLabel, previewCategoryLabel, sellerDisplayName, category, categoryFromUrl, details, userId, previewPublishReturnPath]
   );
 
-  /** BR negocio (media step): full-page preview on branch-owned `/clasificados/bienes-raices/negocio/preview`. */
+  /** BR negocio (media step): full-page preview at `/clasificados/publicar/bienes-raices/negocio/preview`. */
   const openBrNegocioFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesNegocio || step !== "media") return;
@@ -2323,7 +2323,7 @@ for (let vi = 0; vi < videoLimit; vi++) {
     router,
   ]);
 
-  /** BR privado (media step): branch-owned `/clasificados/bienes-raices/privado/preview`. */
+  /** BR privado (media step): `/clasificados/publicar/bienes-raices/privado/preview`. */
   const openBrPrivadoFullListingPreview = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!isBienesRaicesPrivado || step !== "media") return;

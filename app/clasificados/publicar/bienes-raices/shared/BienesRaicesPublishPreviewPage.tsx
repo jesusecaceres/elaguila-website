@@ -9,7 +9,7 @@ import ListingView, { type BusinessRailData, type ListingData } from "@/app/clas
 import { mapListingToViewModel } from "@/app/clasificados/lib/mapListingToViewModel";
 import { categoryConfig } from "@/app/clasificados/config/categoryConfig";
 
-/** BR full-page publish preview — branch-owned routes `/clasificados/bienes-raices/{negocio|privado}/preview`. */
+/** BR full-page publish preview — `/clasificados/publicar/bienes-raices/{negocio|privado}/preview`. */
 
 const RULES_CONFIRMED_KEY = "leonix_publish_rules_confirmed";
 
@@ -67,8 +67,8 @@ export default function BienesRaicesPublishPreviewPage() {
   const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
   const branchFromQuery = searchParams?.get("branch")?.trim().toLowerCase();
   const branchFromPath =
-    (pathname ?? "").includes("/bienes-raices/negocio/preview") ? "negocio"
-    : (pathname ?? "").includes("/bienes-raices/privado/preview") ? "privado"
+    (pathname ?? "").includes("/publicar/bienes-raices/negocio/preview") ? "negocio"
+    : (pathname ?? "").includes("/publicar/bienes-raices/privado/preview") ? "privado"
     : undefined;
   const branchFromUrl =
     branchFromQuery === "negocio" || branchFromQuery === "privado" ? branchFromQuery : branchFromPath;

@@ -15,7 +15,7 @@ export default function PublicarBrHubPage() {
   const other: Lang = lang === "es" ? "en" : "es";
   const qs = new URLSearchParams(searchParams?.toString() ?? "");
   qs.set("lang", other);
-  const toggleHref = `/clasificados/publicar/BR?${qs.toString()}`;
+  const toggleHref = `/clasificados/publicar/bienes-raices?${qs.toString()}`;
 
   const copy =
     lang === "es"
@@ -62,7 +62,7 @@ export default function PublicarBrHubPage() {
 
           <div className="mt-8 grid gap-3">
             <Link
-              href={`/clasificados/publicar/BR/negocio?${laneQs.toString()}`}
+              href={`/clasificados/publicar/bienes-raices/negocio?${laneQs.toString()}`}
               className="flex flex-col gap-2 rounded-xl border border-black/10 bg-white px-4 py-5 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
               <span className="flex items-center gap-2 text-lg font-bold text-[#111111]">
@@ -72,7 +72,7 @@ export default function PublicarBrHubPage() {
               <span className="text-sm text-[#111111]/70">{copy.negocioDesc}</span>
             </Link>
             <Link
-              href={`/clasificados/publicar/BR/privado?${laneQs.toString()}`}
+              href={`/clasificados/publicar/bienes-raices/privado?${laneQs.toString()}`}
               className="flex flex-col gap-2 rounded-xl border border-black/10 bg-white px-4 py-5 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
               <span className="flex items-center gap-2 text-lg font-bold text-[#111111]">

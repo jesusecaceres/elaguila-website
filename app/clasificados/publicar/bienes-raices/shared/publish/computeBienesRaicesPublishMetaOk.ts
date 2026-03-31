@@ -5,7 +5,7 @@ import {
   isBrPrivadoEdificio,
   isBrPrivadoLote,
   isBrPrivadoProyectoNuevo,
-} from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
+} from "@/app/clasificados/publicar/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import {
   coalesceNegocioNombreFromWizard,
   coalesceWizardDetailValue,

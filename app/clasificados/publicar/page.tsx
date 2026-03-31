@@ -43,7 +43,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-/** Deep-link from hub/login (`?cat=` / `?categoria=`): forward to category-owned route without hosting wizard here. */
+/** Deep-link from hub/login (`?cat=` / `?categoria=`): forward to the right publish entry route (no wizard hosted here). */
 function normalizeChooserDeepLink(raw: string | null | undefined): Exclude<CategoryKey, "all"> | "" {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
@@ -56,7 +56,7 @@ function normalizeChooserDeepLink(raw: string | null | undefined): Exclude<Categ
 
 /**
  * Category selection only for `/clasificados/publicar`.
- * Each card links to the category-owned publish route; auth/session is enforced on the destination.
+ * Each card links to the canonical publish route for that category; auth/session is enforced on the destination.
  */
 export default function PublicarRootPage() {
   const router = useRouter();
@@ -79,7 +79,7 @@ export default function PublicarRootPage() {
     // BR uses the dedicated hub lane flow, not the generic [category] coming-soon terminal.
     const dest =
       deepLinkCat === "bienes-raices"
-        ? `/clasificados/publicar/BR?${p.toString()}`
+        ? `/clasificados/publicar/bienes-raices?${p.toString()}`
         : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
@@ -126,7 +126,7 @@ export default function PublicarRootPage() {
               const visual = LEONIX_CATEGORY_VISUALS[key];
               const href =
                 key === "bienes-raices"
-                  ? `/clasificados/publicar/BR?lang=${lang}`
+                  ? `/clasificados/publicar/bienes-raices?lang=${lang}`
                   : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link

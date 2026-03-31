@@ -6,7 +6,7 @@ import { BR_PROPERTY_TYPE_OPTIONS } from "@/app/clasificados/bienes-raices/share
 import {
   formatBrNegocioAddressLine,
   formatBrNegocioDetailNumberDisplay,
-} from "@/app/clasificados/bienes-raices/negocio/publish/brNegocioPublishFormatting";
+} from "@/app/clasificados/publicar/bienes-raices/negocio/publish/brNegocioPublishFormatting";
 import {
   resolveBrNegocioAgentForPairs,
   resolveBrNegocioBusinessNameForPairs,

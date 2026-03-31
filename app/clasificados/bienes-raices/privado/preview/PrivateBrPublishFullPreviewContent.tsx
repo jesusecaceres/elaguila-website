@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState, type RefObject } from "react";
-import { getBrSubcategoriaFromPropertyType } from "../publish/brPrivadoPublishConstants";
+import { getBrSubcategoriaFromPropertyType } from "@/app/clasificados/publicar/bienes-raices/privado/publish/brPrivadoPublishConstants";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");

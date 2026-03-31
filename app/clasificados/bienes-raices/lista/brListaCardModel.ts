@@ -2,7 +2,7 @@
  * BR lista/result cards: derive display model from listing rows (parity with preview partition + live facts).
  */
 
-import { partitionBienesRaicesPreviewDetailPairs } from "@/app/clasificados/bienes-raices/shared/preview/bienesRaicesPreviewDetailPartition";
+import { partitionBienesRaicesPreviewDetailPairs } from "@/app/clasificados/bienes-raices/shared/bienesRaicesPreviewDetailPartition";
 import { parseBusinessMeta } from "@/app/clasificados/config/businessListingContract";
 
 export type BrListaLang = "es" | "en";

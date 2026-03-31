@@ -10,7 +10,7 @@ import {
   isBrPrivadoLote,
   isBrPrivadoProyectoNuevo,
   isBrPrivadoResidential,
-} from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
+} from "@/app/clasificados/publicar/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import { getRentasDetailFields } from "@/app/clasificados/rentas/shared/fields/rentasTaxonomy";
 import {
   coalesceWizardDetailValue,

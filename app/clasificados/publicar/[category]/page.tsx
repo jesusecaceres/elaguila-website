@@ -29,12 +29,16 @@ export default function PublicarCategoryPage() {
       router.replace(`/clasificados/publicar/en-venta?lang=${lang}`);
       return;
     }
+    if (categoryFromUrl === "bienes-raices") {
+      router.replace(`/clasificados/publicar/bienes-raices?lang=${lang}`);
+      return;
+    }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
   }, [categoryFromUrl, lang, router]);
 
-  if (!categoryFromUrl || categoryFromUrl === "en-venta") {
+  if (!categoryFromUrl || categoryFromUrl === "en-venta" || categoryFromUrl === "bienes-raices") {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}

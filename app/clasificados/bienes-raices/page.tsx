@@ -6,7 +6,7 @@ import { FiBriefcase, FiUser } from "react-icons/fi";
 
 type Lang = "es" | "en";
 
-/** Bienes Raíces hub: elige negocio vs particular → formularios Leonix en `/clasificados/publicar/BR/*`. */
+/** Bienes Raíces hub: elige negocio vs particular → publicar en `/clasificados/publicar/bienes-raices/*`. */
 export default function BienesRaicesHubPage() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -57,7 +57,7 @@ export default function BienesRaicesHubPage() {
 
           <div className="mt-8 grid gap-3">
             <Link
-              href={`/clasificados/publicar/BR/negocio?lang=${lang}`}
+              href={`/clasificados/publicar/bienes-raices/negocio?lang=${lang}`}
               className="flex items-start gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
               <FiBriefcase className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />
@@ -67,7 +67,7 @@ export default function BienesRaicesHubPage() {
               </span>
             </Link>
             <Link
-              href={`/clasificados/publicar/BR/privado?lang=${lang}`}
+              href={`/clasificados/publicar/bienes-raices/privado?lang=${lang}`}
               className="flex items-start gap-4 rounded-xl border border-black/10 bg-white px-4 py-4 text-left transition hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30"
             >
               <FiUser className="h-8 w-8 shrink-0 text-[#111111] mt-0.5" aria-hidden />

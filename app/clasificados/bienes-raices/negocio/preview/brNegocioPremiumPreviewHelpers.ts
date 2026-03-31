@@ -3,7 +3,7 @@
  */
 
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
-import { partitionBienesRaicesPreviewDetailPairs } from "@/app/clasificados/bienes-raices/shared/preview/bienesRaicesPreviewDetailPartition";
+import { partitionBienesRaicesPreviewDetailPairs } from "@/app/clasificados/bienes-raices/shared/bienesRaicesPreviewDetailPartition";
 import {
   groupBienesRaicesNegocioDetailPairs,
   type NegocioDetailSectionId,

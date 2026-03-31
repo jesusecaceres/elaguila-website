@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import type { PublishStep } from "../../../config/categorySchema";
+import type { PublishStep } from "@/app/clasificados/config/categorySchema";
 import { BienesRaicesNegocioPublishShell } from "../../negocio/publish/BienesRaicesNegocioPublishShell";
 
 type StepSyncOptions = { branch?: "privado" | "negocio" };
@@ -19,7 +19,7 @@ export type BienesRaicesPublishTrackStepProps = {
   copyBack: string;
 };
 
-/** Bienes Raíces: privado vs negocio track (step `bienes-raices-track`). Delegated from `[category]/page.tsx`. */
+/** Bienes Raíces: privado vs negocio track (step `bienes-raices-track`). */
 export function BienesRaicesPublishTrackStep({
   lang,
   cx,

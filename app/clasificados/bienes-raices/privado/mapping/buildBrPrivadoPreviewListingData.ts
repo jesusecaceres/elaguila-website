@@ -4,7 +4,7 @@
 
 import type { ListingData } from "@/app/clasificados/components/ListingView";
 import { BR_PROPERTY_TYPE_OPTIONS } from "@/app/clasificados/bienes-raices/shared/fields/bienesRaicesTaxonomy";
-import { isBrPrivadoResidential } from "@/app/clasificados/bienes-raices/privado/publish/brPrivadoPublishConstants";
+import { isBrPrivadoResidential } from "@/app/clasificados/publicar/bienes-raices/privado/publish/brPrivadoPublishConstants";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 
 type Lang = "es" | "en";
