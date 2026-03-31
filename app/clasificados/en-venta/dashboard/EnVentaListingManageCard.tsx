@@ -5,6 +5,16 @@ import Link from "next/link";
 type Lang = "es" | "en";
 type ListingPlan = "free" | "pro";
 
+export type EnVentaVisibilityRenewalUi = {
+  lang: Lang;
+  boostActive: boolean;
+  boostEndsLabel: string | null;
+  canRenew: boolean;
+  nextEligibleLabel: string | null;
+  onRenew: () => void;
+  busy: boolean;
+};
+
 export type EnVentaManageRow = {
   id: string;
   title?: string | null;
@@ -58,6 +68,7 @@ export function EnVentaListingManageCard({
   maxViews,
   priceDropLabel,
   showDraftBadge,
+  visibilityRenewal,
 }: {
   row: EnVentaManageRow;
   lang: Lang;
@@ -77,6 +88,8 @@ export function EnVentaListingManageCard({
   priceDropLabel?: string | null;
   /** True when listing exists but is not published to browse yet. */
   showDraftBadge?: boolean;
+  /** Pro-only manual visibility renewal (dashboard); omitted for Free. */
+  visibilityRenewal?: EnVentaVisibilityRenewalUi | null;
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -105,6 +118,11 @@ export function EnVentaListingManageCard({
           details: "Ver detalles",
           perf: "Rendimiento",
           insights: "Revisa vistas y mensajes para afinar precio o fotos.",
+          visH: "Visibilidad Pro",
+          visActive: "Destacado hasta",
+          visInactive: "Sin ventana de visibilidad activa.",
+          visNext: "Próxima renovación disponible:",
+          renew: "Renovar visibilidad",
         }
       : {
           view: "View listing",
@@ -129,6 +147,11 @@ export function EnVentaListingManageCard({
           details: "View details",
           perf: "Performance",
           insights: "Compare views and messages to tune price or photos.",
+          visH: "Pro visibility",
+          visActive: "Boosted until",
+          visInactive: "No active visibility window.",
+          visNext: "Renewal available on:",
+          renew: "Renew visibility",
         };
 
   const frame = isPro
@@ -210,9 +233,36 @@ export function EnVentaListingManageCard({
                 </Link>
               </div>
             ) : (
-              <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
-                <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
-              </p>
+              <>
+                <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
+                  <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
+                </p>
+                {visibilityRenewal ? (
+                  <div className="mt-3 rounded-2xl border border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.visH}</p>
+                    <p className="mt-1 text-xs text-[#3D3428]">
+                      {visibilityRenewal.boostActive
+                        ? `${L.visActive} ${visibilityRenewal.boostEndsLabel ?? "—"}`
+                        : L.visInactive}
+                    </p>
+                    {visibilityRenewal.canRenew ? null : visibilityRenewal.nextEligibleLabel ? (
+                      <p className="mt-1 text-[11px] text-[#5C5346]/95">
+                        {L.visNext} <span className="font-semibold text-[#3D3428]">{visibilityRenewal.nextEligibleLabel}</span>
+                      </p>
+                    ) : null}
+                    {visibilityRenewal.canRenew ? (
+                      <button
+                        type="button"
+                        disabled={visibilityRenewal.busy}
+                        onClick={visibilityRenewal.onRenew}
+                        className="mt-2 inline-flex w-full min-h-[40px] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-3 py-2 text-xs font-bold text-[#1E1810] shadow-sm disabled:opacity-50"
+                      >
+                        {L.renew}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>

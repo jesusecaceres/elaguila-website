@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { deleteListingAction } from "../../actions";
 import { useState } from "react";
 import { adminTableWrap } from "../../_components/adminTheme";
+import { listingPlanFromDetailPairs } from "@/app/dashboard/lib/dashboardListingMeta";
+import {
+  computeEnVentaVisibilityRenewalVm,
+  EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
+  parseBoostExpiresMs,
+  parseDetailPairValue,
+} from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 
 type Row = {
   id: string;
@@ -18,7 +25,56 @@ type Row = {
   owner_id: string | null;
   created_at: string | null;
   images?: unknown;
+  detail_pairs?: unknown;
+  boost_expires?: unknown;
 };
+
+function formatAdminDateTime(ms: number): string {
+  try {
+    const d = new Date(ms);
+    return Number.isFinite(d.getTime())
+      ? d.toLocaleString("es-MX", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
+  } catch {
+    return "—";
+  }
+}
+
+/** Compact En Venta plan / boost / manual-renew state for support (admin). */
+function enVentaVisibilityAdminLine(row: Row): string {
+  if ((row.category ?? "").toLowerCase() !== "en-venta") return "—";
+  const plan = listingPlanFromDetailPairs(row.detail_pairs);
+  const now = Date.now();
+  const boostEnd = parseBoostExpiresMs(row.boost_expires);
+  const boostPart =
+    boostEnd != null && boostEnd > now
+      ? `boost ${formatAdminDateTime(boostEnd)}`
+      : "boost off";
+  const lastIso = parseDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL);
+  const lastPart = lastIso ? `lastRenew ${formatAdminDateTime(new Date(lastIso).getTime())}` : "lastRenew —";
+
+  if (plan === "free") return `free · ${boostPart} · ${lastPart}`;
+
+  const vm = computeEnVentaVisibilityRenewalVm({
+    plan: "pro",
+    boostExpires: row.boost_expires,
+    detailPairs: row.detail_pairs,
+    nowMs: now,
+  });
+  const renewPart = vm?.canRenewNow
+    ? "renew OK"
+    : vm
+      ? `renew≥ ${formatAdminDateTime(vm.nextRenewEligibleAt)}`
+      : "renew —";
+
+  return `pro · ${boostPart} · ${lastPart} · ${renewPart}`;
+}
 
 export default function AdminListingsTable({ listings }: { listings: Row[] }) {
   const router = useRouter();
@@ -112,6 +168,9 @@ export default function AdminListingsTable({ listings }: { listings: Row[] }) {
                   )}
                 </td>
                 <td className="p-3 text-[#7A7164]">{formatDate(row.created_at)}</td>
+                <td className="max-w-[280px] p-3 align-top text-[11px] leading-snug text-[#5C5346]" title={enVentaVisibilityAdminLine(row)}>
+                  {enVentaVisibilityAdminLine(row)}
+                </td>
                 <td className="p-3">
                   <Link
                     href={`/clasificados/anuncio/${row.id}`}

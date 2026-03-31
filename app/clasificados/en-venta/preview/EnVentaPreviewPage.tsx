@@ -417,23 +417,27 @@ export function EnVentaPreviewPage() {
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled
-            title={tBuyer.saveDraftHint}
-            className="inline-flex min-h-[40px] cursor-not-allowed items-center gap-1.5 rounded-2xl border border-[#E8DFD0]/90 bg-[#EFEAE0] px-3 py-2 text-xs font-bold text-[#5C5346]"
-          >
-            <span aria-hidden>💛</span>
-            {tBuyer.save}
-            <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex min-h-[40px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
-          >
-            ↗️ {tBuyer.share}
-          </button>
+          {plan === "pro" ? (
+            <>
+              <button
+                type="button"
+                disabled
+                title={tBuyer.saveDraftHint}
+                className="inline-flex min-h-[40px] cursor-not-allowed items-center gap-1.5 rounded-2xl border border-[#E8DFD0]/90 bg-[#EFEAE0] px-3 py-2 text-xs font-bold text-[#5C5346]"
+              >
+                <span aria-hidden>💛</span>
+                {tBuyer.save}
+                <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void onShare()}
+                className="inline-flex min-h-[40px] items-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#D4C4A8]"
+              >
+                ↗️ {tBuyer.share}
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             disabled
@@ -774,35 +778,37 @@ export function EnVentaPreviewPage() {
                     lang={lang}
                     plan={plan}
                   />
-                  <div className="rounded-3xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FBF7EF] to-[#F3EBDD] p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">
-                      {PREVIEW_ANALYTICS[lang].heading}
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 gap-2.5">
-                      {(
-                        [
-                          ["vistas", PREVIEW_ANALYTICS[lang].vistas, "👁"],
-                          ["compartidos", PREVIEW_ANALYTICS[lang].compartidos, "↗️"],
-                          ["guardados", PREVIEW_ANALYTICS[lang].guardados, "❤️"],
-                          ["contactos", PREVIEW_ANALYTICS[lang].contactos, "💬"],
-                        ] as const
-                      ).map(([key, label, icon]) => (
-                        <div
-                          key={key}
-                          className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 px-3 py-3 text-center shadow-inner"
-                        >
-                          <p className="text-lg leading-none" aria-hidden>
-                            {icon}
-                          </p>
-                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
-                          <p className="mt-1 text-xl font-bold tabular-nums text-[#1E1810]">{PREVIEW_ANALYTICS[lang].dash}</p>
-                        </div>
-                      ))}
+                  {plan === "pro" ? (
+                    <div className="rounded-3xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FBF7EF] to-[#F3EBDD] p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">
+                        {PREVIEW_ANALYTICS[lang].heading}
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2.5">
+                        {(
+                          [
+                            ["vistas", PREVIEW_ANALYTICS[lang].vistas, "👁"],
+                            ["compartidos", PREVIEW_ANALYTICS[lang].compartidos, "↗️"],
+                            ["guardados", PREVIEW_ANALYTICS[lang].guardados, "❤️"],
+                            ["contactos", PREVIEW_ANALYTICS[lang].contactos, "💬"],
+                          ] as const
+                        ).map(([key, label, icon]) => (
+                          <div
+                            key={key}
+                            className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 px-3 py-3 text-center shadow-inner"
+                          >
+                            <p className="text-lg leading-none" aria-hidden>
+                              {icon}
+                            </p>
+                            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
+                            <p className="mt-1 text-xl font-bold tabular-nums text-[#1E1810]">{PREVIEW_ANALYTICS[lang].dash}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-wide text-[#8A8070]">
+                        {PREVIEW_ANALYTICS[lang].hint}
+                      </p>
                     </div>
-                    <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-wide text-[#8A8070]">
-                      {PREVIEW_ANALYTICS[lang].hint}
-                    </p>
-                  </div>
+                  ) : null}
                 </div>
               </div>
 

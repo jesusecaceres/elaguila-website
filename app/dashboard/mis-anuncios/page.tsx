@@ -8,6 +8,12 @@ import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
+import {
+  computeEnVentaVisibilityRenewalVm,
+  EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
+  EN_VENTA_VISIBILITY_WINDOW_MS,
+  mergeDetailPairValue,
+} from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -69,6 +75,18 @@ function formatDateIso(iso?: string | null) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatDateTimeMs(ms: number, lang: Lang) {
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(lang === "es" ? "es-US" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function canEditListing(createdAtIso?: string | null) {
@@ -308,6 +326,47 @@ export default function MyListingsPage() {
     setBusyId(null);
   }
 
+  async function renewEnVentaVisibility(row: ListingRow) {
+    if ((row.category ?? "").toLowerCase() !== "en-venta") return;
+    const plan = listingPlanFromDetailPairs(row.detail_pairs);
+    if (plan !== "pro") return;
+
+    const nowMs = Date.now();
+    const vm = computeEnVentaVisibilityRenewalVm({
+      plan: "pro",
+      boostExpires: row.boost_expires,
+      detailPairs: row.detail_pairs,
+      nowMs,
+    });
+    if (!vm?.canRenewNow) return;
+
+    const supabase = createSupabaseBrowserClient();
+    setBusyId(row.id);
+    setError(null);
+
+    const renewedAtIso = new Date(nowMs).toISOString();
+    const newExpiresIso = new Date(nowMs + EN_VENTA_VISIBILITY_WINDOW_MS).toISOString();
+    const newPairs = mergeDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL, renewedAtIso);
+
+    const { error: uErr } = await supabase
+      .from("listings")
+      .update({ boost_expires: newExpiresIso, detail_pairs: newPairs })
+      .eq("id", row.id);
+
+    if (uErr) {
+      setError(uErr.message);
+      setBusyId(null);
+      return;
+    }
+
+    setListings((prev) =>
+      prev.map((x) =>
+        x.id === row.id ? { ...x, boost_expires: newExpiresIso, detail_pairs: newPairs } : x
+      )
+    );
+    setBusyId(null);
+  }
+
   async function deleteListing(id: string) {
     if (!confirm(lang === "es" ? "¿Eliminar este anuncio?" : "Delete this listing?")) return;
 
@@ -501,6 +560,33 @@ export default function MyListingsPage() {
                 const boosted = isListingBoosted(x.boost_expires);
                 const viewsTotal = resolveViews(x, stats);
 
+                const renewalVm =
+                  listingPlan === "pro"
+                    ? computeEnVentaVisibilityRenewalVm({
+                        plan: "pro",
+                        boostExpires: x.boost_expires,
+                        detailPairs: x.detail_pairs,
+                        nowMs: Date.now(),
+                      })
+                    : null;
+                const visibilityRenewal =
+                  x.category === "en-venta" && listingPlan === "pro" && renewalVm
+                    ? {
+                        lang,
+                        boostActive: renewalVm.boostActive,
+                        boostEndsLabel:
+                          renewalVm.boostActive && renewalVm.boostExpiresAt != null
+                            ? formatDateTimeMs(renewalVm.boostExpiresAt, lang)
+                            : null,
+                        canRenew: renewalVm.canRenewNow,
+                        nextEligibleLabel: renewalVm.canRenewNow
+                          ? null
+                          : formatDateTimeMs(renewalVm.nextRenewEligibleAt, lang),
+                        onRenew: () => void renewEnVentaVisibility(x),
+                        busy,
+                      }
+                    : null;
+
                 if (x.category === "en-venta") {
                   return (
                     <EnVentaListingManageCard
@@ -540,6 +626,7 @@ export default function MyListingsPage() {
                       maxViews={maxViews}
                       priceDropLabel={listingPriceDropLabel(x, lang)}
                       showDraftBadge={x.is_published === false}
+                      visibilityRenewal={visibilityRenewal}
                     />
                   );
                 }

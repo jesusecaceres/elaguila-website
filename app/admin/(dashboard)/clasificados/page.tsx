@@ -20,6 +20,8 @@ type Row = {
   owner_id: string | null;
   created_at: string | null;
   images?: unknown;
+  detail_pairs?: unknown;
+  boost_expires?: unknown;
 };
 
 type PageProps = {
@@ -35,7 +37,9 @@ export default async function AdminAdsPage(props: PageProps) {
 
   const { data: listings, error } = await supabase
     .from("listings")
-    .select("id, title, description, city, category, price, is_free, status, owner_id, created_at, images")
+    .select(
+      "id, title, description, city, category, price, is_free, status, owner_id, created_at, images, detail_pairs, boost_expires"
+    )
     .order("created_at", { ascending: false })
     .limit(300);
 
