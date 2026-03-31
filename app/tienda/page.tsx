@@ -2,7 +2,6 @@
 
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import Navbar from "@/app/components/Navbar";
 import { useState } from "react";
 
 // Product structure
@@ -135,8 +134,6 @@ export default function TiendaPage() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <Navbar />
-
       <div className="pt-28 pb-20 px-6 max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold text-yellow-400 mb-10">{t.store}</h1>
 

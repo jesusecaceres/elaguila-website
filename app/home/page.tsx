@@ -39,21 +39,24 @@ function HomePageContent() {
   const magazineLink = `/magazine?lang=${lang}`;
 
   return (
-    <main className="relative min-h-screen w-full text-white overflow-hidden">
-      {/* Background */}
+    <main
+      className="relative min-h-screen w-full overflow-hidden text-[color:var(--lx-text)]"
+      style={{
+        backgroundColor: "var(--lx-page)",
+        backgroundImage: `
+          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.22), transparent 55%),
+          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.55), transparent 52%),
+          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.10), transparent 50%)
+        `,
+      }}
+    >
+      {/* subtle paper grain */}
       <div
-        className="absolute inset-0 z-0"
+        className="pointer-events-none fixed inset-0 opacity-[0.03]"
         style={{
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.30), rgba(0,0,0,0.65))",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
-      />
-      <div
-        className="absolute inset-0 z-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 16%, rgba(255,215,0,0.10), rgba(0,0,0,0) 58%)",
-        }}
+        aria-hidden
       />
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 pt-16 pb-14 text-center">
@@ -62,7 +65,7 @@ function HomePageContent() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.05 }}
-          className="text-4xl md:text-6xl font-extrabold tracking-tight drop-shadow-[0_0_14px_rgba(255,215,0,0.40)]"
+          className="text-4xl md:text-6xl font-extrabold tracking-tight text-[color:var(--lx-text)] drop-shadow-[0_10px_28px_rgba(42,36,22,0.10)]"
         >
           {L.title}
         </motion.h1>
@@ -71,7 +74,7 @@ function HomePageContent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.18, duration: 0.9 }}
-          className="mt-3 text-base md:text-lg font-light text-gray-100"
+          className="mt-3 text-base md:text-lg font-medium text-[color:var(--lx-text-2)]/90"
         >
           {L.identity}
         </motion.p>
@@ -80,7 +83,7 @@ function HomePageContent() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28, duration: 0.9 }}
-          className="mt-2 text-sm md:text-base text-gray-300"
+          className="mt-2 text-sm md:text-base text-[color:var(--lx-muted)]"
         >
           {L.precedent}
         </motion.p>
@@ -93,7 +96,7 @@ function HomePageContent() {
           className="mt-7 md:mt-8 flex flex-col items-center"
         >
           <a href={magazineLink} className="block">
-            <div className="rounded-2xl border-2 border-yellow-400/70 overflow-hidden shadow-[0_0_60px_rgba(255,215,0,0.26)] hover:shadow-[0_0_80px_rgba(255,215,0,0.34)] transition-all duration-300">
+            <div className="rounded-2xl border border-[color:var(--lx-nav-border)] overflow-hidden shadow-[0_18px_48px_rgba(42,36,22,0.12)] hover:shadow-[0_22px_60px_rgba(42,36,22,0.14)] transition-all duration-300 bg-[color:var(--lx-card)]">
               <div className="w-80 sm:w-[26rem] md:w-[30rem]">
                 <img
                   src="/home_thumbnail.png"
@@ -107,12 +110,12 @@ function HomePageContent() {
           <div className="mt-4 flex flex-col items-center gap-2">
             <a
               href={magazineLink}
-              className="inline-flex items-center justify-center rounded-full border border-yellow-400/80 bg-black/35 px-7 py-3 text-sm md:text-base font-semibold text-yellow-200 hover:bg-black/55 hover:text-yellow-100 shadow-[0_0_28px_rgba(255,215,0,0.18)] hover:shadow-[0_0_40px_rgba(255,215,0,0.26)] transition-all duration-300"
+              className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-7 py-3 text-sm md:text-base font-semibold text-[color:var(--lx-cta-light)] shadow-[0_10px_28px_rgba(42,36,22,0.18)] hover:bg-[color:var(--lx-cta-dark-hover)] transition-all duration-300"
             >
               {L.ctaPrimary}
             </a>
 
-            <p className="text-xs md:text-sm text-gray-300">
+            <p className="text-xs md:text-sm text-[color:var(--lx-muted)]">
               {L.ctaSecondary}
             </p>
           </div>

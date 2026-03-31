@@ -306,13 +306,13 @@ function NavbarContent() {
 
       <div
         className="
-          backdrop-blur-md bg-white/10
-          border-b border-white/15 py-2 px-4 sm:px-6
+          backdrop-blur-md bg-[color:var(--lx-nav-bg)]
+          border-b border-[color:var(--lx-nav-border)] py-2 px-4 sm:px-6
           flex flex-wrap items-center gap-x-4 gap-y-2
         "
       >
         {/* DESKTOP MENU */}
-        <div className="hidden sm:flex flex-wrap gap-x-4 gap-y-2 text-white text-[clamp(12px,1.05vw,15px)] font-semibold tracking-tight">
+        <div className="hidden sm:flex flex-wrap gap-x-4 gap-y-2 text-[color:var(--lx-nav-fg)] text-[clamp(12px,1.05vw,15px)] font-semibold tracking-tight">
           {navLinks.map((item, i) => {
             const active = isActive(item.href);
             const href = item.href === "/advertise" ? `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}` : buildLink(item.href);
@@ -321,12 +321,12 @@ function NavbarContent() {
                 key={i}
                 href={href}
                 className={cx(
-                  "transition px-2 py-1 rounded-lg border border-transparent hover:bg-white/10 hover:border-white/10",
+                  "transition px-2 py-1 rounded-lg border border-transparent hover:bg-[color:var(--lx-nav-hover)] hover:border-[color:var(--lx-nav-border)]",
                   item.gold
-                    ? "text-yellow-300 font-bold bg-yellow-600/10 border-yellow-500/30"
+                    ? "text-[color:var(--lx-text)] font-bold bg-[color:var(--lx-nav-active)] border-[color:var(--lx-nav-border)]"
                     : active
-                    ? "text-yellow-200 bg-white/10 border-yellow-500/30"
-                    : "text-white hover:text-yellow-200"
+                    ? "text-[color:var(--lx-nav-fg)] bg-[color:var(--lx-nav-active)] border-[color:var(--lx-nav-border)]"
+                    : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)]"
                 )}
                 aria-current={active ? "page" : undefined}
               >
@@ -342,17 +342,21 @@ function NavbarContent() {
             <button
               onClick={() => switchLang("es")}
               className={
-                lang === "es" ? "text-yellow-400 font-semibold" : "text-white"
+                lang === "es"
+                  ? "text-[color:var(--lx-gold)] font-semibold"
+                  : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)] transition"
               }
               aria-label="Cambiar idioma a Español"
             >
               ES
             </button>
-            <span className="text-white/40">|</span>
+            <span className="text-[color:var(--lx-nav-fg-subtle)]">|</span>
             <button
               onClick={() => switchLang("en")}
               className={
-                lang === "en" ? "text-yellow-400 font-semibold" : "text-white"
+                lang === "en"
+                  ? "text-[color:var(--lx-gold)] font-semibold"
+                  : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)] transition"
               }
               aria-label="Switch language to English"
             >
@@ -363,62 +367,62 @@ function NavbarContent() {
           {/* DESKTOP ACCOUNT */}
           <div className="relative">
             {authLoading ? (
-              <div className="h-9 w-24 rounded-full bg-white/10 animate-pulse" />
+              <div className="h-9 w-24 rounded-full bg-black/5 animate-pulse" />
             ) : user ? (
               <>
                 <button
                   onClick={() => setAccountOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/7 px-3 py-1.5 hover:bg-white/9 transition"
+                  className="flex items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 px-3 py-1.5 hover:bg-white/80 transition"
                   aria-label={L.myAccount}
                 >
                   {user.avatarUrl ? (
                     <img
                       src={user.avatarUrl}
                       alt=""
-                      className="h-7 w-7 rounded-full border border-yellow-500/30 object-cover"
+                      className="h-7 w-7 rounded-full border border-[color:var(--lx-nav-border)] object-cover"
                     />
                   ) : (
-                    <div className="h-7 w-7 rounded-full bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-200 font-bold text-xs">
+                    <div className="h-7 w-7 rounded-full bg-[color:var(--lx-nav-active)] border border-[color:var(--lx-nav-border)] flex items-center justify-center text-[color:var(--lx-text)] font-bold text-xs">
                       {initials}
                     </div>
                   )}
-                  <span className="text-white/90 text-xs max-w-[140px] truncate">
+                  <span className="text-[color:var(--lx-text)] text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
                   <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
                     {planLabel(membershipBadge, lang)}
                   </span>
-                  <span className="text-white text-xs">{accountOpen ? "▲" : "▼"}</span>
+                  <span className="text-[color:var(--lx-nav-fg-muted)] text-xs">{accountOpen ? "▲" : "▼"}</span>
                 </button>
 
                 {accountOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-[0_12px_30px_rgba(0,0,0,0.55)] overflow-hidden"
+                    className="absolute right-0 mt-2 w-56 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] backdrop-blur-xl shadow-[0_18px_48px_rgba(42,36,22,0.18)] overflow-hidden"
                     role="menu"
                   >
-                    <div className="px-4 py-3 border-b border-white/15">
-                      <div className="text-xs text-white truncate font-medium">
+                    <div className="px-4 py-3 border-b border-black/10">
+                      <div className="text-xs text-[color:var(--lx-text)] truncate font-medium">
                         {displayName}
                       </div>
                       {user.email && (
-                        <div className="text-xs text-white/70 truncate mt-0.5">
+                        <div className="text-xs text-[color:var(--lx-text-2)]/80 truncate mt-0.5">
                           {user.email}
                         </div>
                       )}
-                      <div className="mt-1.5 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                      <div className="mt-1.5 inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)]">
                         {planLabel(membershipBadge, lang)}
                       </div>
                     </div>
                     <Link
                       href={`/dashboard?lang=${lang}`}
-                      className="block px-4 py-3 text-sm text-white/90 hover:bg-white/5"
+                      className="block px-4 py-3 text-sm text-[color:var(--lx-text)] hover:bg-black/5"
                       onClick={() => setAccountOpen(false)}
                     >
                       {L.manageAccount}
                     </Link>
                     <Link
                       href={`/dashboard/mis-anuncios?lang=${lang}`}
-                      className="block px-4 py-3 text-sm text-white/90 hover:bg-white/5"
+                      className="block px-4 py-3 text-sm text-[color:var(--lx-text)] hover:bg-black/5"
                       onClick={() => setAccountOpen(false)}
                     >
                       {L.myListings}
@@ -426,7 +430,7 @@ function NavbarContent() {
                     <button
                       type="button"
                       onClick={signOut}
-                      className="w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/5 border-t border-white/10"
+                      className="w-full text-left px-4 py-3 text-sm text-[color:var(--lx-text)] hover:bg-black/5 border-t border-black/10"
                     >
                       {L.signOut}
                     </button>
@@ -436,7 +440,7 @@ function NavbarContent() {
             ) : (
               <button
                 onClick={goToLogin}
-                className="rounded-full border border-white/10 bg-white/7 px-4 py-2 text-white/90 hover:bg-white/9 transition"
+                className="rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 px-4 py-2 text-[color:var(--lx-text)] hover:bg-white/80 transition"
               >
                 {L.signIn}
               </button>
@@ -446,7 +450,7 @@ function NavbarContent() {
 
         {/* MOBILE HAMBURGER */}
         <button
-          className="sm:hidden ml-auto text-white text-xl"
+          className="sm:hidden ml-auto text-[color:var(--lx-nav-fg)] text-xl"
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
         >
@@ -458,23 +462,23 @@ function NavbarContent() {
       {mobileOpen && (
         <div className="fixed inset-0 z-[999]">
           <button
-            className="absolute inset-0 bg-white/14 backdrop-blur-[1px]"
+            className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
 
           <div
-            className="absolute top-0 right-0 w-[min(88vw,22rem)] max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-black/90 backdrop-blur-xl rounded-l-2xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border-l border-white/10"
+            className="absolute top-0 right-0 w-[min(88vw,22rem)] max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-[color:var(--lx-card)] backdrop-blur-xl rounded-l-2xl shadow-[0_0_22px_rgba(42,36,22,0.28)] border-l border-[color:var(--lx-nav-border)]"
             role="dialog"
             aria-modal="true"
             style={{ height: "100dvh" }}
           >
             {/* ZONE 1: Top — title + close, always visible */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <span className="text-white/70 text-sm font-semibold">Menú</span>
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-black/10">
+              <span className="text-[color:var(--lx-text-2)]/80 text-sm font-semibold">Menú</span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="text-white text-2xl leading-none p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="text-[color:var(--lx-text)] text-2xl leading-none p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Close menu"
               >
                 ×
@@ -490,9 +494,11 @@ function NavbarContent() {
                     href={item.href === "/advertise" ? `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}` : buildLink(item.href)}
                     onClick={() => setMobileOpen(false)}
                     className={cx(
-                      "py-2.5 text-[15px] font-semibold",
-                      item.gold ? "text-yellow-300" : "text-white",
-                      isActive(item.href) && !item.gold && "text-yellow-200"
+                      "py-2.5 text-[15px] font-semibold rounded-xl px-2 transition",
+                      item.gold
+                        ? "text-[color:var(--lx-text)] bg-[color:var(--lx-nav-active)]"
+                        : "text-[color:var(--lx-text)] hover:bg-black/5",
+                      isActive(item.href) && !item.gold && "bg-[color:var(--lx-nav-hover)]"
                     )}
                   >
                     {item.label}
@@ -502,14 +508,14 @@ function NavbarContent() {
             </div>
 
             {/* ZONE 3: Bottom — account card + language, pinned */}
-            <div className="flex-shrink-0 flex flex-col gap-3 px-4 py-4 pt-3 border-t border-white/10">
-              <section aria-label={L.account} className="rounded-2xl border border-yellow-500/20 bg-white/5 p-3">
+            <div className="flex-shrink-0 flex flex-col gap-3 px-4 py-4 pt-3 border-t border-black/10">
+              <section aria-label={L.account} className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
                 {authLoading ? (
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-white/10 flex-shrink-0" />
+                    <div className="h-10 w-10 rounded-full bg-black/5 flex-shrink-0" />
                     <div className="flex-1 space-y-1.5">
-                      <div className="h-3.5 w-24 rounded bg-white/10" />
-                      <div className="h-3 w-20 rounded bg-white/10" />
+                      <div className="h-3.5 w-24 rounded bg-black/5" />
+                      <div className="h-3 w-20 rounded bg-black/5" />
                     </div>
                   </div>
                 ) : user ? (
@@ -519,23 +525,23 @@ function NavbarContent() {
                         <img
                           src={user.avatarUrl}
                           alt=""
-                          className="h-10 w-10 rounded-full border border-yellow-500/30 object-cover flex-shrink-0"
+                          className="h-10 w-10 rounded-full border border-[color:var(--lx-nav-border)] object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-full border border-yellow-500/30 bg-yellow-600/20 flex items-center justify-center text-yellow-200 font-bold text-sm flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-active)] flex items-center justify-center text-[color:var(--lx-text)] font-bold text-sm flex-shrink-0">
                           {initials}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-white font-semibold text-sm truncate">
+                        <div className="text-[color:var(--lx-text)] font-semibold text-sm truncate">
                           {displayName}
                         </div>
                         {user.email && (
-                          <div className="text-white/70 text-xs truncate">
+                          <div className="text-[color:var(--lx-text-2)]/80 text-xs truncate">
                             {user.email}
                           </div>
                         )}
-                        <div className="mt-1 inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90 w-fit">
+                        <div className="mt-1 inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)] w-fit">
                           {planLabel(membershipBadge, lang)}
                         </div>
                       </div>
@@ -544,14 +550,14 @@ function NavbarContent() {
                       <Link
                         href={`/dashboard?lang=${lang}`}
                         onClick={() => setMobileOpen(false)}
-                        className="w-full rounded-xl bg-yellow-500/90 px-3 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition text-center"
+                        className="w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-3 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)] transition text-center"
                       >
                         {L.manageAccount}
                       </Link>
                       <Link
                         href={`/dashboard/mis-anuncios?lang=${lang}`}
                         onClick={() => setMobileOpen(false)}
-                        className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white hover:bg-white/10 transition text-center"
+                        className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white/60 px-3 py-2 text-sm font-medium text-[color:var(--lx-text)] hover:bg-white/80 transition text-center"
                       >
                         {L.myListings}
                       </Link>
@@ -560,7 +566,7 @@ function NavbarContent() {
                         onClick={async () => {
                           await signOut();
                         }}
-                        className="w-full rounded-xl border border-white/10 px-3 py-2 text-sm text-white/80 hover:bg-white/5 transition text-center"
+                        className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm text-[color:var(--lx-text-2)] hover:bg-black/5 transition text-center"
                       >
                         {L.signOut}
                       </button>
@@ -568,7 +574,7 @@ function NavbarContent() {
                   </>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold text-white/90">
+                    <h3 className="text-sm font-semibold text-[color:var(--lx-text)]">
                       {L.account}
                     </h3>
                     <button
@@ -577,27 +583,27 @@ function NavbarContent() {
                         setMobileOpen(false);
                         goToLogin();
                       }}
-                      className="w-full rounded-xl bg-yellow-500/90 px-3 py-2.5 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                      className="w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-3 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)] transition"
                     >
                       {L.signIn}
                     </button>
                     <Link
                       href={`/login?mode=signup&lang=${lang}`}
                       onClick={() => setMobileOpen(false)}
-                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition text-center block"
+                      className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white/60 px-3 py-2.5 text-sm font-medium text-[color:var(--lx-text)] hover:bg-white/80 transition text-center block"
                     >
                       {L.createAccount}
                     </Link>
                   </div>
                 )}
               </section>
-              <div className="flex gap-6 text-white text-sm font-semibold">
+              <div className="flex gap-6 text-[color:var(--lx-text)] text-sm font-semibold">
                 <button
                   onClick={() => {
                     switchLang("es");
                     setMobileOpen(false);
                   }}
-                  className={lang === "es" ? "text-yellow-400" : "text-white/90"}
+                  className={lang === "es" ? "text-[color:var(--lx-gold)]" : "text-[color:var(--lx-nav-fg-muted)]"}
                   aria-label="Cambiar idioma a Español"
                 >
                   ES
@@ -607,7 +613,7 @@ function NavbarContent() {
                     switchLang("en");
                     setMobileOpen(false);
                   }}
-                  className={lang === "en" ? "text-yellow-400" : "text-white/90"}
+                  className={lang === "en" ? "text-[color:var(--lx-gold)]" : "text-[color:var(--lx-nav-fg-muted)]"}
                   aria-label="Switch language to English"
                 >
                   EN

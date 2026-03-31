@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar from "@/app/components/Navbar";
 import CouponCard from "@/app/components/CouponCard";
 
 export default function CouponsPage() {
@@ -33,8 +32,6 @@ export default function CouponsPage() {
 
   return (
     <main className="min-h-screen w-full bg-black text-white">
-      <Navbar />
-
       <div className="pt-28 px-6 pb-20 max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-yellow-400 mb-8">
           Coupons

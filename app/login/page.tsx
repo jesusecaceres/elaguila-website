@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Navbar from "../components/Navbar";
 import { createSupabaseBrowserClient, withAuthTimeout } from "../lib/supabase/browser";
 
 type Lang = "es" | "en";
@@ -303,7 +302,6 @@ export default function LoginPage() {
           className="fixed inset-0 bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] pointer-events-none"
           aria-hidden
         />
-        <Navbar />
         <div className="relative max-w-md mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
           <div className="rounded-3xl border border-white/10 bg-[#141414]/95 shadow-2xl p-6 sm:p-8 flex items-center justify-center min-h-[200px]">
             <p className="text-white/80 text-sm">
@@ -321,7 +319,6 @@ export default function LoginPage() {
         className="fixed inset-0 bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] pointer-events-none"
         aria-hidden
       />
-      <Navbar />
 
       <div className="relative max-w-md mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
         <div className="rounded-3xl border border-white/10 bg-[#141414]/95 shadow-2xl p-6 sm:p-8 relative">

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import Navbar from "../components/Navbar";
 import newLogo from "../../public/logo.png";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { HUB_CATEGORY_ORDER, type Lang } from "./config/clasificadosHub";
@@ -24,8 +23,6 @@ export default function ClasificadosPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pb-24 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.14),transparent_65%)]">
-      <Navbar />
-
       <section className="mx-auto max-w-6xl px-6 pt-28">
         <div className="rounded-3xl border border-[#D8C79A]/70 bg-[#FFFDF7] p-6 shadow-[0_18px_48px_rgba(113,84,22,0.10)] sm:p-8">
           <div className="flex flex-wrap justify-end gap-2">

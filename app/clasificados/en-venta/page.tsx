@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes";
 import type { EnVentaDepartmentKey } from "./taxonomy/categories";
@@ -81,8 +80,6 @@ export default function EnVentaHubPage() {
         }}
         aria-hidden
       />
-
-      <Navbar />
 
       <main className="relative mx-auto max-w-6xl px-4 pb-24 pt-28 sm:px-6 lg:px-8">
         {/* Hero */}

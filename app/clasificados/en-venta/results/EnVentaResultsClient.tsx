@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app/clasificados/components/savedListings";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
@@ -351,8 +350,6 @@ export function EnVentaResultsClient() {
         }}
         aria-hidden
       />
-      <Navbar />
-
       <main className="relative mx-auto max-w-6xl px-4 pb-24 pt-24 sm:px-6 lg:max-w-7xl lg:px-8">
         <div className="flex flex-col items-center text-center">
           <Image src={newLogo} alt="Leonix" width={120} height={120} className="h-auto w-[min(120px,36vw)]" priority />

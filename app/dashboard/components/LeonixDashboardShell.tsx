@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, type CSSProperties, type ReactNode } from "react";
-import Navbar from "@/app/components/Navbar";
 import ProBadge from "@/app/clasificados/components/ProBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import newLogo from "../../../public/logo.png";
@@ -114,8 +113,6 @@ export function LeonixDashboardShell({
         }}
         aria-hidden
       />
-      <Navbar />
-
       <main className="relative mx-auto max-w-7xl px-4 pb-20 pt-24 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col items-center text-center sm:mb-10">
           <Image

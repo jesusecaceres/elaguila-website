@@ -1,8 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Leonix canonical (En Venta) color system */
+  --lx-page: #f3ebdd; /* light cream / ivory */
+  --lx-section: #fbf7ef; /* softer ivory section */
+  --lx-card: #fffdf7; /* elevated card surface */
+
+  --lx-text: #1e1810; /* charcoal / dark brown */
+  --lx-text-2: #3d3428; /* secondary */
+  --lx-muted: #7a7164; /* muted */
+
+  --lx-gold: #c9a84a; /* premium gold */
+  --lx-gold-soft: #d4bc6a; /* soft gold */
+  --lx-gold-border: rgba(201, 168, 74, 0.35);
+
+  --lx-cta-dark: #2a2620; /* dark CTA background */
+  --lx-cta-dark-hover: #1a1814;
+  --lx-cta-light: #fffcf7; /* light CTA background */
+
+  --lx-nav-bg: rgba(255, 253, 247, 0.86);
+  --lx-nav-border: rgba(201, 180, 106, 0.35);
+  --lx-nav-fg: #1e1810;
+  --lx-nav-fg-muted: rgba(30, 24, 16, 0.62);
+  --lx-nav-fg-subtle: rgba(30, 24, 16, 0.4);
+  --lx-nav-hover: rgba(201, 168, 74, 0.12);
+  --lx-nav-active: rgba(201, 168, 74, 0.22);
+
+  --lx-focus-ring: rgba(201, 168, 74, 0.38);
+
+  /* Tailwind v4 theme tokens */
+  --background: var(--lx-page);
+  --foreground: var(--lx-text);
 }
 
 @theme inline {
@@ -12,13 +40,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #060606;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -26,15 +47,10 @@ body {
 }
 
 
-/* LEONIX dark UI form controls: make native <select> + dropdown options readable */
-.leonix-dark {
-  color-scheme: dark;
-}
-
-.leonix-dark select,
-.leonix-dark option {
-  background-color: #0b0b0b;
-  color: #ffffff;
+/* Focus ring: consistent + premium on light base */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--lx-focus-ring);
 }
 
 /* Pro upgrade preview in listing modal */

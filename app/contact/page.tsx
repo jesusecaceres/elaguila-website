@@ -1,8 +1,6 @@
 "use client";
 
-import Navbar from "@/app/components/Navbar";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 
 function ContactContent() {
   const params = useSearchParams()!;
@@ -10,11 +8,6 @@ function ContactContent() {
 
   return (
     <main className="min-h-screen w-full bg-black text-white">
-      {/* NAVBAR */}
-      <Suspense fallback={null}>
-        <Navbar />
-      </Suspense>
-
       <div className="pt-32 pb-20 px-6 max-w-4xl mx-auto">
         {/* HEADER */}
         <h1 className="text-4xl font-bold text-yellow-400 text-center mb-6">
@@ -113,9 +106,5 @@ function ContactContent() {
 }
 
 export default function ContactPage() {
-  return (
-    <Suspense fallback={null}>
-      <ContactContent />
-    </Suspense>
-  );
+  return <ContactContent />;
 }

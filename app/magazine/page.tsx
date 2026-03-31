@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import Navbar from "../components/Navbar";
 import newLogo from "../../public/logo.png";
 
 type Lang = "es" | "en";
@@ -222,8 +221,17 @@ export default function MagazineHubPage() {
     year === featured.year && month === featured.month;
 
   return (
-    <div className="bg-black min-h-screen text-white pb-32">
-      <Navbar />
+    <div
+      className="min-h-screen pb-32 text-[color:var(--lx-text)]"
+      style={{
+        backgroundColor: "var(--lx-page)",
+        backgroundImage: `
+          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.22), transparent 55%),
+          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.55), transparent 52%),
+          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.10), transparent 50%)
+        `,
+      }}
+    >
 
       <FullscreenFlipbookModal
         open={flipOpen}
@@ -235,32 +243,32 @@ export default function MagazineHubPage() {
       <section className="max-w-6xl mx-auto px-6 pt-28">
         <div className="text-center mb-16">
           <Image src={newLogo} alt="LEONIX" width={320} className="mx-auto mb-6" />
-          <h1 className="text-5xl font-bold text-yellow-400">{t.title}</h1>
-          <p className="mt-4 text-gray-300">{t.subtitle}</p>
+          <h1 className="text-5xl font-bold text-[color:var(--lx-text)]">{t.title}</h1>
+          <p className="mt-4 text-[color:var(--lx-text-2)]/85">{t.subtitle}</p>
         </div>
 
         {status !== "ready" ? (
-          <div className="text-gray-300">{t.loading}</div>
+          <div className="text-[color:var(--lx-muted)]">{t.loading}</div>
         ) : (
           <div className="flex flex-col gap-16">
             {/* Featured */}
-            <div className="border border-yellow-600/25 rounded-2xl p-8 bg-black/40">
-              <div className="text-sm uppercase tracking-widest text-yellow-300/80 mb-4">
+            <div className="border border-[color:var(--lx-nav-border)] rounded-2xl p-8 bg-[color:var(--lx-card)] shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
+              <div className="text-sm uppercase tracking-widest text-[color:var(--lx-muted)] mb-4">
                 {t.featuredLabel}
               </div>
 
               <div className="flex flex-col lg:flex-row gap-10">
                 <img
                   src={featuredCoverSrc}
-                  className="w-64 rounded-xl border border-yellow-400/40"
+                  className="w-64 rounded-xl border border-[color:var(--lx-nav-border)] bg-white"
                   alt={`${featured.title[lang]} cover`}
                 />
 
                 <div className="flex-1">
-                  <h2 className="text-4xl font-bold text-yellow-400">
+                  <h2 className="text-4xl font-bold text-[color:var(--lx-text)]">
                     {featured.title[lang]}
                   </h2>
-                  <p className="text-gray-300 mt-2">
+                  <p className="text-[color:var(--lx-muted)] mt-2">
                     {monthLabel(featured.month, lang)} {featured.year}
                   </p>
 
@@ -268,7 +276,7 @@ export default function MagazineHubPage() {
                   <div className="mt-6 flex gap-4 flex-wrap">
                     <button
                       onClick={openFlipbook}
-                      className="px-6 py-3 rounded-full bg-yellow-400 text-black font-semibold"
+                      className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] font-semibold hover:bg-[color:var(--lx-cta-dark-hover)] transition"
                     >
                       {t.openMagazine}
                     </button>
@@ -276,7 +284,7 @@ export default function MagazineHubPage() {
                     <a
                       href={featuredPdfSrc}
                       download
-                      className="px-6 py-3 rounded-full border border-yellow-400 text-yellow-300 font-semibold"
+                      className="px-6 py-3 rounded-full border border-[color:var(--lx-nav-border)] bg-white/70 text-[color:var(--lx-text)] font-semibold hover:bg-white transition"
                     >
                       {t.downloadPdf}
                     </a>
@@ -286,8 +294,8 @@ export default function MagazineHubPage() {
             </div>
 
             {/* Previous Editions */}
-            <div className="border border-yellow-600/20 rounded-2xl p-8 bg-black/30">
-              <h3 className="text-3xl font-bold text-yellow-400 mb-8">
+            <div className="border border-[color:var(--lx-nav-border)] rounded-2xl p-8 bg-[color:var(--lx-card)]/70 backdrop-blur-sm shadow-[0_18px_48px_rgba(42,36,22,0.08)]">
+              <h3 className="text-3xl font-bold text-[color:var(--lx-text)] mb-8">
                 {t.years}
               </h3>
 
@@ -296,7 +304,7 @@ export default function MagazineHubPage() {
                   const months = data.years?.[year]?.months || [];
                   return (
                     <div key={year}>
-                      <div className="text-xl font-semibold text-gray-100 mb-6">
+                      <div className="text-xl font-semibold text-[color:var(--lx-text)] mb-6">
                         {year}
                       </div>
 
@@ -310,19 +318,19 @@ export default function MagazineHubPage() {
                             return (
                               <div
                                 key={`${year}-${m.month}`}
-                                className="border border-yellow-600/20 rounded-2xl p-6 bg-black/40"
+                                className="border border-[color:var(--lx-nav-border)] rounded-2xl p-6 bg-[color:var(--lx-card)] shadow-[0_14px_34px_rgba(42,36,22,0.10)]"
                               >
                                 <img
                                   src={coverSrc}
-                                  className="w-full max-w-[280px] mx-auto rounded-xl border border-yellow-400/30"
+                                  className="w-full max-w-[280px] mx-auto rounded-xl border border-[color:var(--lx-nav-border)] bg-white"
                                   alt={`${m.title[lang]} cover`}
                                 />
 
                                 <div className="mt-6">
-                                  <div className="text-2xl font-bold text-yellow-400">
+                                  <div className="text-2xl font-bold text-[color:var(--lx-text)]">
                                     {monthLabel(m.month, lang)} {year}
                                   </div>
-                                  <div className="text-gray-300 mt-1">
+                                  <div className="text-[color:var(--lx-text-2)]/85 mt-1">
                                     {m.title[lang]}
                                   </div>
 
@@ -330,7 +338,7 @@ export default function MagazineHubPage() {
                                   <div className="mt-6 flex gap-4 flex-wrap">
                                     <button
                                       onClick={openFlipbook}
-                                      className="px-6 py-3 rounded-full bg-yellow-400 text-black font-semibold"
+                                      className="px-6 py-3 rounded-full bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] font-semibold hover:bg-[color:var(--lx-cta-dark-hover)] transition"
                                     >
                                       {t.openMagazine}
                                     </button>
@@ -338,7 +346,7 @@ export default function MagazineHubPage() {
                                     <a
                                       href={pdfSrc}
                                       download
-                                      className="px-6 py-3 rounded-full border border-yellow-400 text-yellow-300 font-semibold"
+                                      className="px-6 py-3 rounded-full border border-[color:var(--lx-nav-border)] bg-white/70 text-[color:var(--lx-text)] font-semibold hover:bg-white transition"
                                     >
                                       {t.downloadPdf}
                                     </a>

@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar from "@/app/components/Navbar";
 import { useSearchParams } from "next/navigation";
 
 export default function ContactoPage() {
@@ -9,9 +8,6 @@ export default function ContactoPage() {
 
   return (
     <main className="min-h-screen w-full bg-black text-white">
-      {/* NAVBAR */}
-      <Navbar />
-
       <div className="pt-32 pb-20 px-6 max-w-4xl mx-auto">
         {/* HEADER */}
         <h1 className="text-4xl font-bold text-yellow-400 text-center mb-6">
