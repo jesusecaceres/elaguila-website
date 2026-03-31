@@ -24,6 +24,7 @@ import { LocationSection } from "../../free/application/sections/LocationSection
 import { FulfillmentSection } from "../../free/application/sections/FulfillmentSection";
 import { SellerContactSection } from "../../free/application/sections/SellerContactSection";
 import { ItemDetailsSection } from "../../free/application/sections/ItemDetailsSection";
+
 type Lang = "es" | "en";
 
 /**
