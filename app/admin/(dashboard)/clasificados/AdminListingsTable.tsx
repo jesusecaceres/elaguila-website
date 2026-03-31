@@ -128,6 +128,7 @@ export default function AdminListingsTable({ listings }: { listings: Row[] }) {
               <th className="p-3 font-semibold text-[#5C4E2E]">Estado</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Owner</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Fecha</th>
+              <th className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]">En venta · vis.</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">Acciones</th>
             </tr>
           </thead>
