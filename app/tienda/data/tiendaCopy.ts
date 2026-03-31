@@ -15,7 +15,7 @@ export const tiendaCopy = {
       en: "Business cards with an online builder, flyers and large format with file upload, and promo lines quoted by humans. Leonix produces with a pro finish — call the office or message us for design or custom work.",
     },
     ctaPrimary: { es: "Ver productos", en: "Shop products" },
-    ctaSecondary: { es: "Necesito diseño", en: "Need design help" },
+    ctaSecondary: { es: "Ayuda Tienda / diseño", en: "Tienda help / design" },
     supportingLine: {
       es: "Tarjetas • Gran formato • Marketing impreso • Merch y promo con Leonix",
       en: "Cards • Large format • Marketing print • Merch & promo with Leonix",

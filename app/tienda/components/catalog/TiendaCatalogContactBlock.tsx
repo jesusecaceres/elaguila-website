@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Lang } from "../../types/tienda";
 import type { TiendaCatalogItemRow } from "@/app/lib/tienda/tiendaCatalogTypes";
 import {
@@ -7,6 +8,7 @@ import {
   LEONIX_PHONE_TEL,
   LEONIX_TIENDA_EMAIL,
 } from "../../data/leonixContact";
+import { tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 
 export function TiendaCatalogContactBlock(props: { item: TiendaCatalogItemRow; lang: Lang }) {
   const { item, lang } = props;
@@ -51,6 +53,17 @@ export function TiendaCatalogContactBlock(props: { item: TiendaCatalogItemRow; l
             : " — incluye el nombre del producto de esta página. Los pedidos también llegan a este correo."}
         </p>
       ) : null}
+      <p className="text-xs text-[rgba(255,255,255,0.55)] pt-2 border-t border-[rgba(255,255,255,0.08)]">
+        <Link
+          href={withLang(tiendaPublicContactPath(), lang)}
+          className="font-medium text-[rgba(201,168,74,0.9)] hover:text-[rgba(255,247,226,0.95)]"
+        >
+          {en ? "Tienda help & contact page" : "Página de ayuda y contacto Tienda"}
+        </Link>
+        {en
+          ? " — office-first guidance, phone, and Tienda email in one place."
+          : " — guía con oficina primero, teléfono y correo Tienda en un solo lugar."}
+      </p>
     </section>
   );
 }

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
 import { getCategoryBySlug, getFamiliesForCategory, productFamilyToSummary } from "../../data/tiendaRegistry";
 import type { Lang } from "../../types/tienda";
-import { normalizeLang } from "../../utils/tiendaRouting";
+import { normalizeLang, tiendaPublicContactPath } from "../../utils/tiendaRouting";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
 import { TiendaCategoryHero } from "../../components/TiendaCategoryHero";
 import { TiendaModeBadgeRow } from "../../components/TiendaModeBadge";
@@ -132,7 +132,7 @@ export default async function TiendaCategoryPage(props: {
               label: lang === "en" ? "Browse families" : "Ver familias",
               href: `${category.href}#families`,
             }}
-            secondary={{ label: pick(tiendaCopy.sections.finalCta.secondary, lang), href: "/contacto" }}
+            secondary={{ label: pick(tiendaCopy.sections.finalCta.secondary, lang), href: tiendaPublicContactPath() }}
           />
         </section>
       </div>

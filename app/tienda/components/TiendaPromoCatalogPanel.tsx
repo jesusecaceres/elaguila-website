@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Lang, TiendaProductFamily } from "../types/tienda";
-import { withLang } from "../utils/tiendaRouting";
+import { tiendaPublicContactPath, withLang } from "../utils/tiendaRouting";
 
 export type TiendaCatalogShowcaseTone = "promo" | "marketing";
 
@@ -18,7 +18,7 @@ export function TiendaPromoCatalogPanel(props: {
   const { lang, product, coverImageUrl, tone = "promo", secondaryCta } = props;
   const title = lang === "en" ? product.title.en : product.title.es;
   const longDesc = lang === "en" ? product.longDescription.en : product.longDescription.es;
-  const contactHref = withLang(`/contacto`, lang);
+  const contactHref = withLang(tiendaPublicContactPath(), lang);
 
   const isMarketing = tone === "marketing";
 

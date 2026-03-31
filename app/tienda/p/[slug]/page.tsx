@@ -10,7 +10,7 @@ import {
 } from "../../data/tiendaRegistry";
 import { isPrintUploadProductSlug } from "../../product-configurators/print-upload/productConfigs";
 import type { Lang } from "../../types/tienda";
-import { normalizeLang, printUploadConfigurePath, withLang } from "../../utils/tiendaRouting";
+import { normalizeLang, printUploadConfigurePath, tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
 import { TiendaProductHero } from "../../components/TiendaProductHero";
 import { TiendaSpecList } from "../../components/TiendaSpecList";
@@ -179,7 +179,7 @@ export default async function TiendaProductPage(props: {
                 </span>
               ) : null}
               <Link
-                href={withLang("/contacto", lang)}
+                href={withLang(tiendaPublicContactPath(), lang)}
                 className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.18)] px-5 py-2.5 text-sm font-semibold text-[rgba(255,247,226,0.92)] hover:bg-[rgba(255,255,255,0.08)] transition"
               >
                 {pick(tiendaCopy.sections.productPage.futureCtaButtonContact, lang)}

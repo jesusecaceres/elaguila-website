@@ -12,7 +12,7 @@ import {
 } from "../../product-configurators/business-cards/businessCardBuilderReducer";
 import { validateBusinessCardDocument } from "../../product-configurators/business-cards/validation";
 import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constants";
-import { businessCardConfigurePath, tiendaOrderPath, withLang } from "../../utils/tiendaRouting";
+import { businessCardConfigurePath, tiendaOrderPath, tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 import {
   BC_UPLOAD_DRAFT_PREFIX,
   readBusinessCardSessionRaw,
@@ -310,7 +310,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
                 {lang === "en" ? "Edit product options" : "Opciones del producto"}
               </Link>
               <Link
-                href={withLang("/contacto", lang)}
+                href={withLang(tiendaPublicContactPath(), lang)}
                 className="inline-flex items-center justify-center rounded-full border border-[rgba(201,168,74,0.35)] px-6 py-3 text-sm font-semibold text-[rgba(255,247,226,0.88)]"
               >
                 {lang === "en" ? "Order with Leonix" : "Pedir con Leonix"}

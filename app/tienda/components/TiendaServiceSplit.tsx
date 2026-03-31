@@ -57,8 +57,8 @@ export function TiendaServiceSplit(props: {
           </Link>
           <div className="text-xs text-[rgba(255,255,255,0.70)]">
             {lang === "en"
-              ? "Design + custom quotes route here (no checkout yet)."
-              : "Aquí irá el flujo de diseño/cotización (sin checkout aún)."}
+              ? "Design + custom quotes: Tienda contact page (office or phone first). No checkout yet."
+              : "Diseño y cotizaciones: página de contacto Tienda (oficina o teléfono primero). Sin checkout aún."}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Lang } from "../../types/tienda";
-import { withLang } from "../../utils/tiendaRouting";
+import { tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 
 export function BusinessCardSpecialtyPanel(props: { lang: Lang }) {
@@ -18,7 +18,7 @@ export function BusinessCardSpecialtyPanel(props: { lang: Lang }) {
       </p>
       <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:items-center">
         <Link
-          href={withLang("/contacto", lang)}
+          href={withLang(tiendaPublicContactPath(), lang)}
           className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
         >
           {bcpPick(businessCardProductCopy.specialtyContactCta, lang)}

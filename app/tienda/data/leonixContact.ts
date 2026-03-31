@@ -1,4 +1,9 @@
-/** Public Leonix contact — use for Tienda catalog / rep-assisted flows. */
+/**
+ * Tienda-specific contact (orders, quotes, specialty print, catalog assistance).
+ * Prefer office visit, then phone; email is valid but slower.
+ */
+
+export const LEONIX_TIENDA_CONTACT_PATH = "/tienda/contacto";
 
 export const LEONIX_OFFICE_ADDRESS = "871 Coleman Ave, Suite 201, San Jose, CA 95110";
 export const LEONIX_PHONE_DISPLAY = "408-303-6500";

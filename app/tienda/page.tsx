@@ -11,7 +11,7 @@ import { TiendaHowItWorks } from "./components/TiendaHowItWorks";
 import { TiendaServiceSplit } from "./components/TiendaServiceSplit";
 import { TiendaTrustStrip } from "./components/TiendaTrustStrip";
 import { TiendaCTA } from "./components/TiendaCTA";
-import { normalizeLang, withLang } from "./utils/tiendaRouting";
+import { normalizeLang, tiendaPublicContactPath, withLang } from "./utils/tiendaRouting";
 import { listTiendaCatalogItemsPublic, fetchPrimaryImageUrlForItems } from "@/app/lib/tienda/tiendaCatalogQueries";
 import { TiendaCatalogItemCard } from "./components/catalog/TiendaCatalogItemCard";
 
@@ -54,7 +54,7 @@ export default async function TiendaPage(props: {
           headline={pick(tiendaCopy.hero.headline, lang)}
           subhead={pick(tiendaCopy.hero.subhead, lang)}
           ctaPrimary={{ label: pick(tiendaCopy.hero.ctaPrimary, lang), href: "#shop" }}
-          ctaSecondary={{ label: pick(tiendaCopy.hero.ctaSecondary, lang), href: "/contacto" }}
+          ctaSecondary={{ label: pick(tiendaCopy.hero.ctaSecondary, lang), href: tiendaPublicContactPath() }}
           supportingLine={pick(tiendaCopy.hero.supportingLine, lang)}
         />
 
@@ -66,7 +66,7 @@ export default async function TiendaPage(props: {
             description={pick(tiendaCopy.sections.categories.description, lang)}
             rightSlot={
               <Link
-                href={withLang("/contacto", lang)}
+                href={withLang(tiendaPublicContactPath(), lang)}
                 className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-5 py-2.5 text-sm font-semibold text-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.10)] transition"
               >
                 {lang === "en" ? "Custom request" : "Pedido especial"}
@@ -159,7 +159,7 @@ export default async function TiendaPage(props: {
                 body: pick(tiendaCopy.sections.split.right.body, lang),
                 bullets: pick(tiendaCopy.sections.split.right.bullets, lang),
                 ctaLabel: pick(tiendaCopy.sections.split.right.cta, lang),
-                ctaHref: "/contacto",
+                ctaHref: tiendaPublicContactPath(),
               }}
             />
           </div>
@@ -186,7 +186,7 @@ export default async function TiendaPage(props: {
             title={pick(tiendaCopy.sections.finalCta.title, lang)}
             body={pick(tiendaCopy.sections.finalCta.body, lang)}
             primary={{ label: pick(tiendaCopy.sections.finalCta.primary, lang), href: "#shop" }}
-            secondary={{ label: pick(tiendaCopy.sections.finalCta.secondary, lang), href: "/contacto" }}
+            secondary={{ label: pick(tiendaCopy.sections.finalCta.secondary, lang), href: tiendaPublicContactPath() }}
           />
         </section>
       </div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Lang } from "../../types/tienda";
 import { ohPick, orderHandoffCopy } from "../../data/orderHandoffCopy";
 import { subPick, orderSubmissionCopy } from "../../data/orderSubmissionCopy";
-import { withLang } from "../../utils/tiendaRouting";
+import { tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 
 export function TiendaOrderCTA(props: {
   lang: Lang;
@@ -34,7 +34,7 @@ export function TiendaOrderCTA(props: {
           {isSubmitting ? busyLabel ?? subPick(orderSubmissionCopy.submitting, lang) : ohPick(orderHandoffCopy.ctaContinue, lang)}
         </button>
         <Link
-          href={withLang("/contacto", lang)}
+          href={withLang(tiendaPublicContactPath(), lang)}
           className="inline-flex justify-center items-center rounded-full border border-[rgba(255,255,255,0.18)] px-5 py-2.5 text-sm font-semibold hover:bg-[rgba(255,255,255,0.06)]"
         >
           {lang === "en" ? "Contact Leonix" : "Contactar Leonix"}

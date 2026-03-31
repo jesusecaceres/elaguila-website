@@ -1,5 +1,6 @@
 import type { Lang } from "../types/tienda";
 import type { TiendaOrderSource } from "../types/orderHandoff";
+import { LEONIX_TIENDA_CONTACT_PATH } from "../data/leonixContact";
 
 export function normalizeLang(raw: unknown): Lang {
   return raw === "en" ? "en" : "es";
@@ -28,6 +29,11 @@ export function tiendaCheckoutPlaceholderPath(source: TiendaOrderSource, slug: s
 /** Admin-managed catalog product detail (public). */
 export function tiendaCatalogProductPath(slug: string): string {
   return `/tienda/catalog/${slug}`;
+}
+
+/** Tienda help / quotes / orders — not the global site contact page. */
+export function tiendaPublicContactPath(): string {
+  return LEONIX_TIENDA_CONTACT_PATH;
 }
 
 export function withLang(href: string, lang: Lang): string {

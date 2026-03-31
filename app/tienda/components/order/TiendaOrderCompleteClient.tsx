@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { Lang } from "../../types/tienda";
 import type { TiendaOrderAssetReference } from "../../types/tiendaStoredAssets";
 import { subPick, orderSubmissionCopy } from "../../data/orderSubmissionCopy";
-import { withLang } from "../../utils/tiendaRouting";
+import { tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 import { TiendaOrderShell } from "./TiendaOrderShell";
 
 const REF_RE = /^LX-TND-[A-Z0-9]+-[A-F0-9]{8}$/i;
@@ -111,7 +111,7 @@ export function TiendaOrderCompleteClient(props: { orderRef: string; lang: Lang 
             {subPick(orderSubmissionCopy.successBackTienda, lang)}
           </Link>
           <Link
-            href={withLang("/contacto", lang)}
+            href={withLang(tiendaPublicContactPath(), lang)}
             className="inline-flex justify-center rounded-full border border-[rgba(255,255,255,0.18)] px-6 py-3 text-sm font-semibold hover:bg-[rgba(255,255,255,0.06)]"
           >
             {subPick(orderSubmissionCopy.successContact, lang)}

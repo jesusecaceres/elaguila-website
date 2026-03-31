@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Lang } from "../../types/tienda";
-import { withLang } from "../../utils/tiendaRouting";
+import { tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 import { printUploadBuilderCopy, puPick } from "../../data/printUploadBuilderCopy";
 
 export function PrintUploadSupportPanel(props: { lang: Lang }) {
@@ -22,7 +22,7 @@ export function PrintUploadSupportPanel(props: { lang: Lang }) {
       </p>
       <div className="mt-4 flex flex-col sm:flex-row gap-3">
         <Link
-          href={withLang("/contacto", lang)}
+          href={withLang(tiendaPublicContactPath(), lang)}
           className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition"
         >
           {puPick({ es: "Contactar Leonix", en: "Contact Leonix" }, lang)}

@@ -4,6 +4,7 @@ import { isPrintUploadProductSlug } from "../product-configurators/print-upload/
 import {
   businessCardConfigurePath,
   printUploadConfigurePath,
+  tiendaPublicContactPath,
   withLang,
 } from "./tiendaRouting";
 
@@ -48,7 +49,7 @@ export function catalogItemPrimaryAction(
   }
 
   return {
-    href: withLang("/contacto", lang),
+    href: withLang(tiendaPublicContactPath(), lang),
     label:
       item.cta_mode === "request_quote"
         ? en

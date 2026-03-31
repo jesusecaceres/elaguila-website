@@ -84,8 +84,8 @@ export const orderHandoffCopy = {
       en: "Self‑serve orders don’t include manual redesign unless you engage Leonix for design help.",
     },
     {
-      es: "Para dudas o ajustes especiales, estamos en contacto y en oficina.",
-      en: "For questions or special adjustments, reach us via contact or at the office.",
+      es: "Para dudas o ajustes especiales: primero oficina o teléfono; la página de contacto Tienda resume correo y dirección.",
+      en: "Questions or special tweaks: office or phone first; the Tienda contact page lists email and address.",
     },
   ] satisfies TiendaLocalizedLine[],
 
@@ -107,8 +107,8 @@ export const orderHandoffCopy = {
 
   checkoutPageTitle: { es: "Finalizar en “Detalles del pedido”", en: "Finish on “Order details”" } satisfies TiendaLocalizedLine,
   checkoutPageBody: {
-    es: "Los pedidos se envían desde la página de detalles del pedido (correo a Leonix). El pago con Stripe llegará después.",
-    en: "Orders are submitted from the order details page (email to Leonix). Stripe payment comes later.",
+    es: "Los pedidos se envían desde la página de detalles del pedido (correo a Leonix). El pago en línea se añadirá después.",
+    en: "Orders are submitted from the order details page (email to Leonix). Online payment will be added later.",
   } satisfies TiendaLocalizedLine,
   checkoutBack: { es: "← Ir a detalles del pedido", en: "← Go to order details" } satisfies TiendaLocalizedLine,
 } as const;
