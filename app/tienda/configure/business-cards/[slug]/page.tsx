@@ -16,13 +16,14 @@ export function generateStaticParams() {
 
 export default async function BusinessCardConfigurePage(props: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ lang?: string }>;
+  searchParams?: Promise<{ lang?: string; entry?: string }>;
 }) {
   const { slug } = await props.params;
   if (!isBuilderSlug(slug)) notFound();
 
   const sp = (await props.searchParams) ?? {};
   const lang: Lang = normalizeLang(sp.lang);
+  const designEntry: "template" | "custom" = sp.entry === "custom" ? "custom" : "template";
 
-  return <BusinessCardBuilderShell key={`${slug}-${lang}`} productSlug={slug} lang={lang} />;
+  return <BusinessCardBuilderShell key={`${slug}-${lang}-${designEntry}`} productSlug={slug} lang={lang} designEntry={designEntry} />;
 }

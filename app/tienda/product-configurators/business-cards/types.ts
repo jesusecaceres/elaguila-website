@@ -2,6 +2,10 @@
  * Leonix business card builder — document model + validation types.
  */
 
+import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
+
+export type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
+
 export type BusinessCardSide = "front" | "back";
 
 export type BusinessCardProductSlug =
@@ -106,12 +110,18 @@ export type BusinessCardApprovalChecks = {
   noRedesignExpectation: boolean;
 };
 
+export type BusinessCardDesignIntake = "template" | "custom";
+
 export type BusinessCardDocument = {
   id: string;
   /** 2 = legacy preset-only session; 3 = freeform + canvas */
   version: 2 | 3;
   productSlug: BusinessCardProductSlug;
   sidedness: BusinessCardSidedness;
+  /** How the customer entered the builder — template-first vs full custom (upload is a separate session). */
+  designIntake?: BusinessCardDesignIntake;
+  /** Active Leonix template id when designIntake is template or user picked a layout. */
+  selectedTemplateId?: BusinessCardTemplateId;
   activeSide: BusinessCardSide;
   guidesVisible: boolean;
   canvasBackground: BusinessCardCanvasBackground;

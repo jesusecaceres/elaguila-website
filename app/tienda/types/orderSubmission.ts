@@ -31,6 +31,12 @@ export type TiendaOrderAssetSummary = {
 export type BusinessCardSubmissionExtra = {
   creationMode: "design-online" | "upload-existing";
   sidedness: "one-sided" | "two-sided";
+  /** Present for design-online: template-first path vs full custom builder. */
+  designIntake?: "template" | "custom";
+  /** Leonix template slug when designIntake is template. */
+  templateSlug?: string;
+  templateTitleEs?: string;
+  templateTitleEn?: string;
   frontFieldLinesEs: string[];
   frontFieldLinesEn: string[];
   backFieldLinesEs: string[];

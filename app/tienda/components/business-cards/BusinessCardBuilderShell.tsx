@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { Lang } from "../../types/tienda";
-import type { BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
+import type { BusinessCardDesignIntake, BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
 import { createInitialBusinessCardDocument } from "../../product-configurators/business-cards/documentFactory";
 import {
   businessCardBuilderReducer,
@@ -20,6 +20,7 @@ import {
 } from "../../order/mappers/businessCardDocumentToReview";
 import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
+import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
 import { BusinessCardSideTabs } from "./BusinessCardSideTabs";
@@ -35,13 +36,17 @@ function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProductSlug; lang: Lang }) {
-  const { productSlug, lang } = props;
+export function BusinessCardBuilderShell(props: {
+  productSlug: BusinessCardProductSlug;
+  lang: Lang;
+  designEntry: BusinessCardDesignIntake;
+}) {
+  const { productSlug, lang, designEntry } = props;
   const router = useRouter();
   const [doc, dispatch] = useReducer(
     businessCardBuilderReducer,
     undefined,
-    () => createInitialBusinessCardDocument(productSlug, lang)
+    () => createInitialBusinessCardDocument(productSlug, lang, { designIntake: designEntry })
   );
   const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
   const [logoInspectorActive, setLogoInspectorActive] = useState(false);
@@ -219,6 +224,23 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
               {doc.guidesVisible ? (lang === "en" ? "On" : "Sí") : lang === "en" ? "Off" : "No"}
             </button>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-4 py-3 sm:px-5 sm:py-4 mb-2">
+          <p className="text-sm text-[rgba(255,255,255,0.75)]">
+            {doc.designIntake === "custom"
+              ? bcpPick(businessCardProductCopy.designIntakeCustomHint, lang)
+              : bcpPick(businessCardProductCopy.designIntakeTemplateHint, lang)}
+          </p>
+          {doc.designIntake === "template" ? (
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" })}
+              className="mt-3 text-sm font-semibold text-[rgba(201,168,74,0.95)] underline-offset-4 hover:underline"
+            >
+              {bcpPick(businessCardProductCopy.switchToCustomCta, lang)}
+            </button>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">

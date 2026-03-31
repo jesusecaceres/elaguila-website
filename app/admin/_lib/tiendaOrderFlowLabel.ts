@@ -7,8 +7,13 @@ export function tiendaOrderFlowLabel(payload: unknown): string {
   if (p.v !== 2) return "—";
   if (p.source === "business-cards") {
     const m = p.businessCardExtra?.creationMode;
+    const di = p.businessCardExtra?.designIntake;
     if (m === "upload-existing") return "BC · uploaded";
-    if (m === "design-online") return "BC · designed";
+    if (m === "design-online") {
+      if (di === "template") return "BC · template";
+      if (di === "custom") return "BC · custom";
+      return "BC · designed";
+    }
     return "Business cards";
   }
   if (p.source === "print-upload") return "Print upload";

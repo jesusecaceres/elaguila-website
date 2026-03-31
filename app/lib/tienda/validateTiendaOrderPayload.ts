@@ -176,6 +176,22 @@ export function validateTiendaOrderPayload(body: unknown):
       },
     };
 
+    if (creationMode === "design-online") {
+      const di = x.designIntake;
+      if (di === "custom" || di === "template") {
+        payload.businessCardExtra.designIntake = di;
+      }
+      const ts = trimStr(x.templateSlug, 120);
+      if (ts) payload.businessCardExtra.templateSlug = ts;
+      const tte = trimStr(x.templateTitleEs, 200);
+      if (tte) payload.businessCardExtra.templateTitleEs = tte;
+      const ttn = trimStr(x.templateTitleEn, 200);
+      if (ttn) payload.businessCardExtra.templateTitleEn = ttn;
+      if (typeof x.designOnlineExportPixelRatio === "number" && Number.isFinite(x.designOnlineExportPixelRatio)) {
+        payload.businessCardExtra.designOnlineExportPixelRatio = x.designOnlineExportPixelRatio;
+      }
+    }
+
     if (creationMode === "upload-existing") {
       const ua = x.uploadArtwork as Record<string, unknown> | undefined;
       const uf = ua?.front as Record<string, unknown> | undefined;

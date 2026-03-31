@@ -1,3 +1,7 @@
+import {
+  DEFAULT_BUSINESS_CARD_TEMPLATE_ID,
+  isBusinessCardTemplateId,
+} from "../product-configurators/business-cards/businessCardTemplateCatalog";
 import type {
   BusinessCardDocument,
   BusinessCardProductSlug,
@@ -48,11 +52,17 @@ function toSideV3(stored: BusinessCardSessionPayloadV3Design["front"]): Business
 }
 
 function documentFromV3Design(slug: string, raw: BusinessCardSessionPayloadV3Design): BusinessCardDocument {
+  const tid =
+    raw.selectedTemplateId && isBusinessCardTemplateId(raw.selectedTemplateId)
+      ? raw.selectedTemplateId
+      : DEFAULT_BUSINESS_CARD_TEMPLATE_ID;
   return {
     id: `tienda-session-${slug}`,
     version: 3,
     productSlug: raw.productSlug as BusinessCardProductSlug,
     sidedness: raw.sidedness,
+    designIntake: raw.designIntake === "custom" ? "custom" : "template",
+    selectedTemplateId: tid,
     activeSide: "front",
     guidesVisible: false,
     canvasBackground: raw.canvasBackground,

@@ -99,9 +99,19 @@ export function buildTiendaOrderEmailBodies(
       x.creationMode === "upload-existing"
         ? "Creation mode / Modo: uploaded artwork (original files to Blob)"
         : "Creation mode / Modo: design online (builder + PNG reference exports)";
+    const intakeLine =
+      x.creationMode === "design-online" && x.designIntake
+        ? `Design intake / Flujo: ${x.designIntake === "template" ? "template library" : "custom builder"}`
+        : null;
+    const templateLine =
+      x.creationMode === "design-online" && x.templateSlug
+        ? `Template / Plantilla: ${x.templateSlug}${x.templateTitleEn ? ` (${x.templateTitleEn})` : ""}`
+        : null;
     productBlock = [
       "--- Business cards ---",
       modeLine,
+      ...(intakeLine ? [intakeLine] : []),
+      ...(templateLine ? [templateLine] : []),
       `Sidedness / Lados: ${x.sidedness}`,
       "",
       "Front field summary / Resumen frente (ES):",

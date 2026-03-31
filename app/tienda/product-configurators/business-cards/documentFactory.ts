@@ -1,13 +1,17 @@
 import type { Lang } from "../../types/tienda";
+import { DEFAULT_BUSINESS_CARD_TEMPLATE_ID } from "./businessCardTemplateCatalog";
 import type {
   BusinessCardCanvasBackground,
+  BusinessCardDesignIntake,
   BusinessCardDocument,
   BusinessCardImageBlock,
   BusinessCardProductSlug,
   BusinessCardSideState,
+  BusinessCardTemplateId,
   BusinessCardTextFields,
   BusinessCardTextLayout,
 } from "./types";
+import { getTemplateCanvasBackground, getTemplateLineVisibilityForSide } from "./businessCardTemplateLayouts";
 import {
   getBusinessCardTemplateBack,
   getBusinessCardTemplateFront,
@@ -59,13 +63,12 @@ function emptyLogo(): BusinessCardImageBlock {
   };
 }
 
-const DEFAULT_BG: BusinessCardCanvasBackground = { kind: "solid", color: "#fffdf7" };
-
-function sideFromTemplateFront(lang: Lang): BusinessCardSideState {
-  const t = getBusinessCardTemplateFront("modern-centered", lang);
+function sideFromTemplateFront(lang: Lang, templateId: BusinessCardTemplateId): BusinessCardSideState {
+  const t = getBusinessCardTemplateFront(templateId, lang);
+  const lineVisible = getTemplateLineVisibilityForSide("front", templateId);
   const base: BusinessCardSideState = {
     fields: t.fields,
-    textLayout: defaultTextLayout(),
+    textLayout: { ...defaultTextLayout(), lineVisible },
     logo: emptyLogo(),
     textBlocks: t.blocks,
     logoGeom: t.logoGeom,
@@ -73,11 +76,12 @@ function sideFromTemplateFront(lang: Lang): BusinessCardSideState {
   return syncSideBlocksFromFields(syncFieldsFromBlocks(base));
 }
 
-function sideFromTemplateBack(lang: Lang): BusinessCardSideState {
-  const t = getBusinessCardTemplateBack(lang);
+function sideFromTemplateBack(lang: Lang, templateId: BusinessCardTemplateId): BusinessCardSideState {
+  const t = getBusinessCardTemplateBack(templateId, lang);
+  const lineVisible = getTemplateLineVisibilityForSide("back", templateId);
   const base: BusinessCardSideState = {
     fields: t.fields,
-    textLayout: { ...defaultTextLayout(), groupPosition: "center" },
+    textLayout: { ...defaultTextLayout(), groupPosition: "center", lineVisible },
     logo: { ...emptyLogo(), visible: false, position: "center" },
     textBlocks: t.blocks,
     logoGeom: t.logoGeom,
@@ -97,23 +101,29 @@ function emptySide(): BusinessCardSideState {
 
 export function createInitialBusinessCardDocument(
   productSlug: BusinessCardProductSlug,
-  lang: Lang
+  lang: Lang,
+  opts?: { designIntake?: BusinessCardDesignIntake; templateId?: BusinessCardTemplateId }
 ): BusinessCardDocument {
+  const templateId = opts?.templateId ?? DEFAULT_BUSINESS_CARD_TEMPLATE_ID;
+  const designIntake: BusinessCardDesignIntake = opts?.designIntake ?? "template";
   const two = productSlug === "two-sided-business-cards";
+  const canvasBackground: BusinessCardCanvasBackground = getTemplateCanvasBackground(templateId);
   return {
     id: `bc-${Date.now().toString(36)}`,
     version: 3,
     productSlug,
     sidedness: two ? "two-sided" : "one-sided",
+    designIntake,
+    selectedTemplateId: templateId,
     activeSide: "front",
     guidesVisible: true,
-    canvasBackground: DEFAULT_BG,
+    canvasBackground,
     textNudgeX: 0,
     textNudgeY: 0,
     logoNudgeX: 0,
     logoNudgeY: 0,
-    front: sideFromTemplateFront(lang),
-    back: two ? sideFromTemplateBack(lang) : emptySide(),
+    front: sideFromTemplateFront(lang, templateId),
+    back: two ? sideFromTemplateBack(lang, templateId) : emptySide(),
     approval: {
       spellingReviewed: false,
       layoutReviewed: false,

@@ -12,6 +12,7 @@ import type {
   ScalePreset,
   TextFieldRole,
 } from "./types";
+import type { BusinessCardDesignIntake } from "./types";
 import type { BusinessCardTemplateId } from "./templates";
 import { applyBusinessCardTemplateToDocument, syncFieldsFromBlocks, syncSideBlocksFromFields } from "./templates";
 
@@ -36,6 +37,7 @@ export type BusinessCardBuilderAction =
   | { type: "SET_APPROVAL"; patch: Partial<BusinessCardApprovalChecks> }
   | { type: "SET_CANVAS_BACKGROUND"; payload: BusinessCardCanvasBackground }
   | { type: "APPLY_TEMPLATE"; templateId: BusinessCardTemplateId; lang: Lang }
+  | { type: "SET_DESIGN_INTAKE"; designIntake: BusinessCardDesignIntake }
   | { type: "SET_TEXT_BLOCK"; side: BusinessCardSide; id: string; patch: Partial<BusinessCardTextBlock> }
   | { type: "ADD_CUSTOM_TEXT_BLOCK"; side: BusinessCardSide; lang: Lang }
   | { type: "REMOVE_TEXT_BLOCK"; side: BusinessCardSide; id: string }
@@ -142,8 +144,10 @@ export function businessCardBuilderReducer(
       return { ...state, approval: { ...state.approval, ...action.patch } };
     case "SET_CANVAS_BACKGROUND":
       return { ...state, canvasBackground: action.payload };
+    case "SET_DESIGN_INTAKE":
+      return { ...state, designIntake: action.designIntake };
     case "APPLY_TEMPLATE": {
-      const { front, back } = applyBusinessCardTemplateToDocument(
+      const { front, back, canvasBackground } = applyBusinessCardTemplateToDocument(
         action.templateId,
         action.lang,
         state.sidedness === "two-sided",
@@ -155,6 +159,9 @@ export function businessCardBuilderReducer(
         version: 3,
         front,
         back,
+        canvasBackground,
+        designIntake: "template",
+        selectedTemplateId: action.templateId,
         textNudgeX: 0,
         textNudgeY: 0,
         logoNudgeX: 0,

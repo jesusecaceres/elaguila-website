@@ -231,6 +231,24 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
                   : "Designed online (builder + reference PNGs)"}
               </p>
             ) : null}
+            {payload?.businessCardExtra?.creationMode === "design-online" &&
+            payload.businessCardExtra.designIntake ? (
+              <p className="text-sm">
+                <strong>Design path:</strong>{" "}
+                {payload.businessCardExtra.designIntake === "template"
+                  ? "Template library (guided)"
+                  : "Custom builder (advanced)"}
+                {payload.businessCardExtra.templateSlug ? (
+                  <>
+                    {" "}
+                    · <span className="font-mono text-xs">{payload.businessCardExtra.templateSlug}</span>
+                    {payload.businessCardExtra.templateTitleEn ? (
+                      <span className="text-[#7A7164]"> — {payload.businessCardExtra.templateTitleEn}</span>
+                    ) : null}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
             {payload?.businessCardExtra?.designOnlineExportPixelRatio != null &&
             payload.businessCardExtra.creationMode === "design-online" ? (
               <p className="text-xs text-[#7A7164]">

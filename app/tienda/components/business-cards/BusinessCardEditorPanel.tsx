@@ -10,7 +10,12 @@ import type {
 } from "../../product-configurators/business-cards/types";
 import { LOGO_ACCEPT, LOGO_MAX_MB, TEXT_FIELD_MAX } from "../../product-configurators/business-cards/constants";
 import type { BusinessCardBuilderAction } from "../../product-configurators/business-cards/businessCardBuilderReducer";
-import { BUSINESS_CARD_TEMPLATE_IDS } from "../../product-configurators/business-cards/templates";
+import {
+  BUSINESS_CARD_TEMPLATE_IDS,
+  BUSINESS_CARD_TEMPLATE_LIBRARY,
+  TEMPLATE_FAMILY_ORDER,
+  templateFamilyLabel,
+} from "../../product-configurators/business-cards/businessCardTemplateCatalog";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 import { BusinessCardPositionPicker } from "./BusinessCardPositionPicker";
@@ -91,25 +96,54 @@ export function BusinessCardEditorPanel(props: {
         <p className="mt-1.5 text-[11px] text-[color:rgba(61,52,40,0.58)] leading-snug">
           {bcpPick(businessCardProductCopy.templatesSubheading, lang)}
         </p>
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {BUSINESS_CARD_TEMPLATE_IDS.map((tid) => (
-            <button
-              key={tid}
-              type="button"
-              onClick={() => dispatch({ type: "APPLY_TEMPLATE", templateId: tid, lang })}
-              className="group rounded-2xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:border-[color:rgba(201,168,74,0.65)] hover:shadow-md active:scale-[0.99]"
-            >
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[color:rgba(201,168,74,0.9)]">
-                {String(BUSINESS_CARD_TEMPLATE_IDS.indexOf(tid) + 1).padStart(2, "0")}
-              </span>
-              <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)] group-hover:text-[color:#5c4f2e]">
-                {bcpPick(businessCardProductCopy.templateLabels[tid], lang)}
-              </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-[color:rgba(61,52,40,0.58)]">
-                {bcpPick(businessCardProductCopy.templateDescriptions[tid], lang)}
-              </p>
-            </button>
-          ))}
+        <div className="mt-3 space-y-5">
+          {TEMPLATE_FAMILY_ORDER.map((fam) => {
+            const ids = BUSINESS_CARD_TEMPLATE_IDS.filter((id) => BUSINESS_CARD_TEMPLATE_LIBRARY[id].family === fam);
+            if (ids.length === 0) return null;
+            return (
+              <div key={fam} className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:rgba(61,52,40,0.45)]">
+                  {templateFamilyLabel(fam, lang)}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {ids.map((tid) => {
+                    const meta = BUSINESS_CARD_TEMPLATE_LIBRARY[tid];
+                    const active = doc.selectedTemplateId === tid;
+                    return (
+                      <button
+                        key={tid}
+                        type="button"
+                        onClick={() => dispatch({ type: "APPLY_TEMPLATE", templateId: tid, lang })}
+                        className={[
+                          "group rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-[color:rgba(201,168,74,0.65)] hover:shadow-md active:scale-[0.99]",
+                          active
+                            ? "border-[color:var(--lx-gold)] ring-2 ring-[rgba(201,168,74,0.35)]"
+                            : "border-black/10",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-[color:rgba(201,168,74,0.9)]">
+                            {meta.styleFamily}
+                          </span>
+                          {meta.featured ? (
+                            <span className="text-[9px] font-semibold uppercase text-[color:#6b5410]">
+                              {lang === "en" ? "Featured" : "Destacado"}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)] group-hover:text-[color:#5c4f2e]">
+                          {bcpPick(meta.title, lang)}
+                        </p>
+                        <p className="mt-1 text-[11px] leading-relaxed text-[color:rgba(61,52,40,0.58)]">
+                          {bcpPick(meta.subtitle, lang)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

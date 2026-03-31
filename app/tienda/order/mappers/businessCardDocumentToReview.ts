@@ -1,4 +1,5 @@
 import { BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO } from "../../product-configurators/business-cards/constants";
+import { getBusinessCardTemplateMeta, isBusinessCardTemplateId } from "../../product-configurators/business-cards/businessCardTemplateCatalog";
 import type { BusinessCardCanvasBackground, BusinessCardTextLayout, TextFieldRole } from "../../product-configurators/business-cards/types";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
 import type { BusinessCardSubmissionExtra } from "../../types/orderSubmission";
@@ -56,6 +57,9 @@ export type BusinessCardSessionPayloadV3Design = {
   productSlug: string;
   sidedness: "one-sided" | "two-sided";
   canvasBackground: BusinessCardCanvasBackground;
+  /** Template-first vs advanced builder — used for fulfillment notes. */
+  designIntake?: "template" | "custom";
+  selectedTemplateId?: string;
   textNudgeX?: number;
   textNudgeY?: number;
   logoNudgeX?: number;
@@ -316,6 +320,22 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
       ? { es: "Logo en frente", en: "Logo on front" }
       : { es: "Sin logo al frente", en: "No logo on front" }
   );
+  const intake = raw.designIntake === "custom" ? "custom" : "template";
+  if (intake === "template") {
+    frontMeta.push(
+      raw.selectedTemplateId
+        ? {
+            es: `Flujo: plantilla Leonix · ${raw.selectedTemplateId}`,
+            en: `Flow: Leonix template · ${raw.selectedTemplateId}`,
+          }
+        : { es: "Flujo: plantilla Leonix", en: "Flow: Leonix template" }
+    );
+  } else {
+    frontMeta.push({
+      es: "Flujo: constructor avanzado (custom)",
+      en: "Flow: advanced builder (custom)",
+    });
+  }
   frontMeta.push({ es: "Origen: diseño en línea (constructor v3)", en: "Source: design online (builder v3)" });
   frontMeta.push({
     es: `Al enviar: PNG de referencia (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× vista). No es PDF de prensa ni CMYK.`,
@@ -450,16 +470,22 @@ function extractExtraDesign(
   sidedness: "one-sided" | "two-sided",
   front: StoredSidePayload | StoredSidePayloadV3,
   back: StoredSidePayload | StoredSidePayloadV3,
-  approval: BusinessCardApprovalSnapshot
+  approval: BusinessCardApprovalSnapshot,
+  designMeta?: { designIntake?: "template" | "custom"; selectedTemplateId?: string }
 ): BusinessCardSubmissionExtra {
   const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
   const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
   const frontLines = sideTextSummary(front, frontLabel);
   const backLines = sidedness === "two-sided" ? sideTextSummary(back, backLabel) : [];
 
+  const intake = designMeta?.designIntake === "custom" ? "custom" : "template";
+  const slug = designMeta?.selectedTemplateId?.trim();
+
   return {
     creationMode: "design-online",
     sidedness,
+    designIntake: intake,
+    templateSlug: intake === "template" && slug ? slug : undefined,
     frontFieldLinesEs: frontLines.map((l) => l.es),
     frontFieldLinesEn: frontLines.map((l) => l.en),
     backFieldLinesEs: backLines.map((l) => l.es),
@@ -521,7 +547,10 @@ export function extractBusinessCardSubmissionExtra(
   }
 
   if (isBusinessCardSessionDesign(raw)) {
-    return extractExtraDesign(expectedSlug, raw.sidedness, raw.front, raw.back, raw.approval);
+    return extractExtraDesign(expectedSlug, raw.sidedness, raw.front, raw.back, raw.approval, {
+      designIntake: raw.designIntake,
+      selectedTemplateId: raw.selectedTemplateId,
+    });
   }
 
   if (isBusinessCardSessionPayloadV2(raw)) {
