@@ -34,8 +34,8 @@ export const tiendaCategories: TiendaCategory[] = [
       en: "Design online with the Leonix builder—or upload a file later if your workflow needs it.",
     },
     supportMessage: {
-      es: "¿Marca corporativa avanzada o cantidades especiales? Escríbenos—we’ll align options.",
-      en: "Advanced brand work or special quantities? Contact us—we’ll align options.",
+      es: "¿Marca corporativa avanzada o cantidades especiales? Llama, visita la oficina o escríbenos — alineamos opciones.",
+      en: "Advanced brand work or special quantities? Call, visit the office, or email — we’ll align options.",
     },
     howOrderingWorks: {
       es: "Elige una familia (una cara o dos), abre el configurador cuando esté activo, arma y aprueba tu tarjeta, luego completa la compra.",
@@ -178,8 +178,8 @@ export const tiendaCategories: TiendaCategory[] = [
     eyebrow: { es: "Regalos", en: "Giveaways" },
     title: { es: "Productos Promocionales", en: "Promo Products" },
     description: {
-      es: "Merch para eventos y clientes. Ideal para fidelización.",
-      en: "Merch for events and clients. Built for retention.",
+      es: "Merch y regalos de marca para eventos y clientes — catálogo tipo showroom con cotización Leonix.",
+      en: "Branded merch and giveaways for events and clients — showroom-style catalog with Leonix quoting.",
     },
     href: "/tienda/c/promo-products",
     accent: "gold",
@@ -211,8 +211,8 @@ export const tiendaCategories: TiendaCategory[] = [
     eyebrow: { es: "Kit", en: "Kit" },
     title: { es: "Materiales de Marketing", en: "Marketing Materials" },
     description: {
-      es: "Postcards, menús, folletos y piezas de campaña en un solo lugar.",
-      en: "Postcards, menus, handouts, and campaign pieces in one place.",
+      es: "Postales, mailers y piezas de campaña — impresión con criterio editorial y coordinación con Leonix.",
+      en: "Postcards, mailers, and campaign print — editorial-quality pieces coordinated with Leonix.",
     },
     href: "/tienda/c/marketing-materials",
     accent: "stone",

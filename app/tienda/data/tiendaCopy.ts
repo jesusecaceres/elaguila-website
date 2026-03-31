@@ -11,14 +11,14 @@ export const tiendaCopy = {
       en: "Premium print for your brand.",
     },
     subhead: {
-      es: "Elige tu producto, sube tu archivo listo para imprimir y Leonix lo produce con acabado profesional. ¿Necesitas diseño o una cotización especial? Te ayudamos.",
-      en: "Choose your product, upload print‑ready artwork, and Leonix produces it with a professional finish. Need design help or a custom quote? We’ve got you.",
+      es: "Tarjetas con constructor en línea, volantes y gran formato con subida de archivos, y catálogo promo con cotización humana. Leonix produce con acabado profesional — llama a la oficina o escríbenos si necesitas diseño o algo a medida.",
+      en: "Business cards with an online builder, flyers and large format with file upload, and promo lines quoted by humans. Leonix produces with a pro finish — call the office or message us for design or custom work.",
     },
     ctaPrimary: { es: "Ver productos", en: "Shop products" },
     ctaSecondary: { es: "Necesito diseño", en: "Need design help" },
     supportingLine: {
-      es: "Listo para subir archivos • Materiales de marketing • Producción confiable para negocios",
-      en: "Upload‑ready • Marketing materials • Reliable production for businesses",
+      es: "Tarjetas • Gran formato • Marketing impreso • Merch y promo con Leonix",
+      en: "Cards • Large format • Marketing print • Merch & promo with Leonix",
     },
   },
   sections: {
@@ -34,16 +34,16 @@ export const tiendaCopy = {
       eyebrow: { es: "Listo para ordenar", en: "Ready to order" },
       title: { es: "Más vendidos", en: "Best sellers" },
       description: {
-        es: "Productos estándar, orden fácil, y flujo listo para subir arte cuando activemos el configurador.",
-        en: "Standard products, easy ordering, and an upload‑ready flow once configurators go live.",
+        es: "Productos con rutas de pedido claras: constructor de tarjetas, subida de archivos para impresión, y referencias de precio en la revisión del pedido.",
+        en: "Products with clear ordering paths: a card builder, file upload for print jobs, and reference pricing on order review.",
       },
     },
     howItWorks: {
       eyebrow: { es: "Flujo simple", en: "Simple flow" },
       title: { es: "Cómo funciona", en: "How it works" },
       description: {
-        es: "Compra en línea cuando tu archivo está listo. Si no, te ayudamos con diseño y ajustes.",
-        en: "Order online when your file is ready. If not, we can help with design and adjustments.",
+        es: "Arma tu pedido en la Tienda; Leonix revisa y confirma antes de producción. Si falta diseño o hay algo especial, mejor llamar a la oficina.",
+        en: "Build your order in the store; Leonix reviews and confirms before production. If you need design or something special, calling the office is fastest.",
       },
       steps: [
         {
@@ -56,8 +56,8 @@ export const tiendaCopy = {
         {
           title: { es: "Sube tu arte", en: "Upload your artwork" },
           body: {
-            es: "Recomendado: archivo listo para imprimir. Pronto tendrás guía y verificación.",
-            en: "Print‑ready is best. Soon you’ll have guided upload and checks.",
+            es: "Sube PDF u otros formatos donde el configurador esté activo; Leonix validará sangrado y resolución en la revisión.",
+            en: "Upload PDFs or other accepted formats where the configurator is live; Leonix validates bleed and resolution at review.",
           },
         },
         {

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTiendaCatalogItemPublicBySlug } from "@/app/lib/tienda/tiendaCatalogQueries";
 import { catalogItemPriceSummary } from "@/app/lib/tienda/tiendaCatalogPricing";
 import type { Lang } from "../../types/tienda";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
+import { tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
 import { normalizeLang, withLang } from "../../utils/tiendaRouting";
 import { catalogItemPrimaryAction } from "../../utils/tiendaCatalogLinks";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
@@ -52,9 +54,11 @@ export default async function TiendaCatalogProductPage(props: {
   const priceLine = catalogItemPriceSummary(item, lang);
   const category = getCategoryBySlug(item.category_slug);
   const categoryHref = category?.href ?? "/tienda";
-  const primary = catalogItemPrimaryAction(item, lang);
+  const primaryCta = catalogItemPrimaryAction(item, lang);
 
   const gallery = item.images.slice().sort((a, b) => a.sort_order - b.sort_order);
+  const fallbackHero = tiendaCatalogFallbackImage(item.category_slug);
+  const heroImage = gallery[0];
 
   return (
     <main className="min-h-screen bg-[#070708] text-white">
@@ -81,20 +85,76 @@ export default async function TiendaCatalogProductPage(props: {
           ) : null}
         </header>
 
-        {gallery.length > 0 ? (
-          <section className="mt-10 grid gap-4 sm:grid-cols-2">
-            {gallery.map((im) => (
-              <figure key={im.id} className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.08)] bg-black/20">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={im.image_url}
-                  alt={lang === "en" ? im.alt_en || title : im.alt_es || title}
-                  className="w-full object-cover max-h-[420px]"
-                />
+        <section className="mt-10 space-y-4">
+          {heroImage ? (
+            <>
+              <figure className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)] bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                <div className="relative aspect-[16/10] w-full max-h-[min(560px,78vh)]">
+                  <Image
+                    src={heroImage.image_url}
+                    alt={lang === "en" ? heroImage.alt_en || title : heroImage.alt_es || title}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                    sizes="(max-width: 1152px) 100vw, 1100px"
+                    priority
+                  />
+                </div>
+                {gallery.length > 1 ? (
+                  <figcaption className="border-t border-[rgba(255,255,255,0.08)] px-4 py-2 text-[11px] text-[rgba(255,255,255,0.5)]">
+                    {lang === "en"
+                      ? `${gallery.length} photos — swipe thumbnails below on mobile.`
+                      : `${gallery.length} fotos — desliza miniaturas abajo en móvil.`}
+                  </figcaption>
+                ) : null}
               </figure>
-            ))}
-          </section>
-        ) : null}
+              {gallery.length > 1 ? (
+                <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                  {gallery.map((im) => {
+                    const active = im.id === heroImage.id;
+                    return (
+                      <div
+                        key={im.id}
+                        className={[
+                          "relative h-[72px] w-[104px] shrink-0 overflow-hidden rounded-xl border bg-black/30 transition",
+                          active
+                            ? "border-[rgba(201,168,74,0.65)] ring-2 ring-[rgba(201,168,74,0.35)]"
+                            : "border-[rgba(255,255,255,0.12)] opacity-[0.82]",
+                        ].join(" ")}
+                      >
+                        <Image
+                          src={im.image_url}
+                          alt={lang === "en" ? im.alt_en || title : im.alt_es || title}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                          sizes="120px"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <figure className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)] bg-black/30">
+              <div className="relative aspect-[16/10] w-full max-h-[480px]">
+                <Image
+                  src={fallbackHero}
+                  alt={lang === "en" ? `${title} — representative preview` : `${title} — vista representativa`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1152px) 100vw, 1100px"
+                />
+              </div>
+              <figcaption className="border-t border-[rgba(255,255,255,0.08)] px-4 py-3 text-xs leading-relaxed text-[rgba(255,255,255,0.55)]">
+                {lang === "en"
+                  ? "Representative scene for this category — add product photography anytime in the admin catalog."
+                  : "Escena representativa para esta categoría — puedes añadir fotografía del producto en el catálogo admin."}
+              </figcaption>
+            </figure>
+          )}
+        </section>
 
         <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-[rgba(255,255,255,0.75)]">
           {longDesc.split("\n").map((p, i) => (
@@ -104,10 +164,10 @@ export default async function TiendaCatalogProductPage(props: {
 
         <section className="mt-10 flex flex-col sm:flex-row gap-3">
           <Link
-            href={primary.href}
+            href={primaryCta.href}
             className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-6 py-3 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
           >
-            {primary.label}
+            {primaryCta.label}
           </Link>
         </section>
 

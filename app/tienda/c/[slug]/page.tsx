@@ -86,10 +86,10 @@ export default async function TiendaCategoryPage(props: {
             <h2 className="text-xl font-semibold tracking-tight text-white">
               {lang === "en" ? "Catalog highlights" : "Destacados del catálogo"}
             </h2>
-            <p className="mt-2 text-sm text-[rgba(255,255,255,0.62)] max-w-3xl">
+            <p className="mt-2 text-sm text-[rgba(255,255,255,0.66)] max-w-3xl leading-relaxed">
               {lang === "en"
-                ? "Representative items Leonix can source for your brand. Details, timing, and fulfillment paths vary—open a product for the exact CTA."
-                : "Artículos representativos que Leonix puede surtir para tu marca. Detalles, tiempos y rutas de surtido varían—abre un producto para el CTA exacto."}
+                ? "Each tile is meant to look like a real product entry: photo, summary, and the right next step (self‑serve or quote). Open any item for full detail."
+                : "Cada tarjeta debe sentirse como producto real: foto, resumen y el siguiente paso correcto (auto‑servicio o cotización). Abre cualquier artículo para el detalle."}
             </p>
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               {catalogItems.map((item) => (

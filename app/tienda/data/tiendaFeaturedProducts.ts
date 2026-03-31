@@ -26,6 +26,21 @@ export const tiendaFeaturedProducts: TiendaFeaturedProduct[] = [
     customHelpAvailable: true,
   },
   {
+    id: "fp-brochures",
+    slug: "brochures-standard",
+    title: { es: "Brochures", en: "Brochures" },
+    description: {
+      es: "Piezas plegadas con impacto editorial para ventas y servicios.",
+      en: "Folded pieces with editorial impact for sales and services.",
+    },
+    startingPrice: { amount: 165, currency: "USD" },
+    badge: { es: "Sube tu archivo", en: "Upload file" },
+    categorySlug: "brochures",
+    href: "/tienda/p/brochures-standard",
+    uploadReady: true,
+    customHelpAvailable: true,
+  },
+  {
     id: "fp-postcards",
     slug: "postcards-standard",
     title: { es: "Postcards", en: "Postcards" },

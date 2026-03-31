@@ -102,8 +102,8 @@ export default async function TiendaPage(props: {
               title={lang === "en" ? "Featured sourced & promo picks" : "Surtido promo y destacados"}
               description={
                 lang === "en"
-                  ? "Curated items from the Leonix admin catalog—perfect for teams that want a rep-assisted or quote path."
-                  : "Artículos curados desde el catálogo admin de Leonix—ideal para equipos con ruta de cotización o asistencia."
+                  ? "Sourced or specialty picks from the Leonix admin catalog — every card shows imagery and honest pricing notes."
+                  : "Surtido especial desde el catálogo admin de Leonix — cada tarjeta muestra imagen y notas honestas de precio."
               }
             />
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
