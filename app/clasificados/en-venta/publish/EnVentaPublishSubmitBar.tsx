@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
+import { clearEnVentaPublishTempState } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import { buildEnVentaPublishSuccessUrls } from "@/app/clasificados/en-venta/shared/constants/enVentaResultsRoutes";
 import { publishEnVentaFromDraft } from "./enVentaPublishFromDraft";
 
@@ -62,6 +64,8 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
         setErr(res.error);
         return;
       }
+      clearEnVentaPublishTempState();
+      clearAllClassifiedsDrafts();
       setPublished(true);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Error");

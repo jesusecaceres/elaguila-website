@@ -93,3 +93,22 @@ export async function getMuxUploadAndAsset(uploadId: string) {
   const asset = await mux.video.assets.retrieve(assetId);
   return { upload, asset };
 }
+
+/** Best-effort delete for listing teardown / abandoned uploads (404 is OK). */
+export async function deleteMuxAssetsBestEffort(assetIds: string[]): Promise<void> {
+  const unique = [...new Set(assetIds.map((s) => String(s ?? "").trim()).filter(Boolean))].slice(0, 16);
+  if (!unique.length) return;
+  let mux: ReturnType<typeof createMuxClient>;
+  try {
+    mux = createMuxClient();
+  } catch {
+    return;
+  }
+  for (const id of unique) {
+    try {
+      await mux.video.assets.delete(id);
+    } catch {
+      /* missing / already deleted */
+    }
+  }
+}

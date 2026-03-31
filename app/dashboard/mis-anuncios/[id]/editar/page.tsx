@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../components/Navbar";
+import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "../../../../lib/supabase/browser";
 
 type Lang = "es" | "en";
@@ -354,6 +355,9 @@ async function uploadImages() {
 
     setBusyAction("delete");
     setError(null);
+
+    const row = listing as { mux_asset_id?: string | null; mux_asset_id_2?: string | null } | null;
+    await deleteMuxAssetsForListingRecordClient([row?.mux_asset_id, row?.mux_asset_id_2]);
 
     const { error: dErr } = await supabase.from("listings").delete().eq("id", id);
 

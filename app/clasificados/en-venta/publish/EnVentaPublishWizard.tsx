@@ -1,5 +1,7 @@
 "use client";
 
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+
 const PREVIEW_CTA = {
   es: {
     title: "Antes de publicar, revisa tu anuncio",
@@ -38,6 +40,7 @@ export function EnVentaPreviewBeforePublishCta({ lang, variant = "light", onBefo
 
   function goPreview(plan: "free" | "pro", href: string) {
     onBeforePreview?.(plan);
+    markPublishFlowOpeningPreview();
     window.location.assign(href);
   }
 

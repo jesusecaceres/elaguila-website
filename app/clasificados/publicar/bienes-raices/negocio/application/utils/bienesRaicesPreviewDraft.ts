@@ -23,6 +23,20 @@ function scheduleClearReturnMemory() {
   }, 2000);
 }
 
+/** Drop BRT Negocio preview handoff keys + in-memory Strict Mode cache (leaving flow / logout). */
+export function clearBienesRaicesNegocioPublishTempState(): void {
+  if (previewReturnTimer) clearTimeout(previewReturnTimer);
+  previewReturnTimer = null;
+  previewReturnMemory = null;
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY);
+    sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_RETURN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveBienesRaicesNegocioPreviewDraft(state: BienesRaicesNegocioFormState): void {
   if (typeof window === "undefined") return;
   try {

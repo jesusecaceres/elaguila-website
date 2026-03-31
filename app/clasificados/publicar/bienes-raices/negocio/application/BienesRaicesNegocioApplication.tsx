@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
@@ -8,6 +7,14 @@ import {
   BR_PREVIEW_NEGOCIO,
   BR_PUBLICAR_HUB,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import {
+  abandonLeonixPublishFlowClient,
+  collectMuxAssetIdsFromNegocioState,
+  confirmLeavePublishFlow,
+  markPublishFlowOpeningPreview,
+  negocioFormHasProgress,
+  useLeonixPublishLeaveGuard,
+} from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   saveBienesRaicesNegocioPreviewDraft,
   saveBienesRaicesNegocioPreviewReturnDraft,
@@ -72,7 +79,27 @@ export default function BienesRaicesNegocioApplication() {
   const canGoBack = step > 0;
   const canGoNext = step < TOTAL - 1;
 
+  const isDirty = negocioFormHasProgress(state);
+  const muxIds = collectMuxAssetIdsFromNegocioState(state);
+
+  useLeonixPublishLeaveGuard({
+    lang: "es",
+    isDirty,
+    muxAssetIds: muxIds,
+  });
+
+  const leaveAndGo = useCallback(
+    (href: string) => {
+      if (!isDirty || confirmLeavePublishFlow("es")) {
+        abandonLeonixPublishFlowClient({ muxAssetIds: muxIds, useBeacon: false });
+        router.push(href);
+      }
+    },
+    [isDirty, muxIds, router]
+  );
+
   const openPreview = useCallback(() => {
+    markPublishFlowOpeningPreview();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
     router.push(`${BR_PREVIEW_NEGOCIO}?_=${Date.now()}`);
@@ -92,18 +119,20 @@ export default function BienesRaicesNegocioApplication() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                href={BR_PUBLICAR_HUB}
+              <button
+                type="button"
                 className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7]"
+                onClick={() => leaveAndGo(BR_PUBLICAR_HUB)}
               >
                 Cambiar canal
-              </Link>
-              <Link
-                href={BR_CATEGORY_HOME}
+              </button>
+              <button
+                type="button"
                 className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-3 py-2 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8]"
+                onClick={() => leaveAndGo(BR_CATEGORY_HOME)}
               >
                 Ver categoría BR
-              </Link>
+              </button>
             </div>
           </div>
         </div>

@@ -5,6 +5,21 @@
  */
 
 import { PREVIEW_LISTING_DRAFT_KEY } from "@/app/clasificados/lib/previewListingDraft";
+import {
+  BR_NEGOCIO_PREVIEW_DRAFT_KEY,
+  BR_NEGOCIO_PREVIEW_RETURN_KEY,
+  clearBienesRaicesNegocioPublishTempState,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
+import {
+  EN_VENTA_PREVIEW_DRAFT_KEY_FREE,
+  EN_VENTA_PREVIEW_DRAFT_KEY_PRO,
+  EN_VENTA_PREVIEW_DRAFT_META_KEY,
+  EN_VENTA_PREVIEW_RETURN_DRAFT,
+  clearEnVentaPublishTempState,
+} from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+
+/** Same value as preview-nav flag in publish flow client (avoid importing a `"use client"` module here). */
+const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-preview";
 
 /** SessionStorage: draft passed to BR branch preview routes or shared preview hub (legacy). */
 export { PREVIEW_LISTING_DRAFT_KEY };
@@ -73,6 +88,12 @@ export const CLASSIFIEDS_DRAFT_STORAGE_KEYS = {
     IMAGES_RESTORE_KEY,
     RULES_CONFIRMED_KEY,
     DRAFT_SESSION_ID_KEY,
+    BR_NEGOCIO_PREVIEW_DRAFT_KEY,
+    BR_NEGOCIO_PREVIEW_RETURN_KEY,
+    EN_VENTA_PREVIEW_DRAFT_KEY_FREE,
+    EN_VENTA_PREVIEW_DRAFT_KEY_PRO,
+    EN_VENTA_PREVIEW_DRAFT_META_KEY,
+    EN_VENTA_PREVIEW_RETURN_DRAFT,
   ] as const,
   /** localStorage keys are dynamic: listing_draft_<userId|anonId> */
   localStoragePrefix: DRAFT_KEY_PREFIX,
@@ -145,6 +166,8 @@ export function clearAllClassifiedsDrafts(options?: {
       clearStoredDraftId(options.userId);
     }
     localStorage.removeItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY);
+    clearBienesRaicesNegocioPublishTempState();
+    clearEnVentaPublishTempState();
   } catch {
     // ignore
   }

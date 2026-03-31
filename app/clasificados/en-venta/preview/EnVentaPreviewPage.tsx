@@ -1,8 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { loadEnVentaPreviewDraft, loadLatestEnVentaPreviewDraft, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
@@ -208,6 +209,10 @@ export function EnVentaPreviewPage() {
   const [buyerCoords, setBuyerCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
   const [distanceStatus, setDistanceStatus] = useState<"idle" | "computing" | "ready" | "unavailable">("idle");
+
+  useLayoutEffect(() => {
+    clearLeonixPreviewNavSessionFlag();
+  }, []);
 
   useEffect(() => {
     const loaded = loadLatestEnVentaPreviewDraft(plan);

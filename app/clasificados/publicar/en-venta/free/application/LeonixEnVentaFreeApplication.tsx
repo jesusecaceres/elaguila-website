@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   saveEnVentaPreviewDraft,
   saveEnVentaPreviewReturnDraft,
@@ -12,6 +11,14 @@ import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import {
+  abandonLeonixPublishFlowClient,
+  collectMuxAssetIdsFromEnVentaState,
+  confirmLeavePublishFlow,
+  enVentaFormHasProgress,
+  markPublishFlowOpeningPreview,
+  useLeonixPublishLeaveGuard,
+} from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import { EnVentaPublishSubmitBar } from "@/app/clasificados/en-venta/publish/EnVentaPublishSubmitBar";
@@ -24,6 +31,7 @@ import { LocationSection } from "./sections/LocationSection";
 import { FulfillmentSection } from "./sections/FulfillmentSection";
 import { SellerContactSection } from "./sections/SellerContactSection";
 import { ItemDetailsSection } from "./sections/ItemDetailsSection";
+import { createEmptyEnVentaFreeState } from "./schema/enVentaFreeFormState";
 
 type Lang = "es" | "en";
 
@@ -31,9 +39,14 @@ type Lang = "es" | "en";
  * Free lane — real form owner for `/clasificados/publicar/en-venta/free`.
  */
 export default function LeonixEnVentaFreeApplication() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const [state, setState] = useState(() => takeEnVentaPreviewReturnInitialState("free"));
+  const [state, setState] = useState(createEmptyEnVentaFreeState);
+
+  useLayoutEffect(() => {
+    setState(takeEnVentaPreviewReturnInitialState("free"));
+  }, []);
 
   const copy = useMemo(
     () =>
@@ -56,6 +69,35 @@ export default function LeonixEnVentaFreeApplication() {
   const qs = new URLSearchParams();
   qs.set("lang", lang);
 
+  const isDirty = enVentaFormHasProgress(state);
+  const muxIds = collectMuxAssetIdsFromEnVentaState(state);
+
+  useLeonixPublishLeaveGuard({
+    lang,
+    isDirty,
+    muxAssetIds: muxIds,
+  });
+
+  const leaveAndGo = useCallback(
+    (href: string) => {
+      if (!isDirty || confirmLeavePublishFlow(lang)) {
+        abandonLeonixPublishFlowClient({ muxAssetIds: muxIds, useBeacon: false });
+        router.push(href);
+      }
+    },
+    [isDirty, lang, muxIds, router]
+  );
+
+  const onBeforePreview = useCallback(
+    (plan: "free" | "pro") => {
+      if (plan !== "free") return;
+      markPublishFlowOpeningPreview();
+      saveEnVentaPreviewDraft("free", state);
+      saveEnVentaPreviewReturnDraft("free", state);
+    },
+    [state]
+  );
+
   return (
     <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
       <div className="mx-auto max-w-2xl px-4">
@@ -66,18 +108,20 @@ export default function LeonixEnVentaFreeApplication() {
               <p className="mt-1.5 text-[#5D4A25]/80">{copy.subtitle}</p>
             </div>
             <div className="inline-flex w-fit flex-wrap items-center gap-2 rounded-xl border border-[#D8C79A]/65 bg-[#FFF7E7] p-1.5 shadow-sm">
-              <Link
-                href={`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`}
+              <button
+                type="button"
                 className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
+                onClick={() => leaveAndGo(`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`)}
               >
                 {copy.back}
-              </Link>
-              <Link
-                href={`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`}
+              </button>
+              <button
+                type="button"
                 className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
+                onClick={() => leaveAndGo(`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`)}
               >
                 {copy.switchPro}
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -101,14 +145,7 @@ export default function LeonixEnVentaFreeApplication() {
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind={false} />
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
-          <EnVentaPreviewBeforePublishCta
-            lang={lang}
-            variant="light"
-            onBeforePreview={(plan) => {
-              saveEnVentaPreviewDraft(plan, state);
-              saveEnVentaPreviewReturnDraft(plan, state);
-            }}
-          />
+          <EnVentaPreviewBeforePublishCta lang={lang} variant="light" onBeforePreview={onBeforePreview} />
           <ListingRulesConfirmationSection
             lang={lang}
             confirmAccurate={state.confirmListingAccurate}

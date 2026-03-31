@@ -57,6 +57,24 @@ function scheduleClearPreviewReturnMemory() {
   }, 2000);
 }
 
+/** Drop En Venta preview handoff keys + in-memory Strict Mode cache. */
+export function clearEnVentaPublishTempState(): void {
+  if (previewReturnMemoryTimer != null) {
+    clearTimeout(previewReturnMemoryTimer);
+    previewReturnMemoryTimer = null;
+  }
+  previewReturnMemory = {};
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_KEY_FREE);
+    sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_KEY_PRO);
+    sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
+    sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveEnVentaPreviewDraft(plan: "free" | "pro", state: EnVentaFreeApplicationState): void {
   if (typeof window === "undefined") return;
   try {
@@ -109,11 +127,13 @@ export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVe
   try {
     const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     if (!raw) {
-      return createEmptyEnVentaFreeState();
+      const d0 = loadEnVentaPreviewDraft(plan);
+      return d0 ?? createEmptyEnVentaFreeState();
     }
     const data = JSON.parse(raw) as Partial<EnVentaPreviewReturnPayload>;
     if (data.plan !== plan || !data.state || typeof data.state !== "object") {
-      return createEmptyEnVentaFreeState();
+      const d1 = loadEnVentaPreviewDraft(plan);
+      return d1 ?? createEmptyEnVentaFreeState();
     }
     const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
@@ -126,8 +146,10 @@ export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVe
     } catch {
       /* ignore */
     }
-    return createEmptyEnVentaFreeState();
   }
+  const fromDraft = loadEnVentaPreviewDraft(plan);
+  if (fromDraft) return fromDraft;
+  return createEmptyEnVentaFreeState();
 }
 
 export function loadLatestEnVentaPreviewDraft(

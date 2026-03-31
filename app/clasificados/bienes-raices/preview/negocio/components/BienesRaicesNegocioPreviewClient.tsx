@@ -8,6 +8,7 @@ import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/b
 import { mapNegocioFormStateToBrNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/brNegocioInputToPreviewMap";
 import { createEmptyBienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import { loadBienesRaicesNegocioPreviewDraft } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
+import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
 export function BienesRaicesNegocioPreviewClient() {
   const pathname = usePathname();
@@ -16,6 +17,7 @@ export function BienesRaicesNegocioPreviewClient() {
   const [vm, setVm] = useState<BienesRaicesNegocioPreviewVm | null>(null);
 
   useLayoutEffect(() => {
+    clearLeonixPreviewNavSessionFlag();
     try {
       const draft = loadBienesRaicesNegocioPreviewDraft();
       setVm(mapNegocioFormStateToBrNegocioPreviewVm(draft ?? createEmptyBienesRaicesNegocioFormState()));

@@ -1,5 +1,6 @@
 "use server";
 
+import { deleteMuxAssetsBestEffort } from "@/app/lib/mux/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
@@ -25,6 +26,15 @@ export async function updateListingReportStatusAction(reportId: string, status: 
 
 export async function deleteListingAction(listingId: string) {
   const supabase = getAdminSupabase();
+  const { data: row } = await supabase
+    .from("listings")
+    .select("mux_asset_id, mux_asset_id_2")
+    .eq("id", listingId)
+    .maybeSingle();
+  const muxIds = [row?.mux_asset_id, row?.mux_asset_id_2].filter(Boolean) as string[];
+  if (muxIds.length) {
+    await deleteMuxAssetsBestEffort(muxIds);
+  }
   const { error } = await supabase
     .from("listings")
     .update({ status: "removed" })

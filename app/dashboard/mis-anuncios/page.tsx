@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
@@ -373,6 +374,13 @@ export default function MyListingsPage() {
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
+
+    const { data: muxRow } = await supabase
+      .from("listings")
+      .select("mux_asset_id, mux_asset_id_2")
+      .eq("id", id)
+      .maybeSingle();
+    await deleteMuxAssetsForListingRecordClient([muxRow?.mux_asset_id, muxRow?.mux_asset_id_2]);
 
     const { error: dErr } = await supabase.from("listings").delete().eq("id", id);
 
