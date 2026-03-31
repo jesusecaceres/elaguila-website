@@ -1,6 +1,5 @@
 import type { TiendaFeaturedProduct } from "../types/tienda";
 
-// NOTE: Hrefs are future-facing placeholders. Product detail/configurator routes can be added later at `app/tienda/p/[slug]/page.tsx`.
 export const tiendaFeaturedProducts: TiendaFeaturedProduct[] = [
   {
     id: "fp-standard-business-cards",
@@ -8,33 +7,33 @@ export const tiendaFeaturedProducts: TiendaFeaturedProduct[] = [
     title: { es: "Tarjetas Estándar", en: "Standard Business Cards" },
     description: { es: "Una opción limpia y profesional para ventas diarias.", en: "A clean, professional option for daily sales." },
     startingPrice: { amount: 95, currency: "USD" },
-    badge: { es: "Listo para subir", en: "Upload‑ready" },
+    badge: { es: "Diseño en línea", en: "Design online" },
     categorySlug: "business-cards",
     href: "/tienda/p/standard-business-cards",
-    uploadReady: true,
+    uploadReady: false,
     customHelpAvailable: true,
   },
   {
     id: "fp-flyers",
-    slug: "flyers",
+    slug: "flyers-standard",
     title: { es: "Volantes", en: "Flyers" },
     description: { es: "Perfectos para campañas, ofertas y eventos.", en: "Perfect for campaigns, promos, and events." },
     startingPrice: { amount: 140, currency: "USD" },
-    badge: { es: "Orden fácil", en: "Easy online order" },
+    badge: { es: "Sube tu archivo", en: "Upload file" },
     categorySlug: "flyers",
-    href: "/tienda/p/flyers",
+    href: "/tienda/p/flyers-standard",
     uploadReady: true,
     customHelpAvailable: true,
   },
   {
     id: "fp-postcards",
-    slug: "postcards",
+    slug: "postcards-standard",
     title: { es: "Postcards", en: "Postcards" },
     description: { es: "Mailers y piezas de marketing con presencia.", en: "Mailers and marketing pieces with presence." },
     startingPrice: { amount: 120, currency: "USD" },
-    badge: { es: "Listo para campaña", en: "Campaign‑ready" },
+    badge: { es: "Mixto", en: "Mixed flow" },
     categorySlug: "marketing-materials",
-    href: "/tienda/p/postcards",
+    href: "/tienda/p/postcards-standard",
     uploadReady: true,
     customHelpAvailable: true,
   },
@@ -64,15 +63,14 @@ export const tiendaFeaturedProducts: TiendaFeaturedProduct[] = [
   },
   {
     id: "fp-stickers",
-    slug: "stickers",
+    slug: "stickers-standard",
     title: { es: "Stickers", en: "Stickers" },
     description: { es: "Etiquetas y adhesivos para empaques y marca.", en: "Labels and stickers for packaging and brand." },
     startingPrice: { amount: 60, currency: "USD" },
     badge: { es: "Branding", en: "Branding" },
     categorySlug: "stickers-labels",
-    href: "/tienda/p/stickers",
+    href: "/tienda/p/stickers-standard",
     uploadReady: true,
     customHelpAvailable: true,
   },
 ];
-

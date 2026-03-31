@@ -129,6 +129,37 @@ export const tiendaCopy = {
       primary: { es: "Comprar ahora", en: "Shop now" },
       secondary: { es: "Hablar con Leonix", en: "Talk to Leonix" },
     },
+    categoryPage: {
+      backToStore: { es: "← Volver a la Tienda", en: "← Back to store" },
+      productFamilies: { es: "Familias de producto", en: "Product families" },
+      categoryWorks: { es: "Cómo funciona esta categoría", en: "How this category works" },
+      closingTitle: { es: "¿Listo para el siguiente paso?", en: "Ready for the next step?" },
+      closingBody: {
+        es: "Explora una familia o escríbenos si necesitas algo a medida.",
+        en: "Explore a family or message us if you need something custom.",
+      },
+    },
+    productPage: {
+      backToCategory: { es: "← Volver a la categoría", en: "← Back to category" },
+      specs: { es: "Especificaciones", en: "Specs" },
+      options: { es: "Opciones destacadas", en: "Highlighted options" },
+      howOrdered: { es: "Cómo se ordena este producto", en: "How this product is ordered" },
+      fileQuality: { es: "Archivos y responsabilidad", en: "Files & responsibility" },
+      needHelp: { es: "¿Necesitas diseño o ayuda?", en: "Need design help?" },
+      futureCtaTitle: { es: "Siguiente: configurador", en: "Next: configurator" },
+      futureCtaBody: {
+        es: "Aquí conectarás el editor o la carga de archivos. Aún no hay checkout—solo preparación del pedido.",
+        en: "This is where the editor or file upload will connect. No checkout yet—just order preparation.",
+      },
+      futureCtaButtonDesigner: { es: "Abrir diseñador (pronto)", en: "Open designer (soon)" },
+      futureCtaButtonUpload: { es: "Subir archivo (pronto)", en: "Upload file (soon)" },
+      futureCtaButtonContact: { es: "Hablar con Leonix", en: "Talk to Leonix" },
+    },
+    modeLabels: {
+      designOnline: { es: "Diseño en línea", en: "Design online" },
+      uploadReady: { es: "Sube tu archivo", en: "Upload print‑ready" },
+      mixed: { es: "Mixto (diseño o archivo)", en: "Mixed (design or upload)" },
+    },
   },
 } as const;
 
