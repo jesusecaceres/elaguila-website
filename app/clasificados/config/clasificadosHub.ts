@@ -33,6 +33,7 @@ export type HubListing = {
 /** Browse grid order on the hub landing. */
 export const HUB_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "rentas",
+  "bienes-raices",
   "en-venta",
   "empleos",
   "servicios",

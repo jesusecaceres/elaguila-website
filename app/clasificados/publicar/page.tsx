@@ -127,6 +127,9 @@ export default function PublicarRootPage() {
               href={`${BR_PUBLICAR_HUB}?lang=${lang}`}
               className={cx(
                 "group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
+                "min-h-[88px] sm:min-h-0",
+                /* Mobile-first: draws the eye to Bienes Raíces without extra duplicated CTAs. */
+                "ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#FFFDF7] sm:ring-0 sm:ring-offset-0",
                 "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
                 LEONIX_CATEGORY_VISUALS["bienes-raices"].tint,
                 LEONIX_CATEGORY_VISUALS["bienes-raices"].border,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import newLogo from "../../public/logo.png";
+import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { HUB_CATEGORY_ORDER, type Lang } from "./config/clasificadosHub";
 import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
@@ -82,10 +83,46 @@ export default function ClasificadosPage() {
           {HUB_CATEGORY_ORDER.map((k) => {
             const meta = (t.cat as Record<string, { label: string; hint: string }>)[k];
             const visual = LEONIX_CATEGORY_VISUALS[k];
+            const browseHref = buildHubCategoryPageUrl(k, lang);
+
+            if (k === "bienes-raices") {
+              return (
+                <div
+                  key={k}
+                  className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${visual.tint} ${visual.border} ${visual.glow} transition-all duration-150 hover:-translate-y-0.5`}
+                >
+                  <Link href={browseHref} className="relative block px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35 focus:ring-offset-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12] ${visual.chipBg}`}
+                    >
+                      {visual.emoji}
+                    </span>
+                    <h3 className="mt-2 text-lg font-bold text-[#3D2C12]">
+                      {visual.emoji} {meta.label}
+                    </h3>
+                    <p className="mt-1 text-sm text-[#5D4A25]/82">{meta.hint}</p>
+                    <span className="mt-3 inline-flex text-xs font-semibold text-[#6E4E18]">
+                      {lang === "es" ? "Explorar" : "Explore"}
+                    </span>
+                    <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
+                  </Link>
+                  <div className="border-t border-[#3D2C12]/10 px-4 pb-4 pt-3">
+                    <Link
+                      href={withLang(BR_PUBLICAR_HUB)}
+                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#C9B46A]/50 bg-[#2A2620] px-3 py-2.5 text-center text-sm font-bold text-[#FAF7F2] shadow-sm transition hover:bg-[#1E1810] sm:w-auto sm:justify-start"
+                    >
+                      <span aria-hidden>{visual.emoji}</span>
+                      {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real estate"}
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={k}
-                href={buildHubCategoryPageUrl(k, lang)}
+                href={browseHref}
                 className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${visual.tint} ${visual.border} ${visual.glow} px-4 py-4 transition-all duration-150 hover:-translate-y-0.5`}
               >
                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12] ${visual.chipBg}`}>
