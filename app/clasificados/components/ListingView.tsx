@@ -68,11 +68,10 @@ export type ListingData = {
   businessRail?: BusinessRailData | null;
   /** "business_standard" | "business_plus" for rail styling (Plus badge, border). */
   businessRailTier?: "business_standard" | "business_plus" | null;
-  /** Listing publisher (profiles.id). Used for public agent profile CTA; omit in anonymous preview. */
+  /** Listing publisher (profiles.id). Legacy identity surface removed; kept only as listing metadata. */
   ownerId?: string | null;
   /**
-   * When opening `/agente/[id]` from publish preview, pass current publish URL so the agent page
-   * back control can return here (same-origin path + query).
+   * Legacy identity surface removed. Kept only as a publish-preview return path placeholder.
    */
   agentProfileReturnUrl?: string | null;
   listingLocationIsApproximate?: boolean;

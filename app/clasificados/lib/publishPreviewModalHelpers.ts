@@ -2,7 +2,7 @@
  * Helpers for in-page full preview modal: return path, variant, close, and confirm → publish.
  */
 
-/** Current publish URL (path + query) so `/agente/[id]` can link back to this draft/preview flow. */
+/** Current publish URL (path + query) for returning from legacy identity surfaces (now removed). */
 export function buildPreviewPublishReturnPath(
   pathname: string | null | undefined,
   searchParams: { toString(): string } | null | undefined
