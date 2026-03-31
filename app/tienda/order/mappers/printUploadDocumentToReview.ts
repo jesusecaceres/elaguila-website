@@ -1,6 +1,7 @@
 import type { PrintUploadProductConfig, PrintUploadSpecSelection } from "../../product-configurators/print-upload/types";
 import { getPrintUploadConfig } from "../../product-configurators/print-upload/productConfigs";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
+import type { PrintUploadSubmissionExtra } from "../../types/orderSubmission";
 import { tiendaProductFamilies } from "../../data/tiendaProductFamilies";
 
 const PU_SESSION_KEY_PREFIX = "leonix-pu-draft-";
@@ -121,7 +122,7 @@ export function readPrintUploadSessionRaw(productSlug: string): unknown | null {
   }
 }
 
-function isPayloadV1(x: unknown): x is PrintUploadSessionPayloadV1 {
+export function isPrintUploadSessionPayloadV1(x: unknown): x is PrintUploadSessionPayloadV1 {
   if (!x || typeof x !== "object") return false;
   const o = x as PrintUploadSessionPayloadV1;
   return o.v === 1 && typeof o.productSlug === "string" && o.specs != null && typeof o.specs === "object";
@@ -131,7 +132,7 @@ export function mapPrintUploadSessionToReview(
   expectedSlug: string,
   raw: unknown
 ): TiendaOrderReviewSummary | null {
-  if (!isPayloadV1(raw)) return null;
+  if (!isPrintUploadSessionPayloadV1(raw)) return null;
   if (raw.productSlug !== expectedSlug) return null;
   if (!raw.frontMeta) return null;
 
@@ -205,5 +206,33 @@ export function mapPrintUploadSessionToReview(
     warnings,
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: null,
+  };
+}
+
+function fileExtra(
+  meta: NonNullable<PrintUploadSessionPayloadV1["frontMeta"]>
+): PrintUploadSubmissionExtra["front"] {
+  return {
+    name: meta.name,
+    mime: meta.mime,
+    sizeBytes: meta.sizeBytes,
+    widthPx: meta.widthPx,
+    heightPx: meta.heightPx,
+    sessionHadInlinePreview: !!(meta.dataUrl && meta.dataUrl.length > 0),
+  };
+}
+
+export function extractPrintUploadSubmissionExtra(
+  expectedSlug: string,
+  raw: unknown
+): PrintUploadSubmissionExtra | null {
+  if (!isPrintUploadSessionPayloadV1(raw)) return null;
+  if (raw.productSlug !== expectedSlug) return null;
+  if (!raw.frontMeta) return null;
+
+  return {
+    front: fileExtra(raw.frontMeta),
+    back: raw.backMeta ? fileExtra(raw.backMeta) : null,
+    rawValidationSnapshot: raw.validationSnapshot ?? [],
   };
 }

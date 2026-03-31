@@ -1,5 +1,6 @@
 import type { TextFieldRole } from "../../product-configurators/business-cards/types";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
+import type { BusinessCardSubmissionExtra } from "../../types/orderSubmission";
 import { tiendaProductFamilies } from "../../data/tiendaProductFamilies";
 
 const BC_SESSION_KEY_PREFIX = "leonix-bc-draft-";
@@ -41,7 +42,7 @@ export function readBusinessCardSessionRaw(productSlug: string): unknown | null 
   }
 }
 
-function isPayloadV2(x: unknown): x is BusinessCardSessionPayloadV2 {
+export function isBusinessCardSessionPayloadV2(x: unknown): x is BusinessCardSessionPayloadV2 {
   if (!x || typeof x !== "object") return false;
   const o = x as BusinessCardSessionPayloadV2;
   return o.v === 2 && typeof o.productSlug === "string" && (o.sidedness === "one-sided" || o.sidedness === "two-sided");
@@ -71,7 +72,7 @@ export function mapBusinessCardSessionToReview(
   expectedSlug: string,
   raw: unknown
 ): TiendaOrderReviewSummary | null {
-  if (!isPayloadV2(raw)) return null;
+  if (!isBusinessCardSessionPayloadV2(raw)) return null;
   if (raw.productSlug !== expectedSlug) return null;
 
   const family = tiendaProductFamilies.find((p) => p.slug === expectedSlug);
@@ -167,5 +168,32 @@ export function mapBusinessCardSessionToReview(
     warnings: [],
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: companyHint,
+  };
+}
+
+export function extractBusinessCardSubmissionExtra(
+  expectedSlug: string,
+  raw: unknown
+): BusinessCardSubmissionExtra | null {
+  if (!isBusinessCardSessionPayloadV2(raw)) return null;
+  if (raw.productSlug !== expectedSlug) return null;
+
+  const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
+  const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
+
+  const frontLines = sideTextSummary(raw.front, frontLabel);
+  const backLines = raw.sidedness === "two-sided" ? sideTextSummary(raw.back, backLabel) : [];
+
+  return {
+    sidedness: raw.sidedness,
+    frontFieldLinesEs: frontLines.map((l) => l.es),
+    frontFieldLinesEn: frontLines.map((l) => l.en),
+    backFieldLinesEs: backLines.map((l) => l.es),
+    backFieldLinesEn: backLines.map((l) => l.en),
+    frontLogoVisible: !!raw.front.logo?.visible,
+    backLogoVisible: !!raw.back.logo?.visible,
+    frontLogoHasDataUrl: !!(raw.front.logo?.previewUrl && String(raw.front.logo.previewUrl).startsWith("data:")),
+    backLogoHasDataUrl: !!(raw.back.logo?.previewUrl && String(raw.back.logo.previewUrl).startsWith("data:")),
+    approval: { ...raw.approval },
   };
 }

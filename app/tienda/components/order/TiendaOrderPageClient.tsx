@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import type { Lang } from "../../types/tienda";
 import type { TiendaFulfillmentPreference, TiendaOrderReviewSummary, TiendaOrderSource } from "../../types/orderHandoff";
 import { emptyTiendaCustomerDetails, type TiendaCustomerDetails } from "../../types/orderHandoff";
+import type { TiendaOrderSubmissionResult } from "../../types/orderSubmission";
 import { mapBusinessCardSessionToReview, readBusinessCardSessionRaw } from "../../order/mappers/businessCardDocumentToReview";
 import { mapPrintUploadSessionToReview, readPrintUploadSessionRaw } from "../../order/mappers/printUploadDocumentToReview";
+import { buildTiendaOrderSubmissionPayload } from "../../order/buildTiendaOrderSubmissionPayload";
 import {
   configurePathForSource,
   mergeBusinessNamePrefill,
@@ -15,8 +17,10 @@ import {
   readPersistedOrderForm,
   writePersistedOrderForm,
 } from "../../order/orderFormStorage";
-import { tiendaCheckoutPlaceholderPath, withLang } from "../../utils/tiendaRouting";
+import { readTiendaSubmittedMarker, writeTiendaSubmittedMarker, type TiendaSubmittedMarker } from "../../order/tiendaSubmissionSession";
+import { withLang } from "../../utils/tiendaRouting";
 import { ohPick, orderHandoffCopy } from "../../data/orderHandoffCopy";
+import { subPick, orderSubmissionCopy } from "../../data/orderSubmissionCopy";
 import { TiendaOrderShell } from "./TiendaOrderShell";
 import { TiendaOrderSummary } from "./TiendaOrderSummary";
 import { TiendaAssetSummary } from "./TiendaAssetSummary";
@@ -25,6 +29,8 @@ import { TiendaFulfillmentPanel } from "./TiendaFulfillmentPanel";
 import { TiendaOrderReminderPanel } from "./TiendaOrderReminderPanel";
 import { TiendaOrderCTA } from "./TiendaOrderCTA";
 import { TiendaOrderInvalidState } from "./TiendaOrderInvalidState";
+import { TiendaOrderError } from "./TiendaOrderError";
+import { TiendaOrderAlreadySubmitted } from "./TiendaOrderAlreadySubmitted";
 
 function loadReview(source: TiendaOrderSource, slug: string): TiendaOrderReviewSummary | null {
   if (source === "business-cards") {
@@ -37,11 +43,15 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
   const { source, slug, lang } = props;
   const router = useRouter();
   const [review, setReview] = useState<TiendaOrderReviewSummary | null | undefined>(undefined);
+  const [existingSubmit, setExistingSubmit] = useState<TiendaSubmittedMarker | null>(null);
   const [customer, setCustomer] = useState<TiendaCustomerDetails>(() => emptyTiendaCustomerDetails());
   const [fulfillment, setFulfillment] = useState<TiendaFulfillmentPreference | "">("");
   const [fulfillmentTouched, setFulfillmentTouched] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    setExistingSubmit(readTiendaSubmittedMarker(source, slug));
     const r = loadReview(source, slug);
     setReview(r);
     if (!r) return;
@@ -65,14 +75,19 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
     );
   }
 
+  if (existingSubmit) {
+    return <TiendaOrderAlreadySubmitted lang={lang} orderId={existingSubmit.orderId} />;
+  }
+
   if (!review) {
     return <TiendaOrderInvalidState source={source} slug={slug} lang={lang} />;
   }
 
   const showFulfillmentError = fulfillmentTouched && !fulfillment;
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setFulfillmentTouched(true);
     if (!fulfillment) return;
     const form = e.currentTarget as HTMLFormElement;
@@ -80,8 +95,51 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
       form.reportValidity();
       return;
     }
-    writePersistedOrderForm(source, slug, customer, fulfillment);
-    router.push(withLang(tiendaCheckoutPlaceholderPath(source, slug), lang));
+
+    const payload = buildTiendaOrderSubmissionPayload({
+      review,
+      customer,
+      fulfillment,
+      source,
+      slug,
+      lang,
+    });
+    if (!payload) {
+      setSubmitError(
+        lang === "en"
+          ? "Session is out of sync. Open the configurator again and save before submitting."
+          : "La sesión no coincide. Abre el configurador de nuevo y guarda antes de enviar."
+      );
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/tienda/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as TiendaOrderSubmissionResult;
+
+      if (!data.ok) {
+        const msg =
+          data.code === "EMAIL_FAILED"
+            ? subPick(orderSubmissionCopy.errorEmailConfig, lang)
+            : data.error || subPick(orderSubmissionCopy.errorGeneric, lang);
+        setSubmitError(msg);
+        return;
+      }
+
+      writeTiendaSubmittedMarker(source, slug, data.orderId);
+      writePersistedOrderForm(source, slug, customer, fulfillment);
+      router.push(withLang(`/tienda/order/complete?ref=${encodeURIComponent(data.orderId)}`, lang));
+    } catch {
+      setSubmitError(subPick(orderSubmissionCopy.errorGeneric, lang));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -135,7 +193,9 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
         </section>
       ) : null}
 
-      <form onSubmit={onSubmit} className="space-y-8">
+      {submitError ? <TiendaOrderError lang={lang} message={submitError} /> : null}
+
+      <form onSubmit={(ev) => void onSubmit(ev)} className="space-y-8">
         <TiendaCustomerDetailsForm lang={lang} value={customer} onChange={setCustomer} />
         <TiendaFulfillmentPanel
           lang={lang}
@@ -147,7 +207,7 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
           showError={showFulfillmentError}
         />
         <TiendaOrderReminderPanel lang={lang} />
-        <TiendaOrderCTA lang={lang} />
+        <TiendaOrderCTA lang={lang} isSubmitting={isSubmitting} submitDisabled={isSubmitting} />
       </form>
     </TiendaOrderShell>
   );

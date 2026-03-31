@@ -8,8 +8,8 @@ export function ohPick(row: TiendaLocalizedLine, lang: Lang): string {
 export const orderHandoffCopy = {
   pageTitle: { es: "Detalles del pedido", en: "Order details" } satisfies TiendaLocalizedLine,
   pageSubtitle: {
-    es: "Revisa tu configuración y cuéntanos cómo prefieres continuar. El pago llegará en la siguiente fase.",
-    en: "Review your configuration and tell us how you’d like to proceed. Payment comes in the next phase.",
+    es: "Revisa tu configuración, confirma tus datos y envía el pedido. Leonix lo recibirá por correo; el pago en línea llegará después.",
+    en: "Review your configuration, confirm your details, and submit the order. Leonix receives it by email; online payment comes later.",
   } satisfies TiendaLocalizedLine,
 
   backToConfigurator: { es: "← Volver al configurador", en: "← Back to configurator" } satisfies TiendaLocalizedLine,
@@ -87,11 +87,11 @@ export const orderHandoffCopy = {
     },
   ] satisfies TiendaLocalizedLine[],
 
-  ctaContinue: { es: "Continuar al pago", en: "Continue to payment" } satisfies TiendaLocalizedLine,
+  ctaContinue: { es: "Enviar pedido a Leonix", en: "Submit order to Leonix" } satisfies TiendaLocalizedLine,
   ctaHelp: { es: "¿Prefieres ayuda humana?", en: "Prefer human help?" } satisfies TiendaLocalizedLine,
   ctaHelpHint: {
-    es: "Habla con Leonix antes de pagar si necesitas algo fuera de plantilla.",
-    en: "Talk to Leonix before paying if you need anything outside the self‑serve flow.",
+    es: "Si prefieres ayuda antes de enviar, escríbenos; no se cobra nada en esta etapa.",
+    en: "Prefer help before submitting? Reach out—nothing is charged at this stage.",
   } satisfies TiendaLocalizedLine,
 
   savedAtLabel: { es: "Guardado en configurador:", en: "Saved from configurator:" } satisfies TiendaLocalizedLine,
@@ -103,10 +103,10 @@ export const orderHandoffCopy = {
   } satisfies TiendaLocalizedLine,
   invalidCtaBuilder: { es: "Ir al configurador", en: "Go to configurator" } satisfies TiendaLocalizedLine,
 
-  checkoutPageTitle: { es: "Pago — próxima fase", en: "Payment — next phase" } satisfies TiendaLocalizedLine,
+  checkoutPageTitle: { es: "Finalizar en “Detalles del pedido”", en: "Finish on “Order details”" } satisfies TiendaLocalizedLine,
   checkoutPageBody: {
-    es: "Tu revisión está lista en este dispositivo. La pasarela de pago (Stripe) y el registro del pedido en servidor se implementarán después.",
-    en: "Your review is saved on this device. The payment gateway (Stripe) and server‑side order recording will be implemented next.",
+    es: "Los pedidos se envían desde la página de detalles del pedido (correo a Leonix). El pago con Stripe llegará después.",
+    en: "Orders are submitted from the order details page (email to Leonix). Stripe payment comes later.",
   } satisfies TiendaLocalizedLine,
-  checkoutBack: { es: "← Volver a detalles del pedido", en: "← Back to order details" } satisfies TiendaLocalizedLine,
+  checkoutBack: { es: "← Ir a detalles del pedido", en: "← Go to order details" } satisfies TiendaLocalizedLine,
 } as const;

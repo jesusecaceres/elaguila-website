@@ -1,0 +1,101 @@
+/**
+ * Tienda order submission contract — email MVP, future Stripe/DB compatible.
+ */
+
+import type { Lang } from "./tienda";
+import type {
+  TiendaAssetSummaryKind,
+  TiendaFulfillmentPreference,
+  TiendaLocalizedLine,
+  TiendaOrderSource,
+  TiendaCustomerDetails,
+} from "./orderHandoff";
+
+export type TiendaOrderSubmissionStatus = "received" | "failed";
+
+/** Customer block — alias of handoff customer for a stable submission contract name. */
+export type TiendaOrderCustomerDetails = TiendaCustomerDetails;
+
+export type TiendaOrderAssetSummary = {
+  id: string;
+  kind: TiendaAssetSummaryKind;
+  labelEs: string;
+  labelEn: string;
+  metaLinesEs: string[];
+  metaLinesEn: string[];
+  /** Browser session had a data URL preview; file bytes are never sent to the API. */
+  hadInlinePreviewHint: boolean;
+};
+
+export type BusinessCardSubmissionExtra = {
+  sidedness: "one-sided" | "two-sided";
+  frontFieldLinesEs: string[];
+  frontFieldLinesEn: string[];
+  backFieldLinesEs: string[];
+  backFieldLinesEn: string[];
+  frontLogoVisible: boolean;
+  backLogoVisible: boolean;
+  frontLogoHasDataUrl: boolean;
+  backLogoHasDataUrl: boolean;
+  approval: {
+    spellingReviewed: boolean;
+    layoutReviewed: boolean;
+    printAsApproved: boolean;
+    noRedesignExpectation: boolean;
+  };
+};
+
+export type PrintUploadSubmissionExtra = {
+  front: {
+    name: string;
+    mime: string;
+    sizeBytes: number;
+    widthPx: number | null;
+    heightPx: number | null;
+    sessionHadInlinePreview: boolean;
+  };
+  back: null | {
+    name: string;
+    mime: string;
+    sizeBytes: number;
+    widthPx: number | null;
+    heightPx: number | null;
+    sessionHadInlinePreview: boolean;
+  };
+  rawValidationSnapshot: Array<{ severity: string; messageEs: string; messageEn: string }>;
+};
+
+/** JSON body from the browser (no server-generated id). */
+export type TiendaOrderSubmissionPayload = {
+  v: 1;
+  source: TiendaOrderSource;
+  productSlug: string;
+  productTitleEs: string;
+  productTitleEn: string;
+  categorySlug: string;
+  specLines: TiendaLocalizedLine[];
+  sidednessSummary: TiendaLocalizedLine;
+  assets: TiendaOrderAssetSummary[];
+  customer: TiendaOrderCustomerDetails;
+  fulfillment: TiendaFulfillmentPreference;
+  approvalStatus: TiendaLocalizedLine;
+  approvalDetails: TiendaLocalizedLine[];
+  warnings: TiendaLocalizedLine[];
+  builderSavedAt: string | null;
+  businessCardExtra?: BusinessCardSubmissionExtra;
+  printUploadExtra?: PrintUploadSubmissionExtra;
+  preferredLang: Lang;
+};
+
+/** Persistable snapshot after acceptance (e.g. future queue/DB). */
+export type TiendaOrderSubmission = {
+  submissionVersion: 1;
+  orderId: string;
+  status: TiendaOrderSubmissionStatus;
+  createdAtIso: string;
+  payload: TiendaOrderSubmissionPayload;
+};
+
+export type TiendaOrderSubmissionResult =
+  | { ok: true; orderId: string; submittedAt: string }
+  | { ok: false; error: string; code?: string };
