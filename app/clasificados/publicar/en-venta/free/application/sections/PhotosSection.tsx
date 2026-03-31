@@ -188,6 +188,12 @@ function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", uploadUrl);
+    const contentType = file.type?.trim() || "application/octet-stream";
+    try {
+      xhr.setRequestHeader("Content-Type", contentType);
+    } catch {
+      /* unsigned URL may forbid arbitrary headers in some environments */
+    }
     xhr.upload.onprogress = (ev) => {
       if (!ev.lengthComputable) return;
       onProgress(Math.max(0, Math.min(100, Math.round((ev.loaded / ev.total) * 100))));

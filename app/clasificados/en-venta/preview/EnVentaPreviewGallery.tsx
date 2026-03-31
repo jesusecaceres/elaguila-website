@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
   orderedImages: string[];
@@ -230,8 +230,72 @@ function VideoPlayer({ url, lang }: { url: string; lang: "es" | "en" }) {
       />
     );
   }
-  // HLS (Mux) or direct URL
-  return <video src={url} controls className="h-full w-full object-contain" />;
+  return <StreamableVideo url={url} lang={lang} />;
+}
+
+/**
+ * Mux direct-upload uses HLS (.m3u8). Safari plays HLS natively; Chrome/Firefox need hls.js.
+ */
+function StreamableVideo({ url, lang }: { url: string; lang: "es" | "en" }) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const isHls = /\.m3u8(\?|$)/i.test(url);
+
+    if (!isHls) {
+      el.src = url;
+      return () => {
+        el.pause();
+        el.removeAttribute("src");
+      };
+    }
+
+    let cancelled = false;
+    let hls: { destroy: () => void } | null = null;
+
+    if (el.canPlayType("application/vnd.apple.mpegurl")) {
+      el.src = url;
+      return () => {
+        el.pause();
+        el.removeAttribute("src");
+      };
+    }
+
+    void import("hls.js").then(({ default: HlsCtor }) => {
+      if (cancelled || !ref.current) return;
+      if (HlsCtor.isSupported()) {
+        const instance = new HlsCtor({ enableWorker: true });
+        hls = instance;
+        instance.loadSource(url);
+        instance.attachMedia(ref.current!);
+      } else {
+        ref.current!.src = url;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+      const v = ref.current;
+      if (v) {
+        v.pause();
+        v.removeAttribute("src");
+      }
+    };
+  }, [url]);
+
+  return (
+    <video
+      ref={ref}
+      controls
+      playsInline
+      className="h-full w-full object-contain"
+      aria-label={lang === "es" ? "Video del anuncio" : "Listing video"}
+    />
+  );
 }
 
 function extractYoutubeId(url: string): string | null {

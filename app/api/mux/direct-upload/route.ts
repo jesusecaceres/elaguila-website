@@ -7,7 +7,10 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as ReqBody;
     const slot = body.slot === 1 ? 1 : 0;
-    const upload = await createMuxDirectUpload();
+    const origin = req.headers.get("origin")?.trim();
+    const corsOrigin =
+      origin && origin !== "null" && !origin.startsWith("file:") ? origin : "*";
+    const upload = await createMuxDirectUpload({ corsOrigin });
     return NextResponse.json({
       ok: true,
       slot,

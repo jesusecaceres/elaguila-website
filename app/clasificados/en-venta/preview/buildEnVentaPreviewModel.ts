@@ -147,6 +147,15 @@ const SMS_PREFILL_EN = "Hi — is this item still available?";
 const EMAIL_SUBJ_ES = "Interés en tu anuncio Leonix";
 const EMAIL_SUBJ_EN = "Question about your Leonix listing";
 
+/** Digits suitable for `wa.me` — explicit WhatsApp field, else phone when long enough for intl. */
+function effectiveWhatsAppDigits(state: EnVentaFreeApplicationState): string {
+  const wa = state.whatsapp.replace(/\D/g, "");
+  if (wa.length >= 8) return wa;
+  const phone = state.phone.replace(/\D/g, "");
+  if (phone.length >= 10) return phone;
+  return "";
+}
+
 /** Gallery caps align with publish product copy: Free 3 photos, Pro 12 (+ video). */
 export const EN_VENTA_PREVIEW_MAX_PHOTOS = { free: 3, pro: 12 } as const;
 
@@ -329,12 +338,15 @@ export function buildEnVentaPreviewModel(
     const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
     const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     contactHref = `mailto:${state.email.trim()}?subject=${sub}&body=${body}`;
-  } else if (method === "whatsapp" && state.whatsapp.trim()) {
-    const n = state.whatsapp.replace(/\D/g, "");
+  } else if (method === "whatsapp") {
+    const n = effectiveWhatsAppDigits(state);
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     contactHref = n ? `https://wa.me/${n}?text=${text}` : "#";
   } else if (method === "both") {
-    if (state.phone.trim()) contactHref = `tel:${state.phone.replace(/\s/g, "")}`;
+    const n = effectiveWhatsAppDigits(state);
+    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    if (n) contactHref = `https://wa.me/${n}?text=${text}`;
+    else if (state.phone.trim()) contactHref = `tel:${state.phone.replace(/\s/g, "")}`;
     else if (state.email.trim()) {
       const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
       const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);

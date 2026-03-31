@@ -587,14 +587,18 @@ export function EnVentaPreviewPage() {
                 <a
                   key={a.id}
                   href={a.href}
+                  target={a.id === "whatsapp" ? "_blank" : undefined}
+                  rel={a.id === "whatsapp" ? "noopener noreferrer" : undefined}
                   className={cx(
                     "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
-                    plan === "pro"
-                      ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                      : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
+                    a.id === "whatsapp"
+                      ? "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
+                      : plan === "pro"
+                        ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
+                        : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
                   )}
                 >
-                  {a.label}
+                  {a.id === "whatsapp" ? <span className="inline-flex items-center gap-1"><span aria-hidden>💬</span>{a.label}</span> : a.label}
                 </a>
               )
             )}
@@ -686,6 +690,7 @@ export function EnVentaPreviewPage() {
 
   const emailActionLabel =
     vm.contactActions.find((a) => a.id === "email")?.label ?? (lang === "es" ? "Correo" : "Email");
+  const waAction = vm.contactActions.find((a) => a.id === "whatsapp");
 
   const seller = (
     <EnVentaPreviewSellerCard
@@ -694,20 +699,43 @@ export function EnVentaPreviewPage() {
       subline={vm.sellerSubline}
       showProBadge={plan === "pro"}
       desktopContact={
-        state.email.trim() ? (
-          <button
-            type="button"
-            onClick={() => setCorreoOpen(true)}
-            className={cx(
-              "inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition",
-              plan === "pro"
-                ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-            )}
-          >
-            <ContactIcon className="h-5 w-5 shrink-0" />
-            {emailActionLabel}
-          </button>
+        waAction || state.email.trim() ? (
+          <div className="flex flex-col gap-2">
+            {waAction ? (
+              <a
+                href={waAction.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cx(
+                  "inline-flex w-full min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl border px-3 py-2.5 text-center text-xs font-bold transition",
+                  "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
+                )}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden>💬</span>
+                  {lang === "es" ? "WhatsApp" : "WhatsApp"}
+                </span>
+                <span className="text-[10px] font-semibold leading-tight text-[#0b3d32]/85">
+                  {lang === "es" ? "Contacto rápido — recomendado" : "Fast contact — recommended"}
+                </span>
+              </a>
+            ) : null}
+            {state.email.trim() ? (
+              <button
+                type="button"
+                onClick={() => setCorreoOpen(true)}
+                className={cx(
+                  "inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition",
+                  plan === "pro"
+                    ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
+                    : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
+                )}
+              >
+                <ContactIcon className="h-5 w-5 shrink-0" />
+                {emailActionLabel}
+              </button>
+            ) : null}
+          </div>
         ) : undefined
       }
     />
@@ -753,18 +781,21 @@ export function EnVentaPreviewPage() {
                     <div className="mt-3 grid grid-cols-2 gap-2.5">
                       {(
                         [
-                          ["vistas", PREVIEW_ANALYTICS[lang].vistas],
-                          ["compartidos", PREVIEW_ANALYTICS[lang].compartidos],
-                          ["guardados", PREVIEW_ANALYTICS[lang].guardados],
-                          ["contactos", PREVIEW_ANALYTICS[lang].contactos],
+                          ["vistas", PREVIEW_ANALYTICS[lang].vistas, "👁"],
+                          ["compartidos", PREVIEW_ANALYTICS[lang].compartidos, "↗️"],
+                          ["guardados", PREVIEW_ANALYTICS[lang].guardados, "❤️"],
+                          ["contactos", PREVIEW_ANALYTICS[lang].contactos, "💬"],
                         ] as const
-                      ).map(([key, label]) => (
+                      ).map(([key, label, icon]) => (
                         <div
                           key={key}
                           className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 px-3 py-3 text-center shadow-inner"
                         >
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
-                          <p className="mt-1.5 text-xl font-bold tabular-nums text-[#1E1810]">{PREVIEW_ANALYTICS[lang].dash}</p>
+                          <p className="text-lg leading-none" aria-hidden>
+                            {icon}
+                          </p>
+                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
+                          <p className="mt-1 text-xl font-bold tabular-nums text-[#1E1810]">{PREVIEW_ANALYTICS[lang].dash}</p>
                         </div>
                       ))}
                     </div>
