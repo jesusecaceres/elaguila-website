@@ -6,6 +6,21 @@ import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState
 import type { EnVentaPhotosSectionProps } from "../types/sectionProps";
 import { cx, labelClass } from "../helpers/fieldCx";
 
+type Lang = "es" | "en";
+
+type MuxDirectUploadPayload = {
+  ok?: boolean;
+  error?: string;
+  errorType?: string;
+  uploadId?: string;
+  uploadUrl?: string;
+};
+
+type MuxStatusPayload = {
+  ok?: boolean;
+  error?: string;
+};
+
 const COPY = {
   es: {
     title: "Fotos y medios",
@@ -34,7 +49,15 @@ const COPY = {
     uploading: "Subiendo video...",
     preparing: "Procesando video en Mux...",
     ready: "Video listo",
-    failed: "Error al subir el video",
+    failed: "Video",
+    fileUploadBlockedLeonix:
+      "Leonix no puede aceptar la subida de archivo en este momento (límite o configuración del proveedor de video). Puedes pegar un enlace público (YouTube, Vimeo, etc.) para tu anuncio Pro.",
+    fileUploadTransferFailed:
+      "No se pudo completar la subida del archivo. Comprueba tu conexión o usa un enlace de video en su lugar.",
+    fileUploadStatusFailed:
+      "No pudimos terminar de procesar el archivo. Prueba de nuevo más tarde o usa un enlace de video.",
+    fileUploadTimeout:
+      "El video tardó demasiado en procesarse. Prueba un archivo más corto o un enlace público.",
   },
   en: {
     title: "Photos & media",
@@ -63,9 +86,68 @@ const COPY = {
     uploading: "Uploading video...",
     preparing: "Processing video in Mux...",
     ready: "Video ready",
-    failed: "Video upload failed",
+    failed: "Video",
+    fileUploadBlockedLeonix:
+      "Leonix can’t accept file upload right now (video provider limit or account configuration). Paste a public link (YouTube, Vimeo, etc.) to include video on your Pro listing.",
+    fileUploadTransferFailed:
+      "Could not finish uploading the file. Check your connection or use a video link instead.",
+    fileUploadStatusFailed:
+      "We couldn’t finish processing the upload. Try again later or use a video link.",
+    fileUploadTimeout:
+      "Processing took too long. Try a shorter file or paste a public link.",
   },
 } as const;
+
+function looksLikeProviderLimitOrPolicy(raw: string): boolean {
+  const s = raw.toLowerCase();
+  return (
+    /limit|quota|max(imum)?|exceeded|402|403|401|forbidden|unauthorized|payment|subscription|upgrade|plan\b|disabled|cors\b/.test(s) ||
+    /mux|asset|encoding|duration|invalid/.test(s)
+  );
+}
+
+function friendlyDirectUploadInitMessage(lang: Lang, httpStatus: number, payload: MuxDirectUploadPayload): string {
+  const t = COPY[lang];
+  const et = (payload.errorType ?? "").trim();
+  const raw = (payload.error ?? "").trim();
+
+  if (et === "missing_env" || et === "mux_auth_failure" || et === "mux_bad_response" || et === "mux_unknown_error") {
+    return t.fileUploadBlockedLeonix;
+  }
+
+  if (httpStatus === 502 || httpStatus === 503) {
+    return t.fileUploadBlockedLeonix;
+  }
+
+  if (looksLikeProviderLimitOrPolicy(raw)) {
+    return t.fileUploadBlockedLeonix;
+  }
+
+  return t.fileUploadBlockedLeonix;
+}
+
+function friendlyPutFailureMessage(lang: Lang, xhrStatus: number): string {
+  const t = COPY[lang];
+  if (!xhrStatus || xhrStatus === 0) {
+    return t.fileUploadTransferFailed;
+  }
+  if (xhrStatus >= 400 && xhrStatus < 500) {
+    return t.fileUploadBlockedLeonix;
+  }
+  return t.fileUploadTransferFailed;
+}
+
+function friendlyStatusPollMessage(lang: Lang, payload: MuxStatusPayload, httpOk: boolean): string {
+  const t = COPY[lang];
+  if (!httpOk || !payload.ok) {
+    const raw = (payload.error ?? "").trim();
+    if (looksLikeProviderLimitOrPolicy(raw)) {
+      return t.fileUploadBlockedLeonix;
+    }
+    return t.fileUploadStatusFailed;
+  }
+  return t.fileUploadStatusFailed;
+}
 
 function revokeIfBlob(url: string | undefined) {
   if (url?.startsWith("blob:")) {
@@ -112,9 +194,9 @@ function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed (${xhr.status})`));
+      else reject(new Error(`PUT_${xhr.status}`));
     };
-    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.onerror = () => reject(new Error("PUT_0"));
     xhr.send(file);
   });
 }
@@ -170,10 +252,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
 
   const n = state.images.length;
   const canAddMore = n < maxPhotos;
-  const primaryIdx = Math.min(
-    Math.max(0, state.primaryImageIndex),
-    Math.max(0, n - 1)
-  );
+  const primaryIdx = Math.min(Math.max(0, state.primaryImageIndex), Math.max(0, n - 1));
 
   function onImageFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -258,25 +337,39 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slot }),
         });
-        const payload = (await req.json().catch(() => ({}))) as {
-          ok?: boolean;
-          error?: string;
-          uploadId?: string;
-          uploadUrl?: string;
-        };
+        const payload = (await req.json().catch(() => ({}))) as MuxDirectUploadPayload;
+
         if (!req.ok || !payload.ok || !payload.uploadId || !payload.uploadUrl) {
-          throw new Error(payload.error || "Failed to start upload");
+          setVideoSlot(setState, slot, {
+            status: "error",
+            errorMessage: friendlyDirectUploadInitMessage(lang, req.status, payload),
+          });
+          return;
         }
 
         setVideoSlot(setState, slot, {
           uploadId: payload.uploadId,
           status: "uploading",
         });
-        await uploadFileToUrl(f, payload.uploadUrl, (pct) => {
-          setVideoSlot(setState, slot, { progressPct: pct, status: "uploading" });
-        });
+
+        try {
+          await uploadFileToUrl(f, payload.uploadUrl, (pct) => {
+            setVideoSlot(setState, slot, { progressPct: pct, status: "uploading" });
+          });
+        } catch (putErr: unknown) {
+          const msg = putErr instanceof Error ? putErr.message : "";
+          const statusMatch = /^PUT_(\d+)$/.exec(msg);
+          const code = statusMatch ? Number(statusMatch[1]) : 0;
+          setVideoSlot(setState, slot, {
+            status: "error",
+            errorMessage: friendlyPutFailureMessage(lang, code),
+          });
+          return;
+        }
+
         setVideoSlot(setState, slot, { status: "preparing", progressPct: 100 });
 
+        let becameReady = false;
         let tries = 0;
         while (tries < 40) {
           tries += 1;
@@ -284,19 +377,23 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
           const statusRes = await fetch(`/api/mux/upload-status?uploadId=${encodeURIComponent(payload.uploadId)}`, {
             cache: "no-store",
           });
-          const statusPayload = (await statusRes.json().catch(() => ({}))) as {
-            ok?: boolean;
-            error?: string;
+          const statusPayload = (await statusRes.json().catch(() => ({}))) as MuxStatusPayload & {
+            muxStatus?: string;
             assetId?: string;
             playbackId?: string;
-            muxStatus?: string;
             thumbnailUrl?: string;
             playbackUrl?: string;
             durationSeconds?: number | null;
           };
+
           if (!statusRes.ok || !statusPayload.ok) {
-            throw new Error(statusPayload.error || "Failed to check upload status");
+            setVideoSlot(setState, slot, {
+              status: "error",
+              errorMessage: friendlyStatusPollMessage(lang, statusPayload, statusRes.ok),
+            });
+            return;
           }
+
           const muxStatus = (statusPayload.muxStatus ?? "").toLowerCase();
           const ready = muxStatus === "ready";
           setVideoSlot(setState, slot, {
@@ -307,13 +404,24 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
             durationSeconds:
               typeof statusPayload.durationSeconds === "number" ? statusPayload.durationSeconds : null,
             status: ready ? "ready" : "preparing",
+            errorMessage: "",
           });
-          if (ready) break;
+          if (ready) {
+            becameReady = true;
+            break;
+          }
         }
-      } catch (e: unknown) {
+
+        if (!becameReady) {
+          setVideoSlot(setState, slot, {
+            status: "error",
+            errorMessage: COPY[lang].fileUploadTimeout,
+          });
+        }
+      } catch {
         setVideoSlot(setState, slot, {
           status: "error",
-          errorMessage: e instanceof Error ? e.message : "Video upload failed",
+          errorMessage: COPY[lang].fileUploadStatusFailed,
         });
       }
     })();
@@ -471,7 +579,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
             ) : null}
           </div>
           {state.listingVideoSlots[0].status !== "idle" ? (
-            <p className={cx("mt-2 text-xs", c.vidStatus)}>
+            <p className={cx("mt-2 text-xs leading-snug", c.vidStatus)} role="status">
               {state.listingVideoSlots[0].status === "requesting_upload"
                 ? t.uploadRequest
                 : state.listingVideoSlots[0].status === "uploading"
@@ -480,7 +588,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                     ? t.preparing
                     : state.listingVideoSlots[0].status === "ready"
                       ? t.ready
-                      : `${t.failed}: ${state.listingVideoSlots[0].errorMessage || "unknown"}`}
+                      : state.listingVideoSlots[0].errorMessage}
             </p>
           ) : null}
           <div className="mt-3">

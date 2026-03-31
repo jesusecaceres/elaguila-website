@@ -87,6 +87,28 @@ const BUYER = {
   },
 } as const;
 
+/** Preview-only analytics grid (placeholders — not live metrics). */
+const PREVIEW_ANALYTICS = {
+  es: {
+    heading: "Analíticas",
+    vistas: "Vistas",
+    compartidos: "Compartidos",
+    guardados: "Guardados",
+    contactos: "Contactos",
+    dash: "—",
+    hint: "Vista previa",
+  },
+  en: {
+    heading: "Analytics",
+    vistas: "Views",
+    compartidos: "Shares",
+    guardados: "Saves",
+    contactos: "Contacts",
+    dash: "—",
+    hint: "Preview",
+  },
+} as const;
+
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -726,12 +748,28 @@ export function EnVentaPreviewPage() {
                   />
                   <div className="rounded-3xl border border-[#C9B46A]/40 bg-gradient-to-br from-[#FBF7EF] to-[#F3EBDD] p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
                     <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">
-                      {lang === "es" ? "Analíticas" : "Analytics"}
+                      {PREVIEW_ANALYTICS[lang].heading}
                     </p>
-                    <p className="mt-2 text-sm font-semibold leading-snug text-[#1E1810]">
-                      {lang === "es"
-                        ? "Aquí verás vistas, compartidos, guardados y contactos reales cuando el anuncio esté publicado. Revisa el panel «Mis anuncios» para métricas en vivo."
-                        : "You’ll see real views, shares, saves, and contacts here once the listing is live. Use “My listings” in your dashboard for live metrics."}
+                    <div className="mt-3 grid grid-cols-2 gap-2.5">
+                      {(
+                        [
+                          ["vistas", PREVIEW_ANALYTICS[lang].vistas],
+                          ["compartidos", PREVIEW_ANALYTICS[lang].compartidos],
+                          ["guardados", PREVIEW_ANALYTICS[lang].guardados],
+                          ["contactos", PREVIEW_ANALYTICS[lang].contactos],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <div
+                          key={key}
+                          className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 px-3 py-3 text-center shadow-inner"
+                        >
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
+                          <p className="mt-1.5 text-xl font-bold tabular-nums text-[#1E1810]">{PREVIEW_ANALYTICS[lang].dash}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-wide text-[#8A8070]">
+                      {PREVIEW_ANALYTICS[lang].hint}
                     </p>
                   </div>
                 </div>
