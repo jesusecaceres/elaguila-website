@@ -126,9 +126,14 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
   for (const p of pairs) {
     const lk = p.label.toLowerCase();
     if (p.label === "Leonix:evSub") evSubKey = p.value.trim();
-    if (lk.includes("departamento") || lk.includes("department")) deptKey = p.value.trim();
-    if (lk.includes("artículo") || lk.includes("articulo") || (lk.includes("item") && lk.includes("type")))
-      articleKey = p.value.trim();
+    if (p.label === "Leonix:evDept") deptKey = p.value.trim();
+    if (p.label === "Leonix:itemType") articleKey = p.value.trim();
+    if (lk.includes("departamento") || lk.includes("department")) {
+      if (!deptKey) deptKey = p.value.trim();
+    }
+    if (lk.includes("artículo") || lk.includes("articulo") || (lk.includes("item") && lk.includes("type"))) {
+      if (!articleKey) articleKey = p.value.trim();
+    }
     if (lk.includes("condición") || lk.includes("condicion") || lk.includes("condition")) condKey = p.value.trim();
   }
 

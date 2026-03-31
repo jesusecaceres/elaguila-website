@@ -48,6 +48,18 @@ function buildDetailPairs(
 ): Array<{ label: string; value: string }> {
   const pairs: Array<{ label: string; value: string }> = [];
   appendEnVentaDetailPairs(lang, buildDetailsRecord(state), pairs);
+  const rama = state.rama.trim();
+  if (rama) {
+    pairs.push({ label: "Leonix:evDept", value: rama });
+  }
+  const item = state.itemType.trim();
+  if (item) {
+    pairs.push({ label: "Leonix:itemType", value: item });
+  }
+  const cond = state.condition.trim();
+  if (cond) {
+    pairs.push({ label: lang === "es" ? "Condición" : "Condition", value: cond });
+  }
   if (state.meetup) {
     pairs.push({ label: lang === "es" ? "Encuentro" : "Meetup", value: lang === "es" ? "Sí" : "Yes" });
   }

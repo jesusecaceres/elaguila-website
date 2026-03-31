@@ -10,6 +10,7 @@ import {
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
+import { EnVentaPublishSubmitBar } from "@/app/clasificados/en-venta/publish/EnVentaPublishSubmitBar";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
 import { BasicInfoSection } from "../../free/application/sections/BasicInfoSection";
@@ -111,6 +112,7 @@ export default function LeonixEnVentaProApplication() {
             onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
             onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
           />
+          <EnVentaPublishSubmitBar lang={lang} plan="pro" state={state} />
         </div>
       </div>
     </main>
