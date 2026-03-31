@@ -8,6 +8,7 @@ import newLogo from "../../../public/logo.png";
 const NAV: Array<{ href: string; label: string; icon: string; badgeFrom?: "tienda" }> = [
   { href: "/admin", label: "Dashboard", icon: "◆" },
   { href: "/admin/tienda/orders", label: "Tienda Orders", icon: "🛒", badgeFrom: "tienda" },
+  { href: "/admin/tienda/catalog", label: "Tienda Catalog", icon: "📚" },
   { href: "/admin/usuarios", label: "Users", icon: "◎" },
   { href: "/admin/clasificados", label: "Ads", icon: "📣" },
   { href: "/admin/categories", label: "Categories", icon: "▤" },

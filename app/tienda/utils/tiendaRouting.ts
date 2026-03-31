@@ -25,6 +25,11 @@ export function tiendaCheckoutPlaceholderPath(source: TiendaOrderSource, slug: s
   return `/tienda/checkout/${source}/${slug}`;
 }
 
+/** Admin-managed catalog product detail (public). */
+export function tiendaCatalogProductPath(slug: string): string {
+  return `/tienda/catalog/${slug}`;
+}
+
 export function withLang(href: string, lang: Lang): string {
   if (!href) return `?lang=${lang}`;
   if (href === "#") return "#";

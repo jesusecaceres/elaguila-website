@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
-import {
-  getCategoryBySlug,
-  getFamiliesForCategory,
-  productFamilyToSummary,
-  TIENDA_CATEGORY_SLUGS,
-} from "../../data/tiendaRegistry";
+import { getCategoryBySlug, getFamiliesForCategory, productFamilyToSummary } from "../../data/tiendaRegistry";
 import type { Lang } from "../../types/tienda";
 import { normalizeLang } from "../../utils/tiendaRouting";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
@@ -16,10 +11,10 @@ import { TiendaProductFamilyCard } from "../../components/TiendaProductFamilyCar
 import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
 import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
 import { TiendaCTA } from "../../components/TiendaCTA";
+import { listTiendaCatalogItemsPublic, fetchPrimaryImageUrlForItems } from "@/app/lib/tienda/tiendaCatalogQueries";
+import { TiendaCatalogItemCard } from "../../components/catalog/TiendaCatalogItemCard";
 
-export function generateStaticParams() {
-  return TIENDA_CATEGORY_SLUGS.map((slug) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
@@ -52,6 +47,9 @@ export default async function TiendaCategoryPage(props: {
   const howWorks = lang === "en" ? category.howOrderingWorks.en : category.howOrderingWorks.es;
   const supportMsg = lang === "en" ? category.supportMessage.en : category.supportMessage.es;
 
+  const { items: catalogItems } = await listTiendaCatalogItemsPublic({ categorySlug: slug });
+  const catalogThumbs = await fetchPrimaryImageUrlForItems(catalogItems.map((i) => i.id));
+
   return (
     <main className="min-h-screen bg-[#070708] text-white">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
@@ -82,6 +80,29 @@ export default async function TiendaCategoryPage(props: {
             ))}
           </div>
         </section>
+
+        {catalogItems.length > 0 ? (
+          <section id="catalog-cms" className="mt-12 scroll-mt-28">
+            <h2 className="text-xl font-semibold tracking-tight text-white">
+              {lang === "en" ? "Catalog highlights" : "Destacados del catálogo"}
+            </h2>
+            <p className="mt-2 text-sm text-[rgba(255,255,255,0.62)] max-w-3xl">
+              {lang === "en"
+                ? "Representative items Leonix can source for your brand. Details, timing, and fulfillment paths vary—open a product for the exact CTA."
+                : "Artículos representativos que Leonix puede surtir para tu marca. Detalles, tiempos y rutas de surtido varían—abre un producto para el CTA exacto."}
+            </p>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {catalogItems.map((item) => (
+                <TiendaCatalogItemCard
+                  key={item.id}
+                  item={item}
+                  lang={lang}
+                  imageUrl={catalogThumbs.get(item.id)}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-12">
           <TiendaInfoPanel title={pick(tiendaCopy.sections.categoryPage.categoryWorks, lang)}>

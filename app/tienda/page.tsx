@@ -12,6 +12,10 @@ import { TiendaServiceSplit } from "./components/TiendaServiceSplit";
 import { TiendaTrustStrip } from "./components/TiendaTrustStrip";
 import { TiendaCTA } from "./components/TiendaCTA";
 import { normalizeLang, withLang } from "./utils/tiendaRouting";
+import { listTiendaCatalogItemsPublic, fetchPrimaryImageUrlForItems } from "@/app/lib/tienda/tiendaCatalogQueries";
+import { TiendaCatalogItemCard } from "./components/catalog/TiendaCatalogItemCard";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props: {
   searchParams?: Promise<{ lang?: string }>;
@@ -36,6 +40,9 @@ export default async function TiendaPage(props: {
 }) {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
+
+  const { items: featuredCatalog } = await listTiendaCatalogItemsPublic({ featuredStorefront: true });
+  const featuredThumbs = await fetchPrimaryImageUrlForItems(featuredCatalog.map((i) => i.id));
 
   return (
     <main className="min-h-screen bg-[#070708] text-white">
@@ -87,6 +94,30 @@ export default async function TiendaPage(props: {
             ))}
           </div>
         </section>
+
+        {featuredCatalog.length > 0 ? (
+          <section className="mt-16 sm:mt-20">
+            <TiendaSectionHeading
+              eyebrow={lang === "en" ? "Catalog" : "Catálogo"}
+              title={lang === "en" ? "Featured sourced & promo picks" : "Surtido promo y destacados"}
+              description={
+                lang === "en"
+                  ? "Curated items from the Leonix admin catalog—perfect for teams that want a rep-assisted or quote path."
+                  : "Artículos curados desde el catálogo admin de Leonix—ideal para equipos con ruta de cotización o asistencia."
+              }
+            />
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredCatalog.map((item) => (
+                <TiendaCatalogItemCard
+                  key={item.id}
+                  item={item}
+                  lang={lang}
+                  imageUrl={featuredThumbs.get(item.id)}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* 4) HOW IT WORKS */}
         <section className="mt-16 sm:mt-20">
