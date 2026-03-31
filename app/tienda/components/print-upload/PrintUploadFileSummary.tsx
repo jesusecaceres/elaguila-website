@@ -2,6 +2,7 @@
 
 import type { Lang } from "../../types/tienda";
 import type { PrintUploadDocument, PrintUploadFile, PrintUploadProductConfig } from "../../product-configurators/print-upload/types";
+import { PRINT_UPLOAD_MIN_PPI_PROXY } from "../../product-configurators/print-upload/constants";
 import { needsSeparateBackFile } from "../../product-configurators/print-upload/productConfigs";
 import { puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
 
@@ -44,6 +45,11 @@ function FileCard(props: { lang: Lang; title: string; file: PrintUploadFile | nu
               <div className="text-[color:rgba(61,52,40,0.65)]">
                 {lang === "en" ? "Dimensions not read in-browser for PDF." : "Dimensiones no leídas en el navegador para PDF."}
               </div>
+            ) : null}
+            {file.widthPx != null && file.heightPx != null && file.mime !== "application/pdf" ? (
+              <p className="text-[11px] text-[color:rgba(61,52,40,0.62)] mt-1">
+                {lang === "en" ? "Aspect ratio (W÷H)" : "Proporción (an÷al)"}: {(file.widthPx / file.heightPx).toFixed(3)}
+              </p>
             ) : null}
           </div>
         </div>
@@ -121,6 +127,14 @@ export function PrintUploadFileSummary(props: {
         <p className="mt-3 text-xs text-[color:rgba(61,52,40,0.6)]">
           {lang === "en" ? cfg.specSimplificationNote.en : cfg.specSimplificationNote.es}
         </p>
+        {size ? (
+          <p className="mt-2 text-[11px] text-[color:rgba(61,52,40,0.65)] leading-relaxed">
+            {lang === "en" ? "Trim reference" : "Referencia de corte"}: {size.widthIn}" × {size.heightIn}" —{" "}
+            {lang === "en" ? "bitmap proxy target" : "objetivo proxy (imagen)"} ~
+            {Math.round(size.widthIn * PRINT_UPLOAD_MIN_PPI_PROXY)}×{Math.round(size.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY)}{" "}
+            px. {puPick(printUploadBuilderCopy.bleedMarginsNote, lang)}
+          </p>
+        ) : null}
       </div>
     </section>
   );

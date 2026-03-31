@@ -23,6 +23,11 @@ export function AdminTiendaOrderOpsPanel(props: {
       <p className="text-xs text-[#7A7164]">
         Status workflow is administrative — customers are not notified automatically from these buttons yet.
       </p>
+      <p className="text-[11px] text-[#5C5346] leading-relaxed">
+        Suggested path: <strong>new</strong> → review assets → <strong>reviewing</strong> → when production-ready{" "}
+        <strong>ready_to_fulfill</strong> → <strong>ordered</strong> / vendor → <strong>completed</strong>. Use{" "}
+        <strong>needs_customer_followup</strong> if artwork is unclear.
+      </p>
       <div className="flex flex-wrap gap-2">
         {QUICK.map((status) => (
           <form key={status} action={updateTiendaOrderStatusAction.bind(null, orderId, status)}>

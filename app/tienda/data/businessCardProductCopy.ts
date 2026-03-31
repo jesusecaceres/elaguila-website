@@ -38,6 +38,24 @@ export const businessCardProductCopy = {
     "bold-logo-top": { es: "Logo destacado arriba", en: "Bold logo top" },
     "minimal-contact": { es: "Contacto mínimo", en: "Minimal contact" },
   } satisfies Record<BusinessCardTemplateId, { es: string; en: string }>,
+  templateDescriptions: {
+    "modern-centered": {
+      es: "Jerarquía limpia al centro; ideal para marcas contemporáneas.",
+      en: "Clean centered hierarchy; great for contemporary brands.",
+    },
+    "classic-left": {
+      es: "Lectura tradicional; nombre y datos alineados a la izquierda.",
+      en: "Traditional reading flow; name and details left‑aligned.",
+    },
+    "bold-logo-top": {
+      es: "Marca arriba, contacto abajo; buen impacto visual.",
+      en: "Brand up top, contact below; strong visual balance.",
+    },
+    "minimal-contact": {
+      es: "Solo lo esencial; mucho espacio en blanco.",
+      en: "Essentials only; generous negative space.",
+    },
+  } satisfies Record<BusinessCardTemplateId, { es: string; en: string }>,
   templatesHeading: { es: "Plantilla de partida", en: "Starter template" },
   backgroundHeading: { es: "Fondo de la tarjeta", en: "Card background" },
   designBlocksHeading: { es: "Bloques en el lienzo", en: "Canvas blocks" },
@@ -52,6 +70,21 @@ export const businessCardProductCopy = {
     es: "Este texto está ligado al campo de información arriba.",
     en: "This line is linked to the business details field above.",
   },
+  duplicateCustomBlock: { es: "Duplicar línea", en: "Duplicate line" },
+  fineNudge: { es: "Ajuste fino (±1%)", en: "Fine nudge (±1%)" },
+  logoOnCanvasTitle: { es: "Logo en la tarjeta", en: "Logo on card" },
+  uploadStepFiles: { es: "Archivos", en: "Files" },
+  uploadStepReview: { es: "Revisión", en: "Review" },
+  uploadStepOrder: { es: "Pedido", en: "Order" },
+  uploadDropHint: {
+    es: "Suelta el archivo aquí o pulsa para elegir",
+    en: "Drop a file here or tap to browse",
+  },
+  uploadPreferDesign: {
+    es: "¿Prefieres diseñar en línea?",
+    en: "Prefer to design online instead?",
+  },
+  uploadOpenBuilder: { es: "Abrir constructor", en: "Open builder" },
 } as const;
 
 export function bcpPick<T>(v: { es: T; en: T }, lang: Lang): T {

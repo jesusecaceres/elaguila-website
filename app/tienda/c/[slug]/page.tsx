@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
 import {
@@ -18,6 +19,22 @@ import { TiendaCTA } from "../../components/TiendaCTA";
 
 export function generateStaticParams() {
   return TIENDA_CATEGORY_SLUGS.map((slug) => ({ slug }));
+}
+
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const category = getCategoryBySlug(slug);
+  if (!category) {
+    return { title: "Tienda · Leonix" };
+  }
+  const title = `${category.title.en} · Leonix Tienda`;
+  const description = `${category.description.en} — ${category.description.es}`;
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+    alternates: { canonical: `/tienda/c/${slug}` },
+  };
 }
 
 export default async function TiendaCategoryPage(props: {

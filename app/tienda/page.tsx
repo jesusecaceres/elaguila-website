@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { tiendaCopy, pick } from "./data/tiendaCopy";
 import { tiendaCategories } from "./data/tiendaCategories";
@@ -11,6 +12,24 @@ import { TiendaServiceSplit } from "./components/TiendaServiceSplit";
 import { TiendaTrustStrip } from "./components/TiendaTrustStrip";
 import { TiendaCTA } from "./components/TiendaCTA";
 import { normalizeLang, withLang } from "./utils/tiendaRouting";
+
+export async function generateMetadata(props: {
+  searchParams?: Promise<{ lang?: string }>;
+}): Promise<Metadata> {
+  const sp = (await props.searchParams) ?? {};
+  const lang = normalizeLang(sp.lang);
+  const title =
+    lang === "en" ? "Leonix Tienda — business print & promo" : "Leonix Tienda — impresión y productos para negocios";
+  const description =
+    lang === "en"
+      ? "Upload-ready print, online business cards, and promo catalog requests with Leonix fulfillment."
+      : "Impresión con subida de archivos, tarjetas en línea y catálogo promo con Leonix.";
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+  };
+}
 
 export default async function TiendaPage(props: {
   searchParams?: Promise<{ lang?: string }>;

@@ -1,3 +1,4 @@
+import { BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO } from "../../product-configurators/business-cards/constants";
 import type { BusinessCardCanvasBackground, BusinessCardTextLayout, TextFieldRole } from "../../product-configurators/business-cards/types";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
 import type { BusinessCardSubmissionExtra } from "../../types/orderSubmission";
@@ -192,6 +193,10 @@ function metaToUploadAsset(
     { es: `Tipo: ${meta.mime}`, en: `Type: ${meta.mime}` },
     dim,
     { es: "Modo: archivo original subido por el cliente", en: "Mode: customer-uploaded artwork (original file)" },
+    {
+      es: "Comprueba que la resolución encaje con el tamaño final (Leonix valida antes de imprimir).",
+      en: "Confirm pixel size matches final trim (Leonix reviews before print).",
+    },
   ];
   const thumb = meta.mime.startsWith("image/") && meta.dataUrl ? meta.dataUrl : null;
   return { id, kind, label, thumbnailUrl: thumb, metaLines };
@@ -217,6 +222,10 @@ function mapV2ToReview(expectedSlug: string, raw: BusinessCardSessionPayloadV2):
       : { es: "Sin logo al frente", en: "No logo on front" }
   );
   frontMeta.push({ es: "Origen: diseño en línea (constructor)", en: "Source: design online (builder)" });
+  frontMeta.push({
+    es: `Al enviar: PNG de referencia (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× vista). No es PDF de prensa ni CMYK.`,
+    en: `On submit: reference PNG (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× preview). Not press-ready PDF/CMYK.`,
+  });
 
   const assetItems: TiendaOrderReviewSummary["assets"] = [
     {
@@ -236,6 +245,10 @@ function mapV2ToReview(expectedSlug: string, raw: BusinessCardSessionPayloadV2):
         : { es: "Sin logo en reverso", en: "No logo on back" }
     );
     backMeta.push({ es: "Origen: diseño en línea", en: "Source: design online" });
+    backMeta.push({
+      es: `Reverso — PNG de referencia (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× vista). No PDF de prensa.`,
+      en: `Back — reference PNG (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× preview). Not press PDF.`,
+    });
     assetItems.push({
       id: "bc-back",
       kind: "design-side",
@@ -299,6 +312,10 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
       : { es: "Sin logo al frente", en: "No logo on front" }
   );
   frontMeta.push({ es: "Origen: diseño en línea (constructor v3)", en: "Source: design online (builder v3)" });
+  frontMeta.push({
+    es: `Al enviar: PNG de referencia (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× vista). No es PDF de prensa ni CMYK.`,
+    en: `On submit: reference PNG (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× preview). Not press-ready PDF/CMYK.`,
+  });
 
   const assetItems: TiendaOrderReviewSummary["assets"] = [
     {
@@ -318,6 +335,10 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
         : { es: "Sin logo en reverso", en: "No logo on back" }
     );
     backMeta.push({ es: "Origen: diseño en línea", en: "Source: design online" });
+    backMeta.push({
+      es: `Reverso — PNG de referencia (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× vista). No PDF de prensa.`,
+      en: `Back — reference PNG (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× preview). Not press PDF.`,
+    });
     assetItems.push({
       id: "bc-back",
       kind: "design-side",
@@ -432,6 +453,7 @@ function extractExtraDesign(
     backLogoVisible: !!back.logo?.visible,
     frontLogoHasDataUrl: !!(front.logo?.previewUrl && String(front.logo.previewUrl).startsWith("data:")),
     backLogoHasDataUrl: !!(back.logo?.previewUrl && String(back.logo.previewUrl).startsWith("data:")),
+    designOnlineExportPixelRatio: BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO,
     approval: { ...approval },
   };
 }

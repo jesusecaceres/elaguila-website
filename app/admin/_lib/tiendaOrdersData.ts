@@ -21,6 +21,8 @@ export type TiendaOrderRow = {
   business_name: string;
   fulfillment_preference: string;
   notes: string;
+  /** Staff-only; column added in migration 20260331210000 */
+  admin_internal_notes?: string;
   approval_snapshot: unknown;
   warnings_snapshot: unknown;
   specs_snapshot: unknown;
@@ -144,6 +146,7 @@ export async function getAdminTiendaDashboardCounts(): Promise<AdminTiendaDashbo
 export type TiendaOrderListParams = {
   search?: string;
   status?: TiendaOrderOpsStatus | "";
+  unreadOnly?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -157,6 +160,7 @@ export async function listTiendaOrdersForAdmin(params: TiendaOrderListParams): P
   const offset = Math.max(params.offset ?? 0, 0);
   const search = (params.search ?? "").trim();
   const statusFilter = params.status && isTiendaOrderOpsStatus(params.status) ? params.status : null;
+  const unreadOnly = params.unreadOnly === true;
 
   try {
     const supabase = getAdminSupabase();
@@ -193,6 +197,7 @@ export async function listTiendaOrdersForAdmin(params: TiendaOrderListParams): P
     );
 
     if (statusFilter) q = q.eq("status", statusFilter);
+    if (unreadOnly) q = q.eq("unread_admin", true);
 
     if (search) {
       const term = `%${search}%`;
@@ -282,7 +287,7 @@ export async function getRecentTiendaOrdersPreview(limit: number): Promise<Tiend
     const { data, error } = await supabase
       .from("tienda_orders")
       .select(
-        "id, order_ref, created_at, updated_at, source_type, product_slug, product_title, category_slug, customer_user_id, customer_name, customer_email, customer_phone, business_name, fulfillment_preference, notes, status, unread_admin, email_delivery_status, email_last_error, approval_complete"
+        "id, order_ref, created_at, updated_at, source_type, product_slug, product_title, category_slug, customer_user_id, customer_name, customer_email, customer_phone, business_name, fulfillment_preference, notes, status, unread_admin, email_delivery_status, email_last_error, approval_complete, order_payload"
       )
       .order("created_at", { ascending: false })
       .limit(limit);

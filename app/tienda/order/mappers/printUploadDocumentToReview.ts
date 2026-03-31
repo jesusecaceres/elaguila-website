@@ -1,3 +1,4 @@
+import { PRINT_UPLOAD_MIN_PPI_PROXY } from "../../product-configurators/print-upload/constants";
 import type { PrintUploadProductConfig, PrintUploadSpecSelection } from "../../product-configurators/print-upload/types";
 import { getPrintUploadConfig } from "../../product-configurators/print-upload/productConfigs";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
@@ -100,6 +101,10 @@ function metaToAsset(
     { es: `Tipo: ${meta.mime}`, en: `Type: ${meta.mime}` },
     { es: `Tamaño: ${formatBytes(meta.sizeBytes)}`, en: `Size: ${formatBytes(meta.sizeBytes)}` },
     dim,
+    {
+      es: "Incluye sangrado y marcas solo si tu producción lo requiere; Leonix validará el archivo.",
+      en: "Include bleed and marks only if your job needs them—Leonix will validate the file.",
+    },
   ];
   const thumb = kind === "image" && meta.dataUrl ? meta.dataUrl : null;
   return {
@@ -143,6 +148,15 @@ export function mapPrintUploadSessionToReview(
   if (!family) return null;
 
   const specLines = buildPuSpecLines(cfg, raw.specs);
+  const sz = cfg.sizes.find((s) => s.id === raw.specs.sizeId);
+  if (sz) {
+    const minW = Math.round(sz.widthIn * PRINT_UPLOAD_MIN_PPI_PROXY);
+    const minH = Math.round(sz.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY);
+    specLines.unshift({
+      es: `Tamaño (referencia): ${sz.labelEs} — ~${minW}×${minH} px mín. sugerido (${PRINT_UPLOAD_MIN_PPI_PROXY} ppi proxy en imágenes).`,
+      en: `Size (reference): ${sz.labelEn} — ~${minW}×${minH} px suggested minimum (${PRINT_UPLOAD_MIN_PPI_PROXY} ppi proxy for bitmaps).`,
+    });
+  }
 
   const sidednessSummary: TiendaLocalizedLine =
     cfg.sideUploadMode === "single-file-only"
@@ -155,6 +169,17 @@ export function mapPrintUploadSessionToReview(
   assets.push(metaToAsset("pu-front", { es: "Archivo principal", en: "Primary file" }, raw.frontMeta));
   if (raw.backMeta) {
     assets.push(metaToAsset("pu-back", { es: "Archivo reverso", en: "Back file" }, raw.backMeta));
+  }
+  if (sz) {
+    const minW = Math.round(sz.widthIn * PRINT_UPLOAD_MIN_PPI_PROXY);
+    const minH = Math.round(sz.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY);
+    const line: TiendaLocalizedLine = {
+      es: `Comparar píxeles del archivo con ~${minW}×${minH} px (proxy) para ${sz.labelEs}.`,
+      en: `Compare file pixels to ~${minW}×${minH} px (proxy) for ${sz.labelEn}.`,
+    };
+    for (const a of assets) {
+      a.metaLines.push(line);
+    }
   }
 
   const approvalAll =

@@ -39,8 +39,19 @@ export type BusinessCardBuilderAction =
   | { type: "SET_TEXT_BLOCK"; side: BusinessCardSide; id: string; patch: Partial<BusinessCardTextBlock> }
   | { type: "ADD_CUSTOM_TEXT_BLOCK"; side: BusinessCardSide; lang: Lang }
   | { type: "REMOVE_TEXT_BLOCK"; side: BusinessCardSide; id: string }
+  | {
+      type: "DUPLICATE_CUSTOM_TEXT_BLOCK";
+      side: BusinessCardSide;
+      sourceId: string;
+      newId: string;
+      lang: Lang;
+    }
   | { type: "SET_LOGO_GEOM"; side: BusinessCardSide; patch: Partial<BusinessCardLogoGeom> }
   | { type: "RESET"; document: BusinessCardDocument };
+
+function clampPctBlock(v: number): number {
+  return Math.min(95, Math.max(5, v));
+}
 
 function patchSide(
   doc: BusinessCardDocument,
@@ -168,6 +179,21 @@ export function businessCardBuilderReducer(
         ...s,
         textBlocks: s.textBlocks.filter((b) => !(b.id === action.id && b.role === "custom")),
       }));
+    case "DUPLICATE_CUSTOM_TEXT_BLOCK":
+      return patchSide(state, action.side, (s) => {
+        const src = s.textBlocks.find((b) => b.id === action.sourceId && b.role === "custom");
+        if (!src) return s;
+        const copy: BusinessCardTextBlock = {
+          ...src,
+          id: action.newId,
+          xPct: clampPctBlock(src.xPct + 4),
+          yPct: clampPctBlock(src.yPct + 4),
+          text:
+            action.lang === "en" ? `${src.text.trim() || "Line"} (copy)` : `${src.text.trim() || "Línea"} (copia)`,
+          zIndex: Math.min(30, src.zIndex + 1),
+        };
+        return { ...s, textBlocks: [...s.textBlocks, copy] };
+      });
     case "SET_LOGO_GEOM":
       return patchSide(state, action.side, (s) => ({
         ...s,

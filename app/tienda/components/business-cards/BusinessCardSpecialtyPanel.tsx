@@ -6,7 +6,7 @@ import { bcpPick, businessCardProductCopy } from "../../data/businessCardProduct
 export function BusinessCardSpecialtyPanel(props: { lang: Lang }) {
   const { lang } = props;
   return (
-    <section className="rounded-3xl border border-[rgba(201,168,74,0.22)] bg-[linear-gradient(180deg,rgba(35,35,38,0.96),rgba(12,12,14,0.98))] p-6 sm:p-8 shadow-[0_22px_70px_rgba(0,0,0,0.4)]">
+    <section className="rounded-3xl border border-[rgba(201,168,74,0.28)] bg-[linear-gradient(180deg,rgba(35,35,38,0.96),rgba(12,12,14,0.98))] p-6 sm:p-8 shadow-[0_22px_70px_rgba(0,0,0,0.4)] ring-1 ring-[rgba(201,168,74,0.12)]">
       <h2 className="text-lg font-semibold tracking-tight text-[rgba(255,247,226,0.95)]">
         {bcpPick(businessCardProductCopy.specialtyTitle, lang)}
       </h2>

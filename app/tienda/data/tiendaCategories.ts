@@ -183,19 +183,26 @@ export const tiendaCategories: TiendaCategory[] = [
     },
     href: "/tienda/c/promo-products",
     accent: "gold",
-    familySlugs: ["promo-giveaways"],
+    familySlugs: [
+      "promo-giveaways",
+      "promo-pens",
+      "promo-drinkware",
+      "promo-bags",
+      "promo-desk-office",
+      "promo-apparel-program",
+    ],
     productMode: "mixed",
     heroSummary: {
-      es: "Catálogo amplio y variables por proveedor—empezamos con cotización y soporte.",
-      en: "Broad vendor‑dependent catalog—starting with quotes and support.",
+      es: "Catálogo tipo showcase: bolígrafos, drinkware, bolsas y más — cotización con Leonix.",
+      en: "Showcase-style catalog: pens, drinkware, bags, and more — quote with Leonix.",
     },
     supportMessage: {
-      es: "Cuéntanos fecha, cantidad y presupuesto—we’ll propose opciones.",
-      en: "Share date, quantity, and budget—we’ll propose options.",
+      es: "Cuéntanos fecha, cantidad y presupuesto — proponemos opciones según proveedor.",
+      en: "Share date, quantity, and budget — we’ll propose vendor-backed options.",
     },
     howOrderingWorks: {
-      es: "Explora la familia promocional, contacta para cotización y aprueba arte antes de producir.",
-      en: "Browse the promo family, contact for a quote, and approve art before production.",
+      es: "Explora familias, solicita por contacto y aprueba mockup antes de producir (sin checkout instantáneo).",
+      en: "Browse families, request via contact, and approve a mockup before production (no instant checkout).",
     },
   },
   {

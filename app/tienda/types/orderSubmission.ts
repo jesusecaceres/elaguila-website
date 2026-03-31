@@ -65,6 +65,8 @@ export type BusinessCardSubmissionExtra = {
     };
   };
   rawValidationSnapshot?: Array<{ severity: string; messageEs: string; messageEn: string }>;
+  /** Set for design-online orders: PNG export scale from the builder (reference raster only). */
+  designOnlineExportPixelRatio?: number;
 };
 
 export type PrintUploadSubmissionExtra = {

@@ -19,7 +19,7 @@ import {
 } from "../../product-configurators/print-upload/productConfigs";
 import { getProductFamilyBySlug } from "../../data/tiendaRegistry";
 import { printUploadConfigurePath, tiendaOrderPath, withLang } from "../../utils/tiendaRouting";
-import { puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
+import { printUploadCategoryGuidance, puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
 import { PrintUploadSpecPanel } from "./PrintUploadSpecPanel";
 import { PrintUploadDropzone } from "./PrintUploadDropzone";
 import { PrintUploadFileSummary } from "./PrintUploadFileSummary";
@@ -193,6 +193,15 @@ export function PrintUploadBuilderShell(props: { productSlug: PrintUploadProduct
               ? "Upload the exact file you want printed. Preview shows image thumbnails or a PDF summary card."
               : "Sube el archivo exacto que deseas imprimir. La vista previa muestra miniaturas o un resumen para PDF."}
           </p>
+          <p className="mt-3 text-sm text-[rgba(201,168,74,0.85)] leading-relaxed border-l-2 border-[rgba(201,168,74,0.5)] pl-3">
+            {printUploadCategoryGuidance(productSlug, lang)}
+          </p>
+          <p className="mt-2 text-xs text-[rgba(255,255,255,0.55)] leading-relaxed">
+            {puPick(printUploadBuilderCopy.resolutionProxyNote, lang)}
+          </p>
+          <p className="mt-1 text-xs text-[rgba(255,255,255,0.55)] leading-relaxed">
+            {puPick(printUploadBuilderCopy.bleedMarginsNote, lang)}
+          </p>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -233,6 +242,9 @@ export function PrintUploadBuilderShell(props: { productSlug: PrintUploadProduct
           <h2 className="text-base font-semibold">{puPick(printUploadBuilderCopy.nextTitle, lang)}</h2>
           <p className="mt-2 text-sm text-[rgba(255,255,255,0.72)] max-w-2xl">
             {puPick(printUploadBuilderCopy.nextBody, lang)}
+          </p>
+          <p className="mt-2 text-xs text-[rgba(255,255,255,0.58)] max-w-2xl leading-relaxed">
+            {puPick(printUploadBuilderCopy.orderReviewReminder, lang)}
           </p>
           {!validation.hasBlockingIssues && !validation.approvalComplete ? (
             <p className="mt-2 text-sm text-[rgba(201,168,74,0.85)]">

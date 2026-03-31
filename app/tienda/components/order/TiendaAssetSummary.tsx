@@ -28,8 +28,10 @@ export function TiendaAssetSummary(props: { review: TiendaOrderReviewSummary; la
                   </p>
                 </div>
               ) : a.kind === "design-side" ? (
-                <p className="text-xs text-[rgba(255,255,255,0.45)] px-4 text-center">
-                  {lang === "en" ? "Thumbnail when logo is present in saved draft." : "Miniatura cuando el borrador incluye logo."}
+                <p className="text-xs text-[rgba(255,255,255,0.45)] px-4 text-center leading-relaxed">
+                  {lang === "en"
+                    ? "Preview shows the saved logo when available. High-res reference PNGs are attached when you submit the order (not a press-ready PDF)."
+                    : "La vista muestra el logo guardado si existe. Al enviar el pedido se adjuntan PNG de referencia en alta (no es un PDF de prensa)."}
                 </p>
               ) : null}
             </div>

@@ -28,6 +28,23 @@ export async function updateTiendaOrderStatusAction(orderUuid: string, status: s
   // TODO: write admin_audit_log (actor, action: tienda_order.status, target_id, meta) when audit table ships
 }
 
+export async function updateTiendaOrderAdminNotesAction(orderUuid: string, formData: FormData): Promise<void> {
+  await assertAdmin();
+  const raw = formData.get("admin_internal_notes");
+  const notes = typeof raw === "string" ? raw.slice(0, 8000) : "";
+
+  const supabase = getAdminSupabase();
+  const { error } = await supabase
+    .from("tienda_orders")
+    .update({ admin_internal_notes: notes, updated_at: new Date().toISOString() })
+    .eq("id", orderUuid);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/tienda/orders");
+  revalidatePath(`/admin/tienda/orders/${orderUuid}`);
+}
+
 export async function setTiendaOrderUnreadAction(orderUuid: string, unread: boolean): Promise<void> {
   await assertAdmin();
   const supabase = getAdminSupabase();

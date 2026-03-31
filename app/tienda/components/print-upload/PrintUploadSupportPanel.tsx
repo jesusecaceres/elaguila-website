@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Lang } from "../../types/tienda";
 import { withLang } from "../../utils/tiendaRouting";
-import { puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
+import { printUploadBuilderCopy, puPick } from "../../data/printUploadBuilderCopy";
 
 export function PrintUploadSupportPanel(props: { lang: Lang }) {
   const { lang } = props;
@@ -16,6 +16,9 @@ export function PrintUploadSupportPanel(props: { lang: Lang }) {
         {lang === "en"
           ? "Unsure if your file is print‑ready, or need design support? Leonix can review or build it with you."
           : "¿Dudas si tu archivo está listo o necesitas diseño? Leonix puede revisarlo o apoyarte."}
+      </p>
+      <p className="mt-2 text-xs text-[rgba(255,255,255,0.62)] leading-relaxed">
+        {puPick(printUploadBuilderCopy.bleedMarginsNote, lang)}
       </p>
       <div className="mt-4 flex flex-col sm:flex-row gap-3">
         <Link

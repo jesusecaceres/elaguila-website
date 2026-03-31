@@ -1,4 +1,5 @@
 import type { Lang } from "../types/tienda";
+import type { PrintUploadProductSlug } from "../product-configurators/print-upload/types";
 
 export const printUploadBuilderCopy = {
   pageTitle: { es: "Subir arte listo", en: "Upload print‑ready art" },
@@ -54,7 +55,50 @@ export const printUploadBuilderCopy = {
   },
   saveContinue: { es: "Guardar borrador y continuar", en: "Save draft & continue" },
   savedToast: { es: "Borrador guardado en este dispositivo.", en: "Draft saved on this device." },
+  bleedMarginsNote: {
+    es: "Si tu arte lleva sangrado, debe extenderse más allá del corte final. Leonix revisa antes de imprimir — esto no sustituye un preflight profesional completo.",
+    en: "If your art includes bleed, it should extend past the final trim. Leonix reviews before print—this isn’t a full commercial preflight engine.",
+  },
+  resolutionProxyNote: {
+    es: "Usamos una regla aproximada de píxeles por pulgada para avisar si la imagen podría quedar suave en el tamaño elegido. PDF: confirma el archivo final fuera del navegador.",
+    en: "We use a simple pixels‑per‑inch rule to flag images that may print soft at the chosen size. PDF: verify the final file outside the browser.",
+  },
+  orderReviewReminder: {
+    es: "En el siguiente paso verás un resumen con archivos y advertencias. Solo se envía el pedido cuando confirmas datos y aprobaciones.",
+    en: "On the next step you’ll see a summary with files and warnings. The order is only submitted after you confirm details and approvals.",
+  },
 } as const;
+
+const CATEGORY_GUIDANCE: Record<
+  PrintUploadProductSlug,
+  { es: string; en: string }
+> = {
+  "flyers-standard": {
+    es: "Volantes: idealmente archivo por cara si es dos lados; revisa que el sangrado cubra el corte.",
+    en: "Flyers: one file per side when two-sided; ensure bleed covers trim.",
+  },
+  "brochures-standard": {
+    es: "Folletos: un solo PDF con maquetación de pliegues según la opción elegida (tríptico / díptico).",
+    en: "Brochures: one PDF laid out for the fold style you selected (tri‑fold / bi‑fold).",
+  },
+  "retractable-banners": {
+    es: "Banners retráctiles: área visible vs. enrollado — si tienes dudas, pide revisión antes de producción.",
+    en: "Retractable banners: mind live vs. wrapped area—ask Leonix to review if unsure.",
+  },
+  "yard-signs": {
+    es: "Señalética: archivos grandes en pulgadas; confirma escala y ojales/márgenes con la oficina si es especial.",
+    en: "Signs: large‑format inches matter—confirm scale and grommet margins for specialty jobs.",
+  },
+  "stickers-standard": {
+    es: "Stickers: respetar forma y márgenes; tal vez se necesite vector o alta resolución según tamaño.",
+    en: "Stickers: respect shape and margins—vectors or high resolution may be needed depending on size.",
+  },
+};
+
+export function printUploadCategoryGuidance(slug: PrintUploadProductSlug, lang: Lang): string {
+  const g = CATEGORY_GUIDANCE[slug];
+  return lang === "en" ? g.en : g.es;
+}
 
 export function puPick<T>(v: { es: T; en: T }, lang: Lang): T {
   return lang === "en" ? v.en : v.es;

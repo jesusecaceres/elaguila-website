@@ -18,6 +18,12 @@ export const LOGO_MAX_MB = 12;
  */
 export const LOGO_MIN_PIXEL_DIM = 360;
 
+/**
+ * `html-to-image` pixelRatio for design-online PNG snapshots (~3× DOM preview width).
+ * Useful as a visual reference for production — not a press-ready PDF/CMYK pipeline.
+ */
+export const BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO = 3;
+
 export const TEXT_FIELD_MAX: Partial<Record<import("./types").TextFieldRole, number>> = {
   personName: 42,
   title: 64,

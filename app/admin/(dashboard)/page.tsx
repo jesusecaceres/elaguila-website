@@ -6,6 +6,8 @@ import { AdminStatCard } from "../_components/AdminStatCard";
 import { adminCardBase } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
 import { getClasificadosCategoryRegistry, summarizeRegistryForDashboard } from "../_lib/clasificadosCategoryRegistry";
+import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
+import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
 import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +29,7 @@ export default async function AdminHomePage() {
           subtitle="Welcome back — here’s what’s happening today in operations."
         />
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <AdminStatCard
             title="Tienda — new orders"
             value={tiendaDash.dataUnavailable ? "—" : tiendaDash.newOrders}
@@ -40,6 +42,14 @@ export default async function AdminHomePage() {
             actionLabel="Open Tienda inbox"
             actionHref="/admin/tienda/orders"
             accent="amber"
+          />
+          <AdminStatCard
+            title="Tienda — unread"
+            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.unreadCount}
+            hint="Orders not yet marked read by staff."
+            icon="✉️"
+            actionLabel="Unread inbox"
+            actionHref="/admin/tienda/orders?unread=1"
           />
           <AdminStatCard
             title="Tienda — ready to fulfill"
@@ -86,10 +96,23 @@ export default async function AdminHomePage() {
                     className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold font-mono text-[#1E1810]">{row.order_ref}</p>
+                      <p className="flex flex-wrap items-center gap-2 truncate font-semibold font-mono text-[#1E1810]">
+                        {row.order_ref}
+                        {row.unread_admin ? (
+                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-900">
+                            Unread
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="text-xs text-[#7A7164]">
                         {row.customer_name} · {row.product_slug}
                       </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <AdminTiendaOrderStatusBadge status={row.status} />
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-[#9A9084]">
+                          {tiendaOrderFlowLabel(row.order_payload)}
+                        </span>
+                      </div>
                     </div>
                     <Link
                       href={`/admin/tienda/orders/${row.id}`}

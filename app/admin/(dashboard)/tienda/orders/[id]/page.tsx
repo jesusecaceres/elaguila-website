@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO } from "@/app/tienda/product-configurators/business-cards/constants";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminCardBase, adminTableWrap } from "@/app/admin/_components/adminTheme";
 import { AdminTiendaOrderOpsPanel } from "@/app/admin/_components/tienda/AdminTiendaOrderOpsPanel";
 import { AdminTiendaOrderStatusBadge } from "@/app/admin/_components/tienda/AdminTiendaOrderStatusBadge";
-import {
-  getTiendaOrderDetailForAdmin,
-  markTiendaOrderAsRead,
-} from "@/app/admin/_lib/tiendaOrdersData";
+import { AdminTiendaInternalNotesForm } from "@/app/admin/_components/tienda/AdminTiendaInternalNotesForm";
+import { groupTiendaOrderAssetsForAdmin } from "@/app/admin/_lib/tiendaAdminAssetGroups";
+import { getTiendaOrderDetailForAdmin, markTiendaOrderAsRead } from "@/app/admin/_lib/tiendaOrdersData";
+import { tiendaOrderFlowLabel } from "@/app/admin/_lib/tiendaOrderFlowLabel";
 import type { TiendaOrderSubmissionPayload } from "@/app/tienda/types/orderSubmission";
 
 export const dynamic = "force-dynamic";
@@ -34,9 +35,9 @@ function formatBytes(n: number): string {
 function assetRoleStaffLabel(role: string, source: string): string {
   switch (role) {
     case "business-card-front":
-      return "Business card — front (PNG visual export, not press PDF)";
+      return `Designed online — front reference PNG (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× preview scale; raster, not press PDF/CMYK)`;
     case "business-card-back":
-      return "Business card — back (PNG visual export)";
+      return `Designed online — back reference PNG (~${BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO}× preview scale; raster)`;
     case "design-json-snapshot":
       return "Builder JSON snapshot";
     case "upload-front":
@@ -91,17 +92,34 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
 
   const emailOk = orderView.email_delivery_status === "sent";
   const emailFailed = orderView.email_delivery_status === "failed";
+  const assetGroups = groupTiendaOrderAssetsForAdmin(assets);
+  const flowLabel = tiendaOrderFlowLabel(orderView.order_payload);
+  const internalNotes = orderView.admin_internal_notes ?? "";
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <AdminPageHeader
           title={`Order ${orderView.order_ref}`}
-          subtitle={`Internal ID ${orderView.id} · Source ${orderView.source_type}`}
+          subtitle={`Internal ID ${orderView.id} · Source ${orderView.source_type} · Flow ${flowLabel}`}
         />
-        <Link href="/admin/tienda/orders" className="text-sm font-bold text-[#6B5B2E] underline">
-          ← Inbox
-        </Link>
+        <div className="flex flex-col items-end gap-2">
+          <Link href="/admin/tienda/orders" className="text-sm font-bold text-[#6B5B2E] underline">
+            ← Inbox
+          </Link>
+          <a
+            href={`mailto:${encodeURIComponent(orderView.customer_email)}?subject=${encodeURIComponent(`Leonix · pedido ${orderView.order_ref}`)}`}
+            className="text-xs font-bold text-[#6B5B2E] underline"
+          >
+            Email customer
+          </a>
+          <Link
+            href={`/admin/tienda/orders?q=${encodeURIComponent(orderView.customer_email)}`}
+            className="text-xs font-bold text-[#6B5B2E] underline"
+          >
+            Search inbox by this email
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -195,6 +213,10 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
           </section>
 
           <section className={`${adminCardBase} p-5 space-y-3`}>
+            <AdminTiendaInternalNotesForm orderId={orderView.id} initialNotes={internalNotes} />
+          </section>
+
+          <section className={`${adminCardBase} p-5 space-y-3`}>
             <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Product & specs</h2>
             <p className="text-sm">
               <span className="font-semibold">{orderView.product_title}</span>
@@ -207,6 +229,14 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
                 {payload.businessCardExtra.creationMode === "upload-existing"
                   ? "Uploaded artwork (original files)"
                   : "Designed online (builder + reference PNGs)"}
+              </p>
+            ) : null}
+            {payload?.businessCardExtra?.designOnlineExportPixelRatio != null &&
+            payload.businessCardExtra.creationMode === "design-online" ? (
+              <p className="text-xs text-[#7A7164]">
+                Raster export uses{" "}
+                <strong className="text-[#5C5346]">{payload.businessCardExtra.designOnlineExportPixelRatio}×</strong>{" "}
+                DOM capture for PNG references — for layout fidelity only; use customer vectors/PDF when provided.
               </p>
             ) : null}
             {sidedness?.en || sidedness?.es ? (
@@ -253,68 +283,107 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
             </div>
           </section>
 
-          <section className={`${adminCardBase} p-5 space-y-3`}>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">
-              Production assets ({assets.length})
-            </h2>
-            <p className="text-xs text-[#7A7164]">
-              Links point to Vercel Blob URLs. If a link 404s, the blob may have been removed outside Leonix.
-            </p>
-            <div className={adminTableWrap}>
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#5C5346]">
-                  <tr>
-                    <th className="px-3 py-2">Role</th>
-                    <th className="px-3 py-2">File</th>
-                    <th className="px-3 py-2">MIME / size</th>
-                    <th className="px-3 py-2">Dims</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {assets.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-6 text-center text-[#9A9084]">
-                        No asset rows (data inconsistency).
-                      </td>
-                    </tr>
-                  ) : (
-                    assets.map((a) => (
-                      <tr key={a.id} className="border-b border-[#F0E8D8]/90">
-                        <td className="px-3 py-2 align-top">
-                          <div className="font-mono text-xs">{a.asset_role}</div>
-                          <div className="text-[11px] text-[#7A7164] max-w-[220px]">
-                            {assetRoleStaffLabel(a.asset_role, orderView.source_type)}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 align-top break-all text-xs">{a.original_filename}</td>
-                        <td className="px-3 py-2 align-top text-xs">
-                          {a.mime_type}
-                          <div className="text-[#7A7164]">{formatBytes(Number(a.size_bytes))}</div>
-                        </td>
-                        <td className="px-3 py-2 align-top text-xs">
-                          {a.width_px != null && a.height_px != null ? `${a.width_px}×${a.height_px}` : "—"}
-                        </td>
-                        <td className="px-3 py-2 align-top">
-                          <a
-                            href={a.asset_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-bold text-[#6B5B2E] underline"
-                          >
-                            Open
-                          </a>
-                          <div className="text-[10px] text-[#9A9084] break-all max-w-[140px]" title={a.storage_key}>
-                            {a.storage_key.split("/").pop()}
-                          </div>
-                        </td>
+          {assets.length === 0 ? (
+            <section className={`${adminCardBase} p-5 space-y-3`}>
+              <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Production assets</h2>
+              <p className="text-sm text-[#9A9084]">No asset rows (data inconsistency).</p>
+            </section>
+          ) : (
+            assetGroups.map((group) => (
+              <section key={group.id} className={`${adminCardBase} p-5 space-y-3`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 tabIndex={-1} id={`asset-group-${group.id}`} className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">
+                      {group.title}
+                    </h2>
+                    <p className="mt-1 text-xs text-[#7A7164] max-w-prose">{group.subtitle}</p>
+                    <p className="mt-2 text-xs text-[#5C5346]">
+                      <span className="font-semibold">Quick open:</span>{" "}
+                      {group.assets.map((a) => (
+                        <a
+                          key={a.id}
+                          href={a.asset_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mr-3 font-bold text-[#6B5B2E] underline"
+                        >
+                          {a.original_filename}
+                        </a>
+                      ))}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#FBF7EF] px-2 py-1 text-[10px] font-bold text-[#5C4E2E]">
+                    {group.assets.length} file{group.assets.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <p className="text-xs text-[#7A7164]">
+                  Links point to Vercel Blob URLs. If a link 404s, the blob may have been removed outside Leonix.
+                </p>
+                <div className={adminTableWrap}>
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#5C5346]">
+                      <tr>
+                        <th className="px-3 py-2">Preview</th>
+                        <th className="px-3 py-2">Role</th>
+                        <th className="px-3 py-2">File</th>
+                        <th className="px-3 py-2">MIME / size</th>
+                        <th className="px-3 py-2">Dims</th>
+                        <th className="px-3 py-2" />
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                    </thead>
+                    <tbody>
+                      {group.assets.map((a) => (
+                        <tr key={a.id} className="border-b border-[#F0E8D8]/90">
+                          <td className="px-3 py-2 align-top w-[88px]">
+                            {a.mime_type.startsWith("image/") ? (
+                              <a href={a.asset_url} target="_blank" rel="noreferrer" className="block">
+                                <img
+                                  src={a.asset_url}
+                                  alt=""
+                                  className="h-12 max-w-[72px] rounded border border-[#E8DFD0] bg-white object-contain"
+                                />
+                              </a>
+                            ) : a.mime_type === "application/pdf" ? (
+                              <span className="text-[10px] font-bold uppercase text-[#6B5B2E]">PDF</span>
+                            ) : (
+                              <span className="text-[10px] text-[#9A9084]">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            <div className="font-mono text-xs">{a.asset_role}</div>
+                            <div className="text-[11px] text-[#7A7164] max-w-[220px]">
+                              {assetRoleStaffLabel(a.asset_role, orderView.source_type)}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 align-top break-all text-xs">{a.original_filename}</td>
+                          <td className="px-3 py-2 align-top text-xs">
+                            {a.mime_type}
+                            <div className="text-[#7A7164]">{formatBytes(Number(a.size_bytes))}</div>
+                          </td>
+                          <td className="px-3 py-2 align-top text-xs">
+                            {a.width_px != null && a.height_px != null ? `${a.width_px}×${a.height_px}` : "—"}
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            <a
+                              href={a.asset_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-bold text-[#6B5B2E] underline"
+                            >
+                              Open
+                            </a>
+                            <div className="text-[10px] text-[#9A9084] break-all max-w-[140px]" title={a.storage_key}>
+                              {a.storage_key.split("/").pop()}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ))
+          )}
 
           {payload ? (
             <details className={`${adminCardBase} p-5`}>

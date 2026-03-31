@@ -8,8 +8,19 @@ import {
   isTiendaOrderOpsStatus,
   type TiendaOrderOpsStatus,
 } from "@/app/lib/tienda/tiendaOrderOperations";
+import { tiendaOrderFlowLabel } from "@/app/admin/_lib/tiendaOrderFlowLabel";
 
 export const dynamic = "force-dynamic";
+
+function inboxHref(args: { q: string; status: string; page: number; unreadOnly: boolean }): string {
+  const p = new URLSearchParams();
+  if (args.q) p.set("q", args.q);
+  if (args.status) p.set("status", args.status);
+  if (args.unreadOnly) p.set("unread", "1");
+  if (args.page > 1) p.set("page", String(args.page));
+  const s = p.toString();
+  return s ? `/admin/tienda/orders?${s}` : "/admin/tienda/orders";
+}
 
 function formatWhen(iso: string): string {
   try {
@@ -24,19 +35,20 @@ function formatWhen(iso: string): string {
 export default async function AdminTiendaOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string; unread?: string }>;
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const statusRaw = (sp.status ?? "").trim();
   const statusFilter: TiendaOrderOpsStatus | "" = isTiendaOrderOpsStatus(statusRaw) ? statusRaw : "";
+  const unreadOnly = sp.unread === "1" || sp.unread === "true";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const limit = 30;
   const offset = (page - 1) * limit;
 
   const [counts, list] = await Promise.all([
     getAdminTiendaDashboardCounts(),
-    listTiendaOrdersForAdmin({ search: q, status: statusFilter, limit, offset }),
+    listTiendaOrdersForAdmin({ search: q, status: statusFilter, unreadOnly, limit, offset }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(list.total / limit));
@@ -80,7 +92,29 @@ export default async function AdminTiendaOrdersPage({
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+        <Link
+          href={inboxHref({ q, status: statusFilter, page: 1, unreadOnly: false })}
+          className={`rounded-full border px-3 py-1 ${!unreadOnly ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"}`}
+        >
+          All (in filter)
+        </Link>
+        <Link
+          href={inboxHref({ q, status: statusFilter, page: 1, unreadOnly: true })}
+          className={`rounded-full border px-3 py-1 ${unreadOnly ? "border-sky-600 bg-sky-50 text-sky-950" : "border-[#E8DFD0] text-[#5C5346]"}`}
+        >
+          Unread only
+        </Link>
+        <Link
+          href={inboxHref({ q: "", status: "new", page: 1, unreadOnly: false })}
+          className="rounded-full border border-[#E8DFD0] px-3 py-1 text-[#5C5346] hover:bg-[#FAF7F2]"
+        >
+          Quick: status new
+        </Link>
+      </div>
+
       <form className={`${adminCardBase} flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-end`} method="get">
+        {unreadOnly ? <input type="hidden" name="unread" value="1" /> : null}
         <div className="min-w-[200px] flex-1">
           <label className="block text-xs font-bold uppercase tracking-wide text-[#5C5346] mb-1">Search</label>
           <input name="q" defaultValue={q} placeholder="Ref, email, name, slug, UUID…" className={adminInputClass} />
@@ -122,7 +156,7 @@ export default async function AdminTiendaOrdersPage({
           <tbody>
             {list.rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-[#7A7164]">
+                <td colSpan={10} className="px-4 py-10 text-center text-[#7A7164]">
                   No orders match these filters.
                 </td>
               </tr>
@@ -153,6 +187,9 @@ export default async function AdminTiendaOrdersPage({
                     <div className="text-xs text-[#7A7164]">{row.product_slug}</div>
                   </td>
                   <td className="px-4 py-3 text-xs">{row.source_type}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-[#3D3629]" title="How the customer produced files">
+                    {tiendaOrderFlowLabel(row.order_payload)}
+                  </td>
                   <td className="px-4 py-3">
                     <AdminTiendaOrderStatusBadge status={row.status} />
                   </td>
@@ -181,7 +218,7 @@ export default async function AdminTiendaOrdersPage({
           {page > 1 ? (
             <Link
               className="font-bold text-[#6B5B2E] underline"
-              href={`/admin/tienda/orders?q=${encodeURIComponent(q)}&status=${encodeURIComponent(statusFilter)}&page=${page - 1}`}
+              href={inboxHref({ q, status: statusFilter, page: page - 1, unreadOnly })}
             >
               ← Previous
             </Link>
@@ -189,7 +226,7 @@ export default async function AdminTiendaOrdersPage({
           {page < totalPages ? (
             <Link
               className="font-bold text-[#6B5B2E] underline"
-              href={`/admin/tienda/orders?q=${encodeURIComponent(q)}&status=${encodeURIComponent(statusFilter)}&page=${page + 1}`}
+              href={inboxHref({ q, status: statusFilter, page: page + 1, unreadOnly })}
             >
               Next →
             </Link>

@@ -6,7 +6,32 @@ import type {
   PrintUploadProductConfig,
   PrintUploadValidationItem,
   PrintUploadValidationResult,
+  SpecOptionSize,
 } from "./types";
+
+const ASPECT_RATIO_MISMATCH = 1.12;
+
+function checkAspectMismatch(
+  label: "front" | "back",
+  f: NonNullable<PrintUploadDocument["frontFile"]>,
+  size: SpecOptionSize,
+  items: PrintUploadValidationItem[]
+) {
+  if (f.mime === "application/pdf") return;
+  if (f.widthPx == null || f.heightPx == null) return;
+  const trimR = size.widthIn / size.heightIn;
+  const fileR = f.widthPx / f.heightPx;
+  if (!(trimR > 0 && fileR > 0)) return;
+  const skew = Math.max(trimR / fileR, fileR / trimR);
+  if (skew > ASPECT_RATIO_MISMATCH) {
+    items.push({
+      id: `${label}-aspect`,
+      severity: "soft",
+      messageEs: `La proporción del archivo no coincide bien con el tamaño elegido (${size.labelEs}). Si hay sangrado amplio o piezas aparte, Leonix lo revisará.`,
+      messageEn: `The file’s aspect ratio doesn’t closely match the selected trim (${size.labelEn}). If you included extra bleed or separate panels, Leonix will review.`,
+    });
+  }
+}
 
 export function validatePrintUploadDocument(doc: PrintUploadDocument): PrintUploadValidationResult {
   const items: PrintUploadValidationItem[] = [];
@@ -136,6 +161,8 @@ export function validatePrintUploadDocument(doc: PrintUploadDocument): PrintUplo
     const minH = Math.round(size.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY);
     checkDims("front", doc.frontFile, minW, minH);
     checkDims("back", doc.backFile, minW, minH);
+    if (doc.frontFile) checkAspectMismatch("front", doc.frontFile, size, items);
+    if (doc.backFile) checkAspectMismatch("back", doc.backFile, size, items);
   }
 
   if (cfg.sideUploadMode === "second-when-two-sided" && doc.specs.sidesId === "one-sided" && doc.backFile) {

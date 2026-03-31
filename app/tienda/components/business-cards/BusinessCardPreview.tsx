@@ -22,6 +22,8 @@ const LINE_ORDER: TextFieldRole[] = [
   "address",
 ];
 
+const DRAG_THRESHOLD = 0.12;
+
 function mergeTransform(base: string | undefined, nudgeX: number, nudgeY: number): string {
   const nx = nudgeX * 3;
   const ny = nudgeY * 3;
@@ -56,7 +58,10 @@ function clampPct(v: number, min = 8, max = 92): number {
 
 export type BusinessCardPreviewEditApi = {
   selectedTextBlockId: string | null;
+  logoSelected: boolean;
   onSelectTextBlock: (id: string | null) => void;
+  onDeselectCanvas: () => void;
+  onFocusLogo: () => void;
   onMoveTextBlock: (id: string, xPct: number, yPct: number) => void;
   onMoveLogo: (xPct: number, yPct: number) => void;
 };
@@ -78,56 +83,84 @@ export function BusinessCardPreview(props: {
   const useBlocks = state.textBlocks.length > 0;
   const trimRef = useRef<HTMLDivElement>(null);
 
-  const bindBlockDrag = (id: string, startX: number, startY: number) => {
+  const bindBlockDrag = (el: HTMLElement, id: string, startX: number, startY: number, pointerId: number) => {
     if (!editInteraction || !trimRef.current) return;
     const trim = trimRef.current;
     let lastX = startX;
     let lastY = startY;
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       const r = trim.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) return;
       const x = clampPct(((ev.clientX - r.left) / r.width) * 100);
       const y = clampPct(((ev.clientY - r.top) / r.height) * 100);
-      if (Math.hypot(x - lastX, y - lastY) < 0.35) return;
+      if (Math.hypot(x - lastX, y - lastY) < DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
       editInteraction.onMoveTextBlock(id, x, y);
     };
 
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      try {
+        el.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
     };
 
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp, { once: true });
+    try {
+      el.setPointerCapture(pointerId);
+    } catch {
+      /* ignore */
+    }
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
   };
 
-  const bindLogoDrag = (startX: number, startY: number) => {
+  const bindLogoDrag = (el: HTMLElement, startX: number, startY: number, pointerId: number) => {
     if (!editInteraction || !trimRef.current) return;
     const trim = trimRef.current;
     let lastX = startX;
     let lastY = startY;
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       const r = trim.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) return;
       const x = clampPct(((ev.clientX - r.left) / r.width) * 100);
       const y = clampPct(((ev.clientY - r.top) / r.height) * 100);
-      if (Math.hypot(x - lastX, y - lastY) < 0.35) return;
+      if (Math.hypot(x - lastX, y - lastY) < DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
       editInteraction.onMoveLogo(x, y);
     };
 
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      try {
+        el.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
     };
 
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp, { once: true });
+    try {
+      el.setPointerCapture(pointerId);
+    } catch {
+      /* ignore */
+    }
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
   };
 
   return (
@@ -148,7 +181,7 @@ export function BusinessCardPreview(props: {
             onPointerDown={
               editInteraction
                 ? () => {
-                    editInteraction.onSelectTextBlock(null);
+                    editInteraction.onDeselectCanvas();
                   }
                 : undefined
             }
@@ -183,9 +216,11 @@ export function BusinessCardPreview(props: {
                       <div
                         key={b.id}
                         className={[
-                          "absolute",
-                          editInteraction ? "cursor-grab active:cursor-grabbing touch-none z-[8]" : "pointer-events-none",
-                          selected ? "ring-2 ring-[rgba(201,168,74,0.65)] rounded-sm" : "",
+                          "absolute rounded-[3px]",
+                          editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation z-[8]" : "pointer-events-none",
+                          selected
+                            ? "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] shadow-[0_0_0_1px_rgba(201,168,74,0.35)] z-[9]"
+                            : "",
                         ].join(" ")}
                         style={{
                           left: `${b.xPct}%`,
@@ -209,7 +244,7 @@ export function BusinessCardPreview(props: {
                                 const r = trimRef.current.getBoundingClientRect();
                                 const x = clampPct(((e.clientX - r.left) / r.width) * 100);
                                 const y = clampPct(((e.clientY - r.top) / r.height) * 100);
-                                bindBlockDrag(b.id, x, y);
+                                bindBlockDrag(e.currentTarget, b.id, x, y, e.pointerId);
                               }
                             : undefined
                         }
@@ -221,8 +256,11 @@ export function BusinessCardPreview(props: {
                 {showLogo ? (
                   <div
                     className={[
-                      "absolute",
-                      editInteraction ? "cursor-grab active:cursor-grabbing touch-none" : "pointer-events-none",
+                      "absolute rounded-md transition-shadow",
+                      editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
+                      editInteraction?.logoSelected
+                        ? "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] shadow-[0_0_0_1px_rgba(201,168,74,0.35)]"
+                        : "",
                     ].join(" ")}
                     style={{
                       left: `${state.logoGeom.xPct}%`,
@@ -235,12 +273,12 @@ export function BusinessCardPreview(props: {
                       editInteraction
                         ? (e) => {
                             e.stopPropagation();
-                            editInteraction.onSelectTextBlock(null);
+                            editInteraction.onFocusLogo();
                             if (!trimRef.current) return;
                             const r = trimRef.current.getBoundingClientRect();
                             const x = clampPct(((e.clientX - r.left) / r.width) * 100);
                             const y = clampPct(((e.clientY - r.top) / r.height) * 100);
-                            bindLogoDrag(x, y);
+                            bindLogoDrag(e.currentTarget, x, y, e.pointerId);
                           }
                         : undefined
                     }
@@ -316,6 +354,11 @@ export function BusinessCardPreview(props: {
       <p className="mt-2 text-center text-[11px] text-[rgba(255,255,255,0.45)]">
         3.5″ × 2″ • {side === "front" ? bcPick(businessCardBuilderCopy.sideFront, lang) : bcPick(businessCardBuilderCopy.sideBack, lang)}
       </p>
+      {editInteraction ? (
+        <p className="mt-1 text-center text-[11px] text-[rgba(255,255,255,0.38)] max-w-[360px] mx-auto leading-snug">
+          {bcPick(businessCardBuilderCopy.previewHelp, lang)}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -46,9 +46,14 @@ export const businessCardBuilderCopy = {
   },
   nextTitle: { es: "Siguiente paso", en: "Next step" },
   nextBody: {
-    es: "El checkout y el guardado final del pedido llegarán en la siguiente fase. Por ahora puedes guardar tu diseño en este navegador y volver cuando esté listo.",
-    en: "Checkout and final order saving arrive in the next phase. For now you can save your design in this browser and return when we launch it.",
+    es: "Guardamos el diseño en este navegador y pasas a confirmar datos de contacto, entrega y envío del pedido a Leonix.",
+    en: "We save your design in this browser, then you confirm contact details, fulfillment, and submit the order to Leonix.",
   },
+  previewHelp: {
+    es: "Toca un bloque o el logo en la tarjeta para seleccionarlo. Arrastra para mover; ajusta con precisión en el panel.",
+    en: "Tap a text block or the logo on the card to select it. Drag to move; fine-tune in the panel.",
+  },
+  editingBanner: { es: "Editando", en: "Editing" },
   saveContinue: { es: "Guardar diseño y continuar", en: "Save design & continue" },
   savedToast: { es: "Diseño guardado en este dispositivo.", en: "Design saved on this device." },
   fieldLabels: {

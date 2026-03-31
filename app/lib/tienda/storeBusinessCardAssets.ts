@@ -1,6 +1,7 @@
 "use client";
 
 import { toBlob } from "html-to-image";
+import { BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO } from "@/app/tienda/product-configurators/business-cards/constants";
 import type { BusinessCardDocument } from "@/app/tienda/product-configurators/business-cards/types";
 import { uploadTiendaAsset } from "@/app/lib/tienda/uploadTiendaAsset";
 
@@ -61,7 +62,7 @@ export async function storeBusinessCardAssets(input: {
 
   let png: Blob | null;
   try {
-    png = await toBlob(frontEl, { pixelRatio: 2, cacheBust: true });
+    png = await toBlob(frontEl, { pixelRatio: BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO, cacheBust: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "PNG export failed";
     return { ok: false, error: msg, code: "EXPORT_FAILED" };
@@ -87,7 +88,7 @@ export async function storeBusinessCardAssets(input: {
       return { ok: false, error: "Could not render business card back for export.", code: "EXPORT_DOM_MISSING" };
     }
     try {
-      png = await toBlob(backEl, { pixelRatio: 2, cacheBust: true });
+      png = await toBlob(backEl, { pixelRatio: BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO, cacheBust: true });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "PNG export failed";
       return { ok: false, error: msg, code: "EXPORT_FAILED" };

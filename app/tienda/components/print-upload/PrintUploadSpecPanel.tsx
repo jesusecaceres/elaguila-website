@@ -4,6 +4,7 @@ import type { Lang } from "../../types/tienda";
 import type { PrintUploadDocument } from "../../product-configurators/print-upload/types";
 import type { PrintUploadProductConfig } from "../../product-configurators/print-upload/types";
 import type { PrintUploadAction } from "../../product-configurators/print-upload/printUploadReducer";
+import { PRINT_UPLOAD_MIN_PPI_PROXY } from "../../product-configurators/print-upload/constants";
 import { puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
 
 function optLabel(lang: Lang, o: { labelEs: string; labelEn: string }) {
@@ -18,6 +19,7 @@ export function PrintUploadSpecPanel(props: {
 }) {
   const { lang, cfg, doc, dispatch } = props;
   const specs = doc.specs;
+  const selectedSize = cfg.sizes.find((s) => s.id === specs.sizeId);
 
   const selectCls =
     "mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
@@ -58,6 +60,15 @@ export function PrintUploadSpecPanel(props: {
             </option>
           ))}
         </select>
+        {selectedSize ? (
+          <p className="mt-2 rounded-lg border border-black/8 bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-[color:rgba(61,52,40,0.78)]">
+            {lang === "en" ? "Nominal trim" : "Tamaño nominal"}: {selectedSize.widthIn}" × {selectedSize.heightIn}" ·{" "}
+            {lang === "en" ? "suggested minimum for bitmaps" : "mínimo sugerido (imagen)"} ~
+            {Math.round(selectedSize.widthIn * PRINT_UPLOAD_MIN_PPI_PROXY)}×
+            {Math.round(selectedSize.heightIn * PRINT_UPLOAD_MIN_PPI_PROXY)} px ({PRINT_UPLOAD_MIN_PPI_PROXY}{" "}
+            {lang === "en" ? "ppi rule of thumb" : "ppi aprox."})
+          </p>
+        ) : null}
       </div>
 
       <div>

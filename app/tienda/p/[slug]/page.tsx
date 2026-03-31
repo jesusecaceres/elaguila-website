@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
@@ -16,6 +17,7 @@ import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
 import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
 import { BusinessCardProductGateway } from "../../components/business-cards/BusinessCardProductGateway";
 import { BusinessCardSpecialtyPanel } from "../../components/business-cards/BusinessCardSpecialtyPanel";
+import { TiendaPromoCatalogPanel } from "../../components/TiendaPromoCatalogPanel";
 
 function isBusinessCardSelfServeProductSlug(slug: string): boolean {
   return slug === "standard-business-cards" || slug === "two-sided-business-cards";
@@ -23,6 +25,22 @@ function isBusinessCardSelfServeProductSlug(slug: string): boolean {
 
 export function generateStaticParams() {
   return TIENDA_PRODUCT_FAMILY_SLUGS.map((slug) => ({ slug }));
+}
+
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const product = getProductFamilyBySlug(slug);
+  if (!product) {
+    return { title: "Tienda · Leonix" };
+  }
+  const title = `${product.title.en} · Leonix Tienda`;
+  const description = `${product.description.en} — ${product.description.es}`;
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+    alternates: { canonical: `/tienda/p/${slug}` },
+  };
 }
 
 export default async function TiendaProductPage(props: {
@@ -52,6 +70,8 @@ export default async function TiendaProductPage(props: {
         />
 
         <TiendaProductHero product={product} lang={lang} />
+
+        {product.categorySlug === "promo-products" ? <TiendaPromoCatalogPanel lang={lang} product={product} /> : null}
 
         {isBusinessCardSelfServeProductSlug(product.slug) ? (
           <div className="mt-10 space-y-10">

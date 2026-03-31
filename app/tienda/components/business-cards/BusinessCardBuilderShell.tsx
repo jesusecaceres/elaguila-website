@@ -44,6 +44,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
     () => createInitialBusinessCardDocument(productSlug, lang)
   );
   const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
+  const [logoInspectorActive, setLogoInspectorActive] = useState(false);
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -205,6 +206,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
               active={doc.activeSide}
               onChange={(s) => {
                 setSelectedTextBlockId(null);
+                setLogoInspectorActive(false);
                 dispatch({ type: "SET_ACTIVE_SIDE", side: s });
               }}
             />
@@ -219,8 +221,8 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start">
-          <div className="space-y-4">
+        <div className="flex flex-col-reverse gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
+          <div className="space-y-3 lg:space-y-4">
             <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
               {bcPick(businessCardBuilderCopy.previewTitle, lang)}
             </h2>
@@ -230,7 +232,19 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
               lang={lang}
               editInteraction={{
                 selectedTextBlockId,
-                onSelectTextBlock: setSelectedTextBlockId,
+                logoSelected: logoInspectorActive,
+                onSelectTextBlock: (id) => {
+                  setSelectedTextBlockId(id);
+                  setLogoInspectorActive(false);
+                },
+                onDeselectCanvas: () => {
+                  setSelectedTextBlockId(null);
+                  setLogoInspectorActive(false);
+                },
+                onFocusLogo: () => {
+                  setLogoInspectorActive(true);
+                  setSelectedTextBlockId(null);
+                },
                 onMoveTextBlock: (id, xPct, yPct) =>
                   dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
                 onMoveLogo: (xPct, yPct) =>
@@ -238,15 +252,21 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
               }}
             />
           </div>
-          <BusinessCardEditorPanel
-            lang={lang}
-            doc={doc}
-            side={doc.activeSide}
-            dispatch={dispatchTyped}
-            onPickLogo={applyLogo}
-            selectedTextBlockId={selectedTextBlockId}
-            onSelectTextBlock={setSelectedTextBlockId}
-          />
+          <div className="lg:sticky lg:top-28 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1 lg:-mr-1">
+            <BusinessCardEditorPanel
+              lang={lang}
+              doc={doc}
+              side={doc.activeSide}
+              dispatch={dispatchTyped}
+              onPickLogo={applyLogo}
+              selectedTextBlockId={selectedTextBlockId}
+              onSelectTextBlock={(id) => {
+                setSelectedTextBlockId(id);
+                setLogoInspectorActive(false);
+              }}
+              logoInspectorActive={logoInspectorActive}
+            />
+          </div>
         </div>
 
         <div className="mt-10 space-y-8">
