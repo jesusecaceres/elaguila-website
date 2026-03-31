@@ -9,5 +9,5 @@ export const BR_PREVIEW_HUB = "/clasificados/bienes-raices/preview";
 export const BR_PREVIEW_NEGOCIO = "/clasificados/bienes-raices/preview/negocio";
 export const BR_PREVIEW_PRIVADO = "/clasificados/bienes-raices/preview/privado";
 export const BR_CATEGORY_HOME = "/clasificados/bienes-raices";
-/** Filtered browse / listados Negocio */
+/** Category results: filtered browse (owned by Bienes Raíces, route `/bienes-raices/results`). */
 export const BR_RESULTS = "/clasificados/bienes-raices/results";

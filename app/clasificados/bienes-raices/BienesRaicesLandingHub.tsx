@@ -5,16 +5,11 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { buildBrResultsUrl } from "@/app/clasificados/bienes-raices/shared/constants/brResultsRoutes";
 import { BienesRaicesResultsShell } from "./results/components/BienesRaicesResultsShell";
 import { BienesRaicesSearchBar } from "./results/components/BienesRaicesSearchBar";
 
 type QuickItem = { label: string; params: Record<string, string> };
-
-function resultsHref(params: Record<string, string>): string {
-  const sp = new URLSearchParams(params);
-  const q = sp.toString();
-  return q ? `${BR_RESULTS}?${q}` : BR_RESULTS;
-}
 
 const QUICK_BROWSE: QuickItem[] = [
   { label: "Venta", params: { primary: "venta" } },
@@ -35,13 +30,12 @@ export function BienesRaicesLandingHub() {
   const [beds, setBeds] = useState("");
 
   const runSearch = useCallback(() => {
-    const sp = new URLSearchParams();
-    if (query.trim()) sp.set("q", query.trim());
-    if (propertyType) sp.set("tipo", propertyType);
-    if (priceBand) sp.set("precio", priceBand);
-    if (beds) sp.set("recs", beds);
-    const qs = sp.toString();
-    router.push(qs ? `${BR_RESULTS}?${qs}` : BR_RESULTS);
+    const extra: Record<string, string | undefined> = {};
+    if (query.trim()) extra.q = query.trim();
+    if (propertyType) extra.tipo = propertyType;
+    if (priceBand) extra.precio = priceBand;
+    if (beds) extra.recs = beds;
+    router.push(buildBrResultsUrl(extra));
   }, [beds, priceBand, propertyType, query, router]);
 
   return (
@@ -128,7 +122,7 @@ export function BienesRaicesLandingHub() {
           {QUICK_BROWSE.map((item) => (
             <Link
               key={item.label}
-              href={resultsHref(item.params)}
+              href={buildBrResultsUrl(item.params)}
               className="rounded-full border border-[#E8DFD0] bg-white/80 px-4 py-2 text-sm font-semibold text-[#3D3630] shadow-sm transition hover:border-[#C9B46A]/55 hover:bg-[#FFFCF7]"
             >
               {item.label}

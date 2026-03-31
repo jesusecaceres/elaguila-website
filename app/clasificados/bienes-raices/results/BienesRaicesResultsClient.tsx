@@ -3,11 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import {
-  BR_PREVIEW_NEGOCIO,
-  BR_PUBLICAR_HUB,
-} from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
+import { brNegocioFeaturedListing, brNegocioGridListings, BR_NEGOCIO_DEMO_TOTAL } from "./demoData";
+import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
+import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
+import { BienesRaicesFeaturedSection } from "./components/BienesRaicesFeaturedSection";
+import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
+import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
+import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
+import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
+import { BienesRaicesSearchBar } from "./components/BienesRaicesSearchBar";
 
 const PRIMARY_IDS: BrPrimaryChipId[] = ["casas", "departamentos", "venta", "renta", "comerciales", "terrenos"];
 const SECONDARY_IDS: BrSecondaryChipId[] = [
@@ -39,17 +45,9 @@ function parseSecondaryFromSearch(raw: string | null): Set<BrSecondaryChipId> | 
   }
   return next.size ? next : null;
 }
-import { brNegocioFeaturedListing, brNegocioGridListings, BR_NEGOCIO_DEMO_TOTAL } from "./demoData";
-import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
-import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
-import { BienesRaicesFeaturedSection } from "./components/BienesRaicesFeaturedSection";
-import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
-import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
-import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
-import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
-import { BienesRaicesSearchBar } from "./components/BienesRaicesSearchBar";
 
-export function BienesRaicesNegocioResultsClient() {
+/** Category-owned results UI for `/clasificados/bienes-raices/results` (demo data uses listado Negocio). */
+export function BienesRaicesResultsClient() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [propertyType, setPropertyType] = useState("");
@@ -183,15 +181,6 @@ export function BienesRaicesNegocioResultsClient() {
             className="rounded-lg text-[#B8954A] underline decoration-[#C9B46A]/50 underline-offset-4 hover:text-[#8A6F3A]"
           >
             Publicar anuncio
-          </Link>
-          <span className="text-[#E8DFD0]" aria-hidden>
-            ·
-          </span>
-          <Link
-            href={BR_PREVIEW_NEGOCIO}
-            className="rounded-lg text-[#5C5346] underline decoration-[#C9B46A]/40 underline-offset-4 hover:text-[#1E1810]"
-          >
-            Vista previa Negocio
           </Link>
         </div>
       </footer>
