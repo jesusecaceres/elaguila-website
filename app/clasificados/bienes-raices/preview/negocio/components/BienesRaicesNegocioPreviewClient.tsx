@@ -17,13 +17,32 @@ export function BienesRaicesNegocioPreviewClient() {
   const [vm, setVm] = useState<BienesRaicesNegocioPreviewVm | null>(null);
 
   useLayoutEffect(() => {
-    clearLeonixPreviewNavSessionFlag();
+    let cancelled = false;
+    let clearTimer: number | undefined;
+
     try {
       const draft = loadBienesRaicesNegocioPreviewDraft();
-      setVm(mapNegocioFormStateToBrNegocioPreviewVm(draft ?? createEmptyBienesRaicesNegocioFormState()));
+      const state = draft ?? createEmptyBienesRaicesNegocioFormState();
+      if (!cancelled) {
+        setVm(mapNegocioFormStateToBrNegocioPreviewVm(state));
+      }
     } catch {
-      setVm(mapNegocioFormStateToBrNegocioPreviewVm(createEmptyBienesRaicesNegocioFormState()));
+      if (!cancelled) {
+        setVm(mapNegocioFormStateToBrNegocioPreviewVm(createEmptyBienesRaicesNegocioFormState()));
+      }
     }
+
+    // Defer clearing the preview-nav flag: if we clear synchronously before reading sessionStorage,
+    // the *previous* document's `pagehide` may see no flag, run `abandonLeonixPublishFlowClient`,
+    // and wipe `br-negocio-preview-draft` before this effect's load runs — empty first paint until reload.
+    clearTimer = window.setTimeout(() => {
+      clearLeonixPreviewNavSessionFlag();
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      if (clearTimer != null) window.clearTimeout(clearTimer);
+    };
   }, [pathname, draftToken]);
 
   if (!vm) {
