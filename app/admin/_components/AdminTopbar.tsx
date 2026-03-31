@@ -9,8 +9,11 @@ import { adminBtnPrimary, adminInputClass } from "./adminTheme";
 
 export function AdminTopbar({
   showCreate = true,
+  alertCount = 0,
 }: {
   showCreate?: boolean;
+  /** Tienda inbox unread count; badge hidden when zero */
+  alertCount?: number;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -53,17 +56,19 @@ export function AdminTopbar({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <button
-          type="button"
+        <Link
+          href="/admin/tienda/orders"
           className="relative rounded-full border border-[#E8DFD0] bg-white p-2 text-[#5C5346] shadow-sm"
-          title="Alerts"
-          aria-label="Alerts"
+          title={alertCount > 0 ? "Tienda inbox" : "Tienda orders"}
+          aria-label={alertCount > 0 ? `Tienda inbox, ${alertCount} unread` : "Tienda orders"}
         >
           🔔
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-            2
-          </span>
-        </button>
+          {alertCount > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+              {alertCount > 99 ? "99+" : alertCount}
+            </span>
+          ) : null}
+        </Link>
         <div className="hidden h-9 w-9 items-center justify-center rounded-full border border-[#E8DFD0] bg-gradient-to-br from-[#E8D48A] to-[#C9A84A] text-xs font-bold text-[#1E1810] sm:flex">
           LX
         </div>

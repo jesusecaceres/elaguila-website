@@ -208,9 +208,13 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
             ? subPick(orderSubmissionCopy.errorEmailConfig, lang)
             : data.code === "BLOB_NOT_CONFIGURED"
               ? subPick(orderSubmissionCopy.errorBlobConfig, lang)
+              : data.code === "DB_NOT_CONFIGURED" || data.code === "DB_INSERT_FAILED" || data.code === "DB_ASSETS_FAILED"
+                ? subPick(orderSubmissionCopy.errorDbConfig, lang)
+              : data.code === "DUPLICATE_ORDER_REF"
+                ? subPick(orderSubmissionCopy.errorDuplicateOrder, lang)
               : data.code === "ASSETS_MISSING" || data.code === "LIST_FAILED"
                 ? subPick(orderSubmissionCopy.errorAssetsMissing, lang)
-                : data.error || subPick(orderSubmissionCopy.errorGeneric, lang);
+                : data.error || subPick(orderSubmissionCopy.errorOrderPersist, lang);
         setSubmitError(msg);
         return;
       }
@@ -218,8 +222,11 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
       try {
         sessionStorage.setItem(
           `tienda-order-complete-${data.orderId.trim().toUpperCase()}`,
-          JSON.stringify({ assets: data.durableAssets ?? [] })
+          JSON.stringify({ assets: data.durableAssets ?? [], emailDelivered: data.emailDelivered !== false })
         );
+        if (data.emailDelivered === false) {
+          sessionStorage.setItem(`tienda-email-warn-${data.orderId.trim().toUpperCase()}`, "1");
+        }
       } catch {
         /* ignore quota / private mode */
       }

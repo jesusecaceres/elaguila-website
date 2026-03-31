@@ -16,6 +16,7 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
 - Use Cron Jobs for schedules; cron runs in UTC and triggers your production URL via HTTP GET
 - Use Vercel Blob for uploads/media; Use Edge Config for small, globally-read config
 - **Tienda fulfillment handoff:** set `BLOB_READ_WRITE_TOKEN` so `/api/tienda/assets/upload` and final order verification can `put`/`list` customer artifacts under `tienda/orders/{orderId}/` (see `@vercel/blob`)
+- **Tienda admin inbox:** apply Supabase migration `tienda_orders` / `tienda_order_assets`; checkout `POST /api/tienda/orders` persists via service role (`NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`) before email
 - If Enable Deployment Protection is enabled, use a bypass secret to directly access them
 - Add OpenTelemetry via `@vercel/otel` on Node; don't expect OTEL support on the Edge runtime
 - Enable Web Analytics + Speed Insights early

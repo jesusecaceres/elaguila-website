@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import newLogo from "../../../public/logo.png";
 
-const NAV: Array<{ href: string; label: string; icon: string }> = [
+const NAV: Array<{ href: string; label: string; icon: string; badgeFrom?: "tienda" }> = [
   { href: "/admin", label: "Dashboard", icon: "◆" },
+  { href: "/admin/tienda/orders", label: "Tienda Orders", icon: "🛒", badgeFrom: "tienda" },
   { href: "/admin/usuarios", label: "Users", icon: "◎" },
   { href: "/admin/clasificados", label: "Ads", icon: "📣" },
   { href: "/admin/categories", label: "Categories", icon: "▤" },
@@ -23,7 +24,7 @@ function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: number }) {
   const pathname = usePathname() ?? "";
 
   return (
@@ -54,7 +55,12 @@ export function AdminSidebar() {
               <span className="w-6 text-center text-base opacity-80" aria-hidden>
                 {item.icon}
               </span>
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badgeFrom === "tienda" && tiendaInboxUnread > 0 ? (
+                <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white min-w-[1.25rem] text-center">
+                  {tiendaInboxUnread > 99 ? "99+" : tiendaInboxUnread}
+                </span>
+              ) : null}
             </Link>
           );
         })}

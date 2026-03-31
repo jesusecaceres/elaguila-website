@@ -99,5 +99,13 @@ export type TiendaOrderSubmission = {
 };
 
 export type TiendaOrderSubmissionResult =
-  | { ok: true; orderId: string; submittedAt: string; durableAssets?: TiendaOrderAssetReference[] }
+  | {
+      ok: true;
+      orderId: string;
+      submittedAt: string;
+      durableAssets?: TiendaOrderAssetReference[];
+      /** False when the order was stored but Resend failed — staff still see it in admin. */
+      emailDelivered?: boolean;
+      emailError?: string;
+    }
   | { ok: false; error: string; code?: string };

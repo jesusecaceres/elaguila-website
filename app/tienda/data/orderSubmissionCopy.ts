@@ -40,6 +40,22 @@ export const orderSubmissionCopy = {
     es: "Leonix usa estos mismos enlaces en el correo del pedido; guárdalos si una descarga falla.",
     en: "Leonix staff get these same links in the order email; keep them if a download fails.",
   } satisfies TiendaLocalizedLine,
+  errorDbConfig: {
+    es: "El servidor no pudo guardar el pedido en la base de datos (Supabase). Contacta a Leonix.",
+    en: "The server couldn’t save your order to the database (Supabase). Contact Leonix.",
+  } satisfies TiendaLocalizedLine,
+  errorDuplicateOrder: {
+    es: "Esta referencia de pedido ya fue registrada. Si necesitas ayuda, contacta a Leonix.",
+    en: "This order reference was already saved. Contact Leonix if you need help.",
+  } satisfies TiendaLocalizedLine,
+  errorOrderPersist: {
+    es: "No se pudo completar el registro del pedido. Intenta de nuevo o contacta a Leonix.",
+    en: "We couldn’t finish saving your order. Try again or contact Leonix.",
+  } satisfies TiendaLocalizedLine,
+  warnEmailNotSent: {
+    es: "Tu pedido quedó registrado, pero el aviso por correo falló. Leonix puede verlo en el panel de administración.",
+    en: "Your order was saved, but the email notice failed. Leonix can still see it in admin.",
+  } satisfies TiendaLocalizedLine,
   alreadySubmittedTitle: {
     es: "Este pedido ya fue enviado",
     en: "This order was already submitted",

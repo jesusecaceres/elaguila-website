@@ -6,11 +6,16 @@ import { AdminStatCard } from "../_components/AdminStatCard";
 import { adminCardBase } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
 import { getClasificadosCategoryRegistry, summarizeRegistryForDashboard } from "../_lib/clasificadosCategoryRegistry";
+import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHomePage() {
-  const snap = await getAdminDashboardSnapshot();
+  const [snap, tiendaDash, tiendaRecent] = await Promise.all([
+    getAdminDashboardSnapshot(),
+    getAdminTiendaDashboardCounts(),
+    getRecentTiendaOrdersPreview(6),
+  ]);
   const registry = getClasificadosCategoryRegistry();
   const regSum = summarizeRegistryForDashboard(registry);
 
@@ -23,6 +28,86 @@ export default async function AdminHomePage() {
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <AdminStatCard
+            title="Tienda — new orders"
+            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.newOrders}
+            hint={
+              tiendaDash.dataUnavailable
+                ? tiendaDash.dataUnavailableNote ?? "Run migrations for tienda_orders."
+                : "Self-serve print / business card submissions."
+            }
+            icon="🛒"
+            actionLabel="Open Tienda inbox"
+            actionHref="/admin/tienda/orders"
+            accent="amber"
+          />
+          <AdminStatCard
+            title="Tienda — ready to fulfill"
+            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.readyToFulfill}
+            hint="Orders in ready_to_fulfill status."
+            icon="📦"
+            actionLabel="View inbox"
+            actionHref="/admin/tienda/orders?status=ready_to_fulfill"
+          />
+          <AdminStatCard
+            title="Tienda — in review"
+            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.inReview}
+            hint="Staff marked as reviewing."
+            icon="🔍"
+            actionLabel="Filter reviewing"
+            actionHref="/admin/tienda/orders?status=reviewing"
+          />
+          <AdminStatCard
+            title="Tienda — total"
+            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.totalOrders}
+            hint={`Unread (new to staff): ${tiendaDash.dataUnavailable ? "—" : tiendaDash.unreadCount}`}
+            icon="∑"
+            actionLabel="All Tienda orders"
+            actionHref="/admin/tienda/orders"
+          />
+        </div>
+
+        <div className="mt-8">
+          <AdminSectionCard
+            title="Recent Tienda orders"
+            subtitle="Newest persisted submissions — Supabase-backed inbox (not email)."
+          >
+            <ul className="space-y-3">
+              {tiendaRecent.length === 0 ? (
+                <li className="text-sm text-[#5C5346]/90">
+                  {tiendaDash.dataUnavailable
+                    ? "Tienda table unavailable or no rows yet."
+                    : "No Tienda orders yet."}
+                </li>
+              ) : (
+                tiendaRecent.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold font-mono text-[#1E1810]">{row.order_ref}</p>
+                      <p className="text-xs text-[#7A7164]">
+                        {row.customer_name} · {row.product_slug}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/tienda/orders/${row.id}`}
+                      className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                    >
+                      Open
+                    </Link>
+                  </li>
+                ))
+              )}
+            </ul>
+            <Link href="/admin/tienda/orders" className="mt-4 inline-flex text-sm font-bold text-[#2A2620] underline">
+              Full Tienda inbox →
+            </Link>
+          </AdminSectionCard>
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <AdminStatCard
             title="Pending ads review"
             value={snap.pendingListingsReview}
@@ -174,7 +259,8 @@ export default async function AdminHomePage() {
         <div className="mt-8 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164]">
           <strong className="text-[#5C5346]">Data honesty:</strong> Pending counts use live Supabase where columns exist. “Users
           needing help” is a disabled-account proxy until a support queue exists. Expiring ads require duration fields —
-          see queue subtitle.
+          see queue subtitle. Tienda dashboard counts need{" "}
+          <code className="rounded bg-white/80 px-1">tienda_orders</code> migration applied.
         </div>
       </div>
 

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { buildTiendaOrderEmailBodies } from "@/app/lib/tienda/formatTiendaOrderEmail";
 import { enrichAssetReferencesFromPayload } from "@/app/lib/tienda/enrichAssetReferencesFromPayload";
+import {
+  persistTiendaOrderToSupabase,
+  updateTiendaOrderEmailDelivery,
+} from "@/app/lib/tienda/persistTiendaOrderToSupabase";
 import { sendTiendaOrderEmailResend } from "@/app/lib/tienda/sendTiendaOrderEmailResend";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   assertRequiredDurableAssets,
   listDurableAssetsForOrder,
@@ -45,19 +50,47 @@ export async function POST(req: Request): Promise<NextResponse<TiendaOrderSubmis
 
   const durableAssets = enrichAssetReferencesFromPayload(checked.references, validated.payload);
 
-  const { subject, text, html } = buildTiendaOrderEmailBodies(orderId, submittedAt, validated.payload, durableAssets);
-
-  const sent = await sendTiendaOrderEmailResend({ subject, text, html });
-  if (!sent.ok) {
+  let supabase: ReturnType<typeof getAdminSupabase>;
+  try {
+    supabase = getAdminSupabase();
+  } catch {
     return NextResponse.json(
-      {
-        ok: false,
-        error: sent.message,
-        code: "EMAIL_FAILED",
-      },
+      { ok: false, error: "Order persistence is not configured (Supabase).", code: "DB_NOT_CONFIGURED" },
       { status: 503 }
     );
   }
 
-  return NextResponse.json({ ok: true, orderId, submittedAt, durableAssets });
+  const persisted = await persistTiendaOrderToSupabase(supabase, validated.payload, durableAssets);
+  if (!persisted.ok) {
+    const status = persisted.code === "DUPLICATE_ORDER_REF" ? 409 : 503;
+    return NextResponse.json(
+      { ok: false, error: persisted.error, code: persisted.code },
+      { status }
+    );
+  }
+
+  const { subject, text, html } = buildTiendaOrderEmailBodies(orderId, submittedAt, validated.payload, durableAssets);
+
+  const sent = await sendTiendaOrderEmailResend({ subject, text, html });
+
+  await updateTiendaOrderEmailDelivery(supabase, orderId, sent.ok ? "sent" : "failed", sent.ok ? null : sent.message);
+
+  if (!sent.ok) {
+    return NextResponse.json({
+      ok: true,
+      orderId,
+      submittedAt,
+      durableAssets,
+      emailDelivered: false,
+      emailError: sent.message,
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    orderId,
+    submittedAt,
+    durableAssets,
+    emailDelivered: true,
+  });
 }

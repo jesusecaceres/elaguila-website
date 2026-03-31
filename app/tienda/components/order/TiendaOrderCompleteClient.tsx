@@ -14,6 +14,7 @@ export function TiendaOrderCompleteClient(props: { orderRef: string; lang: Lang 
   const { orderRef, lang } = props;
   const valid = REF_RE.test(orderRef.trim());
   const [staffAssets, setStaffAssets] = useState<TiendaOrderAssetReference[] | null>(null);
+  const [emailWarn, setEmailWarn] = useState(false);
 
   useEffect(() => {
     if (!valid) return;
@@ -22,12 +23,14 @@ export function TiendaOrderCompleteClient(props: { orderRef: string; lang: Lang 
       const raw = sessionStorage.getItem(`tienda-order-complete-${id}`);
       if (!raw) {
         setStaffAssets(null);
-        return;
+      } else {
+        const parsed = JSON.parse(raw) as { assets?: TiendaOrderAssetReference[]; emailDelivered?: boolean };
+        setStaffAssets(Array.isArray(parsed.assets) ? parsed.assets : null);
       }
-      const parsed = JSON.parse(raw) as { assets?: TiendaOrderAssetReference[] };
-      setStaffAssets(Array.isArray(parsed.assets) ? parsed.assets : null);
+      setEmailWarn(sessionStorage.getItem(`tienda-email-warn-${id}`) === "1");
     } catch {
       setStaffAssets(null);
+      setEmailWarn(false);
     }
   }, [orderRef, valid]);
 
@@ -65,6 +68,12 @@ export function TiendaOrderCompleteClient(props: { orderRef: string; lang: Lang 
           </p>
           <p className="mt-2 text-lg font-mono font-semibold text-[rgba(201,168,74,0.98)]">{ref}</p>
         </div>
+
+        {emailWarn ? (
+          <p className="rounded-2xl border border-[rgba(220,160,90,0.45)] bg-[rgba(220,160,90,0.12)] px-4 py-3 text-sm text-[rgba(255,230,200,0.95)]">
+            {subPick(orderSubmissionCopy.warnEmailNotSent, lang)}
+          </p>
+        ) : null}
 
         {staffAssets && staffAssets.length > 0 ? (
           <div className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.25)] p-5 space-y-3">

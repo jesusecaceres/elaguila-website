@@ -3,7 +3,14 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { adminPageBg } from "./adminTheme";
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  tiendaInboxUnread = 0,
+}: {
+  children: ReactNode;
+  /** Unread Tienda orders for sidebar + topbar badge */
+  tiendaInboxUnread?: number;
+}) {
   return (
     <div className={adminPageBg}>
       <div
@@ -16,11 +23,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className="relative flex min-h-screen">
         <div className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-0 h-screen overflow-y-auto">
-            <AdminSidebar />
+            <AdminSidebar tiendaInboxUnread={tiendaInboxUnread} />
           </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <AdminTopbar />
+          <AdminTopbar alertCount={tiendaInboxUnread} />
           <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">{children}</div>
         </div>
       </div>
