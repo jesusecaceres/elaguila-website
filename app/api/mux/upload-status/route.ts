@@ -10,6 +10,23 @@ export async function GET(req: Request) {
     }
 
     const { upload, asset } = await getMuxUploadAndAsset(uploadId);
+
+    const directStatus = upload.status ?? "unknown";
+    if (directStatus === "errored" || directStatus === "cancelled" || directStatus === "timed_out") {
+      return NextResponse.json(
+        { ok: false, error: `Mux upload ${directStatus}`, muxStatus: directStatus, uploadStatus: directStatus },
+        { status: 422 }
+      );
+    }
+
+    const assetStatus = asset?.status;
+    if (assetStatus === "errored") {
+      return NextResponse.json(
+        { ok: false, error: "Mux asset errored", muxStatus: "errored", uploadStatus: directStatus },
+        { status: 422 }
+      );
+    }
+
     const playbackId = asset?.playback_ids?.[0]?.id ?? "";
     const thumb = playbackId ? `https://image.mux.com/${playbackId}/thumbnail.jpg` : "";
     const playbackUrl = playbackId ? `https://stream.mux.com/${playbackId}.m3u8` : "";
@@ -17,10 +34,10 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ok: true,
       uploadId,
-      uploadStatus: upload.status ?? "unknown",
+      uploadStatus: directStatus,
       assetId: asset?.id ?? upload.asset_id ?? "",
       playbackId,
-      muxStatus: asset?.status ?? "preparing",
+      muxStatus: assetStatus ?? "preparing",
       thumbnailUrl: thumb,
       playbackUrl,
       durationSeconds: typeof asset?.duration === "number" ? asset.duration : null,

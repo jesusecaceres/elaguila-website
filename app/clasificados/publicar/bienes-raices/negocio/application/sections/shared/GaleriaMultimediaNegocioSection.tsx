@@ -30,6 +30,7 @@ type MuxDirectUploadPayload = {
 type MuxStatusPayload = {
   ok?: boolean;
   error?: string;
+  muxStatus?: string;
 };
 
 function revokeIfBlob(url: string | undefined) {
@@ -55,6 +56,7 @@ function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", uploadUrl);
+    xhr.timeout = 900_000;
     const contentType = file.type?.trim() || "application/octet-stream";
     try {
       xhr.setRequestHeader("Content-Type", contentType);
@@ -70,6 +72,7 @@ function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number
       else reject(new Error(`PUT_${xhr.status}`));
     };
     xhr.onerror = () => reject(new Error("PUT_0"));
+    xhr.ontimeout = () => reject(new Error("PUT_timeout"));
     xhr.send(file);
   });
 }
@@ -249,6 +252,7 @@ export function GaleriaMultimediaNegocioSection({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slot }),
+          cache: "no-store",
         });
         const payload = (await req.json().catch(() => ({}))) as MuxDirectUploadPayload;
         if (!req.ok || !payload.ok || !payload.uploadId || !payload.uploadUrl) {
@@ -262,6 +266,10 @@ export function GaleriaMultimediaNegocioSection({
           });
         } catch (putErr: unknown) {
           const msg = putErr instanceof Error ? putErr.message : "";
+          if (msg === "PUT_timeout") {
+            setVideoSlot(setState, slot, { status: "error", errorMessage: "La subida tardó demasiado. Prueba un archivo más pequeño o usa un enlace." });
+            return;
+          }
           const statusMatch = /^PUT_(\d+)$/.exec(msg);
           const code = statusMatch ? Number(statusMatch[1]) : 0;
           setVideoSlot(setState, slot, { status: "error", errorMessage: muxPutMessage(code) });
@@ -270,10 +278,8 @@ export function GaleriaMultimediaNegocioSection({
         setVideoSlot(setState, slot, { status: "preparing", progressPct: 100 });
 
         let becameReady = false;
-        let tries = 0;
-        while (tries < 40) {
-          tries += 1;
-          await new Promise((r) => setTimeout(r, 2500));
+        for (let tries = 0; tries < 40; tries += 1) {
+          await new Promise((r) => setTimeout(r, tries === 0 ? 700 : 2200));
           const statusRes = await fetch(`/api/mux/upload-status?uploadId=${encodeURIComponent(payload.uploadId)}`, {
             cache: "no-store",
           });
@@ -286,10 +292,17 @@ export function GaleriaMultimediaNegocioSection({
             durationSeconds?: number | null;
           };
           if (!statusRes.ok || !statusPayload.ok) {
-            setVideoSlot(setState, slot, { status: "error", errorMessage: muxPollMessage() });
+            setVideoSlot(setState, slot, {
+              status: "error",
+              errorMessage: statusPayload.error ? String(statusPayload.error) : muxPollMessage(),
+            });
             return;
           }
           const muxStatus = (statusPayload.muxStatus ?? "").toLowerCase();
+          if (muxStatus === "errored") {
+            setVideoSlot(setState, slot, { status: "error", errorMessage: muxPollMessage() });
+            return;
+          }
           const ready = muxStatus === "ready";
           setVideoSlot(setState, slot, {
             assetId: statusPayload.assetId ?? "",
@@ -355,19 +368,21 @@ export function GaleriaMultimediaNegocioSection({
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Galería multimedia</h2>
       <p className={brSubTitleClass}>
-        Sube fotos y ordénalas; marca la portada con un clic. Dos videos destacados (archivo vía Mux o enlace) alimentan el
-        preview; tour y planos activan sus bloques.
+        Sube fotos y ordénalas con las flechas. Elige cuál es la portada (hero) con un clic — no tiene que ser la primera de la
+        lista. Dos videos destacados (Mux o enlace) alimentan el preview; tour y planos activan sus bloques.
       </p>
       <BrPreviewHint>
-        La portada elegida es la imagen principal del hero. Los videos muestran miniatura real y reproducción cuando están
-        listos.
+        <span className="font-semibold text-[#4A3F2E]">Portada</span> es la foto grande del encabezado del anuncio. El orden en
+        la cuadrícula solo agrupa miniaturas; puedes mover cualquier foto y seguir usando otra como portada.
       </BrPreviewHint>
 
       <div className="mt-5 space-y-8">
         <div>
           <div>
             <span className={brLabelClass}>Fotos</span>
-            <p className={brHintClass}>{`Hasta ${MAX_PHOTOS}. Reordena con las flechas o elige portada.`}</p>
+            <p className={brHintClass}>
+              {`Hasta ${MAX_PHOTOS}. Las flechas cambian el orden; “Portada” define el hero (independiente del primer casillero).`}
+            </p>
           </div>
           <input
             ref={imageInputRef}
@@ -400,9 +415,15 @@ export function GaleriaMultimediaNegocioSection({
                 <li
                   key={`${i}-${url.slice(0, 48)}`}
                   className={`overflow-hidden rounded-xl border bg-white p-2 shadow-sm ${
-                    i === primaryIdx ? "ring-2 ring-[#C9B46A]" : "border-[#E8DFD0]"
+                    i === primaryIdx ? "ring-2 ring-[#C9B46A] ring-offset-2 ring-offset-[#FFFCF7]" : "border-[#E8DFD0]"
                   }`}
                 >
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#8A7B62]">
+                      Foto {i + 1}
+                      {i === primaryIdx ? " · Hero / portada" : ""}
+                    </span>
+                  </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
                   <div className="mt-2 flex flex-wrap gap-1">
@@ -431,7 +452,7 @@ export function GaleriaMultimediaNegocioSection({
                       }`}
                       onClick={() => setPrimary(i)}
                     >
-                      {i === primaryIdx ? "Portada" : "Usar como portada"}
+                      {i === primaryIdx ? "Portada activa" : "Usar como portada"}
                     </button>
                     <button
                       type="button"

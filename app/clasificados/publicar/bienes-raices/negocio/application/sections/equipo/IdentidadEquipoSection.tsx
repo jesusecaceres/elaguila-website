@@ -10,6 +10,7 @@ import {
   brSubTitleClass,
   brTextareaClass,
 } from "../shared/brFormPrimitives";
+import { IdentityImageUrlRow } from "../shared/IdentityImageUrlRow";
 
 function RedesGrid({
   redes,
@@ -66,13 +67,11 @@ export function IdentidadEquipoSection({
             }
           />
         </BrField>
-        <BrField label="Foto principal o imagen del equipo (URL)">
-          <input
-            className={brInputClass}
-            value={ie.imagenUrl}
-            onChange={(e) => setState((s) => ({ ...s, identityEquipo: { ...s.identityEquipo, imagenUrl: e.target.value } }))}
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Foto principal o imagen del equipo"
+          value={ie.imagenUrl}
+          onChange={(url) => setState((s) => ({ ...s, identityEquipo: { ...s.identityEquipo, imagenUrl: url } }))}
+        />
         <BrField label="Brokerage">
           <input
             className={brInputClass}
@@ -80,13 +79,12 @@ export function IdentidadEquipoSection({
             onChange={(e) => setState((s) => ({ ...s, identityEquipo: { ...s.identityEquipo, brokerage: e.target.value } }))}
           />
         </BrField>
-        <BrField label="Logo (URL)">
-          <input
-            className={brInputClass}
-            value={ie.logoUrl}
-            onChange={(e) => setState((s) => ({ ...s, identityEquipo: { ...s.identityEquipo, logoUrl: e.target.value } }))}
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Logo del equipo / marca"
+          hint="Opcional."
+          value={ie.logoUrl}
+          onChange={(url) => setState((s) => ({ ...s, identityEquipo: { ...s.identityEquipo, logoUrl: url } }))}
+        />
         <BrField label="Teléfono general">
           <input
             className={brInputClass}
@@ -189,15 +187,20 @@ export function IdentidadEquipoSection({
           />
         </div>
       </div>
-      <div className="mt-6 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2C2416]">
+      <div className="mt-6 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        <label className="flex max-w-lg cursor-pointer items-start gap-2 text-sm font-medium text-[#2C2416]">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
             checked={state.asesorFinancieroActivo}
             onChange={(e) => setState((s) => ({ ...s, asesorFinancieroActivo: e.target.checked }))}
           />
-          Incluir asesor de préstamos (paso siguiente)
+          <span>
+            Incluir asesor de préstamos
+            <span className="mt-0.5 block text-xs font-normal text-[#5C5346]">
+              Al activarlo, completa los datos en el <span className="font-semibold">paso 11 — Asesor de préstamos</span>.
+            </span>
+          </span>
         </label>
       </div>
     </section>

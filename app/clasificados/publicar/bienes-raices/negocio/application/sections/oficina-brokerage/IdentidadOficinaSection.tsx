@@ -10,6 +10,7 @@ import {
   brSubTitleClass,
   brTextareaClass,
 } from "../shared/brFormPrimitives";
+import { IdentityImageUrlRow } from "../shared/IdentityImageUrlRow";
 
 function RedesGrid({
   redes,
@@ -64,13 +65,11 @@ export function IdentidadOficinaSection({
             }
           />
         </BrField>
-        <BrField label="Logo (URL)">
-          <input
-            className={brInputClass}
-            value={io.logoUrl}
-            onChange={(e) => setState((s) => ({ ...s, identityOficina: { ...s.identityOficina, logoUrl: e.target.value } }))}
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Logo de la oficina"
+          value={io.logoUrl}
+          onChange={(url) => setState((s) => ({ ...s, identityOficina: { ...s.identityOficina, logoUrl: url } }))}
+        />
         <BrField label="Teléfono principal">
           <input
             className={brInputClass}
@@ -157,15 +156,20 @@ export function IdentidadOficinaSection({
           />
         </div>
       </div>
-      <div className="mt-6 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2C2416]">
+      <div className="mt-6 space-y-2 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        <label className="flex max-w-lg cursor-pointer items-start gap-2 text-sm font-medium text-[#2C2416]">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
             checked={state.asesorFinancieroActivo}
             onChange={(e) => setState((s) => ({ ...s, asesorFinancieroActivo: e.target.checked }))}
           />
-          Incluir asesor de préstamos
+          <span>
+            Incluir asesor de préstamos
+            <span className="mt-0.5 block text-xs font-normal text-[#5C5346]">
+              Los campos del asesor están en el <span className="font-semibold">paso 11 — Asesor de préstamos</span>.
+            </span>
+          </span>
         </label>
       </div>
     </section>

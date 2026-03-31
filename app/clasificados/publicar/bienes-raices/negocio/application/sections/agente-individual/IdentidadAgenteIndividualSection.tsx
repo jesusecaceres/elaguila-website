@@ -10,6 +10,7 @@ import {
   brSubTitleClass,
   brTextareaClass,
 } from "../shared/brFormPrimitives";
+import { IdentityImageUrlRow } from "../shared/IdentityImageUrlRow";
 
 function RedesGrid({
   redes,
@@ -63,13 +64,12 @@ export function IdentidadAgenteIndividualSection({
             onChange={(e) => setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, nombre: e.target.value } }))}
           />
         </BrField>
-        <BrField label="Foto del agente (URL)" hint="Imagen cuadrada o retrato; se usa en la tarjeta.">
-          <input
-            className={brInputClass}
-            value={ia.fotoUrl}
-            onChange={(e) => setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, fotoUrl: e.target.value } }))}
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Foto del agente"
+          hint="Sube una imagen o pega un enlace; retrato o cuadrado luce bien en la tarjeta."
+          value={ia.fotoUrl}
+          onChange={(url) => setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, fotoUrl: url } }))}
+        />
         <BrField label="Título / rol">
           <input
             className={brInputClass}
@@ -84,15 +84,14 @@ export function IdentidadAgenteIndividualSection({
             onChange={(e) => setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, brokerage: e.target.value } }))}
           />
         </BrField>
-        <BrField label="Logo del brokerage (URL)" hint="Opcional.">
-          <input
-            className={brInputClass}
-            value={ia.logoBrokerageUrl}
-            onChange={(e) =>
-              setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, logoBrokerageUrl: e.target.value } }))
-            }
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Logo del brokerage"
+          hint="Opcional. Sube el archivo o usa URL."
+          value={ia.logoBrokerageUrl}
+          onChange={(url) =>
+            setState((s) => ({ ...s, identityAgente: { ...s.identityAgente, logoBrokerageUrl: url } }))
+          }
+        />
         <BrField label="Licencia">
           <input
             className={brInputClass}
@@ -165,30 +164,48 @@ export function IdentidadAgenteIndividualSection({
           />
         </div>
       </div>
-      <div className="mt-6 flex flex-col gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 sm:flex-row sm:flex-wrap">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2C2416]">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
-            checked={ia.segundoAgenteActivo}
-            onChange={(e) =>
-              setState((s) => ({
-                ...s,
-                identityAgente: { ...s.identityAgente, segundoAgenteActivo: e.target.checked },
-              }))
-            }
-          />
-          Agregar segundo agente
-        </label>
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2C2416]">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
-            checked={state.asesorFinancieroActivo}
-            onChange={(e) => setState((s) => ({ ...s, asesorFinancieroActivo: e.target.checked }))}
-          />
-          Agregar asesor de préstamos
-        </label>
+      <div className="mt-6 space-y-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        <p className="text-xs leading-relaxed text-[#5C5346]">
+          Las casillas de abajo solo activan pasos siguientes: los formularios detallados siguen en sus pasos para mantener el
+          flujo ordenado.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <label className="flex max-w-md cursor-pointer items-start gap-2 text-sm font-medium text-[#2C2416]">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
+              checked={ia.segundoAgenteActivo}
+              onChange={(e) =>
+                setState((s) => ({
+                  ...s,
+                  identityAgente: { ...s.identityAgente, segundoAgenteActivo: e.target.checked },
+                }))
+              }
+            />
+            <span>
+              Agregar segundo agente
+              <span className="mt-0.5 block text-xs font-normal text-[#5C5346]">
+                Si lo marcas, abrimos los campos en el <span className="font-semibold">paso 10 — Segundo agente</span> (siguiente
+                sección del asistente).
+              </span>
+            </span>
+          </label>
+          <label className="flex max-w-md cursor-pointer items-start gap-2 text-sm font-medium text-[#2C2416]">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A] focus:ring-[#C9B46A]"
+              checked={state.asesorFinancieroActivo}
+              onChange={(e) => setState((s) => ({ ...s, asesorFinancieroActivo: e.target.checked }))}
+            />
+            <span>
+              Agregar asesor de préstamos
+              <span className="mt-0.5 block text-xs font-normal text-[#5C5346]">
+                Si lo marcas, los datos del asesor se capturan en el{" "}
+                <span className="font-semibold">paso 11 — Asesor de préstamos</span>.
+              </span>
+            </span>
+          </label>
+        </div>
       </div>
     </section>
   );

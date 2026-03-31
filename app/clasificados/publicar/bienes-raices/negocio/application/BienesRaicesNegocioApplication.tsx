@@ -70,7 +70,7 @@ export default function BienesRaicesNegocioApplication() {
   const openPreview = useCallback(() => {
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
-    router.push(BR_PREVIEW_NEGOCIO);
+    router.push(`${BR_PREVIEW_NEGOCIO}?_=${Date.now()}`);
   }, [router, state]);
 
   return (

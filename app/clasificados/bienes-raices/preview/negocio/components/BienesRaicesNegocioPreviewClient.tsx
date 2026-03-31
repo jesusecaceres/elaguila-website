@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
@@ -9,12 +10,19 @@ import { createEmptyBienesRaicesNegocioFormState } from "@/app/clasificados/publ
 import { loadBienesRaicesNegocioPreviewDraft } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
 
 export function BienesRaicesNegocioPreviewClient() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const draftToken = searchParams?.get("_") ?? "";
   const [vm, setVm] = useState<BienesRaicesNegocioPreviewVm | null>(null);
 
-  useEffect(() => {
-    const draft = loadBienesRaicesNegocioPreviewDraft();
-    setVm(mapNegocioFormStateToBrNegocioPreviewVm(draft ?? createEmptyBienesRaicesNegocioFormState()));
-  }, []);
+  useLayoutEffect(() => {
+    try {
+      const draft = loadBienesRaicesNegocioPreviewDraft();
+      setVm(mapNegocioFormStateToBrNegocioPreviewVm(draft ?? createEmptyBienesRaicesNegocioFormState()));
+    } catch {
+      setVm(mapNegocioFormStateToBrNegocioPreviewVm(createEmptyBienesRaicesNegocioFormState()));
+    }
+  }, [pathname, draftToken]);
 
   if (!vm) {
     return (

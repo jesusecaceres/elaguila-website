@@ -10,6 +10,7 @@ import {
   brSubTitleClass,
   brTextareaClass,
 } from "./brFormPrimitives";
+import { IdentityImageUrlRow } from "./IdentityImageUrlRow";
 
 export function AsesorFinancieroNegocioSection({
   state,
@@ -25,7 +26,8 @@ export function AsesorFinancieroNegocioSection({
       <section className={brCardClass}>
         <h2 className={brSectionTitleClass}>Asesor de préstamos / financiamiento</h2>
         <p className={brSubTitleClass}>
-          Marca la casilla en el paso de identidad para mostrar este módulo opcional en la vista previa, o actívalo aquí.
+          Puedes activarlo aquí o desde el paso de identidad (<span className="font-semibold">paso 9</span>). Los campos
+          detallados se capturan en este paso (<span className="font-semibold">paso 11</span> del asistente).
         </p>
         <BrPreviewHint>Cuando está activo, aparece el bloque de apoyo de financiamiento junto al carril de contacto.</BrPreviewHint>
         <label className="mt-4 flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 text-sm font-medium text-[#2C2416]">
@@ -65,15 +67,12 @@ export function AsesorFinancieroNegocioSection({
             onChange={(e) => setState((s) => ({ ...s, asesorFinanciero: { ...s.asesorFinanciero, nombre: e.target.value } }))}
           />
         </BrField>
-        <BrField label="Foto (URL)" hint="Opcional.">
-          <input
-            className={brInputClass}
-            value={a.fotoUrl}
-            onChange={(e) =>
-              setState((s) => ({ ...s, asesorFinanciero: { ...s.asesorFinanciero, fotoUrl: e.target.value } }))
-            }
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Foto"
+          hint="Opcional."
+          value={a.fotoUrl}
+          onChange={(url) => setState((s) => ({ ...s, asesorFinanciero: { ...s.asesorFinanciero, fotoUrl: url } }))}
+        />
         <BrField label="Rol / título">
           <input
             className={brInputClass}

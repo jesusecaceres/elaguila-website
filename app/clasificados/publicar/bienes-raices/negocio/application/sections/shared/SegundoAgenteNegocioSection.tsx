@@ -10,6 +10,7 @@ import {
   brSubTitleClass,
   brTextareaClass,
 } from "./brFormPrimitives";
+import { IdentityImageUrlRow } from "./IdentityImageUrlRow";
 
 export function SegundoAgenteNegocioSection({
   state,
@@ -81,13 +82,12 @@ export function SegundoAgenteNegocioSection({
             onChange={(e) => setState((s) => ({ ...s, segundoAgente: { ...s.segundoAgente, nombre: e.target.value } }))}
           />
         </BrField>
-        <BrField label="Foto (URL)" hint="Opcional.">
-          <input
-            className={brInputClass}
-            value={sg.fotoUrl}
-            onChange={(e) => setState((s) => ({ ...s, segundoAgente: { ...s.segundoAgente, fotoUrl: e.target.value } }))}
-          />
-        </BrField>
+        <IdentityImageUrlRow
+          label="Foto"
+          hint="Opcional."
+          value={sg.fotoUrl}
+          onChange={(url) => setState((s) => ({ ...s, segundoAgente: { ...s.segundoAgente, fotoUrl: url } }))}
+        />
         <BrField label="Rol">
           <input
             className={brInputClass}
