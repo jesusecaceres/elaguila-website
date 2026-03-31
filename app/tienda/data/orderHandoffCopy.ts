@@ -16,6 +16,8 @@ export const orderHandoffCopy = {
   backToProduct: { es: "← Página del producto", en: "← Product page" } satisfies TiendaLocalizedLine,
 
   summaryTitle: { es: "Resumen del producto", en: "Product summary" } satisfies TiendaLocalizedLine,
+  pricingTitle: { es: "Precio (referencia)", en: "Pricing (reference)" } satisfies TiendaLocalizedLine,
+  pricingLoading: { es: "Calculando referencia…", en: "Loading reference…" } satisfies TiendaLocalizedLine,
   specsTitle: { es: "Especificaciones", en: "Specifications" } satisfies TiendaLocalizedLine,
   sidednessTitle: { es: "Lados / modalidad", en: "Sides / mode" } satisfies TiendaLocalizedLine,
 

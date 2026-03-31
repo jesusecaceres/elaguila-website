@@ -278,6 +278,11 @@ function mapV2ToReview(expectedSlug: string, raw: BusinessCardSessionPayloadV2):
     warnings: [],
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: companyHint,
+    pricingInput: {
+      productSlug: expectedSlug,
+      quantity: 250,
+      sidesKey: raw.sidedness === "two-sided" ? "two_sided" : "one_sided",
+    },
   };
 }
 
@@ -368,6 +373,11 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
     warnings: [],
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: companyHint,
+    pricingInput: {
+      productSlug: expectedSlug,
+      quantity: 250,
+      sidesKey: raw.sidedness === "two-sided" ? "two_sided" : "one_sided",
+    },
   };
 }
 
@@ -416,6 +426,11 @@ function mapV3UploadToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
     warnings,
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: null,
+    pricingInput: {
+      productSlug: expectedSlug,
+      quantity: 250,
+      sidesKey: raw.sidedness === "two-sided" ? "two_sided" : "one_sided",
+    },
   };
 }
 

@@ -195,6 +195,20 @@ export function syncFieldsFromBlocks(side: BusinessCardSideState): BusinessCardS
   return { ...side, fields };
 }
 
+/**
+ * When applying a new template, keep the user's copy only where they entered something.
+ * Empty strings from the prior state must NOT overwrite template placeholder text —
+ * otherwise blocks render blank and the layout looks "collapsed" at the top.
+ */
+function mergeTemplateFields(templateDefaults: BusinessCardTextFields, userFields: BusinessCardTextFields): BusinessCardTextFields {
+  const out: BusinessCardTextFields = { ...templateDefaults };
+  for (const role of ROLES_ORDER) {
+    const u = userFields[role]?.trim();
+    if (u) out[role] = userFields[role];
+  }
+  return out;
+}
+
 /** Merge template positions with current field text. */
 export function applyBusinessCardTemplateToDocument(
   templateId: BusinessCardTemplateId,
@@ -203,13 +217,18 @@ export function applyBusinessCardTemplateToDocument(
   prev: { front: BusinessCardSideState; back: BusinessCardSideState }
 ): { front: BusinessCardSideState; back: BusinessCardSideState } {
   const frontT = getBusinessCardTemplateFront(templateId, lang);
+  const customFront = prev.front.textBlocks.filter((b) => b.role === "custom");
+  const mergedFrontFields = mergeTemplateFields(frontT.fields, prev.front.fields);
   const mergeFront: BusinessCardSideState = {
     ...prev.front,
-    fields: { ...frontT.fields, ...prev.front.fields },
-    textBlocks: frontT.blocks.map((b) => ({
-      ...b,
-      text: prev.front.fields[b.role as TextFieldRole] ?? b.text,
-    })),
+    fields: mergedFrontFields,
+    textBlocks: [
+      ...frontT.blocks.map((b) => ({
+        ...b,
+        text: mergedFrontFields[b.role as TextFieldRole],
+      })),
+      ...customFront,
+    ],
     logoGeom: frontT.logoGeom,
   };
   const mergedFront = syncFieldsFromBlocks(syncSideBlocksFromFields(mergeFront));
@@ -217,13 +236,18 @@ export function applyBusinessCardTemplateToDocument(
     return { front: mergedFront, back: prev.back };
   }
   const backT = getBusinessCardTemplateBack(lang);
+  const customBack = prev.back.textBlocks.filter((b) => b.role === "custom");
+  const mergedBackFields = mergeTemplateFields(backT.fields, prev.back.fields);
   const mergeBack: BusinessCardSideState = {
     ...prev.back,
-    fields: { ...backT.fields, ...prev.back.fields },
-    textBlocks: backT.blocks.map((b) => ({
-      ...b,
-      text: prev.back.fields[b.role as TextFieldRole] ?? b.text,
-    })),
+    fields: mergedBackFields,
+    textBlocks: [
+      ...backT.blocks.map((b) => ({
+        ...b,
+        text: mergedBackFields[b.role as TextFieldRole],
+      })),
+      ...customBack,
+    ],
     logoGeom: backT.logoGeom,
   };
   return { front: mergedFront, back: syncFieldsFromBlocks(syncSideBlocksFromFields(mergeBack)) };

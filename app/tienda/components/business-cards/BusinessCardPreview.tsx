@@ -22,7 +22,8 @@ const LINE_ORDER: TextFieldRole[] = [
   "address",
 ];
 
-const DRAG_THRESHOLD = 0.12;
+/** Ignore sub-pixel jitter only — use a small threshold so drags feel responsive */
+const DRAG_THRESHOLD = 0.04;
 
 function mergeTransform(base: string | undefined, nudgeX: number, nudgeY: number): string {
   const nx = nudgeX * 3;
@@ -171,9 +172,10 @@ export function BusinessCardPreview(props: {
         style={{ aspectRatio: "3.5 / 2" }}
       >
         <div className="absolute inset-0 bg-[#232326]" aria-hidden>
+          {/* Must stay position:absolute — do not add "relative" here; it overrides absolute and breaks % positioning for blocks */}
           <div
             ref={trimRef}
-            className="absolute inset-[2.8%] rounded-[6px] shadow-inner relative"
+            className="absolute inset-[2.8%] rounded-[6px] shadow-inner overflow-hidden z-0"
             style={{
               ...trimSurfaceStyle(doc),
               ["--lx-text" as string]: textColor,

@@ -88,6 +88,9 @@ export function BusinessCardEditorPanel(props: {
         <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-[color:rgba(61,52,40,0.45)]">
           {bcpPick(businessCardProductCopy.templatesHeading, lang)}
         </h2>
+        <p className="mt-1.5 text-[11px] text-[color:rgba(61,52,40,0.58)] leading-snug">
+          {bcpPick(businessCardProductCopy.templatesSubheading, lang)}
+        </p>
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {BUSINESS_CARD_TEMPLATE_IDS.map((tid) => (
             <button
@@ -125,6 +128,9 @@ export function BusinessCardEditorPanel(props: {
             />
           </label>
         </div>
+        <p className="mt-2 text-[11px] text-[color:rgba(61,52,40,0.55)] leading-snug max-w-xl">
+          {bcpPick(businessCardProductCopy.backgroundHelp, lang)}
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {BG_PRESETS.map((p) => {
             const active = doc.canvasBackground.kind === "preset" && doc.canvasBackground.id === p.id;
@@ -187,6 +193,14 @@ export function BusinessCardEditorPanel(props: {
             );
           })}
         </div>
+
+        {!selectedBlock && state.textBlocks.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-[rgba(107,91,46,0.35)] bg-[rgba(201,168,74,0.06)] px-4 py-3">
+            <p className="text-[11px] text-[color:rgba(61,52,40,0.75)] leading-relaxed">
+              {bcpPick(businessCardProductCopy.noBlockSelectedHint, lang)}
+            </p>
+          </div>
+        ) : null}
 
         {selectedBlock ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-[rgba(201,168,74,0.28)] bg-white/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
@@ -558,9 +572,13 @@ export function BusinessCardEditorPanel(props: {
       <div className="border-t border-black/10 pt-5">
         <h3 className="text-sm font-semibold text-[color:var(--lx-text)]">{bcPick(businessCardBuilderCopy.layoutTitle, lang)}</h3>
         <p className="mt-1 text-[11px] text-[color:rgba(61,52,40,0.55)]">
-          {lang === "en"
-            ? "Legacy anchors apply when templates do not use freeform blocks."
-            : "Anclas heredadas cuando la plantilla no usa bloques libres."}
+          {state.textBlocks.length > 0
+            ? lang === "en"
+              ? "These anchors apply only if you remove all lines and use the classic stacked layout."
+              : "Estas anclas solo aplican si quitas todas las líneas y usas el diseño clásico apilado."
+            : lang === "en"
+              ? "Position the logo and text stack when not using freeform lines."
+              : "Coloca el logo y el bloque de texto cuando no uses líneas libres."}
         </p>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
           <BusinessCardPositionPicker

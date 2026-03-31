@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
+import { isSelfServeCatalogPricingProduct, type SelfServeOrderPricingSnapshot } from "@/app/lib/tienda/selfServePricing";
 import { assertTiendaOrderId } from "@/app/lib/tienda/tiendaBlobPrefix";
 import { storeBusinessCardAssets } from "@/app/lib/tienda/storeBusinessCardAssets";
 import { storeBusinessCardUploadAssets } from "@/app/lib/tienda/storeBusinessCardUploadAssets";
@@ -67,6 +68,9 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
   const [submitBusyLabel, setSubmitBusyLabel] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [bcExportDoc, setBcExportDoc] = useState<BusinessCardDocument | null>(null);
+  const [pricingSnapshot, setPricingSnapshot] = useState<SelfServeOrderPricingSnapshot | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingFetchNote, setPricingFetchNote] = useState<string | null>(null);
 
   useEffect(() => {
     setExistingSubmit(readTiendaSubmittedMarker(source, slug));
@@ -84,6 +88,75 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
     if (review == null) return;
     writePersistedOrderForm(source, slug, customer, fulfillment);
   }, [customer, fulfillment, source, slug, review]);
+
+  useEffect(() => {
+    if (review === undefined || review === null) {
+      setPricingSnapshot(null);
+      setPricingLoading(false);
+      setPricingFetchNote(null);
+      return;
+    }
+    const input = review.pricingInput;
+    if (!input || !isSelfServeCatalogPricingProduct(review.productSlug)) {
+      setPricingSnapshot(null);
+      setPricingLoading(false);
+      setPricingFetchNote(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPricingLoading(true);
+    setPricingFetchNote(null);
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/tienda/self-serve-pricing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productSlug: input.productSlug,
+            quantity: input.quantity,
+            sidesKey: input.sidesKey ?? undefined,
+            sizeKey: input.sizeKey ?? undefined,
+            stockKey: input.stockKey ?? undefined,
+            finishKey: input.finishKey ?? undefined,
+          }),
+        });
+        const data = (await res.json()) as {
+          snapshot?: SelfServeOrderPricingSnapshot;
+          fetchWarning?: string;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok || !data.snapshot) {
+          setPricingSnapshot(null);
+          setPricingFetchNote(
+            lang === "en"
+              ? "Pricing reference could not be loaded. Leonix will confirm totals with you."
+              : "No se pudo cargar la referencia de precio. Leonix confirmará totales contigo."
+          );
+          return;
+        }
+        setPricingSnapshot(data.snapshot);
+        setPricingFetchNote(typeof data.fetchWarning === "string" && data.fetchWarning.trim() ? data.fetchWarning.trim() : null);
+      } catch {
+        if (!cancelled) {
+          setPricingSnapshot(null);
+          setPricingFetchNote(
+            lang === "en"
+              ? "Pricing reference could not be loaded. Leonix will confirm totals with you."
+              : "No se pudo cargar la referencia de precio. Leonix confirmará totales contigo."
+          );
+        }
+      } finally {
+        if (!cancelled) setPricingLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [review, lang]);
 
   if (review === undefined) {
     return (
@@ -303,7 +376,13 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
         <p className="text-sm text-[rgba(255,255,255,0.66)] max-w-2xl">{ohPick(orderHandoffCopy.pageSubtitle, lang)}</p>
       </header>
 
-      <TiendaOrderSummary review={review} lang={lang} />
+      <TiendaOrderSummary
+        review={review}
+        lang={lang}
+        pricingSnapshot={pricingSnapshot}
+        pricingLoading={pricingLoading}
+        pricingFetchNote={pricingFetchNote}
+      />
       <TiendaAssetSummary review={review} lang={lang} />
 
       <section className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.03)] p-5 sm:p-6 space-y-3">

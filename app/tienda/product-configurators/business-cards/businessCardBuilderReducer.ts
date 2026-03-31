@@ -149,7 +149,17 @@ export function businessCardBuilderReducer(
         state.sidedness === "two-sided",
         { front: state.front, back: state.back }
       );
-      return { ...state, version: 3, front, back };
+      /* Fresh template geometry — legacy nudges fight block positions and confuse the preview */
+      return {
+        ...state,
+        version: 3,
+        front,
+        back,
+        textNudgeX: 0,
+        textNudgeY: 0,
+        logoNudgeX: 0,
+        logoNudgeY: 0,
+      };
     }
     case "SET_TEXT_BLOCK":
       return patchSide(state, action.side, (s) => {

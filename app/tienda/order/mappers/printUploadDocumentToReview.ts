@@ -213,6 +213,13 @@ export function mapPrintUploadSessionToReview(
     return { es: `${prefixEs}${i.messageEs}`, en: `${prefixEn}${i.messageEn}` };
   });
 
+  const sidesKey =
+    raw.specs.sidesId === "two-sided"
+      ? "two_sided"
+      : raw.specs.sidesId === "one-sided"
+        ? "one_sided"
+        : String(raw.specs.sidesId ?? "");
+
   return {
     source: "print-upload",
     productSlug: expectedSlug,
@@ -231,6 +238,14 @@ export function mapPrintUploadSessionToReview(
     warnings,
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: null,
+    pricingInput: {
+      productSlug: expectedSlug,
+      quantity: raw.specs.quantity,
+      sidesKey: sidesKey || null,
+      sizeKey: raw.specs.sizeId,
+      stockKey: raw.specs.stockId,
+      finishKey: raw.specs.finishId ?? null,
+    },
   };
 }
 

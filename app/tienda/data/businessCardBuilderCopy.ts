@@ -50,8 +50,8 @@ export const businessCardBuilderCopy = {
     en: "We save your design in this browser, then you confirm contact details, fulfillment, and submit the order to Leonix.",
   },
   previewHelp: {
-    es: "Toca un bloque o el logo en la tarjeta para seleccionarlo. Arrastra para mover; ajusta con precisión en el panel.",
-    en: "Tap a text block or the logo on the card to select it. Drag to move; fine-tune in the panel.",
+    es: "Toca una línea de texto o el logo. Mantén pulsado y arrastra para mover. Ajuste fino en el panel derecho.",
+    en: "Tap a line of text or the logo. Press and drag to move. Use the right panel for precise placement.",
   },
   editingBanner: { es: "Editando", en: "Editing" },
   saveContinue: { es: "Guardar diseño y continuar", en: "Save design & continue" },

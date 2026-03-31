@@ -27,6 +27,16 @@ export type TiendaAssetSummaryItem = {
   metaLines: TiendaLocalizedLine[];
 };
 
+/** Input for `/api/tienda/self-serve-pricing` (admin catalog + rules). */
+export type TiendaOrderPricingInput = {
+  productSlug: string;
+  quantity: number;
+  sidesKey?: string | null;
+  sizeKey?: string | null;
+  stockKey?: string | null;
+  finishKey?: string | null;
+};
+
 export type TiendaOrderReviewSummary = {
   source: TiendaOrderSource;
   productSlug: string;
@@ -41,6 +51,8 @@ export type TiendaOrderReviewSummary = {
   builderSavedAt: string | null;
   /** Optional hint from business-card text fields (company). */
   prefillBusinessName?: string | null;
+  /** Resolves admin pricing for order summary (client fetches snapshot via API). */
+  pricingInput?: TiendaOrderPricingInput;
 };
 
 export type TiendaOrderDraft = {

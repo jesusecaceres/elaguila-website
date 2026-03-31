@@ -221,7 +221,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
+        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
           <div className="space-y-3 lg:space-y-4">
             <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
               {bcPick(businessCardBuilderCopy.previewTitle, lang)}
