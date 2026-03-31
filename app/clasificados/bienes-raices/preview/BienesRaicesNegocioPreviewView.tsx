@@ -576,172 +576,18 @@ export function BienesRaicesNegocioPreviewView({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1240px] px-6 pb-20 pt-8 lg:px-8">
-        <section className="grid gap-8 lg:grid-cols-[1fr_minmax(300px,360px)] lg:items-start lg:gap-10">
-          <div>
-            <h1
-              className="max-w-[720px] text-[1.75rem] font-bold leading-[1.15] tracking-tight sm:text-[2rem] lg:text-[2.25rem]"
-              style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
-            >
-              {vm.heroTitle}
-            </h1>
-            <p className="mt-3 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
-              <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
-                <IconPin className="block" />
-              </span>
-              {vm.addressLine}
-            </p>
-            <div className="mt-4 flex flex-wrap items-end gap-2.5">
-              <span className="text-3xl font-bold tracking-tight sm:text-[2.5rem]" style={{ color: BRONZE, fontFamily: "Georgia, serif" }}>
-                {vm.priceDisplay}
-              </span>
-              <span
-                className="mb-1 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                style={{ borderColor: `${BRONZE}55`, background: "rgba(197, 160, 89, 0.12)", color: BRONZE_SOFT }}
-              >
-                {vm.listingStatusLabel}
-              </span>
-            </div>
-            {vm.operationSummary ? (
-              <p className="mt-1.5 text-xs font-medium" style={{ color: MUTED }}>
-                {vm.operationSummary}
-              </p>
-            ) : null}
-
-            <div
-              className="mt-6 flex flex-wrap gap-2 rounded-2xl border p-3 sm:gap-3 sm:p-4"
-              style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 12px 40px -18px rgba(42,36,22,0.14)" }}
-            >
-              {quickFacts.map(({ Icon, label, value }) => (
-                <div
-                  key={label}
-                  className="flex min-w-[120px] flex-1 items-center gap-2.5 rounded-lg border px-2.5 py-2 sm:min-w-[132px]"
-                  style={{ borderColor: BORDER }}
-                >
-                  <span style={{ color: BRONZE }} className="shrink-0">
-                    <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                      {label}
-                    </p>
-                    <p className="truncate text-sm font-bold" style={{ color: CHARCOAL }}>
-                      {value}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <aside
-            className="rounded-2xl border p-5 shadow-[0_18px_48px_-14px_rgba(42,36,22,0.16)]"
-            style={{ borderColor: BORDER, background: CREAM_CARD }}
-          >
-            <div className="overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
-              {vm.identity.hasPhoto && vm.identity.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={vm.identity.photoUrl} alt="" className="aspect-[4/3] w-full object-cover" />
-              ) : (
-                <div className="aspect-[4/3] w-full">
-                  <EmptyMedia
-                    title="Identidad del anuncio"
-                    subtitle="Sin imagen principal cargada."
-                    icon={<IconEye className="h-6 w-6" />}
-                  />
-                </div>
-              )}
-            </div>
-            <p className="mt-4 text-lg font-bold leading-tight" style={{ color: CHARCOAL_DEEP }}>
-              {vm.identity.name}
-            </p>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
-              {vm.identity.role}
-            </p>
-            <div className="mt-4 flex items-start gap-3 rounded-xl border px-3 py-3" style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}>
-              {vm.identity.brokerageLogoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={vm.identity.brokerageLogoUrl}
-                  alt=""
-                  className="h-10 max-w-[100px] shrink-0 object-contain object-left"
-                />
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-                  Inmobiliaria
-                </p>
-                <p className="mt-1 text-sm font-bold" style={{ color: CHARCOAL }}>
-                  {vm.identity.brokerageName}
-                </p>
-              </div>
-            </div>
-            {vm.identity.verifiedLine || vm.identity.licenseLine ? (
-              <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
-                {vm.identity.verifiedLine ? (
-                  <span className="font-semibold" style={{ color: CHARCOAL }}>
-                    {vm.identity.verifiedLine}
-                  </span>
-                ) : null}
-                {vm.identity.licenseLine ? (
-                  <>
-                    {vm.identity.verifiedLine ? <br /> : null}
-                    {vm.identity.licenseLine}
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-            {(vm.identity.contactPhone || vm.identity.contactEmail) ? (
-              <div className="mt-3 space-y-1 text-xs" style={{ color: CHARCOAL }}>
-                {vm.identity.contactPhone ? <p className="font-medium">{vm.identity.contactPhone}</p> : null}
-                {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
-              </div>
-            ) : null}
-            {vm.identity.socialChips.length > 0 ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {vm.identity.socialChips.map((s) => (
-                  <span
-                    key={s}
-                    className="flex h-8 min-w-[2rem] items-center justify-center rounded-full border px-2 text-[10px] font-bold"
-                    style={{ borderColor: BORDER, color: CHARCOAL }}
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {vm.identity.profileHref ? (
-              <a
-                href={vm.identity.profileHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
-                style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
-              >
-                {vm.identity.profileCtaLabel}
-              </a>
-            ) : (
-              <span
-                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 border-dashed py-3 text-xs font-bold uppercase tracking-wide opacity-50"
-                style={{ borderColor: BORDER, color: MUTED }}
-              >
-                {vm.identity.profileCtaLabel.replace("→", "").trim()}
-              </span>
-            )}
-          </aside>
-        </section>
-
-        <section className="mt-12" id="galeria-multimedia">
-          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <div className="flex items-center gap-2.5">
+      <main className="mx-auto max-w-[1240px] px-6 pb-16 pt-4 lg:px-8">
+        <section className="mb-0" id="galeria-multimedia">
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+            <div className="flex items-center gap-2">
               <SectionIcon>
                 <IconHome className="h-4 w-4" />
               </SectionIcon>
-              <h2 className="text-lg font-bold" style={{ color: CHARCOAL_DEEP }}>
+              <h2 className="text-base font-bold sm:text-lg" style={{ color: CHARCOAL_DEEP }}>
                 Galería multimedia
               </h2>
             </div>
-            <p className="text-xs font-medium" style={{ color: MUTED }}>
+            <p className="text-[11px] font-medium sm:text-xs" style={{ color: MUTED }}>
               {vm.media.metaLine}
             </p>
           </div>
@@ -869,7 +715,7 @@ export function BienesRaicesNegocioPreviewView({
             </div>
           </div>
           {vm.media.floorPlanUrls.length > 1 ? (
-            <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+            <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                 Planos adicionales ({vm.media.floorPlanUrls.length - 1})
               </p>
@@ -882,7 +728,7 @@ export function BienesRaicesNegocioPreviewView({
             </div>
           ) : null}
           {vm.media.hasSitePlan && vm.media.sitePlanUrl && (Boolean(vm.location.mapsUrl) || Boolean(vm.media.floorPlanUrls[0])) ? (
-            <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+            <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                 Plano de sitio / comunidad
               </p>
@@ -892,7 +738,161 @@ export function BienesRaicesNegocioPreviewView({
           ) : null}
         </section>
 
-        <section className="mt-14 grid gap-6 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
+        <section className="mt-7 grid gap-6 border-t pt-7 lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-start lg:gap-8" style={{ borderColor: BORDER }}>
+          <div>
+            <h1
+              className="max-w-[720px] text-[1.75rem] font-bold leading-[1.15] tracking-tight sm:text-[2rem] lg:text-[2.35rem]"
+              style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
+            >
+              {vm.heroTitle}
+            </h1>
+            <p className="mt-2.5 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
+              <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
+                <IconPin className="block" />
+              </span>
+              {vm.addressLine}
+            </p>
+            <div className="mt-3 flex flex-wrap items-end gap-2.5">
+              <span className="text-3xl font-bold tracking-tight sm:text-[2.5rem]" style={{ color: BRONZE, fontFamily: "Georgia, serif" }}>
+                {vm.priceDisplay}
+              </span>
+              <span
+                className="mb-1 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+                style={{ borderColor: `${BRONZE}55`, background: "rgba(197, 160, 89, 0.12)", color: BRONZE_SOFT }}
+              >
+                {vm.listingStatusLabel}
+              </span>
+            </div>
+            {vm.operationSummary ? (
+              <p className="mt-1.5 text-xs font-medium" style={{ color: MUTED }}>
+                {vm.operationSummary}
+              </p>
+            ) : null}
+
+            <div
+              className="mt-5 flex flex-wrap gap-2 rounded-2xl border p-3 sm:gap-2.5 sm:p-3.5"
+              style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
+            >
+              {quickFacts.map(({ Icon, label, value }) => (
+                <div
+                  key={label}
+                  className="flex min-w-[112px] flex-1 items-center gap-2 rounded-lg border px-2.5 py-2 sm:min-w-[128px]"
+                  style={{ borderColor: BORDER }}
+                >
+                  <span style={{ color: BRONZE }} className="shrink-0">
+                    <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                      {label}
+                    </p>
+                    <p className="truncate text-sm font-bold" style={{ color: CHARCOAL }}>
+                      {value}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <aside
+            className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
+            style={{ borderColor: BORDER, background: CREAM_CARD }}
+          >
+            <div className="overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+              {vm.identity.hasPhoto && vm.identity.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={vm.identity.photoUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+              ) : (
+                <div className="aspect-[4/3] w-full">
+                  <EmptyMedia
+                    title="Identidad del anuncio"
+                    subtitle="Sin imagen principal cargada."
+                    icon={<IconEye className="h-6 w-6" />}
+                  />
+                </div>
+              )}
+            </div>
+            <p className="mt-4 text-lg font-bold leading-tight" style={{ color: CHARCOAL_DEEP }}>
+              {vm.identity.name}
+            </p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
+              {vm.identity.role}
+            </p>
+            <div className="mt-4 flex items-start gap-3 rounded-xl border px-3 py-3" style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}>
+              {vm.identity.brokerageLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={vm.identity.brokerageLogoUrl}
+                  alt=""
+                  className="h-10 max-w-[100px] shrink-0 object-contain object-left"
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+                  Inmobiliaria
+                </p>
+                <p className="mt-1 text-sm font-bold" style={{ color: CHARCOAL }}>
+                  {vm.identity.brokerageName}
+                </p>
+              </div>
+            </div>
+            {vm.identity.verifiedLine || vm.identity.licenseLine ? (
+              <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
+                {vm.identity.verifiedLine ? (
+                  <span className="font-semibold" style={{ color: CHARCOAL }}>
+                    {vm.identity.verifiedLine}
+                  </span>
+                ) : null}
+                {vm.identity.licenseLine ? (
+                  <>
+                    {vm.identity.verifiedLine ? <br /> : null}
+                    {vm.identity.licenseLine}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+            {(vm.identity.contactPhone || vm.identity.contactEmail) ? (
+              <div className="mt-3 space-y-1 text-xs" style={{ color: CHARCOAL }}>
+                {vm.identity.contactPhone ? <p className="font-medium">{vm.identity.contactPhone}</p> : null}
+                {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
+              </div>
+            ) : null}
+            {vm.identity.socialChips.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {vm.identity.socialChips.map((s) => (
+                  <span
+                    key={s}
+                    className="flex h-8 min-w-[2rem] items-center justify-center rounded-full border px-2 text-[10px] font-bold"
+                    style={{ borderColor: BORDER, color: CHARCOAL }}
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {vm.identity.profileHref ? (
+              <a
+                href={vm.identity.profileHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
+                style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
+              >
+                {vm.identity.profileCtaLabel}
+              </a>
+            ) : (
+              <span
+                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 border-dashed py-3 text-xs font-bold uppercase tracking-wide opacity-50"
+                style={{ borderColor: BORDER, color: MUTED }}
+              >
+                {vm.identity.profileCtaLabel.replace("→", "").trim()}
+              </span>
+            )}
+          </aside>
+        </section>
+
+        <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
           <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
           {vm.hasHighlights ? (
             <FactBlock title="Características destacadas" rows={vm.highlightsRows} />
@@ -1008,9 +1008,9 @@ export function BienesRaicesNegocioPreviewView({
           </aside>
         </section>
 
-        <section className="mt-10">
+        <section className="mt-8">
           <div
-            className="rounded-2xl border p-6 sm:p-8 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+            className="rounded-2xl border p-6 sm:p-7 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
             style={{ borderColor: BORDER, background: CREAM_CARD }}
           >
             <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
@@ -1032,7 +1032,7 @@ export function BienesRaicesNegocioPreviewView({
         vm.community.showModule ||
         vm.schools.showModule ||
         vm.hoaDevelopment.showModule ? (
-          <section className="mt-20 space-y-10">
+          <section className="mt-14 space-y-9">
             <div className="text-center">
               <h2
                 className="text-xl font-bold uppercase tracking-[0.12em] sm:text-2xl"
@@ -1137,8 +1137,8 @@ export function BienesRaicesNegocioPreviewView({
           </section>
         ) : null}
 
-        <section className="mt-20">
-          <div className="mb-10 text-center">
+        <section className="mt-14">
+          <div className="mb-8 text-center">
             <h2
               className="text-xl font-bold uppercase tracking-[0.12em] sm:text-2xl"
               style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, serif" }}
@@ -1176,12 +1176,12 @@ export function BienesRaicesNegocioPreviewView({
         </section>
 
         {vm.footerNote.trim() || footerExtra ? (
-          <footer className="mt-16 border-t pt-8 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
+          <footer className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
             {vm.footerNote.trim() ? <p>{vm.footerNote}</p> : null}
             {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
           </footer>
         ) : (
-          <div className="mt-16 border-t pt-6" style={{ borderColor: BORDER }} aria-hidden />
+          <div className="mt-12 border-t pt-5" style={{ borderColor: BORDER }} aria-hidden />
         )}
       </main>
     </div>
