@@ -48,19 +48,22 @@ export function collectMuxAssetIdsFromEnVentaState(state: EnVentaFreeApplication
   return [...new Set(out)];
 }
 
+function st(v: unknown): string {
+  return String(v ?? "").trim();
+}
+
 export function negocioFormHasProgress(state: BienesRaicesNegocioFormState): boolean {
   const e = createEmptyBienesRaicesNegocioFormState();
-  if (state.titulo.trim() !== e.titulo) return true;
-  if (state.direccion.trim() || state.ciudad.trim() || state.colonia.trim() || state.codigoPostal.trim()) return true;
-  if (state.precio.trim() || state.descripcionLarga.trim()) return true;
-  if (state.media.photoUrls.some((u) => u.trim())) return true;
+  if (st(state.titulo) !== e.titulo) return true;
+  if (st(state.direccion) || st(state.ciudad) || st(state.colonia) || st(state.codigoPostal)) return true;
+  if (st(state.precio) || st(state.descripcionLarga)) return true;
+  if (state.media.photoUrls.some((u) => st(u))) return true;
   if (state.advertiserType && state.advertiserType !== e.advertiserType) return true;
   if (state.publicationType && state.publicationType !== e.publicationType) return true;
   for (const sl of state.media.listingVideoSlots) {
-    if (sl.status !== "idle" || String(sl.fallbackUrl ?? "").trim() || sl.assetId.trim() || sl.playbackUrl.trim())
-      return true;
+    if (sl.status !== "idle" || st(sl.fallbackUrl) || st(sl.assetId) || st(sl.playbackUrl)) return true;
   }
-  if (state.identityAgente.nombre.trim() || state.identityAgente.email.trim()) return true;
+  if (st(state.identityAgente.nombre) || st(state.identityAgente.email)) return true;
   return false;
 }
 
@@ -78,7 +81,7 @@ export function enVentaFormHasProgress(state: EnVentaFreeApplicationState): bool
     return true;
   }
   for (const sl of state.listingVideoSlots) {
-    if (sl.status !== "idle" || sl.assetId.trim() || sl.playbackUrl.trim()) return true;
+    if (sl.status !== "idle" || st(sl.assetId) || st(sl.playbackUrl)) return true;
   }
   if (state.confirmListingAccurate || state.confirmPhotosRepresentItem || state.confirmCommunityRules) return true;
   return false;

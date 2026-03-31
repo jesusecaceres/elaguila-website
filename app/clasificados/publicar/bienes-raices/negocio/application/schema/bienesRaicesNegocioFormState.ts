@@ -634,12 +634,14 @@ export function normalizeBienesRaicesNegocioMedia(
   slot0.slot = 0;
   slot1.slot = 1;
 
-  const legacyVideos = Array.isArray(r.videoUrls) ? (r.videoUrls as string[]) : [];
-  if (slot0.status === "idle" && !String(slot0.fallbackUrl ?? "").trim() && legacyVideos[0]?.trim()) {
-    slot0 = { ...slot0, fallbackUrl: legacyVideos[0]!.trim() };
+  const legacyVideos = Array.isArray(r.videoUrls) ? r.videoUrls : [];
+  const legacy0 = legacyVideos[0] != null ? String(legacyVideos[0]).trim() : "";
+  const legacy1 = legacyVideos[1] != null ? String(legacyVideos[1]).trim() : "";
+  if (slot0.status === "idle" && !String(slot0.fallbackUrl ?? "").trim() && legacy0) {
+    slot0 = { ...slot0, fallbackUrl: legacy0 };
   }
-  if (slot1.status === "idle" && !String(slot1.fallbackUrl ?? "").trim() && legacyVideos[1]?.trim()) {
-    slot1 = { ...slot1, fallbackUrl: legacyVideos[1]!.trim() };
+  if (slot1.status === "idle" && !String(slot1.fallbackUrl ?? "").trim() && legacy1) {
+    slot1 = { ...slot1, fallbackUrl: legacy1 };
   }
 
   return {

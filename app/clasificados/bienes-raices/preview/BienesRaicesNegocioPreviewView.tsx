@@ -1253,9 +1253,9 @@ export function BienesRaicesNegocioPreviewView({
           )}
         </section>
 
-        {(vm.footerNote ?? "").trim() || footerExtra ? (
+        {String(vm.footerNote ?? "").trim() || footerExtra ? (
           <footer className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-            {(vm.footerNote ?? "").trim() ? <p>{vm.footerNote}</p> : null}
+            {String(vm.footerNote ?? "").trim() ? <p>{vm.footerNote}</p> : null}
             {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
           </footer>
         ) : (
