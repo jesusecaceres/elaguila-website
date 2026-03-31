@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { Lang } from "../../types/tienda";
 import type { PrintUploadProductSlug } from "../../product-configurators/print-upload/types";
@@ -17,7 +18,7 @@ import {
   needsSeparateBackFile,
 } from "../../product-configurators/print-upload/productConfigs";
 import { getProductFamilyBySlug } from "../../data/tiendaRegistry";
-import { printUploadConfigurePath, withLang } from "../../utils/tiendaRouting";
+import { printUploadConfigurePath, tiendaOrderPath, withLang } from "../../utils/tiendaRouting";
 import { puPick, printUploadBuilderCopy } from "../../data/printUploadBuilderCopy";
 import { PrintUploadSpecPanel } from "./PrintUploadSpecPanel";
 import { PrintUploadDropzone } from "./PrintUploadDropzone";
@@ -37,6 +38,7 @@ function readAsDataUrl(file: File): Promise<string> {
 
 export function PrintUploadBuilderShell(props: { productSlug: PrintUploadProductSlug; lang: Lang }) {
   const { productSlug, lang } = props;
+  const router = useRouter();
   const cfg = getPrintUploadConfig(productSlug)!;
   const productMeta = getProductFamilyBySlug(productSlug);
 
@@ -107,12 +109,12 @@ export function PrintUploadBuilderShell(props: { productSlug: PrintUploadProduct
     [dispatchTyped, lang]
   );
 
-  const saveDraft = useCallback(async () => {
+  const persistDraftToSession = useCallback(async (): Promise<boolean> => {
     try {
       const frontData = doc.frontFile?.file ? await readAsDataUrl(doc.frontFile.file) : null;
       const backData = doc.backFile?.file ? await readAsDataUrl(doc.backFile.file) : null;
       const payload = {
-       v: 1,
+        v: 1,
         savedAt: new Date().toISOString(),
         productSlug: doc.productSlug,
         specs: doc.specs,
@@ -137,13 +139,27 @@ export function PrintUploadBuilderShell(props: { productSlug: PrintUploadProduct
               dataUrl: backData,
             }
           : null,
+        validationSnapshot: validatePrintUploadDocument(doc).items.map((i) => ({
+          severity: i.severity,
+          messageEs: i.messageEs,
+          messageEn: i.messageEn,
+        })),
       };
       sessionStorage.setItem(`leonix-pu-draft-${doc.productSlug}`, JSON.stringify(payload));
-      window.alert(puPick(printUploadBuilderCopy.savedToast, lang));
+      return true;
     } catch {
-      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+      return false;
     }
-  }, [doc, lang]);
+  }, [doc]);
+
+  const continueToOrderDetails = useCallback(async () => {
+    const ok = await persistDraftToSession();
+    if (!ok) {
+      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+      return;
+    }
+    router.push(withLang(tiendaOrderPath("print-upload", productSlug), lang));
+  }, [persistDraftToSession, lang, router, productSlug]);
 
   const wantBack = needsSeparateBackFile(cfg, doc.specs);
   const title = productMeta
@@ -229,7 +245,7 @@ export function PrintUploadBuilderShell(props: { productSlug: PrintUploadProduct
             <button
               type="button"
               disabled={!validation.canContinue}
-              onClick={() => void saveDraft()}
+              onClick={() => void continueToOrderDetails()}
               className={[
                 "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition",
                 validation.canContinue

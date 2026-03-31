@@ -1,4 +1,5 @@
 import type { Lang } from "../types/tienda";
+import type { TiendaOrderSource } from "../types/orderHandoff";
 
 export function normalizeLang(raw: unknown): Lang {
   return raw === "en" ? "en" : "es";
@@ -10,6 +11,14 @@ export function businessCardConfigurePath(slug: string): string {
 
 export function printUploadConfigurePath(slug: string): string {
   return `/tienda/configure/print-upload/${slug}`;
+}
+
+export function tiendaOrderPath(source: TiendaOrderSource, slug: string): string {
+  return `/tienda/order/${source}/${slug}`;
+}
+
+export function tiendaCheckoutPlaceholderPath(source: TiendaOrderSource, slug: string): string {
+  return `/tienda/checkout/${source}/${slug}`;
 }
 
 export function withLang(href: string, lang: Lang): string {

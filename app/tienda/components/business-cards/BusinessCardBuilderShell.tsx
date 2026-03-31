@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { Lang } from "../../types/tienda";
 import type { BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
@@ -11,7 +12,7 @@ import {
 } from "../../product-configurators/business-cards/businessCardBuilderReducer";
 import { validateBusinessCardDocument } from "../../product-configurators/business-cards/validation";
 import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constants";
-import { businessCardConfigurePath, withLang } from "../../utils/tiendaRouting";
+import { businessCardConfigurePath, tiendaOrderPath, withLang } from "../../utils/tiendaRouting";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
@@ -30,6 +31,7 @@ function readAsDataUrl(file: File): Promise<string> {
 
 export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProductSlug; lang: Lang }) {
   const { productSlug, lang } = props;
+  const router = useRouter();
   const [doc, dispatch] = useReducer(
     businessCardBuilderReducer,
     undefined,
@@ -91,7 +93,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
     [doc.activeSide, doc.front.logo, doc.back.logo]
   );
 
-  const saveDraft = useCallback(async () => {
+  const persistDraftToSession = useCallback(async (): Promise<boolean> => {
     try {
       const frontLogo = doc.front.logo.file ? await readAsDataUrl(doc.front.logo.file) : doc.front.logo.previewUrl;
       const backLogo = doc.back.logo.file ? await readAsDataUrl(doc.back.logo.file) : doc.back.logo.previewUrl;
@@ -131,11 +133,20 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
         approval: doc.approval,
       };
       sessionStorage.setItem(`leonix-bc-draft-${doc.productSlug}`, JSON.stringify(payload));
-      window.alert(bcPick(businessCardBuilderCopy.savedToast, lang));
+      return true;
     } catch {
-      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+      return false;
     }
-  }, [doc, lang]);
+  }, [doc]);
+
+  const continueToOrderDetails = useCallback(async () => {
+    const ok = await persistDraftToSession();
+    if (!ok) {
+      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+      return;
+    }
+    router.push(withLang(tiendaOrderPath("business-cards", productSlug), lang));
+  }, [persistDraftToSession, lang, router, productSlug]);
 
   const dispatchTyped = dispatch as (a: BusinessCardBuilderAction) => void;
 
@@ -212,7 +223,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
               <button
                 type="button"
                 disabled={!validation.canContinue}
-                onClick={() => void saveDraft()}
+                onClick={() => void continueToOrderDetails()}
                 className={[
                   "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition",
                   validation.canContinue
