@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BR_CATEGORY_HOME } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 
 function IconBriefcase({ className }: { className?: string }) {
   return (
@@ -18,9 +19,13 @@ export function BienesRaicesResultsTopBar() {
           <Image src="/logo.png" alt="Leonix" width={40} height={40} className="h-10 w-10 rounded-full object-cover" priority />
         </Link>
         <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5C5346]">
-          <Link href="/clasificados/bienes-raices" className="text-[#1E1810] hover:text-[#B8954A]">
+          <Link href={BR_CATEGORY_HOME} className="hover:text-[#B8954A]">
             Bienes raíces
           </Link>
+          <span className="text-[#C9B46A]" aria-hidden>
+            ›
+          </span>
+          <span className="text-[#5C5346]">Resultados</span>
           <span className="text-[#C9B46A]" aria-hidden>
             ›
           </span>

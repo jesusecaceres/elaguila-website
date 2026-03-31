@@ -7,6 +7,7 @@ export type Lang = "es" | "en";
 export type HubCategoryKey =
   | "en-venta"
   | "rentas"
+  | "bienes-raices"
   | "autos"
   | "servicios"
   | "empleos"
@@ -46,6 +47,7 @@ export const HUB_CATEGORY_ORDER: readonly HubCategoryKey[] = [
 export const HUB_CATEGORY_KEYS: readonly HubCategoryKey[] = [
   "en-venta",
   "rentas",
+  "bienes-raices",
   "autos",
   "servicios",
   "empleos",
@@ -54,11 +56,3 @@ export const HUB_CATEGORY_KEYS: readonly HubCategoryKey[] = [
   "travel",
   "restaurantes",
 ];
-
-/** Base numbers used by `buildHubFeaturedLimits` (desktop vs mobile). */
-export const HUB_FEATURED_LIMIT_NUMBERS = {
-  big3Desktop: 10,
-  otherDesktop: 6,
-  big3Mobile: 4,
-  otherMobile: 3,
-} as const;

@@ -4,6 +4,7 @@ import type { HubCategoryKey, Lang } from "../config/clasificadosHub";
 export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {
   "en-venta": "/clasificados/en-venta",
   rentas: "/clasificados/rentas",
+  "bienes-raices": "/clasificados/bienes-raices",
   autos: "/clasificados/autos",
   servicios: "/clasificados/servicios",
   empleos: "/clasificados/empleos",

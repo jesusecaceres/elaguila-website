@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { BienesRaicesNegocioResultsClient } from "./results/BienesRaicesNegocioResultsClient";
+import { BienesRaicesLandingHub } from "./BienesRaicesLandingHub";
 
 export const metadata: Metadata = {
-  title: "Bienes Raíces — Negocio | Leonix Clasificados",
-  description: "Encuentra propiedades con claridad y confianza. Listados profesionales Negocio.",
+  title: "Bienes Raíces | Leonix Clasificados",
+  description:
+    "Encuentra casas, departamentos, terrenos y espacios comerciales con claridad y confianza.",
 };
 
 export default function BienesRaicesCategoryPage() {
-  return <BienesRaicesNegocioResultsClient />;
+  return <BienesRaicesLandingHub />;
 }

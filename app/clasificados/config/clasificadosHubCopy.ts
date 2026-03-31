@@ -15,14 +15,14 @@ const CLASIFICADOS_HUB_UI = {
     ctaPost: "Publicar anuncio",
 
     sectionBrowse: "Explorar por categoría",
-    sectionFeatured: "Destacados por categoría",
-    sectionFeaturedHint: "Una vista previa de anuncios por categoría. Entra a cada categoría para explorar.",
-
-    viewMore: "Ver más",
 
     cat: {
       rentas: { label: "Rentas", hint: "Casas, cuartos y propiedades." },
-      "en-venta": { label: "En venta", hint: "Compra, vende e inmuebles localmente." },
+      "bienes-raices": {
+        label: "Bienes Raíces",
+        hint: "Casas, departamentos, terrenos y espacios comerciales.",
+      },
+      "en-venta": { label: "En venta", hint: "Artículos nuevos y usados cerca de ti." },
       empleos: { label: "Empleos", hint: "Oportunidades cerca de ti." },
       servicios: {
         label: "Servicios",
@@ -60,14 +60,14 @@ const CLASIFICADOS_HUB_UI = {
     ctaPost: "Post listing",
 
     sectionBrowse: "Browse by category",
-    sectionFeatured: "Featured by category",
-    sectionFeaturedHint: "A preview of listings by category. Open a category to explore.",
-
-    viewMore: "View more",
 
     cat: {
       rentas: { label: "Rentals", hint: "Homes, rooms, and properties." },
-      "en-venta": { label: "For sale", hint: "Buy, sell, and list property locally." },
+      "bienes-raices": {
+        label: "Real estate",
+        hint: "Homes, condos, land, and commercial spaces.",
+      },
+      "en-venta": { label: "For sale", hint: "New and used goods near you." },
       empleos: { label: "Jobs", hint: "Opportunities near you." },
       servicios: { label: "Services", hint: "Trusted pros and businesses." },
       autos: { label: "Autos", hint: "Cars and dealer inventory." },

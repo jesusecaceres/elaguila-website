@@ -10,17 +10,21 @@ import {
   FiBriefcase,
   FiCoffee,
   FiHome,
+  FiLayers,
   FiMapPin,
   FiShoppingCart,
   FiTool,
   FiTruck,
   FiUsers,
 } from "react-icons/fi";
+import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisuals";
 import newLogo from "../../../public/logo.png";
 
 type Lang = "es" | "en";
+
+type ChooserDeepLinkTarget = Exclude<CategoryKey, "all"> | "bienes-raices" | "";
 
 const CHOOSER_CATEGORIES: Array<{
   key: Exclude<CategoryKey, "all">;
@@ -42,9 +46,10 @@ function cx(...classes: Array<string | false | null | undefined>) {
 }
 
 /** Deep-link from hub/login (`?cat=` / `?categoria=`): forward to the right publish entry route (no wizard hosted here). */
-function normalizeChooserDeepLink(raw: string | null | undefined): Exclude<CategoryKey, "all"> | "" {
+function normalizeChooserDeepLink(raw: string | null | undefined): ChooserDeepLinkTarget {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
+  if (v === "bienes-raices" || v === "br") return "bienes-raices";
   const mapped = v === "viajes" ? "travel" : v;
   if (mapped === "all") return "";
   const keys = Object.keys(categoryConfig) as CategoryKey[];
@@ -74,7 +79,10 @@ export default function PublicarRootPage() {
     p.delete("cat");
     p.delete("categoria");
     if (!p.get("lang")) p.set("lang", lang);
-    const dest = `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+    const dest =
+      deepLinkCat === "bienes-raices"
+        ? `${BR_PUBLICAR_HUB}?${p.toString()}`
+        : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -115,6 +123,33 @@ export default function PublicarRootPage() {
           </div>
 
           <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href={`${BR_PUBLICAR_HUB}?lang=${lang}`}
+              className={cx(
+                "group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
+                "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
+                LEONIX_CATEGORY_VISUALS["bienes-raices"].tint,
+                LEONIX_CATEGORY_VISUALS["bienes-raices"].border,
+                LEONIX_CATEGORY_VISUALS["bienes-raices"].glow
+              )}
+            >
+              <span
+                className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12] ${LEONIX_CATEGORY_VISUALS["bienes-raices"].chipBg}`}
+              >
+                {LEONIX_CATEGORY_VISUALS["bienes-raices"].emoji}
+              </span>
+              <div className="mt-2 flex items-center gap-2">
+                <FiLayers className="h-5 w-5 shrink-0 text-[#5D4A25]" aria-hidden />
+                <span className="text-sm font-bold leading-tight text-[#3D2C12]">
+                  {LEONIX_CATEGORY_VISUALS["bienes-raices"].emoji}{" "}
+                  {lang === "es" ? "Bienes Raíces" : "Real estate"}
+                </span>
+              </div>
+              <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
+                {lang === "es" ? "Continuar" : "Continue"}
+              </span>
+              <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
+            </Link>
             {CHOOSER_CATEGORIES.map(({ key, Icon }) => {
               const label = categoryConfig[key].label[lang];
               const visual = LEONIX_CATEGORY_VISUALS[key];

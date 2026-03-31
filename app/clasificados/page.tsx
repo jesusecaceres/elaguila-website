@@ -2,19 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../components/Navbar";
 import newLogo from "../../public/logo.png";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
-import { HubListingCardCompact } from "./components/HubListingCardCompact";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { HUB_CATEGORY_ORDER, type HubListing, type Lang } from "./config/clasificadosHub";
+import { HUB_CATEGORY_ORDER, type Lang } from "./config/clasificadosHub";
 import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
 import { appendLangToPath, buildHubCategoryPageUrl, buildHubPostEntryHref } from "./lib/hubUrl";
-import { buildHubFeaturedLimits } from "./lib/hubFeaturedLimits";
-import { buildFeaturedByCategory } from "./lib/hubFeaturedSelection";
-import { dedupeHubListingsById, mapDbRowToHubListing } from "./lib/mapDbRowToHubListing";
 import { LEONIX_CATEGORY_VISUALS } from "./config/categoryVisuals";
 
 export default function ClasificadosPage() {
@@ -26,60 +21,6 @@ export default function ClasificadosPage() {
   const postEntryHref = buildHubPostEntryHref(lang);
 
   const withLang = (path: string) => appendLangToPath(path, lang);
-
-  const [supabaseListings, setSupabaseListings] = useState<HubListing[]>([]);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data, error } = await supabase
-          .from("listings")
-          .select(
-            "id, title, description, city, category, price, is_free, images, created_at, seller_type, status"
-          )
-          .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .limit(500);
-        if (cancelled) return;
-        if (error) return;
-        const rows = (data ?? []) as Record<string, unknown>[];
-        const mapped: HubListing[] = [];
-        for (const r of rows) {
-          const m = mapDbRowToHubListing(r);
-          if (m) mapped.push(m);
-        }
-        setSupabaseListings(mapped);
-      } catch {
-        /* fail soft: demo-only hub */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const poolListings = useMemo(
-    () => dedupeHubListingsById([...supabaseListings]),
-    [supabaseListings]
-  );
-
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
-    const set = () => setIsMobile(mq.matches);
-    set();
-    mq.addEventListener?.("change", set);
-    return () => mq.removeEventListener?.("change", set);
-  }, []);
-
-  const limits = useMemo(() => buildHubFeaturedLimits(isMobile), [isMobile]);
-
-  const featuredByCategory = useMemo(
-    () => buildFeaturedByCategory(poolListings, limits),
-    [limits, poolListings]
-  );
 
   return (
     <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pb-24 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.14),transparent_65%)]">
@@ -158,51 +99,6 @@ export default function ClasificadosPage() {
             );
           })}
         </div>
-      </section>
-
-      <section className="mx-auto mt-12 max-w-6xl px-6">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-bold text-[#3D2C12] md:text-4xl">{t.sectionFeatured}</h2>
-          <p className="max-w-3xl text-sm text-[#5D4A25]/80">{t.sectionFeaturedHint}</p>
-        </div>
-
-        {poolListings.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-[#D8C79A]/70 bg-[#FFFDF7] p-4 text-sm text-[#5D4A25]/85 shadow-sm">
-            {lang === "es"
-              ? "Aún no hay destacados disponibles. Explora categorías para ver nuevos anuncios."
-              : "No featured listings yet. Explore categories to discover new listings."}
-          </div>
-        ) : (
-          <div className="mt-8 space-y-10">
-            {HUB_CATEGORY_ORDER.map((cat) => {
-              const items = featuredByCategory[cat];
-              if (!items.length) return null;
-              const meta = (t.cat as Record<string, { label: string; hint: string }>)[cat];
-              const visual = LEONIX_CATEGORY_VISUALS[cat];
-              return (
-                <div key={cat}>
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <h3 className="flex items-center gap-2 text-xl font-bold text-[#3D2C12]">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${visual.chipBg}`}>{visual.emoji}</span>
-                      {meta.label}
-                    </h3>
-                    <Link
-                      href={buildHubCategoryPageUrl(cat, lang)}
-                      className="text-sm font-semibold text-[#6E4E18] underline underline-offset-2 hover:opacity-90"
-                    >
-                      {t.viewMore}
-                    </Link>
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {items.map((item) => (
-                      <HubListingCardCompact key={item.id} item={item} lang={lang} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       <section className="mx-auto mt-12 max-w-6xl px-6">

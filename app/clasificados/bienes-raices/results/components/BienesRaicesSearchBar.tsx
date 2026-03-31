@@ -9,6 +9,8 @@ type Props = {
   onPriceBand: (v: string) => void;
   beds: string;
   onBeds: (v: string) => void;
+  /** Landing: navigate to results with current field values. */
+  onSearch?: () => void;
 };
 
 export function BienesRaicesSearchBar({
@@ -20,6 +22,7 @@ export function BienesRaicesSearchBar({
   onPriceBand,
   beds,
   onBeds,
+  onSearch,
 }: Props) {
   return (
     <div className="rounded-2xl border border-[#E8DFD0]/95 bg-[#FDFBF7] p-3 shadow-[0_12px_40px_-22px_rgba(42,36,22,0.2)] sm:p-4">
@@ -91,6 +94,7 @@ export function BienesRaicesSearchBar({
         </div>
         <button
           type="button"
+          onClick={() => onSearch?.()}
           className="rounded-xl bg-[#2A2620] px-6 py-2.5 text-sm font-bold text-[#FAF7F2] shadow-md hover:bg-[#1E1810] lg:shrink-0"
         >
           Buscar

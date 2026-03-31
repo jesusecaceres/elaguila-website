@@ -1,12 +1,44 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   BR_PREVIEW_NEGOCIO,
   BR_PUBLICAR_HUB,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
+
+const PRIMARY_IDS: BrPrimaryChipId[] = ["casas", "departamentos", "venta", "renta", "comerciales", "terrenos"];
+const SECONDARY_IDS: BrSecondaryChipId[] = [
+  "piscina",
+  "mascotas",
+  "nuevo_desarrollo",
+  "open_house",
+  "reducida",
+  "tour_virtual",
+  "planos",
+  "financiamiento",
+  "segundo_agente",
+];
+
+function parsePrimaryFromSearch(raw: string | null): Set<BrPrimaryChipId> | null {
+  if (!raw?.trim()) return null;
+  const next = new Set<BrPrimaryChipId>();
+  for (const part of raw.split(",").map((s) => s.trim()).filter(Boolean)) {
+    if ((PRIMARY_IDS as readonly string[]).includes(part)) next.add(part as BrPrimaryChipId);
+  }
+  return next.size ? next : null;
+}
+
+function parseSecondaryFromSearch(raw: string | null): Set<BrSecondaryChipId> | null {
+  if (!raw?.trim()) return null;
+  const next = new Set<BrSecondaryChipId>();
+  for (const part of raw.split(",").map((s) => s.trim()).filter(Boolean)) {
+    if ((SECONDARY_IDS as readonly string[]).includes(part)) next.add(part as BrSecondaryChipId);
+  }
+  return next.size ? next : null;
+}
 import { brNegocioFeaturedListing, brNegocioGridListings, BR_NEGOCIO_DEMO_TOTAL } from "./demoData";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
@@ -18,6 +50,7 @@ import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBa
 import { BienesRaicesSearchBar } from "./components/BienesRaicesSearchBar";
 
 export function BienesRaicesNegocioResultsClient() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [priceBand, setPriceBand] = useState("");
@@ -27,6 +60,22 @@ export function BienesRaicesNegocioResultsClient() {
   const [sort, setSort] = useState("reciente");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showMap, setShowMap] = useState(false);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const q = searchParams.get("q");
+    if (q != null) setQuery(q);
+    const tipo = searchParams.get("tipo");
+    if (tipo != null) setPropertyType(tipo);
+    const precio = searchParams.get("precio");
+    if (precio != null) setPriceBand(precio);
+    const recs = searchParams.get("recs");
+    if (recs != null) setBeds(recs);
+    const primaryParsed = parsePrimaryFromSearch(searchParams.get("primary"));
+    if (primaryParsed) setPrimary(primaryParsed);
+    const secondaryParsed = parseSecondaryFromSearch(searchParams.get("secondary"));
+    if (secondaryParsed) setSecondary(secondaryParsed);
+  }, [searchParams]);
 
   const togglePrimary = (id: BrPrimaryChipId) => {
     setPrimary((prev) => {

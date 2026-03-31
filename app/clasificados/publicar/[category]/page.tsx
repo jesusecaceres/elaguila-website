@@ -8,7 +8,6 @@ import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/componen
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
-  if (v === "bienes-raices" || v === "br") return "en-venta";
   const mapped = v === "viajes" ? "travel" : v;
   const keys = Object.keys(categoryConfig) as CategoryKey[];
   return keys.includes(mapped as CategoryKey) ? (mapped as CategoryKey) : "";
@@ -22,10 +21,15 @@ export default function PublicarCategoryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const slug = (params?.category ?? "").trim().toLowerCase();
   const normalized = normalizeCategory(params?.category ?? "");
   const categoryFromUrl = normalized === "all" ? ("" as const) : normalized;
 
   useEffect(() => {
+    if (slug === "bienes-raices" || slug === "br") {
+      router.replace(`/clasificados/publicar/bienes-raices?lang=${lang}`);
+      return;
+    }
     if (categoryFromUrl === "en-venta") {
       router.replace(`/clasificados/publicar/en-venta?lang=${lang}`);
       return;
@@ -33,9 +37,9 @@ export default function PublicarCategoryPage() {
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
-  }, [categoryFromUrl, lang, router]);
+  }, [slug, categoryFromUrl, lang, router]);
 
-  if (!categoryFromUrl || categoryFromUrl === "en-venta") {
+  if (slug === "bienes-raices" || slug === "br" || !categoryFromUrl || categoryFromUrl === "en-venta") {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
