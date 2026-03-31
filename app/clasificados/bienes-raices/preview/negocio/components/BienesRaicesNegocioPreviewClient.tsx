@@ -32,11 +32,5 @@ export function BienesRaicesNegocioPreviewClient() {
     );
   }
 
-  return (
-    <BienesRaicesNegocioPreviewView
-      vm={vm}
-      editHref={BR_PUBLICAR_NEGOCIO}
-      footerExtra="Vista previa Negocio · Mismo diseño aprobado que verán los compradores. Vuelve a Publicar Negocio para seguir editando."
-    />
-  );
+  return <BienesRaicesNegocioPreviewView vm={vm} editHref={BR_PUBLICAR_NEGOCIO} />;
 }

@@ -17,6 +17,10 @@ export type BienesRaicesPreviewIdentityVm = {
   licenseLine: string;
   socialChips: string[];
   profileCtaLabel: string;
+  /** Sitio web o primer enlace útil para el CTA de perfil. */
+  profileHref: string | null;
+  contactPhone: string;
+  contactEmail: string;
   /** Presence flags to keep preview truthful (no fake assets). */
   hasPhoto: boolean;
   hasSocialLinks: boolean;
@@ -30,6 +34,8 @@ export type BienesRaicesPreviewQuickFactVm = {
 
 export type BienesRaicesPreviewMediaVm = {
   heroUrl: string | null;
+  /** Fotos de galería después de excluir la portada (máx. 2) para la parrilla lateral. */
+  secondaryPhotoUrls: string[];
   videoThumbUrls: [string | null, string | null];
   /** HLS / mp4 / direct URLs for inline preview */
   videoPlaybackUrls: [string | null, string | null];
@@ -45,6 +51,8 @@ export type BienesRaicesPreviewMediaVm = {
   hasVirtualTour: boolean;
   hasFloorPlans: boolean;
   hasSitePlan: boolean;
+  /** Total de fotos cargadas (incluye portada) para badges de galería. */
+  photoCount: number;
 };
 
 export type BienesRaicesPreviewContactVm = {
@@ -91,6 +99,8 @@ export type BienesRaicesPreviewLocationVm = {
 
 export type BienesRaicesNegocioPreviewVm = {
   publicationType: BienesRaicesPublicationType | "";
+  /** Logo de marca Leonix en cabecera (`NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL` o vacío = marcador neutro). */
+  platformLogoUrl: string | null;
   heroTitle: string;
   addressLine: string;
   priceDisplay: string;

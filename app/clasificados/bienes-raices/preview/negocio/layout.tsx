@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Vista previa — Bienes Raíces Negocio | Leonix",
-  description: "Así se ve tu anuncio profesional antes de publicar.",
+  title: "Anuncio — Bienes raíces Negocio | Leonix",
+  description: "Listado profesional en Leonix Clasificados.",
   robots: { index: false, follow: false },
 };
 

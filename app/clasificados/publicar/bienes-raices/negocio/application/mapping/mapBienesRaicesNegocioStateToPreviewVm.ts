@@ -29,6 +29,47 @@ function trim(s: string): string {
   return (s ?? "").trim();
 }
 
+function hrefFromUserInput(t: string): string | null {
+  const s = trim(t);
+  if (!s) return null;
+  if (/^https?:\/\//i.test(s)) return s;
+  if (/^www\./i.test(s)) return `https://${s}`;
+  if (/^[a-z0-9][a-z0-9-]*\.[a-z]{2,}([/?#].*)?$/i.test(s)) return `https://${s}`;
+  return null;
+}
+
+function resolveProfileHref(sitioWeb: string, redes: string[]): string | null {
+  const w = hrefFromUserInput(sitioWeb);
+  if (w) return w;
+  for (const r of redes) {
+    const u = hrefFromUserInput(trim(r));
+    if (u) return u;
+  }
+  return null;
+}
+
+function resolvePlatformLogoUrl(): string | null {
+  if (typeof process === "undefined") return null;
+  const raw = String(process.env.NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL ?? "").trim();
+  return raw || null;
+}
+
+function socialChipLabel(raw: string): string {
+  const s = trim(raw);
+  if (!s) return "";
+  const asUrl = hrefFromUserInput(s);
+  if (asUrl) {
+    try {
+      const host = new URL(asUrl).hostname.replace(/^www\./, "");
+      const base = host.split(".")[0] ?? host;
+      return base.slice(0, 3).toUpperCase();
+    } catch {
+      return s.slice(0, 8);
+    }
+  }
+  return s.length > 10 ? `${s.slice(0, 8)}…` : s;
+}
+
 function bulletsFromGroup(
   group: DeepDetailGroupKey,
   data: Record<string, string>,
@@ -422,16 +463,20 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ie.redes.map(trim).filter(Boolean).slice(0, 5);
     const photoUrl = trim(ie.imagenUrl) || null;
     const lead = trim(ie.agentePrincipalNombre);
+    const chips = trust.mostrarRedes ? social.map(socialChipLabel).filter(Boolean) : [];
     return {
       photoUrl,
       name: trim(ie.nombreEquipo) || "Equipo",
       role: lead ? `Equipo · liderazgo: ${lead}` : "Equipo de agentes",
       brokerageName: trust.mostrarBrokerage ? trim(ie.brokerage) || "—" : "—",
       brokerageLogoUrl: trim(ie.logoUrl) || null,
-      verifiedLine: "Equipo profesional Leonix",
+      verifiedLine: "Equipo anunciante",
       licenseLine: trim(ie.agentePrincipalRol) ? `Rol principal: ${trim(ie.agentePrincipalRol)}` : "",
-      socialChips: trust.mostrarRedes ? social : [],
+      socialChips: chips,
       profileCtaLabel: "Ver perfil del equipo →",
+      profileHref: resolveProfileHref(ie.sitioWeb, social),
+      contactPhone: trim(ie.telGeneral),
+      contactEmail: trim(ie.email),
       hasPhoto: Boolean(photoUrl),
       hasSocialLinks: social.length > 0,
     };
@@ -442,16 +487,20 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = io.redes.map(trim).filter(Boolean);
     const photoUrl = trim(io.logoUrl) || null;
     const lead = trim(io.contactoPrincipal);
+    const chips = trust.mostrarRedes && social.length ? social.map(socialChipLabel).filter(Boolean) : [];
     return {
       photoUrl,
       name: trim(io.nombreOficina) || "Oficina",
       role: lead ? `Oficina · ${lead}` : "Brokerage",
       brokerageName: trust.mostrarBrokerage ? trim(io.nombreOficina) : "—",
       brokerageLogoUrl: trim(io.logoUrl) || null,
-      verifiedLine: "Oficina verificada",
+      verifiedLine: "Oficina",
       licenseLine: trim(io.direccionOficina),
-      socialChips: trust.mostrarRedes && social.length ? social : [],
+      socialChips: chips,
       profileCtaLabel: "Ver oficina →",
+      profileHref: resolveProfileHref(io.sitioWeb, social),
+      contactPhone: trim(io.telPrincipal),
+      contactEmail: trim(io.email),
       hasPhoto: Boolean(photoUrl),
       hasSocialLinks: social.length > 0,
     };
@@ -462,16 +511,20 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ic.redes.map(trim).filter(Boolean);
     const photoUrl = trim(ic.logoUrl) || null;
     const entrega = trim(ic.entregaEstimada);
+    const chips = trust.mostrarRedes && social.length ? social.map(socialChipLabel).filter(Boolean) : [];
     return {
       photoUrl,
       name: trim(ic.nombreDesarrollador) || "Desarrollador",
       role: trim(ic.proyectoNombre) || "Proyecto nuevo",
       brokerageName: trust.mostrarBrokerage ? trim(ic.proyectoNombre) : trim(ic.nombreDesarrollador),
       brokerageLogoUrl: trim(ic.logoUrl) || null,
-      verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollador",
+      verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollo inmobiliario",
       licenseLine: trim(ic.estadoDesarrollo),
-      socialChips: trust.mostrarRedes && social.length ? social : [],
+      socialChips: chips,
       profileCtaLabel: "Ver centro de ventas →",
+      profileHref: resolveProfileHref(ic.sitioWeb, social),
+      contactPhone: trim(ic.tel),
+      contactEmail: trim(ic.email),
       hasPhoto: Boolean(photoUrl),
       hasSocialLinks: social.length > 0,
     };
@@ -481,16 +534,20 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   const social = ia.redes.map(trim).filter(Boolean);
   const lic = trim(ia.licencia);
   const photoUrl = trim(ia.fotoUrl) || null;
+  const chips = trust.mostrarRedes ? social.map(socialChipLabel).filter(Boolean) : [];
   return {
     photoUrl,
     name: trim(ia.nombre) || "Agente",
     role: trim(ia.rol) || "Agente de listado",
     brokerageName: trust.mostrarBrokerage ? trim(ia.brokerage) || "—" : "—",
     brokerageLogoUrl: trim(ia.logoBrokerageUrl) || null,
-    verifiedLine: "Agente verificado",
-    licenseLine: trust.mostrarLicencia && lic ? `Lic. ${lic}` : "",
-    socialChips: trust.mostrarRedes ? social : [],
+      verifiedLine: trust.mostrarLicencia && lic ? "Agente verificado" : "",
+      licenseLine: trust.mostrarLicencia && lic ? `Lic. ${lic}` : "",
+    socialChips: chips,
     profileCtaLabel: "Ver perfil profesional →",
+    profileHref: resolveProfileHref(ia.sitioWeb, social),
+    contactPhone: trim(ia.telDirecto) || trim(ia.telOficina),
+    contactEmail: trim(ia.email),
     hasPhoto: Boolean(photoUrl),
     hasSocialLinks: social.length > 0,
   };
@@ -598,6 +655,11 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const photos = s.media.photoUrls.map(trim).filter(Boolean);
   const cover = Math.min(Math.max(0, s.media.primaryImageIndex), Math.max(0, photos.length - 1));
   const heroUrl = photos.length ? photos[cover]! : null;
+  const secondaryPhotoUrls = photos
+    .map((url, idx) => ({ url, idx }))
+    .filter(({ idx }) => photos.length > 0 && idx !== cover)
+    .map(({ url }) => url)
+    .slice(0, 2);
 
   const r0 = resolveNegocioVideoSlot(s.media.listingVideoSlots[0]);
   const r1 = resolveNegocioVideoSlot(s.media.listingVideoSlots[1]);
@@ -634,6 +696,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
 
   return {
     publicationType: s.publicationType,
+    platformLogoUrl: resolvePlatformLogoUrl(),
     heroTitle: trim(s.titulo) || "Título del anuncio",
     addressLine: buildAddress(s),
     priceDisplay: formatPrice(s.precio),
@@ -644,6 +707,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
     identity: buildIdentity(s),
     media: {
       heroUrl,
+      secondaryPhotoUrls,
       videoThumbUrls,
       videoPlaybackUrls,
       youtubeIds,
@@ -657,6 +721,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       hasVirtualTour: Boolean(virtualTourUrl),
       hasFloorPlans: floorPlans.length > 0,
       hasSitePlan: Boolean(sitePlanUrl),
+      photoCount: photos.length,
     },
     propertyDetailsRows: buildPropertyDetails(s),
     highlightsRows: hasHighlights ? highlightRows : [],
@@ -687,6 +752,6 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       showModule: showHoaDev,
       sitePlanCallout,
     },
-    footerNote: "Vista previa generada por Leonix · Podrás editar toda la información antes de publicar.",
+    footerNote: "",
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewQuickFactVm,
@@ -162,9 +162,9 @@ function IconPlay({ className }: { className?: string }) {
   );
 }
 
-function IconVr({ className }: { className?: string }) {
+function IconVr({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
-    <svg className={className} width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg className={className} style={style} width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M8 12h8M6 8h12a2 2 0 012 2v4a2 2 0 01-2 2h-2l-2 2-2-2h-4l-2 2-2-2H6a2 2 0 01-2-2v-4a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
@@ -253,8 +253,8 @@ function GalleryVideoTile({
     return (
       <div className="aspect-[4/3] w-full">
         <EmptyMedia
-          title={`Video ${index + 1} (opcional)`}
-          subtitle="Agrega un video en el formulario para activar este bloque."
+          title={`Video ${index + 1}`}
+          subtitle="Sin video en este espacio."
           icon={<IconPlay className="h-7 w-7" />}
         />
       </div>
@@ -325,19 +325,27 @@ function GalleryVideoTile({
 
   return (
     <div className="aspect-[4/3] w-full">
-      <EmptyMedia title={`Video ${index + 1}`} subtitle="Sin datos de vista previa para este video." icon={<IconPlay className="h-7 w-7" />} />
+      <EmptyMedia title={`Video ${index + 1}`} subtitle="No hay reproducción disponible para este archivo." icon={<IconPlay className="h-7 w-7" />} />
     </div>
   );
 }
 
-function LeonixMark() {
+function LeonixBrandMark({ logoUrl }: { logoUrl: string | null }) {
+  if (logoUrl) {
+    return (
+      <a href="/clasificados" className="flex shrink-0 items-center" aria-label="Leonix Inicio">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logoUrl} alt="" className="h-9 w-auto max-w-[140px] object-contain object-left" />
+      </a>
+    );
+  }
   return (
-    <div className="flex flex-col items-center" aria-hidden>
+    <a href="/clasificados" className="flex flex-col items-start no-underline" aria-label="Leonix Inicio">
       <div
-        className="flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-sm"
+        className="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm"
         style={{ borderColor: BRONZE, background: CHARCOAL_DEEP }}
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
             d="M12 3c-1.2 1.8-3.5 2.5-5 4-.8 2.2.5 4.5 2 6-1 1.2-2.5 2-3 3.5.8.3 1.8-.2 2.5-.8.5 1.2 1.5 2 2.5 2.5 1-.5 2-1.3 2.5-2.5.7.6 1.7 1.1 2.5.8-.5-1.5-2-2.3-3-3.5 1.5-1.5 2.8-3.8 2-6-1.5-1.5-3.8-2.2-5-4z"
             fill={BRONZE}
@@ -348,7 +356,7 @@ function LeonixMark() {
       <span className="mt-1 text-[9px] font-bold tracking-[0.2em]" style={{ color: CHARCOAL }}>
         LEONIX
       </span>
-    </div>
+    </a>
   );
 }
 
@@ -470,7 +478,7 @@ function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading:
             </ul>
           ) : (
             <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
-              No proporcionado aún.
+              Sin datos en este bloque.
             </p>
           )}
         </div>
@@ -508,6 +516,19 @@ function deepIcon(id: string) {
   }
 }
 
+type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 | 1 };
+
+function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null] {
+  const specs: GalleryTopSpec[] = [];
+  for (const u of vm.media.secondaryPhotoUrls) {
+    if (specs.length >= 2) break;
+    specs.push({ kind: "photo", url: u });
+  }
+  if (specs.length < 2 && vm.media.hasVideo1) specs.push({ kind: "video", slot: 0 });
+  if (specs.length < 2 && vm.media.hasVideo2) specs.push({ kind: "video", slot: 1 });
+  return [specs[0] ?? null, specs[1] ?? null];
+}
+
 export function BienesRaicesNegocioPreviewView({
   vm,
   editHref,
@@ -523,14 +544,15 @@ export function BienesRaicesNegocioPreviewView({
     label: qf.label,
     value: qf.value,
   }));
+  const [gTopA, gTopB] = galleryTopCells(vm);
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
-      <header className="border-b" style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.92)" }}>
-        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-6 py-4 lg:px-8">
-          <div className="flex flex-wrap items-center gap-5">
-            <LeonixMark />
-            <nav className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: MUTED }}>
+      <header className="border-b" style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.96)" }}>
+        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
+          <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+            <LeonixBrandMark logoUrl={vm.platformLogoUrl} />
+            <nav className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: MUTED }}>
               <span style={{ color: CHARCOAL }}>Bienes raíces</span>
               <span className="mx-2 opacity-40">›</span>
               <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1" style={{ borderColor: BORDER, background: CREAM_CARD }}>
@@ -542,58 +564,35 @@ export function BienesRaicesNegocioPreviewView({
               </span>
             </nav>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {editHref ? (
-              <a
-                href={editHref}
-                className="text-[11px] font-bold uppercase tracking-wide underline"
-                style={{ color: BRONZE_SOFT }}
-              >
-                Volver a editar
-              </a>
-            ) : null}
-            <div
-              className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] shadow-sm"
-              style={{ borderColor: BORDER, background: CREAM_CARD, color: BRONZE_SOFT }}
+          {editHref ? (
+            <a
+              href={editHref}
+              className="text-[11px] font-bold uppercase tracking-wide underline"
+              style={{ color: BRONZE_SOFT }}
             >
-              <IconEye className="shrink-0 opacity-80" />
-              Vista previa del anuncio
-            </div>
-          </div>
+              Volver a editar
+            </a>
+          ) : null}
         </div>
       </header>
 
-      <div
-        className="border-b"
-        style={{ borderColor: BORDER, background: "linear-gradient(90deg, rgba(197,160,89,0.08), rgba(253,251,247,0.95))" }}
-      >
-        <div className="mx-auto flex max-w-[1240px] items-start gap-4 px-6 py-4 lg:px-8">
-          <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
-            <IconSparkle className="block" />
-          </span>
-          <p className="max-w-3xl text-sm leading-relaxed" style={{ color: CHARCOAL }}>
-            Así es como se verá tu anuncio en Leonix. Puedes seguir editando antes de publicar.
-          </p>
-        </div>
-      </div>
-
-      <main className="mx-auto max-w-[1240px] px-6 pb-20 pt-10 lg:px-8">
-        <section className="grid gap-10 lg:grid-cols-[1fr_minmax(280px,340px)] lg:items-start lg:gap-12">
+      <main className="mx-auto max-w-[1240px] px-6 pb-20 pt-8 lg:px-8">
+        <section className="grid gap-8 lg:grid-cols-[1fr_minmax(300px,360px)] lg:items-start lg:gap-10">
           <div>
             <h1
-              className="max-w-[720px] text-[1.65rem] font-bold leading-tight tracking-tight sm:text-3xl lg:text-[2.1rem]"
+              className="max-w-[720px] text-[1.75rem] font-bold leading-[1.15] tracking-tight sm:text-[2rem] lg:text-[2.25rem]"
               style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               {vm.heroTitle}
             </h1>
-            <p className="mt-4 flex items-start gap-2 text-sm font-medium" style={{ color: MUTED }}>
+            <p className="mt-3 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
               <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
                 <IconPin className="block" />
               </span>
               {vm.addressLine}
             </p>
-            <div className="mt-5 flex flex-wrap items-end gap-3">
-              <span className="text-4xl font-bold tracking-tight sm:text-[2.75rem]" style={{ color: BRONZE, fontFamily: "Georgia, serif" }}>
+            <div className="mt-4 flex flex-wrap items-end gap-2.5">
+              <span className="text-3xl font-bold tracking-tight sm:text-[2.5rem]" style={{ color: BRONZE, fontFamily: "Georgia, serif" }}>
                 {vm.priceDisplay}
               </span>
               <span
@@ -603,28 +602,30 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.listingStatusLabel}
               </span>
             </div>
-            <p className="mt-2 text-xs font-medium" style={{ color: MUTED }}>
-              {vm.operationSummary}
-            </p>
+            {vm.operationSummary ? (
+              <p className="mt-1.5 text-xs font-medium" style={{ color: MUTED }}>
+                {vm.operationSummary}
+              </p>
+            ) : null}
 
             <div
-              className="mt-8 flex flex-wrap gap-3 rounded-2xl border p-4 sm:gap-4 sm:p-5"
-              style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 16px 48px -20px rgba(42,36,22,0.12)" }}
+              className="mt-6 flex flex-wrap gap-2 rounded-2xl border p-3 sm:gap-3 sm:p-4"
+              style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 12px 40px -18px rgba(42,36,22,0.14)" }}
             >
               {quickFacts.map(({ Icon, label, value }) => (
                 <div
                   key={label}
-                  className="flex min-w-[140px] flex-1 items-center gap-3 rounded-xl border px-3 py-2.5 sm:px-4"
+                  className="flex min-w-[120px] flex-1 items-center gap-2.5 rounded-lg border px-2.5 py-2 sm:min-w-[132px]"
                   style={{ borderColor: BORDER }}
                 >
                   <span style={{ color: BRONZE }} className="shrink-0">
-                    <Icon className="block" />
+                    <Icon className="block h-[18px] w-[18px] sm:h-5 sm:w-5" />
                   </span>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                       {label}
                     </p>
-                    <p className="text-sm font-bold" style={{ color: CHARCOAL }}>
+                    <p className="truncate text-sm font-bold" style={{ color: CHARCOAL }}>
                       {value}
                     </p>
                   </div>
@@ -634,7 +635,7 @@ export function BienesRaicesNegocioPreviewView({
           </div>
 
           <aside
-            className="rounded-2xl border p-5 shadow-[0_20px_56px_-16px_rgba(42,36,22,0.18)]"
+            className="rounded-2xl border p-5 shadow-[0_18px_48px_-14px_rgba(42,36,22,0.16)]"
             style={{ borderColor: BORDER, background: CREAM_CARD }}
           >
             <div className="overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
@@ -644,38 +645,58 @@ export function BienesRaicesNegocioPreviewView({
               ) : (
                 <div className="aspect-[4/3] w-full">
                   <EmptyMedia
-                    title="Sin foto de identidad"
-                    subtitle="Agrega una foto o logo en el formulario para mostrarlo aquí."
+                    title="Identidad del anuncio"
+                    subtitle="Sin imagen principal cargada."
                     icon={<IconEye className="h-6 w-6" />}
                   />
                 </div>
               )}
             </div>
-            <p className="mt-4 text-lg font-bold" style={{ color: CHARCOAL_DEEP }}>
+            <p className="mt-4 text-lg font-bold leading-tight" style={{ color: CHARCOAL_DEEP }}>
               {vm.identity.name}
             </p>
             <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
               {vm.identity.role}
             </p>
-            <div className="mt-4 rounded-xl border px-3 py-3" style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-                Inmobiliaria
-              </p>
-              <p className="mt-1 text-sm font-bold" style={{ color: CHARCOAL }}>
-                {vm.identity.brokerageName}
-              </p>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
-              <span className="font-semibold" style={{ color: CHARCOAL }}>
-                {vm.identity.verifiedLine}
-              </span>
-              {vm.identity.licenseLine ? (
-                <>
-                  <br />
-                  {vm.identity.licenseLine}
-                </>
+            <div className="mt-4 flex items-start gap-3 rounded-xl border px-3 py-3" style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}>
+              {vm.identity.brokerageLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={vm.identity.brokerageLogoUrl}
+                  alt=""
+                  className="h-10 max-w-[100px] shrink-0 object-contain object-left"
+                />
               ) : null}
-            </p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+                  Inmobiliaria
+                </p>
+                <p className="mt-1 text-sm font-bold" style={{ color: CHARCOAL }}>
+                  {vm.identity.brokerageName}
+                </p>
+              </div>
+            </div>
+            {vm.identity.verifiedLine || vm.identity.licenseLine ? (
+              <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
+                {vm.identity.verifiedLine ? (
+                  <span className="font-semibold" style={{ color: CHARCOAL }}>
+                    {vm.identity.verifiedLine}
+                  </span>
+                ) : null}
+                {vm.identity.licenseLine ? (
+                  <>
+                    {vm.identity.verifiedLine ? <br /> : null}
+                    {vm.identity.licenseLine}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+            {(vm.identity.contactPhone || vm.identity.contactEmail) ? (
+              <div className="mt-3 space-y-1 text-xs" style={{ color: CHARCOAL }}>
+                {vm.identity.contactPhone ? <p className="font-medium">{vm.identity.contactPhone}</p> : null}
+                {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
+              </div>
+            ) : null}
             {vm.identity.socialChips.length > 0 ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 {vm.identity.socialChips.map((s) => (
@@ -689,46 +710,79 @@ export function BienesRaicesNegocioPreviewView({
                 ))}
               </div>
             ) : null}
-            <button
-              type="button"
-              className="mt-5 w-full rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
-              style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
-            >
-              {vm.identity.profileCtaLabel}
-            </button>
+            {vm.identity.profileHref ? (
+              <a
+                href={vm.identity.profileHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
+                style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
+              >
+                {vm.identity.profileCtaLabel}
+              </a>
+            ) : (
+              <span
+                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 border-dashed py-3 text-xs font-bold uppercase tracking-wide opacity-50"
+                style={{ borderColor: BORDER, color: MUTED }}
+              >
+                {vm.identity.profileCtaLabel.replace("→", "").trim()}
+              </span>
+            )}
           </aside>
         </section>
 
-        <section className="mt-14">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-bold" style={{ color: CHARCOAL_DEEP }}>
-              Galería multimedia
-            </h2>
+        <section className="mt-12" id="galeria-multimedia">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <SectionIcon>
+                <IconHome className="h-4 w-4" />
+              </SectionIcon>
+              <h2 className="text-lg font-bold" style={{ color: CHARCOAL_DEEP }}>
+                Galería multimedia
+              </h2>
+            </div>
             <p className="text-xs font-medium" style={{ color: MUTED }}>
               {vm.media.metaLine}
             </p>
           </div>
           <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-            <div className="lg:col-span-7">
+            <div className="relative lg:col-span-7">
               <div className="overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: BORDER }}>
                 {vm.media.hasPhotos && vm.media.heroUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
                 ) : (
                   <div className="aspect-[16/10] w-full">
-                    <EmptyMedia
-                      title="Sin fotos aún"
-                      subtitle="Agrega al menos una foto para activar la galería del anuncio."
-                      icon={<IconHome className="h-7 w-7" />}
-                    />
+                    <EmptyMedia title="Galería" subtitle="Sin fotografías en este anuncio." icon={<IconHome className="h-7 w-7" />} />
                   </div>
                 )}
               </div>
+              {vm.media.photoCount > 1 ? (
+                <span
+                  className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md"
+                  style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
+                >
+                  {vm.media.photoCount} fotos
+                </span>
+              ) : null}
             </div>
             <div className="grid grid-cols-2 gap-3 lg:col-span-5">
-              {([0, 1] as const).map((i) => (
-                <div key={i} className="relative" style={{ borderColor: BORDER }}>
-                  <GalleryVideoTile index={i} vm={vm} />
+              {[gTopA, gTopB].map((spec, idx) => (
+                <div key={idx} className="relative min-h-0 overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
+                  {!spec ? (
+                    <div className="aspect-[4/3] w-full">
+                      <EmptyMedia
+                        title={idx === 0 ? "Medio 1" : "Medio 2"}
+                        subtitle="Sin contenido en este espacio."
+                        icon={<IconHome className="h-6 w-6" />}
+                      />
+                    </div>
+                  ) : spec.kind === "photo" ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
+                  ) : (
+                    <GalleryVideoTile index={spec.slot} vm={vm} />
+                  )}
                 </div>
               ))}
               {vm.media.virtualTourUrl ? (
@@ -736,21 +790,7 @@ export function BienesRaicesNegocioPreviewView({
                   href={vm.media.virtualTourUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="col-span-2 flex min-h-[140px] items-center gap-4 rounded-2xl border px-5 py-4 text-white shadow-md sm:min-h-[160px]"
-                  style={{
-                    borderColor: "rgba(26,39,68,0.4)",
-                    background: "linear-gradient(135deg, #1a2744 0%, #243a5e 50%, #1e3050 100%)",
-                  }}
-                >
-                  <IconVr className="shrink-0 opacity-95" />
-                  <div>
-                    <p className="text-sm font-bold">Tour virtual 3D</p>
-                    <p className="mt-1 text-xs opacity-80">Abrir recorrido en una nueva pestaña</p>
-                  </div>
-                </a>
-              ) : (
-                <div
-                  className="col-span-2 flex min-h-[140px] items-center gap-4 rounded-2xl border px-5 py-4 text-white shadow-md opacity-80 sm:min-h-[160px]"
+                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 text-white shadow-md sm:min-h-[130px]"
                   style={{
                     borderColor: "rgba(26,39,68,0.4)",
                     background: "linear-gradient(135deg, #1a2744 0%, #243a5e 50%, #1e3050 100%)",
@@ -759,38 +799,90 @@ export function BienesRaicesNegocioPreviewView({
                   <IconVr className="shrink-0 opacity-95" />
                   <div>
                     <p className="text-sm font-bold">Tour virtual</p>
-                    <p className="mt-1 text-xs opacity-80">No proporcionado aún. Agrega un enlace en el formulario para activarlo.</p>
+                    <p className="mt-0.5 text-xs opacity-85">Abrir recorrido</p>
                   </div>
+                </a>
+              ) : (
+                <div
+                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-sm sm:min-h-[130px]"
+                  style={{ borderColor: BORDER, background: "rgba(249,246,241,0.85)" }}
+                >
+                  <IconVr className="shrink-0 opacity-60" style={{ color: BRONZE }} />
+                  <p className="text-sm font-bold" style={{ color: MUTED }}>
+                    Tour virtual
+                  </p>
+                  <p className="text-xs" style={{ color: MUTED }}>
+                    No disponible en este anuncio.
+                  </p>
                 </div>
               )}
-              <div
-                className="col-span-2 flex min-h-[140px] items-center gap-4 rounded-2xl border px-5 py-4 shadow-md sm:min-h-[160px]"
-                style={{ borderColor: BORDER, background: CREAM_CARD }}
-              >
-                <span style={{ color: BRONZE }}>
-                  <IconFloor className="block" />
-                </span>
-                <div>
+              {vm.location.mapsUrl ? (
+                <a
+                  href={vm.location.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-md sm:min-h-[130px]"
+                  style={{ borderColor: BORDER, background: CREAM_CARD }}
+                >
+                  <span style={{ color: BRONZE }}>
+                    <IconPin className="block h-6 w-6" />
+                  </span>
                   <p className="text-sm font-bold" style={{ color: CHARCOAL }}>
-                    {vm.media.floorPlanUrls[0] ? "Plano de planta" : "Planos de planta"}
+                    Ubicación en mapa
                   </p>
-                  <p className="mt-1 text-xs" style={{ color: MUTED }}>
-                    {vm.media.floorPlanUrls.length > 0
-                      ? "Vista previa del primer plano cargado."
-                      : "No proporcionado aún. Agrega planos en el formulario para activar este bloque."}
+                  <p className="text-xs" style={{ color: MUTED }}>
+                    Ver en mapa externo
+                  </p>
+                </a>
+              ) : vm.media.floorPlanUrls[0] ? (
+                <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={vm.media.floorPlanUrls[0]!} alt="" className="aspect-[4/3] w-full object-cover" />
+                  <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                    Plano de planta
                   </p>
                 </div>
-              </div>
+              ) : vm.media.hasSitePlan && vm.media.sitePlanUrl ? (
+                <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={vm.media.sitePlanUrl} alt="" className="aspect-[4/3] w-full object-contain bg-white" />
+                  <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                    Plano de sitio
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="flex min-h-[120px] flex-col justify-center gap-2 rounded-2xl border px-4 py-3 shadow-sm sm:min-h-[130px]"
+                  style={{ borderColor: BORDER, background: CREAM_CARD }}
+                >
+                  <span style={{ color: BRONZE }}>
+                    <IconFloor className="block h-6 w-6" />
+                  </span>
+                  <p className="text-sm font-bold" style={{ color: CHARCOAL }}>
+                    Plano / mapa
+                  </p>
+                  <p className="text-xs" style={{ color: MUTED }}>
+                    Sin plano ni enlace de mapa en este anuncio.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-          {vm.media.floorPlanUrls.length > 0 ? (
-            <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={vm.media.floorPlanUrls[0]!} alt="" className="max-h-64 w-full object-contain" />
+          {vm.media.floorPlanUrls.length > 1 ? (
+            <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+              <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                Planos adicionales ({vm.media.floorPlanUrls.length - 1})
+              </p>
+              <div className="grid gap-2 p-3 sm:grid-cols-2">
+                {vm.media.floorPlanUrls.slice(1).map((u) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={u.slice(0, 48)} src={u} alt="" className="max-h-56 w-full rounded-lg border object-contain" style={{ borderColor: BORDER }} />
+                ))}
+              </div>
             </div>
           ) : null}
-          {vm.media.hasSitePlan && vm.media.sitePlanUrl ? (
-            <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+          {vm.media.hasSitePlan && vm.media.sitePlanUrl && (Boolean(vm.location.mapsUrl) || Boolean(vm.media.floorPlanUrls[0])) ? (
+            <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                 Plano de sitio / comunidad
               </p>
@@ -800,38 +892,32 @@ export function BienesRaicesNegocioPreviewView({
           ) : null}
         </section>
 
-        <section className="mt-16 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start lg:gap-10">
-          <div className="space-y-6">
-            <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
-            {vm.hasHighlights ? <FactBlock title="Características destacadas" rows={vm.highlightsRows} /> : null}
+        <section className="mt-14 grid gap-6 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
+          <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
+          {vm.hasHighlights ? (
+            <FactBlock title="Características destacadas" rows={vm.highlightsRows} />
+          ) : (
             <div
-              className="rounded-2xl border p-6 sm:p-8 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+              className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                Descripción
-              </h2>
-              {vm.hasDescription ? (
-                <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
-                  {vm.description}
-                </p>
-              ) : (
-                <p className="mt-5 text-sm leading-[1.75]" style={{ color: MUTED }}>
-                  No proporcionada aún. Agrega una descripción en el formulario para mostrarla aquí.
-                </p>
-              )}
+              <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                Características destacadas
+              </h3>
+              <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
+                Sin elementos destacados en este anuncio.
+              </p>
             </div>
-          </div>
-
-          <aside className="lg:sticky lg:top-8">
+          )}
+          <aside className="flex min-h-full flex-col lg:sticky lg:top-8 lg:min-h-0 lg:self-start">
             <div
-              className="overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
+              className="flex flex-1 flex-col overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
               style={{ borderColor: "rgba(255,255,255,0.08)" }}
             >
-              <div className="px-5 py-4" style={{ background: CHARCOAL_DEEP }}>
+              <div className="px-5 py-3.5" style={{ background: CHARCOAL_DEEP }}>
                 <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
               </div>
-              <div className="space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
+              <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
                 {vm.contact.showSolicitarInfo ? (
                   <button
                     type="button"
@@ -870,6 +956,23 @@ export function BienesRaicesNegocioPreviewView({
                 ) : null}
               </div>
               <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
+                {vm.identity.contactPhone || vm.identity.contactEmail ? (
+                  <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+                    {vm.identity.hasPhoto && vm.identity.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={vm.identity.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-11 w-11 shrink-0 rounded-full bg-[#5c5348]" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-[#F5F0E8]">{vm.identity.name}</p>
+                      {vm.identity.contactPhone ? <p className="mt-1 text-xs text-[#e8dfd4]">{vm.identity.contactPhone}</p> : null}
+                      {vm.identity.contactEmail ? (
+                        <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.identity.contactEmail}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
                 {vm.contact.secondAgent ? (
                   <div className="flex gap-3 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
                     {vm.contact.secondAgent.photoUrl ? (
@@ -905,6 +1008,26 @@ export function BienesRaicesNegocioPreviewView({
           </aside>
         </section>
 
+        <section className="mt-10">
+          <div
+            className="rounded-2xl border p-6 sm:p-8 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
+            style={{ borderColor: BORDER, background: CREAM_CARD }}
+          >
+            <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+              Descripción
+            </h2>
+            {vm.hasDescription ? (
+              <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
+                {vm.description}
+              </p>
+            ) : (
+              <p className="mt-5 text-sm leading-[1.75]" style={{ color: MUTED }}>
+                Sin descripción en este anuncio.
+              </p>
+            )}
+          </div>
+        </section>
+
         {vm.location.hasMeaningfulAddress ||
         vm.community.showModule ||
         vm.schools.showModule ||
@@ -918,8 +1041,7 @@ export function BienesRaicesNegocioPreviewView({
                 Ubicación y entorno
               </h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm" style={{ color: MUTED }}>
-                Contexto para decidir: escuelas, mapa, comunidad y HOA según lo que proporcionaste. Sin datos externos
-                inventados.
+                Ubicación, entorno y datos de la ficha incluidos en este anuncio.
               </p>
             </div>
 
@@ -978,7 +1100,7 @@ export function BienesRaicesNegocioPreviewView({
               <LowerModuleCard
                 eyebrow="Educación"
                 title="Escuelas y distrito"
-                subtitle="Información que capturaste en la ficha técnica. Leonix no asigna calificaciones ni datos de terceros."
+                subtitle="Información proporcionada en la ficha del anuncio."
               >
                 <FactRowsList rows={vm.schools.rows} />
               </LowerModuleCard>
@@ -1007,7 +1129,7 @@ export function BienesRaicesNegocioPreviewView({
                     <span className="font-semibold" style={{ color: CHARCOAL_DEEP }}>
                       Plano de sitio:{" "}
                     </span>
-                    cargado en la galería (flujo desarrollador). Los compradores lo verán junto al resto de medios.
+                    disponible en la galería multimedia de este anuncio.
                   </p>
                 ) : null}
               </LowerModuleCard>
@@ -1024,15 +1146,13 @@ export function BienesRaicesNegocioPreviewView({
               Detalles completos del inmueble
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm" style={{ color: MUTED }}>
-              Ficha técnica agrupada: interior, exterior, sistemas y observaciones. Las escuelas y HOA también aparecen arriba
-              cuando aplica.
+              Ficha técnica por bloques según los datos de este anuncio.
             </p>
           </div>
 
           {vm.detailClusters.length === 0 ? (
             <p className="mx-auto max-w-xl text-center text-sm leading-relaxed" style={{ color: MUTED }}>
-              Aún no hay detalles técnicos en la ficha. Complétalos en el paso de detalles completos del formulario para
-              enriquecer esta sección.
+              Sin bloques de detalle técnico en este anuncio.
             </p>
           ) : (
             <div className="space-y-12">
@@ -1055,10 +1175,14 @@ export function BienesRaicesNegocioPreviewView({
           )}
         </section>
 
-        <footer className="mt-16 border-t pt-8 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-          <p>{vm.footerNote}</p>
-          {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
-        </footer>
+        {vm.footerNote.trim() || footerExtra ? (
+          <footer className="mt-16 border-t pt-8 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
+            {vm.footerNote.trim() ? <p>{vm.footerNote}</p> : null}
+            {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
+          </footer>
+        ) : (
+          <div className="mt-16 border-t pt-6" style={{ borderColor: BORDER }} aria-hidden />
+        )}
       </main>
     </div>
   );
