@@ -4,6 +4,10 @@ export function normalizeLang(raw: unknown): Lang {
   return raw === "en" ? "en" : "es";
 }
 
+export function businessCardConfigurePath(slug: string): string {
+  return `/tienda/configure/business-cards/${slug}`;
+}
+
 export function withLang(href: string, lang: Lang): string {
   if (!href) return `?lang=${lang}`;
   if (href === "#") return "#";

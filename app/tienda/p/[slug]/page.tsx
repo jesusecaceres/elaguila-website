@@ -7,7 +7,7 @@ import {
   TIENDA_PRODUCT_FAMILY_SLUGS,
 } from "../../data/tiendaRegistry";
 import type { Lang } from "../../types/tienda";
-import { normalizeLang, withLang } from "../../utils/tiendaRouting";
+import { businessCardConfigurePath, normalizeLang, withLang } from "../../utils/tiendaRouting";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
 import { TiendaProductHero } from "../../components/TiendaProductHero";
 import { TiendaSpecList } from "../../components/TiendaSpecList";
@@ -95,13 +95,12 @@ export default async function TiendaProductPage(props: {
             <p>{pick(tiendaCopy.sections.productPage.futureCtaBody, lang)}</p>
             <div className="mt-5 flex flex-col sm:flex-row gap-3">
               {product.futureConfiguratorType === "business-card-builder" ? (
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] opacity-55 cursor-not-allowed"
+                <Link
+                  href={withLang(businessCardConfigurePath(product.slug), lang)}
+                  className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
                 >
                   {pick(tiendaCopy.sections.productPage.futureCtaButtonDesigner, lang)}
-                </button>
+                </Link>
               ) : null}
               {product.futureConfiguratorType === "print-upload" ? (
                 <button

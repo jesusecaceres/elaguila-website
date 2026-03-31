@@ -1,0 +1,248 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import type { Lang } from "../../types/tienda";
+import type { BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
+import { createInitialBusinessCardDocument } from "../../product-configurators/business-cards/documentFactory";
+import {
+  businessCardBuilderReducer,
+  type BusinessCardBuilderAction,
+} from "../../product-configurators/business-cards/businessCardBuilderReducer";
+import { validateBusinessCardDocument } from "../../product-configurators/business-cards/validation";
+import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constants";
+import { businessCardConfigurePath, withLang } from "../../utils/tiendaRouting";
+import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
+import { BusinessCardPreview } from "./BusinessCardPreview";
+import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
+import { BusinessCardSideTabs } from "./BusinessCardSideTabs";
+import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
+import { BusinessCardApprovalPanel } from "./BusinessCardApprovalPanel";
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProductSlug; lang: Lang }) {
+  const { productSlug, lang } = props;
+  const [doc, dispatch] = useReducer(
+    businessCardBuilderReducer,
+    undefined,
+    () => createInitialBusinessCardDocument(productSlug, lang)
+  );
+
+  const docRef = useRef(doc);
+  docRef.current = doc;
+  useEffect(() => {
+    return () => {
+      const d = docRef.current;
+      [d.front.logo.previewUrl, d.back.logo.previewUrl].forEach((u) => {
+        if (u?.startsWith("blob:")) URL.revokeObjectURL(u);
+      });
+    };
+  }, []);
+
+  const validation = useMemo(() => validateBusinessCardDocument(doc), [doc]);
+
+  const applyLogo = useCallback(
+    (file: File | null) => {
+      const side = doc.activeSide;
+      const cur = side === "front" ? doc.front.logo : doc.back.logo;
+      if (cur.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(cur.previewUrl);
+      }
+      if (!file) {
+        dispatch({ type: "CLEAR_LOGO", side });
+        return;
+      }
+      if (file.size > LOGO_MAX_MB * 1024 * 1024) {
+        window.alert(
+          lang === "en"
+            ? `Logo must be under ${LOGO_MAX_MB} MB.`
+            : `El logo debe ser menor a ${LOGO_MAX_MB} MB.`
+        );
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        dispatch({
+          type: "SET_LOGO",
+          side,
+          payload: {
+            file,
+            previewUrl,
+            naturalWidth: img.naturalWidth,
+            naturalHeight: img.naturalHeight,
+          },
+        });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(previewUrl);
+        dispatch({ type: "CLEAR_LOGO", side });
+      };
+      img.src = previewUrl;
+    },
+    [doc.activeSide, doc.front.logo, doc.back.logo]
+  );
+
+  const saveDraft = useCallback(async () => {
+    try {
+      const frontLogo = doc.front.logo.file ? await readAsDataUrl(doc.front.logo.file) : doc.front.logo.previewUrl;
+      const backLogo = doc.back.logo.file ? await readAsDataUrl(doc.back.logo.file) : doc.back.logo.previewUrl;
+      const payload = {
+        v: 2,
+        savedAt: new Date().toISOString(),
+        productSlug: doc.productSlug,
+        sidedness: doc.sidedness,
+        textNudgeX: doc.textNudgeX,
+        textNudgeY: doc.textNudgeY,
+        logoNudgeX: doc.logoNudgeX,
+        logoNudgeY: doc.logoNudgeY,
+        front: {
+          fields: doc.front.fields,
+          textLayout: doc.front.textLayout,
+          logo: {
+            visible: doc.front.logo.visible,
+            position: doc.front.logo.position,
+            scale: doc.front.logo.scale,
+            previewUrl: frontLogo,
+            naturalWidth: doc.front.logo.naturalWidth,
+            naturalHeight: doc.front.logo.naturalHeight,
+          },
+        },
+        back: {
+          fields: doc.back.fields,
+          textLayout: doc.back.textLayout,
+          logo: {
+            visible: doc.back.logo.visible,
+            position: doc.back.logo.position,
+            scale: doc.back.logo.scale,
+            previewUrl: backLogo,
+            naturalWidth: doc.back.logo.naturalWidth,
+            naturalHeight: doc.back.logo.naturalHeight,
+          },
+        },
+        approval: doc.approval,
+      };
+      sessionStorage.setItem(`leonix-bc-draft-${doc.productSlug}`, JSON.stringify(payload));
+      window.alert(bcPick(businessCardBuilderCopy.savedToast, lang));
+    } catch {
+      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+    }
+  }, [doc, lang]);
+
+  const dispatchTyped = dispatch as (a: BusinessCardBuilderAction) => void;
+
+  return (
+    <main className="min-h-screen bg-[#070708] text-white">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div>
+            <Link
+              href={withLang(`/tienda/p/${productSlug}`, lang)}
+              className="text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)]"
+            >
+              {bcPick(businessCardBuilderCopy.backToProduct, lang)}
+            </Link>
+            <h1 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">
+              {bcPick(businessCardBuilderCopy.pageTitle, lang)}
+            </h1>
+            <p className="mt-1 text-sm text-[rgba(255,255,255,0.62)]">
+              {lang === "en"
+                ? "Premium 3.5″×2″ cards — Leonix prints what you approve."
+                : "Tarjetas 3.5″×2″ premium — Leonix imprime lo que apruebas."}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <BusinessCardSideTabs doc={doc} lang={lang} active={doc.activeSide} onChange={(s) => dispatch({ type: "SET_ACTIVE_SIDE", side: s })} />
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "TOGGLE_GUIDES" })}
+              className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-4 py-2 text-sm font-medium"
+            >
+              {bcPick(businessCardBuilderCopy.guidesToggle, lang)}:{" "}
+              {doc.guidesVisible ? (lang === "en" ? "On" : "Sí") : lang === "en" ? "Off" : "No"}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start">
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
+              {bcPick(businessCardBuilderCopy.previewTitle, lang)}
+            </h2>
+            <BusinessCardPreview document={doc} side={doc.activeSide} lang={lang} />
+          </div>
+          <BusinessCardEditorPanel
+            lang={lang}
+            doc={doc}
+            side={doc.activeSide}
+            dispatch={dispatchTyped}
+            onPickLogo={applyLogo}
+          />
+        </div>
+
+        <div className="mt-10 space-y-8">
+          <BusinessCardValidationPanel lang={lang} result={validation} />
+          <BusinessCardApprovalPanel
+            lang={lang}
+            approval={doc.approval}
+            onChange={(patch) => dispatch({ type: "SET_APPROVAL", patch })}
+          />
+
+          <section className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)] p-5 sm:p-6">
+            <h2 className="text-base font-semibold">{bcPick(businessCardBuilderCopy.nextTitle, lang)}</h2>
+            <p className="mt-2 text-sm text-[rgba(255,255,255,0.72)] max-w-2xl">
+              {bcPick(businessCardBuilderCopy.nextBody, lang)}
+            </p>
+            {!validation.hasBlockingContentIssues && !validation.approvalComplete ? (
+              <p className="mt-2 text-sm text-[rgba(201,168,74,0.85)]">
+                {lang === "en"
+                  ? "Complete the checklist above to enable save & continue."
+                  : "Completa la lista de verificación para activar guardar y continuar."}
+              </p>
+            ) : null}
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                disabled={!validation.canContinue}
+                onClick={() => void saveDraft()}
+                className={[
+                  "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition",
+                  validation.canContinue
+                    ? "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95 shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
+                    : "bg-white/10 text-white/40 cursor-not-allowed",
+                ].join(" ")}
+              >
+                {bcPick(businessCardBuilderCopy.saveContinue, lang)}
+              </button>
+              <Link
+                href={withLang(`/tienda/p/${productSlug}`, lang)}
+                className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.18)] px-6 py-3 text-sm font-semibold hover:bg-[rgba(255,255,255,0.06)]"
+              >
+                {lang === "en" ? "Edit product options" : "Opciones del producto"}
+              </Link>
+              <Link
+                href={withLang("/contacto", lang)}
+                className="inline-flex items-center justify-center rounded-full border border-[rgba(201,168,74,0.35)] px-6 py-3 text-sm font-semibold text-[rgba(255,247,226,0.88)]"
+              >
+                {lang === "en" ? "Order with Leonix" : "Pedir con Leonix"}
+              </Link>
+            </div>
+          </section>
+
+          <p className="text-[11px] text-[rgba(255,255,255,0.38)]">
+            {lang === "en" ? "Builder URL:" : "URL del constructor:"}{" "}
+            <span className="font-mono">{businessCardConfigurePath(productSlug)}</span>
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
