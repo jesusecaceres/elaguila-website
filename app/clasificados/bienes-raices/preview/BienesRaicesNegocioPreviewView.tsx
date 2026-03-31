@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewQuickFactVm,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import { BrNegocioGalleryLightbox } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioGalleryLightbox";
+import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -191,56 +193,6 @@ const QUICK_FACT_ICONS: Record<BienesRaicesPreviewQuickFactVm["icon"], typeof Ic
   sparkle: IconSparkle,
 };
 
-function StreamableVideo({ url }: { url: string }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const isHls = /\.m3u8(\?|$)/i.test(url);
-    if (!isHls) {
-      el.src = url;
-      return () => {
-        el.pause();
-        el.removeAttribute("src");
-      };
-    }
-    let cancelled = false;
-    let hls: { destroy: () => void } | null = null;
-    if (el.canPlayType("application/vnd.apple.mpegurl")) {
-      el.src = url;
-      return () => {
-        el.pause();
-        el.removeAttribute("src");
-      };
-    }
-    void import("hls.js")
-      .then(({ default: HlsCtor }) => {
-        if (cancelled || !ref.current) return;
-        if (HlsCtor.isSupported()) {
-          const instance = new HlsCtor({ enableWorker: true });
-          hls = instance;
-          instance.loadSource(url);
-          instance.attachMedia(ref.current!);
-        } else {
-          ref.current!.src = url;
-        }
-      })
-      .catch(() => {
-        if (!cancelled && ref.current) ref.current.src = url;
-      });
-    return () => {
-      cancelled = true;
-      hls?.destroy();
-      const v = ref.current;
-      if (v) {
-        v.pause();
-        v.removeAttribute("src");
-      }
-    };
-  }, [url]);
-  return <video ref={ref} controls playsInline className="aspect-[4/3] w-full object-cover" />;
-}
-
 function GalleryVideoTile({
   index,
   vm,
@@ -291,7 +243,7 @@ function GalleryVideoTile({
     return (
       <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
         {playback.includes(".m3u8") || playback.startsWith("blob:") ? (
-          <StreamableVideo url={playback} />
+          <BrNegocioStreamableVideo url={playback} className="aspect-[4/3] w-full object-cover" />
         ) : (
           <video poster={thumb ?? undefined} controls playsInline className="aspect-[4/3] w-full object-cover" src={playback} />
         )}
@@ -527,16 +479,38 @@ function deepIcon(id: string) {
 
 type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 | 1 };
 
+/** Video slots take priority in the top 2×2 so destacados no desplazan el video cuando hay muchas fotos. */
 function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null] {
-  const specs: GalleryTopSpec[] = [];
-  const secondary = vm.media?.secondaryPhotoUrls ?? [];
-  for (const u of secondary) {
-    if (specs.length >= 2) break;
-    specs.push({ kind: "photo", url: u });
-  }
-  if (specs.length < 2 && vm.media?.hasVideo1) specs.push({ kind: "video", slot: 0 });
-  if (specs.length < 2 && vm.media?.hasVideo2) specs.push({ kind: "video", slot: 1 });
-  return [specs[0] ?? null, specs[1] ?? null];
+  const m = vm.media;
+  const all = m?.allPhotoUrls ?? [];
+  const coverIdx = Math.min(Math.max(0, m?.coverPhotoIndex ?? 0), Math.max(0, all.length - 1));
+  const pool = all.map((url, i) => ({ url, i })).filter((x) => all.length > 0 && x.i !== coverIdx);
+  let pi = 0;
+  const nextPhoto = (): string | null => {
+    const x = pool[pi];
+    if (!x) return null;
+    pi += 1;
+    return x.url;
+  };
+  const cellA: GalleryTopSpec | null = m?.hasVideo1
+    ? { kind: "video", slot: 0 }
+    : (() => {
+        const u = nextPhoto();
+        return u ? { kind: "photo", url: u } : null;
+      })();
+  const cellB: GalleryTopSpec | null = m?.hasVideo2
+    ? { kind: "video", slot: 1 }
+    : (() => {
+        const u = nextPhoto();
+        return u ? { kind: "photo", url: u } : null;
+      })();
+  return [cellA, cellB];
+}
+
+function photoIndexInGallery(vm: BienesRaicesNegocioPreviewVm, url: string): number {
+  const urls = vm.media?.allPhotoUrls ?? [];
+  const i = urls.indexOf(url);
+  return i >= 0 ? i : 0;
 }
 
 export function BienesRaicesNegocioPreviewView({
@@ -549,6 +523,20 @@ export function BienesRaicesNegocioPreviewView({
   editHref?: string;
   footerExtra?: string;
 }) {
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+
+  const openGallery = (index: number) => {
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  };
+
+  const gallerySlideIndexForVideo = (slot: 0 | 1) => {
+    const n = vm.media?.allPhotoUrls?.length ?? 0;
+    if (slot === 0) return n;
+    return n + (vm.media?.hasVideo1 ? 1 : 0);
+  };
+
   const quickFacts = (vm.quickFacts ?? []).map((qf) => ({
     Icon: QUICK_FACT_ICONS[qf.icon] ?? IconSparkle,
     label: qf.label,
@@ -605,7 +593,14 @@ export function BienesRaicesNegocioPreviewView({
           <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
             <div className="lg:col-span-7">
               <div className="relative">
-                <div className="overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: BORDER }}>
+                <button
+                  type="button"
+                  className="group relative w-full overflow-hidden rounded-2xl border text-left shadow-lg transition hover:opacity-[0.98]"
+                  style={{ borderColor: BORDER }}
+                  onClick={() => vm.media?.hasPhotos && vm.media?.heroUrl && openGallery(vm.media.coverPhotoIndex ?? 0)}
+                  disabled={!vm.media?.hasPhotos || !vm.media?.heroUrl}
+                  aria-label="Abrir galería de fotos"
+                >
                   {vm.media?.hasPhotos && vm.media?.heroUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
@@ -614,14 +609,23 @@ export function BienesRaicesNegocioPreviewView({
                       <EmptyMedia title="Galería" subtitle="Sin fotografías en este anuncio." icon={<IconHome className="h-7 w-7" />} />
                     </div>
                   )}
-                </div>
-                {vm.media && vm.media.photoCount > 1 ? (
-                  <span
-                    className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md"
+                  {vm.media?.hasPhotos && vm.media?.heroUrl ? (
+                    <span className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/[0.06]" aria-hidden />
+                  ) : null}
+                </button>
+                {vm.media && vm.media.photoCount > 0 ? (
+                  <button
+                    type="button"
+                    className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md transition hover:brightness-95"
                     style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openGallery(vm.media?.coverPhotoIndex ?? 0);
+                    }}
+                    aria-label="Abrir galería completa"
                   >
                     {vm.media?.photoCount ?? 0} fotos
-                  </span>
+                  </button>
                 ) : null}
               </div>
               {vm.media?.heroCaption ? (
@@ -642,10 +646,27 @@ export function BienesRaicesNegocioPreviewView({
                       />
                     </div>
                   ) : spec.kind === "photo" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
+                    <button
+                      type="button"
+                      className="block w-full text-left"
+                      onClick={() => openGallery(photoIndexInGallery(vm, spec.url))}
+                      aria-label="Abrir foto en galería"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={spec.url} alt="" className="aspect-[4/3] w-full object-cover" />
+                    </button>
                   ) : (
-                    <GalleryVideoTile index={spec.slot} vm={vm} />
+                    <div className="relative aspect-[4/3] w-full">
+                      <GalleryVideoTile index={spec.slot} vm={vm} />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md sm:text-[11px]"
+                        style={{ borderColor: BORDER, background: "rgba(253,251,247,0.95)", color: CHARCOAL_DEEP }}
+                        onClick={() => openGallery(gallerySlideIndexForVideo(spec.slot))}
+                      >
+                        Galería
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -732,13 +753,13 @@ export function BienesRaicesNegocioPreviewView({
               )}
             </div>
           </div>
-          {vm.media.floorPlanUrls.length > 1 ? (
+          {(vm.media?.floorPlanUrls?.length ?? 0) > 1 ? (
             <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                Planos adicionales ({vm.media.floorPlanUrls.length - 1})
+                Planos adicionales ({(vm.media?.floorPlanUrls?.length ?? 0) - 1})
               </p>
               <div className="grid gap-2 p-3 sm:grid-cols-2">
-                {vm.media.floorPlanUrls.slice(1).map((u) => (
+                {(vm.media?.floorPlanUrls ?? []).slice(1).map((u) => (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img key={u.slice(0, 48)} src={u} alt="" className="max-h-56 w-full rounded-lg border object-contain" style={{ borderColor: BORDER }} />
                 ))}
@@ -837,6 +858,11 @@ export function BienesRaicesNegocioPreviewView({
             <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE_SOFT }}>
               {vm.identity.role}
             </p>
+            {vm.identity.bioLine ? (
+              <p className="mt-3 text-sm leading-relaxed" style={{ color: MUTED }}>
+                {vm.identity.bioLine}
+              </p>
+            ) : null}
             <div className="mt-4 flex items-start gap-3 rounded-xl border px-3 py-3" style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}>
               {vm.identity.brokerageLogoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -889,7 +915,7 @@ export function BienesRaicesNegocioPreviewView({
                 ))}
               </div>
             ) : null}
-            {vm.identity.profileHref ? (
+            {vm.identity.profileCtaEnabled && vm.identity.profileHref ? (
               <a
                 href={vm.identity.profileHref}
                 target="_blank"
@@ -900,12 +926,9 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.identity.profileCtaLabel}
               </a>
             ) : (
-              <span
-                className="mt-5 flex w-full items-center justify-center rounded-xl border-2 border-dashed py-3 text-xs font-bold uppercase tracking-wide opacity-50"
-                style={{ borderColor: BORDER, color: MUTED }}
-              >
-                {vm.identity.profileCtaLabel.replace("→", "").trim()}
-              </span>
+              <p className="mt-5 text-center text-[11px] leading-snug" style={{ color: MUTED }}>
+                Añade un sitio web o red social en la ficha para activar el enlace público de perfil.
+              </p>
             )}
           </aside>
         </section>
@@ -935,42 +958,49 @@ export function BienesRaicesNegocioPreviewView({
               <div className="px-5 py-3.5" style={{ background: CHARCOAL_DEEP }}>
                 <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
               </div>
+              {vm.contact.instructionsLine ? (
+                <p className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}>
+                  {vm.contact.instructionsLine}
+                </p>
+              ) : null}
               <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
-                {vm.contact.showSolicitarInfo ? (
-                  <button
-                    type="button"
-                    className="w-full rounded-xl py-3.5 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
+                {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
+                  <a
+                    href={vm.contact.solicitarInfoHref}
+                    className="flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
                     style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
                   >
                     Solicitar información
-                  </button>
+                  </a>
                 ) : null}
-                {vm.contact.showProgramarVisita ? (
-                  <button
-                    type="button"
-                    className="w-full rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                {vm.contact.showProgramarVisita && vm.contact.programarVisitaHref ? (
+                  <a
+                    href={vm.contact.programarVisitaHref}
+                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
                     Programar visita
-                  </button>
+                  </a>
                 ) : null}
-                {vm.contact.showLlamar ? (
-                  <button
-                    type="button"
-                    className="w-full rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                {vm.contact.showLlamar && vm.contact.llamarHref ? (
+                  <a
+                    href={vm.contact.llamarHref}
+                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
                     Llamar ahora
-                  </button>
+                  </a>
                 ) : null}
-                {vm.contact.showWhatsapp ? (
-                  <button
-                    type="button"
-                    className="w-full rounded-xl border py-3 text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
+                {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
+                  <a
+                    href={vm.contact.whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center rounded-xl border py-3 text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
                     Enviar por WhatsApp
-                  </button>
+                  </a>
                 ) : null}
               </div>
               <div className="space-y-3 border-t px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#3A342E" }}>
@@ -1193,15 +1223,17 @@ export function BienesRaicesNegocioPreviewView({
           )}
         </section>
 
-        {vm.footerNote.trim() || footerExtra ? (
+        {(vm.footerNote ?? "").trim() || footerExtra ? (
           <footer className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: BORDER, color: MUTED }}>
-            {vm.footerNote.trim() ? <p>{vm.footerNote}</p> : null}
+            {(vm.footerNote ?? "").trim() ? <p>{vm.footerNote}</p> : null}
             {footerExtra ? <p className="mt-2 opacity-70">{footerExtra}</p> : null}
           </footer>
         ) : (
           <div className="mt-12 border-t pt-5" style={{ borderColor: BORDER }} aria-hidden />
         )}
       </main>
+
+      <BrNegocioGalleryLightbox vm={vm} open={galleryOpen} initialIndex={galleryIndex} onClose={() => setGalleryOpen(false)} />
     </div>
   );
 }

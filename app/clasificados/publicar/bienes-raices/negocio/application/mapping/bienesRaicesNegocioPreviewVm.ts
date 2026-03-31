@@ -15,10 +15,14 @@ export type BienesRaicesPreviewIdentityVm = {
   brokerageLogoUrl: string | null;
   verifiedLine: string;
   licenseLine: string;
+  /** Short bio when captured (agent/equipo/oficina). */
+  bioLine: string;
   socialChips: string[];
   profileCtaLabel: string;
   /** Sitio web o primer enlace útil para el CTA de perfil. */
   profileHref: string | null;
+  /** False when no public URL — preview must not fake a live profile link. */
+  profileCtaEnabled: boolean;
   contactPhone: string;
   contactEmail: string;
   /** Presence flags to keep preview truthful (no fake assets). */
@@ -55,6 +59,12 @@ export type BienesRaicesPreviewMediaVm = {
   photoCount: number;
   /** Leyenda opcional alineada con la portada (photoCaptions[primaryImageIndex]). */
   heroCaption: string | null;
+  /** Todas las fotos en orden de captura (misma longitud que `photoCaptionsFull` cuando aplica). */
+  allPhotoUrls: string[];
+  /** Índice de portada en `allPhotoUrls`. */
+  coverPhotoIndex: number;
+  /** Leyendas alineadas por índice con `allPhotoUrls`. */
+  photoCaptionsFull: string[];
 };
 
 export type BienesRaicesPreviewContactVm = {
@@ -62,6 +72,13 @@ export type BienesRaicesPreviewContactVm = {
   showProgramarVisita: boolean;
   showLlamar: boolean;
   showWhatsapp: boolean;
+  /** `mailto:` solo si hay correo; si no, el botón no debe fingir acción. */
+  solicitarInfoHref: string | null;
+  programarVisitaHref: string | null;
+  llamarHref: string | null;
+  whatsappHref: string | null;
+  /** Preferencias de contacto / instrucciones (misma ficha). */
+  instructionsLine: string;
   secondAgent: null | {
     name: string;
     role: string;

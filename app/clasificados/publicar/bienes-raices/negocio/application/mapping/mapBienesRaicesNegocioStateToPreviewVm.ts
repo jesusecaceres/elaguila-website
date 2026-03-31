@@ -449,6 +449,76 @@ function primaryPhone(s: BienesRaicesNegocioFormState, adv: BienesRaicesAdvertis
   }
 }
 
+function primaryEmail(s: BienesRaicesNegocioFormState, adv: BienesRaicesAdvertiserType): string {
+  switch (adv) {
+    case "agente_individual":
+      return trim(s.identityAgente.email);
+    case "equipo_agentes":
+      return trim(s.identityEquipo.email);
+    case "oficina_brokerage":
+      return trim(s.identityOficina.email);
+    case "constructor_desarrollador":
+      return trim(s.identityConstructor.email);
+    default:
+      return "";
+  }
+}
+
+function buildMailtoUri(to: string, subject: string, body: string): string | null {
+  const e = trim(to);
+  if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return null;
+  return `mailto:${e}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function digitsForDial(phone: string): string {
+  return trim(phone).replace(/\D/g, "");
+}
+
+function buildTelHref(phone: string): string | null {
+  const d = digitsForDial(phone);
+  if (d.length < 10) return null;
+  return `tel:${d}`;
+}
+
+function buildWhatsappHref(phone: string, message: string): string | null {
+  const d = digitsForDial(phone);
+  if (d.length < 10) return null;
+  const text =
+    trim(message) ||
+    "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
+  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
+}
+
+function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm["contact"] {
+  const adv = s.advertiserType;
+  const email = primaryEmail(s, adv);
+  const phone = primaryPhone(s, adv);
+  const title = trim(s.titulo) || "Anuncio";
+  const preMsg = trim(s.cta.mensajePrellenado) || `Hola,\n\nMe interesa el anuncio: ${title}`;
+  const solicitarInfoHref = buildMailtoUri(email, `Consulta — ${title}`, preMsg);
+  const programarVisitaHref = buildMailtoUri(
+    email,
+    `Programar visita — ${title}`,
+    `${preMsg}\n\nMe gustaría coordinar una visita.`
+  );
+  const llamarHref = buildTelHref(phone);
+  const whatsappHref = buildWhatsappHref(phone, trim(s.cta.mensajePrellenado));
+
+  return {
+    showSolicitarInfo: Boolean(s.cta.permitirSolicitarInfo && solicitarInfoHref),
+    showProgramarVisita: Boolean(s.cta.permitirProgramarVisita && programarVisitaHref),
+    showLlamar: Boolean(s.cta.permitirLlamar && llamarHref),
+    showWhatsapp: Boolean(s.cta.permitirWhatsapp && whatsappHref),
+    solicitarInfoHref,
+    programarVisitaHref,
+    llamarHref,
+    whatsappHref,
+    instructionsLine: trim(s.cta.instruccionesContacto),
+    secondAgent: buildSecondAgentVm(s),
+    lender: buildLenderVm(s),
+  };
+}
+
 function contactRailTitle(adv: BienesRaicesAdvertiserType): string {
   switch (adv) {
     case "equipo_agentes":
@@ -473,18 +543,21 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ie.redes.map(trim).filter(Boolean).slice(0, 5);
     const photoUrl = trim(ie.imagenUrl) || null;
     const lead = trim(ie.agentePrincipalNombre);
-    const chips = trust.mostrarRedes ? social.map(socialChipLabel).filter(Boolean) : [];
+    const chips = social.map(socialChipLabel).filter(Boolean);
+    const profileHref = resolveProfileHref(ie.sitioWeb, social);
     return {
       photoUrl,
       name: trim(ie.nombreEquipo) || "Equipo",
       role: lead ? `Equipo · liderazgo: ${lead}` : "Equipo de agentes",
-      brokerageName: trust.mostrarBrokerage ? trim(ie.brokerage) || "—" : "—",
+      brokerageName: trim(ie.brokerage) || "—",
       brokerageLogoUrl: trim(ie.logoUrl) || null,
       verifiedLine: "Equipo anunciante",
       licenseLine: trim(ie.agentePrincipalRol) ? `Rol principal: ${trim(ie.agentePrincipalRol)}` : "",
+      bioLine: trim(ie.bio),
       socialChips: chips,
       profileCtaLabel: "Ver perfil del equipo →",
-      profileHref: resolveProfileHref(ie.sitioWeb, social),
+      profileHref,
+      profileCtaEnabled: Boolean(profileHref),
       contactPhone: trim(ie.telGeneral),
       contactEmail: trim(ie.email),
       hasPhoto: Boolean(photoUrl),
@@ -497,18 +570,21 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = io.redes.map(trim).filter(Boolean);
     const photoUrl = trim(io.logoUrl) || null;
     const lead = trim(io.contactoPrincipal);
-    const chips = trust.mostrarRedes && social.length ? social.map(socialChipLabel).filter(Boolean) : [];
+    const chips = social.map(socialChipLabel).filter(Boolean);
+    const profileHref = resolveProfileHref(io.sitioWeb, social);
     return {
       photoUrl,
       name: trim(io.nombreOficina) || "Oficina",
       role: lead ? `Oficina · ${lead}` : "Brokerage",
-      brokerageName: trust.mostrarBrokerage ? trim(io.nombreOficina) : "—",
+      brokerageName: trim(io.nombreOficina) || "—",
       brokerageLogoUrl: trim(io.logoUrl) || null,
       verifiedLine: "Oficina",
       licenseLine: trim(io.direccionOficina),
+      bioLine: trim(io.bio),
       socialChips: chips,
       profileCtaLabel: "Ver oficina →",
-      profileHref: resolveProfileHref(io.sitioWeb, social),
+      profileHref,
+      profileCtaEnabled: Boolean(profileHref),
       contactPhone: trim(io.telPrincipal),
       contactEmail: trim(io.email),
       hasPhoto: Boolean(photoUrl),
@@ -521,18 +597,21 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ic.redes.map(trim).filter(Boolean);
     const photoUrl = trim(ic.logoUrl) || null;
     const entrega = trim(ic.entregaEstimada);
-    const chips = trust.mostrarRedes && social.length ? social.map(socialChipLabel).filter(Boolean) : [];
+    const chips = social.map(socialChipLabel).filter(Boolean);
+    const profileHref = resolveProfileHref(ic.sitioWeb, social);
     return {
       photoUrl,
       name: trim(ic.nombreDesarrollador) || "Desarrollador",
       role: trim(ic.proyectoNombre) || "Proyecto nuevo",
-      brokerageName: trust.mostrarBrokerage ? trim(ic.proyectoNombre) : trim(ic.nombreDesarrollador),
+      brokerageName: trim(ic.proyectoNombre) || trim(ic.nombreDesarrollador) || "—",
       brokerageLogoUrl: trim(ic.logoUrl) || null,
       verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollo inmobiliario",
       licenseLine: trim(ic.estadoDesarrollo),
+      bioLine: trim(ic.descripcionProyecto),
       socialChips: chips,
       profileCtaLabel: "Ver centro de ventas →",
-      profileHref: resolveProfileHref(ic.sitioWeb, social),
+      profileHref,
+      profileCtaEnabled: Boolean(profileHref),
       contactPhone: trim(ic.tel),
       contactEmail: trim(ic.email),
       hasPhoto: Boolean(photoUrl),
@@ -544,18 +623,21 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   const social = ia.redes.map(trim).filter(Boolean);
   const lic = trim(ia.licencia);
   const photoUrl = trim(ia.fotoUrl) || null;
-  const chips = trust.mostrarRedes ? social.map(socialChipLabel).filter(Boolean) : [];
+  const chips = social.map(socialChipLabel).filter(Boolean);
+  const profileHref = resolveProfileHref(ia.sitioWeb, social);
   return {
     photoUrl,
     name: trim(ia.nombre) || "Agente",
     role: trim(ia.rol) || "Agente de listado",
-    brokerageName: trust.mostrarBrokerage ? trim(ia.brokerage) || "—" : "—",
+    brokerageName: trim(ia.brokerage) || "—",
     brokerageLogoUrl: trim(ia.logoBrokerageUrl) || null,
-      verifiedLine: trust.mostrarLicencia && lic ? "Agente verificado" : "",
-      licenseLine: trust.mostrarLicencia && lic ? `Lic. ${lic}` : "",
+    verifiedLine: trust.mostrarLicencia && lic ? "Agente verificado" : "",
+    licenseLine: lic ? `Lic. ${lic}` : "",
+    bioLine: trim(ia.bio),
     socialChips: chips,
     profileCtaLabel: "Ver perfil profesional →",
-    profileHref: resolveProfileHref(ia.sitioWeb, social),
+    profileHref,
+    profileCtaEnabled: Boolean(profileHref),
     contactPhone: trim(ia.telDirecto) || trim(ia.telOficina),
     contactEmail: trim(ia.email),
     hasPhoto: Boolean(photoUrl),
@@ -675,14 +757,16 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const heroUrl = photos.length ? photos[cover]! : null;
   const heroCaptionRaw = photos.length ? trim(captionsRaw[cover] ?? "") : "";
   const heroCaption = heroCaptionRaw.length ? heroCaptionRaw : null;
+  const photoCaptionsFull = photos.map((_, i) => trim(captionsRaw[i] ?? ""));
   const secondaryPhotoUrls = photos
     .map((url, idx) => ({ url, idx }))
     .filter(({ idx }) => photos.length > 0 && idx !== cover)
     .map(({ url }) => url)
     .slice(0, 2);
 
-  const r0 = resolveNegocioVideoSlot(s.media.listingVideoSlots[0]);
-  const r1 = resolveNegocioVideoSlot(s.media.listingVideoSlots[1]);
+  const vidSlots = Array.isArray(s.media?.listingVideoSlots) ? s.media.listingVideoSlots : [];
+  const r0 = resolveNegocioVideoSlot(vidSlots[0]);
+  const r1 = resolveNegocioVideoSlot(vidSlots[1]);
   const videoThumbUrls: [string | null, string | null] = [r0.thumb, r1.thumb];
   const videoPlaybackUrls: [string | null, string | null] = [
     r0.youtubeId ? null : r0.playback,
@@ -743,20 +827,16 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       hasSitePlan: Boolean(sitePlanUrl),
       photoCount: photos.length,
       heroCaption,
+      allPhotoUrls: photos,
+      coverPhotoIndex: cover,
+      photoCaptionsFull,
     },
     propertyDetailsRows: buildPropertyDetails(s),
     highlightsRows: hasHighlights ? highlightRows : [],
     description: desc,
     hasDescription,
     hasHighlights,
-    contact: {
-      showSolicitarInfo: s.cta.permitirSolicitarInfo,
-      showProgramarVisita: s.cta.permitirProgramarVisita,
-      showLlamar: s.cta.permitirLlamar,
-      showWhatsapp: s.cta.permitirWhatsapp,
-      secondAgent: buildSecondAgentVm(s),
-      lender: buildLenderVm(s),
-    },
+    contact: buildContactVm(s),
     deepBlocks: technicalDeepBlocks,
     detailClusters,
     location: buildLocationVm(s),
