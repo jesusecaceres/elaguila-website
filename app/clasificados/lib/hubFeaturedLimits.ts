@@ -6,7 +6,6 @@ export function buildHubFeaturedLimits(isMobile: boolean): Record<HubCategoryKey
   return {
     rentas: isMobile ? big3Mobile : big3Desktop,
     "en-venta": isMobile ? big3Mobile : big3Desktop,
-    "bienes-raices": isMobile ? otherMobile : otherDesktop,
     empleos: isMobile ? big3Mobile : big3Desktop,
     servicios: isMobile ? otherMobile : otherDesktop,
     travel: isMobile ? otherMobile : otherDesktop,

@@ -20,7 +20,6 @@ import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
-import { useBienesRaicesAnuncioDerived } from "../../bienes-raices/listing/hooks/useBienesRaicesAnuncioDerived";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -37,23 +36,10 @@ import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnunci
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
 import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnuncioLiveTypes";
-import { BienesRaicesAnuncioTopChrome } from "../../bienes-raices/listing/components/BienesRaicesAnuncioTopChrome";
-import { BienesRaicesBusinessMobileBlock } from "../../bienes-raices/listing/components/BienesRaicesBusinessMobileBlock";
-import { BienesRaicesSameCompanyListingsSection } from "../../bienes-raices/listing/components/BienesRaicesSameCompanyListingsSection";
-import { BienesRaicesPrivadoSellerRail } from "../../bienes-raices/listing/components/BienesRaicesPrivadoSellerRail";
-import { BienesRaicesNegocioDesktopBusinessRail } from "../../bienes-raices/listing/components/BienesRaicesNegocioDesktopBusinessRail";
-import BienesRaicesPreviewListing from "../../bienes-raices/privado/preview/BienesRaicesPreviewListing";
-import BienesRaicesPreviewNegocioFresh from "../../bienes-raices/negocio/preview/BienesRaicesPreviewNegocioFresh";
-import {
-  buildBienesRaicesNegocioLiveListingData,
-  buildBienesRaicesPrivadoLiveListingData,
-} from "../../bienes-raices/listing/utils/brAnuncioLiveListingData";
-
 type Lang = "es" | "en";
 
 type CategoryKey =
   | "en-venta"
-  | "bienes-raices"
   | "rentas"
   | "autos"
   | "servicios"
@@ -100,8 +86,6 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-/** BR only has Privado vs Negocio; no Standard/Plus. Use isBienesRaicesNegocio for open-card and same-company logic. */
-
 function parsePriceLabel(label: string): number | null {
   const m = (label || "").replace(/,/g, "").match(/(\d+(\.\d+)?)/);
   return m ? Number(m[1]) : null;
@@ -128,7 +112,6 @@ function formatPostedAgo(createdAt: string | null | undefined, lang: Lang): stri
 
 const CATEGORY_KEYS: readonly CategoryKey[] = [
   "en-venta",
-  "bienes-raices",
   "rentas",
   "autos",
   "servicios",
@@ -140,6 +123,7 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
 
 function coerceCategoryKey(raw: unknown): CategoryKey {
   const s = typeof raw === "string" ? raw : "";
+  if (s === "bienes-raices") return "en-venta";
   return (CATEGORY_KEYS as readonly string[]).includes(s) ? (s as CategoryKey) : "en-venta";
 }
 
@@ -339,7 +323,6 @@ export default function AnuncioDetallePage() {
   const categoryLabel = useMemo(() => {
     const map: Record<CategoryKey, { es: string; en: string }> = {
       "en-venta": { es: "En Venta", en: "For Sale" },
-      "bienes-raices": { es: "Bienes Raíces", en: "Real Estate" },
       rentas: { es: "Rentas", en: "Rentals" },
       autos: { es: "Autos", en: "Autos" },
       servicios: { es: "Servicios", en: "Services" },
@@ -435,14 +418,6 @@ export default function AnuncioDetallePage() {
 
   /** True when the visible listing was loaded from Supabase, not from SAMPLE_LISTINGS. */
   const isLiveDbListing = Boolean(listing && !sampleListing);
-
-  const { brNegocioDisplay, bienesRaicesSameCompanyListings, isBienesRaicesNegocio, isBienesRaicesPrivado } =
-    useBienesRaicesAnuncioDerived({
-    listing: listing as unknown as import("../../bienes-raices/listing/types/brAnuncioLiveTypes").BrAnuncioListingLike | undefined,
-    lang,
-    isLiveDbListing,
-    sampleListings: SAMPLE_LISTINGS as unknown as import("../../bienes-raices/listing/types/brAnuncioLiveTypes").BrSameCompanySampleItem[],
-  });
 
   const {
     rentasMeta,
@@ -794,32 +769,6 @@ export default function AnuncioDetallePage() {
     return listing.postedAgo[lang];
   }, [listing, lang]);
 
-  const brPrivadoLiveListingData = useMemo(() => {
-    if (!listing || listing.category !== "bienes-raices" || !isBienesRaicesPrivado) return null;
-    return buildBienesRaicesPrivadoLiveListingData({
-      listing: listing as import("../../bienes-raices/listing/utils/brAnuncioLiveListingData").BienesRaicesLiveListingRow,
-      lang,
-      postedAgoLabel: postedAgoDisplay,
-      isPro,
-      proVideoInfos,
-    });
-  }, [listing, lang, isBienesRaicesPrivado, postedAgoDisplay, isPro, proVideoInfos]);
-
-  const brNegocioLiveListingData = useMemo(() => {
-    if (!listing || listing.category !== "bienes-raices" || !isBienesRaicesNegocio) return null;
-    return buildBienesRaicesNegocioLiveListingData({
-      listing: listing as import("../../bienes-raices/listing/utils/brAnuncioLiveListingData").BienesRaicesLiveListingRow,
-      lang,
-      postedAgoLabel: postedAgoDisplay,
-      isPro,
-      proVideoInfos,
-    });
-  }, [listing, lang, isBienesRaicesNegocio, postedAgoDisplay, isPro, proVideoInfos]);
-
-  const brLiveParityNegocio = Boolean(isBienesRaicesNegocio && brNegocioLiveListingData?.businessRail);
-  const brLiveParityPrivado = Boolean(isBienesRaicesPrivado && brPrivadoLiveListingData);
-  const brLiveParityLayout = brLiveParityNegocio || brLiveParityPrivado;
-
   const isBoosted = useMemo(() => {
     const until = (listing as any)?.boostUntil;
     return until && new Date(until).getTime() > Date.now();
@@ -1041,11 +990,7 @@ export default function AnuncioDetallePage() {
           </div>
         </div>
 
-        {(isBienesRaicesPrivado || isBienesRaicesNegocio) && (
-          <BienesRaicesAnuncioTopChrome lang={lang} variant={isBienesRaicesNegocio ? "negocio" : "privado"} />
-        )}
-
-        <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", (isBienesRaicesPrivado || isBienesRaicesNegocio) ? "mt-8" : "mt-10")}>
+        <div className={cx("grid grid-cols-1 lg:grid-cols-12 gap-8", "mt-10")}>
           {/* Main card */}
           <div className="lg:col-span-8">
             <div
@@ -1055,35 +1000,9 @@ export default function AnuncioDetallePage() {
                 rentasPlanTier === "business_standard" && "border-yellow-400/45",
                 rentasPlanTier === "privado_pro" && "border-stone-300/50 bg-white/95 shadow-sm",
                 !rentasPlanTier && isBusiness && listing?.category === "rentas" && "border-yellow-400/45",
-                (isBienesRaicesPrivado || isBienesRaicesNegocio) && "border-[#C9B46A]/20 bg-[#FAFAF8]",
-                !rentasPlanTier && !isBienesRaicesNegocio && !isBienesRaicesPrivado && listing?.category !== "bienes-raices" && "border-black/10"
+                !rentasPlanTier && listing?.category !== "rentas" && "border-black/10"
               )}
             >
-              {brLiveParityLayout ? (
-                brLiveParityNegocio && brNegocioLiveListingData ? (
-                  <BienesRaicesPreviewNegocioFresh
-                    listing={brNegocioLiveListingData}
-                    variant="full"
-                    liveMode
-                    liveBrContactActions={{
-                      onRequestInfo: handleContactarVendedor,
-                      onScheduleVisit: handleContactarVendedor,
-                      onSendMessage: () => setShowChatModal(true),
-                    }}
-                  />
-                ) : brPrivadoLiveListingData ? (
-                  <BienesRaicesPreviewListing
-                    listing={brPrivadoLiveListingData}
-                    variant="full"
-                    liveMode
-                    liveContact={{
-                      onRequestInfo: handleContactarVendedor,
-                      onScheduleVisit: handleContactarVendedor,
-                      onOpenChat: () => setShowChatModal(true),
-                    }}
-                  />
-                ) : null
-              ) : (
                 <>
                   {mediaSlots.length > 0 && (
                     <div
@@ -1091,10 +1010,8 @@ export default function AnuncioDetallePage() {
                         "relative rounded-xl overflow-hidden bg-[#E8E8E8] flex items-center justify-center mb-6",
                         rentasPlanTier === "privado_pro"
                           ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-stone-200/80"
-                          : (rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard" || isBienesRaicesNegocio)
+                          : rentasPlanTier === "business_plus" || rentasPlanTier === "business_standard"
                             ? "aspect-[4/3] max-h-[480px] min-h-[280px] border border-black/10"
-                          : listing?.category === "bienes-raices"
-                            ? "aspect-[4/3] max-h-[420px] min-h-[240px] border border-black/10"
                             : "border border-black/10 max-h-[360px] min-h-[200px]"
                       )}
                       onTouchStart={(e) => {
@@ -1155,14 +1072,6 @@ export default function AnuncioDetallePage() {
                   )}
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      {listing.category === "bienes-raices" && (
-                        <span
-                          className="inline-block rounded-full border border-[#C9B46A]/30 bg-[#F8F6F0] px-2.5 py-1 text-xs font-medium text-[#111111]/90 mb-3"
-                          aria-hidden
-                        >
-                          {lang === "es" ? "Bienes Raíces" : "Real Estate"}
-                        </span>
-                      )}
                       <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
                         {listing.title[lang]}
                       </h1>
@@ -1249,7 +1158,6 @@ export default function AnuncioDetallePage() {
               )}
 
                 </>
-              )}
 
               {listing.category === "rentas" && (
                 <RentasAnuncioRentalFactsSection
@@ -1259,33 +1167,18 @@ export default function AnuncioDetallePage() {
                 />
               )}
 
-              {!brLiveParityLayout ? (
-                <>
+              <>
                   <div
-                    id={(isBienesRaicesPrivado || isBienesRaicesNegocio) ? "detalles" : undefined}
                     className={cx(
                       "mt-8 rounded-2xl p-6 scroll-mt-24",
                       listing.category === "rentas" && rentasPlanTier === "privado_pro"
                         ? "border border-stone-200/80 bg-[#FAFAF9]"
-                        : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
-                      (isBienesRaicesPrivado || isBienesRaicesNegocio) && "border-[#C9B46A]/25 bg-[#FAFAF8]"
+                        : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
                     )}
                   >
                     <div className="text-sm text-[#111111] leading-relaxed">{listing.blurb[lang]}</div>
                   </div>
-                  {(isBienesRaicesPrivado || isBienesRaicesNegocio) && (
-                    <div id="ubicacion" className="scroll-mt-24 h-0 overflow-hidden" aria-hidden />
-                  )}
-                  {listing.category === "bienes-raices" && isBusiness && brNegocioDisplay && (
-                    <BienesRaicesBusinessMobileBlock
-                      lang={lang}
-                      isBienesRaicesNegocio={isBienesRaicesNegocio}
-                      display={brNegocioDisplay}
-                      onRequestInfo={handleContactarVendedor}
-                    />
-                  )}
-                </>
-              ) : null}
+              </>
 
               {listing.category === "rentas" && (
                 <RentasAnuncioPostDescriptionSections
@@ -1302,7 +1195,7 @@ export default function AnuncioDetallePage() {
 
               {/* Rentas Privado: no Pro teaser block — keep page as listing-only, human/direct */}
 
-{!brLiveParityLayout && proVideoInfos.length > 0 && mediaSlots.length === 0 && (
+{proVideoInfos.length > 0 && mediaSlots.length === 0 && (
   <div className="mt-6 rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-6">
     <div className="flex items-center justify-between gap-3">
       <div>
@@ -1374,8 +1267,7 @@ export default function AnuncioDetallePage() {
   </div>
 )}
 
-              {!brLiveParityLayout ? (
-                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] p-5">
                     <div className="text-xs text-[#111111]">{t.metaCategory}</div>
                     <div className="mt-1 text-[#111111] font-semibold">
@@ -1406,7 +1298,6 @@ export default function AnuncioDetallePage() {
                     {rentasMeta?.facts && <RentasAnuncioMetaGridCards facts={rentasMeta.facts} />}
                   </div>
                 </div>
-              ) : null}
             </div>
 
             {/* Safety note */}
@@ -1532,13 +1423,6 @@ export default function AnuncioDetallePage() {
                 <RentasSameCompanyListingsSection lang={lang} items={rentasSameCompanyListings} />
               )}
 
-            {/* Más anuncios de esta compañía (Bienes Raíces Plus only, when flag set) */}
-            {listing.category === "bienes-raices" &&
-              isBienesRaicesNegocio &&
-              brNegocioDisplay?.plusMoreListings && (
-                <BienesRaicesSameCompanyListingsSection lang={lang} items={bienesRaicesSameCompanyListings} />
-              )}
-
             {/* También te puede interesar */}
             {relatedListings.length > 0 && (
               <div className="mt-10">
@@ -1568,29 +1452,9 @@ export default function AnuncioDetallePage() {
             )}
           </div>
 
-          {/* Right rail: private BR seller card, or Rentas/BR Negocio business identity. */}
+          {/* Right rail: Rentas negocio business identity when applicable. */}
           <div className="lg:col-span-4 space-y-6">
-            {!brLiveParityLayout && isBienesRaicesPrivado ? (
-              <BienesRaicesPrivadoSellerRail
-                lang={lang}
-                sellerName={listing.sellerName ?? (listing as any).seller_name ?? (lang === "es" ? "Propietario" : "Owner")}
-                contactPhone={(listing as any).contact_phone}
-                contactEmail={(listing as any).contact_email}
-                onRequestInfo={handleContactarVendedor}
-                onScheduleVisit={handleContactarVendedor}
-              />
-            ) : !brLiveParityLayout && listing.category === "bienes-raices" && isBusiness && brNegocioDisplay ? (
-              <BienesRaicesNegocioDesktopBusinessRail
-                lang={lang}
-                display={brNegocioDisplay}
-                listing={{
-                  contact_phone: (listing as any).contact_phone,
-                  contact_email: (listing as any).contact_email,
-                }}
-                onRequestInfo={handleContactarVendedor}
-                onScheduleVisit={handleContactarVendedor}
-              />
-            ) : listing.category === "rentas" && isBusiness && rentasNegocioDisplay ? (
+            {listing.category === "rentas" && isBusiness && rentasNegocioDisplay ? (
               <RentasNegocioDesktopBusinessRail
                 lang={lang}
                 display={rentasNegocioDisplay}
@@ -1709,9 +1573,7 @@ export default function AnuncioDetallePage() {
               </div>
             </div>
 
-            {!brLiveParityLayout &&
-              !(listing.category === "rentas" && isBusiness && rentasNegocioDisplay) &&
-              !(listing.category === "bienes-raices" && isBusiness && brNegocioDisplay) && (
+            {!(listing.category === "rentas" && isBusiness && rentasNegocioDisplay) && (
             <div className={cx(
               "seller-card rounded-2xl border p-6",
               listing.category === "rentas" && rentasPlanTier === "privado_pro"
@@ -1764,41 +1626,39 @@ export default function AnuncioDetallePage() {
             </div>
             )}
 
-            {!brLiveParityLayout ? (
-              <div
-                className={cx(
-                  "rounded-2xl border p-6",
-                  rentasPlanTier === "privado_pro"
-                    ? "border-stone-200/80 bg-[#FAFAF9]"
-                    : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
-                )}
-              >
-                <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
-                  {lang === "es" ? "Ubicación" : "Location"}
-                </h3>
-                <p className="text-sm text-[#111111] mb-2">
-                  {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {listing?.city ?? ""}
+            <div
+              className={cx(
+                "rounded-2xl border p-6",
+                rentasPlanTier === "privado_pro"
+                  ? "border-stone-200/80 bg-[#FAFAF9]"
+                  : "border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]"
+              )}
+            >
+              <h3 className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wide mb-2">
+                {lang === "es" ? "Ubicación" : "Location"}
+              </h3>
+              <p className="text-sm text-[#111111] mb-2">
+                {lang === "es" ? "Ubicación del vendedor:" : "Seller location:"} {listing?.city ?? ""}
+              </p>
+              <label className="block text-sm text-[#111111]/80 mb-1">
+                {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
+              </label>
+              <CityAutocomplete
+                value={viewerCityInput}
+                onChange={setViewerCityInput}
+                placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
+                lang={lang}
+                variant="light"
+                className="mt-1"
+              />
+              {distanceMiles !== null && (
+                <p className="mt-2 text-sm text-[#111111]/80">
+                  {lang === "es"
+                    ? `Aproximadamente ${Math.round(distanceMiles)} millas de distancia`
+                    : `Approximately ${Math.round(distanceMiles)} miles away`}
                 </p>
-                <label className="block text-sm text-[#111111]/80 mb-1">
-                  {lang === "es" ? "Calcula la distancia desde tu ciudad" : "Calculate distance from your city"}
-                </label>
-                <CityAutocomplete
-                  value={viewerCityInput}
-                  onChange={setViewerCityInput}
-                  placeholder={lang === "es" ? "Ingresa tu ciudad" : "Enter your city"}
-                  lang={lang}
-                  variant="light"
-                  className="mt-1"
-                />
-                {distanceMiles !== null && (
-                  <p className="mt-2 text-sm text-[#111111]/80">
-                    {lang === "es"
-                      ? `Aproximadamente ${Math.round(distanceMiles)} millas de distancia`
-                      : `Approximately ${Math.round(distanceMiles)} miles away`}
-                  </p>
-                )}
-              </div>
-            ) : null}
+              )}
+            </div>
 
             <div className={cx(
               "rounded-2xl border p-6",
@@ -1871,10 +1731,10 @@ export default function AnuncioDetallePage() {
                 )}
                 <ContactActions
                   lang={lang}
-                  phone={rentasNegocioDisplay?.officePhone ?? brNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
+                  phone={rentasNegocioDisplay?.officePhone ?? (listing as any)?.contact_phone ?? (listing as any)?.phone}
                   text={(listing as any)?.text}
                   email={(listing as any)?.contact_email ?? (listing as any)?.email}
-                  website={rentasNegocioDisplay?.website ?? brNegocioDisplay?.website ?? (listing as any)?.website}
+                  website={rentasNegocioDisplay?.website ?? (listing as any)?.website}
                   mapsUrl={(listing as any)?.mapsUrl}
                   onContact={
                     listing

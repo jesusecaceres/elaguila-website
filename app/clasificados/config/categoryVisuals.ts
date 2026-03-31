@@ -1,6 +1,5 @@
 export type LeonixCategoryVisualKey =
   | "en-venta"
-  | "bienes-raices"
   | "rentas"
   | "autos"
   | "restaurantes"
@@ -26,13 +25,6 @@ export const LEONIX_CATEGORY_VISUALS: Record<
     border: "border-[#E0C27A]/60",
     chipBg: "bg-[#F6E2B4]",
     glow: "shadow-[0_12px_26px_rgba(176,138,47,0.14)]",
-  },
-  "bienes-raices": {
-    emoji: "🏡",
-    tint: "from-[#EAF3FF] to-[#F8FBFF]",
-    border: "border-[#A9C5E8]/60",
-    chipBg: "bg-[#CFE0F6]",
-    glow: "shadow-[0_12px_26px_rgba(77,124,173,0.12)]",
   },
   rentas: {
     emoji: "🏠",

@@ -1,6 +1,6 @@
 import type { BusinessRailData } from "@/app/clasificados/components/ListingView";
 
-/** SessionStorage key for full-page publish preview draft (BR: `/clasificados/publicar/bienes-raices/{negocio|privado}/preview`). */
+/** SessionStorage key for full-page publish preview draft (wizard handoff). */
 export const PREVIEW_LISTING_DRAFT_KEY = "preview-listing-draft";
 
 /** Single normalized draft shape for seller preview. imageUrls = exact upload order (data URLs so they survive navigation). */
@@ -30,13 +30,8 @@ export type PreviewListingDraft = {
   businessRailTier?: "business_standard" | "business_plus" | null;
   /** Publisher id for agent profile CTA / deep links. */
   ownerId?: string | null;
-  /** BR only: branch from publish flow. Used to deterministically route premium vs generic preview. */
   branch?: "privado" | "negocio" | null;
-  /**
-   * When set (e.g. BR negocio "Ver anuncio" handoff), preview page parses this JSON as `ListingData`
-   * so the page matches the publish wizard preview (`BienesRaicesPreviewNegocioFresh`).
-   * Flat fields above remain for backward compatibility and fallback.
-   */
+  /** Optional embedded `ListingData` JSON for full-page preview handoff. */
   fullListingDataJson?: string | null;
 };
 

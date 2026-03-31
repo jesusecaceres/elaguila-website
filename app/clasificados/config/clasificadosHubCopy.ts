@@ -22,8 +22,7 @@ const CLASIFICADOS_HUB_UI = {
 
     cat: {
       rentas: { label: "Rentas", hint: "Casas, cuartos y propiedades." },
-      "en-venta": { label: "En venta", hint: "Compra y vende local." },
-      "bienes-raices": { label: "Bienes Raíces", hint: "Venta de propiedades e inmuebles." },
+      "en-venta": { label: "En venta", hint: "Compra, vende e inmuebles localmente." },
       empleos: { label: "Empleos", hint: "Oportunidades cerca de ti." },
       servicios: {
         label: "Servicios",
@@ -68,8 +67,7 @@ const CLASIFICADOS_HUB_UI = {
 
     cat: {
       rentas: { label: "Rentals", hint: "Homes, rooms, and properties." },
-      "en-venta": { label: "For sale", hint: "Buy and sell locally." },
-      "bienes-raices": { label: "Real Estate", hint: "Properties and real estate for sale." },
+      "en-venta": { label: "For sale", hint: "Buy, sell, and list property locally." },
       empleos: { label: "Jobs", hint: "Opportunities near you." },
       servicios: { label: "Services", hint: "Trusted pros and businesses." },
       autos: { label: "Autos", hint: "Cars and dealer inventory." },

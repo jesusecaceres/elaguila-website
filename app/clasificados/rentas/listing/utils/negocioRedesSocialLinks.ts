@@ -1,8 +1,7 @@
 /**
- * Parse negocioRedes text into renderable social links (BR live anuncio).
- * Logic preserved from clasificados anuncio page (shared with Rentas naming historically).
+ * Parse negocioRedes text into renderable social links (shared naming with legacy BR / rentas).
  */
-export function parseBrNegocioRedesSocialLinks(raw: string | null | undefined): Array<{ label: string; url: string }> | null {
+export function parseNegocioRedesSocialLinks(raw: string | null | undefined): Array<{ label: string; url: string }> | null {
   const s = (raw ?? "").trim();
   if (!s) return null;
   const out: Array<{ label: string; url: string }> = [];

@@ -65,29 +65,18 @@ export function buildPublishRequirementItems(params: {
       step: "basics",
     },
     ...(categoryFromUrl === "rentas"
-        ? [
-            {
-              key: "rentasDetails" as const,
-              label:
-                lang === "es"
-                  ? "Subcategoría, tipo, rama, fecha disponible" + (rentasBranch === "negocio" ? ", plan y nombre del negocio" : "")
-                  : "Subcategory, type, branch, availability" + (rentasBranch === "negocio" ? ", plan & business name" : ""),
-              ok: requirements.rentasMetaOk,
-              step: "basics" as const,
-            },
-          ]
-        : categoryFromUrl === "bienes-raices"
-          ? [
-              {
-                key: "bienesRaicesSubcat" as const,
-                label: lang === "es"
-                  ? "Datos de propiedad (tipo, recámaras, baños, pies², descripción)"
-                  : "Property data (type, beds, baths, sq ft, description)",
-                ok: requirements.bienesRaicesMetaOk,
-                step: "basics" as const,
-              },
-            ]
-          : []),
+      ? [
+          {
+            key: "rentasDetails" as const,
+            label:
+              lang === "es"
+                ? "Subcategoría, tipo, rama, fecha disponible" + (rentasBranch === "negocio" ? ", plan y nombre del negocio" : "")
+                : "Subcategory, type, branch, availability" + (rentasBranch === "negocio" ? ", plan & business name" : ""),
+            ok: requirements.rentasMetaOk,
+            step: "basics" as const,
+          },
+        ]
+      : []),
     {
       key: "images",
       label: lang === "es" ? "1+ foto" : "1+ photo",
@@ -152,18 +141,12 @@ export function buildMissingBasicsRequirementsText(
 
 export function computeBasicsOk(categoryFromUrl: string, requirements: PublishRequirements): boolean {
   return categoryFromUrl === "rentas"
-      ? requirements.rentasMetaOk &&
-        requirements.titleOk &&
-        requirements.descOk &&
-        requirements.priceOk &&
-        requirements.cityOk
-      : categoryFromUrl === "bienes-raices"
-        ? requirements.bienesRaicesMetaOk &&
-          requirements.titleOk &&
-          requirements.descOk &&
-          requirements.priceOk &&
-          requirements.cityOk
-        : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
+    ? requirements.rentasMetaOk &&
+      requirements.titleOk &&
+      requirements.descOk &&
+      requirements.priceOk &&
+      requirements.cityOk
+    : requirements.titleOk && requirements.descOk && requirements.priceOk && requirements.cityOk;
 }
 
 /** First invalid basics section for scroll-into-view after failed “Siguiente”. */
@@ -174,14 +157,6 @@ export function getFirstBasicsInvalidElementId(
   if (computeBasicsOk(categoryFromUrl, requirements)) return null;
   if (categoryFromUrl === "rentas") {
     if (!requirements.rentasMetaOk) return "publish-basics-rentas-meta";
-    if (!requirements.titleOk) return "publish-basics-title";
-    if (!requirements.descOk) return "publish-basics-desc";
-    if (!requirements.priceOk) return "publish-basics-price";
-    if (!requirements.cityOk) return "publish-basics-city";
-    return null;
-  }
-  if (categoryFromUrl === "bienes-raices") {
-    if (!requirements.bienesRaicesMetaOk) return "publish-basics-br-meta";
     if (!requirements.titleOk) return "publish-basics-title";
     if (!requirements.descOk) return "publish-basics-desc";
     if (!requirements.priceOk) return "publish-basics-price";

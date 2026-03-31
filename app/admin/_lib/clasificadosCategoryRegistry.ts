@@ -27,13 +27,12 @@ const EXCLUDE: CategoryKey[] = ["all"];
 /** Repo-informed defaults: en-venta fully wired first; servicios is NOT special — treat as staged unless marked live elsewhere. */
 function defaultOperationalStatus(slug: string): ClasificadosCategoryOperationalStatus {
   if (slug === "en-venta") return "live";
-  if (slug === "bienes-raices" || slug === "servicios") return "staged";
+  if (slug === "servicios") return "staged";
   return "coming_soon";
 }
 
 function defaultReadiness(slug: string): "full" | "partial" | "scaffold" {
   if (slug === "en-venta") return "full";
-  if (slug === "bienes-raices") return "partial";
   return "scaffold";
 }
 
@@ -57,9 +56,7 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
               ? "💼"
               : slug === "rentas"
                 ? "🏠"
-                : slug === "bienes-raices"
-                  ? "🏢"
-                  : slug === "autos"
+                : slug === "autos"
                     ? "🚗"
                     : slug === "restaurantes"
                       ? "🍽"

@@ -1,5 +1,5 @@
 import { parseBusinessMeta } from "../../../config/businessListingContract";
-import { parseBrNegocioRedesSocialLinks } from "../../../bienes-raices/listing/utils/brNegocioRedesSocialLinks";
+import { parseNegocioRedesSocialLinks } from "./negocioRedesSocialLinks";
 import { inferRentasPlanTierFromListing } from "../../shared/utils/rentasPlanTier";
 import type {
   RentasAnuncioFactPair,
@@ -149,7 +149,7 @@ export function buildRentasNegocioLiveDisplay(
   const meta = rentasBusinessMeta ?? {};
   const website = meta.negocioSitioWeb?.trim() || "";
   const rawSocials = meta.negocioRedes?.trim() || "";
-  const socialLinks = parseBrNegocioRedesSocialLinks(rawSocials);
+  const socialLinks = parseNegocioRedesSocialLinks(rawSocials);
   return {
     name: name.trim() || (lang === "es" ? "Negocio" : "Business"),
     agent: meta.negocioAgente?.trim() || "",

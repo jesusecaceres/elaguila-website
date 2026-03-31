@@ -10,7 +10,6 @@ import {
   FiBriefcase,
   FiCoffee,
   FiHome,
-  FiLayers,
   FiMapPin,
   FiShoppingCart,
   FiTool,
@@ -28,7 +27,6 @@ const CHOOSER_CATEGORIES: Array<{
   Icon: ComponentType<{ className?: string }>;
 }> = [
   { key: "en-venta", Icon: FiShoppingCart },
-  { key: "bienes-raices", Icon: FiLayers },
   { key: "rentas", Icon: FiHome },
   { key: "autos", Icon: FiTruck },
   { key: "restaurantes", Icon: FiCoffee },
@@ -76,11 +74,7 @@ export default function PublicarRootPage() {
     p.delete("cat");
     p.delete("categoria");
     if (!p.get("lang")) p.set("lang", lang);
-    // BR uses the dedicated hub lane flow, not the generic [category] coming-soon terminal.
-    const dest =
-      deepLinkCat === "bienes-raices"
-        ? `/clasificados/publicar/bienes-raices?${p.toString()}`
-        : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+    const dest = `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -124,10 +118,7 @@ export default function PublicarRootPage() {
             {CHOOSER_CATEGORIES.map(({ key, Icon }) => {
               const label = categoryConfig[key].label[lang];
               const visual = LEONIX_CATEGORY_VISUALS[key];
-              const href =
-                key === "bienes-raices"
-                  ? `/clasificados/publicar/bienes-raices?lang=${lang}`
-                  : `/clasificados/publicar/${key}?lang=${lang}`;
+              const href = `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

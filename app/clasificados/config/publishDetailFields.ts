@@ -47,14 +47,6 @@ export const DETAIL_FIELDS: Record<string, DetailField[]> = {
   ],
   /** Rentas uses getCategoryFields("rentas", details) for dynamic field groups by subcategoría/tipo. */
   rentas: [],
-  /** Bienes Raíces: property details for preview and final ad. */
-  "bienes-raices": [
-    { key: "recamaras", label: { es: "Recámaras", en: "Bedrooms" }, type: "number", placeholder: { es: "Ej: 3", en: "e.g. 3" } },
-    { key: "banos", label: { es: "Baños", en: "Bathrooms" }, type: "number", placeholder: { es: "Ej: 2", en: "e.g. 2" } },
-    { key: "piesCuadrados", label: { es: "Pies cuadrados", en: "Square feet" }, type: "text", placeholder: { es: "Ej: 1,200", en: "e.g. 1,200" } },
-    { key: "comodidades", label: { es: "Comodidades / características", en: "Amenities / features" }, type: "text", placeholder: { es: "Otras (opcional)", en: "Other (optional)" } },
-    { key: "direccionPropiedad", label: { es: "Dirección o zona", en: "Address or area" }, type: "text", placeholder: { es: "Ej: Calle Principal 123, San José", en: "e.g. 123 Main St, San Jose" } },
-  ],
   empleos: [
     { key: "company", label: { es: "Empresa", en: "Company" }, type: "text", placeholder: { es: "Nombre de la empresa", en: "Company name" } },
     {

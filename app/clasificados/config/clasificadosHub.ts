@@ -6,7 +6,6 @@ export type Lang = "es" | "en";
 
 export type HubCategoryKey =
   | "en-venta"
-  | "bienes-raices"
   | "rentas"
   | "autos"
   | "servicios"
@@ -34,7 +33,6 @@ export type HubListing = {
 export const HUB_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "rentas",
   "en-venta",
-  "bienes-raices",
   "empleos",
   "servicios",
   "restaurantes",
@@ -47,7 +45,6 @@ export const HUB_CATEGORY_ORDER: readonly HubCategoryKey[] = [
 /** Valid `category` values when mapping DB rows for the hub. */
 export const HUB_CATEGORY_KEYS: readonly HubCategoryKey[] = [
   "en-venta",
-  "bienes-raices",
   "rentas",
   "autos",
   "servicios",

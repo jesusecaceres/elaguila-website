@@ -192,47 +192,30 @@ export async function loadPublicAgentPageData(ownerId: string): Promise<PublicAg
   let listing: Record<string, unknown> | null = null;
   let meta: Record<string, string> = {};
 
-  /** Prefer Bienes Raíces + business listings for identity: BR negocio saves here; a newer Rentas business row must not wipe this meta. */
-  const { data: brBusinessRows } = await supabase
+  const { data: businessRows } = await supabase
     .from("listings")
     .select(listingSelect)
     .eq("owner_id", id)
     .eq("seller_type", "business")
-    .eq("category", "bienes-raices")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(24);
 
-  if (Array.isArray(brBusinessRows) && brBusinessRows.length > 0) {
-    listing = brBusinessRows[0] as Record<string, unknown>;
-    meta = mergeBusinessMetaPreferNewest(brBusinessRows as Record<string, unknown>[]);
+  if (Array.isArray(businessRows) && businessRows.length > 0) {
+    listing = businessRows[0] as Record<string, unknown>;
+    meta = mergeBusinessMetaPreferNewest(businessRows as Record<string, unknown>[]);
   } else {
-    const { data: bizListing } = await supabase
+    const { data: anyListing } = await supabase
       .from("listings")
       .select(listingSelect)
       .eq("owner_id", id)
-      .eq("seller_type", "business")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (bizListing && typeof bizListing === "object") {
-      listing = bizListing as Record<string, unknown>;
+    if (anyListing && typeof anyListing === "object") {
+      listing = anyListing as Record<string, unknown>;
       meta = parseBusinessMeta(listing.business_meta) ?? {};
-    } else {
-      const { data: anyListing } = await supabase
-        .from("listings")
-        .select(listingSelect)
-        .eq("owner_id", id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (anyListing && typeof anyListing === "object") {
-        listing = anyListing as Record<string, unknown>;
-        meta = parseBusinessMeta(listing.business_meta) ?? {};
-      }
     }
   }
 

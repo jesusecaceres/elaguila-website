@@ -8,6 +8,7 @@ import {
 
 function coerceHubCategory(raw: unknown): HubCategoryKey {
   const s = typeof raw === "string" ? raw.trim() : "";
+  if (s === "bienes-raices") return "en-venta";
   if ((HUB_CATEGORY_KEYS as readonly string[]).includes(s)) return s as HubCategoryKey;
   return "en-venta";
 }

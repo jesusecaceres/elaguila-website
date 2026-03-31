@@ -75,17 +75,13 @@ export function buildPublishDraftSnapshot(params: {
   } = params;
   const priceNum = (price ?? "").replace(/[^0-9.]/g, "");
   const hasPrice = priceNum !== "" && Number.isFinite(Number(priceNum)) && Number(priceNum) >= 0;
-  const isBrNegocioPricing =
-    category === "bienes-raices" && (details.bienesRaicesBranch ?? "").trim().toLowerCase() === "negocio";
   const priceLabel =
     isFree
       ? (lang === "es" ? "Gratis" : "Free")
       : hasPrice
         ? Number(priceNum) === 0
           ? (lang === "es" ? "Gratis" : "Free")
-          : isBrNegocioPricing
-            ? `$${Number(priceNum).toLocaleString(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 0 })}`
-            : `$${Math.round(Number(priceNum))}`
+          : `$${Math.round(Number(priceNum))}`
         : (lang === "es" ? "(Sin precio)" : "(No price)");
   return {
     category: category.trim(),

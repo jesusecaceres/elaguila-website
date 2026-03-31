@@ -7,10 +7,8 @@ import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { getRoughDistanceMiles } from "@/app/lib/distance";
 import ProBadge from "./ProBadge";
 import BusinessListingIdentityRail from "./BusinessListingIdentityRail";
-import BienesRaicesPreviewListing from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPreviewListing";
-import BienesRaicesPreviewNegocioFresh from "@/app/clasificados/bienes-raices/negocio/preview/BienesRaicesPreviewNegocioFresh";
 
-/** Business rail display (BR negocio / Rentas negocio). Used for preview parity with open card. */
+/** Business rail display (Rentas negocio). Used for preview parity with open card. */
 export type BusinessRailData = {
   name: string;
   agent: string;
@@ -59,15 +57,14 @@ export type ListingData = {
   lang: "es" | "en";
   /** Real seller display name when available; fallback to "Tú" / "You" in preview */
   sellerName?: string | null;
-  /** BR Negocio: optional floorplan link/asset used by top-half media tiles. */
   floorPlanUrl?: string | null;
   /** Optional category label for chip (e.g. "En Venta") */
   categoryLabel?: string | null;
   /** Optional approximate area / main streets for Rentas (e.g. "King Rd y Story") */
   approximateArea?: string | null;
-  /** Optional category key for business rail (e.g. "bienes-raices") */
+  /** Optional category key for business rail (e.g. `rentas`). */
   category?: string | null;
-  /** Optional business rail so preview matches open card (BR negocio / Rentas negocio). */
+  /** Optional business rail so preview matches open card (Rentas negocio). */
   businessRail?: BusinessRailData | null;
   /** "business_standard" | "business_plus" for rail styling (Plus badge, border). */
   businessRailTier?: "business_standard" | "business_plus" | null;
@@ -75,12 +72,10 @@ export type ListingData = {
   ownerId?: string | null;
   /**
    * When opening `/agente/[id]` from publish preview, pass current publish URL so the agent page
-   * back control can return here. Same-origin path + query, e.g. `/clasificados/publicar/bienes-raices?lang=es`.
+   * back control can return here (same-origin path + query).
    */
   agentProfileReturnUrl?: string | null;
-  /** BR privado: `brLocationDisplayMode === "aproximada"` → approximate-location chip in preview. */
   listingLocationIsApproximate?: boolean;
-  /** BR privado / negocio: typed facts for preview (preferred over inferring only from detailPairs). */
   structuredFacts?: {
     propertyTypeLabel?: string;
     addressLine?: string;
@@ -99,32 +94,9 @@ export type ListingData = {
     /** Architectural / design style (`brArchitecturalStyle`). */
     architecturalStyle?: string;
   };
-  /** Short teaser under title (BR negocio / privado when wired). */
   listingSummaryShort?: string | null;
-  /** User-defined highlight chips (BR negocio; privado may derive from `comodidades`). */
   highlightChips?: string[];
-  /** Display label for listing status (BR negocio). */
   listingStatusLabel?: string | null;
-  /**
-   * BR: readiness + traceability for dashboard / manage / analytics / boosts (no UI required here).
-   * Populated in publish preview and live listing assembly where applicable.
-   */
-  managementHooks?: {
-    branch: "privado" | "negocio";
-    publishReady: boolean;
-    analyticsReady: boolean;
-    boostEligible: boolean;
-    /** Future: moderation queue / compliance flags without blocking preview. */
-    adminReviewReady?: boolean;
-    listingTrace?: {
-      listingId?: string | null;
-      ownerAccountId?: string | null;
-      businessName?: string | null;
-      brokerageName?: string | null;
-      agentName?: string | null;
-      cityCanonical?: string | null;
-    };
-  };
 };
 
 type MediaSlot =
@@ -158,8 +130,6 @@ export type ListingViewProps = {
   onProBenefitClick?: (id: ProHighlightId) => void;
   /** When true, do not render Pro comparison UI (analytics block, benefits panel). Use for Rentas Privado (Pro-only, no upgrade framing). */
   hideProComparisonUI?: boolean;
-  /** BR negocio preview only: `embedded` (wizard) vs `full` (e.g. `/clasificados/publicar/bienes-raices/negocio/preview`). Ignored for other categories. */
-  brNegocioPreviewVariant?: "embedded" | "full";
 };
 
 export default function ListingView({
@@ -169,12 +139,9 @@ export default function ListingView({
   proHighlight = null,
   onProBenefitClick,
   hideProComparisonUI = false,
-  brNegocioPreviewVariant = "embedded",
 }: ListingViewProps) {
-  const isBienesRaices = listing.category === "bienes-raices";
-  /** BR preview: no Pro comparison UI, no locked slots, no Pro/Standard/Plus framing. */
-  const effectiveHideProUI = hideProComparisonUI || isBienesRaices;
-  const effectiveIsPro = !isBienesRaices && (listing.isPro || previewProUpgrade);
+  const effectiveHideProUI = hideProComparisonUI;
+  const effectiveIsPro = listing.isPro || previewProUpgrade;
   const lang = listing.lang;
   const [viewerCityInput, setViewerCityInput] = useState("");
   const [mediaIndex, setMediaIndex] = useState(0);
@@ -202,21 +169,21 @@ export default function ListingView({
     if (effectiveIsPro && (listing.proVideoUrl || listing.proVideoThumbUrl)) slots.push({ type: "video", index: 0 });
     if (effectiveIsPro && (listing.proVideoUrl2 || listing.proVideoThumbUrl2)) slots.push({ type: "video", index: 1 });
     images.slice(1).forEach((u) => slots.push({ type: "image", url: u }));
-    // Free preview: show locked Pro slots (not for BR — BR has no Pro comparison).
-    if (previewMode && !effectiveIsPro && !isBienesRaices) {
+    // Free preview: show locked Pro slots.
+    if (previewMode && !effectiveIsPro) {
       const extraPhotoSlots = Math.min(2, Math.max(0, 12 - slots.length));
       for (let i = 0; i < extraPhotoSlots; i++) slots.push({ type: "locked-image" });
       slots.push({ type: "locked-video" });
       slots.push({ type: "locked-video" });
     }
-    // Pro preview: second slot as locked if only one video uploaded (not for BR).
-    if (previewMode && effectiveIsPro && !isBienesRaices) {
+    // Pro preview: second slot as locked if only one video uploaded.
+    if (previewMode && effectiveIsPro) {
       const videoCount = slots.filter((s) => s.type === "video").length;
       if (videoCount < 2) slots.push({ type: "locked-video" });
     }
     if (slots.length === 0) slots.push({ type: "image", url: "/logo.png" });
     return slots;
-  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, listing.proVideoUrl2, listing.proVideoThumbUrl2, previewMode, isBienesRaices]);
+  }, [images, effectiveIsPro, listing.proVideoUrl, listing.proVideoThumbUrl, listing.proVideoUrl2, listing.proVideoThumbUrl2, previewMode]);
 
   const safeMediaIndex = mediaSlots.length > 0 ? Math.min(mediaIndex, mediaSlots.length - 1) : 0;
   const goPrev = useCallback(() => {
@@ -348,15 +315,6 @@ export default function ListingView({
 
   const highlightClass = "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#D9D9D9] transition";
   const isHighlight = (id: string) => proHighlight === id;
-
-  // BR preview: negocio → premium shell (buildBrNegocioListingData sets businessRailTier "business_plus").
-  // Privado → BienesRaicesPreviewListing. Do not route negocio to the privado shell when tier/rail are present.
-  if (previewMode && isBienesRaices) {
-    if (listing.businessRailTier === "business_plus" || listing.businessRail) {
-      return <BienesRaicesPreviewNegocioFresh listing={listing} variant={brNegocioPreviewVariant} />;
-    }
-    return <BienesRaicesPreviewListing listing={listing} variant={brNegocioPreviewVariant} />;
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,28rem)] gap-4 sm:gap-6 lg:gap-10">
@@ -542,10 +500,9 @@ export default function ListingView({
       {/* Right: info stack — business rail first when present (BR negocio parity), then title/price, CTA, description/seller/location. */}
       <div className="min-w-0 space-y-4 sm:space-y-5 order-2">
         {/* Business rail (preview parity with open card): logo, agent photo, name, agent, role, phone, website, socials, availability. */}
-        {listing.businessRail && (listing.category === "bienes-raices" || listing.category === "rentas") && (
+        {listing.businessRail && listing.category === "rentas" && (
           <BusinessListingIdentityRail
             businessRail={listing.businessRail}
-            category={listing.category === "rentas" ? "rentas" : "bienes-raices"}
             businessRailTier={listing.businessRailTier}
             lang={lang}
             ownerId={listing.ownerId ?? null}
@@ -577,24 +534,11 @@ export default function ListingView({
                 const others = pairs.filter((p) => p !== conditionPair && p.value?.trim());
                 const metaLine1 = [listing.categoryLabel, ...others.map((p) => p.value)].filter(Boolean).join(" · ");
                 const metaLine2 = conditionPair?.value ? (lang === "es" ? `Condición: ${conditionPair.value}` : `Condition: ${conditionPair.value}`) : "";
-                const showBrFactsStrip = listing.category === "bienes-raices" && pairs.length > 0;
-                if (!metaLine1 && !metaLine2 && !showBrFactsStrip) return null;
+                if (!metaLine1 && !metaLine2) return null;
                 return (
                   <div className="mt-3 space-y-2">
                     {metaLine1 ? <p className="text-xs text-[#111111]/70">{metaLine1}</p> : null}
                     {metaLine2 ? <p className="text-xs text-[#111111]/70">{metaLine2}</p> : null}
-                    {showBrFactsStrip && (
-                      <div className="flex flex-wrap gap-2">
-                        {pairs.filter((p) => p.value?.trim()).map((f) => (
-                          <span
-                            key={`${f.label}-${f.value}`}
-                            className="rounded-full border border-[#C9B46A]/25 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111]"
-                          >
-                            {f.label}: {f.value}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 );
               })()}

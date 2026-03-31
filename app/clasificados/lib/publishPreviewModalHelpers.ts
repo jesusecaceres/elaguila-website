@@ -11,13 +11,9 @@ export function buildPreviewPublishReturnPath(
   return `${pathname ?? ""}${q ? `?${q}` : ""}`;
 }
 
-/** Pro-styled preview for Rentas privado, BR negocio, BR privado; free for other categories. */
-export function getFullPreviewVariantOnOpen(branch: {
-  isRentasPrivado: boolean;
-  isBienesRaicesNegocio: boolean;
-  isBienesRaicesPrivado: boolean;
-}): "pro" | "free" {
-  return branch.isRentasPrivado || branch.isBienesRaicesNegocio || branch.isBienesRaicesPrivado ? "pro" : "free";
+/** Pro-styled preview for Rentas privado; free for other categories. */
+export function getFullPreviewVariantOnOpen(branch: { isRentasPrivado: boolean }): "pro" | "free" {
+  return branch.isRentasPrivado ? "pro" : "free";
 }
 
 export function executeClosePublishFullPreviewModal(params: {

@@ -8,6 +8,7 @@ import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/componen
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
+  if (v === "bienes-raices" || v === "br") return "en-venta";
   const mapped = v === "viajes" ? "travel" : v;
   const keys = Object.keys(categoryConfig) as CategoryKey[];
   return keys.includes(mapped as CategoryKey) ? (mapped as CategoryKey) : "";
@@ -29,16 +30,12 @@ export default function PublicarCategoryPage() {
       router.replace(`/clasificados/publicar/en-venta?lang=${lang}`);
       return;
     }
-    if (categoryFromUrl === "bienes-raices") {
-      router.replace(`/clasificados/publicar/bienes-raices?lang=${lang}`);
-      return;
-    }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
   }, [categoryFromUrl, lang, router]);
 
-  if (!categoryFromUrl || categoryFromUrl === "en-venta" || categoryFromUrl === "bienes-raices") {
+  if (!categoryFromUrl || categoryFromUrl === "en-venta") {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}

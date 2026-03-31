@@ -3,7 +3,6 @@
  */
 
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
-import { computeBienesRaicesPublishMetaOk } from "@/app/clasificados/publicar/bienes-raices/shared/publish/computeBienesRaicesPublishMetaOk";
 import type { PublishDraftSnapshot } from "@/app/clasificados/lib/publishDraftSnapshot";
 import { computeRentasPublishMetaOk } from "@/app/clasificados/rentas/publish/computeRentasPublishMetaOk";
 import { computeEnVentaPublishMetaOk } from "@/app/clasificados/en-venta/publish/computeEnVentaPublishMetaOk";
@@ -11,6 +10,7 @@ import { computeEnVentaPublishMetaOk } from "@/app/clasificados/en-venta/publish
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
   if (!v) return "";
+  if (v === "bienes-raices" || v === "br") return "en-venta";
   const mapped = v === "viajes" ? "travel" : v;
   const keys = Object.keys(categoryConfig) as CategoryKey[];
   return keys.includes(mapped as CategoryKey) ? (mapped as CategoryKey) : "";
@@ -33,7 +33,6 @@ export type PublishRequirements = {
   /** En Venta marketplace subcategoría / artículo / condición. */
   ventaMarketplaceMetaOk: boolean;
   rentasMetaOk: boolean;
-  bienesRaicesMetaOk: boolean;
   allOk: boolean;
 };
 
@@ -48,7 +47,7 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
   const enVentaNeg =
     s.category === "en-venta" && (s.details.negotiable ?? "").trim() === "yes";
   const priceOk =
-    s.category === "rentas" || s.category === "bienes-raices"
+    s.category === "rentas"
       ? priceNumStr !== "" && Number.isFinite(priceNum) && priceNum >= 0
       : s.category === "en-venta"
         ? enVentaNeg
@@ -56,27 +55,13 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
           : priceNumStr !== "" && Number.isFinite(priceNum) && priceNum > 0
         : s.isFree || (priceNumStr !== "" && Number.isFinite(priceNum) && priceNum >= 0);
   const imagesOk = s.images.length >= 1;
-  const bienesRaicesBranchEarly = (s.details.bienesRaicesBranch ?? "").trim().toLowerCase();
-  const isBienesRaicesNegocioContact = s.category === "bienes-raices" && bienesRaicesBranchEarly === "negocio";
-  const brNegocioOfficeDigits = (s.details.negocioTelOficina ?? "").replace(/\D/g, "").slice(0, 10);
-  const brNegocioBizEmailOk = /.+@.+\..+/.test((s.details.negocioEmail ?? "").trim());
   const phoneDigits = getPhoneDigits(s.contactPhone);
-  const phoneOk =
-    s.contactMethod === "email"
-      ? true
-      : phoneDigits.length === 10 || (isBienesRaicesNegocioContact && brNegocioOfficeDigits.length === 10);
-  const emailOk =
-    s.contactMethod === "phone"
-      ? true
-      : /.+@.+\..+/.test(s.contactEmail.trim()) || (isBienesRaicesNegocioContact && brNegocioBizEmailOk);
-  const contactOk =
-    phoneDigits.length === 10 ||
-    /.+@.+\..+/.test(s.contactEmail.trim()) ||
-    (isBienesRaicesNegocioContact && (brNegocioOfficeDigits.length === 10 || brNegocioBizEmailOk));
+  const phoneOk = s.contactMethod === "email" ? true : phoneDigits.length === 10;
+  const emailOk = s.contactMethod === "phone" ? true : /.+@.+\..+/.test(s.contactEmail.trim());
+  const contactOk = phoneDigits.length === 10 || /.+@.+\..+/.test(s.contactEmail.trim());
 
   const ventaMarketplaceMetaOk = s.category !== "en-venta" || computeEnVentaPublishMetaOk(s);
   const rentasMetaOk = computeRentasPublishMetaOk(s, contactOk);
-  const bienesRaicesMetaOk = computeBienesRaicesPublishMetaOk(s);
 
   return {
     categoryOk,
@@ -90,7 +75,6 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
     contactOk,
     ventaMarketplaceMetaOk,
     rentasMetaOk,
-    bienesRaicesMetaOk,
     allOk:
       categoryOk &&
       titleOk &&
@@ -102,7 +86,6 @@ export function computePublishRequirements(s: PublishDraftSnapshot): PublishRequ
       phoneOk &&
       emailOk &&
       ventaMarketplaceMetaOk &&
-      rentasMetaOk &&
-      bienesRaicesMetaOk,
+      rentasMetaOk,
   };
 }

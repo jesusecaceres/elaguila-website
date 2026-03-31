@@ -1,6 +1,5 @@
 "use client";
 
-import { BienesRaicesPrivadoMediaPreviewCard } from "@/app/clasificados/bienes-raices/privado/preview/BienesRaicesPrivadoMediaPreviewCard";
 import { PublishMediaPreviewGenericCard } from "./PublishMediaPreviewGenericCard";
 import { PublishMediaPreviewRightPanel, type PreviewDetailPair, type PublishMediaPreviewRightPanelProps } from "./PublishMediaPreviewRightPanel";
 
@@ -17,8 +16,6 @@ export type PublishMediaPreviewPanelProps = {
     preview: string;
     cardPreview: string;
   };
-  /** True → left column is BR privado Zillow-style card. */
-  useBienesRaicesPrivadoLeftCard: boolean;
   formatMoneyMaybe: (raw: string, lang: "es" | "en") => string;
   coverImage: string | null | undefined;
   previewPrice: string;
@@ -35,7 +32,6 @@ export type PublishMediaPreviewPanelProps = {
 export function PublishMediaPreviewPanel({
   lang,
   copy,
-  useBienesRaicesPrivadoLeftCard,
   formatMoneyMaybe,
   coverImage,
   previewPrice,
@@ -47,6 +43,8 @@ export function PublishMediaPreviewPanel({
   previewPriceIsFree,
   rightPanel,
 }: PublishMediaPreviewPanelProps) {
+  void formatMoneyMaybe;
+  void details;
   return (
     <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4">
       <div className="flex items-center justify-between">
@@ -57,31 +55,18 @@ export function PublishMediaPreviewPanel({
       </div>
 
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
-        {useBienesRaicesPrivadoLeftCard ? (
-          <BienesRaicesPrivadoMediaPreviewCard
-            lang={lang}
-            cardPreviewLabel={copy.cardPreview}
-            coverImage={coverImage}
-            previewPrice={previewPrice}
-            previewPosted={previewPosted}
-            previewCity={previewCity}
-            details={details}
-            formatMoneyMaybe={formatMoneyMaybe}
-          />
-        ) : (
-          <PublishMediaPreviewGenericCard
-            lang={lang}
-            cardPreviewLabel={copy.cardPreview}
-            saveLabel={rightPanel.copy.saveLabel}
-            coverImage={coverImage}
-            previewPrice={previewPrice}
-            previewTitle={previewTitle}
-            previewCity={previewCity}
-            previewPosted={previewPosted}
-            previewShortDescription={previewShortDescription}
-            previewPriceIsFree={previewPriceIsFree}
-          />
-        )}
+        <PublishMediaPreviewGenericCard
+          lang={lang}
+          cardPreviewLabel={copy.cardPreview}
+          saveLabel={rightPanel.copy.saveLabel}
+          coverImage={coverImage}
+          previewPrice={previewPrice}
+          previewTitle={previewTitle}
+          previewCity={previewCity}
+          previewPosted={previewPosted}
+          previewShortDescription={previewShortDescription}
+          previewPriceIsFree={previewPriceIsFree}
+        />
 
         <PublishMediaPreviewRightPanel
           {...rightPanel}

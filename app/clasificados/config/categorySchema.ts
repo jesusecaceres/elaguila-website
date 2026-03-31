@@ -12,7 +12,6 @@
  */
 
 import { categoryConfig, type CategoryKey } from "./categoryConfig";
-import { BIENES_RAICES_SUBCATEGORIES as BIENES_RAICES_SUBCATEGORIES_FROM_TAXONOMY } from "../bienes-raices/shared/fields/bienesRaicesTaxonomy";
 import { EN_VENTA_SUBCATEGORIES as EN_VENTA_SUBCATEGORIES_FROM_TAXONOMY } from "../en-venta/shared/fields/enVentaTaxonomy";
 import { RENTAS_SUBCATEGORIES as RENTAS_SUBCATEGORIES_FROM_TAXONOMY } from "../rentas/shared/fields/rentasTaxonomy";
 
@@ -26,8 +25,8 @@ export type PlanType =
 /** Listing/seller type (e.g. consumer vs dealership vs business). */
 export type ListingType = "consumer" | "dealership" | "business";
 
-/** Posting flow step. Rentas adds "rentas-track"; Bienes Raíces adds "bienes-raices-track" (privado vs negocio/profesional). */
-export type PublishStep = "category" | "rentas-track" | "bienes-raices-track" | "basics" | "details" | "media";
+/** Posting flow step. Rentas adds "rentas-track" (Privado vs Negocio + plan). */
+export type PublishStep = "category" | "rentas-track" | "basics" | "details" | "media";
 
 /** Validation rule reference (key only; rules implemented per category/form). */
 export type ValidationRuleKey = string;
@@ -77,8 +76,6 @@ export type CategorySchema = {
 
 const PUBLISH_STEPS_FULL: PublishStep[] = ["category", "basics", "details", "media"];
 const PUBLISH_STEPS_EN_VENTA: PublishStep[] = ["category", "basics", "media"];
-/** Bienes Raíces: track (privado vs negocio) then basics → media; category pick happens on `/publicar` only. */
-const PUBLISH_STEPS_BIENES_RAICES: PublishStep[] = ["bienes-raices-track", "basics", "media"];
 /** Rentas: track selection (Privado vs Negocio + plan) before basics. */
 const PUBLISH_STEPS_RENTAS: PublishStep[] = ["category", "rentas-track", "basics", "details", "media"];
 
@@ -90,12 +87,6 @@ const EN_VENTA_SUBCATEGORIES: SubcategoryStub[] = EN_VENTA_SUBCATEGORIES_FROM_TA
 
 /** Rentas subcategories from taxonomy. */
 const RENTAS_SUBCATEGORIES: SubcategoryStub[] = RENTAS_SUBCATEGORIES_FROM_TAXONOMY.map((s) => ({
-  key: s.key,
-  label: s.label,
-}));
-
-/** Bienes Raíces subcategories from taxonomy. */
-const BIENES_RAICES_SUBCATEGORIES: SubcategoryStub[] = BIENES_RAICES_SUBCATEGORIES_FROM_TAXONOMY.map((s) => ({
   key: s.key,
   label: s.label,
 }));
@@ -115,16 +106,6 @@ function schema(
 
 /** Category schemas: En Venta = first production template; others = eligibility + stubs. */
 const CATEGORY_SCHEMAS: Record<Exclude<CategoryKey, "all">, CategorySchema> = {
-  "bienes-raices": schema("bienes-raices", {
-    plans: ["free"],
-    subcategories: BIENES_RAICES_SUBCATEGORIES,
-    formFieldGroupKey: "bienes-raices",
-    validationRules: [],
-    previewEligible: true,
-    proPreviewEligible: false,
-    businessBranchEligible: true,
-    stepOrder: PUBLISH_STEPS_BIENES_RAICES,
-  }),
   "en-venta": schema("en-venta", {
     plans: ["free", "pro"],
     subcategories: EN_VENTA_SUBCATEGORIES,

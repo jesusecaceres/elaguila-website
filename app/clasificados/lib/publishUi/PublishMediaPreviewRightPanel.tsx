@@ -2,7 +2,6 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
-import { getBienesRaicesSubcategoryLabel } from "@/app/clasificados/bienes-raices/shared/fields/bienesRaicesTaxonomy";
 
 export type PreviewDetailPair = { label: string; value: string };
 
@@ -26,13 +25,10 @@ export type PublishMediaPreviewRightPanelProps = {
   previewPriceIsFree: boolean;
   details: Record<string, string>;
   categoryFromUrl: string;
-  isBienesRaicesPrivado: boolean;
   previewDetailPairs: PreviewDetailPair[];
-  compactBrPrivateDetailPairs: PreviewDetailPair[];
   previewShortDescription: string;
   previewDescription: string;
   isRentasPrivado: boolean;
-  isBienesRaicesNegocio: boolean;
   openFullPreview: () => void;
   openProPreview: () => void;
   isPro: boolean;
@@ -48,7 +44,7 @@ export type PublishMediaPreviewRightPanelProps = {
 export function PublishMediaPreviewRightPanel({
   lang,
   copy,
-  viewYourListingCta,
+  viewYourListingCta: _viewYourListingCta,
   coverImage,
   previewTitle,
   previewPrice,
@@ -56,15 +52,12 @@ export function PublishMediaPreviewRightPanel({
   previewPosted,
   previewCategoryLabel,
   previewPriceIsFree,
-  details,
-  categoryFromUrl,
-  isBienesRaicesPrivado,
+  details: _details,
+  categoryFromUrl: _categoryFromUrl,
   previewDetailPairs,
-  compactBrPrivateDetailPairs,
   previewShortDescription,
   previewDescription,
   isRentasPrivado,
-  isBienesRaicesNegocio,
   openFullPreview,
   openProPreview,
   isPro,
@@ -75,6 +68,9 @@ export function PublishMediaPreviewRightPanel({
   expandedVideoIndex,
   setExpandedVideoIndex,
 }: PublishMediaPreviewRightPanelProps) {
+  void _details;
+  void _categoryFromUrl;
+  void _viewYourListingCta;
   return (
     <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-4 flex flex-col">
       <div className="text-[10px] text-[#111111]/50 uppercase tracking-wide mb-2">{copy.detailPreview}</div>
@@ -102,12 +98,6 @@ export function PublishMediaPreviewRightPanel({
           {previewCategoryLabel}
         </span>
       ) : null}
-      {categoryFromUrl === "bienes-raices" && (details.bienesRaicesSubcategoria ?? "").trim() ? (
-        <p className="mt-2 text-xs font-medium text-[#111111]">
-          {lang === "es" ? "Tipo de propiedad:" : "Property type:"}{" "}
-          <span className="font-semibold">{getBienesRaicesSubcategoryLabel(details.bienesRaicesSubcategoria.trim(), lang)}</span>
-        </p>
-      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#111111]">{copy.saveLabel}</span>
@@ -115,53 +105,21 @@ export function PublishMediaPreviewRightPanel({
         <span className="rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-2.5 py-1 text-[10px] font-semibold text-[#111111]">{copy.contactLabel}</span>
       </div>
 
-      {previewDetailPairs.length > 0 &&
-        (categoryFromUrl === "bienes-raices" && isBienesRaicesPrivado ? (
-          <>
-            {compactBrPrivateDetailPairs.length > 0 && (
-              <div className="mt-3 rounded-lg border border-black/10 bg-white p-3 sm:hidden space-y-2.5">
-                <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide">
-                  {lang === "es" ? "Resumen" : "Summary"}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {compactBrPrivateDetailPairs.map((p) => (
-                    <div key={p.label} className="flex flex-col gap-0.5">
-                      <span className="text-[10px] text-[#111111]/55">{p.label}</span>
-                      <span className="text-xs font-medium text-[#111111]">{p.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5 hidden sm:block">
-              <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
-                {lang === "es" ? "Detalles" : "Details"}
-              </div>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                {previewDetailPairs.map((p) => (
-                  <div key={p.label}>
-                    <span className="text-[#111111]/55">{p.label}</span>
-                    <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
-            <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
-              {lang === "es" ? "Detalles" : "Details"}
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-              {previewDetailPairs.map((p) => (
-                <div key={p.label}>
-                  <span className="text-[#111111]/55">{p.label}</span>
-                  <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
-                </div>
-              ))}
-            </div>
+      {previewDetailPairs.length > 0 && (
+        <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
+          <div className="text-[10px] font-semibold text-[#111111]/70 uppercase tracking-wide mb-1.5">
+            {lang === "es" ? "Detalles" : "Details"}
           </div>
-        ))}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+            {previewDetailPairs.map((p) => (
+              <div key={p.label}>
+                <span className="text-[#111111]/55">{p.label}</span>
+                <span className="ml-1 font-medium text-[#111111]">{p.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 rounded-lg border border-black/10 bg-white p-2.5">
         <p className="text-xs text-[#111111] line-clamp-3 whitespace-pre-wrap">
@@ -177,26 +135,6 @@ export function PublishMediaPreviewRightPanel({
             className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
           >
             {lang === "es" ? "Vista previa" : "Preview"}
-          </button>
-        ) : isBienesRaicesNegocio ? (
-          <button
-            type="button"
-            onClick={openFullPreview}
-            className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-          >
-            {lang === "es" ? "Vista previa" : "Preview"}
-          </button>
-        ) : isBienesRaicesPrivado ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openFullPreview();
-            }}
-            className="w-full rounded-xl border border-[#C9B46A]/50 bg-[#F8F6F0] py-2.5 text-sm font-semibold text-[#111111] hover:bg-[#EFE7D8] focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
-          >
-            {viewYourListingCta ?? (lang === "es" ? "Ver tu anuncio" : "View your listing")}
           </button>
         ) : (
           <>

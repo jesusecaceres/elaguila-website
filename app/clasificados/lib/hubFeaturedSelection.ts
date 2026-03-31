@@ -7,7 +7,6 @@ export function buildFeaturedByCategory(
   const out: Record<HubCategoryKey, HubListing[]> = {
     rentas: [],
     "en-venta": [],
-    "bienes-raices": [],
     empleos: [],
     servicios: [],
     travel: [],
