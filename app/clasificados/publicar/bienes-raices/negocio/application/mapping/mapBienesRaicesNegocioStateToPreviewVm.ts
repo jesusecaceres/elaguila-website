@@ -25,8 +25,11 @@ const LISTING_STATUS_LABEL: Record<string, string> = {
 
 const HIGHLIGHT_LABELS_ES: Record<string, string> = Object.fromEntries(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key, d.label]));
 
-function trim(s: string): string {
-  return (s ?? "").trim();
+/** Draft JSON may contain numbers/objects in string fields; never call `.trim` on non-strings. */
+function trim(s: unknown): string {
+  if (s == null) return "";
+  if (typeof s === "string") return s.trim();
+  return String(s).trim();
 }
 
 function hrefFromUserInput(t: string): string | null {
@@ -270,12 +273,17 @@ function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQu
 
 function buildHighlights(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
   const rows: BienesRaicesPreviewFact[] = [];
-  for (const [k, on] of Object.entries(s.highlightPresets)) {
+  const presets =
+    s.highlightPresets && typeof s.highlightPresets === "object" && !Array.isArray(s.highlightPresets)
+      ? s.highlightPresets
+      : {};
+  for (const [k, on] of Object.entries(presets)) {
     if (!on) continue;
     const label = HIGHLIGHT_LABELS_ES[k];
     if (label) rows.push({ label: "Destacado", value: label });
   }
-  for (const line of s.customHighlightsText.split("\n")) {
+  const customText = typeof s.customHighlightsText === "string" ? s.customHighlightsText : "";
+  for (const line of customText.split("\n")) {
     const t = trim(line);
     if (t) rows.push({ label: "Personalizado", value: t });
   }
@@ -295,17 +303,18 @@ const DETAIL_CLUSTER_DEFS: { id: string; title: string; blockIds: DeepDetailGrou
 
 function factsFromPartialGroup(
   group: DeepDetailGroupKey,
-  data: Record<string, string>,
+  data: Record<string, string> | undefined,
   labels: Record<string, string>,
   onlyKeys?: string[]
 ): BienesRaicesPreviewFact[] {
+  const safeData = data ?? {};
   const rows: BienesRaicesPreviewFact[] = [];
   const entries: [string, string][] = onlyKeys
     ? onlyKeys.map((k) => [k, labels[k] ?? k])
     : Object.entries(labels);
   for (const [key, label] of entries) {
     if (!label) continue;
-    const v = trim(data[key] ?? "");
+    const v = trim(safeData[key] ?? "");
     if (!v) continue;
     if (group === "observacionesAgente" && key === "observacionesPrivadas") continue;
     rows.push({ label, value: v });
@@ -391,7 +400,7 @@ function buildTechnicalDeepBlocks(s: BienesRaicesNegocioFormState): BienesRaices
     (k) => !LOWER_PAGE_EXCLUDED_FROM_TECHNICAL.includes(k)
   );
   return keys.map((key) => {
-    const bullets = bulletsFromGroup(key, s.deepDetails[key], BR_DEEP_FIELD_LABELS[key]);
+    const bullets = bulletsFromGroup(key, s.deepDetails?.[key], BR_DEEP_FIELD_LABELS[key]);
     return {
       id: key,
       heading: BR_DEEP_HEADINGS[key],
@@ -617,11 +626,14 @@ function extractYoutubeId(url: string): string | null {
   return m?.[1] ?? null;
 }
 
-function resolveNegocioVideoSlot(slot: BienesRaicesNegocioFormState["media"]["listingVideoSlots"][0]): {
+function resolveNegocioVideoSlot(slot: BienesRaicesNegocioFormState["media"]["listingVideoSlots"][0] | undefined | null): {
   thumb: string | null;
   playback: string | null;
   youtubeId: string | null;
 } {
+  if (!slot || typeof slot !== "object") {
+    return { thumb: null, playback: null, youtubeId: null };
+  }
   if (slot.status === "ready" && trim(slot.playbackUrl)) {
     return { thumb: trim(slot.thumbnailUrl) || null, playback: trim(slot.playbackUrl), youtubeId: null };
   }
@@ -634,28 +646,35 @@ function resolveNegocioVideoSlot(slot: BienesRaicesNegocioFormState["media"]["li
 }
 
 function mediaMetaLine(s: BienesRaicesNegocioFormState): string {
-  const nPhotos = s.media.photoUrls.filter((u) => trim(u)).length;
+  const photoUrls = Array.isArray(s.media?.photoUrls) ? s.media.photoUrls : [];
+  const nPhotos = photoUrls.filter((u) => trim(u)).length;
   let nVid = 0;
-  for (const slot of s.media.listingVideoSlots) {
+  const vidSlots = Array.isArray(s.media?.listingVideoSlots) ? s.media.listingVideoSlots : [];
+  for (const slot of vidSlots) {
     const r = resolveNegocioVideoSlot(slot);
     if (r.playback || r.thumb || r.youtubeId) nVid += 1;
   }
-  const tour = trim(s.media.virtualTourUrl) ? 1 : 0;
-  const nFp = s.media.floorPlanUrls.filter((u) => trim(u)).length;
+  const tour = trim(s.media?.virtualTourUrl) ? 1 : 0;
+  const fpUrls = Array.isArray(s.media?.floorPlanUrls) ? s.media.floorPlanUrls : [];
+  const nFp = fpUrls.filter((u) => trim(u)).length;
   const parts: string[] = [];
   parts.push(`${nPhotos} fotos`);
   parts.push(`${Math.min(nVid, 2)} videos`);
   if (tour) parts.push("Tour virtual");
   if (nFp) parts.push("Planos");
-  if (trim(s.media.sitePlanUrl) && s.advertiserType === "constructor_desarrollador") parts.push("Plano de sitio");
+  if (trim(s.media?.sitePlanUrl) && s.advertiserType === "constructor_desarrollador") parts.push("Plano de sitio");
   return parts.join(" · ");
 }
 
 /** Maps application state → preview view-model (single entry point for preview rendering). */
 export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm {
-  const photos = s.media.photoUrls.map(trim).filter(Boolean);
-  const cover = Math.min(Math.max(0, s.media.primaryImageIndex), Math.max(0, photos.length - 1));
+  const photoUrlsRaw = Array.isArray(s.media?.photoUrls) ? s.media.photoUrls : [];
+  const captionsRaw = Array.isArray(s.media?.photoCaptions) ? s.media.photoCaptions : [];
+  const photos = photoUrlsRaw.map(trim).filter(Boolean);
+  const cover = Math.min(Math.max(0, Number(s.media?.primaryImageIndex) || 0), Math.max(0, photos.length - 1));
   const heroUrl = photos.length ? photos[cover]! : null;
+  const heroCaptionRaw = photos.length ? trim(captionsRaw[cover] ?? "") : "";
+  const heroCaption = heroCaptionRaw.length ? heroCaptionRaw : null;
   const secondaryPhotoUrls = photos
     .map((url, idx) => ({ url, idx }))
     .filter(({ idx }) => photos.length > 0 && idx !== cover)
@@ -683,9 +702,9 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
     highlightRows.length > 0 &&
     !(highlightRows.length === 1 && highlightRows[0]?.label === "Destacados" && /Agrega características/i.test(highlightRows[0]?.value ?? ""));
 
-  const floorPlans = s.media.floorPlanUrls.map(trim).filter(Boolean).slice(0, 3);
-  const virtualTourUrl = trim(s.media.virtualTourUrl) || null;
-  const sitePlanUrl = s.advertiserType === "constructor_desarrollador" ? trim(s.media.sitePlanUrl) || null : null;
+  const floorPlans = (Array.isArray(s.media?.floorPlanUrls) ? s.media.floorPlanUrls : []).map(trim).filter(Boolean).slice(0, 3);
+  const virtualTourUrl = trim(s.media?.virtualTourUrl) || null;
+  const sitePlanUrl = s.advertiserType === "constructor_desarrollador" ? trim(s.media?.sitePlanUrl) || null : null;
 
   const technicalDeepBlocks = buildTechnicalDeepBlocks(s);
   const detailClusters = buildDetailClusters(new Map(technicalDeepBlocks.map((b) => [b.id, b])));
@@ -723,6 +742,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       hasFloorPlans: floorPlans.length > 0,
       hasSitePlan: Boolean(sitePlanUrl),
       photoCount: photos.length,
+      heroCaption,
     },
     propertyDetailsRows: buildPropertyDetails(s),
     highlightsRows: hasHighlights ? highlightRows : [],

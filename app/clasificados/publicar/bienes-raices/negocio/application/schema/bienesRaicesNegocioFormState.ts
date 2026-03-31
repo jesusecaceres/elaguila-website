@@ -271,6 +271,22 @@ function emptyRedes(): string[] {
   return Array.from({ length: REDES_SLOTS }, () => "");
 }
 
+/** SessionStorage drafts may deserialize non-strings into URL/text arrays. */
+function coerceStringListToLen(raw: unknown, len: number, fallback: string[]): string[] {
+  const out = fallback.slice();
+  if (!Array.isArray(raw)) return out;
+  for (let i = 0; i < len && i < raw.length; i++) {
+    const x = raw[i];
+    out[i] = x == null ? "" : typeof x === "string" ? x : String(x);
+  }
+  return out;
+}
+
+function coerceStringArrayPreserveOrEmpty(raw: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(raw)) return [...fallback];
+  return raw.map((x) => (x == null ? "" : typeof x === "string" ? x : String(x)));
+}
+
 function emptyDeepDetails(): DeepDetailsState {
   return {
     tipoYEstilo: {
@@ -591,12 +607,12 @@ export function normalizeBienesRaicesNegocioMedia(
   base: BienesRaicesNegocioFormState["media"]
 ): BienesRaicesNegocioFormState["media"] {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const photoUrls = Array.isArray(r.photoUrls) ? ([...(r.photoUrls as string[])] as string[]) : [...base.photoUrls];
+  const photoUrls = Array.isArray(r.photoUrls) ? coerceStringArrayPreserveOrEmpty(r.photoUrls, base.photoUrls) : [...base.photoUrls];
   const floorPlanUrls = Array.isArray(r.floorPlanUrls)
-    ? ([...(r.floorPlanUrls as string[])] as string[])
+    ? coerceStringArrayPreserveOrEmpty(r.floorPlanUrls, base.floorPlanUrls)
     : [...base.floorPlanUrls];
   const photoCaptions = Array.isArray(r.photoCaptions)
-    ? ([...(r.photoCaptions as string[])] as string[])
+    ? coerceStringArrayPreserveOrEmpty(r.photoCaptions, base.photoCaptions)
     : [...base.photoCaptions];
 
   let primaryImageIndex =
@@ -695,12 +711,34 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
           const { asesorFinancieroActivo: _dropAsesor, ...ia } = partial.identityAgente as typeof partial.identityAgente & {
             asesorFinancieroActivo?: boolean;
           };
-          return { ...base.identityAgente, ...ia };
+          return {
+            ...base.identityAgente,
+            ...ia,
+            redes: coerceStringListToLen(ia.redes, REDES_SLOTS, base.identityAgente.redes),
+          };
         })()
       : base.identityAgente,
-    identityEquipo: { ...base.identityEquipo, ...partial.identityEquipo },
-    identityOficina: { ...base.identityOficina, ...partial.identityOficina },
-    identityConstructor: { ...base.identityConstructor, ...partial.identityConstructor },
+    identityEquipo: partial.identityEquipo
+      ? {
+          ...base.identityEquipo,
+          ...partial.identityEquipo,
+          redes: coerceStringListToLen(partial.identityEquipo.redes, REDES_SLOTS, base.identityEquipo.redes),
+        }
+      : base.identityEquipo,
+    identityOficina: partial.identityOficina
+      ? {
+          ...base.identityOficina,
+          ...partial.identityOficina,
+          redes: coerceStringListToLen(partial.identityOficina.redes, REDES_SLOTS, base.identityOficina.redes),
+        }
+      : base.identityOficina,
+    identityConstructor: partial.identityConstructor
+      ? {
+          ...base.identityConstructor,
+          ...partial.identityConstructor,
+          redes: coerceStringListToLen(partial.identityConstructor.redes, REDES_SLOTS, base.identityConstructor.redes),
+        }
+      : base.identityConstructor,
     segundoAgente: { ...base.segundoAgente, ...partial.segundoAgente },
     asesorFinanciero: { ...base.asesorFinanciero, ...partial.asesorFinanciero },
     cta: { ...base.cta, ...partial.cta },

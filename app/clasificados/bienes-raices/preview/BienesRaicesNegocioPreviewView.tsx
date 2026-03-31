@@ -213,17 +213,21 @@ function StreamableVideo({ url }: { url: string }) {
         el.removeAttribute("src");
       };
     }
-    void import("hls.js").then(({ default: HlsCtor }) => {
-      if (cancelled || !ref.current) return;
-      if (HlsCtor.isSupported()) {
-        const instance = new HlsCtor({ enableWorker: true });
-        hls = instance;
-        instance.loadSource(url);
-        instance.attachMedia(ref.current!);
-      } else {
-        ref.current!.src = url;
-      }
-    });
+    void import("hls.js")
+      .then(({ default: HlsCtor }) => {
+        if (cancelled || !ref.current) return;
+        if (HlsCtor.isSupported()) {
+          const instance = new HlsCtor({ enableWorker: true });
+          hls = instance;
+          instance.loadSource(url);
+          instance.attachMedia(ref.current!);
+        } else {
+          ref.current!.src = url;
+        }
+      })
+      .catch(() => {
+        if (!cancelled && ref.current) ref.current.src = url;
+      });
     return () => {
       cancelled = true;
       hls?.destroy();
@@ -244,10 +248,11 @@ function GalleryVideoTile({
   index: 0 | 1;
   vm: BienesRaicesNegocioPreviewVm;
 }) {
-  const hasVideo = index === 0 ? vm.media.hasVideo1 : vm.media.hasVideo2;
-  const thumb = vm.media.videoThumbUrls[index] ?? null;
-  const playback = vm.media.videoPlaybackUrls[index] ?? null;
-  const yt = vm.media.youtubeIds[index] ?? null;
+  const m = vm.media;
+  const hasVideo = index === 0 ? Boolean(m?.hasVideo1) : Boolean(m?.hasVideo2);
+  const thumb = m?.videoThumbUrls?.[index] ?? null;
+  const playback = m?.videoPlaybackUrls?.[index] ?? null;
+  const yt = m?.youtubeIds?.[index] ?? null;
   const watchUrl = yt ? `https://www.youtube.com/watch?v=${yt}` : playback ?? "";
 
   if (!hasVideo) {
@@ -372,7 +377,8 @@ function SectionIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string; value: string }> }) {
+function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string; value: string }> | undefined }) {
+  const safeRows = Array.isArray(rows) ? rows : [];
   return (
     <div
       className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
@@ -382,7 +388,7 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
         {title}
       </h3>
       <dl className="mt-4 grid gap-x-10 gap-y-5 sm:grid-cols-2">
-        {rows.map((r) => (
+        {safeRows.map((r) => (
           <div key={`${r.label}-${r.value}`}>
             <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
               {r.label}
@@ -397,10 +403,11 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
   );
 }
 
-function FactRowsList({ rows }: { rows: Array<{ label: string; value: string }> }) {
+function FactRowsList({ rows }: { rows: Array<{ label: string; value: string }> | undefined }) {
+  const safeRows = Array.isArray(rows) ? rows : [];
   return (
     <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-      {rows.map((r) => (
+      {safeRows.map((r) => (
         <div key={`${r.label}-${r.value}`}>
           <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
             {r.label}
@@ -456,7 +463,8 @@ function communityModuleTitle(pub: BienesRaicesNegocioPreviewVm["publicationType
   return "Vecindario y movilidad";
 }
 
-function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading: string; items: string[] }) {
+function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading: string; items: string[] | undefined }) {
+  const lines = Array.isArray(items) ? items : [];
   return (
     <div
       className="rounded-2xl border p-5 sm:p-6 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.07)]"
@@ -468,9 +476,9 @@ function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading:
           <h3 className="text-sm font-bold tracking-tight" style={{ color: CHARCOAL }}>
             {heading}
           </h3>
-          {items.length > 0 ? (
+          {lines.length > 0 ? (
             <ul className="mt-4 space-y-2.5">
-              {items.map((line) => (
+              {lines.map((line) => (
                 <li key={line} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: CHARCOAL }}>
                   <span className="mt-2 h-1 w-1 shrink-0 rounded-full" style={{ background: BRONZE }} aria-hidden />
                   <span>{line}</span>
@@ -521,12 +529,13 @@ type GalleryTopSpec = { kind: "photo"; url: string } | { kind: "video"; slot: 0 
 
 function galleryTopCells(vm: BienesRaicesNegocioPreviewVm): [GalleryTopSpec | null, GalleryTopSpec | null] {
   const specs: GalleryTopSpec[] = [];
-  for (const u of vm.media.secondaryPhotoUrls) {
+  const secondary = vm.media?.secondaryPhotoUrls ?? [];
+  for (const u of secondary) {
     if (specs.length >= 2) break;
     specs.push({ kind: "photo", url: u });
   }
-  if (specs.length < 2 && vm.media.hasVideo1) specs.push({ kind: "video", slot: 0 });
-  if (specs.length < 2 && vm.media.hasVideo2) specs.push({ kind: "video", slot: 1 });
+  if (specs.length < 2 && vm.media?.hasVideo1) specs.push({ kind: "video", slot: 0 });
+  if (specs.length < 2 && vm.media?.hasVideo2) specs.push({ kind: "video", slot: 1 });
   return [specs[0] ?? null, specs[1] ?? null];
 }
 
@@ -540,7 +549,7 @@ export function BienesRaicesNegocioPreviewView({
   editHref?: string;
   footerExtra?: string;
 }) {
-  const quickFacts = vm.quickFacts.map((qf) => ({
+  const quickFacts = (vm.quickFacts ?? []).map((qf) => ({
     Icon: QUICK_FACT_ICONS[qf.icon] ?? IconSparkle,
     label: qf.label,
     value: qf.value,
@@ -552,7 +561,7 @@ export function BienesRaicesNegocioPreviewView({
       <header className="border-b" style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.96)" }}>
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
           <div className="flex flex-wrap items-center gap-4 lg:gap-6">
-            <LeonixBrandMark logoUrl={vm.platformLogoUrl} />
+            <LeonixBrandMark logoUrl={vm.platformLogoUrl ?? ""} />
             <nav className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: MUTED }}>
               <span style={{ color: CHARCOAL }}>Bienes raíces</span>
               <span className="mx-2 opacity-40">›</span>
@@ -590,28 +599,35 @@ export function BienesRaicesNegocioPreviewView({
               </h2>
             </div>
             <p className="text-[11px] font-medium sm:text-xs" style={{ color: MUTED }}>
-              {vm.media.metaLine}
+              {vm.media?.metaLine ?? ""}
             </p>
           </div>
           <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
-            <div className="relative lg:col-span-7">
-              <div className="overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: BORDER }}>
-                {vm.media.hasPhotos && vm.media.heroUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
-                ) : (
-                  <div className="aspect-[16/10] w-full">
-                    <EmptyMedia title="Galería" subtitle="Sin fotografías en este anuncio." icon={<IconHome className="h-7 w-7" />} />
-                  </div>
-                )}
+            <div className="lg:col-span-7">
+              <div className="relative">
+                <div className="overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: BORDER }}>
+                  {vm.media?.hasPhotos && vm.media?.heroUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
+                  ) : (
+                    <div className="aspect-[16/10] w-full">
+                      <EmptyMedia title="Galería" subtitle="Sin fotografías en este anuncio." icon={<IconHome className="h-7 w-7" />} />
+                    </div>
+                  )}
+                </div>
+                {vm.media && vm.media.photoCount > 1 ? (
+                  <span
+                    className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md"
+                    style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
+                  >
+                    {vm.media?.photoCount ?? 0} fotos
+                  </span>
+                ) : null}
               </div>
-              {vm.media.photoCount > 1 ? (
-                <span
-                  className="absolute bottom-3 right-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-md"
-                  style={{ borderColor: BORDER, background: "rgba(253,251,247,0.94)", color: CHARCOAL_DEEP }}
-                >
-                  {vm.media.photoCount} fotos
-                </span>
+              {vm.media?.heroCaption ? (
+                <p className="mt-2 px-0.5 text-xs font-medium leading-snug sm:text-sm" style={{ color: MUTED }}>
+                  {vm.media.heroCaption}
+                </p>
               ) : null}
             </div>
             <div className="grid grid-cols-2 gap-3 lg:col-span-5">
@@ -633,7 +649,7 @@ export function BienesRaicesNegocioPreviewView({
                   )}
                 </div>
               ))}
-              {vm.media.virtualTourUrl ? (
+              {vm.media?.virtualTourUrl ? (
                 <a
                   href={vm.media.virtualTourUrl}
                   target="_blank"
@@ -682,7 +698,7 @@ export function BienesRaicesNegocioPreviewView({
                     Ver en mapa externo
                   </p>
                 </a>
-              ) : vm.media.floorPlanUrls[0] ? (
+              ) : vm.media?.floorPlanUrls?.[0] ? (
                 <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={vm.media.floorPlanUrls[0]!} alt="" className="aspect-[4/3] w-full object-cover" />
@@ -690,7 +706,7 @@ export function BienesRaicesNegocioPreviewView({
                     Plano de planta
                   </p>
                 </div>
-              ) : vm.media.hasSitePlan && vm.media.sitePlanUrl ? (
+              ) : vm.media?.hasSitePlan && vm.media?.sitePlanUrl ? (
                 <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={vm.media.sitePlanUrl} alt="" className="aspect-[4/3] w-full object-contain bg-white" />
@@ -729,7 +745,7 @@ export function BienesRaicesNegocioPreviewView({
               </div>
             </div>
           ) : null}
-          {vm.media.hasSitePlan && vm.media.sitePlanUrl && (Boolean(vm.location.mapsUrl) || Boolean(vm.media.floorPlanUrls[0])) ? (
+          {vm.media?.hasSitePlan && vm.media?.sitePlanUrl && (Boolean(vm.location?.mapsUrl) || Boolean(vm.media?.floorPlanUrls?.[0])) ? (
             <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
                 Plano de sitio / comunidad
@@ -860,9 +876,9 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
               </div>
             ) : null}
-            {vm.identity.socialChips.length > 0 ? (
+            {(vm.identity?.socialChips ?? []).length > 0 ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                {vm.identity.socialChips.map((s) => (
+                {(vm.identity?.socialChips ?? []).map((s) => (
                   <span
                     key={s}
                     className="flex h-8 min-w-[2rem] items-center justify-center rounded-full border px-2 text-[10px] font-bold"
@@ -897,7 +913,7 @@ export function BienesRaicesNegocioPreviewView({
         <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1fr_minmax(280px,340px)] lg:items-stretch lg:gap-5">
           <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
           {vm.hasHighlights ? (
-            <FactBlock title="Características destacadas" rows={vm.highlightsRows} />
+            <FactBlock title="Características destacadas" rows={vm.highlightsRows ?? []} />
           ) : (
             <div
               className="rounded-2xl border p-5 sm:p-6 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
@@ -1122,10 +1138,10 @@ export function BienesRaicesNegocioPreviewView({
                     : "Reglas de comunidad, amenidades y cronograma del proyecto cuando corresponda."
                 }
               >
-                {vm.hoaDevelopment.rows.length > 0 ? <FactRowsList rows={vm.hoaDevelopment.rows} /> : null}
-                {vm.hoaDevelopment.sitePlanCallout ? (
+                {(vm.hoaDevelopment?.rows ?? []).length > 0 ? <FactRowsList rows={vm.hoaDevelopment?.rows} /> : null}
+                {vm.hoaDevelopment?.sitePlanCallout ? (
                   <p
-                    className={`text-sm leading-relaxed ${vm.hoaDevelopment.rows.length > 0 ? "mt-6 border-t border-[rgba(61,54,48,0.12)] pt-5" : ""}`}
+                    className={`text-sm leading-relaxed ${(vm.hoaDevelopment?.rows ?? []).length > 0 ? "mt-6 border-t border-[rgba(61,54,48,0.12)] pt-5" : ""}`}
                     style={{ color: MUTED }}
                   >
                     <span className="font-semibold" style={{ color: CHARCOAL_DEEP }}>
@@ -1152,13 +1168,13 @@ export function BienesRaicesNegocioPreviewView({
             </p>
           </div>
 
-          {vm.detailClusters.length === 0 ? (
+          {(vm.detailClusters ?? []).length === 0 ? (
             <p className="mx-auto max-w-xl text-center text-sm leading-relaxed" style={{ color: MUTED }}>
               Sin bloques de detalle técnico en este anuncio.
             </p>
           ) : (
             <div className="space-y-12">
-              {vm.detailClusters.map((cluster) => (
+              {(vm.detailClusters ?? []).map((cluster) => (
                 <div key={cluster.id}>
                   <h3
                     className="mb-5 text-center text-sm font-bold uppercase tracking-[0.12em]"
@@ -1167,7 +1183,7 @@ export function BienesRaicesNegocioPreviewView({
                     {cluster.title}
                   </h3>
                   <div className="grid gap-5 md:grid-cols-2">
-                    {cluster.blocks.map((b) => (
+                    {(cluster.blocks ?? []).map((b) => (
                       <DeepSection key={b.id} icon={deepIcon(b.id)} heading={b.heading} items={b.bullets} />
                     ))}
                   </div>

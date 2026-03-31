@@ -53,6 +53,8 @@ export type BienesRaicesPreviewMediaVm = {
   hasSitePlan: boolean;
   /** Total de fotos cargadas (incluye portada) para badges de galería. */
   photoCount: number;
+  /** Leyenda opcional alineada con la portada (photoCaptions[primaryImageIndex]). */
+  heroCaption: string | null;
 };
 
 export type BienesRaicesPreviewContactVm = {
