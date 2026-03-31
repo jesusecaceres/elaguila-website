@@ -2,7 +2,7 @@
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "../../schema/brHighlightMeta";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 export function DetallesDestacadosNegocioSection({
   state,
@@ -18,6 +18,7 @@ export function DetallesDestacadosNegocioSection({
         Marca lo que aplica; se muestra en la tarjeta “Características destacadas” de la vista previa. Puedes agregar líneas
         personalizadas.
       </p>
+      <BrPreviewHint>Cada opción marcada y cada línea personalizada se listan en la tarjeta de destacados del preview.</BrPreviewHint>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
           <label key={d.key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2">

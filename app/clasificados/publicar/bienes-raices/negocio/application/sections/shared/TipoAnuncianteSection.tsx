@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesAdvertiserType, BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { brCardClass, brHintClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrPreviewHint, brCardClass, brHintClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const OPTIONS: Array<{ id: BienesRaicesAdvertiserType; label: string; hint: string }> = [
   { id: "agente_individual", label: "Agente individual", hint: "Un solo agente como rostro del anuncio." },
@@ -21,6 +21,9 @@ export function TipoAnuncianteSection({
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>¿Qué tipo de anunciante eres?</h2>
       <p className={brSubTitleClass}>Esto define cómo se muestra tu identidad profesional en la vista previa y en el anuncio.</p>
+      <BrPreviewHint>
+        Activa el módulo de identidad correcto (tarjeta con foto o logo, nombre y datos de confianza en el carril).
+      </BrPreviewHint>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {OPTIONS.map((o) => {
           const on = state.advertiserType === o.id;

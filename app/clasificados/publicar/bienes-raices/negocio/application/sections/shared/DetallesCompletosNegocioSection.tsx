@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { BienesRaicesNegocioFormState, DeepDetailGroupKey } from "../../schema/bienesRaicesNegocioFormState";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../../schema/brDeepDetailMeta";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const GROUP_ORDER = Object.keys(BR_DEEP_HEADINGS) as DeepDetailGroupKey[];
 
@@ -37,6 +37,9 @@ export function DetallesCompletosNegocioSection({
         Cada bloque se traduce a la zona inferior “Detalles completos” de la vista previa. Solo llena lo que tengas a la mano;
         puedes ampliar después.
       </p>
+      <BrPreviewHint>
+        Esta información se muestra en la sección de detalles completos del preview, agrupada por acordeones.
+      </BrPreviewHint>
       <div className="mt-5 space-y-3">
         {GROUP_ORDER.map((group) => {
           const fields = BR_DEEP_FIELD_LABELS[group];

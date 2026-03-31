@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 export function ConfianzaNegocioSection({
   state,
@@ -37,6 +37,9 @@ export function ConfianzaNegocioSection({
         Estas preferencias afectan qué datos profesionales se muestran en la vista previa. Las confirmaciones ayudan a mantener
         calidad en Leonix.
       </p>
+      <BrPreviewHint>
+        “Mostrar licencia / brokerage / web / redes” filtra lo visible en la tarjeta profesional del preview.
+      </BrPreviewHint>
       <div className="mt-5 flex flex-col gap-3">
         {rows.map((r) => (
           <label

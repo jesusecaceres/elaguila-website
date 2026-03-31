@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 function SubtypeSelect({
   label,
@@ -43,6 +43,9 @@ export function DatosPropiedadSection({
       <p className={brSubTitleClass}>
         Alimenta la franja de datos rápidos (recámaras, baños, pies², estacionamientos, año) en la vista previa.
       </p>
+      <BrPreviewHint>
+        Mismos números aparecen en la tira de hechos y en la tabla resumida de datos del inmueble.
+      </BrPreviewHint>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Tipo de propiedad">

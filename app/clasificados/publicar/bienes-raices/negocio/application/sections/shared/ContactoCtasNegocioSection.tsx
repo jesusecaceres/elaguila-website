@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "./brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "./brFormPrimitives";
 
 export function ContactoCtasNegocioSection({
   state,
@@ -17,6 +25,9 @@ export function ContactoCtasNegocioSection({
       <p className={brSubTitleClass}>
         Controla qué botones aparecen en el carril de la vista previa: información, visita, llamada y WhatsApp.
       </p>
+      <BrPreviewHint>
+        Cada interruptor enciende o apaga el botón correspondiente en el carril de contacto del preview.
+      </BrPreviewHint>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {(
           [

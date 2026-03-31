@@ -5,7 +5,7 @@ import { IdentidadAgenteIndividualSection } from "../agente-individual/Identidad
 import { IdentidadEquipoSection } from "../equipo/IdentidadEquipoSection";
 import { IdentidadOficinaSection } from "../oficina-brokerage/IdentidadOficinaSection";
 import { IdentidadConstructorSection } from "../constructor-desarrollador/IdentidadConstructorSection";
-import { brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 export function IdentidadNegocioSection({
   state,
@@ -20,6 +20,7 @@ export function IdentidadNegocioSection({
       <section className={brCardClass}>
         <h2 className={brSectionTitleClass}>Identidad del negocio</h2>
         <p className={brSubTitleClass}>Primero elige tu tipo de anunciante en el paso 1 para desbloquear los campos correctos.</p>
+        <BrPreviewHint>La tarjeta de identidad del preview cambia según el tipo: agente, equipo, oficina o desarrollador.</BrPreviewHint>
       </section>
     );
   }

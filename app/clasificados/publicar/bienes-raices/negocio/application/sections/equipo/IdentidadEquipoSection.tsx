@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "../shared/brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "../shared/brFormPrimitives";
 
 function RedesGrid({
   redes,
@@ -44,6 +52,10 @@ export function IdentidadEquipoSection({
         La imagen o foto principal representa al equipo en la tarjeta. Los nombres del segundo agente se reflejan en el carril
         de contacto.
       </p>
+      <BrPreviewHint>
+        El preview muestra la marca del equipo en la tarjeta profesional y el segundo contacto junto al carril si completaste
+        datos.
+      </BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Nombre del equipo">
           <input

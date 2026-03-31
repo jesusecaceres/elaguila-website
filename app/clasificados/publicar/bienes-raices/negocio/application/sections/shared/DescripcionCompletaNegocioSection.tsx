@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "./brFormPrimitives";
+import { BrField, BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "./brFormPrimitives";
 
 export function DescripcionCompletaNegocioSection({
   state,
@@ -17,6 +17,7 @@ export function DescripcionCompletaNegocioSection({
         Este texto alimenta el cuerpo principal del anuncio en la vista previa. Sé concreto: ubicación, distribución, mejoras,
         amenidades y estilo de vida.
       </p>
+      <BrPreviewHint>Este bloque es el cuerpo narrativo bajo la galería en el preview (si está vacío, puede usarse la descripción corta).</BrPreviewHint>
       <div className="mt-5">
         <BrField
           label="Descripción"

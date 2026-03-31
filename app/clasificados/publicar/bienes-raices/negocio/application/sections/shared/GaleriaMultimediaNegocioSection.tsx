@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const MAX_PHOTOS = 50;
 const MAX_VIDEOS = 2;
@@ -25,6 +25,9 @@ export function GaleriaMultimediaNegocioSection({
         Sube enlaces a tus archivos (por ahora URLs). La primera foto o la que marques como portada alimenta el hero; dos videos
         llenan los thumbnails; el tour y los planos activan sus bloques en la vista previa.
       </p>
+      <BrPreviewHint>
+        Estas fotos alimentan la galería principal del preview; el plano de sitio solo se muestra en flujo constructor.
+      </BrPreviewHint>
 
       <div className="mt-5 space-y-4">
         <BrField

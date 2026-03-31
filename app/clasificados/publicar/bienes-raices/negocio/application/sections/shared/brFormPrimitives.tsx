@@ -10,6 +10,16 @@ export const brCardClass =
 export const brSectionTitleClass = "text-lg font-bold text-[#1E1810]";
 export const brSubTitleClass = "mt-1 text-sm text-[#5C5346]/88";
 
+/** Línea breve que conecta el paso con la vista previa aprobada (usar con moderación). */
+export function BrPreviewHint({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-2 rounded-lg border border-[#E8DFD0]/85 bg-[#FFFCF7] px-3 py-2 text-xs leading-relaxed text-[#5C5346]/90">
+      <span className="font-semibold text-[#B8954A]">En el preview: </span>
+      {children}
+    </p>
+  );
+}
+
 export function BrField({
   label,
   hint,

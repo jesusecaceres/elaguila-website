@@ -1,3 +1,7 @@
+/**
+ * Implementación del contrato descrito en `brNegocioInputToPreviewMap.ts`.
+ * Único lugar donde el estado del formulario se convierte en `BienesRaicesNegocioPreviewVm`.
+ */
 import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType, DeepDetailGroupKey } from "../schema/bienesRaicesNegocioFormState";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../schema/brDeepDetailMeta";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "../schema/brHighlightMeta";

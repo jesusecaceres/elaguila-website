@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { PrivadoApplicationNotice } from "./sections/PrivadoApplicationNotice";
 
 /** Placeholder del flujo privado — misma arquitectura que negocio; implementación en siguiente entrega. */
 export default function BienesRaicesPrivadoApplication() {
@@ -13,6 +14,7 @@ export default function BienesRaicesPrivadoApplication() {
           Aquí irá el formulario para particulares, alineado con la vista previa de privado. Por ahora usa el hub para elegir
           canal o abre Negocio si publicas como profesional.
         </p>
+        <PrivadoApplicationNotice />
         <Link
           href={BR_PUBLICAR_HUB}
           className="mt-6 inline-flex rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-2.5 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8]"

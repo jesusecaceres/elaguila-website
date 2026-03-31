@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "../shared/brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "../shared/brFormPrimitives";
 
 function RedesGrid({
   redes,
@@ -43,6 +51,9 @@ export function IdentidadOficinaSection({
       <p className={brSubTitleClass}>
         El logo y nombre de oficina anclan la tarjeta profesional. Los contactos aparecen en el carril de acciones.
       </p>
+      <BrPreviewHint>
+        En el preview, la oficina lidera la tarjeta lateral; el contacto principal refuerza confianza junto a las CTAs.
+      </BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Nombre de la oficina">
           <input

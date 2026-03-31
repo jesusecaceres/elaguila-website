@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType } from "../../schema/bienesRaicesNegocioFormState";
-import { brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
   agente_individual: "Agente individual",
@@ -28,6 +28,9 @@ export function ResumenPublicarNegocioSection({ state }: { state: BienesRaicesNe
         Negocio es pago por publicación (sin membresías en este lanzamiento). Revisa el resumen y confirma cuando el backend de
         cobro esté conectado.
       </p>
+      <BrPreviewHint>
+        Si algo no cuadra, regresa al paso de vista previa: lo que ves ahí es exactamente el mapeo del formulario al output.
+      </BrPreviewHint>
       <ul className="mt-5 space-y-3 text-sm text-[#2C2416]">
         <li className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5">
           <span className="font-bold text-[#5C5346]">Tipo de anunciante: </span>

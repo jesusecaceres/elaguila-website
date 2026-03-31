@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "../shared/brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "../shared/brFormPrimitives";
 
 function RedesGrid({
   redes,
@@ -44,6 +52,9 @@ export function IdentidadAgenteIndividualSection({
         Este bloque alimenta la tarjeta profesional y el carril de contacto. Activa las opciones al final si quieres segundo
         agente o asesor de préstamos en pasos siguientes.
       </p>
+      <BrPreviewHint>
+        Esta tarjeta es el perfil profesional del preview (foto, nombre, brokerage, licencia y chips de redes según confianza).
+      </BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Nombre del agente">
           <input

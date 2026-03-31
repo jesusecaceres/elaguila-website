@@ -1,6 +1,6 @@
 /**
  * View-model consumed only by `BienesRaicesNegocioPreviewView`.
- * Built exclusively via `mapBienesRaicesNegocioStateToPreviewVm` — no ad-hoc shaping in UI.
+ * Built exclusively via `mapBienesRaicesNegocioStateToPreviewVm` (contrato en `brNegocioInputToPreviewMap.ts`).
  */
 
 export type BienesRaicesPreviewFact = { label: string; value: string };

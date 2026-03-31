@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "./brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "./brFormPrimitives";
 
 export function SegundoAgenteNegocioSection({
   state,
@@ -41,6 +49,7 @@ export function SegundoAgenteNegocioSection({
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Segundo agente</h2>
       <p className={brSubTitleClass}>Estos datos alimentan la segunda tarjeta en el carril de contacto de la vista previa.</p>
+      <BrPreviewHint>Segundo bloque de contacto en el rail derecho del preview, junto a las acciones principales.</BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Nombre">
           <input

@@ -1,7 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const STATUS_OPTS: Array<{ v: BienesRaicesNegocioFormState["listingStatus"]; l: string }> = [
   { v: "en_venta", l: "En venta" },
@@ -22,6 +22,9 @@ export function InformacionPrincipalSection({
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Información principal del anuncio</h2>
       <p className={brSubTitleClass}>Lo básico que aparece en el encabezado, precio y ubicación de la vista previa.</p>
+      <BrPreviewHint>
+        Título, precio, estado del anuncio y dirección alimentan el hero y la franja superior del preview.
+      </BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Título del anuncio" hint="Claro y atractivo; es el titular principal.">
           <input

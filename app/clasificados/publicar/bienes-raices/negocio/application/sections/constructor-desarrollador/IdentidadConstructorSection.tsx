@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "../shared/brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "../shared/brFormPrimitives";
 
 function RedesGrid({
   redes,
@@ -44,6 +52,10 @@ export function IdentidadConstructorSection({
         Conecta marca, proyecto y centro de ventas con la vista previa premium. El plano de sitio opcional se activa en la
         galería.
       </p>
+      <BrPreviewHint>
+        El preview muestra desarrollador + proyecto en la tarjeta profesional y el estado del desarrollo en la línea de
+        confianza.
+      </BrPreviewHint>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <BrField label="Nombre del desarrollador">
           <input

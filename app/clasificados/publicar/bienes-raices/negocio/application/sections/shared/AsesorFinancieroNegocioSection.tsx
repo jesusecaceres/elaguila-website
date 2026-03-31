@@ -1,7 +1,15 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
-import { BrField, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass, brTextareaClass } from "./brFormPrimitives";
+import {
+  BrField,
+  BrPreviewHint,
+  brInputClass,
+  brCardClass,
+  brSectionTitleClass,
+  brSubTitleClass,
+  brTextareaClass,
+} from "./brFormPrimitives";
 
 export function AsesorFinancieroNegocioSection({
   state,
@@ -19,6 +27,7 @@ export function AsesorFinancieroNegocioSection({
         <p className={brSubTitleClass}>
           Marca la casilla en el paso de identidad para mostrar este módulo opcional en la vista previa, o actívalo aquí.
         </p>
+        <BrPreviewHint>Cuando está activo, aparece el bloque de apoyo de financiamiento junto al carril de contacto.</BrPreviewHint>
         <label className="mt-4 flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 text-sm font-medium text-[#2C2416]">
           <input
             type="checkbox"
@@ -38,6 +47,7 @@ export function AsesorFinancieroNegocioSection({
       <p className={brSubTitleClass}>
         Aparece como tarjeta de apoyo junto al contacto principal. Puedes desactivarlo si cambias de opinión.
       </p>
+      <BrPreviewHint>Tarjeta de asesor de préstamos debajo del rail de CTAs en el preview.</BrPreviewHint>
       <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2C2416]">
         <input
           type="checkbox"

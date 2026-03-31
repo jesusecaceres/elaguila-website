@@ -74,8 +74,8 @@ export default function BienesRaicesNegocioApplication() {
               <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix Clasificados · Negocio</p>
               <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">Publicar Bienes Raíces — Negocio</h1>
               <p className="mt-2 max-w-xl text-sm text-[#5C5346]/88">
-                Flujo guiado que alimenta la vista previa premium. Avanza por pasos; nada de listas interminables en una sola
-                pantalla.
+                Cada paso está enlazado al preview aprobado: hero, galería, identidad, destacados, detalles profundos y carril de
+                contacto. Usa “Vista previa” para comprobarlo en vivo.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
