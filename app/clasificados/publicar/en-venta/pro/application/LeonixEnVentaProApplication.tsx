@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import {
+  saveEnVentaPreviewDraft,
+  saveEnVentaPreviewReturnDraft,
+  takeEnVentaPreviewReturnInitialState,
+} from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
   EN_VENTA_PUBLICAR_FREE,
   EN_VENTA_PUBLICAR_HUB,
@@ -20,8 +24,6 @@ import { LocationSection } from "../../free/application/sections/LocationSection
 import { FulfillmentSection } from "../../free/application/sections/FulfillmentSection";
 import { SellerContactSection } from "../../free/application/sections/SellerContactSection";
 import { ItemDetailsSection } from "../../free/application/sections/ItemDetailsSection";
-import { createEmptyEnVentaProState } from "./schema/enVentaProFormState";
-
 type Lang = "es" | "en";
 
 /**
@@ -31,7 +33,7 @@ type Lang = "es" | "en";
 export default function LeonixEnVentaProApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const [state, setState] = useState(createEmptyEnVentaProState);
+  const [state, setState] = useState(() => takeEnVentaPreviewReturnInitialState("pro"));
 
   const copy = useMemo(
     () =>
@@ -101,7 +103,10 @@ export default function LeonixEnVentaProApplication() {
           <ItemDetailsSection lang={lang} state={state} setState={setState} />
           <EnVentaPreviewBeforePublishCta
             lang={lang}
-            onBeforePreview={(plan) => saveEnVentaPreviewDraft(plan, state)}
+            onBeforePreview={(plan) => {
+              saveEnVentaPreviewDraft(plan, state);
+              saveEnVentaPreviewReturnDraft(plan, state);
+            }}
           />
           <ListingRulesConfirmationSection
             lang={lang}

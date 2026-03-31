@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { saveEnVentaPreviewDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import {
+  saveEnVentaPreviewDraft,
+  saveEnVentaPreviewReturnDraft,
+  takeEnVentaPreviewReturnInitialState,
+} from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
@@ -12,7 +16,6 @@ import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/compone
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import { EnVentaPublishSubmitBar } from "@/app/clasificados/en-venta/publish/EnVentaPublishSubmitBar";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
-import { createEmptyEnVentaFreeState } from "./schema/enVentaFreeFormState";
 import { CategorySelectionSection } from "./sections/CategorySelectionSection";
 import { BasicInfoSection } from "./sections/BasicInfoSection";
 import { ConditionSection } from "./sections/ConditionSection";
@@ -30,7 +33,7 @@ type Lang = "es" | "en";
 export default function LeonixEnVentaFreeApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const [state, setState] = useState(createEmptyEnVentaFreeState);
+  const [state, setState] = useState(() => takeEnVentaPreviewReturnInitialState("free"));
 
   const copy = useMemo(
     () =>
@@ -101,7 +104,10 @@ export default function LeonixEnVentaFreeApplication() {
           <EnVentaPreviewBeforePublishCta
             lang={lang}
             variant="light"
-            onBeforePreview={(plan) => saveEnVentaPreviewDraft(plan, state)}
+            onBeforePreview={(plan) => {
+              saveEnVentaPreviewDraft(plan, state);
+              saveEnVentaPreviewReturnDraft(plan, state);
+            }}
           />
           <ListingRulesConfirmationSection
             lang={lang}
