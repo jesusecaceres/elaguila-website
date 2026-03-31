@@ -170,7 +170,7 @@ function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "e
   const actions: EnVentaPreviewContactAction[] = [];
   const phone = state.phone.replace(/\s/g, "");
   const email = state.email.trim();
-  const wa = state.whatsapp.replace(/\D/g, "");
+  const waDigits = effectiveWhatsAppDigits(state);
 
   if (phone) {
     actions.push({
@@ -196,12 +196,12 @@ function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "e
     });
   }
 
-  if (wa) {
+  if (waDigits) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     actions.push({
       id: "whatsapp",
-      label: "WhatsApp",
-      href: `https://wa.me/${wa}?text=${text}`,
+      label: lang === "es" ? "WhatsApp (recomendado)" : "WhatsApp (recommended)",
+      href: `https://wa.me/${waDigits}?text=${text}`,
     });
   }
 
@@ -217,7 +217,11 @@ function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "e
     return orderBoth[id];
   };
 
-  actions.sort((a, b) => rank(a.id) - rank(b.id));
+  actions.sort((a, b) => {
+    if (a.id === "whatsapp" && b.id !== "whatsapp") return -1;
+    if (b.id === "whatsapp" && a.id !== "whatsapp") return 1;
+    return rank(a.id) - rank(b.id);
+  });
 
   return actions;
 }
