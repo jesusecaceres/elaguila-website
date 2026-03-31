@@ -16,6 +16,30 @@ export const orderSubmissionCopy = {
     es: "El servidor de correo no está configurado. Avisa a Leonix (entorno RESEND).",
     en: "Email is not configured on the server. Ask Leonix to set RESEND env vars.",
   } satisfies TiendaLocalizedLine,
+  errorBlobConfig: {
+    es: "El almacenamiento de archivos no está configurado en el servidor (BLOB_READ_WRITE_TOKEN). Contacta a Leonix.",
+    en: "File storage isn’t configured on the server (BLOB_READ_WRITE_TOKEN). Contact Leonix.",
+  } satisfies TiendaLocalizedLine,
+  errorAssetUpload: {
+    es: "No se pudieron guardar los archivos de producción. Revisa tu conexión e inténtalo de nuevo.",
+    en: "We couldn’t save production files. Check your connection and try again.",
+  } satisfies TiendaLocalizedLine,
+  errorAssetsMissing: {
+    es: "Faltan archivos durables para este pedido; vuelve al configurador, guarda y reintenta.",
+    en: "Required durable files are missing for this order. Return to the configurator, save, and try again.",
+  } satisfies TiendaLocalizedLine,
+  uploadingAssets: {
+    es: "Guardando archivos aprobados…",
+    en: "Saving your approved files…",
+  } satisfies TiendaLocalizedLine,
+  staffDownloadsHeading: {
+    es: "Archivos para producción (enlace directo)",
+    en: "Production file links",
+  } satisfies TiendaLocalizedLine,
+  staffDownloadsHint: {
+    es: "Leonix usa estos mismos enlaces en el correo del pedido; guárdalos si una descarga falla.",
+    en: "Leonix staff get these same links in the order email; keep them if a download fails.",
+  } satisfies TiendaLocalizedLine,
   alreadySubmittedTitle: {
     es: "Este pedido ya fue enviado",
     en: "This order was already submitted",

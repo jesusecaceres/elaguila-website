@@ -23,6 +23,7 @@ function stripAssets(review: TiendaOrderReviewSummary): TiendaOrderAssetSummary[
 
 /** Ensures session still maps to the same review before building API payload. */
 export function buildTiendaOrderSubmissionPayload(params: {
+  orderId: string;
   review: TiendaOrderReviewSummary;
   customer: TiendaCustomerDetails;
   fulfillment: TiendaFulfillmentPreference;
@@ -30,7 +31,7 @@ export function buildTiendaOrderSubmissionPayload(params: {
   slug: string;
   lang: Lang;
 }): TiendaOrderSubmissionPayload | null {
-  const { review, customer, fulfillment, source, slug, lang } = params;
+  const { orderId, review, customer, fulfillment, source, slug, lang } = params;
   if (review.source !== source || review.productSlug !== slug) return null;
 
   const raw =
@@ -49,7 +50,8 @@ export function buildTiendaOrderSubmissionPayload(params: {
   if (source === "print-upload" && !puExtra) return null;
 
   return {
-    v: 1,
+    v: 2,
+    orderId,
     source,
     productSlug: review.productSlug,
     productTitleEs: review.productTitle.es,

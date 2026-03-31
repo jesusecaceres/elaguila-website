@@ -2,14 +2,25 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
+import { assertTiendaOrderId } from "@/app/lib/tienda/tiendaBlobPrefix";
+import { storeBusinessCardAssets } from "@/app/lib/tienda/storeBusinessCardAssets";
+import { storePrintUploadAssets } from "@/app/lib/tienda/storePrintUploadAssets";
 import type { Lang } from "../../types/tienda";
 import type { TiendaFulfillmentPreference, TiendaOrderReviewSummary, TiendaOrderSource } from "../../types/orderHandoff";
 import { emptyTiendaCustomerDetails, type TiendaCustomerDetails } from "../../types/orderHandoff";
 import type { TiendaOrderSubmissionResult } from "../../types/orderSubmission";
+import type { BusinessCardDocument } from "../../product-configurators/business-cards/types";
 import { mapBusinessCardSessionToReview, readBusinessCardSessionRaw } from "../../order/mappers/businessCardDocumentToReview";
-import { mapPrintUploadSessionToReview, readPrintUploadSessionRaw } from "../../order/mappers/printUploadDocumentToReview";
+import {
+  isPrintUploadSessionPayloadV1,
+  mapPrintUploadSessionToReview,
+  readPrintUploadSessionRaw,
+} from "../../order/mappers/printUploadDocumentToReview";
 import { buildTiendaOrderSubmissionPayload } from "../../order/buildTiendaOrderSubmissionPayload";
+import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
+import { BusinessCardPreview } from "../business-cards/BusinessCardPreview";
 import {
   configurePathForSource,
   mergeBusinessNamePrefill,
@@ -48,7 +59,9 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
   const [fulfillment, setFulfillment] = useState<TiendaFulfillmentPreference | "">("");
   const [fulfillmentTouched, setFulfillmentTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitBusyLabel, setSubmitBusyLabel] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [bcExportDoc, setBcExportDoc] = useState<BusinessCardDocument | null>(null);
 
   useEffect(() => {
     setExistingSubmit(readTiendaSubmittedMarker(source, slug));
@@ -96,26 +109,92 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
       return;
     }
 
-    const payload = buildTiendaOrderSubmissionPayload({
-      review,
-      customer,
-      fulfillment,
-      source,
-      slug,
-      lang,
-    });
-    if (!payload) {
-      setSubmitError(
-        lang === "en"
-          ? "Session is out of sync. Open the configurator again and save before submitting."
-          : "La sesión no coincide. Abre el configurador de nuevo y guarda antes de enviar."
-      );
-      return;
-    }
-
     setSubmitError(null);
     setIsSubmitting(true);
+    setSubmitBusyLabel(subPick(orderSubmissionCopy.uploadingAssets, lang));
+
     try {
+      const prepRes = await fetch("/api/tienda/orders/prepare", { method: "POST" });
+      const prepJson = (await prepRes.json()) as { orderId?: string };
+      const orderId = String(prepJson.orderId ?? "").trim();
+      if (!prepRes.ok || !assertTiendaOrderId(orderId)) {
+        setSubmitError(subPick(orderSubmissionCopy.errorGeneric, lang));
+        return;
+      }
+
+      const payload = buildTiendaOrderSubmissionPayload({
+        orderId,
+        review,
+        customer,
+        fulfillment,
+        source,
+        slug,
+        lang,
+      });
+      if (!payload) {
+        setSubmitError(
+          lang === "en"
+            ? "Session is out of sync. Open the configurator again and save before submitting."
+            : "La sesión no coincide. Abre el configurador de nuevo y guarda antes de enviar."
+        );
+        return;
+      }
+
+      if (source === "business-cards") {
+        const raw = readBusinessCardSessionRaw(slug);
+        const doc = hydrateBusinessCardDocumentFromSession(slug, raw);
+        if (!doc || raw == null) {
+          setSubmitError(
+            lang === "en"
+              ? "Could not load business card session for export. Open the configurator again and save."
+              : "No se pudo cargar la sesión de tarjetas para exportar. Abre el configurador y guarda."
+          );
+          return;
+        }
+        flushSync(() => setBcExportDoc(doc));
+        try {
+          const up = await storeBusinessCardAssets({
+            orderId,
+            productSlug: slug,
+            document: doc,
+            sessionJson: raw,
+            getExportRoot: (side) =>
+              document.querySelector(`[data-bc-export-mount="${side}"] [data-tienda-bc-export-root]`) as HTMLElement | null,
+          });
+          if (!up.ok) {
+            const msg =
+              up.code === "BLOB_NOT_CONFIGURED"
+                ? subPick(orderSubmissionCopy.errorBlobConfig, lang)
+                : subPick(orderSubmissionCopy.errorAssetUpload, lang);
+            setSubmitError(up.error || msg);
+            return;
+          }
+        } finally {
+          flushSync(() => setBcExportDoc(null));
+        }
+      } else {
+        const rawPu = readPrintUploadSessionRaw(slug);
+        if (!isPrintUploadSessionPayloadV1(rawPu)) {
+          setSubmitError(
+            lang === "en"
+              ? "Print session missing or invalid. Open the configurator again and save."
+              : "Falta la sesión de impresión o no es válida. Abre el configurador y guarda."
+          );
+          return;
+        }
+        const up = await storePrintUploadAssets({ orderId, productSlug: slug, session: rawPu });
+        if (!up.ok) {
+          const msg =
+            up.code === "BLOB_NOT_CONFIGURED"
+              ? subPick(orderSubmissionCopy.errorBlobConfig, lang)
+              : subPick(orderSubmissionCopy.errorAssetUpload, lang);
+          setSubmitError(up.error || msg);
+          return;
+        }
+      }
+
+      setSubmitBusyLabel(subPick(orderSubmissionCopy.submitting, lang));
+
       const res = await fetch("/api/tienda/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,9 +206,22 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
         const msg =
           data.code === "EMAIL_FAILED"
             ? subPick(orderSubmissionCopy.errorEmailConfig, lang)
-            : data.error || subPick(orderSubmissionCopy.errorGeneric, lang);
+            : data.code === "BLOB_NOT_CONFIGURED"
+              ? subPick(orderSubmissionCopy.errorBlobConfig, lang)
+              : data.code === "ASSETS_MISSING" || data.code === "LIST_FAILED"
+                ? subPick(orderSubmissionCopy.errorAssetsMissing, lang)
+                : data.error || subPick(orderSubmissionCopy.errorGeneric, lang);
         setSubmitError(msg);
         return;
+      }
+
+      try {
+        sessionStorage.setItem(
+          `tienda-order-complete-${data.orderId.trim().toUpperCase()}`,
+          JSON.stringify({ assets: data.durableAssets ?? [] })
+        );
+      } catch {
+        /* ignore quota / private mode */
       }
 
       writeTiendaSubmittedMarker(source, slug, data.orderId);
@@ -138,12 +230,25 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
     } catch {
       setSubmitError(subPick(orderSubmissionCopy.errorGeneric, lang));
     } finally {
+      setSubmitBusyLabel(null);
       setIsSubmitting(false);
+      flushSync(() => setBcExportDoc(null));
     }
   };
 
   return (
     <TiendaOrderShell>
+      {bcExportDoc ? (
+        <div className="pointer-events-none fixed top-0 left-[-14000px] opacity-0" aria-hidden>
+          <div data-bc-export-mount="front" className="w-[420px]">
+            <BusinessCardPreview document={bcExportDoc} side="front" lang={lang} />
+          </div>
+          <div data-bc-export-mount="back" className="w-[420px]">
+            <BusinessCardPreview document={bcExportDoc} side="back" lang={lang} />
+          </div>
+        </div>
+      ) : null}
+
       <header className="space-y-4">
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <Link
@@ -207,7 +312,7 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
           showError={showFulfillmentError}
         />
         <TiendaOrderReminderPanel lang={lang} />
-        <TiendaOrderCTA lang={lang} isSubmitting={isSubmitting} submitDisabled={isSubmitting} />
+        <TiendaOrderCTA lang={lang} isSubmitting={isSubmitting} submitDisabled={isSubmitting} busyLabel={submitBusyLabel ?? undefined} />
       </form>
     </TiendaOrderShell>
   );

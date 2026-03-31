@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { buildTiendaOrderEmailBodies } from "@/app/lib/tienda/formatTiendaOrderEmail";
-import { generateTiendaOrderId } from "@/app/lib/tienda/generateTiendaOrderId";
+import { enrichAssetReferencesFromPayload } from "@/app/lib/tienda/enrichAssetReferencesFromPayload";
 import { sendTiendaOrderEmailResend } from "@/app/lib/tienda/sendTiendaOrderEmailResend";
+import {
+  assertRequiredDurableAssets,
+  listDurableAssetsForOrder,
+} from "@/app/lib/tienda/verifyTiendaOrderBlobAssets";
 import { validateTiendaOrderPayload } from "@/app/lib/tienda/validateTiendaOrderPayload";
 import type { TiendaOrderSubmissionResult } from "@/app/tienda/types/orderSubmission";
 
@@ -23,10 +27,25 @@ export async function POST(req: Request): Promise<NextResponse<TiendaOrderSubmis
     );
   }
 
-  const orderId = generateTiendaOrderId();
+  const orderId = validated.payload.orderId;
   const submittedAt = new Date().toISOString();
 
-  const { subject, text, html } = buildTiendaOrderEmailBodies(orderId, submittedAt, validated.payload);
+  const listed = await listDurableAssetsForOrder(orderId, validated.payload.source, validated.payload.productSlug);
+  if (!listed.ok) {
+    return NextResponse.json(
+      { ok: false, error: listed.error, code: listed.code },
+      { status: listed.code === "BLOB_NOT_CONFIGURED" ? 503 : 503 }
+    );
+  }
+
+  const checked = assertRequiredDurableAssets(validated.payload, listed.references);
+  if (!checked.ok) {
+    return NextResponse.json({ ok: false, error: checked.error, code: checked.code }, { status: 400 });
+  }
+
+  const durableAssets = enrichAssetReferencesFromPayload(checked.references, validated.payload);
+
+  const { subject, text, html } = buildTiendaOrderEmailBodies(orderId, submittedAt, validated.payload, durableAssets);
 
   const sent = await sendTiendaOrderEmailResend({ subject, text, html });
   if (!sent.ok) {
@@ -40,5 +59,5 @@ export async function POST(req: Request): Promise<NextResponse<TiendaOrderSubmis
     );
   }
 
-  return NextResponse.json({ ok: true, orderId, submittedAt });
+  return NextResponse.json({ ok: true, orderId, submittedAt, durableAssets });
 }

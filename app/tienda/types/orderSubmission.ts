@@ -10,6 +10,7 @@ import type {
   TiendaOrderSource,
   TiendaCustomerDetails,
 } from "./orderHandoff";
+import type { TiendaOrderAssetReference } from "./tiendaStoredAssets";
 
 export type TiendaOrderSubmissionStatus = "received" | "failed";
 
@@ -65,9 +66,10 @@ export type PrintUploadSubmissionExtra = {
   rawValidationSnapshot: Array<{ severity: string; messageEs: string; messageEn: string }>;
 };
 
-/** JSON body from the browser (no server-generated id). */
+/** JSON body from the browser — orderId from POST /api/tienda/orders/prepare after durable uploads. */
 export type TiendaOrderSubmissionPayload = {
-  v: 1;
+  v: 2;
+  orderId: string;
   source: TiendaOrderSource;
   productSlug: string;
   productTitleEs: string;
@@ -89,7 +91,7 @@ export type TiendaOrderSubmissionPayload = {
 
 /** Persistable snapshot after acceptance (e.g. future queue/DB). */
 export type TiendaOrderSubmission = {
-  submissionVersion: 1;
+  submissionVersion: 2;
   orderId: string;
   status: TiendaOrderSubmissionStatus;
   createdAtIso: string;
@@ -97,5 +99,5 @@ export type TiendaOrderSubmission = {
 };
 
 export type TiendaOrderSubmissionResult =
-  | { ok: true; orderId: string; submittedAt: string }
+  | { ok: true; orderId: string; submittedAt: string; durableAssets?: TiendaOrderAssetReference[] }
   | { ok: false; error: string; code?: string };

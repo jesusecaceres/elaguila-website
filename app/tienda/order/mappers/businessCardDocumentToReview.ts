@@ -7,12 +7,16 @@ const BC_SESSION_KEY_PREFIX = "leonix-bc-draft-";
 
 type StoredLogo = {
   visible: boolean;
+  position: import("../../product-configurators/business-cards/types").LayoutPreset;
+  scale: import("../../product-configurators/business-cards/types").ScalePreset;
   previewUrl: string | null;
+  naturalWidth: number | null;
+  naturalHeight: number | null;
 };
 
-type StoredSide = {
+export type StoredSidePayload = {
   fields: Record<string, string>;
-  textLayout: { lineVisible: Record<string, boolean> };
+  textLayout: import("../../product-configurators/business-cards/types").BusinessCardTextLayout;
   logo: StoredLogo;
 };
 
@@ -21,8 +25,12 @@ export type BusinessCardSessionPayloadV2 = {
   savedAt?: string;
   productSlug: string;
   sidedness: "one-sided" | "two-sided";
-  front: StoredSide;
-  back: StoredSide;
+  textNudgeX?: number;
+  textNudgeY?: number;
+  logoNudgeX?: number;
+  logoNudgeY?: number;
+  front: StoredSidePayload;
+  back: StoredSidePayload;
   approval: {
     spellingReviewed: boolean;
     layoutReviewed: boolean;
@@ -52,7 +60,7 @@ function fieldRoles(): TextFieldRole[] {
   return ["personName", "title", "company", "phone", "email", "website", "address", "tagline"];
 }
 
-function sideTextSummary(side: StoredSide, sideLabel: TiendaLocalizedLine): TiendaLocalizedLine[] {
+function sideTextSummary(side: StoredSidePayload, sideLabel: TiendaLocalizedLine): TiendaLocalizedLine[] {
   const lines: TiendaLocalizedLine[] = [];
   for (const role of fieldRoles()) {
     const visible = side.textLayout?.lineVisible?.[role] !== false;

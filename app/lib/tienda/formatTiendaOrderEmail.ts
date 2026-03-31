@@ -1,7 +1,36 @@
 import type { TiendaFulfillmentPreference } from "@/app/tienda/types/orderHandoff";
 import type { TiendaOrderSubmissionPayload } from "@/app/tienda/types/orderSubmission";
+import type { TiendaAssetRole, TiendaOrderAssetReference } from "@/app/tienda/types/tiendaStoredAssets";
 import { escapeHtml } from "./escapeHtml";
 import { TIENDA_ORDER_INBOX } from "./orderEmailConstants";
+
+function staffRoleCaption(role: TiendaAssetRole, source: TiendaOrderSubmissionPayload["source"]): string {
+  switch (role) {
+    case "business-card-front":
+      return "Business card — front: PNG visual export (reference only; not a final press-ready PDF)";
+    case "business-card-back":
+      return "Business card — back: PNG visual export (reference only; not a final press-ready PDF)";
+    case "design-json-snapshot":
+      return "Builder state JSON (structured snapshot for recovery/rebuild)";
+    case "upload-front":
+      return source === "print-upload"
+        ? "Print upload — front: original customer file (durable)"
+        : "Upload — front";
+    case "upload-back":
+      return source === "print-upload"
+        ? "Print upload — back: original customer file (durable)"
+        : "Upload — back";
+    default: {
+      const _x: never = role;
+      return String(_x);
+    }
+  }
+}
+
+function formatDims(w: number | null, h: number | null): string {
+  if (w != null && h != null && Number.isFinite(w) && Number.isFinite(h)) return `${w}×${h} px`;
+  return "—";
+}
 
 function fulfillmentLines(f: TiendaFulfillmentPreference): { es: string; en: string } {
   switch (f) {
@@ -32,7 +61,12 @@ function textSection(title: string, lines: string[]): string {
   return [`${title}`, ...lines.map((l) => `  • ${l}`)].join("\n");
 }
 
-export function buildTiendaOrderEmailBodies(orderId: string, submittedAtIso: string, p: TiendaOrderSubmissionPayload): {
+export function buildTiendaOrderEmailBodies(
+  orderId: string,
+  submittedAtIso: string,
+  p: TiendaOrderSubmissionPayload,
+  durableAssets: TiendaOrderAssetReference[]
+): {
   subject: string;
   text: string;
   html: string;
@@ -109,6 +143,31 @@ export function buildTiendaOrderEmailBodies(orderId: string, submittedAtIso: str
 
   const notes = p.customer.notes.trim();
 
+  const durableLines = durableAssets
+    .slice()
+    .sort((a, b) => a.role.localeCompare(b.role))
+    .map((a) => {
+      const cap = staffRoleCaption(a.role, p.source);
+      const dim = formatDims(a.widthPx, a.heightPx);
+      return [
+        `[${a.role}] ${cap}`,
+        `  File: ${a.originalFilename}`,
+        `  MIME: ${a.mimeType} | bytes: ${a.sizeBytes} | dims: ${dim}`,
+        `  URL: ${a.publicUrl}`,
+      ].join("\n");
+    });
+
+  const durableIntro =
+    p.source === "business-cards"
+      ? [
+          "Business cards — durable assets include PNG screen exports + JSON snapshot.",
+          "PNG exports are for staff visual reference; they are NOT claimed as final production PDF.",
+        ]
+      : [
+          "Print upload — durable assets are the original uploaded files (bytes preserved in Blob).",
+          "Use download URLs below for fulfillment.",
+        ];
+
   const text = [
     `Tienda self-serve order (MVP email — no payment)`,
     `To / Para: ${TIENDA_ORDER_INBOX}`,
@@ -141,8 +200,11 @@ export function buildTiendaOrderEmailBodies(orderId: string, submittedAtIso: str
     "",
     textSection("Specs (EN)", specsEn),
     "",
-    "--- Assets (summary only; no file attachments in MVP) ---",
-    "Leonix: reproduce from customer-approved session or request files using this reference.",
+    "--- Durable production assets (Blob URLs) ---",
+    ...durableIntro.map((l) => l),
+    ...durableLines,
+    "",
+    "--- Session asset summary (no attachments) ---",
     ...assetBlocks,
     "",
     textSection("Approval (ES)", approvalEs),
@@ -179,6 +241,26 @@ export function buildTiendaOrderEmailBodies(orderId: string, submittedAtIso: str
   <p><b>Sidedness:</b> ${escapeHtml(p.sidednessSummary.en)} / ${escapeHtml(p.sidednessSummary.es)}</p>
   <h2>Specs</h2>
   <ul>${p.specLines.map((l) => `<li>${escapeHtml(l.en)} — <em>${escapeHtml(l.es)}</em></li>`).join("")}</ul>
+  <h2>Durable production assets</h2>
+  <p>${escapeHtml(durableIntro.join(" "))}</p>
+  <table cellpadding="6" style="border-collapse:collapse;width:100%;max-width:900px;">
+    <thead><tr><th align="left">Role</th><th align="left">Staff note</th><th align="left">File</th><th align="left">MIME / size</th><th align="left">Dims</th><th align="left">URL</th></tr></thead>
+    <tbody>${durableAssets
+      .slice()
+      .sort((a, b) => a.role.localeCompare(b.role))
+      .map((a) => {
+        const dim = formatDims(a.widthPx, a.heightPx);
+        return `<tr>
+          <td><code>${escapeHtml(a.role)}</code></td>
+          <td style="max-width:220px;font-size:12px;">${escapeHtml(staffRoleCaption(a.role, p.source))}</td>
+          <td>${escapeHtml(a.originalFilename)}</td>
+          <td>${escapeHtml(a.mimeType)}<br/><small>${a.sizeBytes} B</small></td>
+          <td>${escapeHtml(dim)}</td>
+          <td><a href="${escapeHtml(a.publicUrl)}">download / view</a></td>
+        </tr>`;
+      })
+      .join("")}</tbody>
+  </table>
   <h2>Assets (summary — no attachments)</h2>
   ${p.assets
     .map(

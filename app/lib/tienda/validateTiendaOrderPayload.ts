@@ -1,4 +1,5 @@
 import { isRegisteredOrderHandoff } from "@/app/tienda/order/orderHandoffRegistry";
+import { assertTiendaOrderId } from "@/app/lib/tienda/tiendaBlobPrefix";
 import type { TiendaAssetSummaryKind, TiendaFulfillmentPreference, TiendaOrderSource } from "@/app/tienda/types/orderHandoff";
 import type { TiendaOrderSubmissionPayload } from "@/app/tienda/types/orderSubmission";
 
@@ -22,8 +23,13 @@ export function validateTiendaOrderPayload(body: unknown):
     return { ok: false, error: "Invalid JSON body", code: "BAD_JSON" };
   }
   const b = body as Record<string, unknown>;
-  if (b.v !== 1) {
+  if (b.v !== 2) {
     return { ok: false, error: "Unsupported payload version", code: "BAD_VERSION" };
+  }
+
+  const orderId = trimStr(b.orderId, 80);
+  if (!orderId || !assertTiendaOrderId(orderId)) {
+    return { ok: false, error: "Valid orderId is required (use /api/tienda/orders/prepare)", code: "BAD_ORDER_ID" };
   }
 
   const source = b.source as TiendaOrderSource;
@@ -110,7 +116,8 @@ export function validateTiendaOrderPayload(body: unknown):
       : { es: "", en: "" };
 
   const payload: TiendaOrderSubmissionPayload = {
-    v: 1,
+    v: 2,
+    orderId,
     source,
     productSlug,
     productTitleEs: trimStr(b.productTitleEs, 300),

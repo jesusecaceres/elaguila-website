@@ -6,8 +6,14 @@ import { ohPick, orderHandoffCopy } from "../../data/orderHandoffCopy";
 import { subPick, orderSubmissionCopy } from "../../data/orderSubmissionCopy";
 import { withLang } from "../../utils/tiendaRouting";
 
-export function TiendaOrderCTA(props: { lang: Lang; isSubmitting?: boolean; submitDisabled?: boolean }) {
-  const { lang, isSubmitting = false, submitDisabled = false } = props;
+export function TiendaOrderCTA(props: {
+  lang: Lang;
+  isSubmitting?: boolean;
+  submitDisabled?: boolean;
+  /** When submitting, overrides the default “Submitting order…” label (e.g. asset upload phase). */
+  busyLabel?: string;
+}) {
+  const { lang, isSubmitting = false, submitDisabled = false, busyLabel } = props;
   return (
     <div className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.35)] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
@@ -25,7 +31,7 @@ export function TiendaOrderCTA(props: { lang: Lang; isSubmitting?: boolean; subm
               : "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",
           ].join(" ")}
         >
-          {isSubmitting ? subPick(orderSubmissionCopy.submitting, lang) : ohPick(orderHandoffCopy.ctaContinue, lang)}
+          {isSubmitting ? busyLabel ?? subPick(orderSubmissionCopy.submitting, lang) : ohPick(orderHandoffCopy.ctaContinue, lang)}
         </button>
         <Link
           href={withLang("/contacto", lang)}

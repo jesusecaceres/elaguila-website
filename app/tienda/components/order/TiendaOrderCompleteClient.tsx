@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import type { Lang } from "../../types/tienda";
+import type { TiendaOrderAssetReference } from "../../types/tiendaStoredAssets";
 import { subPick, orderSubmissionCopy } from "../../data/orderSubmissionCopy";
 import { withLang } from "../../utils/tiendaRouting";
 import { TiendaOrderShell } from "./TiendaOrderShell";
@@ -11,6 +13,23 @@ const REF_RE = /^LX-TND-[A-Z0-9]+-[A-F0-9]{8}$/i;
 export function TiendaOrderCompleteClient(props: { orderRef: string; lang: Lang }) {
   const { orderRef, lang } = props;
   const valid = REF_RE.test(orderRef.trim());
+  const [staffAssets, setStaffAssets] = useState<TiendaOrderAssetReference[] | null>(null);
+
+  useEffect(() => {
+    if (!valid) return;
+    const id = orderRef.trim().toUpperCase();
+    try {
+      const raw = sessionStorage.getItem(`tienda-order-complete-${id}`);
+      if (!raw) {
+        setStaffAssets(null);
+        return;
+      }
+      const parsed = JSON.parse(raw) as { assets?: TiendaOrderAssetReference[] };
+      setStaffAssets(Array.isArray(parsed.assets) ? parsed.assets : null);
+    } catch {
+      setStaffAssets(null);
+    }
+  }, [orderRef, valid]);
 
   if (!valid) {
     return (
@@ -46,6 +65,34 @@ export function TiendaOrderCompleteClient(props: { orderRef: string; lang: Lang 
           </p>
           <p className="mt-2 text-lg font-mono font-semibold text-[rgba(201,168,74,0.98)]">{ref}</p>
         </div>
+
+        {staffAssets && staffAssets.length > 0 ? (
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.25)] p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-[rgba(201,168,74,0.95)]">
+              {subPick(orderSubmissionCopy.staffDownloadsHeading, lang)}
+            </h2>
+            <p className="text-xs text-[rgba(255,255,255,0.62)]">{subPick(orderSubmissionCopy.staffDownloadsHint, lang)}</p>
+            <ul className="space-y-2 text-sm">
+              {staffAssets
+                .slice()
+                .sort((a, b) => a.role.localeCompare(b.role))
+                .map((a) => (
+                  <li key={`${a.role}-${a.storagePath}`} className="rounded-lg bg-[rgba(255,255,255,0.04)] px-3 py-2">
+                    <div className="font-mono text-xs text-[rgba(201,168,74,0.9)]">{a.role}</div>
+                    <div className="text-[rgba(255,247,226,0.88)] break-all">{a.originalFilename}</div>
+                    <a
+                      href={a.publicUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block mt-1 text-xs text-[rgba(120,180,255,0.95)] hover:underline"
+                    >
+                      {lang === "en" ? "Open / download" : "Abrir / descargar"}
+                    </a>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
