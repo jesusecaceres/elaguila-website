@@ -133,16 +133,21 @@ export default function TiendaPage() {
   const closeModal = () => setModalProduct(null);
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="pt-28 pb-20 px-6 max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-yellow-400 mb-10">{t.store}</h1>
+        <h1 className="text-4xl font-bold text-[color:var(--lx-text)] mb-3">{t.store}</h1>
+        <p className="text-[color:var(--lx-muted)] mb-10">
+          {lang === "es"
+            ? "Impresión premium y diseño con acabado Leonix."
+            : "Premium print and design with Leonix polish."}
+        </p>
 
         {/* GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-[#111] border border-yellow-700 rounded-xl shadow-xl p-4 hover:scale-[1.02] transition cursor-pointer"
+              className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_18px_48px_rgba(42,36,22,0.10)] p-4 hover:shadow-[0_22px_60px_rgba(42,36,22,0.12)] hover:-translate-y-0.5 transition cursor-pointer"
               onClick={() => setModalProduct(product)}
             >
               <Image
@@ -156,23 +161,23 @@ export default function TiendaPage() {
                 {lang === "es" ? product.title : product.title_en}
               </h2>
 
-              <p className="text-yellow-300 mt-1">
+              <p className="text-[color:var(--lx-text-2)]/90 mt-1">
                 {lang === "es"
                   ? product.description
                   : product.description_en}
               </p>
 
-              <p className="text-2xl font-bold mt-3">{product.price}</p>
+              <p className="text-2xl font-extrabold mt-3 text-[color:var(--lx-text)]">{product.price}</p>
             </div>
           ))}
         </div>
 
         {/* CONTACT SECTION */}
         <div className="mt-20 text-center">
-          <p className="text-lg mb-3">{t.emailLine}</p>
+          <p className="text-lg mb-3 text-[color:var(--lx-text-2)]/90">{t.emailLine}</p>
           <a
             href="mailto:info@elaguilamedia.com"
-            className="text-2xl text-yellow-400 underline hover:text-yellow-300"
+            className="text-2xl text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold)] underline-offset-4 hover:text-[color:var(--lx-gold)] transition"
           >
             info@elaguilamedia.com
           </a>
@@ -182,14 +187,14 @@ export default function TiendaPage() {
       {/* MODAL */}
       {modalProduct && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
           onClick={closeModal}
         >
           <div
-            className="bg-[#111] p-6 rounded-xl max-w-3xl w-full"
+            className="bg-[color:var(--lx-card)] p-6 rounded-2xl max-w-3xl w-full border border-[color:var(--lx-nav-border)] shadow-[0_22px_70px_rgba(42,36,22,0.22)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-bold text-yellow-400 mb-4">
+            <h2 className="text-2xl font-bold text-[color:var(--lx-text)] mb-4">
               {lang === "es"
                 ? modalProduct.title
                 : modalProduct.title_en}
@@ -209,18 +214,18 @@ export default function TiendaPage() {
               ))}
             </div>
 
-            <p className="text-yellow-300 mt-4">
+            <p className="text-[color:var(--lx-text-2)]/90 mt-4">
               {lang === "es"
                 ? modalProduct.description
                 : modalProduct.description_en}
             </p>
 
-            <p className="text-3xl font-bold mt-4">{modalProduct.price}</p>
+            <p className="text-3xl font-extrabold mt-4 text-[color:var(--lx-text)]">{modalProduct.price}</p>
 
             <div className="mt-6 text-center">
               <a
                 href="mailto:info@elaguilamedia.com"
-                className="bg-yellow-500 text-black px-6 py-3 rounded-full text-xl font-bold hover:bg-yellow-400 transition"
+                className="inline-flex items-center justify-center bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] px-6 py-3 rounded-full text-xl font-bold hover:bg-[color:var(--lx-cta-dark-hover)] transition shadow-[0_10px_28px_rgba(42,36,22,0.18)]"
               >
                 {t.contactUs}
               </a>

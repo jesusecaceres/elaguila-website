@@ -173,14 +173,24 @@ function NoticiasContent() {
   const feed = articles.slice(1);
 
   return (
-    <main className="min-h-screen w-full bg-black text-white">
-      {/* Background glow (aesthetics only) */}
+    <main
+      className="min-h-screen w-full text-[color:var(--lx-text)]"
+      style={{
+        backgroundColor: "var(--lx-page)",
+        backgroundImage: `
+          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.22), transparent 55%),
+          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.55), transparent 52%),
+          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.10), transparent 50%)
+        `,
+      }}
+    >
+      {/* subtle paper grain */}
       <div
-        className="pointer-events-none fixed inset-0 -z-10"
+        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.03]"
         style={{
-          background:
-            "radial-gradient(800px 420px at 50% 120px, rgba(255, 215, 0, 0.16), transparent 65%), linear-gradient(to bottom, rgba(0,0,0,0.75), rgba(0,0,0,0.9) 55%, rgba(0,0,0,1))",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
+        aria-hidden
       />
 
       <section className="max-w-screen-2xl mx-auto px-6 pt-28 pb-24">
@@ -192,10 +202,10 @@ function NoticiasContent() {
         >
           <Image src={newLogo} alt="LEONIX" width={320} className="mx-auto mb-6" priority />
 
-          <h1 className="text-5xl md:text-6xl font-bold text-yellow-400">
+          <h1 className="text-5xl md:text-6xl font-bold text-[color:var(--lx-text)]">
             {L.pageTitle}
           </h1>
-          <p className="mt-4 text-gray-300 max-w-3xl mx-auto text-base md:text-lg">
+          <p className="mt-4 text-[color:var(--lx-text-2)]/85 max-w-3xl mx-auto text-base md:text-lg">
             {L.subtitle}
           </p>
         </motion.header>
@@ -204,10 +214,10 @@ function NoticiasContent() {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="w-full mb-10 rounded-2xl border border-yellow-500/35 bg-black/35 backdrop-blur px-5 py-4"
+          className="w-full mb-10 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 backdrop-blur px-5 py-4 shadow-[0_14px_34px_rgba(42,36,22,0.08)]"
         >
-          <p className="text-center font-semibold tracking-wide text-yellow-200">
-            🔥 {L.breaking}: <span className="text-yellow-100">{featured.title}</span>
+          <p className="text-center font-semibold tracking-wide text-[color:var(--lx-text-2)]">
+            🔥 {L.breaking}: <span className="text-[color:var(--lx-text)]">{featured.title}</span>
           </p>
         </motion.div>
 
@@ -221,8 +231,8 @@ function NoticiasContent() {
                 onClick={() => setActiveCategory(cat.key)}
                 className={
                   active
-                    ? "px-4 py-2 text-sm md:text-base rounded-full bg-yellow-400 text-black font-semibold border border-yellow-300"
-                    : "px-4 py-2 text-sm md:text-base rounded-full border border-yellow-500/40 bg-white/6 text-white font-semibold hover:bg-white/10 transition"
+                    ? "px-4 py-2 text-sm md:text-base rounded-full bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)] font-semibold border border-[color:var(--lx-nav-border)]"
+                    : "px-4 py-2 text-sm md:text-base rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 text-[color:var(--lx-text)] font-semibold hover:bg-white/80 transition"
                 }
               >
                 {cat.label}
@@ -238,7 +248,7 @@ function NoticiasContent() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55 }}
-              className="w-full text-left rounded-2xl overflow-hidden border border-yellow-500/25 bg-black/30 hover:bg-black/40 transition shadow-[0_0_0_1px_rgba(255,215,0,0.08)]"
+              className="w-full text-left rounded-2xl overflow-hidden border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] hover:bg-white/90 transition shadow-[0_18px_48px_rgba(42,36,22,0.10)]"
               onClick={() => setModal(featured)}
             >
               <img
@@ -248,16 +258,16 @@ function NoticiasContent() {
                 loading="lazy"
               />
               <div className="p-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-yellow-300">
+                <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--lx-text)]">
                   {featured.title}
                 </h2>
-                <p className="mt-3 text-gray-300">{featured.desc}</p>
+                <p className="mt-3 text-[color:var(--lx-text-2)]/85">{featured.desc}</p>
               </div>
             </motion.button>
 
             {loading && (
-              <div className="rounded-2xl border border-yellow-500/20 bg-black/30 p-6">
-                <p className="text-yellow-200 font-semibold">{L.cargando}</p>
+              <div className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 p-6">
+                <p className="text-[color:var(--lx-text-2)] font-semibold">{L.cargando}</p>
               </div>
             )}
 
@@ -269,20 +279,20 @@ function NoticiasContent() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.18) }}
-                  className="w-full text-left flex flex-col md:flex-row gap-4 p-4 rounded-2xl bg-black/25 hover:bg-black/35 transition border border-white/10"
+                  className="w-full text-left flex flex-col md:flex-row gap-4 p-4 rounded-2xl bg-[color:var(--lx-card)]/70 hover:bg-[color:var(--lx-card)] transition border border-[color:var(--lx-nav-border)] shadow-[0_10px_34px_rgba(42,36,22,0.06)]"
                   onClick={() => setModal(a)}
                 >
                   <img
                     src={a.img}
-                    className="w-full md:w-44 h-44 md:h-28 object-cover rounded-2xl border border-white/10"
+                    className="w-full md:w-44 h-44 md:h-28 object-cover rounded-2xl border border-black/10"
                     alt={a.title}
                     loading="lazy"
                   />
                   <div className="min-w-0">
-                    <h3 className="text-lg md:text-xl font-bold text-yellow-300 leading-snug">
+                    <h3 className="text-lg md:text-xl font-bold text-[color:var(--lx-text)] leading-snug">
                       {a.title}
                     </h3>
-                    <p className="mt-2 text-gray-300 line-clamp-3">{a.desc}</p>
+                    <p className="mt-2 text-[color:var(--lx-text-2)]/85 line-clamp-3">{a.desc}</p>
                   </div>
                 </motion.button>
               ))}
@@ -298,21 +308,21 @@ function NoticiasContent() {
 
       {modal && (
         <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999] px-4"
+          className="fixed inset-0 bg-black/45 flex items-center justify-center z-[999] px-4"
           onClick={() => setModal(null)}
         >
           <div
-            className="w-full max-w-2xl mx-auto rounded-2xl border border-yellow-500/35 bg-black/90 backdrop-blur p-6"
+            className="w-full max-w-2xl mx-auto rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] backdrop-blur p-6 shadow-[0_22px_70px_rgba(42,36,22,0.22)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-yellow-300">
+              <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--lx-text)]">
                 {modal.title}
               </h2>
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="shrink-0 px-4 py-2 rounded-full border border-yellow-500/45 bg-white/6 text-white font-semibold hover:bg-white/10 transition"
+                className="shrink-0 px-4 py-2 rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 text-[color:var(--lx-text)] font-semibold hover:bg-white/80 transition"
               >
                 {L.close}
               </button>
@@ -320,18 +330,18 @@ function NoticiasContent() {
 
             <img
               src={modal.img}
-              className="mt-5 w-full h-56 md:h-64 object-cover rounded-2xl border border-white/10"
+              className="mt-5 w-full h-56 md:h-64 object-cover rounded-2xl border border-black/10"
               alt={modal.title}
               loading="lazy"
             />
-            <p className="mt-4 text-gray-200">{modal.desc}</p>
+            <p className="mt-4 text-[color:var(--lx-text-2)]/90">{modal.desc}</p>
 
             {modal.link ? (
               <a
                 href={modal.link}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-block mt-5 text-yellow-300 font-semibold underline underline-offset-4 hover:text-yellow-200 transition"
+                className="inline-block mt-5 text-[color:var(--lx-text)] font-semibold underline decoration-[color:var(--lx-gold)] underline-offset-4 hover:text-[color:var(--lx-gold)] transition"
               >
                 {L.verMas}
               </a>
@@ -353,8 +363,8 @@ function Sidebar({
   setModal: (value: any) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-yellow-500/20 bg-black/25 p-5">
-      <h3 className="text-xl md:text-2xl font-bold text-yellow-300 mb-4">
+    <div className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 p-5 shadow-[0_14px_34px_rgba(42,36,22,0.08)]">
+      <h3 className="text-xl md:text-2xl font-bold text-[color:var(--lx-text)] mb-4">
         {title}
       </h3>
 
@@ -363,10 +373,10 @@ function Sidebar({
           <button
             type="button"
             key={`${a?.title ?? "item"}-${i}`}
-            className="w-full text-left p-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
+            className="w-full text-left p-3 rounded-2xl border border-black/10 bg-white/60 hover:bg-white/80 transition"
             onClick={() => setModal(a)}
           >
-            <p className="text-yellow-200 font-semibold leading-snug line-clamp-3">
+            <p className="text-[color:var(--lx-text-2)] font-semibold leading-snug line-clamp-3">
               {a.title}
             </p>
           </button>

@@ -29,7 +29,7 @@ export default function CouponCard({
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-[#111]/60 backdrop-blur-md border border-[#FFD700]/40 rounded-xl shadow-xl p-5 flex flex-col gap-4 text-white"
+      className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_18px_48px_rgba(42,36,22,0.10)] p-5 flex flex-col gap-4 text-[color:var(--lx-text)]"
     >
       {/* IMAGE */}
       <div className="w-full h-48 relative rounded-lg overflow-hidden shadow-lg">
@@ -42,29 +42,29 @@ export default function CouponCard({
       </div>
 
       {/* TITLE */}
-      <h2 className="text-xl font-bold text-[#FFD700] tracking-wide">
+      <h2 className="text-xl font-bold text-[color:var(--lx-text)] tracking-tight">
         {title}
       </h2>
 
       {/* BUSINESS NAME */}
-      <p className="text-md text-gray-200 font-semibold">
+      <p className="text-md text-[color:var(--lx-text-2)]/90 font-semibold">
         {business}
       </p>
 
       {/* DESCRIPTION */}
       {description && (
-        <p className="text-sm text-gray-300">{description}</p>
+        <p className="text-sm text-[color:var(--lx-muted)]">{description}</p>
       )}
 
       {/* EXPIRATION */}
       {expiration && (
-        <p className="text-xs text-red-300 font-semibold">
+        <p className="text-xs text-[color:var(--lx-text-2)] font-semibold">
           {lang === "es" ? "Expira:" : "Expires:"} {expiration}
         </p>
       )}
 
       {/* CONTACT INFO */}
-      <div className="text-xs text-gray-300 mt-2 space-y-1">
+      <div className="text-xs text-[color:var(--lx-muted)] mt-2 space-y-1">
         {phone && (
           <p>
             <span className="font-semibold">{lang === "es" ? "Teléfono:" : "Phone:"}</span>{" "}

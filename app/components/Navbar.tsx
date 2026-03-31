@@ -389,7 +389,7 @@ function NavbarContent() {
                   <span className="text-[color:var(--lx-text)] text-xs max-w-[140px] truncate">
                     {accountLabel}
                   </span>
-                  <span className="hidden sm:inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-600/10 px-2 py-0.5 text-[10px] text-yellow-200/90">
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)]">
                     {planLabel(membershipBadge, lang)}
                   </span>
                   <span className="text-[color:var(--lx-nav-fg-muted)] text-xs">{accountOpen ? "▲" : "▼"}</span>

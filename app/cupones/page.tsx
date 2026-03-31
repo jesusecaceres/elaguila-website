@@ -31,11 +31,12 @@ export default function CuponesPage() {
   ];
 
   return (
-    <main className="min-h-screen w-full bg-black text-white">
+    <main className="min-h-screen w-full bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="pt-28 px-6 pb-20 max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-yellow-400 mb-8">
-          Cupones
-        </h1>
+        <h1 className="text-4xl font-bold text-[color:var(--lx-text)] mb-2">Cupones</h1>
+        <p className="text-[color:var(--lx-muted)] mb-8">
+          Ofertas locales con estilo Leonix — claras, cálidas y fáciles de leer.
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {coupons.map((c, i) => (

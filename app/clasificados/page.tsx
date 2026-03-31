@@ -22,19 +22,26 @@ export default function ClasificadosPage() {
   const withLang = (path: string) => appendLangToPath(path, lang);
 
   return (
-    <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pb-24 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.14),transparent_65%)]">
+    <div
+      className="min-h-screen text-[color:var(--lx-text)] pb-24"
+      style={{
+        backgroundColor: "var(--lx-page)",
+        backgroundImage:
+          "radial-gradient(ellipse at top, rgba(201, 180, 106, 0.18), transparent 65%)",
+      }}
+    >
       <section className="mx-auto max-w-6xl px-6 pt-28">
-        <div className="rounded-3xl border border-[#D8C79A]/70 bg-[#FFFDF7] p-6 shadow-[0_18px_48px_rgba(113,84,22,0.10)] sm:p-8">
+        <div className="rounded-3xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-[0_18px_48px_rgba(42,36,22,0.10)] sm:p-8">
           <div className="flex flex-wrap justify-end gap-2">
             <a
               href={withLang(t.routeLogin)}
-              className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF0DA] transition"
+              className="rounded-lg border border-[color:var(--lx-nav-border)] bg-white/60 px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-white/80 transition"
             >
               {t.authSignIn}
             </a>
             <a
               href={withLang(t.routeLogin)}
-              className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20 transition"
+              className="rounded-lg border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-active)] transition"
             >
               {t.authCreate}
             </a>
@@ -43,32 +50,32 @@ export default function ClasificadosPage() {
           <div className="mt-4 text-center">
             <Image src={newLogo} alt="LEONIX" width={280} className="mx-auto mb-5" />
 
-            <h1 className="text-5xl font-extrabold tracking-tight text-[#3D2C12] md:text-6xl">{t.pageTitle}</h1>
-            <p className="mx-auto mt-4 max-w-3xl text-lg text-[#5D4A25]/85 md:text-xl">{t.subtitle}</p>
+            <h1 className="text-5xl font-extrabold tracking-tight text-[color:var(--lx-text)] md:text-6xl">{t.pageTitle}</h1>
+            <p className="mx-auto mt-4 max-w-3xl text-lg text-[color:var(--lx-text-2)]/85 md:text-xl">{t.subtitle}</p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <a
                 href={postEntryHref}
-                className="rounded-full border border-[#B28A2F]/55 bg-[#B28A2F]/18 px-5 py-2.5 text-sm font-bold text-[#6E4E18] shadow-sm hover:bg-[#B28A2F]/26 transition"
+                className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-active)] px-5 py-2.5 text-sm font-bold text-[color:var(--lx-text)] shadow-sm hover:bg-[color:var(--lx-nav-hover)] transition"
               >
                 {t.ctaPost}
               </a>
               <a
                 href="#categorias"
-                className="rounded-full border border-[#D8C79A]/75 bg-[#FFFCF4] px-5 py-2.5 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF0DA] transition"
+                className="rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-white/80 transition"
               >
                 {lang === "es" ? "Explorar categorías" : "Explore categories"}
               </a>
             </div>
 
-            <div className="mx-auto mt-6 max-w-3xl text-sm text-[#5D4A25]/80">{t.trustLine}</div>
+            <div className="mx-auto mt-6 max-w-3xl text-sm text-[color:var(--lx-muted)]">{t.trustLine}</div>
           </div>
         </div>
       </section>
 
       <section id="categorias" className="mx-auto mt-10 max-w-6xl px-6">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="text-3xl font-bold text-[#3D2C12] md:text-4xl">{t.sectionBrowse}</h2>
+          <h2 className="text-3xl font-bold text-[color:var(--lx-text)] md:text-4xl">{t.sectionBrowse}</h2>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
