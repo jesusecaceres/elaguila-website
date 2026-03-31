@@ -79,6 +79,37 @@ export default function ClasificadosPage() {
           <h2 className="text-3xl font-bold text-[color:var(--lx-text)] md:text-4xl">{t.sectionBrowse}</h2>
         </div>
 
+        {/* Mobile-only: impossible-to-miss Bienes Raíces lane (browse + publish). Grid BR card hidden below md to avoid duplicates. */}
+        <div className="mt-5 md:hidden">
+          <div className="overflow-hidden rounded-3xl border-2 border-[#C9B46A]/70 bg-gradient-to-br from-[#2A2620] via-[#352F28] to-[#1E1810] p-5 shadow-[0_24px_56px_rgba(24,20,16,0.45)]">
+            <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[#C5A059]">
+              {lang === "es" ? "Categoría destacada" : "Featured category"}
+            </p>
+            <h3 className="mt-2 text-center text-2xl font-extrabold tracking-tight text-[#FAF7F2]">
+              🏘️ {lang === "es" ? "Bienes Raíces" : "Real estate"}
+            </h3>
+            <p className="mt-2 text-center text-sm font-medium leading-relaxed text-[#E8DFD0]/92">
+              {lang === "es"
+                ? "Explora casas, terrenos y comerciales — o publica tu anuncio profesional o particular."
+                : "Browse homes, land, and commercial — or post your professional or private listing."}
+            </p>
+            <div className="mt-5 flex flex-col gap-3">
+              <Link
+                href={buildHubCategoryPageUrl("bienes-raices", lang)}
+                className="flex min-h-[52px] w-full items-center justify-center rounded-2xl border-2 border-[#C9B46A]/55 bg-[#FAF7F2] px-4 py-3 text-center text-base font-extrabold text-[#1E1810] shadow-md active:scale-[0.99]"
+              >
+                {lang === "es" ? "→ Explorar Bienes Raíces" : "→ Browse real estate"}
+              </Link>
+              <Link
+                href={withLang(BR_PUBLICAR_HUB)}
+                className="flex min-h-[52px] w-full items-center justify-center rounded-2xl border-2 border-[#E8D9A8]/40 bg-gradient-to-br from-[#B8954A] to-[#8A6F3A] px-4 py-3 text-center text-base font-extrabold text-[#1E1810] shadow-lg active:scale-[0.99]"
+              >
+                ✨ {lang === "es" ? "Publicar en Bienes Raíces" : "Post in real estate"}
+              </Link>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {HUB_CATEGORY_ORDER.map((k) => {
             const meta = (t.cat as Record<string, { label: string; hint: string }>)[k];
@@ -89,7 +120,7 @@ export default function ClasificadosPage() {
               return (
                 <div
                   key={k}
-                  className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${visual.tint} ${visual.border} ${visual.glow} transition-all duration-150 hover:-translate-y-0.5`}
+                  className={`hidden md:block group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${visual.tint} ${visual.border} ${visual.glow} transition-all duration-150 hover:-translate-y-0.5`}
                 >
                   <Link href={browseHref} className="relative block px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35 focus:ring-offset-2">
                     <span

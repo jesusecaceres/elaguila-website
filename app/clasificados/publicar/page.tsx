@@ -122,14 +122,37 @@ export default function PublicarRootPage() {
             </div>
           </div>
 
-          <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Mobile-only: primary Bienes Raíces publish lane above the category grid. */}
+          <div className="mt-6 md:hidden">
+            <div className="overflow-hidden rounded-3xl border-2 border-[#C9B46A]/70 bg-gradient-to-br from-[#2A2620] via-[#352F28] to-[#1E1810] p-5 shadow-[0_24px_56px_rgba(24,20,16,0.4)]">
+              <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[#C5A059]">
+                {lang === "es" ? "Publicar · destacado" : "Post · featured"}
+              </p>
+              <h2 className="mt-2 text-center text-2xl font-extrabold tracking-tight text-[#FAF7F2]">
+                🏘️ {lang === "es" ? "Bienes Raíces" : "Real estate"}
+              </h2>
+              <p className="mt-2 text-center text-sm font-medium leading-relaxed text-[#E8DFD0]/92">
+                {lang === "es"
+                  ? "Profesional (Negocio) o particular (Privado). Toca para elegir tu camino."
+                  : "Professional (Business) or private seller. Tap to pick your path."}
+              </p>
+              <Link
+                href={`${BR_PUBLICAR_HUB}?lang=${lang}`}
+                className="mt-5 flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-[#E8D9A8]/45 bg-gradient-to-br from-[#B8954A] to-[#8A6F3A] px-4 py-3.5 text-center text-base font-extrabold text-[#1E1810] shadow-lg active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-[#FAF7F2]/40 focus:ring-offset-2 focus:ring-offset-[#2A2620]"
+              >
+                ✨ {lang === "es" ? "Entrar a publicar BR" : "Continue to BR posting"}
+              </Link>
+              <p className="mt-3 text-center text-xs text-[#C9B89A]/90">
+                {lang === "es" ? "Privado + Negocio · un solo toque" : "Private + Business · one tap"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-7 lg:grid-cols-3">
             <Link
               href={`${BR_PUBLICAR_HUB}?lang=${lang}`}
               className={cx(
-                "group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
-                "min-h-[88px] sm:min-h-0",
-                /* Mobile-first: draws the eye to Bienes Raíces without extra duplicated CTAs. */
-                "ring-2 ring-[#C9B46A]/25 ring-offset-2 ring-offset-[#FFFDF7] sm:ring-0 sm:ring-offset-0",
+                "hidden md:block group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
                 LEONIX_CATEGORY_VISUALS["bienes-raices"].tint,
                 LEONIX_CATEGORY_VISUALS["bienes-raices"].border,
