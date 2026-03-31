@@ -13,7 +13,9 @@ const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
 export function ResumenPublicarNegocioSection({ state }: { state: BienesRaicesNegocioFormState }) {
   const adv = state.advertiserType;
   const nPhotos = state.media.photoUrls.filter((u) => u.trim()).length;
-  const nVid = state.media.videoUrls.filter((u) => u.trim()).length;
+  const nVid = state.media.listingVideoSlots.filter(
+    (sl) => sl.status === "ready" || sl.fallbackUrl.trim()
+  ).length;
   const ctasOn = [
     state.cta.permitirSolicitarInfo && "Info",
     state.cta.permitirProgramarVisita && "Visita",

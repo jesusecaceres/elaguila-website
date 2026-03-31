@@ -1,4 +1,8 @@
-import { mergePartialBienesRaicesNegocioState, type BienesRaicesNegocioFormState } from "../schema/bienesRaicesNegocioFormState";
+import {
+  createEmptyBienesRaicesMuxVideoSlot,
+  mergePartialBienesRaicesNegocioState,
+  type BienesRaicesNegocioFormState,
+} from "../schema/bienesRaicesNegocioFormState";
 import { mapBienesRaicesNegocioStateToPreviewVm } from "./mapBienesRaicesNegocioStateToPreviewVm";
 import type { BienesRaicesNegocioPreviewVm } from "./bienesRaicesNegocioPreviewVm";
 
@@ -29,10 +33,16 @@ export function buildBrNegocioDesignerDemoState(): BienesRaicesNegocioFormState 
         "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80&auto=format&fit=crop",
         "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80&auto=format&fit=crop",
       ],
-      coverIndex: 0,
-      videoUrls: [
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80&auto=format&fit=crop",
+      primaryImageIndex: 0,
+      listingVideoSlots: [
+        {
+          ...createEmptyBienesRaicesMuxVideoSlot(0),
+          fallbackUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80&auto=format&fit=crop",
+        },
+        {
+          ...createEmptyBienesRaicesMuxVideoSlot(1),
+          fallbackUrl: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80&auto=format&fit=crop",
+        },
       ],
       virtualTourUrl: "https://example.com/tour",
       floorPlanUrls: ["https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80&auto=format&fit=crop"],

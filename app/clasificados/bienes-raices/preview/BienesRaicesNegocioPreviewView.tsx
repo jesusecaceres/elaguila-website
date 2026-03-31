@@ -1,6 +1,10 @@
 "use client";
 
-import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import { useEffect, useRef } from "react";
+import type {
+  BienesRaicesNegocioPreviewVm,
+  BienesRaicesPreviewQuickFactVm,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -175,6 +179,157 @@ function IconFloor({ className }: { className?: string }) {
   );
 }
 
+const QUICK_FACT_ICONS: Record<BienesRaicesPreviewQuickFactVm["icon"], typeof IconBed> = {
+  bed: IconBed,
+  bath: IconBath,
+  ruler: IconRuler,
+  car: IconCar,
+  calendar: IconCalendar,
+  home: IconHome,
+  pin: IconPin,
+  sparkle: IconSparkle,
+};
+
+function StreamableVideo({ url }: { url: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const isHls = /\.m3u8(\?|$)/i.test(url);
+    if (!isHls) {
+      el.src = url;
+      return () => {
+        el.pause();
+        el.removeAttribute("src");
+      };
+    }
+    let cancelled = false;
+    let hls: { destroy: () => void } | null = null;
+    if (el.canPlayType("application/vnd.apple.mpegurl")) {
+      el.src = url;
+      return () => {
+        el.pause();
+        el.removeAttribute("src");
+      };
+    }
+    void import("hls.js").then(({ default: HlsCtor }) => {
+      if (cancelled || !ref.current) return;
+      if (HlsCtor.isSupported()) {
+        const instance = new HlsCtor({ enableWorker: true });
+        hls = instance;
+        instance.loadSource(url);
+        instance.attachMedia(ref.current!);
+      } else {
+        ref.current!.src = url;
+      }
+    });
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+      const v = ref.current;
+      if (v) {
+        v.pause();
+        v.removeAttribute("src");
+      }
+    };
+  }, [url]);
+  return <video ref={ref} controls playsInline className="aspect-[4/3] w-full object-cover" />;
+}
+
+function GalleryVideoTile({
+  index,
+  vm,
+}: {
+  index: 0 | 1;
+  vm: BienesRaicesNegocioPreviewVm;
+}) {
+  const hasVideo = index === 0 ? vm.media.hasVideo1 : vm.media.hasVideo2;
+  const thumb = vm.media.videoThumbUrls[index] ?? null;
+  const playback = vm.media.videoPlaybackUrls[index] ?? null;
+  const yt = vm.media.youtubeIds[index] ?? null;
+  const watchUrl = yt ? `https://www.youtube.com/watch?v=${yt}` : playback ?? "";
+
+  if (!hasVideo) {
+    return (
+      <div className="aspect-[4/3] w-full">
+        <EmptyMedia
+          title={`Video ${index + 1} (opcional)`}
+          subtitle="Agrega un video en el formulario para activar este bloque."
+          icon={<IconPlay className="h-7 w-7" />}
+        />
+      </div>
+    );
+  }
+
+  if (yt && thumb) {
+    return (
+      <a
+        href={watchUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative block overflow-hidden rounded-2xl border shadow-md"
+        style={{ borderColor: BORDER }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={thumb} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
+            <IconPlay />
+          </div>
+        </div>
+      </a>
+    );
+  }
+
+  if (playback && /\.m3u8|\.mp4(\?|$)|blob:/i.test(playback)) {
+    return (
+      <div className="overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
+        {playback.includes(".m3u8") || playback.startsWith("blob:") ? (
+          <StreamableVideo url={playback} />
+        ) : (
+          <video poster={thumb ?? undefined} controls playsInline className="aspect-[4/3] w-full object-cover" src={playback} />
+        )}
+      </div>
+    );
+  }
+
+  if (thumb && !playback) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={thumb} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
+      </div>
+    );
+  }
+
+  if (playback) {
+    return (
+      <a
+        href={playback}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative block overflow-hidden rounded-2xl border shadow-md"
+        style={{ borderColor: BORDER }}
+      >
+        <div className="flex aspect-[4/3] w-full items-center justify-center bg-black/80 text-center text-xs font-semibold text-white px-2">
+          Ver video en nueva pestaña
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
+            <IconPlay />
+          </div>
+        </div>
+      </a>
+    );
+  }
+
+  return (
+    <div className="aspect-[4/3] w-full">
+      <EmptyMedia title={`Video ${index + 1}`} subtitle="Sin datos de vista previa para este video." icon={<IconPlay className="h-7 w-7" />} />
+    </div>
+  );
+}
+
 function LeonixMark() {
   return (
     <div className="flex flex-col items-center" aria-hidden>
@@ -304,13 +459,11 @@ export function BienesRaicesNegocioPreviewView({
   editHref?: string;
   footerExtra?: string;
 }) {
-  const quickFacts = [
-    { Icon: IconBed, label: "Habitaciones", value: vm.quickFacts.beds },
-    { Icon: IconBath, label: "Baños", value: vm.quickFacts.baths },
-    { Icon: IconRuler, label: "Superficie", value: vm.quickFacts.sqft },
-    { Icon: IconCar, label: "Garajes", value: vm.quickFacts.garage },
-    { Icon: IconCalendar, label: "Construido", value: vm.quickFacts.year },
-  ];
+  const quickFacts = vm.quickFacts.map((qf) => ({
+    Icon: QUICK_FACT_ICONS[qf.icon] ?? IconSparkle,
+    label: qf.label,
+    value: qf.value,
+  }));
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -391,6 +544,9 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.listingStatusLabel}
               </span>
             </div>
+            <p className="mt-2 text-xs font-medium" style={{ color: MUTED }}>
+              {vm.operationSummary}
+            </p>
 
             <div
               className="mt-8 flex flex-wrap gap-3 rounded-2xl border p-4 sm:gap-4 sm:p-5"
@@ -511,33 +667,11 @@ export function BienesRaicesNegocioPreviewView({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 lg:col-span-5">
-              {[0, 1].map((i) => {
-                const hasVideo = i === 0 ? vm.media.hasVideo1 : vm.media.hasVideo2;
-                const thumb = vm.media.videoThumbUrls[i] ?? null;
-                return (
-                  <div key={i} className="relative overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                    {hasVideo && thumb ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={thumb} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
-                            <IconPlay />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="aspect-[4/3] w-full">
-                        <EmptyMedia
-                          title={`Video ${i + 1} (opcional)`}
-                          subtitle="Agrega un video en el formulario para activar este bloque."
-                          icon={<IconPlay className="h-7 w-7" />}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {([0, 1] as const).map((i) => (
+                <div key={i} className="relative" style={{ borderColor: BORDER }}>
+                  <GalleryVideoTile index={i} vm={vm} />
+                </div>
+              ))}
               {vm.media.virtualTourUrl ? (
                 <a
                   href={vm.media.virtualTourUrl}
@@ -596,6 +730,15 @@ export function BienesRaicesNegocioPreviewView({
               <img src={vm.media.floorPlanUrls[0]!} alt="" className="max-h-64 w-full object-contain" />
             </div>
           ) : null}
+          {vm.media.hasSitePlan && vm.media.sitePlanUrl ? (
+            <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+              <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
+                Plano de sitio / comunidad
+              </p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={vm.media.sitePlanUrl} alt="" className="max-h-64 w-full object-contain bg-white" />
+            </div>
+          ) : null}
         </section>
 
         <section className="mt-16 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start lg:gap-10">
@@ -627,7 +770,7 @@ export function BienesRaicesNegocioPreviewView({
               style={{ borderColor: "rgba(255,255,255,0.08)" }}
             >
               <div className="px-5 py-4" style={{ background: CHARCOAL_DEEP }}>
-                <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">Contactar al agente</p>
+                <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
               </div>
               <div className="space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
                 {vm.contact.showSolicitarInfo ? (

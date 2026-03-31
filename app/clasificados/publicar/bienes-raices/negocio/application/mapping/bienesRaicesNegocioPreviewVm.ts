@@ -20,9 +20,18 @@ export type BienesRaicesPreviewIdentityVm = {
   hasSocialLinks: boolean;
 };
 
+export type BienesRaicesPreviewQuickFactVm = {
+  label: string;
+  value: string;
+  icon: "bed" | "bath" | "ruler" | "car" | "calendar" | "home" | "pin" | "sparkle";
+};
+
 export type BienesRaicesPreviewMediaVm = {
   heroUrl: string | null;
   videoThumbUrls: [string | null, string | null];
+  /** HLS / mp4 / direct URLs for inline preview */
+  videoPlaybackUrls: [string | null, string | null];
+  youtubeIds: [string | null, string | null];
   virtualTourUrl: string | null;
   floorPlanUrls: string[];
   sitePlanUrl: string | null;
@@ -33,6 +42,7 @@ export type BienesRaicesPreviewMediaVm = {
   hasVideo2: boolean;
   hasVirtualTour: boolean;
   hasFloorPlans: boolean;
+  hasSitePlan: boolean;
 };
 
 export type BienesRaicesPreviewContactVm = {
@@ -66,13 +76,9 @@ export type BienesRaicesNegocioPreviewVm = {
   addressLine: string;
   priceDisplay: string;
   listingStatusLabel: string;
-  quickFacts: {
-    beds: string;
-    baths: string;
-    sqft: string;
-    garage: string;
-    year: string;
-  };
+  operationSummary: string;
+  quickFacts: BienesRaicesPreviewQuickFactVm[];
+  contactRailTitle: string;
   identity: BienesRaicesPreviewIdentityVm;
   media: BienesRaicesPreviewMediaVm;
   propertyDetailsRows: BienesRaicesPreviewFact[];

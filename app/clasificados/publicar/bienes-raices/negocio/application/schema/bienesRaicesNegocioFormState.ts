@@ -42,12 +42,54 @@ export type DeepDetailGroupKey =
 
 export type DeepDetailsState = Record<DeepDetailGroupKey, Record<string, string>>;
 
+export type BienesRaicesMuxVideoStatus =
+  | "idle"
+  | "requesting_upload"
+  | "uploading"
+  | "preparing"
+  | "ready"
+  | "error";
+
+/** Featured video slot (Mux upload + optional URL fallback). */
+export type BienesRaicesMuxVideoSlotState = {
+  slot: 0 | 1;
+  uploadId: string;
+  assetId: string;
+  playbackId: string;
+  playbackUrl: string;
+  thumbnailUrl: string;
+  durationSeconds: number | null;
+  status: BienesRaicesMuxVideoStatus;
+  progressPct: number;
+  fileName: string;
+  errorMessage: string;
+  fallbackUrl: string;
+};
+
+export function createEmptyBienesRaicesMuxVideoSlot(slot: 0 | 1): BienesRaicesMuxVideoSlotState {
+  return {
+    slot,
+    uploadId: "",
+    assetId: "",
+    playbackId: "",
+    playbackUrl: "",
+    thumbnailUrl: "",
+    durationSeconds: null,
+    status: "idle",
+    progressPct: 0,
+    fileName: "",
+    errorMessage: "",
+    fallbackUrl: "",
+  };
+}
+
 export type BienesRaicesNegocioFormState = {
   advertiserType: BienesRaicesAdvertiserType;
   publicationType: BienesRaicesPublicationType;
 
   titulo: string;
   precio: string;
+  /** @deprecated Derived from publication type + listing status; kept for sessionStorage only */
   tipoOperacion: string;
   direccion: string;
   ciudad: string;
@@ -86,8 +128,9 @@ export type BienesRaicesNegocioFormState = {
 
   media: {
     photoUrls: string[];
-    coverIndex: number;
-    videoUrls: string[];
+    /** Cover photo index in `photoUrls` (visual portada in form). */
+    primaryImageIndex: number;
+    listingVideoSlots: [BienesRaicesMuxVideoSlotState, BienesRaicesMuxVideoSlotState];
     virtualTourUrl: string;
     floorPlanUrls: string[];
     sitePlanUrl: string;
@@ -138,6 +181,7 @@ export type BienesRaicesNegocioFormState = {
     agentePrincipalRol: string;
     segundoAgenteNombre: string;
     segundoAgenteRol: string;
+    segundoAgenteTelefono: string;
   };
 
   identityOficina: {
@@ -409,8 +453,8 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     invIngresoEstimado: "",
     media: {
       photoUrls: [],
-      coverIndex: 0,
-      videoUrls: [],
+      primaryImageIndex: 0,
+      listingVideoSlots: [createEmptyBienesRaicesMuxVideoSlot(0), createEmptyBienesRaicesMuxVideoSlot(1)],
       virtualTourUrl: "",
       floorPlanUrls: [],
       sitePlanUrl: "",
@@ -453,6 +497,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       agentePrincipalRol: "",
       segundoAgenteNombre: "",
       segundoAgenteRol: "",
+      segundoAgenteTelefono: "",
     },
     identityOficina: {
       nombreOficina: "",
@@ -534,7 +579,85 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
 type LegacyPartial = Partial<BienesRaicesNegocioFormState> & {
   customHighlights?: string[];
   identityAgente?: Partial<BienesRaicesNegocioFormState["identityAgente"]> & { asesorFinancieroActivo?: boolean };
+  media?: Partial<BienesRaicesNegocioFormState["media"]> & {
+    coverIndex?: number;
+    videoUrls?: string[];
+  };
 };
+
+/** Normalize media from drafts (primaryImageIndex, Mux slots, legacy coverIndex / videoUrls). */
+export function normalizeBienesRaicesNegocioMedia(
+  raw: unknown,
+  base: BienesRaicesNegocioFormState["media"]
+): BienesRaicesNegocioFormState["media"] {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const photoUrls = Array.isArray(r.photoUrls) ? ([...(r.photoUrls as string[])] as string[]) : [...base.photoUrls];
+  const floorPlanUrls = Array.isArray(r.floorPlanUrls)
+    ? ([...(r.floorPlanUrls as string[])] as string[])
+    : [...base.floorPlanUrls];
+  const photoCaptions = Array.isArray(r.photoCaptions)
+    ? ([...(r.photoCaptions as string[])] as string[])
+    : [...base.photoCaptions];
+
+  let primaryImageIndex =
+    typeof r.primaryImageIndex === "number"
+      ? r.primaryImageIndex
+      : typeof r.coverIndex === "number"
+        ? r.coverIndex
+        : base.primaryImageIndex;
+  if (photoUrls.length === 0) primaryImageIndex = 0;
+  else primaryImageIndex = Math.min(Math.max(0, primaryImageIndex), photoUrls.length - 1);
+
+  let slot0 = createEmptyBienesRaicesMuxVideoSlot(0);
+  let slot1 = createEmptyBienesRaicesMuxVideoSlot(1);
+  const existingSlots = r.listingVideoSlots;
+  if (Array.isArray(existingSlots) && existingSlots.length >= 2) {
+    slot0 = { ...slot0, ...(existingSlots[0] as Partial<BienesRaicesMuxVideoSlotState>) };
+    slot1 = { ...slot1, ...(existingSlots[1] as Partial<BienesRaicesMuxVideoSlotState>) };
+  }
+  slot0.slot = 0;
+  slot1.slot = 1;
+
+  const legacyVideos = Array.isArray(r.videoUrls) ? (r.videoUrls as string[]) : [];
+  if (slot0.status === "idle" && !String(slot0.fallbackUrl ?? "").trim() && legacyVideos[0]?.trim()) {
+    slot0 = { ...slot0, fallbackUrl: legacyVideos[0]!.trim() };
+  }
+  if (slot1.status === "idle" && !String(slot1.fallbackUrl ?? "").trim() && legacyVideos[1]?.trim()) {
+    slot1 = { ...slot1, fallbackUrl: legacyVideos[1]!.trim() };
+  }
+
+  return {
+    photoUrls,
+    primaryImageIndex,
+    listingVideoSlots: [slot0, slot1],
+    virtualTourUrl: typeof r.virtualTourUrl === "string" ? r.virtualTourUrl : base.virtualTourUrl,
+    floorPlanUrls,
+    sitePlanUrl: typeof r.sitePlanUrl === "string" ? r.sitePlanUrl : base.sitePlanUrl,
+    photoCaptions,
+  };
+}
+
+/** Defaults for listing badge + deprecated `tipoOperacion` when user picks publication type (paso 2). */
+export function syncNegocioListingFieldsFromPublication(
+  pub: BienesRaicesPublicationType
+): Pick<BienesRaicesNegocioFormState, "listingStatus" | "tipoOperacion"> {
+  switch (pub) {
+    case "residencial_renta":
+      return { listingStatus: "en_renta", tipoOperacion: "Renta residencial" };
+    case "residencial_venta":
+      return { listingStatus: "en_venta", tipoOperacion: "Venta residencial" };
+    case "comercial":
+      return { listingStatus: "en_venta", tipoOperacion: "Comercial" };
+    case "terreno":
+      return { listingStatus: "en_venta", tipoOperacion: "Terreno / lote" };
+    case "proyecto_nuevo":
+      return { listingStatus: "preconstruccion", tipoOperacion: "Proyecto nuevo" };
+    case "multifamiliar_inversion":
+      return { listingStatus: "en_venta", tipoOperacion: "Multifamiliar / inversión" };
+    default:
+      return { listingStatus: "en_venta", tipoOperacion: "" };
+  }
+}
 
 export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): BienesRaicesNegocioFormState {
   const base = createEmptyBienesRaicesNegocioFormState();
@@ -549,7 +672,7 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
   return {
     ...base,
     ...partial,
-    media: { ...base.media, ...partial.media },
+    media: normalizeBienesRaicesNegocioMedia({ ...base.media, ...partial.media }, base.media),
     highlightPresets: { ...base.highlightPresets, ...partial.highlightPresets },
     customHighlightsText:
       typeof partial.customHighlightsText === "string"

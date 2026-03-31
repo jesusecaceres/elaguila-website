@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -49,12 +49,20 @@ const STEP_LABELS = [
 
 const TOTAL = STEP_LABELS.length;
 
+function stepLabelsForAdvertiser(adv: string): string[] {
+  const labels = [...STEP_LABELS] as string[];
+  if (adv === "equipo_agentes") labels[9] = "Miembro adicional del equipo";
+  if (adv === "oficina_brokerage" || adv === "constructor_desarrollador") labels[9] = "Segundo contacto (identidad)";
+  return labels;
+}
+
 export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [state, setState] = useState(takeBienesRaicesNegocioPreviewReturnInitialState);
 
-  const stepLabel = STEP_LABELS[step] ?? "";
+  const navStepLabels = useMemo(() => stepLabelsForAdvertiser(state.advertiserType), [state.advertiserType]);
+  const stepLabel = navStepLabels[step] ?? "";
 
   const canGoBack = step > 0;
   const canGoNext = step < TOTAL - 1;
@@ -100,8 +108,8 @@ export default function BienesRaicesNegocioApplication() {
             <nav className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-3 shadow-sm">
               <p className="px-2 pb-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/75">Pasos</p>
               <ol className="max-h-[50vh] space-y-1 overflow-y-auto text-sm lg:max-h-[calc(100vh-8rem)]">
-                {STEP_LABELS.map((label, i) => (
-                  <li key={label}>
+                {navStepLabels.map((label, i) => (
+                  <li key={`${label}-${i}`}>
                     <button
                       type="button"
                       onClick={() => setStep(i)}

@@ -3,12 +3,14 @@
  * Único lugar donde el estado del formulario se convierte en `BienesRaicesNegocioPreviewVm`.
  */
 import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType, DeepDetailGroupKey } from "../schema/bienesRaicesNegocioFormState";
+import { deepDetailGroupsForPublication } from "../schema/brNegocioBranching";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../schema/brDeepDetailMeta";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "../schema/brHighlightMeta";
 import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewDeepBlockVm,
   BienesRaicesPreviewFact,
+  BienesRaicesPreviewQuickFactVm,
 } from "./bienesRaicesNegocioPreviewVm";
 
 const LISTING_STATUS_LABEL: Record<string, string> = {
@@ -68,35 +70,158 @@ function buildAddress(s: BienesRaicesNegocioFormState): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
+function publicationOperationSummary(s: BienesRaicesNegocioFormState): string {
+  const pub = s.publicationType;
+  const map: Record<string, string> = {
+    residencial_venta: "Venta residencial",
+    residencial_renta: "Renta residencial",
+    comercial: "Inmueble comercial",
+    terreno: "Terreno / lote",
+    proyecto_nuevo: "Proyecto nuevo",
+    multifamiliar_inversion: "Multifamiliar / inversión",
+  };
+  const base = pub ? map[pub] ?? "—" : "—";
+  if (s.listingStatus === "bajo_contrato") return `${base} · ${LISTING_STATUS_LABEL.bajo_contrato}`;
+  return base;
+}
+
 function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
+  const pub = s.publicationType;
   const rows: BienesRaicesPreviewFact[] = [
     { label: "Tipo", value: trim(s.tipoPropiedad) || "—" },
     { label: "Subtipo", value: trim(s.propertySubtype) || "—" },
-    { label: "Operación", value: trim(s.tipoOperacion) || "—" },
+    { label: "Operación", value: publicationOperationSummary(s) },
+  ];
+
+  if (pub === "terreno") {
+    rows.push(
+      { label: "Tamaño del lote", value: trim(s.tamanoLote) || "—" },
+      { label: "Dimensiones / frente", value: trim(s.deepDetails.loteTerreno.dimensiones) || "—" },
+      { label: "Zonificación", value: trim(s.deepDetails.loteTerreno.zonificacion) || "—" },
+      { label: "Uso de suelo", value: trim(s.deepDetails.loteTerreno.usoSuelo) || "—" },
+      {
+        label: "Servicios",
+        value:
+          [trim(s.deepDetails.utilidades.agua), trim(s.deepDetails.utilidades.electricidad), trim(s.deepDetails.utilidades.alcantarillado)]
+            .filter(Boolean)
+            .join(", ") || "—",
+      }
+    );
+    return rows;
+  }
+
+  if (pub === "comercial") {
+    rows.push(
+      { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
+      { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos) },
+      { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
+      { label: "Uso", value: trim(s.deepDetails.tipoYEstilo.uso) || "—" },
+      { label: "Niveles", value: trim(s.niveles) || "—" },
+      { label: "Condición", value: trim(s.condicion) || "—" }
+    );
+    if (trim(s.amueblado)) rows.push({ label: "Amueblado", value: trim(s.amueblado) });
+    if (trim(s.hoaSiNo)) rows.push({ label: "HOA", value: trim(s.hoaSiNo) });
+    if (trim(s.cuotaHoa)) rows.push({ label: "Cuota HOA", value: trim(s.cuotaHoa) });
+    return rows;
+  }
+
+  if (pub === "multifamiliar_inversion") {
+    rows.push(
+      { label: "Unidades", value: trim(s.invNumUnidades) || "—" },
+      { label: "Ocupación", value: trim(s.invOcupacion) || "—" },
+      { label: "Renta actual", value: trim(s.invRentaActual) || "—" },
+      { label: "Cap rate", value: trim(s.invCapRate) || "—" },
+      { label: "Ingreso estimado", value: trim(s.invIngresoEstimado) || "—" },
+      { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
+      { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" }
+    );
+    return rows;
+  }
+
+  if (pub === "proyecto_nuevo") {
+    rows.push(
+      { label: "Recámaras", value: trim(s.recamaras) || "—" },
+      { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos) },
+      { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
+      { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
+      { label: "Comunidad", value: trim(s.proyectoComunidad) || "—" },
+      {
+        label: "Modelo / fase",
+        value: [trim(s.proyectoModelo), trim(s.proyectoEtapa)].filter(Boolean).join(" · ") || "—",
+      },
+      { label: "Entrega estimada", value: trim(s.proyectoEntregaEstimada) || "—" },
+      { label: "Unidades disponibles", value: trim(s.proyectoUnidadesDisponibles) || "—" }
+    );
+    return rows;
+  }
+
+  rows.push(
     { label: "Recámaras", value: trim(s.recamaras) || "—" },
     { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos) },
     { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
     { label: "Lote", value: trim(s.tamanoLote) || "—" },
     { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
     { label: "Condición", value: trim(s.condicion) || "—" },
-    { label: "HOA", value: trim(s.hoaSiNo) || "—" },
-  ];
+    { label: "HOA", value: trim(s.hoaSiNo) || "—" }
+  );
   if (trim(s.cuotaHoa)) rows.push({ label: "Cuota HOA", value: trim(s.cuotaHoa) });
-  if (s.publicationType === "proyecto_nuevo") {
-    rows.push(
-      { label: "Comunidad / desarrollo", value: trim(s.proyectoComunidad) || "—" },
-      { label: "Modelo", value: trim(s.proyectoModelo) || "—" },
-      { label: "Etapa", value: trim(s.proyectoEtapa) || "—" }
-    );
-  }
-  if (s.publicationType === "multifamiliar_inversion") {
-    rows.push(
-      { label: "Unidades", value: trim(s.invNumUnidades) || "—" },
-      { label: "Ocupación", value: trim(s.invOcupacion) || "—" },
-      { label: "Renta actual", value: trim(s.invRentaActual) || "—" }
-    );
-  }
   return rows;
+}
+
+function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQuickFactVm[] {
+  const pub = s.publicationType;
+  if (pub === "terreno") {
+    return [
+      { label: "Lote", value: trim(s.tamanoLote) || "—", icon: "ruler" },
+      {
+        label: "Zona",
+        value: trim(s.deepDetails.loteTerreno.zonificacion) || trim(s.propertySubtype) || "—",
+        icon: "pin",
+      },
+      { label: "Frente / forma", value: trim(s.deepDetails.loteTerreno.dimensiones) || "—", icon: "home" },
+      { label: "Topografía", value: trim(s.deepDetails.loteTerreno.topografia) || "—", icon: "sparkle" },
+      {
+        label: "Servicios",
+        value:
+          [trim(s.deepDetails.utilidades.agua), trim(s.deepDetails.utilidades.electricidad)].filter(Boolean).join(" · ") || "—",
+        icon: "sparkle",
+      },
+    ];
+  }
+  if (pub === "comercial") {
+    return [
+      { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+      { label: "Uso", value: trim(s.deepDetails.tipoYEstilo.uso) || "—", icon: "home" },
+      { label: "Estacionamientos", value: trim(s.estacionamientos) || "—", icon: "car" },
+      { label: "Niveles", value: trim(s.niveles) || "—", icon: "calendar" },
+      { label: "Condición", value: trim(s.condicion) || "—", icon: "sparkle" },
+    ];
+  }
+  if (pub === "multifamiliar_inversion") {
+    return [
+      { label: "Unidades", value: trim(s.invNumUnidades) || "—", icon: "home" },
+      { label: "Ocupación", value: trim(s.invOcupacion) || "—", icon: "sparkle" },
+      { label: "Renta actual", value: trim(s.invRentaActual) || "—", icon: "calendar" },
+      { label: "Cap rate", value: trim(s.invCapRate) || "—", icon: "ruler" },
+      { label: "Área", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+    ];
+  }
+  if (pub === "proyecto_nuevo") {
+    return [
+      { label: "Modelo", value: trim(s.proyectoModelo) || "—", icon: "home" },
+      { label: "Fase", value: trim(s.proyectoEtapa) || "—", icon: "calendar" },
+      { label: "Entrega", value: trim(s.proyectoEntregaEstimada) || "—", icon: "calendar" },
+      { label: "Desde (pies²)", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+      { label: "Disponibles", value: trim(s.proyectoUnidadesDisponibles) || "—", icon: "sparkle" },
+    ];
+  }
+  return [
+    { label: "Habitaciones", value: trim(s.recamaras) || "—", icon: "bed" },
+    { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos), icon: "bath" },
+    { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+    { label: "Garajes", value: trim(s.estacionamientos) || "—", icon: "car" },
+    { label: "Construido", value: trim(s.anioConstruccion) || "—", icon: "calendar" },
+  ];
 }
 
 function buildHighlights(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
@@ -114,7 +239,7 @@ function buildHighlights(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFa
 }
 
 function buildDeepBlocks(s: BienesRaicesNegocioFormState): BienesRaicesPreviewDeepBlockVm[] {
-  const keys = Object.keys(BR_DEEP_HEADINGS) as DeepDetailGroupKey[];
+  const keys = deepDetailGroupsForPublication(s.publicationType);
   return keys.map((key) => {
     const bullets = bulletsFromGroup(key, s.deepDetails[key], BR_DEEP_FIELD_LABELS[key]);
     return {
@@ -141,6 +266,21 @@ function primaryPhone(s: BienesRaicesNegocioFormState, adv: BienesRaicesAdvertis
   }
 }
 
+function contactRailTitle(adv: BienesRaicesAdvertiserType): string {
+  switch (adv) {
+    case "equipo_agentes":
+      return "Contactar al equipo";
+    case "oficina_brokerage":
+      return "Contactar a la oficina";
+    case "constructor_desarrollador":
+      return "Contactar al desarrollador";
+    case "agente_individual":
+      return "Contactar al agente";
+    default:
+      return "Contacto";
+  }
+}
+
 function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm["identity"] {
   const adv = s.advertiserType;
   const trust = s.trust;
@@ -149,16 +289,17 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const ie = s.identityEquipo;
     const social = ie.redes.map(trim).filter(Boolean).slice(0, 5);
     const photoUrl = trim(ie.imagenUrl) || null;
+    const lead = trim(ie.agentePrincipalNombre);
     return {
       photoUrl,
       name: trim(ie.nombreEquipo) || "Equipo",
-      role: "Equipo de agentes",
+      role: lead ? `Equipo · liderazgo: ${lead}` : "Equipo de agentes",
       brokerageName: trust.mostrarBrokerage ? trim(ie.brokerage) || "—" : "—",
       brokerageLogoUrl: trim(ie.logoUrl) || null,
       verifiedLine: "Equipo profesional Leonix",
-      licenseLine: "",
+      licenseLine: trim(ie.agentePrincipalRol) ? `Rol principal: ${trim(ie.agentePrincipalRol)}` : "",
       socialChips: trust.mostrarRedes ? social : [],
-      profileCtaLabel: "Ver perfil profesional →",
+      profileCtaLabel: "Ver perfil del equipo →",
       hasPhoto: Boolean(photoUrl),
       hasSocialLinks: social.length > 0,
     };
@@ -168,16 +309,17 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const io = s.identityOficina;
     const social = io.redes.map(trim).filter(Boolean);
     const photoUrl = trim(io.logoUrl) || null;
+    const lead = trim(io.contactoPrincipal);
     return {
       photoUrl,
       name: trim(io.nombreOficina) || "Oficina",
-      role: "Brokerage",
+      role: lead ? `Oficina · ${lead}` : "Brokerage",
       brokerageName: trust.mostrarBrokerage ? trim(io.nombreOficina) : "—",
       brokerageLogoUrl: trim(io.logoUrl) || null,
       verifiedLine: "Oficina verificada",
-      licenseLine: trim(io.contactoPrincipal),
+      licenseLine: trim(io.direccionOficina),
       socialChips: trust.mostrarRedes && social.length ? social : [],
-      profileCtaLabel: "Ver perfil profesional →",
+      profileCtaLabel: "Ver oficina →",
       hasPhoto: Boolean(photoUrl),
       hasSocialLinks: social.length > 0,
     };
@@ -187,13 +329,14 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const ic = s.identityConstructor;
     const social = ic.redes.map(trim).filter(Boolean);
     const photoUrl = trim(ic.logoUrl) || null;
+    const entrega = trim(ic.entregaEstimada);
     return {
       photoUrl,
       name: trim(ic.nombreDesarrollador) || "Desarrollador",
       role: trim(ic.proyectoNombre) || "Proyecto nuevo",
       brokerageName: trust.mostrarBrokerage ? trim(ic.proyectoNombre) : trim(ic.nombreDesarrollador),
       brokerageLogoUrl: trim(ic.logoUrl) || null,
-      verifiedLine: "Desarrollador",
+      verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollador",
       licenseLine: trim(ic.estadoDesarrollo),
       socialChips: trust.mostrarRedes && social.length ? social : [],
       profileCtaLabel: "Ver centro de ventas →",
@@ -229,7 +372,7 @@ function buildSecondAgentVm(s: BienesRaicesNegocioFormState): BienesRaicesNegoci
     return {
       name: n,
       role: trim(s.identityEquipo.segundoAgenteRol) || "Agente",
-      phone: primaryPhone(s, adv) || "—",
+      phone: trim(s.identityEquipo.segundoAgenteTelefono) || primaryPhone(s, adv) || "—",
       photoUrl: null,
     };
   }
@@ -243,11 +386,30 @@ function buildSecondAgentVm(s: BienesRaicesNegocioFormState): BienesRaicesNegoci
       photoUrl: trim(sg.fotoUrl) || null,
     };
   }
+  if (adv === "oficina_brokerage") {
+    const sec = trim(s.identityOficina.contactoSecundario);
+    if (!sec) return null;
+    return {
+      name: sec,
+      role: "Contacto adicional",
+      phone: trim(s.identityOficina.telPrincipal) || "—",
+      photoUrl: null,
+    };
+  }
+  if (adv === "constructor_desarrollador") {
+    const sec = trim(s.identityConstructor.contactoSecundario);
+    if (!sec) return null;
+    return {
+      name: sec,
+      role: "Equipo de ventas",
+      phone: trim(s.identityConstructor.tel) || "—",
+      photoUrl: null,
+    };
+  }
   return null;
 }
 
 function buildLenderVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm["contact"]["lender"] {
-  const adv = s.advertiserType;
   const a = s.asesorFinanciero;
   if (!trim(a.nombre)) return null;
   if (!s.asesorFinancieroActivo) return null;
@@ -259,9 +421,35 @@ function buildLenderVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   };
 }
 
+function extractYoutubeId(url: string): string | null {
+  const u = trim(url);
+  const m = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.exec(u);
+  return m?.[1] ?? null;
+}
+
+function resolveNegocioVideoSlot(slot: BienesRaicesNegocioFormState["media"]["listingVideoSlots"][0]): {
+  thumb: string | null;
+  playback: string | null;
+  youtubeId: string | null;
+} {
+  if (slot.status === "ready" && trim(slot.playbackUrl)) {
+    return { thumb: trim(slot.thumbnailUrl) || null, playback: trim(slot.playbackUrl), youtubeId: null };
+  }
+  const fb = trim(slot.fallbackUrl);
+  if (!fb) return { thumb: null, playback: null, youtubeId: null };
+  const yt = extractYoutubeId(fb);
+  if (yt) return { thumb: `https://img.youtube.com/vi/${yt}/hqdefault.jpg`, playback: fb, youtubeId: yt };
+  if (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(fb)) return { thumb: fb, playback: null, youtubeId: null };
+  return { thumb: null, playback: fb, youtubeId: null };
+}
+
 function mediaMetaLine(s: BienesRaicesNegocioFormState): string {
   const nPhotos = s.media.photoUrls.filter((u) => trim(u)).length;
-  const nVid = s.media.videoUrls.filter((u) => trim(u)).length;
+  let nVid = 0;
+  for (const slot of s.media.listingVideoSlots) {
+    const r = resolveNegocioVideoSlot(slot);
+    if (r.playback || r.thumb || r.youtubeId) nVid += 1;
+  }
   const tour = trim(s.media.virtualTourUrl) ? 1 : 0;
   const nFp = s.media.floorPlanUrls.filter((u) => trim(u)).length;
   const parts: string[] = [];
@@ -269,17 +457,26 @@ function mediaMetaLine(s: BienesRaicesNegocioFormState): string {
   parts.push(`${Math.min(nVid, 2)} videos`);
   if (tour) parts.push("Tour virtual");
   if (nFp) parts.push("Planos");
+  if (trim(s.media.sitePlanUrl) && s.advertiserType === "constructor_desarrollador") parts.push("Plano de sitio");
   return parts.join(" · ");
 }
 
 /** Maps application state → preview view-model (single entry point for preview rendering). */
 export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm {
   const photos = s.media.photoUrls.map(trim).filter(Boolean);
-  const cover = Math.min(Math.max(0, s.media.coverIndex), Math.max(0, photos.length - 1));
+  const cover = Math.min(Math.max(0, s.media.primaryImageIndex), Math.max(0, photos.length - 1));
   const heroUrl = photos.length ? photos[cover]! : null;
-  const v1 = trim(s.media.videoUrls[0] ?? "");
-  const v2 = trim(s.media.videoUrls[1] ?? "");
-  const videoThumbUrls: [string | null, string | null] = [v1 || null, v2 || null];
+
+  const r0 = resolveNegocioVideoSlot(s.media.listingVideoSlots[0]);
+  const r1 = resolveNegocioVideoSlot(s.media.listingVideoSlots[1]);
+  const videoThumbUrls: [string | null, string | null] = [r0.thumb, r1.thumb];
+  const videoPlaybackUrls: [string | null, string | null] = [
+    r0.youtubeId ? null : r0.playback,
+    r1.youtubeId ? null : r1.playback,
+  ];
+  const youtubeIds: [string | null, string | null] = [r0.youtubeId, r1.youtubeId];
+  const hasVideo1 = Boolean(r0.playback || r0.thumb || r0.youtubeId);
+  const hasVideo2 = Boolean(r1.playback || r1.thumb || r1.youtubeId);
 
   const descLong = trim(s.descripcionLarga);
   const descShort = trim(s.descripcionCorta);
@@ -293,32 +490,32 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
 
   const floorPlans = s.media.floorPlanUrls.map(trim).filter(Boolean).slice(0, 3);
   const virtualTourUrl = trim(s.media.virtualTourUrl) || null;
+  const sitePlanUrl = s.advertiserType === "constructor_desarrollador" ? trim(s.media.sitePlanUrl) || null : null;
 
   return {
     heroTitle: trim(s.titulo) || "Título del anuncio",
     addressLine: buildAddress(s),
     priceDisplay: formatPrice(s.precio),
     listingStatusLabel: LISTING_STATUS_LABEL[s.listingStatus] ?? "En venta",
-    quickFacts: {
-      beds: trim(s.recamaras) || "—",
-      baths: bathLine(s.banosCompletos, s.mediosBanos),
-      sqft: trim(s.piesCuadrados) || "—",
-      garage: trim(s.estacionamientos) || "—",
-      year: trim(s.anioConstruccion) || "—",
-    },
+    operationSummary: publicationOperationSummary(s),
+    quickFacts: buildQuickFacts(s),
+    contactRailTitle: contactRailTitle(s.advertiserType),
     identity: buildIdentity(s),
     media: {
       heroUrl,
       videoThumbUrls,
+      videoPlaybackUrls,
+      youtubeIds,
       virtualTourUrl,
       floorPlanUrls: floorPlans,
-      sitePlanUrl: s.advertiserType === "constructor_desarrollador" ? trim(s.media.sitePlanUrl) || null : null,
+      sitePlanUrl,
       metaLine: mediaMetaLine(s),
       hasPhotos: photos.length > 0,
-      hasVideo1: Boolean(videoThumbUrls[0]),
-      hasVideo2: Boolean(videoThumbUrls[1]),
+      hasVideo1,
+      hasVideo2,
       hasVirtualTour: Boolean(virtualTourUrl),
       hasFloorPlans: floorPlans.length > 0,
+      hasSitePlan: Boolean(sitePlanUrl),
     },
     propertyDetailsRows: buildPropertyDetails(s),
     highlightsRows: hasHighlights ? highlightRows : [],

@@ -33,6 +33,29 @@ export function SegundoAgenteNegocioSection({
     );
   }
 
+  if (adv === "oficina_brokerage") {
+    return (
+      <section className={brCardClass}>
+        <h2 className={brSectionTitleClass}>Segundo contacto</h2>
+        <p className={brSubTitleClass}>
+          Para oficinas, el contacto adicional y la tarjeta secundaria del preview se capturan en el paso de identidad
+          (contacto secundario).
+        </p>
+      </section>
+    );
+  }
+
+  if (adv === "constructor_desarrollador") {
+    return (
+      <section className={brCardClass}>
+        <h2 className={brSectionTitleClass}>Equipo de ventas</h2>
+        <p className={brSubTitleClass}>
+          El segundo contacto del preview se toma del paso de identidad (contacto secundario del desarrollo).
+        </p>
+      </section>
+    );
+  }
+
   if (adv !== "agente_individual" || !state.identityAgente.segundoAgenteActivo) {
     return (
       <section className={brCardClass}>

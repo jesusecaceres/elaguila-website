@@ -42,14 +42,10 @@ export function InformacionPrincipalSection({
             placeholder="1250000"
           />
         </BrField>
-        <BrField label="Tipo de operación" hint="Ej. Venta, Renta, Preventa.">
-          <input
-            className={brInputClass}
-            value={state.tipoOperacion}
-            onChange={(e) => setState((s) => ({ ...s, tipoOperacion: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Estado del anuncio" hint="Aparece como etiqueta junto al precio.">
+        <BrField
+          label="Estado del anuncio"
+          hint="Etiqueta junto al precio. El tipo de publicación (paso 2) define la operación mostrada en el resumen; aquí ajustas el estado del listado."
+        >
           <select
             className={brInputClass}
             value={state.listingStatus}

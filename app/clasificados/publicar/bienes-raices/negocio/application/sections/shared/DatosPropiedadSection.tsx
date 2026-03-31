@@ -36,12 +36,23 @@ export function DatosPropiedadSection({
   setState: React.Dispatch<React.SetStateAction<BienesRaicesNegocioFormState>>;
 }) {
   const pub = state.publicationType;
+  const isTerreno = pub === "terreno";
+  const isMultifamiliar = pub === "multifamiliar_inversion";
+  const isComercial = pub === "comercial";
+  const isProyecto = pub === "proyecto_nuevo";
+  const isResidencial = pub === "residencial_venta" || pub === "residencial_renta";
+  const showRecamaras = isResidencial || isProyecto;
+  const showResidentialBaths = showRecamaras || isComercial;
 
   return (
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Datos principales de la propiedad</h2>
       <p className={brSubTitleClass}>
-        Alimenta la franja de datos rápidos (recámaras, baños, pies², estacionamientos, año) en la vista previa.
+        {isTerreno
+          ? "Enfocado en lote, zonificación y servicios; los datos rápidos del preview cambian a métricas de terreno."
+          : isMultifamiliar
+            ? "Prioriza métricas de inversión; el preview enfatiza unidades, ocupación y renta."
+            : "Alimenta la franja de datos rápidos y la tabla resumida del preview según el tipo de publicación."}
       </p>
       <BrPreviewHint>
         Mismos números aparecen en la tira de hechos y en la tabla resumida de datos del inmueble.
@@ -53,7 +64,7 @@ export function DatosPropiedadSection({
             className={brInputClass}
             value={state.tipoPropiedad}
             onChange={(e) => setState((s) => ({ ...s, tipoPropiedad: e.target.value }))}
-            placeholder="Ej. Casa unifamiliar"
+            placeholder={isTerreno ? "Ej. Terreno residencial en esquina" : "Ej. Casa unifamiliar"}
           />
         </BrField>
 
@@ -84,62 +95,76 @@ export function DatosPropiedadSection({
           />
         )}
 
-        <BrField label="Recámaras">
-          <input
-            className={brInputClass}
-            value={state.recamaras}
-            onChange={(e) => setState((s) => ({ ...s, recamaras: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Baños completos">
-          <input
-            className={brInputClass}
-            value={state.banosCompletos}
-            onChange={(e) => setState((s) => ({ ...s, banosCompletos: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Medios baños">
-          <input
-            className={brInputClass}
-            value={state.mediosBanos}
-            onChange={(e) => setState((s) => ({ ...s, mediosBanos: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Pies cuadrados (construcción)">
-          <input
-            className={brInputClass}
-            value={state.piesCuadrados}
-            onChange={(e) => setState((s) => ({ ...s, piesCuadrados: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Tamaño del lote">
+        {showRecamaras ? (
+          <BrField label="Recámaras">
+            <input
+              className={brInputClass}
+              value={state.recamaras}
+              onChange={(e) => setState((s) => ({ ...s, recamaras: e.target.value }))}
+            />
+          </BrField>
+        ) : null}
+        {showResidentialBaths && !isTerreno ? (
+          <>
+            <BrField label="Baños completos">
+              <input
+                className={brInputClass}
+                value={state.banosCompletos}
+                onChange={(e) => setState((s) => ({ ...s, banosCompletos: e.target.value }))}
+              />
+            </BrField>
+            <BrField label="Medios baños">
+              <input
+                className={brInputClass}
+                value={state.mediosBanos}
+                onChange={(e) => setState((s) => ({ ...s, mediosBanos: e.target.value }))}
+              />
+            </BrField>
+          </>
+        ) : null}
+        {!isTerreno ? (
+          <BrField label="Pies cuadrados (construcción)" hint={isComercial ? "Área edificada o útil." : undefined}>
+            <input
+              className={brInputClass}
+              value={state.piesCuadrados}
+              onChange={(e) => setState((s) => ({ ...s, piesCuadrados: e.target.value }))}
+            />
+          </BrField>
+        ) : null}
+        <BrField label="Tamaño del lote" hint={isTerreno ? "Principal métrica del listado de terreno." : undefined}>
           <input
             className={brInputClass}
             value={state.tamanoLote}
             onChange={(e) => setState((s) => ({ ...s, tamanoLote: e.target.value }))}
           />
         </BrField>
-        <BrField label="Estacionamientos">
-          <input
-            className={brInputClass}
-            value={state.estacionamientos}
-            onChange={(e) => setState((s) => ({ ...s, estacionamientos: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Año de construcción">
-          <input
-            className={brInputClass}
-            value={state.anioConstruccion}
-            onChange={(e) => setState((s) => ({ ...s, anioConstruccion: e.target.value }))}
-          />
-        </BrField>
-        <BrField label="Niveles / pisos">
-          <input
-            className={brInputClass}
-            value={state.niveles}
-            onChange={(e) => setState((s) => ({ ...s, niveles: e.target.value }))}
-          />
-        </BrField>
+        {!isTerreno ? (
+          <BrField label="Estacionamientos">
+            <input
+              className={brInputClass}
+              value={state.estacionamientos}
+              onChange={(e) => setState((s) => ({ ...s, estacionamientos: e.target.value }))}
+            />
+          </BrField>
+        ) : null}
+        {showRecamaras || isComercial || isMultifamiliar ? (
+          <>
+            <BrField label="Año de construcción">
+              <input
+                className={brInputClass}
+                value={state.anioConstruccion}
+                onChange={(e) => setState((s) => ({ ...s, anioConstruccion: e.target.value }))}
+              />
+            </BrField>
+            <BrField label="Niveles / pisos">
+              <input
+                className={brInputClass}
+                value={state.niveles}
+                onChange={(e) => setState((s) => ({ ...s, niveles: e.target.value }))}
+              />
+            </BrField>
+          </>
+        ) : null}
         <BrField label="Estado / condición">
           <input
             className={brInputClass}

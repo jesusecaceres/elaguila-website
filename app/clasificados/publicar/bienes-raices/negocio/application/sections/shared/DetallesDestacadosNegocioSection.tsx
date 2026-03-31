@@ -1,6 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
+import { isBrNegocioHighlightKeyApplicable } from "../../schema/brNegocioBranching";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "../../schema/brHighlightMeta";
 import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
@@ -20,7 +21,9 @@ export function DetallesDestacadosNegocioSection({
       </p>
       <BrPreviewHint>Cada opción marcada y cada línea personalizada se listan en la tarjeta de destacados del preview.</BrPreviewHint>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
+        {BR_HIGHLIGHT_PRESET_DEFS.filter((d) =>
+          isBrNegocioHighlightKeyApplicable(d.key, state.publicationType)
+        ).map((d) => (
           <label key={d.key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2">
             <input
               type="checkbox"

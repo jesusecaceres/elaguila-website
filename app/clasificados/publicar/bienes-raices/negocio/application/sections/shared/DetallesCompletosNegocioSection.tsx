@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import type { BienesRaicesNegocioFormState, DeepDetailGroupKey } from "../../schema/bienesRaicesNegocioFormState";
+import { deepDetailGroupsForPublication } from "../../schema/brNegocioBranching";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../../schema/brDeepDetailMeta";
 import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
-
-const GROUP_ORDER = Object.keys(BR_DEEP_HEADINGS) as DeepDetailGroupKey[];
 
 export function DetallesCompletosNegocioSection({
   state,
@@ -14,9 +13,11 @@ export function DetallesCompletosNegocioSection({
   state: BienesRaicesNegocioFormState;
   setState: React.Dispatch<React.SetStateAction<BienesRaicesNegocioFormState>>;
 }) {
+  const groupOrder = deepDetailGroupsForPublication(state.publicationType);
   const [open, setOpen] = useState<Record<DeepDetailGroupKey, boolean>>(() => {
     const o = {} as Record<DeepDetailGroupKey, boolean>;
-    for (const k of GROUP_ORDER) o[k] = k === "tipoYEstilo";
+    for (const k of Object.keys(BR_DEEP_HEADINGS) as DeepDetailGroupKey[]) o[k] = false;
+    o["tipoYEstilo"] = true;
     return o;
   });
 
@@ -41,7 +42,7 @@ export function DetallesCompletosNegocioSection({
         Esta información se muestra en la sección de detalles completos del preview, agrupada por acordeones.
       </BrPreviewHint>
       <div className="mt-5 space-y-3">
-        {GROUP_ORDER.map((group) => {
+        {groupOrder.map((group) => {
           const fields = BR_DEEP_FIELD_LABELS[group];
           const expanded = open[group];
           return (

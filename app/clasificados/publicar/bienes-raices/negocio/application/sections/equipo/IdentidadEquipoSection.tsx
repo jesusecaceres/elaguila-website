@@ -167,6 +167,18 @@ export function IdentidadEquipoSection({
             }
           />
         </BrField>
+        <BrField label="Segundo agente — teléfono" hint="Opcional; si no indicas, se usa el teléfono general del equipo en el preview.">
+          <input
+            className={brInputClass}
+            value={ie.segundoAgenteTelefono}
+            onChange={(e) =>
+              setState((s) => ({
+                ...s,
+                identityEquipo: { ...s.identityEquipo, segundoAgenteTelefono: e.target.value },
+              }))
+            }
+          />
+        </BrField>
       </div>
       <div className="mt-5">
         <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Redes sociales</p>

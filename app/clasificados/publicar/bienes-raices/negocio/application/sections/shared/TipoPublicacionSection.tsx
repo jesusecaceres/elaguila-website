@@ -2,6 +2,7 @@
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
 import type { BienesRaicesPublicationType } from "../../schema/bienesRaicesNegocioFormState";
+import { syncNegocioListingFieldsFromPublication } from "../../schema/bienesRaicesNegocioFormState";
 import { BrPreviewHint, brCardClass, brHintClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const OPTIONS: Array<{ id: BienesRaicesPublicationType; label: string; hint: string }> = [
@@ -34,7 +35,12 @@ export function TipoPublicacionSection({
             <button
               key={o.id}
               type="button"
-              onClick={() => setState((s) => ({ ...s, publicationType: o.id }))}
+              onClick={() =>
+                setState((s) => {
+                  const synced = syncNegocioListingFieldsFromPublication(o.id);
+                  return { ...s, publicationType: o.id, listingStatus: synced.listingStatus, tipoOperacion: synced.tipoOperacion };
+                })
+              }
               className={`rounded-2xl border px-4 py-4 text-left transition ${
                 on
                   ? "border-[#C9B46A] bg-[#FBF7EF] ring-2 ring-[#C9B46A]/35"
