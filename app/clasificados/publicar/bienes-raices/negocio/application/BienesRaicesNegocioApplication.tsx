@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -13,6 +13,7 @@ import {
   saveBienesRaicesNegocioPreviewReturnDraft,
   takeBienesRaicesNegocioPreviewReturnInitialState,
 } from "./utils/bienesRaicesPreviewDraft";
+import { createEmptyBienesRaicesNegocioFormState } from "./schema/bienesRaicesNegocioFormState";
 import { AsesorFinancieroNegocioSection } from "./sections/shared/AsesorFinancieroNegocioSection";
 import { ConfianzaNegocioSection } from "./sections/shared/ConfianzaNegocioSection";
 import { ContactoCtasNegocioSection } from "./sections/shared/ContactoCtasNegocioSection";
@@ -59,7 +60,11 @@ function stepLabelsForAdvertiser(adv: string): string[] {
 export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [state, setState] = useState(takeBienesRaicesNegocioPreviewReturnInitialState);
+  const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
+
+  useLayoutEffect(() => {
+    setState(takeBienesRaicesNegocioPreviewReturnInitialState());
+  }, []);
 
   const navStepLabels = useMemo(() => stepLabelsForAdvertiser(state.advertiserType), [state.advertiserType]);
   const stepLabel = navStepLabels[step] ?? "";

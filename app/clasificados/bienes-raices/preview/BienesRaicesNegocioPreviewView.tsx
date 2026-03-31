@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, type CSSProperties } from "react";
 import type {
   BienesRaicesNegocioPreviewVm,
@@ -330,7 +331,7 @@ function GalleryVideoTile({
   );
 }
 
-function LeonixBrandMark({ logoUrl }: { logoUrl: string | null }) {
+function LeonixBrandMark({ logoUrl }: { logoUrl: string }) {
   if (logoUrl) {
     return (
       <a href="/clasificados" className="flex shrink-0 items-center" aria-label="Leonix Inicio">
@@ -565,13 +566,14 @@ export function BienesRaicesNegocioPreviewView({
             </nav>
           </div>
           {editHref ? (
-            <a
+            <Link
               href={editHref}
               className="text-[11px] font-bold uppercase tracking-wide underline"
               style={{ color: BRONZE_SOFT }}
+              prefetch={false}
             >
               Volver a editar
-            </a>
+            </Link>
           ) : null}
         </div>
       </header>

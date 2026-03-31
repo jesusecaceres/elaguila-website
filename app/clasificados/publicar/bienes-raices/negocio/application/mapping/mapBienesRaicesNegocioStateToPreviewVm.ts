@@ -48,10 +48,11 @@ function resolveProfileHref(sitioWeb: string, redes: string[]): string | null {
   return null;
 }
 
-function resolvePlatformLogoUrl(): string | null {
-  if (typeof process === "undefined") return null;
+/** Same asset as `import newLogo from "@/public/logo.png"` — served from `public/logo.png`. Env overrides when set. */
+function resolvePlatformLogoUrl(): string {
+  if (typeof process === "undefined") return "/logo.png";
   const raw = String(process.env.NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL ?? "").trim();
-  return raw || null;
+  return raw || "/logo.png";
 }
 
 function socialChipLabel(raw: string): string {

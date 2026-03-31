@@ -99,8 +99,8 @@ export type BienesRaicesPreviewLocationVm = {
 
 export type BienesRaicesNegocioPreviewVm = {
   publicationType: BienesRaicesPublicationType | "";
-  /** Logo de marca Leonix en cabecera (`NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL` o vacío = marcador neutro). */
-  platformLogoUrl: string | null;
+  /** Logo Leonix en cabecera: `NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL` o `/logo.png` en `public/`. */
+  platformLogoUrl: string;
   heroTitle: string;
   addressLine: string;
   priceDisplay: string;

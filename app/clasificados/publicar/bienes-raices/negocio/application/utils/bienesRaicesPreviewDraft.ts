@@ -55,7 +55,10 @@ export function loadBienesRaicesNegocioPreviewDraft(): BienesRaicesNegocioFormSt
   }
 }
 
-/** One-shot restore after "Volver a editar" from preview (mirrors En Venta pattern). */
+/**
+ * Restore after preview → "Volver a editar" (return payload), else last preview draft.
+ * Draft fallback keeps restore reliable if the return key was already consumed (React Strict Mode, refresh).
+ */
 export function takeBienesRaicesNegocioPreviewReturnInitialState(): BienesRaicesNegocioFormState {
   if (typeof window === "undefined") return createEmptyBienesRaicesNegocioFormState();
   if (previewReturnMemory) {
@@ -64,15 +67,20 @@ export function takeBienesRaicesNegocioPreviewReturnInitialState(): BienesRaices
   }
   try {
     const raw = sessionStorage.getItem(BR_NEGOCIO_PREVIEW_RETURN_KEY);
-    if (!raw) return createEmptyBienesRaicesNegocioFormState();
-    const data = JSON.parse(raw) as Partial<BienesRaicesPreviewReturnPayload>;
-    if (!data.state || typeof data.state !== "object") return createEmptyBienesRaicesNegocioFormState();
-    const merged = mergePartialBienesRaicesNegocioState(data.state as Partial<BienesRaicesNegocioFormState>);
-    sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_RETURN_KEY);
-    previewReturnMemory = merged;
-    scheduleClearReturnMemory();
-    return merged;
+    if (raw) {
+      const data = JSON.parse(raw) as Partial<BienesRaicesPreviewReturnPayload>;
+      if (data.state && typeof data.state === "object") {
+        const merged = mergePartialBienesRaicesNegocioState(data.state as Partial<BienesRaicesNegocioFormState>);
+        sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_RETURN_KEY);
+        previewReturnMemory = merged;
+        scheduleClearReturnMemory();
+        return merged;
+      }
+    }
   } catch {
-    return createEmptyBienesRaicesNegocioFormState();
+    /* fall through */
   }
+  const fromDraft = loadBienesRaicesNegocioPreviewDraft();
+  if (fromDraft) return fromDraft;
+  return createEmptyBienesRaicesNegocioFormState();
 }
