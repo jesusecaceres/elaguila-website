@@ -115,11 +115,15 @@ function buildHighlights(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFa
 
 function buildDeepBlocks(s: BienesRaicesNegocioFormState): BienesRaicesPreviewDeepBlockVm[] {
   const keys = Object.keys(BR_DEEP_HEADINGS) as DeepDetailGroupKey[];
-  return keys.map((key) => ({
-    id: key,
-    heading: BR_DEEP_HEADINGS[key],
-    bullets: bulletsFromGroup(key, s.deepDetails[key], BR_DEEP_FIELD_LABELS[key]),
-  }));
+  return keys.map((key) => {
+    const bullets = bulletsFromGroup(key, s.deepDetails[key], BR_DEEP_FIELD_LABELS[key]);
+    return {
+      id: key,
+      heading: BR_DEEP_HEADINGS[key],
+      bullets,
+      hasContent: bullets.length > 0,
+    };
+  });
 }
 
 function primaryPhone(s: BienesRaicesNegocioFormState, adv: BienesRaicesAdvertiserType): string {
@@ -144,24 +148,28 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   if (adv === "equipo_agentes") {
     const ie = s.identityEquipo;
     const social = ie.redes.map(trim).filter(Boolean).slice(0, 5);
+    const photoUrl = trim(ie.imagenUrl) || null;
     return {
-      photoUrl: trim(ie.imagenUrl) || null,
+      photoUrl,
       name: trim(ie.nombreEquipo) || "Equipo",
       role: "Equipo de agentes",
       brokerageName: trust.mostrarBrokerage ? trim(ie.brokerage) || "—" : "—",
       brokerageLogoUrl: trim(ie.logoUrl) || null,
       verifiedLine: "Equipo profesional Leonix",
       licenseLine: "",
-      socialChips: trust.mostrarRedes ? (social.length ? social : ["Web", "Redes"]) : [],
+      socialChips: trust.mostrarRedes ? social : [],
       profileCtaLabel: "Ver perfil profesional →",
+      hasPhoto: Boolean(photoUrl),
+      hasSocialLinks: social.length > 0,
     };
   }
 
   if (adv === "oficina_brokerage") {
     const io = s.identityOficina;
     const social = io.redes.map(trim).filter(Boolean);
+    const photoUrl = trim(io.logoUrl) || null;
     return {
-      photoUrl: trim(io.logoUrl) || null,
+      photoUrl,
       name: trim(io.nombreOficina) || "Oficina",
       role: "Brokerage",
       brokerageName: trust.mostrarBrokerage ? trim(io.nombreOficina) : "—",
@@ -170,14 +178,17 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       licenseLine: trim(io.contactoPrincipal),
       socialChips: trust.mostrarRedes && social.length ? social : [],
       profileCtaLabel: "Ver perfil profesional →",
+      hasPhoto: Boolean(photoUrl),
+      hasSocialLinks: social.length > 0,
     };
   }
 
   if (adv === "constructor_desarrollador") {
     const ic = s.identityConstructor;
     const social = ic.redes.map(trim).filter(Boolean);
+    const photoUrl = trim(ic.logoUrl) || null;
     return {
-      photoUrl: trim(ic.logoUrl) || null,
+      photoUrl,
       name: trim(ic.nombreDesarrollador) || "Desarrollador",
       role: trim(ic.proyectoNombre) || "Proyecto nuevo",
       brokerageName: trust.mostrarBrokerage ? trim(ic.proyectoNombre) : trim(ic.nombreDesarrollador),
@@ -186,22 +197,27 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       licenseLine: trim(ic.estadoDesarrollo),
       socialChips: trust.mostrarRedes && social.length ? social : [],
       profileCtaLabel: "Ver centro de ventas →",
+      hasPhoto: Boolean(photoUrl),
+      hasSocialLinks: social.length > 0,
     };
   }
 
   const ia = s.identityAgente;
   const social = ia.redes.map(trim).filter(Boolean);
   const lic = trim(ia.licencia);
+  const photoUrl = trim(ia.fotoUrl) || null;
   return {
-    photoUrl: trim(ia.fotoUrl) || null,
+    photoUrl,
     name: trim(ia.nombre) || "Agente",
     role: trim(ia.rol) || "Agente de listado",
     brokerageName: trust.mostrarBrokerage ? trim(ia.brokerage) || "—" : "—",
     brokerageLogoUrl: trim(ia.logoBrokerageUrl) || null,
     verifiedLine: "Agente verificado",
     licenseLine: trust.mostrarLicencia && lic ? `Lic. ${lic}` : "",
-    socialChips: trust.mostrarRedes ? (social.length ? social : ["Web", "Redes"]) : [],
+    socialChips: trust.mostrarRedes ? social : [],
     profileCtaLabel: "Ver perfil profesional →",
+    hasPhoto: Boolean(photoUrl),
+    hasSocialLinks: social.length > 0,
   };
 }
 
@@ -265,10 +281,18 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const v2 = trim(s.media.videoUrls[1] ?? "");
   const videoThumbUrls: [string | null, string | null] = [v1 || null, v2 || null];
 
-  const desc =
-    trim(s.descripcionLarga) ||
-    trim(s.descripcionCorta) ||
-    "Tu descripción completa aparecerá aquí. Usa el paso de descripción para contar la historia del inmueble.";
+  const descLong = trim(s.descripcionLarga);
+  const descShort = trim(s.descripcionCorta);
+  const desc = descLong || descShort || "";
+  const hasDescription = Boolean(descLong || descShort);
+
+  const highlightRows = buildHighlights(s);
+  const hasHighlights =
+    highlightRows.length > 0 &&
+    !(highlightRows.length === 1 && highlightRows[0]?.label === "Destacados" && /Agrega características/i.test(highlightRows[0]?.value ?? ""));
+
+  const floorPlans = s.media.floorPlanUrls.map(trim).filter(Boolean).slice(0, 3);
+  const virtualTourUrl = trim(s.media.virtualTourUrl) || null;
 
   return {
     heroTitle: trim(s.titulo) || "Título del anuncio",
@@ -286,14 +310,21 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
     media: {
       heroUrl,
       videoThumbUrls,
-      virtualTourUrl: trim(s.media.virtualTourUrl) || null,
-      floorPlanUrls: s.media.floorPlanUrls.map(trim).filter(Boolean).slice(0, 3),
+      virtualTourUrl,
+      floorPlanUrls: floorPlans,
       sitePlanUrl: s.advertiserType === "constructor_desarrollador" ? trim(s.media.sitePlanUrl) || null : null,
       metaLine: mediaMetaLine(s),
+      hasPhotos: photos.length > 0,
+      hasVideo1: Boolean(videoThumbUrls[0]),
+      hasVideo2: Boolean(videoThumbUrls[1]),
+      hasVirtualTour: Boolean(virtualTourUrl),
+      hasFloorPlans: floorPlans.length > 0,
     },
     propertyDetailsRows: buildPropertyDetails(s),
-    highlightsRows: buildHighlights(s),
+    highlightsRows: hasHighlights ? highlightRows : [],
     description: desc,
+    hasDescription,
+    hasHighlights,
     contact: {
       showSolicitarInfo: s.cta.permitirSolicitarInfo,
       showProgramarVisita: s.cta.permitirProgramarVisita,

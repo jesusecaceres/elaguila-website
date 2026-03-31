@@ -15,6 +15,9 @@ export type BienesRaicesPreviewIdentityVm = {
   licenseLine: string;
   socialChips: string[];
   profileCtaLabel: string;
+  /** Presence flags to keep preview truthful (no fake assets). */
+  hasPhoto: boolean;
+  hasSocialLinks: boolean;
 };
 
 export type BienesRaicesPreviewMediaVm = {
@@ -24,6 +27,12 @@ export type BienesRaicesPreviewMediaVm = {
   floorPlanUrls: string[];
   sitePlanUrl: string | null;
   metaLine: string;
+  /** Presence flags to keep preview truthful (no fake assets). */
+  hasPhotos: boolean;
+  hasVideo1: boolean;
+  hasVideo2: boolean;
+  hasVirtualTour: boolean;
+  hasFloorPlans: boolean;
 };
 
 export type BienesRaicesPreviewContactVm = {
@@ -49,6 +58,7 @@ export type BienesRaicesPreviewDeepBlockVm = {
   id: string;
   heading: string;
   bullets: string[];
+  hasContent: boolean;
 };
 
 export type BienesRaicesNegocioPreviewVm = {
@@ -68,6 +78,8 @@ export type BienesRaicesNegocioPreviewVm = {
   propertyDetailsRows: BienesRaicesPreviewFact[];
   highlightsRows: BienesRaicesPreviewFact[];
   description: string;
+  hasDescription: boolean;
+  hasHighlights: boolean;
   contact: BienesRaicesPreviewContactVm;
   deepBlocks: BienesRaicesPreviewDeepBlockVm[];
   footerNote: string;

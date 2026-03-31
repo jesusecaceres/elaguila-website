@@ -11,8 +11,38 @@ const BRONZE_SOFT = "#B8954A";
 const BORDER = "rgba(61, 54, 48, 0.12)";
 const MUTED = "rgba(61, 54, 48, 0.62)";
 
-const PLACEHOLDER_IMG =
-  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80&auto=format&fit=crop";
+function EmptyMedia({
+  title,
+  subtitle,
+  icon,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 py-8 text-center"
+      style={{
+        background: "linear-gradient(135deg, rgba(42,38,32,0.06) 0%, rgba(197,160,89,0.08) 55%, rgba(253,251,247,0.9) 100%)",
+      }}
+    >
+      <div
+        className="flex h-14 w-14 items-center justify-center rounded-2xl border shadow-sm"
+        style={{ borderColor: BORDER, background: CREAM_CARD, color: BRONZE }}
+        aria-hidden
+      >
+        {icon}
+      </div>
+      <p className="text-sm font-bold" style={{ color: CHARCOAL_DEEP }}>
+        {title}
+      </p>
+      <p className="max-w-sm text-xs leading-relaxed" style={{ color: MUTED }}>
+        {subtitle}
+      </p>
+    </div>
+  );
+}
 
 function IconHome({ className }: { className?: string }) {
   return (
@@ -204,7 +234,6 @@ function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string
 }
 
 function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading: string; items: string[] }) {
-  const show = items.length > 0 ? items : ["Completa este bloque en el formulario para mostrarlo aquí."];
   return (
     <div
       className="rounded-2xl border p-5 sm:p-6 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.07)]"
@@ -216,14 +245,20 @@ function DeepSection({ icon, heading, items }: { icon: React.ReactNode; heading:
           <h3 className="text-sm font-bold tracking-tight" style={{ color: CHARCOAL }}>
             {heading}
           </h3>
-          <ul className="mt-4 space-y-2.5">
-            {show.map((line) => (
-              <li key={line} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: CHARCOAL }}>
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full" style={{ background: BRONZE }} aria-hidden />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
+          {items.length > 0 ? (
+            <ul className="mt-4 space-y-2.5">
+              {items.map((line) => (
+                <li key={line} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: CHARCOAL }}>
+                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full" style={{ background: BRONZE }} aria-hidden />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
+              No proporcionado aún.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -269,11 +304,6 @@ export function BienesRaicesNegocioPreviewView({
   editHref?: string;
   footerExtra?: string;
 }) {
-  const heroUrl = vm.media.heroUrl || PLACEHOLDER_IMG;
-  const v0 = vm.media.videoThumbUrls[0] || PLACEHOLDER_IMG;
-  const v1 = vm.media.videoThumbUrls[1] || PLACEHOLDER_IMG;
-  const idPhoto = vm.identity.photoUrl || PLACEHOLDER_IMG;
-
   const quickFacts = [
     { Icon: IconBed, label: "Habitaciones", value: vm.quickFacts.beds },
     { Icon: IconBath, label: "Baños", value: vm.quickFacts.baths },
@@ -393,8 +423,18 @@ export function BienesRaicesNegocioPreviewView({
             style={{ borderColor: BORDER, background: CREAM_CARD }}
           >
             <div className="overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={idPhoto} alt="" className="aspect-[4/3] w-full object-cover" />
+              {vm.identity.hasPhoto && vm.identity.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={vm.identity.photoUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+              ) : (
+                <div className="aspect-[4/3] w-full">
+                  <EmptyMedia
+                    title="Sin foto de identidad"
+                    subtitle="Agrega una foto o logo en el formulario para mostrarlo aquí."
+                    icon={<IconEye className="h-6 w-6" />}
+                  />
+                </div>
+              )}
             </div>
             <p className="mt-4 text-lg font-bold" style={{ color: CHARCOAL_DEEP }}>
               {vm.identity.name}
@@ -456,22 +496,48 @@ export function BienesRaicesNegocioPreviewView({
           <div className="grid gap-3 lg:grid-cols-12 lg:gap-4">
             <div className="lg:col-span-7">
               <div className="overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: BORDER }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
+                {vm.media.hasPhotos && vm.media.heroUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={vm.media.heroUrl} alt="" className="aspect-[16/10] w-full object-cover" />
+                ) : (
+                  <div className="aspect-[16/10] w-full">
+                    <EmptyMedia
+                      title="Sin fotos aún"
+                      subtitle="Agrega al menos una foto para activar la galería del anuncio."
+                      icon={<IconHome className="h-7 w-7" />}
+                    />
+                  </div>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 lg:col-span-5">
-              {[v0, v1].map((src, i) => (
-                <div key={i} className="relative overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
-                      <IconPlay />
-                    </div>
+              {[0, 1].map((i) => {
+                const hasVideo = i === 0 ? vm.media.hasVideo1 : vm.media.hasVideo2;
+                const thumb = vm.media.videoThumbUrls[i] ?? null;
+                return (
+                  <div key={i} className="relative overflow-hidden rounded-2xl border shadow-md" style={{ borderColor: BORDER }}>
+                    {hasVideo && thumb ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={thumb} alt="" className="aspect-[4/3] w-full object-cover brightness-[0.92]" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-[#1a2744] shadow-lg">
+                            <IconPlay />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="aspect-[4/3] w-full">
+                        <EmptyMedia
+                          title={`Video ${i + 1} (opcional)`}
+                          subtitle="Agrega un video en el formulario para activar este bloque."
+                          icon={<IconPlay className="h-7 w-7" />}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {vm.media.virtualTourUrl ? (
                 <a
                   href={vm.media.virtualTourUrl}
@@ -500,7 +566,7 @@ export function BienesRaicesNegocioPreviewView({
                   <IconVr className="shrink-0 opacity-95" />
                   <div>
                     <p className="text-sm font-bold">Tour virtual</p>
-                    <p className="mt-1 text-xs opacity-80">Agrega un enlace en el formulario para activar este bloque.</p>
+                    <p className="mt-1 text-xs opacity-80">No proporcionado aún. Agrega un enlace en el formulario para activarlo.</p>
                   </div>
                 </div>
               )}
@@ -518,7 +584,7 @@ export function BienesRaicesNegocioPreviewView({
                   <p className="mt-1 text-xs" style={{ color: MUTED }}>
                     {vm.media.floorPlanUrls.length > 0
                       ? "Vista previa del primer plano cargado."
-                      : "Sube hasta 3 planos en el formulario."}
+                      : "No proporcionado aún. Agrega planos en el formulario para activar este bloque."}
                   </p>
                 </div>
               </div>
@@ -535,7 +601,7 @@ export function BienesRaicesNegocioPreviewView({
         <section className="mt-16 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start lg:gap-10">
           <div className="space-y-6">
             <FactBlock title="Detalles de la propiedad" rows={vm.propertyDetailsRows} />
-            <FactBlock title="Características destacadas" rows={vm.highlightsRows} />
+            {vm.hasHighlights ? <FactBlock title="Características destacadas" rows={vm.highlightsRows} /> : null}
             <div
               className="rounded-2xl border p-6 sm:p-8 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)]"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
@@ -543,9 +609,15 @@ export function BienesRaicesNegocioPreviewView({
               <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
                 Descripción
               </h2>
-              <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
-                {vm.description}
-              </p>
+              {vm.hasDescription ? (
+                <p className="mt-5 whitespace-pre-wrap text-sm leading-[1.75]" style={{ color: CHARCOAL }}>
+                  {vm.description}
+                </p>
+              ) : (
+                <p className="mt-5 text-sm leading-[1.75]" style={{ color: MUTED }}>
+                  No proporcionada aún. Agrega una descripción en el formulario para mostrarla aquí.
+                </p>
+              )}
             </div>
           </div>
 
