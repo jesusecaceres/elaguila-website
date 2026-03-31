@@ -1,238 +1,145 @@
-"use client";
+import Link from "next/link";
+import { tiendaCopy, pick } from "./data/tiendaCopy";
+import { tiendaCategories } from "./data/tiendaCategories";
+import { tiendaFeaturedProducts } from "./data/tiendaFeaturedProducts";
+import { TiendaHero } from "./components/TiendaHero";
+import { TiendaSectionHeading } from "./components/TiendaSectionHeading";
+import { TiendaCategoryCard } from "./components/TiendaCategoryCard";
+import { TiendaFeaturedProductCard } from "./components/TiendaFeaturedProductCard";
+import { TiendaHowItWorks } from "./components/TiendaHowItWorks";
+import { TiendaServiceSplit } from "./components/TiendaServiceSplit";
+import { TiendaTrustStrip } from "./components/TiendaTrustStrip";
+import { TiendaCTA } from "./components/TiendaCTA";
+import { normalizeLang, withLang } from "./utils/tiendaRouting";
 
-import { useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { useState } from "react";
-
-// Product structure
-interface Product {
-  id: string;
-  title: string;
-  title_en: string;
-  description: string;
-  description_en: string;
-  price: string;
-  images: string[]; // can be 1 or 2 images
-}
-
-export default function TiendaPage() {
-  const searchParams = useSearchParams()!;
-  const lang = searchParams.get("lang") || "es";
-
-  // 🟡 SPANISH + ENGLISH COPY
-  const t = {
-    store: lang === "es" ? "Tienda" : "Store",
-    businessCards: lang === "es" ? "Tarjetas de Presentación" : "Business Cards",
-    flyers: lang === "es" ? "Volantes" : "Flyers",
-    banners: lang === "es" ? "Lonas / Banners" : "Banners",
-    contactUs: lang === "es" ? "Contactar para Ordenar" : "Contact to Order",
-    emailLine:
-      lang === "es"
-        ? "Para ordenar, envíanos un correo:"
-        : "To place an order, send us an email:",
-  };
-
-  // 🟦 PRODUCT LIST
-  const products: Product[] = [
-    {
-      id: "bc-1000-1",
-      title: "Tarjetas 1000 • Un Lado",
-      title_en: "Business Cards 1000 • One Side",
-      description: "Tarjeta premium • Un lado",
-      description_en: "Premium business card • One side",
-      price: "$95",
-      images: ["/tienda/business-cards/business-card-front-chuy.png"],
-    },
-    {
-      id: "bc-1000-2",
-      title: "Tarjetas 1000 • Dos Lados",
-      title_en: "Business Cards 1000 • Two Sides",
-      description: "Tarjeta premium • Dos lados",
-      description_en: "Premium business card • Two sided",
-      price: "$110",
-      images: [
-        "/tienda/business-cards/business-card-front-chuy.png",
-        "/tienda/business-cards/business-card-back-chuy.png",
-      ],
-    },
-    {
-      id: "bc-2500-1",
-      title: "Tarjetas 2500 • Un Lado",
-      title_en: "Business Cards 2500 • One Side",
-      description: "Tarjeta premium • Un lado",
-      description_en: "Premium business card • One side",
-      price: "$180",
-      images: ["/tienda/business-cards/business-card-front-chuy.png"],
-    },
-    {
-      id: "bc-2500-2",
-      title: "Tarjetas 2500 • Dos Lados",
-      title_en: "Business Cards 2500 • Two Sides",
-      description: "Tarjeta premium • Dos lados",
-      description_en: "Premium business card • Two sided",
-      price: "$195",
-      images: [
-        "/tienda/business-cards/business-card-front-chuy.png",
-        "/tienda/business-cards/business-card-back-chuy.png",
-      ],
-    },
-    {
-      id: "bc-5000-1",
-      title: "Tarjetas 5000 • Un Lado",
-      title_en: "Business Cards 5000 • One Side",
-      description: "Tarjeta premium • Un lado",
-      description_en: "Premium business card • One side",
-      price: "$240",
-      images: ["/tienda/business-cards/business-card-front-chuy.png"],
-    },
-    {
-      id: "bc-5000-2",
-      title: "Tarjetas 5000 • Dos Lados",
-      title_en: "Business Cards 5000 • Two Sides",
-      description: "Tarjeta premium • Dos lados",
-      description_en: "Premium business card • Two sided",
-      price: "$255",
-      images: [
-        "/tienda/business-cards/business-card-front-chuy.png",
-        "/tienda/business-cards/business-card-back-chuy.png",
-      ],
-    },
-    {
-      id: "flyer-500-1",
-      title: "Volantes 4.25x5.5 • 500 • Un Lado",
-      title_en: "Flyers 4.25x5.5 • 500 • One Side",
-      description: "Volante premium • Un lado",
-      description_en: "Premium flyer • One side",
-      price: "$140",
-      images: ["/tienda/promo-flyer-es.jpg.png"],
-    },
-    {
-      id: "flyer-500-2",
-      title: "Volantes 4.25x5.5 • 500 • Dos Lados",
-      title_en: "Flyers 4.25x5.5 • 500 • Two Sides",
-      description: "Volante premium • Dos lados",
-      description_en: "Premium flyer • Two sided",
-      price: "$175",
-      images: ["/tienda/promo-flyer-es.jpg.png"],
-    },
-    {
-      id: "banner-2x5",
-      title: "Lona 2ft x 5ft • Un Lado",
-      title_en: "Banner 2ft x 5ft • One Side",
-      description: "Lona premium a todo color",
-      description_en: "Premium full-color banner",
-      price: "$110",
-      images: ["/tienda/promo-banner-es.jpg.png"],
-    },
-  ];
-
-  // --------------------------
-  // Modal viewer
-  // --------------------------
-  const [modalProduct, setModalProduct] = useState<Product | null>(null);
-  const closeModal = () => setModalProduct(null);
+export default async function TiendaPage(props: {
+  searchParams?: Promise<{ lang?: string }>;
+}) {
+  const sp = (await props.searchParams) ?? {};
+  const lang = normalizeLang(sp.lang);
 
   return (
-    <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <div className="pt-28 pb-20 px-6 max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-[color:var(--lx-text)] mb-3">{t.store}</h1>
-        <p className="text-[color:var(--lx-muted)] mb-10">
-          {lang === "es"
-            ? "Impresión premium y diseño con acabado Leonix."
-            : "Premium print and design with Leonix polish."}
-        </p>
+    <main className="min-h-screen bg-[#070708] text-white">
+      <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
+        {/* 1) HERO */}
+        <TiendaHero
+          lang={lang}
+          eyebrow={pick(tiendaCopy.hero.eyebrow, lang)}
+          headline={pick(tiendaCopy.hero.headline, lang)}
+          subhead={pick(tiendaCopy.hero.subhead, lang)}
+          ctaPrimary={{ label: pick(tiendaCopy.hero.ctaPrimary, lang), href: "#shop" }}
+          ctaSecondary={{ label: pick(tiendaCopy.hero.ctaSecondary, lang), href: "/contacto" }}
+          supportingLine={pick(tiendaCopy.hero.supportingLine, lang)}
+        />
 
-        {/* GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_18px_48px_rgba(42,36,22,0.10)] p-4 hover:shadow-[0_22px_60px_rgba(42,36,22,0.12)] hover:-translate-y-0.5 transition cursor-pointer"
-              onClick={() => setModalProduct(product)}
-            >
-              <Image
-                src={product.images[0]}
-                alt={product.title}
-                width={600}
-                height={400}
-                className="rounded-lg object-cover w-full h-64"
-              />
-              <h2 className="mt-4 text-xl font-bold">
-                {lang === "es" ? product.title : product.title_en}
-              </h2>
-
-              <p className="text-[color:var(--lx-text-2)]/90 mt-1">
-                {lang === "es"
-                  ? product.description
-                  : product.description_en}
-              </p>
-
-              <p className="text-2xl font-extrabold mt-3 text-[color:var(--lx-text)]">{product.price}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* CONTACT SECTION */}
-        <div className="mt-20 text-center">
-          <p className="text-lg mb-3 text-[color:var(--lx-text-2)]/90">{t.emailLine}</p>
-          <a
-            href="mailto:info@elaguilamedia.com"
-            className="text-2xl text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold)] underline-offset-4 hover:text-[color:var(--lx-gold)] transition"
-          >
-            info@elaguilamedia.com
-          </a>
-        </div>
-      </div>
-
-      {/* MODAL */}
-      {modalProduct && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
-          onClick={closeModal}
-        >
-          <div
-            className="bg-[color:var(--lx-card)] p-6 rounded-2xl max-w-3xl w-full border border-[color:var(--lx-nav-border)] shadow-[0_22px_70px_rgba(42,36,22,0.22)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-[color:var(--lx-text)] mb-4">
-              {lang === "es"
-                ? modalProduct.title
-                : modalProduct.title_en}
-            </h2>
-
-            {/* IMAGES (one or two) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {modalProduct.images.map((img, index) => (
-                <Image
-                  key={index}
-                  src={img}
-                  alt="product image"
-                  width={800}
-                  height={800}
-                  className="rounded-lg w-full object-contain"
-                />
-              ))}
-            </div>
-
-            <p className="text-[color:var(--lx-text-2)]/90 mt-4">
-              {lang === "es"
-                ? modalProduct.description
-                : modalProduct.description_en}
-            </p>
-
-            <p className="text-3xl font-extrabold mt-4 text-[color:var(--lx-text)]">{modalProduct.price}</p>
-
-            <div className="mt-6 text-center">
-              <a
-                href="mailto:info@elaguilamedia.com"
-                className="inline-flex items-center justify-center bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] px-6 py-3 rounded-full text-xl font-bold hover:bg-[color:var(--lx-cta-dark-hover)] transition shadow-[0_10px_28px_rgba(42,36,22,0.18)]"
+        {/* 2) SHOP BY CATEGORY */}
+        <section id="shop" className="mt-16 sm:mt-20 scroll-mt-28">
+          <TiendaSectionHeading
+            eyebrow={pick(tiendaCopy.sections.categories.eyebrow, lang)}
+            title={pick(tiendaCopy.sections.categories.title, lang)}
+            description={pick(tiendaCopy.sections.categories.description, lang)}
+            rightSlot={
+              <Link
+                href={withLang("/contacto", lang)}
+                className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-5 py-2.5 text-sm font-semibold text-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.10)] transition"
               >
-                {t.contactUs}
-              </a>
-            </div>
+                {lang === "en" ? "Custom request" : "Pedido especial"}
+              </Link>
+            }
+          />
+
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {tiendaCategories.map((c) => (
+              <TiendaCategoryCard key={c.id} category={c} lang={lang} />
+            ))}
           </div>
-        </div>
-      )}
+        </section>
+
+        {/* 3) BEST SELLERS / READY TO ORDER */}
+        <section className="mt-16 sm:mt-20">
+          <TiendaSectionHeading
+            eyebrow={pick(tiendaCopy.sections.featured.eyebrow, lang)}
+            title={pick(tiendaCopy.sections.featured.title, lang)}
+            description={pick(tiendaCopy.sections.featured.description, lang)}
+          />
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tiendaFeaturedProducts.map((p) => (
+              <TiendaFeaturedProductCard key={p.id} product={p} lang={lang} />
+            ))}
+          </div>
+        </section>
+
+        {/* 4) HOW IT WORKS */}
+        <section className="mt-16 sm:mt-20">
+          <TiendaSectionHeading
+            eyebrow={pick(tiendaCopy.sections.howItWorks.eyebrow, lang)}
+            title={pick(tiendaCopy.sections.howItWorks.title, lang)}
+            description={pick(tiendaCopy.sections.howItWorks.description, lang)}
+          />
+          <div className="mt-8">
+            <TiendaHowItWorks
+              lang={lang}
+              steps={tiendaCopy.sections.howItWorks.steps.map((s) => ({
+                title: pick(s.title, lang),
+                body: pick(s.body, lang),
+              }))}
+              note={pick(tiendaCopy.sections.howItWorks.note, lang)}
+            />
+          </div>
+        </section>
+
+        {/* 5) SELF-SERVE VS CUSTOM HELP */}
+        <section className="mt-16 sm:mt-20">
+          <TiendaSectionHeading
+            title={pick(tiendaCopy.sections.split.title, lang)}
+            description={lang === "en" ? "Pick the right path for your job." : "Elige el camino correcto para tu pedido."}
+          />
+          <div className="mt-8">
+            <TiendaServiceSplit
+              lang={lang}
+              left={{
+                title: pick(tiendaCopy.sections.split.left.title, lang),
+                body: pick(tiendaCopy.sections.split.left.body, lang),
+                bullets: pick(tiendaCopy.sections.split.left.bullets, lang),
+                ctaLabel: pick(tiendaCopy.sections.split.left.cta, lang),
+                ctaHref: "#shop",
+              }}
+              right={{
+                title: pick(tiendaCopy.sections.split.right.title, lang),
+                body: pick(tiendaCopy.sections.split.right.body, lang),
+                bullets: pick(tiendaCopy.sections.split.right.bullets, lang),
+                ctaLabel: pick(tiendaCopy.sections.split.right.cta, lang),
+                ctaHref: "/contacto",
+              }}
+            />
+          </div>
+        </section>
+
+        {/* 6) TRUST / QUALITY SECTION */}
+        <section className="mt-16 sm:mt-20">
+          <TiendaSectionHeading
+            eyebrow={pick(tiendaCopy.sections.trust.eyebrow, lang)}
+            title={pick(tiendaCopy.sections.trust.title, lang)}
+          />
+          <div className="mt-8">
+            <TiendaTrustStrip
+              lang={lang}
+              items={pick(tiendaCopy.sections.trust.items, lang)}
+            />
+          </div>
+        </section>
+
+        {/* 7) FINAL CTA STRIP */}
+        <section className="mt-16 sm:mt-20">
+          <TiendaCTA
+            lang={lang}
+            title={pick(tiendaCopy.sections.finalCta.title, lang)}
+            body={pick(tiendaCopy.sections.finalCta.body, lang)}
+            primary={{ label: pick(tiendaCopy.sections.finalCta.primary, lang), href: "#shop" }}
+            secondary={{ label: pick(tiendaCopy.sections.finalCta.secondary, lang), href: "/contacto" }}
+          />
+        </section>
+      </div>
     </main>
   );
 }
