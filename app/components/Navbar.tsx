@@ -71,7 +71,6 @@ function NavbarContent() {
   }, [pathname, signedOutParam, router, searchParams]);
 
   const isPreviewSurface =
-    pathname === "/preview-listing" ||
     pathname.endsWith("/preview") ||
     pathname.includes("/preview/");
 

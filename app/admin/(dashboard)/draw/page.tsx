@@ -40,9 +40,7 @@ function NavbarInner() {
     es: {
       home: "Inicio",
       news: "Noticias",
-      events: "Eventos",
       coupons: "Cupones",
-      sweepstakes: "Sorteos",
       magazine: "Revista",
       shop: "Tienda",
       classifieds: "Clasificados",
@@ -53,9 +51,7 @@ function NavbarInner() {
     en: {
       home: "Home",
       news: "News",
-      events: "Events",
       coupons: "Coupons",
-      sweepstakes: "Sweepstakes",
       magazine: "Magazine",
       shop: "Shop",
       classifieds: "Classifieds",
@@ -87,9 +83,7 @@ function NavbarInner() {
       <div className="hidden md:flex gap-6 text-white text-sm font-medium">
         <Link href={buildLink("/")}>{L.home}</Link>
         <Link href={buildLink("/noticias")}>{L.news}</Link>
-        <Link href={buildLink("/eventos")}>{L.events}</Link>
         <Link href={buildLink("/coupons")}>{L.coupons}</Link>
-        <Link href={buildLink("/sorteos")}>{L.sweepstakes}</Link>
         <Link href={buildLink("/magazine")}>{L.magazine}</Link>
         <Link href={buildLink("/tienda")}>{L.shop}</Link>
         <Link href={buildLink("/clasificados")}>{L.classifieds}</Link>

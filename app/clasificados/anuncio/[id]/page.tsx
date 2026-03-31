@@ -1588,12 +1588,9 @@ export default function AnuncioDetallePage() {
               {listing.category === "rentas" && (listing.sellerType === "business" || (listing as any).seller_type === "business") && ((listing as any).businessName ?? (listing as any).business_name) ? (
                 <p className="text-sm font-semibold text-[#111111]">{(listing as any).businessName ?? (listing as any).business_name}</p>
               ) : (listing as any)?.sellerUsername ? (
-                <Link
-                  href={`/vendedor/${encodeURIComponent((listing as any).sellerUsername)}?lang=${lang}`}
-                  className="text-sm font-medium text-[#111111] hover:underline"
-                >
+                <p className="text-sm font-medium text-[#111111]">
                   {listing?.sellerName ?? (listing as any).sellerUsername ?? (lang === "es" ? "Vendedor" : "Seller")}
-                </Link>
+                </p>
               ) : (
                 <p className="text-sm font-medium text-[#111111]">
                   {listing?.sellerName ?? (lang === "es" ? "Vendedor" : "Seller")}

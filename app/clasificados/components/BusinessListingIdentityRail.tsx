@@ -41,11 +41,6 @@ export default function BusinessListingIdentityRail({
   const agentNameLen = agentName.length;
   const ownerIdTrim = (ownerId ?? "").trim();
   const returnToTrim = (agentProfileReturnUrl ?? "").trim();
-  const agentProfileHref = ownerIdTrim
-    ? `/agente/${encodeURIComponent(ownerIdTrim)}?lang=${lang}${
-        returnToTrim ? `&returnTo=${encodeURIComponent(returnToTrim)}` : ""
-      }`
-    : "";
   const imageBoxClass = "h-12 w-12 rounded-xl border border-black/10 object-cover bg-white shadow-sm shrink-0";
   const agentNameClass =
     agentNameLen > 72
@@ -225,15 +220,6 @@ export default function BusinessListingIdentityRail({
           >
             {lang === "es" ? "Solicitar información" : "Request info"}
           </button>
-          {agentProfileHref ? (
-            <Link
-              href={agentProfileHref}
-              prefetch={false}
-              className="block w-full px-4 py-3.5 rounded-xl font-semibold border border-[#6D826F]/45 bg-[#EEF3ED] text-[#2F4A33] text-sm hover:bg-[#E3EBDD] transition text-center"
-            >
-              {lang === "es" ? "Ver perfil del agente" : "View agent profile"}
-            </Link>
-          ) : null}
           <button
             type="button"
             className="w-full px-4 py-3.5 rounded-xl font-semibold border text-sm transition border-[#C9B46A]/55 bg-[#F8F6F0] text-[#111111] hover:bg-[#EFE7D8]"

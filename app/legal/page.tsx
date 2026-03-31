@@ -10,20 +10,8 @@ export default function LegalPage() {
 
         <p className="text-lg leading-relaxed text-gray-300 mb-6">
           Welcome to El Águila. This page contains our general legal information, including
-          terms of use, privacy considerations, and guidelines for participation in our
-          sweepstakes and promotional activities.
+          terms of use, privacy considerations, and our community guidelines.
         </p>
-
-        <p className="text-lg leading-relaxed text-gray-300 mb-6">
-          For detailed sweepstakes rules, please visit the dedicated page:
-        </p>
-
-        <a
-          href="/legal/sweepstakes-rules"
-          className="text-yellow-400 underline text-lg hover:text-yellow-300"
-        >
-          View Sweepstakes Official Rules →
-        </a>
       </div>
     </main>
   );
