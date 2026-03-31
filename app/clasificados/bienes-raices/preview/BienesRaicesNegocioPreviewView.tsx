@@ -838,12 +838,16 @@ export function BienesRaicesNegocioPreviewView({
             className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
             style={{ borderColor: BORDER, background: CREAM_CARD }}
           >
-            <div className="overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
+            <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
               {vm.identity.hasPhoto && vm.identity.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={vm.identity.photoUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+                <img
+                  src={vm.identity.photoUrl}
+                  alt=""
+                  className="aspect-[4/5] w-full max-h-[min(340px,44vh)] object-cover object-top sm:max-h-[360px]"
+                />
               ) : (
-                <div className="aspect-[4/3] w-full">
+                <div className="aspect-[4/5] w-full max-h-[min(260px,36vh)]">
                   <EmptyMedia
                     title="Identidad del anuncio"
                     subtitle="Sin imagen principal cargada."
@@ -863,20 +867,24 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.identity.bioLine}
               </p>
             ) : null}
-            <div className="mt-4 flex items-start gap-3 rounded-xl border px-3 py-3" style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}>
-              {vm.identity.brokerageLogoUrl ? (
+            <div
+              className="mt-4 flex items-center gap-3 rounded-xl border px-3 py-3.5 sm:gap-4"
+              style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}
+            >
+              {vm.identity.brokerageLogoUrl &&
+              !(vm.identity.photoUrl && vm.identity.brokerageLogoUrl && vm.identity.photoUrl === vm.identity.brokerageLogoUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={vm.identity.brokerageLogoUrl}
                   alt=""
-                  className="h-10 max-w-[100px] shrink-0 object-contain object-left"
+                  className="h-14 w-auto max-w-[152px] shrink-0 object-contain object-left sm:h-16 sm:max-w-[168px]"
                 />
               ) : null}
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-                  Inmobiliaria
+                  Inmobiliaria / marca
                 </p>
-                <p className="mt-1 text-sm font-bold" style={{ color: CHARCOAL }}>
+                <p className="mt-1 text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
                   {vm.identity.brokerageName}
                 </p>
               </div>
@@ -902,16 +910,19 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.identity.contactEmail ? <p className="truncate opacity-90">{vm.identity.contactEmail}</p> : null}
               </div>
             ) : null}
-            {(vm.identity?.socialChips ?? []).length > 0 ? (
+            {(vm.identity?.socialLinks ?? []).length > 0 ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                {(vm.identity?.socialChips ?? []).map((s) => (
-                  <span
-                    key={s}
-                    className="flex h-8 min-w-[2rem] items-center justify-center rounded-full border px-2 text-[10px] font-bold"
+                {(vm.identity?.socialLinks ?? []).map((sl) => (
+                  <a
+                    key={sl.href}
+                    href={sl.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border px-3 text-[10px] font-bold transition hover:bg-[rgba(197,160,89,0.1)]"
                     style={{ borderColor: BORDER, color: CHARCOAL }}
                   >
-                    {s}
-                  </span>
+                    {sl.label}
+                  </a>
                 ))}
               </div>
             ) : null}
@@ -962,6 +973,25 @@ export function BienesRaicesNegocioPreviewView({
                 <p className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}>
                   {vm.contact.instructionsLine}
                 </p>
+              ) : null}
+              {vm.contact.horarioPreferidoLine || vm.contact.openHouseSummary ? (
+                <div
+                  className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]"
+                  style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}
+                >
+                  {vm.contact.horarioPreferidoLine ? (
+                    <p>
+                      <span className="font-semibold text-[#F5F0E8]">Horario preferido</span>
+                      <span className="mt-1 block text-[#d8cfc3]">{vm.contact.horarioPreferidoLine}</span>
+                    </p>
+                  ) : null}
+                  {vm.contact.openHouseSummary ? (
+                    <p className={vm.contact.horarioPreferidoLine ? "mt-3" : ""}>
+                      <span className="font-semibold text-[#F5F0E8]">Open house</span>
+                      <span className="mt-1 block whitespace-pre-line text-[#d8cfc3]">{vm.contact.openHouseSummary}</span>
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
               <div className="flex flex-1 flex-col space-y-3 px-5 py-5" style={{ background: "#2F2A24" }}>
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (

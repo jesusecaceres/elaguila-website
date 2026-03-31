@@ -74,6 +74,33 @@ function socialChipLabel(raw: string): string {
   return s.length > 10 ? `${s.slice(0, 8)}…` : s;
 }
 
+/** Only entries with a resolvable http(s) URL — chips alone are not linked. */
+function buildSocialLinks(raws: string[]): Array<{ label: string; href: string }> {
+  const out: Array<{ label: string; href: string }> = [];
+  for (const raw of raws) {
+    const t = trim(raw);
+    if (!t) continue;
+    const href = hrefFromUserInput(t);
+    if (!href) continue;
+    const label = socialChipLabel(t);
+    if (!label) continue;
+    out.push({ label, href });
+  }
+  return out.slice(0, 6);
+}
+
+function buildOpenHouseSummary(s: BienesRaicesNegocioFormState): string | null {
+  const c = s.cta;
+  if (!c.openHouseActivo) return null;
+  const parts: string[] = [];
+  if (trim(c.openHouseFecha)) parts.push(`Fecha: ${trim(c.openHouseFecha)}`);
+  const range = [trim(c.openHouseInicio), trim(c.openHouseFin)].filter(Boolean);
+  if (range.length) parts.push(`Horario: ${range.join(" – ")}`);
+  if (trim(c.openHouseNotas)) parts.push(trim(c.openHouseNotas));
+  if (!parts.length) return null;
+  return parts.join("\n");
+}
+
 function bulletsFromGroup(
   group: DeepDetailGroupKey,
   data: Record<string, string>,
@@ -514,6 +541,8 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
     llamarHref,
     whatsappHref,
     instructionsLine: trim(s.cta.instruccionesContacto),
+    horarioPreferidoLine: trim(s.cta.horarioPreferido),
+    openHouseSummary: buildOpenHouseSummary(s),
     secondAgent: buildSecondAgentVm(s),
     lender: buildLenderVm(s),
   };
@@ -543,7 +572,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ie.redes.map(trim).filter(Boolean).slice(0, 5);
     const photoUrl = trim(ie.imagenUrl) || null;
     const lead = trim(ie.agentePrincipalNombre);
-    const chips = social.map(socialChipLabel).filter(Boolean);
+    const socialLinks = buildSocialLinks(social);
     const profileHref = resolveProfileHref(ie.sitioWeb, social);
     return {
       photoUrl,
@@ -554,14 +583,14 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       verifiedLine: "Equipo anunciante",
       licenseLine: trim(ie.agentePrincipalRol) ? `Rol principal: ${trim(ie.agentePrincipalRol)}` : "",
       bioLine: trim(ie.bio),
-      socialChips: chips,
+      socialLinks,
       profileCtaLabel: "Ver perfil del equipo →",
       profileHref,
       profileCtaEnabled: Boolean(profileHref),
       contactPhone: trim(ie.telGeneral),
       contactEmail: trim(ie.email),
       hasPhoto: Boolean(photoUrl),
-      hasSocialLinks: social.length > 0,
+      hasSocialLinks: socialLinks.length > 0,
     };
   }
 
@@ -570,7 +599,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = io.redes.map(trim).filter(Boolean);
     const photoUrl = trim(io.logoUrl) || null;
     const lead = trim(io.contactoPrincipal);
-    const chips = social.map(socialChipLabel).filter(Boolean);
+    const socialLinks = buildSocialLinks(social);
     const profileHref = resolveProfileHref(io.sitioWeb, social);
     return {
       photoUrl,
@@ -581,14 +610,14 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       verifiedLine: "Oficina",
       licenseLine: trim(io.direccionOficina),
       bioLine: trim(io.bio),
-      socialChips: chips,
+      socialLinks,
       profileCtaLabel: "Ver oficina →",
       profileHref,
       profileCtaEnabled: Boolean(profileHref),
       contactPhone: trim(io.telPrincipal),
       contactEmail: trim(io.email),
       hasPhoto: Boolean(photoUrl),
-      hasSocialLinks: social.length > 0,
+      hasSocialLinks: socialLinks.length > 0,
     };
   }
 
@@ -597,7 +626,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ic.redes.map(trim).filter(Boolean);
     const photoUrl = trim(ic.logoUrl) || null;
     const entrega = trim(ic.entregaEstimada);
-    const chips = social.map(socialChipLabel).filter(Boolean);
+    const socialLinks = buildSocialLinks(social);
     const profileHref = resolveProfileHref(ic.sitioWeb, social);
     return {
       photoUrl,
@@ -608,14 +637,14 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollo inmobiliario",
       licenseLine: trim(ic.estadoDesarrollo),
       bioLine: trim(ic.descripcionProyecto),
-      socialChips: chips,
+      socialLinks,
       profileCtaLabel: "Ver centro de ventas →",
       profileHref,
       profileCtaEnabled: Boolean(profileHref),
       contactPhone: trim(ic.tel),
       contactEmail: trim(ic.email),
       hasPhoto: Boolean(photoUrl),
-      hasSocialLinks: social.length > 0,
+      hasSocialLinks: socialLinks.length > 0,
     };
   }
 
@@ -623,7 +652,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   const social = ia.redes.map(trim).filter(Boolean);
   const lic = trim(ia.licencia);
   const photoUrl = trim(ia.fotoUrl) || null;
-  const chips = social.map(socialChipLabel).filter(Boolean);
+  const socialLinks = buildSocialLinks(social);
   const profileHref = resolveProfileHref(ia.sitioWeb, social);
   return {
     photoUrl,
@@ -634,14 +663,14 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     verifiedLine: trust.mostrarLicencia && lic ? "Agente verificado" : "",
     licenseLine: lic ? `Lic. ${lic}` : "",
     bioLine: trim(ia.bio),
-    socialChips: chips,
+    socialLinks,
     profileCtaLabel: "Ver perfil profesional →",
     profileHref,
     profileCtaEnabled: Boolean(profileHref),
     contactPhone: trim(ia.telDirecto) || trim(ia.telOficina),
     contactEmail: trim(ia.email),
     hasPhoto: Boolean(photoUrl),
-    hasSocialLinks: social.length > 0,
+    hasSocialLinks: socialLinks.length > 0,
   };
 }
 

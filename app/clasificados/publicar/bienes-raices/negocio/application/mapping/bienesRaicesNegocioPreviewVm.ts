@@ -17,7 +17,8 @@ export type BienesRaicesPreviewIdentityVm = {
   licenseLine: string;
   /** Short bio when captured (agent/equipo/oficina). */
   bioLine: string;
-  socialChips: string[];
+  /** Clickable redes when URL resolves; omit malformed entries. */
+  socialLinks: Array<{ label: string; href: string }>;
   profileCtaLabel: string;
   /** Sitio web o primer enlace útil para el CTA de perfil. */
   profileHref: string | null;
@@ -79,6 +80,10 @@ export type BienesRaicesPreviewContactVm = {
   whatsappHref: string | null;
   /** Preferencias de contacto / instrucciones (misma ficha). */
   instructionsLine: string;
+  /** Texto libre del formulario (visitas). */
+  horarioPreferidoLine: string;
+  /** Resumen cuando open house está activo y hay datos. */
+  openHouseSummary: string | null;
   secondAgent: null | {
     name: string;
     role: string;
