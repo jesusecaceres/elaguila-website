@@ -6,8 +6,9 @@ import {
   getProductFamilyBySlug,
   TIENDA_PRODUCT_FAMILY_SLUGS,
 } from "../../data/tiendaRegistry";
+import { isPrintUploadProductSlug } from "../../product-configurators/print-upload/productConfigs";
 import type { Lang } from "../../types/tienda";
-import { businessCardConfigurePath, normalizeLang, withLang } from "../../utils/tiendaRouting";
+import { businessCardConfigurePath, normalizeLang, printUploadConfigurePath, withLang } from "../../utils/tiendaRouting";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
 import { TiendaProductHero } from "../../components/TiendaProductHero";
 import { TiendaSpecList } from "../../components/TiendaSpecList";
@@ -102,14 +103,19 @@ export default async function TiendaProductPage(props: {
                   {pick(tiendaCopy.sections.productPage.futureCtaButtonDesigner, lang)}
                 </Link>
               ) : null}
-              {product.futureConfiguratorType === "print-upload" ? (
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center justify-center rounded-full border border-[rgba(30,24,16,0.18)] bg-white/80 px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] opacity-55 cursor-not-allowed"
+              {product.futureConfiguratorType === "print-upload" && isPrintUploadProductSlug(product.slug) ? (
+                <Link
+                  href={withLang(printUploadConfigurePath(product.slug), lang)}
+                  className="inline-flex items-center justify-center rounded-full border border-[rgba(255,252,247,0.35)] bg-[rgba(255,252,247,0.94)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_12px_34px_rgba(201,168,74,0.15)]"
                 >
                   {pick(tiendaCopy.sections.productPage.futureCtaButtonUpload, lang)}
-                </button>
+                </Link>
+              ) : product.futureConfiguratorType === "print-upload" ? (
+                <span className="text-sm text-[rgba(255,255,255,0.65)]">
+                  {lang === "en"
+                    ? "Upload configurator for this product is coming next."
+                    : "El configurador de subida para este producto llegará pronto."}
+                </span>
               ) : null}
               {product.futureConfiguratorType === "none" ? (
                 <span className="text-sm text-[rgba(255,255,255,0.70)]">

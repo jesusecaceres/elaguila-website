@@ -152,7 +152,7 @@ export const tiendaCopy = {
         en: "This is where the editor or file upload will connect. No checkout yet—just order preparation.",
       },
       futureCtaButtonDesigner: { es: "Abrir constructor", en: "Open builder" },
-      futureCtaButtonUpload: { es: "Subir archivo (pronto)", en: "Upload file (soon)" },
+      futureCtaButtonUpload: { es: "Subir archivos", en: "Upload files" },
       futureCtaButtonContact: { es: "Hablar con Leonix", en: "Talk to Leonix" },
     },
     modeLabels: {

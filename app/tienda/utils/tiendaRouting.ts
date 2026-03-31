@@ -8,6 +8,10 @@ export function businessCardConfigurePath(slug: string): string {
   return `/tienda/configure/business-cards/${slug}`;
 }
 
+export function printUploadConfigurePath(slug: string): string {
+  return `/tienda/configure/print-upload/${slug}`;
+}
+
 export function withLang(href: string, lang: Lang): string {
   if (!href) return `?lang=${lang}`;
   if (href === "#") return "#";

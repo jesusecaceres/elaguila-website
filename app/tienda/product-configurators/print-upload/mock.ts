@@ -1,7 +1,7 @@
 import type { PrintUploadJobSpec } from "./types";
 import { DEFAULT_ACCEPTED_MIMES, DEFAULT_MAX_FILE_MB } from "./constants";
 
-/** Example spec for standard flyer upload flow */
+/** Legacy pipeline example — configurador en vivo usa `productConfigs` + `PrintUploadDocument`. */
 export const mockFlyerUploadSpec: PrintUploadJobSpec = {
   id: "flyers-standard-upload",
   acceptedTypes: DEFAULT_ACCEPTED_MIMES,
