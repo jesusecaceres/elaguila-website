@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GlobalContactForm } from "@/app/components/contact/GlobalContactForm";
 import {
   LEONIX_GLOBAL_CONTACT_PATH,
   LEONIX_GLOBAL_EMAIL,
@@ -48,17 +49,6 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
           emailLabel: "Email",
           hoursLabel: "Hours",
           hours: "Monday–Friday, 9:00 AM – 5:00 PM Pacific",
-          formTitle: "Send a message",
-          formNote:
-            "This form is for general contact. It does not submit a Tienda print order — for cards, flyers, banners, and quotes, use the Tienda contact page.",
-          name: "Full name",
-          namePh: "Your name",
-          emailF: "Email",
-          emailPh: "you@example.com",
-          message: "Message",
-          messagePh: "How can we help?",
-          submit: "Send message",
-          submitHint: "Submit handler can be wired when backend is ready.",
           tiendaTitle: "Print store (Tienda)",
           tiendaBody:
             "For business printing, orders, file uploads, and Tienda quotes, use the dedicated Tienda contact page so we route you correctly.",
@@ -72,17 +62,6 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
           emailLabel: "Correo",
           hoursLabel: "Horario",
           hours: "Lunes a viernes, 9:00 – 17:00 (Pacífico)",
-          formTitle: "Envíanos un mensaje",
-          formNote:
-            "Este formulario es para contacto general. No envía un pedido de Tienda — para tarjetas, volantes, banners y cotizaciones, usa la página de contacto de Tienda.",
-          name: "Nombre completo",
-          namePh: "Tu nombre",
-          emailF: "Correo electrónico",
-          emailPh: "tu@ejemplo.com",
-          message: "Mensaje",
-          messagePh: "¿En qué podemos ayudarte?",
-          submit: "Enviar mensaje",
-          submitHint: "El envío real se puede conectar cuando haya backend.",
           tiendaTitle: "Tienda de impresión",
           tiendaBody:
             "Para impresión comercial, pedidos, subida de archivos y cotizaciones de Tienda, usa la página de contacto dedicada para enrutarte bien.",
@@ -136,53 +115,7 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
           </div>
         </div>
 
-        <div className="bg-[color:var(--lx-card)] p-8 rounded-2xl shadow-[0_18px_48px_rgba(42,36,22,0.10)] border border-[color:var(--lx-nav-border)]">
-          <h2 className="text-2xl font-semibold text-[color:var(--lx-text)] mb-4">{copy.formTitle}</h2>
-          <p className="text-sm text-[color:var(--lx-muted)] mb-6 leading-relaxed">{copy.formNote}</p>
-
-          <form className="space-y-6">
-            <div>
-              <label className="block mb-1 text-[color:var(--lx-text-2)]/90">{copy.name}</label>
-              <input
-                type="text"
-                name="name"
-                className="w-full p-3 rounded-lg bg-white/70 border border-[color:var(--lx-nav-border)] text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)] focus:outline-none"
-                placeholder={copy.namePh}
-                autoComplete="name"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-[color:var(--lx-text-2)]/90">{copy.emailF}</label>
-              <input
-                type="email"
-                name="email"
-                className="w-full p-3 rounded-lg bg-white/70 border border-[color:var(--lx-nav-border)] text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)] focus:outline-none"
-                placeholder={copy.emailPh}
-                autoComplete="email"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-[color:var(--lx-text-2)]/90">{copy.message}</label>
-              <textarea
-                name="message"
-                rows={5}
-                className="w-full p-3 rounded-lg bg-white/70 border border-[color:var(--lx-nav-border)] text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)] focus:outline-none"
-                placeholder={copy.messagePh}
-              />
-            </div>
-
-            <button
-              type="button"
-              disabled
-              className="w-full py-3 rounded-xl text-lg font-semibold bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] shadow-[0_10px_28px_rgba(42,36,22,0.18)] opacity-60 cursor-not-allowed"
-            >
-              {copy.submit}
-            </button>
-            <p className="text-xs text-[color:var(--lx-muted)] text-center">{copy.submitHint}</p>
-          </form>
-        </div>
+        <GlobalContactForm lang={lang} />
       </div>
     </main>
   );

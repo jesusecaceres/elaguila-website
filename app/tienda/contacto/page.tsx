@@ -20,6 +20,7 @@ import {
   tiendaContactRankPhone,
 } from "../data/tiendaContactPageCopy";
 import type { Lang } from "../types/tienda";
+import { TiendaContactForm } from "../components/TiendaContactForm";
 import { normalizeLang, withLang } from "../utils/tiendaRouting";
 
 export async function generateMetadata(props: {
@@ -96,6 +97,8 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
             </li>
           </ul>
         </section>
+
+        <TiendaContactForm lang={lang} />
 
         <section className="mt-10 rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] p-6">
           <p className="text-sm text-[rgba(255,255,255,0.65)]">{tiendaContactGeneralSiteNote(lang)}</p>
