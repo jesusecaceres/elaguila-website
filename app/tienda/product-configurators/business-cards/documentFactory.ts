@@ -1,5 +1,6 @@
 import type { Lang } from "../../types/tienda";
 import type {
+  BusinessCardCanvasBackground,
   BusinessCardDocument,
   BusinessCardImageBlock,
   BusinessCardProductSlug,
@@ -7,6 +8,12 @@ import type {
   BusinessCardTextFields,
   BusinessCardTextLayout,
 } from "./types";
+import {
+  getBusinessCardTemplateBack,
+  getBusinessCardTemplateFront,
+  syncFieldsFromBlocks,
+  syncSideBlocksFromFields,
+} from "./templates";
 
 function emptyFields(): BusinessCardTextFields {
   return {
@@ -52,64 +59,39 @@ function emptyLogo(): BusinessCardImageBlock {
   };
 }
 
-function starterFront(lang: Lang): BusinessCardSideState {
-  return {
-    fields:
-      lang === "en"
-        ? {
-            personName: "Alex Rivera",
-            title: "Creative Director",
-            company: "Leonix Media",
-            phone: "(555) 010-2000",
-            email: "hello@leonix.example",
-            website: "leonix.example",
-            address: "",
-            tagline: "Premium print for business",
-          }
-        : {
-            personName: "Alex Rivera",
-            title: "Director Creativo",
-            company: "Leonix Media",
-            phone: "(555) 010-2000",
-            email: "hola@leonix.example",
-            website: "leonix.example",
-            address: "",
-            tagline: "Impresión premium para negocios",
-          },
+const DEFAULT_BG: BusinessCardCanvasBackground = { kind: "solid", color: "#fffdf7" };
+
+function sideFromTemplateFront(lang: Lang): BusinessCardSideState {
+  const t = getBusinessCardTemplateFront("modern-centered", lang);
+  const base: BusinessCardSideState = {
+    fields: t.fields,
     textLayout: defaultTextLayout(),
     logo: emptyLogo(),
+    textBlocks: t.blocks,
+    logoGeom: t.logoGeom,
   };
+  return syncSideBlocksFromFields(syncFieldsFromBlocks(base));
 }
 
-function starterBack(lang: Lang): BusinessCardSideState {
-  return {
-    fields:
-      lang === "en"
-        ? {
-            personName: "",
-            title: "",
-            company: "Thank you",
-            phone: "",
-            email: "",
-            website: "",
-            address: "",
-            tagline: "We print what you approve.",
-          }
-        : {
-            personName: "",
-            title: "",
-            company: "Gracias",
-            phone: "",
-            email: "",
-            website: "",
-            address: "",
-            tagline: "Imprimimos lo que apruebas.",
-          },
-    textLayout: {
-      ...defaultTextLayout(),
-      groupPosition: "center",
-    },
+function sideFromTemplateBack(lang: Lang): BusinessCardSideState {
+  const t = getBusinessCardTemplateBack(lang);
+  const base: BusinessCardSideState = {
+    fields: t.fields,
+    textLayout: { ...defaultTextLayout(), groupPosition: "center" },
     logo: { ...emptyLogo(), visible: false, position: "center" },
+    textBlocks: t.blocks,
+    logoGeom: t.logoGeom,
+  };
+  return syncSideBlocksFromFields(syncFieldsFromBlocks(base));
+}
+
+function emptySide(): BusinessCardSideState {
+  return {
+    fields: emptyFields(),
+    textLayout: { ...defaultTextLayout(), groupPosition: "center" },
+    logo: { ...emptyLogo(), visible: false },
+    textBlocks: [],
+    logoGeom: { xPct: 50, yPct: 28, widthPct: 20, zIndex: 4 },
   };
 }
 
@@ -120,30 +102,23 @@ export function createInitialBusinessCardDocument(
   const two = productSlug === "two-sided-business-cards";
   return {
     id: `bc-${Date.now().toString(36)}`,
-    version: 2,
+    version: 3,
     productSlug,
     sidedness: two ? "two-sided" : "one-sided",
     activeSide: "front",
     guidesVisible: true,
+    canvasBackground: DEFAULT_BG,
     textNudgeX: 0,
     textNudgeY: 0,
     logoNudgeX: 0,
     logoNudgeY: 0,
-    front: starterFront(lang),
-    back: two ? starterBack(lang) : emptySide(),
+    front: sideFromTemplateFront(lang),
+    back: two ? sideFromTemplateBack(lang) : emptySide(),
     approval: {
       spellingReviewed: false,
       layoutReviewed: false,
       printAsApproved: false,
       noRedesignExpectation: false,
     },
-  };
-}
-
-function emptySide(): BusinessCardSideState {
-  return {
-    fields: emptyFields(),
-    textLayout: { ...defaultTextLayout(), groupPosition: "center" },
-    logo: { ...emptyLogo(), visible: false },
   };
 }

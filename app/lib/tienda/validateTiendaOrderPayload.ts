@@ -147,7 +147,10 @@ export function validateTiendaOrderPayload(body: unknown):
       return { ok: false, error: "Missing business card details", code: "MISSING_EXTRA" };
     }
     const x = ex as Record<string, unknown>;
+    const creationMode = x.creationMode === "upload-existing" ? "upload-existing" : "design-online";
+
     payload.businessCardExtra = {
+      creationMode,
       sidedness: x.sidedness === "two-sided" ? "two-sided" : "one-sided",
       frontFieldLinesEs: Array.isArray(x.frontFieldLinesEs)
         ? x.frontFieldLinesEs.map((l) => trimStr(l, 500))
@@ -172,6 +175,55 @@ export function validateTiendaOrderPayload(body: unknown):
         noRedesignExpectation: (x.approval as Record<string, unknown>)?.noRedesignExpectation === true,
       },
     };
+
+    if (creationMode === "upload-existing") {
+      const ua = x.uploadArtwork as Record<string, unknown> | undefined;
+      const uf = ua?.front as Record<string, unknown> | undefined;
+      if (!ua || !uf) {
+        return { ok: false, error: "Missing business card upload artwork meta", code: "MISSING_EXTRA" };
+      }
+      const backRaw = ua.back;
+      payload.businessCardExtra.uploadArtwork = {
+        front: {
+          name: trimStr(uf.name, 500),
+          mime: trimStr(uf.mime, 120),
+          sizeBytes: typeof uf.sizeBytes === "number" && Number.isFinite(uf.sizeBytes) ? uf.sizeBytes : 0,
+          widthPx: typeof uf.widthPx === "number" ? uf.widthPx : null,
+          heightPx: typeof uf.heightPx === "number" ? uf.heightPx : null,
+          sessionHadInlinePreview: uf.sessionHadInlinePreview === true,
+        },
+        back:
+          backRaw && typeof backRaw === "object"
+            ? {
+                name: trimStr((backRaw as Record<string, unknown>).name, 500),
+                mime: trimStr((backRaw as Record<string, unknown>).mime, 120),
+                sizeBytes:
+                  typeof (backRaw as Record<string, unknown>).sizeBytes === "number" &&
+                  Number.isFinite((backRaw as Record<string, unknown>).sizeBytes as number)
+                    ? ((backRaw as Record<string, unknown>).sizeBytes as number)
+                    : 0,
+                widthPx: typeof (backRaw as Record<string, unknown>).widthPx === "number" ? (backRaw as Record<string, unknown>).widthPx as number : null,
+                heightPx: typeof (backRaw as Record<string, unknown>).heightPx === "number" ? (backRaw as Record<string, unknown>).heightPx as number : null,
+                sessionHadInlinePreview: (backRaw as Record<string, unknown>).sessionHadInlinePreview === true,
+              }
+            : null,
+      };
+      const snap = x.rawValidationSnapshot;
+      payload.businessCardExtra.rawValidationSnapshot = Array.isArray(snap)
+        ? snap.map((row) => {
+            const r = row as Record<string, unknown>;
+            return {
+              severity: trimStr(r.severity, 40),
+              messageEs: trimStr(r.messageEs, 500),
+              messageEn: trimStr(r.messageEn, 500),
+            };
+          })
+        : [];
+
+      if (payload.businessCardExtra.sidedness === "two-sided" && !payload.businessCardExtra.uploadArtwork.back) {
+        return { ok: false, error: "Two-sided upload requires back artwork meta", code: "MISSING_EXTRA" };
+      }
+    }
   }
 
   if (source === "print-upload") {

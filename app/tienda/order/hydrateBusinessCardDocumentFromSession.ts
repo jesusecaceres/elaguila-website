@@ -3,10 +3,14 @@ import type {
   BusinessCardProductSlug,
   BusinessCardSideState,
   BusinessCardTextFields,
-  LayoutPreset,
-  ScalePreset,
 } from "../product-configurators/business-cards/types";
-import { isBusinessCardSessionPayloadV2, type BusinessCardSessionPayloadV2 } from "./mappers/businessCardDocumentToReview";
+import { migrateBusinessCardV2SessionToDocument } from "../product-configurators/business-cards/migrateSession";
+import {
+  isBusinessCardSessionDesign,
+  isBusinessCardSessionPayloadV2,
+  type BusinessCardSessionPayloadV3Design,
+} from "./mappers/businessCardDocumentToReview";
+import type { Lang } from "../types/tienda";
 
 const EMPTY_FIELDS: BusinessCardTextFields = {
   personName: "",
@@ -23,7 +27,7 @@ function mergeFields(partial: Record<string, string>): BusinessCardTextFields {
   return { ...EMPTY_FIELDS, ...partial };
 }
 
-function toSide(stored: BusinessCardSessionPayloadV2["front"]): BusinessCardSideState {
+function toSideV3(stored: BusinessCardSessionPayloadV3Design["front"]): BusinessCardSideState {
   const logo = stored.logo;
   return {
     fields: mergeFields(stored.fields ?? {}),
@@ -31,33 +35,44 @@ function toSide(stored: BusinessCardSessionPayloadV2["front"]): BusinessCardSide
     logo: {
       id: "logo",
       visible: logo?.visible ?? false,
-      position: (logo?.position ?? "top-center") as LayoutPreset,
-      scale: (logo?.scale ?? "md") as ScalePreset,
+      position: logo?.position ?? "top-center",
+      scale: logo?.scale ?? "md",
       file: null,
       previewUrl: logo?.previewUrl ?? null,
       naturalWidth: logo?.naturalWidth ?? null,
       naturalHeight: logo?.naturalHeight ?? null,
     },
+    textBlocks: stored.textBlocks ?? [],
+    logoGeom: stored.logoGeom ?? { xPct: 50, yPct: 28, widthPct: 20, zIndex: 4 },
   };
 }
 
-export function hydrateBusinessCardDocumentFromSession(slug: string, raw: unknown): BusinessCardDocument | null {
-  if (!isBusinessCardSessionPayloadV2(raw)) return null;
-  if (raw.productSlug !== slug) return null;
-
+function documentFromV3Design(slug: string, raw: BusinessCardSessionPayloadV3Design): BusinessCardDocument {
   return {
     id: `tienda-session-${slug}`,
-    version: 2,
+    version: 3,
     productSlug: raw.productSlug as BusinessCardProductSlug,
     sidedness: raw.sidedness,
     activeSide: "front",
     guidesVisible: false,
+    canvasBackground: raw.canvasBackground,
     textNudgeX: raw.textNudgeX ?? 0,
     textNudgeY: raw.textNudgeY ?? 0,
     logoNudgeX: raw.logoNudgeX ?? 0,
     logoNudgeY: raw.logoNudgeY ?? 0,
-    front: toSide(raw.front),
-    back: toSide(raw.back),
+    front: toSideV3(raw.front),
+    back: toSideV3(raw.back),
     approval: raw.approval,
   };
+}
+
+/** Rehydrates the online builder document from session storage (design paths only). */
+export function hydrateBusinessCardDocumentFromSession(slug: string, raw: unknown, lang: Lang): BusinessCardDocument | null {
+  if (isBusinessCardSessionDesign(raw)) {
+    return documentFromV3Design(slug, raw);
+  }
+  if (isBusinessCardSessionPayloadV2(raw)) {
+    return migrateBusinessCardV2SessionToDocument(raw, lang);
+  }
+  return null;
 }

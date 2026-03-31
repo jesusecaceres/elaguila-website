@@ -6,13 +6,18 @@ import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { assertTiendaOrderId } from "@/app/lib/tienda/tiendaBlobPrefix";
 import { storeBusinessCardAssets } from "@/app/lib/tienda/storeBusinessCardAssets";
+import { storeBusinessCardUploadAssets } from "@/app/lib/tienda/storeBusinessCardUploadAssets";
 import { storePrintUploadAssets } from "@/app/lib/tienda/storePrintUploadAssets";
 import type { Lang } from "../../types/tienda";
 import type { TiendaFulfillmentPreference, TiendaOrderReviewSummary, TiendaOrderSource } from "../../types/orderHandoff";
 import { emptyTiendaCustomerDetails, type TiendaCustomerDetails } from "../../types/orderHandoff";
 import type { TiendaOrderSubmissionResult } from "../../types/orderSubmission";
 import type { BusinessCardDocument } from "../../product-configurators/business-cards/types";
-import { mapBusinessCardSessionToReview, readBusinessCardSessionRaw } from "../../order/mappers/businessCardDocumentToReview";
+import {
+  isBusinessCardSessionUpload,
+  mapBusinessCardSessionToReview,
+  readBusinessCardOrderSession,
+} from "../../order/mappers/businessCardDocumentToReview";
 import {
   isPrintUploadSessionPayloadV1,
   mapPrintUploadSessionToReview,
@@ -45,7 +50,7 @@ import { TiendaOrderAlreadySubmitted } from "./TiendaOrderAlreadySubmitted";
 
 function loadReview(source: TiendaOrderSource, slug: string): TiendaOrderReviewSummary | null {
   if (source === "business-cards") {
-    return mapBusinessCardSessionToReview(slug, readBusinessCardSessionRaw(slug));
+    return mapBusinessCardSessionToReview(slug, readBusinessCardOrderSession(slug));
   }
   return mapPrintUploadSessionToReview(slug, readPrintUploadSessionRaw(slug));
 }
@@ -141,26 +146,18 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
       }
 
       if (source === "business-cards") {
-        const raw = readBusinessCardSessionRaw(slug);
-        const doc = hydrateBusinessCardDocumentFromSession(slug, raw);
-        if (!doc || raw == null) {
+        const raw = readBusinessCardOrderSession(slug);
+        if (raw == null) {
           setSubmitError(
             lang === "en"
-              ? "Could not load business card session for export. Open the configurator again and save."
-              : "No se pudo cargar la sesión de tarjetas para exportar. Abre el configurador y guarda."
+              ? "Could not load business card session. Open the configurator again and save."
+              : "No se pudo cargar la sesión de tarjetas. Abre el configurador y guarda."
           );
           return;
         }
-        flushSync(() => setBcExportDoc(doc));
-        try {
-          const up = await storeBusinessCardAssets({
-            orderId,
-            productSlug: slug,
-            document: doc,
-            sessionJson: raw,
-            getExportRoot: (side) =>
-              document.querySelector(`[data-bc-export-mount="${side}"] [data-tienda-bc-export-root]`) as HTMLElement | null,
-          });
+
+        if (isBusinessCardSessionUpload(raw)) {
+          const up = await storeBusinessCardUploadAssets({ orderId, productSlug: slug, session: raw });
           if (!up.ok) {
             const msg =
               up.code === "BLOB_NOT_CONFIGURED"
@@ -169,8 +166,37 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
             setSubmitError(up.error || msg);
             return;
           }
-        } finally {
-          flushSync(() => setBcExportDoc(null));
+        } else {
+          const doc = hydrateBusinessCardDocumentFromSession(slug, raw, lang);
+          if (!doc) {
+            setSubmitError(
+              lang === "en"
+                ? "Could not load business card design for export. Open the builder again and save."
+                : "No se pudo cargar el diseño para exportar. Abre el constructor y guarda."
+            );
+            return;
+          }
+          flushSync(() => setBcExportDoc(doc));
+          try {
+            const up = await storeBusinessCardAssets({
+              orderId,
+              productSlug: slug,
+              document: doc,
+              sessionJson: raw,
+              getExportRoot: (side) =>
+                document.querySelector(`[data-bc-export-mount="${side}"] [data-tienda-bc-export-root]`) as HTMLElement | null,
+            });
+            if (!up.ok) {
+              const msg =
+                up.code === "BLOB_NOT_CONFIGURED"
+                  ? subPick(orderSubmissionCopy.errorBlobConfig, lang)
+                  : subPick(orderSubmissionCopy.errorAssetUpload, lang);
+              setSubmitError(up.error || msg);
+              return;
+            }
+          } finally {
+            flushSync(() => setBcExportDoc(null));
+          }
         }
       } else {
         const rawPu = readPrintUploadSessionRaw(slug);

@@ -30,6 +30,7 @@ type MuxDirectUploadPayload = {
 type MuxStatusPayload = {
   ok?: boolean;
   error?: string;
+  errorType?: string;
   muxStatus?: string;
 };
 
@@ -91,6 +92,38 @@ function setVideoSlot(
 
 function muxInitMessage(): string {
   return "No pudimos iniciar la subida de video. Prueba un enlace público (YouTube, Vimeo, .mp4) o revisa la configuración de video.";
+}
+
+function muxDirectUploadInitUserMessage(payload: MuxDirectUploadPayload): string {
+  const et = (payload.errorType ?? "").trim();
+  const err = (payload.error ?? "").trim();
+  if (et === "missing_env" || et === "mux_auth_failure") {
+    return "El servicio de video no está configurado o las credenciales Mux no son válidas. Usa un enlace público o revisa MUX_TOKEN_ID / MUX_TOKEN_SECRET.";
+  }
+  if (et === "mux_cors_origin_required") {
+    return "Origen CORS no resuelto para Mux. En producción define MUX_CORS_ORIGIN (p. ej. https://tu-dominio.com) o abre la app desde una URL https normal.";
+  }
+  if (et === "mux_rate_limited") {
+    return "Mux limitó la tasa de subidas. Espera un minuto o usa un enlace de video.";
+  }
+  if (et === "mux_account_billing") {
+    return "La cuenta Mux reportó facturación o plan. Usa un enlace público (YouTube, Vimeo, etc.) o revisa el panel de Mux.";
+  }
+  if (et === "mux_bad_request" || et === "mux_upstream_error" || et === "mux_bad_response") {
+    return err ? `Mux rechazó la subida: ${err}` : muxInitMessage();
+  }
+  if (err) return `No pudimos iniciar la subida: ${err}`;
+  return muxInitMessage();
+}
+
+function muxStatusPollUserMessage(payload: MuxStatusPayload): string {
+  const et = (payload.errorType ?? "").trim();
+  const err = (payload.error ?? "").trim();
+  if (et === "missing_env" || et === "mux_status_upstream") {
+    return err || "No pudimos consultar el estado del video en Mux. Usa un enlace público o reintenta.";
+  }
+  if (err) return err;
+  return muxPollMessage();
 }
 
 function muxPutMessage(code: number): string {
@@ -256,7 +289,7 @@ export function GaleriaMultimediaNegocioSection({
         });
         const payload = (await req.json().catch(() => ({}))) as MuxDirectUploadPayload;
         if (!req.ok || !payload.ok || !payload.uploadId || !payload.uploadUrl) {
-          setVideoSlot(setState, slot, { status: "error", errorMessage: muxInitMessage() });
+          setVideoSlot(setState, slot, { status: "error", errorMessage: muxDirectUploadInitUserMessage(payload) });
           return;
         }
         setVideoSlot(setState, slot, { uploadId: payload.uploadId, status: "uploading" });
@@ -294,7 +327,7 @@ export function GaleriaMultimediaNegocioSection({
           if (!statusRes.ok || !statusPayload.ok) {
             setVideoSlot(setState, slot, {
               status: "error",
-              errorMessage: statusPayload.error ? String(statusPayload.error) : muxPollMessage(),
+              errorMessage: muxStatusPollUserMessage(statusPayload),
             });
             return;
           }

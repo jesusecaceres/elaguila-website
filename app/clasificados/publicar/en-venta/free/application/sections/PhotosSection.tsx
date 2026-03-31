@@ -19,6 +19,7 @@ type MuxDirectUploadPayload = {
 type MuxStatusPayload = {
   ok?: boolean;
   error?: string;
+  errorType?: string;
 };
 
 const COPY = {
@@ -111,19 +112,49 @@ function friendlyDirectUploadInitMessage(lang: Lang, httpStatus: number, payload
   const et = (payload.errorType ?? "").trim();
   const raw = (payload.error ?? "").trim();
 
-  if (et === "missing_env" || et === "mux_auth_failure" || et === "mux_bad_response" || et === "mux_unknown_error") {
+  if (et === "mux_cors_origin_required") {
+    return lang === "es"
+      ? "No se pudo determinar el origen del sitio para la subida CORS de Mux. En el servidor define MUX_CORS_ORIGIN con tu URL pública (p. ej. https://leonixmedia.com). También puedes pegar un enlace de video."
+      : "Could not determine your site origin for Mux CORS. Set MUX_CORS_ORIGIN to your public URL on the server, or paste a video link.";
+  }
+  if (et === "mux_rate_limited") {
+    return lang === "es"
+      ? "Demasiadas subidas de video seguidas (límite de Mux). Espera un minuto o pega un enlace público."
+      : "Too many video uploads in a short time (Mux rate limit). Wait a minute or paste a public link.";
+  }
+  if (et === "mux_account_billing") {
+    return lang === "es"
+      ? "Mux reportó facturación o plan: no se puede subir el archivo ahora. Pega un enlace (YouTube, Vimeo, etc.)."
+      : "Mux reported billing or plan limits — file upload isn’t available. Paste a link (YouTube, Vimeo, etc.).";
+  }
+  if (et === "mux_bad_request" || et === "mux_upstream_error") {
+    if (raw) {
+      return lang === "es" ? `Mux rechazó la subida: ${raw}` : `Mux rejected the upload: ${raw}`;
+    }
     return t.fileUploadBlockedLeonix;
   }
 
-  if (httpStatus === 502 || httpStatus === 503) {
-    return t.fileUploadBlockedLeonix;
+  if (et === "missing_env" || et === "mux_auth_failure" || et === "mux_bad_response" || et === "mux_unknown_error") {
+    return raw
+      ? lang === "es"
+        ? `Video (Mux) no disponible: ${raw}`
+        : `Video (Mux) unavailable: ${raw}`
+      : t.fileUploadBlockedLeonix;
+  }
+
+  if (httpStatus === 502 || httpStatus === 503 || httpStatus === 429 || httpStatus === 402) {
+    return raw
+      ? lang === "es"
+        ? `Proveedor de video no disponible (${httpStatus}): ${raw}`
+        : `Video provider unavailable (${httpStatus}): ${raw}`
+      : t.fileUploadBlockedLeonix;
   }
 
   if (looksLikeProviderLimitOrPolicy(raw)) {
     return t.fileUploadBlockedLeonix;
   }
 
-  return t.fileUploadBlockedLeonix;
+  return raw ? (lang === "es" ? `Subida de video: ${raw}` : `Video upload: ${raw}`) : t.fileUploadBlockedLeonix;
 }
 
 function friendlyPutFailureMessage(lang: Lang, xhrStatus: number): string {
@@ -141,10 +172,22 @@ function friendlyStatusPollMessage(lang: Lang, payload: MuxStatusPayload, httpOk
   const t = COPY[lang];
   if (!httpOk || !payload.ok) {
     const raw = (payload.error ?? "").trim();
+    const et = (payload.errorType ?? "").trim();
+    if (et === "missing_env") {
+      return lang === "es"
+        ? "Faltan variables Mux en el servidor (MUX_TOKEN_ID / MUX_TOKEN_SECRET). Pega un enlace de video."
+        : "Mux env vars are missing on the server. Paste a video link.";
+    }
+    if (et === "mux_upload_terminal" || et === "mux_asset_errored") {
+      return raw || t.fileUploadStatusFailed;
+    }
+    if (et === "mux_status_upstream" && raw) {
+      return lang === "es" ? `Estado Mux: ${raw}` : `Mux status: ${raw}`;
+    }
     if (looksLikeProviderLimitOrPolicy(raw)) {
       return t.fileUploadBlockedLeonix;
     }
-    return t.fileUploadStatusFailed;
+    return raw || t.fileUploadStatusFailed;
   }
   return t.fileUploadStatusFailed;
 }
@@ -188,6 +231,7 @@ function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", uploadUrl);
+    xhr.timeout = 900_000;
     const contentType = file.type?.trim() || "application/octet-stream";
     try {
       xhr.setRequestHeader("Content-Type", contentType);
@@ -203,6 +247,7 @@ function uploadFileToUrl(file: File, uploadUrl: string, onProgress: (pct: number
       else reject(new Error(`PUT_${xhr.status}`));
     };
     xhr.onerror = () => reject(new Error("PUT_0"));
+    xhr.ontimeout = () => reject(new Error("PUT_timeout"));
     xhr.send(file);
   });
 }
@@ -342,6 +387,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slot }),
+          cache: "no-store",
         });
         const payload = (await req.json().catch(() => ({}))) as MuxDirectUploadPayload;
 
@@ -364,6 +410,16 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
           });
         } catch (putErr: unknown) {
           const msg = putErr instanceof Error ? putErr.message : "";
+          if (msg === "PUT_timeout") {
+            setVideoSlot(setState, slot, {
+              status: "error",
+              errorMessage:
+                lang === "es"
+                  ? "La subida del video tardó demasiado. Prueba un archivo más pequeño o pega un enlace."
+                  : "The upload took too long. Try a smaller file or paste a link.",
+            });
+            return;
+          }
           const statusMatch = /^PUT_(\d+)$/.exec(msg);
           const code = statusMatch ? Number(statusMatch[1]) : 0;
           setVideoSlot(setState, slot, {

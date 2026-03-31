@@ -1,13 +1,19 @@
+import type { Lang } from "../../types/tienda";
 import type {
   BusinessCardApprovalChecks,
+  BusinessCardCanvasBackground,
   BusinessCardDocument,
   BusinessCardImageBlock,
+  BusinessCardLogoGeom,
   BusinessCardSide,
+  BusinessCardTextBlock,
   BusinessCardTextLayout,
   LayoutPreset,
   ScalePreset,
   TextFieldRole,
 } from "./types";
+import type { BusinessCardTemplateId } from "./templates";
+import { applyBusinessCardTemplateToDocument, syncFieldsFromBlocks, syncSideBlocksFromFields } from "./templates";
 
 export type BusinessCardBuilderAction =
   | { type: "SET_ACTIVE_SIDE"; side: BusinessCardSide }
@@ -28,6 +34,12 @@ export type BusinessCardBuilderAction =
   | { type: "SET_TEXT_NUDGE"; x: number; y: number }
   | { type: "SET_LOGO_NUDGE"; x: number; y: number }
   | { type: "SET_APPROVAL"; patch: Partial<BusinessCardApprovalChecks> }
+  | { type: "SET_CANVAS_BACKGROUND"; payload: BusinessCardCanvasBackground }
+  | { type: "APPLY_TEMPLATE"; templateId: BusinessCardTemplateId; lang: Lang }
+  | { type: "SET_TEXT_BLOCK"; side: BusinessCardSide; id: string; patch: Partial<BusinessCardTextBlock> }
+  | { type: "ADD_CUSTOM_TEXT_BLOCK"; side: BusinessCardSide; lang: Lang }
+  | { type: "REMOVE_TEXT_BLOCK"; side: BusinessCardSide; id: string }
+  | { type: "SET_LOGO_GEOM"; side: BusinessCardSide; patch: Partial<BusinessCardLogoGeom> }
   | { type: "RESET"; document: BusinessCardDocument };
 
 function patchSide(
@@ -51,10 +63,12 @@ export function businessCardBuilderReducer(
     case "SET_ACTIVE_SIDE":
       return { ...state, activeSide: action.side };
     case "SET_FIELD":
-      return patchSide(state, action.side, (s) => ({
-        ...s,
-        fields: { ...s.fields, [action.role]: action.value },
-      }));
+      return patchSide(state, action.side, (s) =>
+        syncSideBlocksFromFields({
+          ...s,
+          fields: { ...s.fields, [action.role]: action.value },
+        })
+      );
     case "SET_LOGO":
       return patchSide(state, action.side, (s) => ({
         ...s,
@@ -115,6 +129,50 @@ export function businessCardBuilderReducer(
       return { ...state, logoNudgeX: action.x, logoNudgeY: action.y };
     case "SET_APPROVAL":
       return { ...state, approval: { ...state.approval, ...action.patch } };
+    case "SET_CANVAS_BACKGROUND":
+      return { ...state, canvasBackground: action.payload };
+    case "APPLY_TEMPLATE": {
+      const { front, back } = applyBusinessCardTemplateToDocument(
+        action.templateId,
+        action.lang,
+        state.sidedness === "two-sided",
+        { front: state.front, back: state.back }
+      );
+      return { ...state, version: 3, front, back };
+    }
+    case "SET_TEXT_BLOCK":
+      return patchSide(state, action.side, (s) => {
+        const textBlocks = s.textBlocks.map((b) => (b.id === action.id ? { ...b, ...action.patch } : b));
+        return syncFieldsFromBlocks({ ...s, textBlocks });
+      });
+    case "ADD_CUSTOM_TEXT_BLOCK":
+      return patchSide(state, action.side, (s) => {
+        const label = action.lang === "en" ? "Custom line" : "Línea personalizada";
+        const nb: BusinessCardTextBlock = {
+          id: `c-${Date.now().toString(36)}`,
+          role: "custom",
+          text: label,
+          xPct: 50,
+          yPct: 50,
+          widthPct: 80,
+          fontSize: 10,
+          fontWeight: 500,
+          color: "var(--lx-text)",
+          textAlign: "center",
+          zIndex: 12,
+        };
+        return syncFieldsFromBlocks({ ...s, textBlocks: [...s.textBlocks, nb] });
+      });
+    case "REMOVE_TEXT_BLOCK":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        textBlocks: s.textBlocks.filter((b) => !(b.id === action.id && b.role === "custom")),
+      }));
+    case "SET_LOGO_GEOM":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        logoGeom: { ...s.logoGeom, ...action.patch },
+      }));
     default:
       return state;
   }

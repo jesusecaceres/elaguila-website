@@ -1,5 +1,7 @@
 import type { TiendaCustomerDetails, TiendaFulfillmentPreference, TiendaOrderSource } from "../types/orderHandoff";
 import { emptyTiendaCustomerDetails } from "../types/orderHandoff";
+import { BC_UPLOAD_DRAFT_PREFIX } from "./mappers/businessCardDocumentToReview";
+import { businessCardUploadPath } from "../utils/tiendaRouting";
 
 const FORM_KEY_PREFIX = "leonix-tienda-order-form";
 
@@ -60,6 +62,19 @@ export function mergeBusinessNamePrefill(
 
 export function configurePathForSource(source: TiendaOrderSource, slug: string): string {
   if (source === "business-cards") {
+    if (typeof window !== "undefined") {
+      try {
+        const rawUp = sessionStorage.getItem(`${BC_UPLOAD_DRAFT_PREFIX}${slug}`);
+        if (rawUp) {
+          const p = JSON.parse(rawUp) as { v?: number; mode?: string };
+          if (p?.v === 3 && p?.mode === "upload-existing") {
+            return businessCardUploadPath(slug);
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     return `/tienda/configure/business-cards/${slug}`;
   }
   return `/tienda/configure/print-upload/${slug}`;

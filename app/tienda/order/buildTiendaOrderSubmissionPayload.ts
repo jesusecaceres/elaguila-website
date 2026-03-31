@@ -4,7 +4,7 @@ import type { Lang } from "../types/tienda";
 import type { TiendaFulfillmentPreference, TiendaOrderReviewSummary, TiendaOrderSource } from "../types/orderHandoff";
 import type { TiendaCustomerDetails } from "../types/orderHandoff";
 import type { TiendaOrderSubmissionPayload, TiendaOrderAssetSummary } from "../types/orderSubmission";
-import { mapBusinessCardSessionToReview, readBusinessCardSessionRaw } from "./mappers/businessCardDocumentToReview";
+import { mapBusinessCardSessionToReview, readBusinessCardOrderSession } from "./mappers/businessCardDocumentToReview";
 import { mapPrintUploadSessionToReview, readPrintUploadSessionRaw } from "./mappers/printUploadDocumentToReview";
 import { extractBusinessCardSubmissionExtra } from "./mappers/businessCardDocumentToReview";
 import { extractPrintUploadSubmissionExtra } from "./mappers/printUploadDocumentToReview";
@@ -35,7 +35,7 @@ export function buildTiendaOrderSubmissionPayload(params: {
   if (review.source !== source || review.productSlug !== slug) return null;
 
   const raw =
-    source === "business-cards" ? readBusinessCardSessionRaw(slug) : readPrintUploadSessionRaw(slug);
+    source === "business-cards" ? readBusinessCardOrderSession(slug) : readPrintUploadSessionRaw(slug);
   const mapped =
     source === "business-cards"
       ? mapBusinessCardSessionToReview(slug, raw)

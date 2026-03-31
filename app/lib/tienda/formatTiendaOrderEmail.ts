@@ -15,11 +15,11 @@ function staffRoleCaption(role: TiendaAssetRole, source: TiendaOrderSubmissionPa
     case "upload-front":
       return source === "print-upload"
         ? "Print upload — front: original customer file (durable)"
-        : "Upload — front";
+        : "Business cards — front artwork: original customer file (durable)";
     case "upload-back":
       return source === "print-upload"
         ? "Print upload — back: original customer file (durable)"
-        : "Upload — back";
+        : "Business cards — back artwork: original customer file (durable)";
     default: {
       const _x: never = role;
       return String(_x);
@@ -95,8 +95,13 @@ export function buildTiendaOrderEmailBodies(
 
   if (p.source === "business-cards" && p.businessCardExtra) {
     const x = p.businessCardExtra;
+    const modeLine =
+      x.creationMode === "upload-existing"
+        ? "Creation mode / Modo: uploaded artwork (original files to Blob)"
+        : "Creation mode / Modo: design online (builder + PNG reference exports)";
     productBlock = [
       "--- Business cards ---",
+      modeLine,
       `Sidedness / Lados: ${x.sidedness}`,
       "",
       "Front field summary / Resumen frente (ES):",
@@ -107,6 +112,24 @@ export function buildTiendaOrderEmailBodies(
       "",
       `Front logo visible: ${x.frontLogoVisible} | had data URL in session: ${x.frontLogoHasDataUrl}`,
       `Back logo visible: ${x.backLogoVisible} | had data URL in session: ${x.backLogoHasDataUrl}`,
+      "",
+      ...(x.uploadArtwork
+        ? [
+            "",
+            "Upload artwork / Archivos subidos:",
+            `  Front: ${x.uploadArtwork.front.name} | ${x.uploadArtwork.front.mime} | ${x.uploadArtwork.front.sizeBytes} B`,
+            `  Back: ${
+              x.uploadArtwork.back
+                ? `${x.uploadArtwork.back.name} | ${x.uploadArtwork.back.mime} | ${x.uploadArtwork.back.sizeBytes} B`
+                : "(none)"
+            }`,
+            "",
+            "Upload validation snapshot (if any) / Validación al guardar:",
+            ...(x.rawValidationSnapshot?.length
+              ? x.rawValidationSnapshot.map((r) => `  [${r.severity}] ${r.messageEs} | ${r.messageEn}`)
+              : ["  (none)"]),
+          ]
+        : []),
       "",
       "Back field summary (ES) / Reverso:",
       ...x.backFieldLinesEs.map((l) => `  • ${l}`),

@@ -1,20 +1,31 @@
+import { APIError } from "@mux/mux-node";
 import { NextResponse } from "next/server";
-import { getMuxUploadAndAsset } from "@/app/lib/mux/server";
+import { getMuxUploadAndAsset, MuxConfigError } from "@/app/lib/mux/server";
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const uploadId = url.searchParams.get("uploadId")?.trim();
     if (!uploadId) {
-      return NextResponse.json({ ok: false, error: "Missing uploadId" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, errorType: "missing_upload_id", error: "Missing uploadId" },
+        { status: 400 }
+      );
     }
 
     const { upload, asset } = await getMuxUploadAndAsset(uploadId);
 
     const directStatus = upload.status ?? "unknown";
     if (directStatus === "errored" || directStatus === "cancelled" || directStatus === "timed_out") {
+      const muxErr = upload.error;
       return NextResponse.json(
-        { ok: false, error: `Mux upload ${directStatus}`, muxStatus: directStatus, uploadStatus: directStatus },
+        {
+          ok: false,
+          errorType: "mux_upload_terminal",
+          error: muxErr?.message ? `Mux upload ${directStatus}: ${muxErr.message}` : `Mux upload ${directStatus}`,
+          muxStatus: directStatus,
+          uploadStatus: directStatus,
+        },
         { status: 422 }
       );
     }
@@ -22,7 +33,13 @@ export async function GET(req: Request) {
     const assetStatus = asset?.status;
     if (assetStatus === "errored") {
       return NextResponse.json(
-        { ok: false, error: "Mux asset errored", muxStatus: "errored", uploadStatus: directStatus },
+        {
+          ok: false,
+          errorType: "mux_asset_errored",
+          error: "Mux asset errored during processing",
+          muxStatus: "errored",
+          uploadStatus: directStatus,
+        },
         { status: 422 }
       );
     }
@@ -43,8 +60,30 @@ export async function GET(req: Request) {
       durationSeconds: typeof asset?.duration === "number" ? asset.duration : null,
     });
   } catch (e: unknown) {
+    if (e instanceof MuxConfigError) {
+      return NextResponse.json(
+        { ok: false, errorType: "missing_env", error: e.message },
+        { status: 503 }
+      );
+    }
+    if (e instanceof APIError) {
+      const st = typeof e.status === "number" ? e.status : 0;
+      return NextResponse.json(
+        {
+          ok: false,
+          errorType: "mux_status_upstream",
+          error: e.message || "Mux status request failed",
+          muxHttpStatus: st,
+        },
+        { status: st >= 400 && st < 600 ? 502 : 500 }
+      );
+    }
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "Mux status failed" },
+      {
+        ok: false,
+        errorType: "mux_status_unknown",
+        error: e instanceof Error ? e.message : "Mux status failed",
+      },
       { status: 500 }
     );
   }

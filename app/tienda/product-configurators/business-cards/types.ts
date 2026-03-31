@@ -60,10 +60,41 @@ export type BusinessCardImageBlock = {
   naturalHeight: number | null;
 };
 
+/** Standard trim-relative placement (0–100, center-based for blocks). */
+export type BusinessCardCanvasBackground =
+  | { kind: "solid"; color: string }
+  | { kind: "preset"; id: "linen" | "pearl" | "graphite" | "sand" };
+
+export type BusinessCardBlockRole = TextFieldRole | "custom";
+
+export type BusinessCardTextBlock = {
+  id: string;
+  role: BusinessCardBlockRole;
+  text: string;
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  fontSize: number;
+  fontWeight: 400 | 500 | 600 | 700;
+  color: string;
+  textAlign: "left" | "center" | "right";
+  zIndex: number;
+};
+
+export type BusinessCardLogoGeom = {
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  zIndex: number;
+};
+
 export type BusinessCardSideState = {
   fields: BusinessCardTextFields;
   textLayout: BusinessCardTextLayout;
   logo: BusinessCardImageBlock;
+  /** V3+ freeform; when non-empty, preview + export use these positions */
+  textBlocks: BusinessCardTextBlock[];
+  logoGeom: BusinessCardLogoGeom;
 };
 
 export type BusinessCardSidedness = "one-sided" | "two-sided";
@@ -77,12 +108,14 @@ export type BusinessCardApprovalChecks = {
 
 export type BusinessCardDocument = {
   id: string;
-  version: 2;
+  /** 2 = legacy preset-only session; 3 = freeform + canvas */
+  version: 2 | 3;
   productSlug: BusinessCardProductSlug;
   sidedness: BusinessCardSidedness;
   activeSide: BusinessCardSide;
   guidesVisible: boolean;
-  /** Fine nudge -1..1 as % of card width applied to text group */
+  canvasBackground: BusinessCardCanvasBackground;
+  /** Fine nudge -1..1 as % of card width applied to text group (legacy stack mode) */
   textNudgeX: number;
   textNudgeY: number;
   logoNudgeX: number;

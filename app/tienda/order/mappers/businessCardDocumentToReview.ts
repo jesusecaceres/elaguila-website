@@ -1,9 +1,11 @@
-import type { TextFieldRole } from "../../product-configurators/business-cards/types";
+import type { BusinessCardCanvasBackground, BusinessCardTextLayout, TextFieldRole } from "../../product-configurators/business-cards/types";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
 import type { BusinessCardSubmissionExtra } from "../../types/orderSubmission";
 import { tiendaProductFamilies } from "../../data/tiendaProductFamilies";
+import type { PrintUploadSessionPayloadV1 } from "./printUploadDocumentToReview";
 
 const BC_SESSION_KEY_PREFIX = "leonix-bc-draft-";
+export const BC_UPLOAD_DRAFT_PREFIX = "leonix-bc-upload-draft-";
 
 type StoredLogo = {
   visible: boolean;
@@ -16,8 +18,13 @@ type StoredLogo = {
 
 export type StoredSidePayload = {
   fields: Record<string, string>;
-  textLayout: import("../../product-configurators/business-cards/types").BusinessCardTextLayout;
+  textLayout: BusinessCardTextLayout;
   logo: StoredLogo;
+};
+
+export type StoredSidePayloadV3 = StoredSidePayload & {
+  textBlocks: import("../../product-configurators/business-cards/types").BusinessCardTextBlock[];
+  logoGeom: import("../../product-configurators/business-cards/types").BusinessCardLogoGeom;
 };
 
 export type BusinessCardSessionPayloadV2 = {
@@ -31,12 +38,42 @@ export type BusinessCardSessionPayloadV2 = {
   logoNudgeY?: number;
   front: StoredSidePayload;
   back: StoredSidePayload;
-  approval: {
-    spellingReviewed: boolean;
-    layoutReviewed: boolean;
-    printAsApproved: boolean;
-    noRedesignExpectation: boolean;
-  };
+  approval: BusinessCardApprovalSnapshot;
+};
+
+export type BusinessCardApprovalSnapshot = {
+  spellingReviewed: boolean;
+  layoutReviewed: boolean;
+  printAsApproved: boolean;
+  noRedesignExpectation: boolean;
+};
+
+export type BusinessCardSessionPayloadV3Design = {
+  v: 3;
+  mode: "design-online";
+  savedAt?: string;
+  productSlug: string;
+  sidedness: "one-sided" | "two-sided";
+  canvasBackground: BusinessCardCanvasBackground;
+  textNudgeX?: number;
+  textNudgeY?: number;
+  logoNudgeX?: number;
+  logoNudgeY?: number;
+  front: StoredSidePayloadV3;
+  back: StoredSidePayloadV3;
+  approval: BusinessCardApprovalSnapshot;
+};
+
+export type BusinessCardSessionPayloadV3Upload = {
+  v: 3;
+  mode: "upload-existing";
+  savedAt?: string;
+  productSlug: string;
+  sidedness: "one-sided" | "two-sided";
+  frontMeta: PrintUploadSessionPayloadV1["frontMeta"];
+  backMeta: PrintUploadSessionPayloadV1["backMeta"];
+  approval: BusinessCardApprovalSnapshot;
+  validationSnapshot?: Array<{ severity: string; messageEs: string; messageEn: string }>;
 };
 
 export function readBusinessCardSessionRaw(productSlug: string): unknown | null {
@@ -50,17 +87,47 @@ export function readBusinessCardSessionRaw(productSlug: string): unknown | null 
   }
 }
 
+/** Prefer upload-existing draft when present and valid (mutually exclusive with design draft at save time). */
+export function readBusinessCardOrderSession(productSlug: string): unknown | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const rawUp = sessionStorage.getItem(`${BC_UPLOAD_DRAFT_PREFIX}${productSlug}`);
+    if (rawUp) {
+      const p = JSON.parse(rawUp) as unknown;
+      if (isBusinessCardSessionUpload(p) && p.productSlug === productSlug) return p;
+    }
+  } catch {
+    /* ignore */
+  }
+  return readBusinessCardSessionRaw(productSlug);
+}
+
 export function isBusinessCardSessionPayloadV2(x: unknown): x is BusinessCardSessionPayloadV2 {
   if (!x || typeof x !== "object") return false;
   const o = x as BusinessCardSessionPayloadV2;
   return o.v === 2 && typeof o.productSlug === "string" && (o.sidedness === "one-sided" || o.sidedness === "two-sided");
 }
 
+export function isBusinessCardSessionDesign(x: unknown): x is BusinessCardSessionPayloadV3Design {
+  if (!x || typeof x !== "object") return false;
+  const o = x as BusinessCardSessionPayloadV3Design;
+  return o.v === 3 && o.mode === "design-online" && typeof o.productSlug === "string";
+}
+
+export function isBusinessCardSessionUpload(x: unknown): x is BusinessCardSessionPayloadV3Upload {
+  if (!x || typeof x !== "object") return false;
+  const o = x as BusinessCardSessionPayloadV3Upload;
+  return o.v === 3 && o.mode === "upload-existing" && typeof o.productSlug === "string";
+}
+
 function fieldRoles(): TextFieldRole[] {
   return ["personName", "title", "company", "phone", "email", "website", "address", "tagline"];
 }
 
-function sideTextSummary(side: StoredSidePayload, sideLabel: TiendaLocalizedLine): TiendaLocalizedLine[] {
+function sideTextSummary(
+  side: { fields?: Record<string, string>; textLayout?: BusinessCardTextLayout },
+  sideLabel: TiendaLocalizedLine
+): TiendaLocalizedLine[] {
   const lines: TiendaLocalizedLine[] = [];
   for (const role of fieldRoles()) {
     const visible = side.textLayout?.lineVisible?.[role] !== false;
@@ -76,13 +143,61 @@ function sideTextSummary(side: StoredSidePayload, sideLabel: TiendaLocalizedLine
   return lines;
 }
 
-export function mapBusinessCardSessionToReview(
-  expectedSlug: string,
-  raw: unknown
-): TiendaOrderReviewSummary | null {
-  if (!isBusinessCardSessionPayloadV2(raw)) return null;
-  if (raw.productSlug !== expectedSlug) return null;
+function approvalDetailsFrom(approval: BusinessCardApprovalSnapshot): TiendaLocalizedLine[] {
+  return [
+    {
+      es: approval.spellingReviewed ? "Ortografía revisada" : "Ortografía: pendiente en guardado",
+      en: approval.spellingReviewed ? "Spelling reviewed" : "Spelling: pending at save",
+    },
+    {
+      es: approval.layoutReviewed ? "Diseño revisado" : "Diseño: pendiente en guardado",
+      en: approval.layoutReviewed ? "Layout reviewed" : "Layout: pending at save",
+    },
+    {
+      es: approval.printAsApproved ? "Impresión según aprobado" : "Impresión: pendiente en guardado",
+      en: approval.printAsApproved ? "Print as approved" : "Print: pending at save",
+    },
+    {
+      es: approval.noRedesignExpectation ? "Sin rediseño incluido" : "Expectativas: pendiente en guardado",
+      en: approval.noRedesignExpectation ? "No redesign included" : "Expectations: pending at save",
+    },
+  ];
+}
 
+function approvalAll(approval: BusinessCardApprovalSnapshot): boolean {
+  return (
+    approval.spellingReviewed &&
+    approval.layoutReviewed &&
+    approval.printAsApproved &&
+    approval.noRedesignExpectation
+  );
+}
+
+function assetKindFromMime(mime: string): "pdf" | "image" {
+  return mime === "application/pdf" ? "pdf" : "image";
+}
+
+function metaToUploadAsset(
+  id: string,
+  label: TiendaLocalizedLine,
+  meta: NonNullable<PrintUploadSessionPayloadV1["frontMeta"]>
+): TiendaOrderReviewSummary["assets"][number] {
+  const kind = assetKindFromMime(meta.mime);
+  const dim =
+    meta.widthPx != null && meta.heightPx != null
+      ? { es: `${meta.widthPx}×${meta.heightPx} px`, en: `${meta.widthPx}×${meta.heightPx} px` }
+      : { es: "Dimensiones px: no disponibles", en: "Pixel dimensions: n/a" };
+  const metaLines: TiendaLocalizedLine[] = [
+    { es: `Archivo: ${meta.name}`, en: `File: ${meta.name}` },
+    { es: `Tipo: ${meta.mime}`, en: `Type: ${meta.mime}` },
+    dim,
+    { es: "Modo: archivo original subido por el cliente", en: "Mode: customer-uploaded artwork (original file)" },
+  ];
+  const thumb = meta.mime.startsWith("image/") && meta.dataUrl ? meta.dataUrl : null;
+  return { id, kind, label, thumbnailUrl: thumb, metaLines };
+}
+
+function mapV2ToReview(expectedSlug: string, raw: BusinessCardSessionPayloadV2): TiendaOrderReviewSummary | null {
   const family = tiendaProductFamilies.find((p) => p.slug === expectedSlug);
   if (!family) return null;
 
@@ -92,7 +207,6 @@ export function mapBusinessCardSessionToReview(
       : { es: "Tarjeta un lado", en: "One‑sided card" };
 
   const specLines: TiendaLocalizedLine[] = family.specs.map((s) => ({ es: s.es, en: s.en }));
-
   const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
   const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
 
@@ -102,6 +216,7 @@ export function mapBusinessCardSessionToReview(
       ? { es: "Logo en frente", en: "Logo on front" }
       : { es: "Sin logo al frente", en: "No logo on front" }
   );
+  frontMeta.push({ es: "Origen: diseño en línea (constructor)", en: "Source: design online (builder)" });
 
   const assetItems: TiendaOrderReviewSummary["assets"] = [
     {
@@ -120,6 +235,7 @@ export function mapBusinessCardSessionToReview(
         ? { es: "Logo en reverso", en: "Logo on back" }
         : { es: "Sin logo en reverso", en: "No logo on back" }
     );
+    backMeta.push({ es: "Origen: diseño en línea", en: "Source: design online" });
     assetItems.push({
       id: "bc-back",
       kind: "design-side",
@@ -129,36 +245,9 @@ export function mapBusinessCardSessionToReview(
     });
   }
 
-  const approvalAll =
-    raw.approval.spellingReviewed &&
-    raw.approval.layoutReviewed &&
-    raw.approval.printAsApproved &&
-    raw.approval.noRedesignExpectation;
-
-  const approvalDetails: TiendaLocalizedLine[] = [
-    {
-      es: raw.approval.spellingReviewed ? "Ortografía revisada" : "Ortografía: pendiente en guardado",
-      en: raw.approval.spellingReviewed ? "Spelling reviewed" : "Spelling: pending at save",
-    },
-    {
-      es: raw.approval.layoutReviewed ? "Diseño revisado" : "Diseño: pendiente en guardado",
-      en: raw.approval.layoutReviewed ? "Layout reviewed" : "Layout: pending at save",
-    },
-    {
-      es: raw.approval.printAsApproved ? "Impresión según aprobado" : "Impresión: pendiente en guardado",
-      en: raw.approval.printAsApproved ? "Print as approved" : "Print: pending at save",
-    },
-    {
-      es: raw.approval.noRedesignExpectation ? "Sin rediseño incluido" : "Expectativas: pendiente en guardado",
-      en: raw.approval.noRedesignExpectation ? "No redesign included" : "Expectations: pending at save",
-    },
-  ];
-
   const companyHint =
-    String(raw.front.fields?.company ?? "")
-      .trim() ||
-    String(raw.back.fields?.company ?? "")
-      .trim() ||
+    String(raw.front.fields?.company ?? "").trim() ||
+    String(raw.back.fields?.company ?? "").trim() ||
     null;
 
   return {
@@ -169,13 +258,181 @@ export function mapBusinessCardSessionToReview(
     sidednessSummary,
     specLines,
     assets: assetItems,
-    approvalStatus: approvalAll
+    approvalStatus: approvalAll(raw.approval)
       ? { es: "Aprobación del constructor completa", en: "Builder approval complete" }
       : { es: "Revisa el constructor: aprobación incompleta al guardar", en: "Return to builder: approval incomplete at save" },
-    approvalDetails,
+    approvalDetails: approvalDetailsFrom(raw.approval),
     warnings: [],
     builderSavedAt: raw.savedAt ?? null,
     prefillBusinessName: companyHint,
+  };
+}
+
+function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPayloadV3Design): TiendaOrderReviewSummary | null {
+  const family = tiendaProductFamilies.find((p) => p.slug === expectedSlug);
+  if (!family) return null;
+
+  const sidednessSummary: TiendaLocalizedLine =
+    raw.sidedness === "two-sided"
+      ? { es: "Tarjeta a dos caras", en: "Two‑sided card" }
+      : { es: "Tarjeta un lado", en: "One‑sided card" };
+
+  const specLines: TiendaLocalizedLine[] = family.specs.map((s) => ({ es: s.es, en: s.en }));
+  const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
+  const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
+
+  const bgNote =
+    raw.canvasBackground.kind === "solid"
+      ? {
+          es: `Fondo: color sólido (${raw.canvasBackground.color})`,
+          en: `Background: solid (${raw.canvasBackground.color})`,
+        }
+      : {
+          es: `Fondo: preset ${raw.canvasBackground.id}`,
+          en: `Background: ${raw.canvasBackground.id} preset`,
+        };
+
+  const frontMeta = [...sideTextSummary(raw.front, frontLabel), bgNote];
+  frontMeta.push(
+    raw.front.logo?.visible && raw.front.logo.previewUrl
+      ? { es: "Logo en frente", en: "Logo on front" }
+      : { es: "Sin logo al frente", en: "No logo on front" }
+  );
+  frontMeta.push({ es: "Origen: diseño en línea (constructor v3)", en: "Source: design online (builder v3)" });
+
+  const assetItems: TiendaOrderReviewSummary["assets"] = [
+    {
+      id: "bc-front",
+      kind: "design-side",
+      label: { es: "Diseño — frente", en: "Design — front" },
+      thumbnailUrl: raw.front.logo?.previewUrl ?? null,
+      metaLines: frontMeta,
+    },
+  ];
+
+  if (raw.sidedness === "two-sided") {
+    const backMeta = [...sideTextSummary(raw.back, backLabel), bgNote];
+    backMeta.push(
+      raw.back.logo?.visible && raw.back.logo.previewUrl
+        ? { es: "Logo en reverso", en: "Logo on back" }
+        : { es: "Sin logo en reverso", en: "No logo on back" }
+    );
+    backMeta.push({ es: "Origen: diseño en línea", en: "Source: design online" });
+    assetItems.push({
+      id: "bc-back",
+      kind: "design-side",
+      label: { es: "Diseño — reverso", en: "Design — back" },
+      thumbnailUrl: raw.back.logo?.previewUrl ?? null,
+      metaLines: backMeta,
+    });
+  }
+
+  const companyHint =
+    String(raw.front.fields?.company ?? "").trim() ||
+    String(raw.back.fields?.company ?? "").trim() ||
+    null;
+
+  return {
+    source: "business-cards",
+    productSlug: expectedSlug,
+    productTitle: { es: family.title.es, en: family.title.en },
+    categorySlug: family.categorySlug,
+    sidednessSummary,
+    specLines,
+    assets: assetItems,
+    approvalStatus: approvalAll(raw.approval)
+      ? { es: "Aprobación del constructor completa", en: "Builder approval complete" }
+      : { es: "Revisa el constructor: aprobación incompleta al guardar", en: "Return to builder: approval incomplete at save" },
+    approvalDetails: approvalDetailsFrom(raw.approval),
+    warnings: [],
+    builderSavedAt: raw.savedAt ?? null,
+    prefillBusinessName: companyHint,
+  };
+}
+
+function mapV3UploadToReview(expectedSlug: string, raw: BusinessCardSessionPayloadV3Upload): TiendaOrderReviewSummary | null {
+  const family = tiendaProductFamilies.find((p) => p.slug === expectedSlug);
+  if (!family) return null;
+  if (!raw.frontMeta?.dataUrl) return null;
+  if (raw.sidedness === "two-sided" && !raw.backMeta?.dataUrl) return null;
+
+  const sidednessSummary: TiendaLocalizedLine =
+    raw.sidedness === "two-sided"
+      ? { es: "Tarjeta a dos caras", en: "Two‑sided card" }
+      : { es: "Tarjeta un lado", en: "One‑sided card" };
+
+  const specLines: TiendaLocalizedLine[] = family.specs.map((s) => ({ es: s.es, en: s.en }));
+
+  const assetItems: TiendaOrderReviewSummary["assets"] = [
+    metaToUploadAsset("bc-up-front", { es: "Arte subido — frente", en: "Uploaded artwork — front" }, raw.frontMeta),
+  ];
+
+  if (raw.sidedness === "two-sided" && raw.backMeta?.dataUrl) {
+    assetItems.push(
+      metaToUploadAsset("bc-up-back", { es: "Arte subido — reverso", en: "Uploaded artwork — back" }, raw.backMeta)
+    );
+  }
+
+  const warnings: TiendaLocalizedLine[] = (raw.validationSnapshot ?? [])
+    .filter((s) => s.severity === "soft")
+    .map((s) => ({ es: s.messageEs, en: s.messageEn }));
+
+  return {
+    source: "business-cards",
+    productSlug: expectedSlug,
+    productTitle: { es: family.title.es, en: family.title.en },
+    categorySlug: family.categorySlug,
+    sidednessSummary,
+    specLines,
+    assets: assetItems,
+    approvalStatus: approvalAll(raw.approval)
+      ? { es: "Aprobación del constructor completa", en: "Builder approval complete" }
+      : {
+          es: "Revisa la carga: aprobación incompleta al guardar",
+          en: "Return to upload flow: approval incomplete at save",
+        },
+    approvalDetails: approvalDetailsFrom(raw.approval),
+    warnings,
+    builderSavedAt: raw.savedAt ?? null,
+    prefillBusinessName: null,
+  };
+}
+
+export function mapBusinessCardSessionToReview(expectedSlug: string, raw: unknown): TiendaOrderReviewSummary | null {
+  if (!raw || typeof raw !== "object") return null;
+  const slug = (raw as { productSlug?: string }).productSlug;
+  if (slug !== expectedSlug) return null;
+
+  if (isBusinessCardSessionUpload(raw)) return mapV3UploadToReview(expectedSlug, raw);
+  if (isBusinessCardSessionDesign(raw)) return mapV3DesignToReview(expectedSlug, raw);
+  if (isBusinessCardSessionPayloadV2(raw)) return mapV2ToReview(expectedSlug, raw);
+  return null;
+}
+
+function extractExtraDesign(
+  expectedSlug: string,
+  sidedness: "one-sided" | "two-sided",
+  front: StoredSidePayload | StoredSidePayloadV3,
+  back: StoredSidePayload | StoredSidePayloadV3,
+  approval: BusinessCardApprovalSnapshot
+): BusinessCardSubmissionExtra {
+  const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
+  const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
+  const frontLines = sideTextSummary(front, frontLabel);
+  const backLines = sidedness === "two-sided" ? sideTextSummary(back, backLabel) : [];
+
+  return {
+    creationMode: "design-online",
+    sidedness,
+    frontFieldLinesEs: frontLines.map((l) => l.es),
+    frontFieldLinesEn: frontLines.map((l) => l.en),
+    backFieldLinesEs: backLines.map((l) => l.es),
+    backFieldLinesEn: backLines.map((l) => l.en),
+    frontLogoVisible: !!front.logo?.visible,
+    backLogoVisible: !!back.logo?.visible,
+    frontLogoHasDataUrl: !!(front.logo?.previewUrl && String(front.logo.previewUrl).startsWith("data:")),
+    backLogoHasDataUrl: !!(back.logo?.previewUrl && String(back.logo.previewUrl).startsWith("data:")),
+    approval: { ...approval },
   };
 }
 
@@ -183,25 +440,56 @@ export function extractBusinessCardSubmissionExtra(
   expectedSlug: string,
   raw: unknown
 ): BusinessCardSubmissionExtra | null {
-  if (!isBusinessCardSessionPayloadV2(raw)) return null;
-  if (raw.productSlug !== expectedSlug) return null;
+  if (!raw || typeof raw !== "object") return null;
+  if ((raw as { productSlug?: string }).productSlug !== expectedSlug) return null;
 
-  const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
-  const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
+  if (isBusinessCardSessionUpload(raw)) {
+    const fm = raw.frontMeta;
+    if (!fm) return null;
+    return {
+      creationMode: "upload-existing",
+      sidedness: raw.sidedness,
+      frontFieldLinesEs: [],
+      frontFieldLinesEn: [],
+      backFieldLinesEs: [],
+      backFieldLinesEn: [],
+      frontLogoVisible: false,
+      backLogoVisible: false,
+      frontLogoHasDataUrl: false,
+      backLogoHasDataUrl: false,
+      approval: { ...raw.approval },
+      uploadArtwork: {
+        front: {
+          name: fm.name,
+          mime: fm.mime,
+          sizeBytes: fm.sizeBytes,
+          widthPx: fm.widthPx,
+          heightPx: fm.heightPx,
+          sessionHadInlinePreview: !!fm.dataUrl,
+        },
+        back:
+          raw.sidedness === "two-sided" && raw.backMeta
+            ? {
+                name: raw.backMeta.name,
+                mime: raw.backMeta.mime,
+                sizeBytes: raw.backMeta.sizeBytes,
+                widthPx: raw.backMeta.widthPx,
+                heightPx: raw.backMeta.heightPx,
+                sessionHadInlinePreview: !!raw.backMeta.dataUrl,
+              }
+            : null,
+      },
+      rawValidationSnapshot: raw.validationSnapshot ?? [],
+    };
+  }
 
-  const frontLines = sideTextSummary(raw.front, frontLabel);
-  const backLines = raw.sidedness === "two-sided" ? sideTextSummary(raw.back, backLabel) : [];
+  if (isBusinessCardSessionDesign(raw)) {
+    return extractExtraDesign(expectedSlug, raw.sidedness, raw.front, raw.back, raw.approval);
+  }
 
-  return {
-    sidedness: raw.sidedness,
-    frontFieldLinesEs: frontLines.map((l) => l.es),
-    frontFieldLinesEn: frontLines.map((l) => l.en),
-    backFieldLinesEs: backLines.map((l) => l.es),
-    backFieldLinesEn: backLines.map((l) => l.en),
-    frontLogoVisible: !!raw.front.logo?.visible,
-    backLogoVisible: !!raw.back.logo?.visible,
-    frontLogoHasDataUrl: !!(raw.front.logo?.previewUrl && String(raw.front.logo.previewUrl).startsWith("data:")),
-    backLogoHasDataUrl: !!(raw.back.logo?.previewUrl && String(raw.back.logo.previewUrl).startsWith("data:")),
-    approval: { ...raw.approval },
-  };
+  if (isBusinessCardSessionPayloadV2(raw)) {
+    return extractExtraDesign(expectedSlug, raw.sidedness, raw.front, raw.back, raw.approval);
+  }
+
+  return null;
 }

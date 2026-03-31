@@ -40,9 +40,9 @@ function assetRoleStaffLabel(role: string, source: string): string {
     case "design-json-snapshot":
       return "Builder JSON snapshot";
     case "upload-front":
-      return source === "print-upload" ? "Original upload — front" : "Upload — front";
+      return source === "print-upload" ? "Original upload — front" : "Business card — front artwork (original file)";
     case "upload-back":
-      return source === "print-upload" ? "Original upload — back" : "Upload — back";
+      return source === "print-upload" ? "Original upload — back" : "Business card — back artwork (original file)";
     default:
       return role;
   }
@@ -201,6 +201,14 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
               <span className="text-[#7A7164]"> · {orderView.product_slug}</span>
             </p>
             <p className="text-xs text-[#7A7164]">Category: {orderView.category_slug || "—"}</p>
+            {payload?.businessCardExtra?.creationMode ? (
+              <p className="text-sm">
+                <strong>Business card mode:</strong>{" "}
+                {payload.businessCardExtra.creationMode === "upload-existing"
+                  ? "Uploaded artwork (original files)"
+                  : "Designed online (builder + reference PNGs)"}
+              </p>
+            ) : null}
             {sidedness?.en || sidedness?.es ? (
               <p className="text-sm">
                 <strong>Sidedness:</strong> {sidedness.en} / <em>{sidedness.es}</em>

@@ -81,6 +81,24 @@ function hasRole(refs: TiendaOrderAssetReference[], role: TiendaAssetRole): bool
 
 export function assertRequiredDurableAssets(payload: TiendaOrderSubmissionPayload, refs: TiendaOrderAssetReference[]): ListResult {
   if (payload.source === "business-cards") {
+    const mode = payload.businessCardExtra?.creationMode ?? "design-online";
+    if (mode === "upload-existing") {
+      if (!hasRole(refs, "upload-front")) {
+        return { ok: false, error: "Missing durable upload-front (business card artwork)", code: "ASSETS_MISSING" };
+      }
+      if (payload.businessCardExtra?.sidedness === "two-sided" && !hasRole(refs, "upload-back")) {
+        return { ok: false, error: "Missing durable upload-back for two-sided business card order", code: "ASSETS_MISSING" };
+      }
+      if (!hasRole(refs, "design-json-snapshot")) {
+        return {
+          ok: false,
+          error: "Missing design-json-snapshot (session) — upload step incomplete",
+          code: "ASSETS_MISSING",
+        };
+      }
+      return { ok: true, references: refs };
+    }
+
     if (!hasRole(refs, "business-card-front")) {
       return { ok: false, error: "Missing durable business-card-front asset", code: "ASSETS_MISSING" };
     }

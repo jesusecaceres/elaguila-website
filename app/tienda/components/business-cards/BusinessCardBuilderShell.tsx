@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { Lang } from "../../types/tienda";
 import type { BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
 import { createInitialBusinessCardDocument } from "../../product-configurators/business-cards/documentFactory";
@@ -13,6 +13,12 @@ import {
 import { validateBusinessCardDocument } from "../../product-configurators/business-cards/validation";
 import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constants";
 import { businessCardConfigurePath, tiendaOrderPath, withLang } from "../../utils/tiendaRouting";
+import {
+  BC_UPLOAD_DRAFT_PREFIX,
+  readBusinessCardSessionRaw,
+  type BusinessCardSessionPayloadV3Design,
+} from "../../order/mappers/businessCardDocumentToReview";
+import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
@@ -37,6 +43,7 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
     undefined,
     () => createInitialBusinessCardDocument(productSlug, lang)
   );
+  const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -48,6 +55,20 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
       });
     };
   }, []);
+
+  useEffect(() => {
+    const raw = readBusinessCardSessionRaw(productSlug);
+    if (!raw) return;
+    const next = hydrateBusinessCardDocumentFromSession(productSlug, raw, lang);
+    if (next) dispatch({ type: "RESET", document: next });
+  }, [productSlug, lang]);
+
+  useEffect(() => {
+    const sideState = doc.activeSide === "front" ? doc.front : doc.back;
+    if (selectedTextBlockId && !sideState.textBlocks.some((b) => b.id === selectedTextBlockId)) {
+      setSelectedTextBlockId(null);
+    }
+  }, [doc.activeSide, doc.front.textBlocks, doc.back.textBlocks, selectedTextBlockId]);
 
   const validation = useMemo(() => validateBusinessCardDocument(doc), [doc]);
 
@@ -97,11 +118,13 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
     try {
       const frontLogo = doc.front.logo.file ? await readAsDataUrl(doc.front.logo.file) : doc.front.logo.previewUrl;
       const backLogo = doc.back.logo.file ? await readAsDataUrl(doc.back.logo.file) : doc.back.logo.previewUrl;
-      const payload = {
-        v: 2,
+      const payload: BusinessCardSessionPayloadV3Design = {
+        v: 3,
+        mode: "design-online",
         savedAt: new Date().toISOString(),
         productSlug: doc.productSlug,
         sidedness: doc.sidedness,
+        canvasBackground: doc.canvasBackground,
         textNudgeX: doc.textNudgeX,
         textNudgeY: doc.textNudgeY,
         logoNudgeX: doc.logoNudgeX,
@@ -117,6 +140,8 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
             naturalWidth: doc.front.logo.naturalWidth,
             naturalHeight: doc.front.logo.naturalHeight,
           },
+          textBlocks: doc.front.textBlocks,
+          logoGeom: doc.front.logoGeom,
         },
         back: {
           fields: doc.back.fields,
@@ -129,10 +154,13 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
             naturalWidth: doc.back.logo.naturalWidth,
             naturalHeight: doc.back.logo.naturalHeight,
           },
+          textBlocks: doc.back.textBlocks,
+          logoGeom: doc.back.logoGeom,
         },
         approval: doc.approval,
       };
       sessionStorage.setItem(`leonix-bc-draft-${doc.productSlug}`, JSON.stringify(payload));
+      sessionStorage.removeItem(`${BC_UPLOAD_DRAFT_PREFIX}${doc.productSlug}`);
       return true;
     } catch {
       return false;
@@ -171,7 +199,15 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <BusinessCardSideTabs doc={doc} lang={lang} active={doc.activeSide} onChange={(s) => dispatch({ type: "SET_ACTIVE_SIDE", side: s })} />
+            <BusinessCardSideTabs
+              doc={doc}
+              lang={lang}
+              active={doc.activeSide}
+              onChange={(s) => {
+                setSelectedTextBlockId(null);
+                dispatch({ type: "SET_ACTIVE_SIDE", side: s });
+              }}
+            />
             <button
               type="button"
               onClick={() => dispatch({ type: "TOGGLE_GUIDES" })}
@@ -188,7 +224,19 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
             <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
               {bcPick(businessCardBuilderCopy.previewTitle, lang)}
             </h2>
-            <BusinessCardPreview document={doc} side={doc.activeSide} lang={lang} />
+            <BusinessCardPreview
+              document={doc}
+              side={doc.activeSide}
+              lang={lang}
+              editInteraction={{
+                selectedTextBlockId,
+                onSelectTextBlock: setSelectedTextBlockId,
+                onMoveTextBlock: (id, xPct, yPct) =>
+                  dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
+                onMoveLogo: (xPct, yPct) =>
+                  dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch: { xPct, yPct } }),
+              }}
+            />
           </div>
           <BusinessCardEditorPanel
             lang={lang}
@@ -196,6 +244,8 @@ export function BusinessCardBuilderShell(props: { productSlug: BusinessCardProdu
             side={doc.activeSide}
             dispatch={dispatchTyped}
             onPickLogo={applyLogo}
+            selectedTextBlockId={selectedTextBlockId}
+            onSelectTextBlock={setSelectedTextBlockId}
           />
         </div>
 

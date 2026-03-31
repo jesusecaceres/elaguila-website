@@ -29,6 +29,7 @@ export type TiendaOrderAssetSummary = {
 };
 
 export type BusinessCardSubmissionExtra = {
+  creationMode: "design-online" | "upload-existing";
   sidedness: "one-sided" | "two-sided";
   frontFieldLinesEs: string[];
   frontFieldLinesEn: string[];
@@ -44,6 +45,26 @@ export type BusinessCardSubmissionExtra = {
     printAsApproved: boolean;
     noRedesignExpectation: boolean;
   };
+  /** Present when customers upload press-ready artwork instead of using the online builder. */
+  uploadArtwork?: {
+    front: {
+      name: string;
+      mime: string;
+      sizeBytes: number;
+      widthPx: number | null;
+      heightPx: number | null;
+      sessionHadInlinePreview: boolean;
+    };
+    back: null | {
+      name: string;
+      mime: string;
+      sizeBytes: number;
+      widthPx: number | null;
+      heightPx: number | null;
+      sessionHadInlinePreview: boolean;
+    };
+  };
+  rawValidationSnapshot?: Array<{ severity: string; messageEs: string; messageEn: string }>;
 };
 
 export type PrintUploadSubmissionExtra = {

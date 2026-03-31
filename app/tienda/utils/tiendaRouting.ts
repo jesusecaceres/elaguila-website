@@ -9,6 +9,10 @@ export function businessCardConfigurePath(slug: string): string {
   return `/tienda/configure/business-cards/${slug}`;
 }
 
+export function businessCardUploadPath(slug: string): string {
+  return `/tienda/configure/business-cards/upload/${slug}`;
+}
+
 export function printUploadConfigurePath(slug: string): string {
   return `/tienda/configure/print-upload/${slug}`;
 }

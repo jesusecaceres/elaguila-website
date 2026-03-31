@@ -8,12 +8,18 @@ import {
 } from "../../data/tiendaRegistry";
 import { isPrintUploadProductSlug } from "../../product-configurators/print-upload/productConfigs";
 import type { Lang } from "../../types/tienda";
-import { businessCardConfigurePath, normalizeLang, printUploadConfigurePath, withLang } from "../../utils/tiendaRouting";
+import { normalizeLang, printUploadConfigurePath, withLang } from "../../utils/tiendaRouting";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
 import { TiendaProductHero } from "../../components/TiendaProductHero";
 import { TiendaSpecList } from "../../components/TiendaSpecList";
 import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
 import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
+import { BusinessCardProductGateway } from "../../components/business-cards/BusinessCardProductGateway";
+import { BusinessCardSpecialtyPanel } from "../../components/business-cards/BusinessCardSpecialtyPanel";
+
+function isBusinessCardSelfServeProductSlug(slug: string): boolean {
+  return slug === "standard-business-cards" || slug === "two-sided-business-cards";
+}
 
 export function generateStaticParams() {
   return TIENDA_PRODUCT_FAMILY_SLUGS.map((slug) => ({ slug }));
@@ -46,6 +52,13 @@ export default async function TiendaProductPage(props: {
         />
 
         <TiendaProductHero product={product} lang={lang} />
+
+        {isBusinessCardSelfServeProductSlug(product.slug) ? (
+          <div className="mt-10 space-y-10">
+            <BusinessCardProductGateway lang={lang} productSlug={product.slug} />
+            <BusinessCardSpecialtyPanel lang={lang} />
+          </div>
+        ) : null}
 
         <section className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
           <TiendaSpecList
@@ -95,9 +108,9 @@ export default async function TiendaProductPage(props: {
           <TiendaInfoPanel title={pick(tiendaCopy.sections.productPage.futureCtaTitle, lang)}>
             <p>{pick(tiendaCopy.sections.productPage.futureCtaBody, lang)}</p>
             <div className="mt-5 flex flex-col sm:flex-row gap-3">
-              {product.futureConfiguratorType === "business-card-builder" ? (
+              {product.futureConfiguratorType === "business-card-builder" && !isBusinessCardSelfServeProductSlug(product.slug) ? (
                 <Link
-                  href={withLang(businessCardConfigurePath(product.slug), lang)}
+                  href={withLang(`/tienda/configure/business-cards/${product.slug}`, lang)}
                   className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:brightness-95 transition shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
                 >
                   {pick(tiendaCopy.sections.productPage.futureCtaButtonDesigner, lang)}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Lang } from "../../types/tienda";
 import type { TiendaOrderSource } from "../../types/orderHandoff";
-import { mapBusinessCardSessionToReview, readBusinessCardSessionRaw } from "../../order/mappers/businessCardDocumentToReview";
+import { mapBusinessCardSessionToReview, readBusinessCardOrderSession } from "../../order/mappers/businessCardDocumentToReview";
 import { mapPrintUploadSessionToReview, readPrintUploadSessionRaw } from "../../order/mappers/printUploadDocumentToReview";
 import { tiendaOrderPath, withLang } from "../../utils/tiendaRouting";
 import { ohPick, orderHandoffCopy } from "../../data/orderHandoffCopy";
@@ -12,7 +12,7 @@ import { TiendaOrderShell } from "./TiendaOrderShell";
 
 function loadTitle(source: TiendaOrderSource, slug: string, lang: Lang): string | null {
   if (source === "business-cards") {
-    const r = mapBusinessCardSessionToReview(slug, readBusinessCardSessionRaw(slug));
+    const r = mapBusinessCardSessionToReview(slug, readBusinessCardOrderSession(slug));
     return r ? (lang === "en" ? r.productTitle.en : r.productTitle.es) : null;
   }
   const r = mapPrintUploadSessionToReview(slug, readPrintUploadSessionRaw(slug));
