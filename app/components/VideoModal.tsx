@@ -1,1 +1,0 @@
-export default function VideoModal(){return (<div>Video Modal</div>);}

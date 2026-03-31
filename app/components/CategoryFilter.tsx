@@ -1,1 +1,0 @@
-export default function CategoryFilter(){return (<div>Filter</div>);}
