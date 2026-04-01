@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Display banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050508"/>
+      <stop offset="1" stop-color="#121018"/>
+    </linearGradient>
+    <linearGradient id="banner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e3a5f"/>
+      <stop offset="0.5" stop-color="#0f1f35"/>
+      <stop offset="1" stop-color="#0a1424"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e8d5a3"/>
+      <stop offset="1" stop-color="#6b5410"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <!-- Retractable-style vertical graphic + base -->
+  <rect x="380" y="520" width="440" height="28" rx="6" fill="#1a1a1e" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="560" y="540" width="80" height="120" rx="4" fill="#252528"/>
+  <rect x="340" y="120" width="520" height="400" rx="8" fill="url(#banner)" stroke="url(#gold)" stroke-width="2"/>
+  <rect x="380" y="180" width="440" height="12" rx="3" fill="url(#gold)" opacity="0.75"/>
+  <rect x="380" y="220" width="320" height="10" rx="2" fill="#fff" opacity="0.15"/>
+  <rect x="380" y="248" width="280" height="10" rx="2" fill="#fff" opacity="0.1"/>
+  <text x="600" y="360" text-anchor="middle" fill="rgba(232,213,163,0.5)" font-family="Georgia,serif" font-size="28">BANNER</text>
+</svg>

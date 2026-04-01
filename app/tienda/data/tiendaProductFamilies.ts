@@ -57,7 +57,7 @@ export const tiendaProductFamilies: TiendaProductFamily[] = [
     specs: [
       { es: "Tamaño estándar 3.5\" × 2\"", en: 'Standard size 3.5" × 2"' },
       { es: "Impresión a todo color", en: "Full‑color print" },
-      { es: "Papel premium", en: "Premium stock options" },
+      { es: "Stock premium para tarjeta", en: "Premium card stock options" },
     ],
     optionsSummary: [
       { es: "Cantidades comunes: 250, 500, 1000+", en: "Common quantities: 250, 500, 1000+" },
@@ -139,7 +139,7 @@ export const tiendaProductFamilies: TiendaProductFamily[] = [
     specs: [
       { es: "Una o dos caras según tu archivo", en: "One or two sides per your file" },
       { es: "Impresión a todo color", en: "Full‑color print" },
-      { es: "Papeles estándar y premium", en: "Standard and premium papers" },
+      { es: "Papeles estándar y premium para volante", en: "Standard and premium flyer stocks" },
     ],
     optionsSummary: [
       { es: "Tamaños comerciales populares", en: "Popular commercial sizes" },

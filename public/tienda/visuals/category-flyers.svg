@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Printed flyers">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c0c0e"/>
+      <stop offset="1" stop-color="#1a1612"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#faf7f2"/>
+      <stop offset="1" stop-color="#e2dcd2"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9a84a"/>
+      <stop offset="1" stop-color="#6b5410"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <!-- Fan of letter-size / flyer sheets  not devices -->
+  <g transform="translate(380 120) rotate(-8 200 300)">
+    <rect width="420" height="560" rx="6" fill="#2a2622" opacity="0.5"/>
+  </g>
+  <g transform="translate(420 100) rotate(-4 200 300)">
+    <rect width="420" height="560" rx="6" fill="url(#paper)" stroke="rgba(44,38,28,0.12)" stroke-width="1"/>
+    <rect x="32" y="48" width="280" height="14" rx="3" fill="url(#accent)" opacity="0.9"/>
+    <rect x="32" y="88" width="340" height="8" rx="2" fill="#2c261c" opacity="0.2"/>
+    <rect x="32" y="108" width="300" height="8" rx="2" fill="#2c261c" opacity="0.14"/>
+    <rect x="32" y="200" width="356" height="200" rx="4" fill="#f0ebe3" stroke="rgba(201,168,74,0.25)" stroke-width="1"/>
+  </g>
+  <g transform="translate(500 80) rotate(6 200 300)">
+    <rect width="420" height="560" rx="6" fill="url(#paper)" stroke="rgba(201,168,74,0.35)" stroke-width="1.5"/>
+    <rect x="40" y="60" width="200" height="10" rx="2" fill="#c9a84a" opacity="0.7"/>
+  </g>
+</svg>

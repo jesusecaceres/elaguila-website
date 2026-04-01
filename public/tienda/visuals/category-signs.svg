@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Yard sign">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a0c0a"/>
+      <stop offset="1" stop-color="#152018"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f5f0e6"/>
+      <stop offset="1" stop-color="#d4cbb8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="320" y="480" width="560" height="140" rx="8" fill="#1a1814" opacity="0.35"/>
+  <rect x="380" y="160" width="440" height="320" rx="12" fill="url(#board)" stroke="#c9a84a" stroke-width="4"/>
+  <rect x="420" y="220" width="360" height="24" rx="4" fill="#1a3d2e"/>
+  <rect x="420" y="280" width="280" height="14" rx="3" fill="#2c261c" opacity="0.5"/>
+  <rect x="420" y="310" width="220" height="12" rx="2" fill="#2c261c" opacity="0.35"/>
+  <rect x="580" y="400" width="40" height="200" fill="#3d3d42"/>
+  <rect x="540" y="580" width="120" height="16" rx="4" fill="#2a2a2e"/>
+</svg>

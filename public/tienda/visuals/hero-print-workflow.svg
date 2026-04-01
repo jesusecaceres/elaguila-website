@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" role="img" aria-label="From file to printed piece">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a0a0c"/>
+      <stop offset="1" stop-color="#151210"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9a84a"/>
+      <stop offset="1" stop-color="#4a3a10"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#bg)"/>
+  <!-- Print-ready file -->
+  <rect x="80" y="160" width="220" height="280" rx="8" fill="#1a1814" stroke="rgba(201,168,74,0.35)" stroke-width="1.5"/>
+  <text x="190" y="220" text-anchor="middle" fill="rgba(232,213,163,0.5)" font-size="14" font-family="system-ui">PDF</text>
+  <path d="M 120 260 L 180 260 L 180 240 L 220 280 L 180 320 L 180 300 L 120 300 Z" fill="none" stroke="url(#g)" stroke-width="2" opacity="0.7"/>
+  <!-- Arrow -->
+  <path d="M 340 300 L 420 300" stroke="url(#g)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 410 285 L 430 300 L 410 315" fill="none" stroke="url(#g)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Printed stack -->
+  <g transform="translate(480 180)">
+    <rect x="0" y="40" width="280" height="180" rx="8" fill="#2a2620" opacity="0.6"/>
+    <rect x="16" y="0" width="280" height="180" rx="8" fill="#fffef9" stroke="url(#g)" stroke-width="2"/>
+    <rect x="40" y="40" width="120" height="10" rx="2" fill="#c9a84a" opacity="0.75"/>
+  </g>
+</svg>

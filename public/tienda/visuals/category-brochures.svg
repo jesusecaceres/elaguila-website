@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Folded brochures">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#08080a"/>
+      <stop offset="1" stop-color="#181410"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f8f4ec"/>
+      <stop offset="0.5" stop-color="#ebe4d8"/>
+      <stop offset="1" stop-color="#ddd4c8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <!-- Trifold: three panels, bird's eye -->
+  <g transform="translate(280 160)">
+    <path d="M 0 40 L 200 0 L 200 520 L 0 480 Z" fill="url(#fold)" stroke="rgba(201,168,74,0.35)" stroke-width="1.5"/>
+    <path d="M 200 0 L 440 0 L 440 520 L 200 520 Z" fill="#fffef9" stroke="rgba(44,38,28,0.1)" stroke-width="1"/>
+    <path d="M 440 0 L 640 40 L 640 480 L 440 520 Z" fill="url(#fold)" stroke="rgba(201,168,74,0.25)" stroke-width="1"/>
+    <line x1="200" y1="80" x2="440" y2="80" stroke="#c9a84a" stroke-width="3" opacity="0.6"/>
+    <rect x="260" y="140" width="120" height="8" rx="2" fill="#2c261c" opacity="0.25"/>
+    <rect x="260" y="160" width="90" height="6" rx="1" fill="#2c261c" opacity="0.15"/>
+  </g>
+</svg>
