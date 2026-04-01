@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Lang } from "../../types/tienda";
 import type { TiendaCatalogItemRow } from "@/app/lib/tienda/tiendaCatalogTypes";
 import { catalogItemPriceSummary } from "@/app/lib/tienda/tiendaCatalogPricing";
-import { tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
 import { withLang, tiendaCatalogProductPath } from "../../utils/tiendaRouting";
+import { TiendaRemoteFillImage } from "../TiendaRemoteFillImage";
 
 export function TiendaCatalogItemCard(props: {
   item: TiendaCatalogItemRow;
@@ -17,6 +17,7 @@ export function TiendaCatalogItemCard(props: {
   const priceLine = catalogItemPriceSummary(item, lang);
   const href = withLang(tiendaCatalogProductPath(item.slug), lang);
   const displaySrc = imageUrl?.trim() ? imageUrl.trim() : tiendaCatalogFallbackImage(item.category_slug);
+  const fallbackSrc = imageUrl?.trim() ? tiendaCatalogFallbackImage(item.category_slug) : TIENDA_GLOBAL_FALLBACK_IMAGE;
   const imgUnoptimized = !displaySrc.includes("images.unsplash.com");
 
   return (
@@ -29,13 +30,13 @@ export function TiendaCatalogItemCard(props: {
       ].join(" ")}
     >
       <div className="aspect-[16/10] bg-[rgba(0,0,0,0.35)] relative overflow-hidden">
-        <Image
-          src={displaySrc}
-          alt=""
-          fill
-          unoptimized={imgUnoptimized}
+        <TiendaRemoteFillImage
+          primarySrc={displaySrc}
+          fallbackSrc={fallbackSrc}
+          alt={lang === "en" ? `${title} — catalog` : `${title} — catálogo`}
           className="object-cover opacity-[0.96] transition duration-300 group-hover:opacity-100 group-hover:scale-[1.02]"
           sizes="(max-width: 768px) 100vw, 50vw"
+          unoptimized={imgUnoptimized}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         {!imageUrl?.trim() ? (

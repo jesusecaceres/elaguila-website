@@ -8,7 +8,10 @@ import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/b
 import { mapNegocioFormStateToBrNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/brNegocioInputToPreviewMap";
 import { createEmptyBienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import { loadBienesRaicesNegocioPreviewDraft } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
-import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  clearLeonixPreviewNavSessionFlag,
+  markPublishFlowReturningToEdit,
+} from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
 export function BienesRaicesNegocioPreviewClient() {
   const pathname = usePathname();
@@ -53,5 +56,11 @@ export function BienesRaicesNegocioPreviewClient() {
     );
   }
 
-  return <BienesRaicesNegocioPreviewView vm={vm} editHref={BR_PUBLICAR_NEGOCIO} />;
+  return (
+    <BienesRaicesNegocioPreviewView
+      vm={vm}
+      editHref={BR_PUBLICAR_NEGOCIO}
+      onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
+    />
+  );
 }

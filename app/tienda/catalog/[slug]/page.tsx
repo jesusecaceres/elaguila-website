@@ -6,7 +6,8 @@ import { getTiendaCatalogItemPublicBySlug } from "@/app/lib/tienda/tiendaCatalog
 import { catalogItemPriceSummary } from "@/app/lib/tienda/tiendaCatalogPricing";
 import type { Lang } from "../../types/tienda";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
-import { tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
+import { TiendaRemoteFillImage } from "../../components/TiendaRemoteFillImage";
 import { normalizeLang, withLang } from "../../utils/tiendaRouting";
 import { catalogItemPrimaryAction } from "../../utils/tiendaCatalogLinks";
 import { TiendaBackNav } from "../../components/TiendaBackNav";
@@ -139,12 +140,13 @@ export default async function TiendaCatalogProductPage(props: {
           ) : (
             <figure className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)] bg-black/30">
               <div className="relative aspect-[16/10] w-full max-h-[480px]">
-                <Image
-                  src={fallbackHero}
+                <TiendaRemoteFillImage
+                  primarySrc={fallbackHero}
+                  fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
                   alt={lang === "en" ? `${title} — representative preview` : `${title} — vista representativa`}
-                  fill
                   className="object-cover"
                   sizes="(max-width: 1152px) 100vw, 1100px"
+                  priority
                 />
               </div>
               <figcaption className="border-t border-[rgba(255,255,255,0.08)] px-4 py-3 text-xs leading-relaxed text-[rgba(255,255,255,0.55)]">

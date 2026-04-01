@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Lang, TiendaProductFamilySummary } from "../types/tienda";
-import { tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaModeBadge } from "./TiendaModeBadge";
+import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
 function fmtPrice(amount: number, lang: Lang) {
   return new Intl.NumberFormat(lang === "en" ? "en-US" : "es-US", {
@@ -31,10 +31,10 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
       ].join(" ")}
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
-        <Image
-          src={coverSrc}
-          alt=""
-          fill
+        <TiendaRemoteFillImage
+          primarySrc={coverSrc}
+          fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+          alt={lang === "en" ? `${title} — product family` : `${title} — familia de producto`}
           className="object-cover transition duration-500 group-hover:scale-[1.04]"
           sizes="(max-width: 768px) 100vw, 50vw"
         />

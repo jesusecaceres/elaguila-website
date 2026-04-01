@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Lang } from "../types/tienda";
-import { tiendaHeroAssets } from "../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaHeroAssets } from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
+import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
 export function TiendaHero(props: {
   lang: Lang;
@@ -20,8 +20,8 @@ export function TiendaHero(props: {
   const step3 = lang === "en" ? "We print & prep pickup" : "Imprimimos y coordinamos entrega";
   const processLead =
     lang === "en"
-      ? "Three clear steps — most jobs start online; Leonix confirms details before production."
-      : "Tres pasos claros — la mayoría empieza en línea; Leonix confirma antes de producir.";
+      ? "Three steps — pick a product, upload print‑ready files or design cards online, then Leonix confirms before production."
+      : "Tres pasos — elige producto, sube archivos listos o diseña tarjetas en línea, y Leonix confirma antes de producir.";
 
   return (
     <section className="relative overflow-hidden rounded-[2.2rem] border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
@@ -70,10 +70,10 @@ export function TiendaHero(props: {
           <div className="grid h-full grid-cols-2 gap-4">
             <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.28)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
               <div className="relative h-[140px] w-full sm:h-[160px]">
-                <Image
-                  src={tiendaHeroAssets.businessCards}
-                  alt=""
-                  fill
+                <TiendaRemoteFillImage
+                  primarySrc={tiendaHeroAssets.businessCards}
+                  fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                  alt={lang === "en" ? "Premium business cards stack" : "Montón de tarjetas de presentación premium"}
                   className="object-cover"
                   sizes="(max-width: 1024px) 45vw, 380px"
                   priority
@@ -85,7 +85,7 @@ export function TiendaHero(props: {
                   {lang === "en" ? "Business cards" : "Tarjetas"}
                 </div>
                 <div className="mt-1 text-sm font-semibold text-[rgba(255,247,226,0.96)]">
-                  {lang === "en" ? "Premium stock & finish" : "Papel y acabado premium"}
+                  {lang === "en" ? "Premium cards & finishes" : "Tarjetas premium y acabados"}
                 </div>
                 <div className="mt-0.5 text-xs text-[rgba(255,247,226,0.72)]">
                   {lang === "en" ? "Online builder + upload paths" : "Constructor en línea + subida"}
@@ -95,10 +95,10 @@ export function TiendaHero(props: {
 
             <div className="relative overflow-hidden rounded-3xl border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
               <div className="relative h-[140px] w-full sm:h-[160px]">
-                <Image
-                  src={tiendaHeroAssets.bannersSigns}
-                  alt=""
-                  fill
+                <TiendaRemoteFillImage
+                  primarySrc={tiendaHeroAssets.bannersSigns}
+                  fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                  alt={lang === "en" ? "Event display and large-format presence" : "Presencia en evento y gran formato"}
                   className="object-cover"
                   sizes="(max-width: 1024px) 45vw, 380px"
                 />
@@ -120,10 +120,10 @@ export function TiendaHero(props: {
             <div className="relative col-span-2 overflow-hidden rounded-3xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.45)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
               <div className="relative flex min-h-[168px] flex-col sm:flex-row">
                 <div className="relative h-[120px] w-full sm:h-auto sm:w-[44%] shrink-0">
-                  <Image
-                    src={tiendaHeroAssets.printWorkflow}
-                    alt=""
-                    fill
+                  <TiendaRemoteFillImage
+                    primarySrc={tiendaHeroAssets.printWorkflow}
+                    fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                    alt={lang === "en" ? "Files and order planning" : "Archivos y planificación del pedido"}
                     className="object-cover sm:object-cover"
                     sizes="(max-width: 640px) 100vw, 300px"
                   />
@@ -158,16 +158,34 @@ export function TiendaHero(props: {
               </div>
               <div className="grid grid-cols-3 gap-2 border-t border-[rgba(255,255,255,0.08)] bg-black/25 px-3 py-3">
                 {[
-                  { src: tiendaHeroAssets.thumbFlyers, labelEn: "Flyers", labelEs: "Volantes" },
-                  { src: tiendaHeroAssets.thumbBrochures, labelEn: "Brochures", labelEs: "Brochures" },
-                  { src: tiendaHeroAssets.thumbStickers, labelEn: "Stickers", labelEs: "Stickers" },
+                  {
+                    src: tiendaHeroAssets.thumbFlyers,
+                    labelEn: "Flyers",
+                    labelEs: "Volantes",
+                    altEn: "Printed marketing sheets",
+                    altEs: "Hojas de marketing impreso",
+                  },
+                  {
+                    src: tiendaHeroAssets.thumbBrochures,
+                    labelEn: "Brochures",
+                    labelEs: "Brochures",
+                    altEn: "Folded brochure print",
+                    altEs: "Brochure plegado impreso",
+                  },
+                  {
+                    src: tiendaHeroAssets.thumbStickers,
+                    labelEn: "Stickers",
+                    labelEs: "Stickers",
+                    altEn: "Sticker and label print",
+                    altEs: "Impresión de stickers y etiquetas",
+                  },
                 ].map((t) => (
                   <div key={t.labelEn} className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)]">
                     <div className="relative aspect-[4/3] w-full">
-                      <Image
-                        src={t.src}
-                        alt=""
-                        fill
+                      <TiendaRemoteFillImage
+                        primarySrc={t.src}
+                        fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                        alt={lang === "en" ? t.altEn : t.altEs}
                         className="object-cover"
                         sizes="120px"
                       />

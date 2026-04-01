@@ -1,8 +1,8 @@
-import Image from "next/image";
 import type { Lang, TiendaCategory } from "../types/tienda";
-import { tiendaCategoryCoverImage } from "../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCategoryCoverImage } from "../data/tiendaVisualAssets";
 import type { TiendaCategorySlug } from "../data/tiendaCategories";
 import { accentStyles } from "../utils/tiendaTheme";
+import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
 export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang }) {
   const { category, lang } = props;
@@ -38,10 +38,10 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
           </div>
         </div>
         <div className="relative min-h-[220px] lg:min-h-[280px] border-t border-[rgba(255,255,255,0.08)] lg:border-t-0 lg:border-l">
-          <Image
-            src={coverSrc}
-            alt=""
-            fill
+          <TiendaRemoteFillImage
+            primarySrc={coverSrc}
+            fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+            alt={lang === "en" ? `${title} — category visual` : `${title} — imagen de categoría`}
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 38vw"
             priority

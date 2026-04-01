@@ -9,6 +9,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import {
   abandonLeonixPublishFlowClient,
+  clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromNegocioState,
   confirmLeavePublishFlow,
   markPublishFlowOpeningPreview,
@@ -71,6 +72,10 @@ export default function BienesRaicesNegocioApplication() {
 
   useLayoutEffect(() => {
     setState(takeBienesRaicesNegocioPreviewReturnInitialState());
+    const t = window.setTimeout(() => {
+      clearLeonixReturningToEditSessionFlag();
+    }, 0);
+    return () => window.clearTimeout(t);
   }, []);
 
   const navStepLabels = useMemo(() => stepLabelsForAdvertiser(state.advertiserType), [state.advertiserType]);

@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { TiendaCategory, Lang } from "../types/tienda";
-import { tiendaCategoryCoverImage } from "../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCategoryCoverImage } from "../data/tiendaVisualAssets";
 import type { TiendaCategorySlug } from "../data/tiendaCategories";
 import { accentStyles } from "../utils/tiendaTheme";
 import { withLang } from "../utils/tiendaRouting";
+import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
 function ArrowIcon() {
   return (
@@ -43,10 +43,10 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
       aria-label={title}
     >
       <div className="absolute inset-0">
-        <Image
-          src={coverSrc}
-          alt=""
-          fill
+        <TiendaRemoteFillImage
+          primarySrc={coverSrc}
+          fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+          alt={lang === "en" ? `${title} — category` : `${title} — categoría`}
           className="object-cover transition duration-700 ease-out group-hover:scale-[1.03]"
           sizes="(max-width: 768px) 100vw, 50vw"
         />

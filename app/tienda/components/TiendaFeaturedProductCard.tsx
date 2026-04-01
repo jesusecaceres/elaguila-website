@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Lang, TiendaFeaturedProduct } from "../types/tienda";
-import { tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
+import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
 function fmtStartingAt(amount: number, lang: Lang) {
   const money = new Intl.NumberFormat(lang === "en" ? "en-US" : "es-US", {
@@ -33,10 +33,10 @@ export function TiendaFeaturedProductCard(props: { product: TiendaFeaturedProduc
       aria-label={title}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-[rgba(30,24,16,0.08)]">
-        <Image
-          src={coverSrc}
-          alt=""
-          fill
+        <TiendaRemoteFillImage
+          primarySrc={coverSrc}
+          fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+          alt={lang === "en" ? `${title} — product` : `${title} — producto`}
           className="object-cover transition duration-500 group-hover:scale-[1.04]"
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />

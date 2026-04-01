@@ -9,13 +9,26 @@ import { createEmptyBienesRaicesNegocioFormState } from "@/app/clasificados/publ
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 
-/** Set before client navigates to in-flow preview so `pagehide` does not treat it as an abandon. */
+/** Set before client navigates to in-flow preview so `pagehide` / `beforeunload` do not treat it as leaving the flow. */
 export const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-preview";
+
+/** Set before client navigates preview → publish (“Volver a editar”) so teardown does not abandon or prompt. */
+export const LEONIX_RETURNING_TO_EDIT_SESSION_FLAG = "leonix-publish-flow-returning-to-edit";
 
 export function markPublishFlowOpeningPreview(): void {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(LEONIX_PREVIEW_NAV_SESSION_FLAG, "1");
+    sessionStorage.removeItem(LEONIX_RETURNING_TO_EDIT_SESSION_FLAG);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function markPublishFlowReturningToEdit(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(LEONIX_RETURNING_TO_EDIT_SESSION_FLAG, "1");
   } catch {
     /* ignore */
   }
@@ -28,6 +41,25 @@ export function clearLeonixPreviewNavSessionFlag(): void {
   } catch {
     /* ignore */
   }
+}
+
+export function clearLeonixReturningToEditSessionFlag(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(LEONIX_RETURNING_TO_EDIT_SESSION_FLAG);
+  } catch {
+    /* ignore */
+  }
+}
+
+function isInFlowPublishNavigation(): boolean {
+  try {
+    if (sessionStorage.getItem(LEONIX_PREVIEW_NAV_SESSION_FLAG) === "1") return true;
+    if (sessionStorage.getItem(LEONIX_RETURNING_TO_EDIT_SESSION_FLAG) === "1") return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
 }
 
 export function collectMuxAssetIdsFromNegocioState(state: BienesRaicesNegocioFormState): string[] {
@@ -153,17 +185,14 @@ export function useLeonixPublishLeaveGuard(p: {
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!p.isDirty) return;
+      if (isInFlowPublishNavigation()) return;
       e.preventDefault();
       e.returnValue = "";
     };
 
     const onPageHide = () => {
       if (p.skipAbandonOnceRef?.current) return;
-      try {
-        if (sessionStorage.getItem(LEONIX_PREVIEW_NAV_SESSION_FLAG) === "1") return;
-      } catch {
-        /* ignore */
-      }
+      if (isInFlowPublishNavigation()) return;
       if (!p.isDirty) return;
       abandonLeonixPublishFlowClient({ muxAssetIds: muxRef.current, useBeacon: true });
     };

@@ -54,10 +54,10 @@ export const tiendaCopy = {
           },
         },
         {
-          title: { es: "Sube tu arte", en: "Upload your artwork" },
+          title: { es: "Sube o diseña", en: "Upload or design" },
           body: {
-            es: "Sube PDF u otros formatos donde el configurador esté activo; Leonix validará sangrado y resolución en la revisión.",
-            en: "Upload PDFs or other accepted formats where the configurator is live; Leonix validates bleed and resolution at review.",
+            es: "Tarjetas: constructor en línea o subida cuando aplique. Volantes, brochures y gran formato: sube PDF u otros formatos aceptados. Leonix valida sangrado y resolución al revisar el pedido.",
+            en: "Cards: online builder or upload when applicable. Flyers, brochures, and large format: upload PDFs or other accepted formats. Leonix checks bleed and resolution when we review your order.",
           },
         },
         {

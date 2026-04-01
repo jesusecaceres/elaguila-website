@@ -517,11 +517,14 @@ export function BienesRaicesNegocioPreviewView({
   vm,
   editHref,
   footerExtra,
+  onBeforeNavigateToEdit,
 }: {
   vm: BienesRaicesNegocioPreviewVm;
   /** When set, shows a subtle link to return to the publish flow. */
   editHref?: string;
   footerExtra?: string;
+  /** In-flow: mark session so leaving preview for edit does not trigger abandon / leave prompts on the publish route. */
+  onBeforeNavigateToEdit?: () => void;
 }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -568,6 +571,9 @@ export function BienesRaicesNegocioPreviewView({
               className="text-[11px] font-bold uppercase tracking-wide underline"
               style={{ color: BRONZE_SOFT }}
               prefetch={false}
+              onClick={() => {
+                onBeforeNavigateToEdit?.();
+              }}
             >
               Volver a editar
             </Link>

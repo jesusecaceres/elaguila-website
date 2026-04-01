@@ -1,7 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Lang, TiendaProductFamily } from "../types/tienda";
+import { TIENDA_GLOBAL_FALLBACK_IMAGE } from "../data/tiendaVisualAssets";
 import { tiendaPublicContactPath, withLang } from "../utils/tiendaRouting";
+import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
 export type TiendaCatalogShowcaseTone = "promo" | "marketing";
 
@@ -72,12 +73,13 @@ export function TiendaPromoCatalogPanel(props: {
     <section className="mt-10 overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.35)] bg-[linear-gradient(145deg,rgba(201,168,74,0.10),rgba(0,0,0,0.55))] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(260px,400px)]">
         <div className="relative min-h-[200px] border-b border-[rgba(255,255,255,0.08)] lg:min-h-[280px] lg:border-b-0 lg:border-r">
-          <Image
-            src={coverImageUrl}
-            alt=""
-            fill
+          <TiendaRemoteFillImage
+            primarySrc={coverImageUrl}
+            fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+            alt={lang === "en" ? `${title} — catalog showcase` : `${title} — vitrina de catálogo`}
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 400px"
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent lg:bg-gradient-to-r" />
           <div className="absolute bottom-4 left-4 right-4 lg:hidden">
