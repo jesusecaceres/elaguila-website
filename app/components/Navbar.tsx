@@ -70,12 +70,6 @@ function NavbarContent() {
     }
   }, [pathname, signedOutParam, router, searchParams]);
 
-  const isPreviewSurface =
-    pathname.endsWith("/preview") ||
-    pathname.includes("/preview/");
-
-  if (pathname === "/" || isPreviewSurface) return null;
-
   useEffect(() => {
     if (urlLang === "es" || urlLang === "en") setLang(urlLang);
   }, [urlLang]);
@@ -291,6 +285,11 @@ function NavbarContent() {
     user?.fullName?.trim() ||
     (user?.email ? user.email.split("@")[0] : null) ||
     L.myAccount;
+
+  const isPreviewSurface =
+    pathname.endsWith("/preview") ||
+    pathname.includes("/preview/");
+  if (pathname === "/" || isPreviewSurface) return null;
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50" data-navbar-root>
