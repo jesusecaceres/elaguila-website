@@ -54,6 +54,23 @@ export function leoAdjustLogoAndScale(doc: BusinessCardDocument, intake: Busines
         logoGeom: { ...front.logoGeom, widthPct: 0.1, yPct: 50 },
       };
     }
+    if (templateId === "leonix-orbit-halo") {
+      front = {
+        ...front,
+        textBlocks: front.textBlocks.map((b) =>
+          b.role !== "custom" ? { ...b, yPct: Math.max(10, b.yPct - 10) } : b
+        ),
+        logoGeom: { ...front.logoGeom, widthPct: 0.1, yPct: 50 },
+      };
+    }
+    if (templateId === "carbon-soft-elevated") {
+      front = {
+        ...front,
+        textBlocks: front.textBlocks.map((b) =>
+          b.role !== "custom" ? { ...b, yPct: Math.max(10, b.yPct - 4) } : b
+        ),
+      };
+    }
     if (templateId === "bold-modern-slab") {
       front = {
         ...front,
@@ -80,12 +97,16 @@ export function leoAdjustLogoAndScale(doc: BusinessCardDocument, intake: Busines
       };
     }
   } else if (intake.emphasis === "logo") {
+    const extraWide =
+      templateId === "leonix-orbit-halo" || templateId === "leonix-ledger-stripe" || templateId === "azure-confidence-strip"
+        ? 6
+        : 4;
     front = {
       ...front,
       logo: { ...front.logo, visible: true, scale: "lg" },
       logoGeom: {
         ...front.logoGeom,
-        widthPct: Math.min(34, front.logoGeom.widthPct + 4),
+        widthPct: Math.min(36, front.logoGeom.widthPct + extraWide),
         yPct: Math.max(14, front.logoGeom.yPct - 2),
       },
     };
@@ -127,11 +148,20 @@ function boostFont(fs: number): number {
 export function leoBoostSparseTypography(doc: BusinessCardDocument, intake: BusinessCardLeoIntake): BusinessCardDocument {
   if (!leoShouldBoostTypography(intake)) return doc;
 
+  const bilingualBoost = doc.selectedTemplateId?.startsWith("bilingual-") ?? false;
+
   const boostSide = (side: BusinessCardDocument["front"]) => ({
     ...side,
     textBlocks: side.textBlocks.map((b) => {
       if (b.role === "custom") return b;
-      if (b.role === "company" || b.role === "personName" || b.role === "phone" || b.role === "email" || b.role === "title") {
+      const primaryLine =
+        b.role === "company" ||
+        b.role === "personName" ||
+        b.role === "phone" ||
+        b.role === "email" ||
+        b.role === "title";
+      const bilingualTag = bilingualBoost && b.role === "tagline";
+      if (primaryLine || bilingualTag) {
         return { ...b, fontSize: boostFont(b.fontSize) };
       }
       return b;

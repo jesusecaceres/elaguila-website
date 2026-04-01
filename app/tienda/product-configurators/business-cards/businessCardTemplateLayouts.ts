@@ -54,7 +54,11 @@ export function getTemplateLineVisibility(templateId: BusinessCardTemplateId): R
     case "bilingual-two-column":
       return { ...base, address: false };
     case "bilingual-dual-line":
+    case "bilingual-ribbon-feature":
+    case "bilingual-inline-stack":
       return { ...base, address: false };
+    case "saffron-edge-dynamic":
+      return { ...base, website: false };
     default:
       return base;
   }
@@ -133,17 +137,32 @@ function block(
 export function getTemplateCanvasBackground(templateId: BusinessCardTemplateId): BusinessCardCanvasBackground {
   const meta = BUSINESS_CARD_TEMPLATE_LIBRARY[templateId];
   const c = meta.primaryColor;
-  if (templateId === "leonix-gold-diagonal") {
+  if (templateId === "leonix-gold-diagonal" || templateId === "realtor-elevated-gold") {
     return { kind: "preset", id: "pearl" };
   }
-  if (templateId === "gold-accent-executive") {
+  if (templateId === "gold-accent-executive" || templateId === "ivory-executive-band") {
     return { kind: "preset", id: "sand" };
   }
   if (templateId === "monochrome-power") {
     return { kind: "preset", id: "linen" };
   }
+  if (templateId === "carbon-soft-elevated") {
+    return { kind: "solid", color: "#2a2a2e" };
+  }
   if (templateId === "real-estate-horizon") {
     return { kind: "solid", color: "#1e3a4a" };
+  }
+  if (templateId === "azure-confidence-strip") {
+    return { kind: "solid", color: "#f1f5f9" };
+  }
+  if (templateId === "wellness-sage-soft") {
+    return { kind: "solid", color: "#ecfdf5" };
+  }
+  if (templateId === "studio-rose-line") {
+    return { kind: "solid", color: "#fdf2f8" };
+  }
+  if (templateId === "sanctuary-burgundy-warm" || templateId === "leonix-orbit-halo" || templateId === "leonix-ledger-stripe") {
+    return { kind: "solid", color: templateId === "leonix-orbit-halo" ? "#0e0e10" : templateId === "leonix-ledger-stripe" ? "#121214" : "#3f1d1d" };
   }
   return { kind: "solid", color: c };
 }
@@ -360,6 +379,146 @@ export function getBusinessCardTemplateFront(
           block("t5", "phone", bf.phone, 50, 86, 88, 9, 500, "center", 9, "#3d3428"),
         ],
       };
+    case "ivory-executive-band":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 20, widthPct: 20, zIndex: 5 },
+        blocks: [
+          block("t0", "tagline", f.tagline, 50, 34, 80, 8, 600, "center", 4, "#8a7018"),
+          block("t1", "company", f.company, 50, 46, 88, 15, 700, "center", 5, "#2c261c"),
+          block("t2", "personName", f.personName, 50, 58, 88, 11, 600, "center", 6, ink),
+          block("t3", "title", f.title, 50, 68, 88, 9, 500, "center", 7, mutedDark),
+          block("t4", "phone", f.phone, 50, 80, 88, 9, 500, "center", 8, "#a67c2a"),
+        ],
+      };
+    case "carbon-soft-elevated":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 22, zIndex: 6 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 14, 700, "center", 5, "#f5f0e6"),
+          block("t2", "personName", f.personName, 50, 52, 88, 11, 600, "center", 6, "#fffef9"),
+          block("t3", "title", f.title, 50, 62, 88, 9, 500, "center", 7, "rgba(255,252,247,0.65)"),
+          block("t4", "phone", f.phone, 50, 74, 88, 10, 500, "center", 8, "#e8dcc8"),
+          block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, "rgba(255,252,247,0.72)"),
+        ],
+      };
+    case "azure-confidence-strip":
+      return {
+        fields: f,
+        logoGeom: { xPct: 78, yPct: 28, widthPct: 18, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 38, 36, 58, 13, 700, "left", 5, "#1e3a5f"),
+          block("t2", "personName", f.personName, 38, 50, 58, 11, 600, "left", 6, ink),
+          block("t3", "title", f.title, 38, 62, 58, 9, 500, "left", 7, mutedDark),
+          block("t4", "phone", f.phone, 38, 76, 58, 9, 500, "left", 8, "#1e3a5f"),
+          block("t5", "email", f.email, 38, 86, 58, 8, 400, "left", 9, ink),
+        ],
+      };
+    case "saffron-edge-dynamic":
+      return {
+        fields: f,
+        logoGeom: { xPct: 62, yPct: 26, widthPct: 20, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 62, 38, 68, 14, 700, "left", 5, "#1a1814"),
+          block("t2", "personName", f.personName, 62, 52, 68, 11, 600, "left", 6, ink),
+          block("t3", "title", f.title, 62, 64, 68, 9, 500, "left", 7, mutedDark),
+          block("t4", "phone", f.phone, 62, 78, 68, 10, 600, "left", 8, "#d97706"),
+          block("t5", "email", f.email, 62, 88, 68, 8, 400, "left", 9, ink),
+        ],
+      };
+    case "realtor-elevated-gold":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 20, widthPct: 20, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 36, 90, 13, 700, "center", 5, "#1e3a4a"),
+          block("t2", "personName", f.personName, 50, 48, 88, 12, 600, "center", 6, "#111113"),
+          block("t3", "title", f.title, 50, 60, 86, 9, 500, "center", 7, "rgba(30,58,74,0.75)"),
+          block("t4", "phone", f.phone, 50, 72, 88, 11, 600, "center", 8, "#b8860b"),
+          block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, "#1e3a4a"),
+        ],
+      };
+    case "wellness-sage-soft":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 19, zIndex: 4 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#0f766e"),
+          block("t2", "personName", f.personName, 50, 52, 88, 12, 600, "center", 6, "#134e4a"),
+          block("t3", "title", f.title, 50, 64, 88, 9, 500, "center", 7, "rgba(15,118,110,0.75)"),
+          block("t4", "phone", f.phone, 50, 76, 88, 9, 500, "center", 8, "#0f766e"),
+          block("t5", "email", f.email, 50, 86, 88, 8, 400, "center", 9, "#134e4a"),
+        ],
+      };
+    case "studio-rose-line":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 24, widthPct: 21, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 13, 700, "center", 5, "#9d174d"),
+          block("t2", "personName", f.personName, 50, 52, 88, 11, 600, "center", 6, "#831843"),
+          block("t3", "title", f.title, 50, 62, 88, 9, 500, "center", 7, "rgba(157,23,77,0.75)"),
+          block("t4", "phone", f.phone, 50, 74, 88, 9, 500, "center", 8, "#9d174d"),
+          block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, "#831843"),
+        ],
+      };
+    case "sanctuary-burgundy-warm":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 24, widthPct: 20, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#f5e6c8"),
+          block("t2", "personName", f.personName, 50, 52, 88, 12, 600, "center", 6, "#fffef9"),
+          block("t3", "title", f.title, 50, 64, 88, 9, 500, "center", 7, "rgba(245,230,200,0.85)"),
+          block("t4", "phone", f.phone, 50, 76, 88, 10, 500, "center", 8, "#f5e6c8"),
+          block("t5", "email", f.email, 50, 86, 88, 8, 400, "center", 9, "rgba(255,254,249,0.88)"),
+        ],
+      };
+    case "bilingual-ribbon-feature":
+      return {
+        fields: bf,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 18, zIndex: 4 },
+        blocks: [
+          block("t1", "company", bf.company, 50, 34, 88, 12, 700, "center", 5, ink),
+          block("t2", "personName", bf.personName, 50, 46, 88, 11, 600, "center", 6, ink),
+          block("t3", "title", bf.title, 50, 58, 88, 9, 500, "center", 7, mutedDark),
+          block("t4", "tagline", bf.tagline, 50, 68, 86, 8, 500, "center", 8, "rgba(44,38,28,0.55)"),
+          block("t5", "phone", bf.phone, 50, 82, 88, 10, 600, "center", 9, "#1c1914"),
+        ],
+      };
+    case "bilingual-inline-stack":
+      return {
+        fields: bf,
+        logoGeom: { xPct: 50, yPct: 24, widthPct: 19, zIndex: 4 },
+        blocks: [
+          block("t1", "company", bf.company, 50, 36, 88, 12, 700, "center", 5, "#3d3428"),
+          block("t2", "title", bf.title, 50, 48, 88, 9, 500, "center", 6, mutedDark),
+          block("t3", "personName", bf.personName, 50, 58, 88, 11, 600, "center", 7, ink),
+          block("t4", "phone", bf.phone, 50, 72, 88, 9, 500, "center", 8, "#3d3428"),
+          block("t5", "email", bf.email, 50, 84, 88, 8, 400, "center", 9, ink),
+        ],
+      };
+    case "leonix-orbit-halo":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 34, widthPct: 28, zIndex: 8 },
+        blocks: [
+          block("t1", "company", f.company, 50, 68, 88, 12, 700, "center", 5, "#d4af37"),
+          block("t2", "personName", f.personName, 50, 80, 88, 10, 500, "center", 6, "rgba(255,252,247,0.9)"),
+        ],
+      };
+    case "leonix-ledger-stripe":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 26, widthPct: 22, zIndex: 6 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 13, 700, "center", 5, "#fffef9"),
+          block("t2", "personName", f.personName, 50, 54, 88, 11, 600, "center", 6, "rgba(255,254,249,0.92)"),
+          block("t3", "title", f.title, 50, 66, 88, 9, 500, "center", 7, "rgba(255,254,249,0.65)"),
+          block("t4", "phone", f.phone, 50, 88, 92, 11, 600, "center", 8, "#0a0a0c"),
+        ],
+      };
     default:
       return getBusinessCardTemplateFront("clean-white-premium", lang);
   }
@@ -430,6 +589,19 @@ export function getBusinessCardTemplateBack(
   }
 
   if (useMap) {
+    if (templateId === "sanctuary-burgundy-warm") {
+      const cream = "#f5e6c8";
+      const creamMuted = "rgba(245,230,200,0.85)";
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 26, widthPct: 15, zIndex: 4 },
+        blocks: [
+          block("b1", "company", f.company, 50, 36, 88, 12, 700, "center", 5, cream),
+          block("b2", "address", f.address, 50, 50, 86, 9, 500, "center", 6, creamMuted),
+          block("b3", "tagline", f.tagline, 50, 68, 86, 9, 500, "center", 7, cream),
+        ],
+      };
+    }
     return {
       fields: f,
       logoGeom: { xPct: 50, yPct: 26, widthPct: 15, zIndex: 4 },
@@ -448,6 +620,73 @@ export function getBusinessCardTemplateBack(
       blocks: [
         block("b1", "company", f.company, 50, 44, 88, 12, 700, "center", 5, "#c9a84a"),
         block("b2", "tagline", f.tagline, 50, 58, 88, 9, 500, "center", 6, "rgba(255,252,247,0.88)"),
+      ],
+    };
+  }
+
+  if (templateId === "leonix-orbit-halo") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 42, widthPct: 24, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 64, 88, 11, 700, "center", 5, "#d4af37"),
+        block("b2", "tagline", f.tagline, 50, 78, 88, 9, 500, "center", 6, "rgba(255,252,247,0.88)"),
+      ],
+    };
+  }
+
+  if (templateId === "leonix-ledger-stripe") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 32, widthPct: 14, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 46, 88, 12, 700, "center", 5, "#fffef9"),
+        block("b2", "tagline", f.tagline, 50, 60, 88, 9, 500, "center", 6, "rgba(255,254,249,0.72)"),
+        block("b3", "phone", f.phone, 50, 88, 92, 10, 600, "center", 7, "#c9a84a"),
+      ],
+    };
+  }
+
+  if (templateId === "carbon-soft-elevated") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 48, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 44, 88, 12, 700, "center", 5, "#f5f0e6"),
+        block("b2", "tagline", f.tagline, 50, 58, 88, 9, 500, "center", 6, "rgba(245,240,230,0.78)"),
+      ],
+    };
+  }
+
+  if (templateId === "studio-rose-line") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 48, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#9d174d"),
+        block("b2", "tagline", f.tagline, 50, 56, 88, 9, 500, "center", 6, "rgba(131,24,67,0.75)"),
+      ],
+    };
+  }
+
+  if (templateId === "bilingual-ribbon-feature") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 28, widthPct: 14, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 42, 88, 12, 700, "center", 5, ink),
+        block("b2", "tagline", f.tagline, 50, 56, 88, 9, 500, "center", 6, muted),
+      ],
+    };
+  }
+
+  if (templateId === "bilingual-inline-stack") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 46, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#3d3428"),
+        block("b2", "tagline", f.tagline, 50, 56, 88, 9, 500, "center", 6, muted),
       ],
     };
   }

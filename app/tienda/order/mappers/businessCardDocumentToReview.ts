@@ -67,6 +67,10 @@ export type BusinessCardSessionPayloadV3Design = {
   selectedTemplateId?: string;
   /** LEO assistant snapshot when `designIntake` is `leo`. */
   leoSnapshot?: BusinessCardLeoSnapshot;
+  /** Large logo previews stored in IndexedDB; hydrate merges after load. */
+  draftLogoVault?: { front?: boolean; back?: boolean };
+  /** Optional filename hints from LEO / builder (not sent to print). */
+  draftLogoMeta?: { frontFileName?: string; backFileName?: string };
   textNudgeX?: number;
   textNudgeY?: number;
   logoNudgeX?: number;

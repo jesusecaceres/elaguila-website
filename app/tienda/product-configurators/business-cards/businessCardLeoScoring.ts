@@ -58,14 +58,21 @@ const STYLE_WEIGHTS: Record<LeoPreferredStyle, Partial<Record<BusinessCardTempla
     "gold-accent-executive": 16,
     "luxe-editorial": 15,
     "leonix-gold-diagonal": 13,
+    "ivory-executive-band": 14,
+    "leonix-orbit-halo": 12,
+    "realtor-elevated-gold": 10,
     "leonix-crest-mark": 10,
     "lawyer-column-trust": 9,
+    "carbon-soft-elevated": 8,
     "minimal-black-onyx": 8,
     "clean-white-premium": 7,
   },
   modern: {
     "bold-modern-slab": 15,
     "clean-white-premium": 13,
+    "azure-confidence-strip": 12,
+    "saffron-edge-dynamic": 11,
+    "leonix-ledger-stripe": 10,
     "monochrome-power": 11,
     "minimal-black-onyx": 9,
     "leonix-gold-diagonal": 8,
@@ -75,19 +82,25 @@ const STYLE_WEIGHTS: Record<LeoPreferredStyle, Partial<Record<BusinessCardTempla
     "bold-modern-slab": 14,
     "auto-dealer-stripe": 13,
     "contractor-bold-phone": 13,
+    "saffron-edge-dynamic": 12,
+    "leonix-ledger-stripe": 9,
     "leonix-grind-bar": 11,
     "minimal-black-onyx": 7,
   },
   minimal: {
     "minimal-black-onyx": 15,
     "monochrome-power": 13,
+    "azure-confidence-strip": 10,
+    "ivory-executive-band": 9,
     "clean-white-premium": 12,
     "bold-modern-slab": 3,
   },
   elegant: {
     "luxe-editorial": 14,
     "lawyer-column-trust": 13,
+    "ivory-executive-band": 13,
     "gold-accent-executive": 12,
+    "studio-rose-line": 10,
     "monochrome-power": 9,
     "clean-white-premium": 8,
   },
@@ -95,11 +108,15 @@ const STYLE_WEIGHTS: Record<LeoPreferredStyle, Partial<Record<BusinessCardTempla
 
 const INDUSTRY_RULES: Array<{ re: RegExp; template: BusinessCardTemplateId; weight: number }> = [
   { re: /real\s*estate|realtor|inmobiliaria|bienes ra[ií]ces|propiedad/i, template: "real-estate-horizon", weight: 30 },
+  { re: /real\s*estate|realtor|inmobiliaria|bienes ra[ií]ces|propiedad/i, template: "realtor-elevated-gold", weight: 22 },
   { re: /auto|car dealer|dealership|automotriz|concesionaria|veh[ií]culo/i, template: "auto-dealer-stripe", weight: 30 },
   { re: /dental|dentist|odont|cl[ií]nica dental/i, template: "dental-clinical-clean", weight: 30 },
+  { re: /dental|dentist|odont|wellness|medical clinic|cl[ií]nica m[eé]dica|cl[ií]nica dental/i, template: "wellness-sage-soft", weight: 22 },
   { re: /law|legal|attorney|abogad|bufete|notar/i, template: "lawyer-column-trust", weight: 28 },
   { re: /restaurant|chef|kitchen|cocina|caf[eé]|bar |food service|catering/i, template: "restaurant-warm-plate", weight: 27 },
   { re: /contractor|plumb|hvac|roof|electric|construc|remodel|handyman|jardiner/i, template: "contractor-bold-phone", weight: 27 },
+  { re: /church|faith|ministry|parish|iglesia|pastor|comunidad/i, template: "sanctuary-burgundy-warm", weight: 26 },
+  { re: /salon|spa|beauty|est[eé]tica|barber|cosmet/i, template: "studio-rose-line", weight: 22 },
   { re: /salon|spa|beauty|est[eé]tica|barber|cosmet/i, template: "luxe-editorial", weight: 12 },
   { re: /tech|software|saas|digital|desarrollo/i, template: "minimal-black-onyx", weight: 10 },
 ];
@@ -147,7 +164,9 @@ export function scoreLeoTemplateCandidates(
 
   if (suggestsBilingual(lower)) {
     add("bilingual-two-column", 24);
+    add("bilingual-ribbon-feature", 21);
     add("bilingual-dual-line", 19);
+    add("bilingual-inline-stack", 18);
   }
 
   const sw = STYLE_WEIGHTS[intake.preferredStyle];
@@ -156,9 +175,16 @@ export function scoreLeoTemplateCandidates(
     if (w) add(id, w);
   }
 
+  if (/\b(executive|ejecutiv|board|director|ceo|c-level)\b/i.test(lower)) {
+    add("ivory-executive-band", 7);
+    add("azure-confidence-strip", 5);
+    add("realtor-elevated-gold", 4);
+  }
+
   if (intake.emphasis === "logo") {
     if (hasLogo) {
       add("leonix-crest-mark", 18);
+      add("leonix-orbit-halo", 14);
       add("auto-dealer-stripe", 10);
       add("bold-modern-slab", 9);
     } else {
@@ -197,6 +223,8 @@ export function scoreLeoTemplateCandidates(
     add("monochrome-power", 5);
   } else if (intake.backStyle === "services") {
     add("luxe-editorial", 8);
+    add("studio-rose-line", 7);
+    add("ivory-executive-band", 6);
     add("gold-accent-executive", 6);
     add("restaurant-warm-plate", 5);
   }
@@ -204,6 +232,8 @@ export function scoreLeoTemplateCandidates(
   const filled = countFilledFields(intake);
   if (filled <= 4) {
     add("clean-white-premium", 8);
+    add("ivory-executive-band", 7);
+    add("azure-confidence-strip", 6);
     add("monochrome-power", 6);
     add("minimal-black-onyx", 5);
   }
@@ -235,6 +265,8 @@ export function scoreLeoTemplateCandidates(
   if (gold) {
     add("gold-accent-executive", 11);
     add("leonix-gold-diagonal", 11);
+    add("realtor-elevated-gold", 9);
+    add("ivory-executive-band", 8);
     add("leonix-crest-mark", hasLogo ? 8 : 0);
   }
 

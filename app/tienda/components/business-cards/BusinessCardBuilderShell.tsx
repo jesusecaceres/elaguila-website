@@ -18,7 +18,6 @@ import {
   BC_UPLOAD_DRAFT_PREFIX,
   isBusinessCardSessionDesign,
   readBusinessCardSessionRaw,
-  toBusinessCardSessionPayloadV3Design,
 } from "../../order/mappers/businessCardDocumentToReview";
 import {
   buildSessionPayloadWithLogos,
@@ -150,12 +149,16 @@ export function BusinessCardBuilderShell(props: {
     try {
       const frontLogo = doc.front.logo.file ? await readAsDataUrl(doc.front.logo.file) : doc.front.logo.previewUrl;
       const backLogo = doc.back.logo.file ? await readAsDataUrl(doc.back.logo.file) : doc.back.logo.previewUrl;
-      const payload = toBusinessCardSessionPayloadV3Design(
+      const payload = await buildSessionPayloadWithLogos(
         doc,
         { front: frontLogo, back: backLogo },
-        new Date().toISOString()
+        {
+          frontFileName: doc.front.logo.file?.name,
+          backFileName: doc.back.logo.file?.name,
+        }
       );
-      sessionStorage.setItem(`leonix-bc-draft-${doc.productSlug}`, JSON.stringify(payload));
+      const w = writeSessionDesignDraft(doc.productSlug, payload);
+      if (!w.ok) return false;
       sessionStorage.removeItem(`${BC_UPLOAD_DRAFT_PREFIX}${doc.productSlug}`);
       return true;
     } catch {

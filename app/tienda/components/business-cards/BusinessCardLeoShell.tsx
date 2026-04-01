@@ -14,7 +14,11 @@ import type {
 } from "../../product-configurators/business-cards/businessCardLeoTypes";
 import type { BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
 import type { Lang } from "../../types/tienda";
-import { BC_UPLOAD_DRAFT_PREFIX, toBusinessCardSessionPayloadV3Design } from "../../order/mappers/businessCardDocumentToReview";
+import { BC_UPLOAD_DRAFT_PREFIX } from "../../order/mappers/businessCardDocumentToReview";
+import {
+  buildSessionPayloadWithLogos,
+  writeSessionDesignDraft,
+} from "../../product-configurators/business-cards/businessCardDraftPersistence";
 import { businessCardConfigurePath, withLang } from "../../utils/tiendaRouting";
 import { LeoBrandMark } from "./LeoBrandMark";
 
@@ -58,6 +62,9 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [intake, setIntake] = useState<BusinessCardLeoIntake>(emptyIntake);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const setField = useCallback(<K extends keyof BusinessCardLeoIntake>(key: K, value: BusinessCardLeoIntake[K]) => {
     setIntake((s) => ({ ...s, [key]: value }));
@@ -92,6 +99,7 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
         setField("logoDataUrl", null);
         setField("logoNaturalWidth", null);
         setField("logoNaturalHeight", null);
+        setLogoFileName(null);
         return;
       }
       if (file.size > LOGO_MAX_MB * 1024 * 1024) {
@@ -118,22 +126,38 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
     [lang, setField]
   );
 
-  const finish = useCallback(() => {
+  const finish = useCallback(async () => {
     if (!validateStep()) return;
-    const { document: doc } = buildBusinessCardDocumentFromLeoIntake(intake, productSlug, lang);
-    const payload = toBusinessCardSessionPayloadV3Design(doc, {
-      front: doc.front.logo.previewUrl,
-      back: doc.back.logo.previewUrl,
-    });
+    setSaveError(null);
+    setSaving(true);
     try {
-      sessionStorage.setItem(`leonix-bc-draft-${productSlug}`, JSON.stringify(payload));
+      const { document: doc } = buildBusinessCardDocumentFromLeoIntake(intake, productSlug, lang);
+      const payload = await buildSessionPayloadWithLogos(
+        doc,
+        { front: doc.front.logo.previewUrl, back: doc.back.logo.previewUrl },
+        logoFileName ? { frontFileName: logoFileName } : undefined
+      );
+      const w = writeSessionDesignDraft(productSlug, payload);
+      if (!w.ok) {
+        setSaveError(
+          lang === "en"
+            ? "Could not save this draft in the browser (storage full). Try a smaller logo file, or remove the logo and add it in the builder."
+            : "No se pudo guardar el borrador en el navegador (almacenamiento lleno). Prueba un logo más pequeño, o quítalo aquí y súbelo en el constructor."
+        );
+        return;
+      }
       sessionStorage.removeItem(`${BC_UPLOAD_DRAFT_PREFIX}${productSlug}`);
+      router.push(withLang(businessCardConfigurePath(productSlug, { entry: "leo" }), lang));
     } catch {
-      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
-      return;
+      setSaveError(
+        lang === "en"
+          ? "Something went wrong while preparing your draft. Please try again."
+          : "Algo salió mal al preparar el borrador. Intenta de nuevo."
+      );
+    } finally {
+      setSaving(false);
     }
-    router.push(withLang(businessCardConfigurePath(productSlug, { entry: "leo" }), lang));
-  }, [intake, productSlug, lang, router, validateStep]);
+  }, [intake, productSlug, lang, router, validateStep, logoFileName]);
 
   const styleOptions: { v: LeoPreferredStyle; label: keyof typeof leoAssistCopy }[] = [
     { v: "luxury", label: "styleLuxury" },
@@ -375,6 +399,33 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
                 onChange={(e) => void onLogo(e.target.files?.[0] ?? null)}
               />
             </div>
+            {intake.logoDataUrl ? (
+              <div className="mt-4 rounded-2xl border border-[rgba(201,168,74,0.25)] bg-[rgba(0,0,0,0.35)] p-4">
+                <div className="flex items-start gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded data URL preview */}
+                  <img
+                    src={intake.logoDataUrl}
+                    alt=""
+                    className="h-20 w-auto max-w-[140px] object-contain rounded-lg bg-white/5 ring-1 ring-white/10"
+                  />
+                  <div className="min-w-0 flex-1 text-left text-sm">
+                    <div className="font-semibold text-[rgba(255,247,226,0.95)]">
+                      {lang === "en" ? "Logo preview" : "Vista previa del logo"}
+                    </div>
+                    {logoFileName ? (
+                      <div className="mt-1 truncate text-[rgba(255,255,255,0.65)]" title={logoFileName}>
+                        {logoFileName}
+                      </div>
+                    ) : null}
+                    {intake.logoNaturalWidth && intake.logoNaturalHeight ? (
+                      <div className="mt-1 text-xs text-[rgba(255,255,255,0.45)]">
+                        {intake.logoNaturalWidth} × {intake.logoNaturalHeight}px
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <p className="text-sm text-[rgba(255,255,255,0.55)]">
               {lang === "en"
                 ? "LEO will place your logo on the front when provided. You can nudge it in the builder."
@@ -403,10 +454,15 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
           ) : (
             <button
               type="button"
+              disabled={saving}
               onClick={() => void finish()}
-              className="min-h-[52px] flex-1 rounded-full bg-[color:var(--lx-gold)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
+              className="min-h-[52px] flex-1 rounded-full bg-[color:var(--lx-gold)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_12px_34px_rgba(201,168,74,0.22)] disabled:opacity-60"
             >
-              {leoPick(leoAssistCopy.finish, lang)}
+              {saving
+                ? lang === "en"
+                  ? "Saving…"
+                  : "Guardando…"
+                : leoPick(leoAssistCopy.finish, lang)}
             </button>
           )}
         </div>
