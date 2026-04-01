@@ -63,6 +63,8 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
   const [step, setStep] = useState(0);
   const [intake, setIntake] = useState<BusinessCardLeoIntake>(emptyIntake);
   const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [logoLoadError, setLogoLoadError] = useState<string | null>(null);
+  const [stepError, setStepError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -73,13 +75,13 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
   const validateStep = useCallback((): boolean => {
     if (step === 0) {
       if (!intake.businessName.trim() || !intake.personName.trim() || !intake.profession.trim()) {
-        window.alert(leoPick(leoAssistCopy.errRequired, lang));
+        setStepError(leoPick(leoAssistCopy.errRequired, lang));
         return false;
       }
     }
     if (step === 1) {
       if (!intake.phone.trim() && !intake.email.trim()) {
-        window.alert(leoPick(leoAssistCopy.errContact, lang));
+        setStepError(leoPick(leoAssistCopy.errContact, lang));
         return false;
       }
     }
@@ -88,13 +90,18 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
 
   const goNext = useCallback(() => {
     if (!validateStep()) return;
+    setStepError(null);
     setStep((s) => Math.min(STEP_COUNT - 1, s + 1));
   }, [validateStep]);
 
-  const goBack = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
+  const goBack = useCallback(() => {
+    setStepError(null);
+    setStep((s) => Math.max(0, s - 1));
+  }, []);
 
   const onLogo = useCallback(
     async (file: File | null) => {
+      setLogoLoadError(null);
       if (!file) {
         setField("logoDataUrl", null);
         setField("logoNaturalWidth", null);
@@ -103,7 +110,9 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
         return;
       }
       if (file.size > LOGO_MAX_MB * 1024 * 1024) {
-        window.alert(lang === "en" ? `Logo must be under ${LOGO_MAX_MB} MB.` : `El logo debe ser menor a ${LOGO_MAX_MB} MB.`);
+        setLogoLoadError(
+          lang === "en" ? `Logo must be under ${LOGO_MAX_MB} MB.` : `El logo debe ser menor a ${LOGO_MAX_MB} MB.`
+        );
         return;
       }
       try {
@@ -117,10 +126,17 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
         setField("logoDataUrl", dataUrl);
         setField("logoNaturalWidth", img.naturalWidth);
         setField("logoNaturalHeight", img.naturalHeight);
+        setLogoFileName(file.name);
       } catch {
         setField("logoDataUrl", null);
         setField("logoNaturalWidth", null);
         setField("logoNaturalHeight", null);
+        setLogoFileName(null);
+        setLogoLoadError(
+          lang === "en"
+            ? "Could not load that image. Try PNG, JPG, WebP, or SVG."
+            : "No se pudo cargar la imagen. Prueba PNG, JPG, WebP o SVG."
+        );
       }
     },
     [lang, setField]
@@ -141,8 +157,8 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
       if (!w.ok) {
         setSaveError(
           lang === "en"
-            ? "Could not save this draft in the browser (storage full). Try a smaller logo file, or remove the logo and add it in the builder."
-            : "No se pudo guardar el borrador en el navegador (almacenamiento lleno). Prueba un logo más pequeño, o quítalo aquí y súbelo en el constructor."
+            ? "Could not save this draft. Your browser storage may be full, or logos are too large for this session. Try a smaller logo, clear site data for this site, or continue without a logo and upload it in the builder — your text answers are still here until you leave this page."
+            : "No se pudo guardar el borrador. El almacenamiento del navegador puede estar lleno o el logo es demasiado grande. Prueba un logo más pequeño, borra datos del sitio, o continúa sin logo y súbelo en el constructor — tus datos de texto siguen aquí mientras no salgas de esta página."
         );
         return;
       }
@@ -191,9 +207,7 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
             {leoPick(leoAssistCopy.backLink, lang)}
           </Link>
           <div className="mt-6 flex justify-center">
-            <div className="rounded-2xl border border-[rgba(201,168,74,0.2)] bg-[rgba(0,0,0,0.35)] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-              <LeoBrandMark width={152} className="mx-auto max-w-[min(100%,168px)]" />
-            </div>
+            <LeoBrandMark width={152} className="mx-auto max-w-[min(100%,168px)]" />
           </div>
           <h1 className="mt-6 text-2xl font-semibold tracking-tight text-[rgba(255,247,226,0.98)] sm:text-[1.65rem]">
             {leoPick(leoAssistCopy.pageTitle, lang)}
@@ -216,6 +230,15 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
             />
           ))}
         </div>
+        {stepError ? (
+          <div
+            className="mt-4 rounded-xl border border-[rgba(220,80,80,0.45)] bg-[rgba(80,20,20,0.35)] px-4 py-3 text-sm text-[rgba(255,230,230,0.95)]"
+            role="alert"
+          >
+            {stepError}
+          </div>
+        ) : null}
+
         <div className="mt-3 flex items-center justify-between text-xs text-[rgba(255,255,255,0.5)]">
           <span>
             {leoPick(leoAssistCopy.progress, lang)} {step + 1}/{STEP_COUNT}
@@ -399,6 +422,11 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
                 onChange={(e) => void onLogo(e.target.files?.[0] ?? null)}
               />
             </div>
+            {logoLoadError ? (
+              <p className="text-sm text-[rgba(255,180,180,0.95)]" role="alert">
+                {logoLoadError}
+              </p>
+            ) : null}
             {intake.logoDataUrl ? (
               <div className="mt-4 rounded-2xl border border-[rgba(201,168,74,0.25)] bg-[rgba(0,0,0,0.35)] p-4">
                 <div className="flex items-start gap-4">
@@ -432,6 +460,15 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
                 : "LEO colocará el logo al frente si lo subes. Podrás ajustarlo en el constructor."}
             </p>
           </section>
+        ) : null}
+
+        {saveError ? (
+          <div
+            className="mt-8 rounded-xl border border-[rgba(220,80,80,0.45)] bg-[rgba(80,20,20,0.35)] px-4 py-3 text-sm text-[rgba(255,230,230,0.95)]"
+            role="alert"
+          >
+            {saveError}
+          </div>
         ) : null}
 
         <div className="mt-10 flex flex-col-reverse sm:flex-row gap-3">

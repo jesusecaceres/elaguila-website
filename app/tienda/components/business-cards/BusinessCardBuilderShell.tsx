@@ -59,6 +59,7 @@ export function BusinessCardBuilderShell(props: {
   });
   const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
   const [logoInspectorActive, setLogoInspectorActive] = useState(false);
+  const [sessionDraftError, setSessionDraftError] = useState<string | null>(null);
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -167,12 +168,13 @@ export function BusinessCardBuilderShell(props: {
   }, [doc]);
 
   const continueToOrderDetails = useCallback(async () => {
+    setSessionDraftError(null);
     const ok = await persistDraftToSession();
     if (!ok) {
-      window.alert(
+      setSessionDraftError(
         lang === "en"
-          ? "Could not save draft (browser storage may be full). Try a smaller logo or clear site data for this origin."
-          : "No se pudo guardar el borrador (el almacenamiento del navegador puede estar lleno). Prueba un logo más pequeño o borra datos del sitio."
+          ? "Could not save draft. Storage may be full or the logo is too large. Try a smaller logo, clear site data for this origin, or remove the logo and add it again after checkout notes."
+          : "No se pudo guardar el borrador. El almacenamiento puede estar lleno o el logo es muy grande. Prueba un logo más pequeño, borra datos del sitio, o quita el logo y vuelve a subirlo después."
       );
       return;
     }
@@ -313,6 +315,11 @@ export function BusinessCardBuilderShell(props: {
 
           <section className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)] p-5 sm:p-6">
             <h2 className="text-base font-semibold">{bcPick(businessCardBuilderCopy.nextTitle, lang)}</h2>
+            {sessionDraftError ? (
+              <p className="mt-3 rounded-xl border border-[rgba(220,80,80,0.45)] bg-[rgba(80,20,20,0.35)] px-4 py-3 text-sm text-[rgba(255,230,230,0.95)]" role="alert">
+                {sessionDraftError}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm text-[rgba(255,255,255,0.72)] max-w-2xl">
               {bcPick(businessCardBuilderCopy.nextBody, lang)}
             </p>

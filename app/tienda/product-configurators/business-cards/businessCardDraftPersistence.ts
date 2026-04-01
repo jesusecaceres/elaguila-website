@@ -36,6 +36,29 @@ async function idbPut(key: string, dataUrl: string): Promise<void> {
   });
 }
 
+/** Offload logos to IndexedDB early so sessionStorage JSON stays small (typical quota ~5MB). */
+const PROACTIVE_VAULT_MIN_BYTES = 22_000;
+/** Secondary strip threshold when JSON is still oversized after compression. */
+const STRIP_VAULT_MIN_BYTES = 32_000;
+
+async function tryVaultLogo(
+  productSlug: string,
+  side: "front" | "back",
+  data: string | null,
+  vault: DraftLogoVault,
+  minBytes: number
+): Promise<string | null> {
+  if (!data || dataUrlByteLength(data) <= minBytes) return data;
+  try {
+    await idbPut(vaultKey(productSlug, side), data);
+    if (side === "front") vault.front = true;
+    else vault.back = true;
+    return null;
+  } catch {
+    return data;
+  }
+}
+
 export async function idbGetLogoDataUrl(key: string): Promise<string | null> {
   try {
     const db = await openDb();
@@ -110,7 +133,8 @@ function vaultKey(slug: string, side: "front" | "back"): string {
 }
 
 /**
- * Build v3 session payload with compressed logos; offload to IndexedDB if JSON still won't fit.
+ * Build v3 session payload with compressed logos; offload to IndexedDB when inline data is heavy
+ * so sessionStorage writes succeed reliably.
  */
 export async function buildSessionPayloadWithLogos(
   doc: BusinessCardDocument,
@@ -119,61 +143,64 @@ export async function buildSessionPayloadWithLogos(
   savedAt?: string
 ): Promise<BusinessCardSessionPayloadV3Design> {
   const ts = savedAt ?? new Date().toISOString();
+  const vault: DraftLogoVault = {};
+
   let front = await compressLogoDataUrlForSession(resolvedLogos.front);
   let back = await compressLogoDataUrlForSession(resolvedLogos.back);
 
+  front = await tryVaultLogo(doc.productSlug, "front", front, vault, PROACTIVE_VAULT_MIN_BYTES);
+  back = await tryVaultLogo(doc.productSlug, "back", back, vault, PROACTIVE_VAULT_MIN_BYTES);
+
   const pack = (f: string | null, b: string | null): BusinessCardSessionPayloadV3Design => {
     const base = toBusinessCardSessionPayloadV3Design(doc, { front: f, back: b }, ts);
+    const v = Object.keys(vault).length ? vault : undefined;
     return {
       ...base,
       draftLogoMeta: meta?.frontFileName || meta?.backFileName ? meta : undefined,
+      draftLogoVault: v,
     };
   };
 
   let payload = pack(front, back);
   if (JSON.stringify(payload).length < 3_800_000) return payload;
 
-  front = await compressLogoAggressive(resolvedLogos.front);
-  back = await compressLogoAggressive(resolvedLogos.back);
+  if (!vault.front) front = await compressLogoAggressive(resolvedLogos.front);
+  else front = null;
+  if (!vault.back) back = await compressLogoAggressive(resolvedLogos.back);
+  else back = null;
+
+  front = await tryVaultLogo(doc.productSlug, "front", front, vault, PROACTIVE_VAULT_MIN_BYTES);
+  back = await tryVaultLogo(doc.productSlug, "back", back, vault, PROACTIVE_VAULT_MIN_BYTES);
+
   payload = pack(front, back);
   if (JSON.stringify(payload).length < 3_800_000) return payload;
 
-  /* Strip heavy inline logos into IndexedDB */
-  const vault: DraftLogoVault = {};
-  if (front && dataUrlByteLength(front) > 60_000) {
-    await idbPut(vaultKey(doc.productSlug, "front"), front);
-    vault.front = true;
-    front = null;
+  /* Strip remaining heavy inline logos into IndexedDB */
+  if (front && dataUrlByteLength(front) > STRIP_VAULT_MIN_BYTES) {
+    const v = await tryVaultLogo(doc.productSlug, "front", front, vault, 0);
+    front = v;
   }
-  if (back && dataUrlByteLength(back) > 60_000) {
-    await idbPut(vaultKey(doc.productSlug, "back"), back);
-    vault.back = true;
-    back = null;
+  if (back && dataUrlByteLength(back) > STRIP_VAULT_MIN_BYTES) {
+    const v = await tryVaultLogo(doc.productSlug, "back", back, vault, 0);
+    back = v;
   }
 
-  payload = { ...pack(front, back), draftLogoVault: Object.keys(vault).length ? vault : undefined };
+  payload = pack(front, back);
   if (JSON.stringify(payload).length < 4_800_000) return payload;
 
   /* Force both sides to vault if still oversized */
   if (resolvedLogos.front && !vault.front) {
     const f = await compressLogoAggressive(resolvedLogos.front);
-    if (f) {
-      await idbPut(vaultKey(doc.productSlug, "front"), f);
-      vault.front = true;
-    }
+    const v = await tryVaultLogo(doc.productSlug, "front", f, vault, 0);
+    front = v;
   }
   if (resolvedLogos.back && !vault.back) {
     const b = await compressLogoAggressive(resolvedLogos.back);
-    if (b) {
-      await idbPut(vaultKey(doc.productSlug, "back"), b);
-      vault.back = true;
-    }
+    const v = await tryVaultLogo(doc.productSlug, "back", b, vault, 0);
+    back = v;
   }
 
-  return {
-    ...pack(null, null),
-    draftLogoVault: vault,
-  };
+  return pack(front, back);
 }
 
 export function writeSessionDesignDraft(

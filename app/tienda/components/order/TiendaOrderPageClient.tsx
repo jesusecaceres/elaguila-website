@@ -15,10 +15,12 @@ import { emptyTiendaCustomerDetails, type TiendaCustomerDetails } from "../../ty
 import type { TiendaOrderSubmissionResult } from "../../types/orderSubmission";
 import type { BusinessCardDocument } from "../../product-configurators/business-cards/types";
 import {
+  isBusinessCardSessionDesign,
   isBusinessCardSessionUpload,
   mapBusinessCardSessionToReview,
   readBusinessCardOrderSession,
 } from "../../order/mappers/businessCardDocumentToReview";
+import { mergeVaultedLogosIntoDocument } from "../../product-configurators/business-cards/businessCardDraftPersistence";
 import {
   isPrintUploadSessionPayloadV1,
   mapPrintUploadSessionToReview,
@@ -240,7 +242,7 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
             return;
           }
         } else {
-          const doc = hydrateBusinessCardDocumentFromSession(slug, raw, lang);
+          let doc = hydrateBusinessCardDocumentFromSession(slug, raw, lang);
           if (!doc) {
             setSubmitError(
               lang === "en"
@@ -248,6 +250,9 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
                 : "No se pudo cargar el diseño para exportar. Abre el constructor y guarda."
             );
             return;
+          }
+          if (isBusinessCardSessionDesign(raw) && raw.draftLogoVault) {
+            doc = await mergeVaultedLogosIntoDocument(slug, doc, raw.draftLogoVault);
           }
           flushSync(() => setBcExportDoc(doc));
           try {

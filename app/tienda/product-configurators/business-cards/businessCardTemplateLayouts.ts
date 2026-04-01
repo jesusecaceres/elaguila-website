@@ -56,7 +56,13 @@ export function getTemplateLineVisibility(templateId: BusinessCardTemplateId): R
     case "bilingual-dual-line":
     case "bilingual-ribbon-feature":
     case "bilingual-inline-stack":
+    case "bilingual-ledger-pair":
+    case "bilingual-bridge-field":
       return { ...base, address: false };
+    case "noir-razor-stack":
+      return { ...base, website: false, address: false };
+    case "forge-steel-callout":
+      return { ...base, website: false, email: false, address: false };
     case "saffron-edge-dynamic":
       return { ...base, website: false };
     default:
@@ -164,6 +170,19 @@ export function getTemplateCanvasBackground(templateId: BusinessCardTemplateId):
   if (templateId === "sanctuary-burgundy-warm" || templateId === "leonix-orbit-halo" || templateId === "leonix-ledger-stripe") {
     return { kind: "solid", color: templateId === "leonix-orbit-halo" ? "#0e0e10" : templateId === "leonix-ledger-stripe" ? "#121214" : "#3f1d1d" };
   }
+  if (templateId === "velvet-midnight-gold" || templateId === "leonix-prism-facet") {
+    return { kind: "solid", color: templateId === "leonix-prism-facet" ? "#0a0a0c" : "#0f0f12" };
+  }
+  if (templateId === "sandstone-whisper") return { kind: "solid", color: "#f5f0e8" };
+  if (templateId === "noir-razor-stack") return { kind: "solid", color: "#121214" };
+  if (templateId === "ceramic-layered-air") return { kind: "solid", color: "#fffdf9" };
+  if (templateId === "estate-skyline-grid") return { kind: "solid", color: "#e2e8f0" };
+  if (templateId === "bench-brief-easel") return { kind: "solid", color: "#0f172a" };
+  if (templateId === "forge-steel-callout") return { kind: "solid", color: "#1c1917" };
+  if (templateId === "cellar-script-plate") return { kind: "solid", color: "#292524" };
+  if (templateId === "bilingual-ledger-pair") return { kind: "solid", color: "#fffdf9" };
+  if (templateId === "bilingual-bridge-field") return { kind: "solid", color: "#f8f6f1" };
+  if (templateId === "leonix-marque-band") return { kind: "preset", id: "sand" };
   return { kind: "solid", color: c };
 }
 
@@ -519,6 +538,143 @@ export function getBusinessCardTemplateFront(
           block("t4", "phone", f.phone, 50, 88, 92, 11, 600, "center", 8, "#0a0a0c"),
         ],
       };
+    case "velvet-midnight-gold":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 22, zIndex: 6 },
+        blocks: [
+          block("t1", "company", f.company, 50, 38, 88, 13, 700, "center", 5, "#d4af37"),
+          block("t2", "personName", f.personName, 50, 50, 88, 12, 600, "center", 6, "#fffef9"),
+          block("t3", "title", f.title, 50, 62, 88, 9, 500, "center", 7, "rgba(255,254,249,0.72)"),
+          block("t4", "phone", f.phone, 50, 74, 88, 10, 500, "center", 8, "#d4af37"),
+          block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, "rgba(255,254,249,0.82)"),
+        ],
+      };
+    case "sandstone-whisper":
+      return {
+        fields: f,
+        logoGeom: { xPct: 22, yPct: 30, widthPct: 20, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 62, 32, 64, 12, 700, "left", 5, "#5c5346"),
+          block("t2", "personName", f.personName, 62, 44, 64, 11, 600, "left", 6, "#3d3830"),
+          block("t3", "title", f.title, 62, 54, 64, 9, 500, "left", 7, "rgba(92,83,70,0.65)"),
+          block("t4", "phone", f.phone, 62, 68, 64, 9, 500, "left", 8, "#5c5346"),
+          block("t5", "email", f.email, 62, 78, 64, 8, 400, "left", 9, "#5c5346"),
+        ],
+      };
+    case "noir-razor-stack":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 24, zIndex: 6 },
+        blocks: [
+          block("t1", "company", f.company, 50, 46, 92, 20, 700, "center", 5, "#e2e8f0"),
+          block("t2", "personName", f.personName, 50, 62, 88, 11, 600, "center", 6, "#fffef9"),
+          block("t3", "tagline", f.tagline, 50, 74, 86, 9, 500, "center", 7, "rgba(226,232,240,0.65)"),
+          block("t4", "phone", f.phone, 50, 86, 88, 11, 600, "center", 8, "#e2e8f0"),
+        ],
+      };
+    case "ceramic-layered-air":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 20, zIndex: 4 },
+        blocks: [
+          block("t1", "company", f.company, 50, 38, 86, 14, 700, "center", 5, "#2a2824"),
+          block("t2", "personName", f.personName, 50, 50, 86, 11, 600, "center", 6, "#2a2824"),
+          block("t3", "title", f.title, 50, 60, 86, 9, 500, "center", 7, "rgba(42,40,36,0.6)"),
+          block("t4", "phone", f.phone, 50, 72, 86, 9, 500, "center", 8, "#2a2824"),
+          block("t5", "email", f.email, 50, 82, 86, 8, 400, "center", 9, "#2a2824"),
+        ],
+      };
+    case "estate-skyline-grid":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 18, widthPct: 19, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 34, 90, 12, 700, "center", 5, "#1e293b"),
+          block("t2", "personName", f.personName, 50, 46, 88, 12, 600, "center", 6, "#0f172a"),
+          block("t3", "title", f.title, 50, 58, 86, 9, 500, "center", 7, "rgba(30,41,59,0.75)"),
+          block("t4", "phone", f.phone, 50, 72, 88, 10, 600, "center", 8, "#1e293b"),
+          block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, "#1e293b"),
+        ],
+      };
+    case "bench-brief-easel":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 24, widthPct: 18, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#c9a84a"),
+          block("t2", "personName", f.personName, 50, 52, 88, 11, 600, "center", 6, "#f8fafc"),
+          block("t3", "title", f.title, 50, 62, 88, 9, 500, "center", 7, "rgba(248,250,252,0.75)"),
+          block("t4", "phone", f.phone, 50, 74, 88, 9, 500, "center", 8, "#c9a84a"),
+          block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, "rgba(248,250,252,0.88)"),
+        ],
+      };
+    case "forge-steel-callout":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 28, widthPct: 22, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 44, 92, 14, 700, "center", 5, "#ea580c"),
+          block("t2", "personName", f.personName, 50, 58, 88, 11, 600, "center", 6, "#fffef9"),
+          block("t3", "title", f.title, 50, 68, 88, 9, 500, "center", 7, "rgba(255,254,249,0.72)"),
+          block("t4", "phone", f.phone, 50, 86, 92, 15, 700, "center", 8, "#ea580c"),
+        ],
+      };
+    case "cellar-script-plate":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 24, widthPct: 22, zIndex: 5 },
+        blocks: [
+          block("t1", "company", f.company, 50, 40, 88, 14, 700, "center", 5, "#fcd34d"),
+          block("t2", "tagline", f.tagline, 50, 54, 84, 10, 500, "center", 6, "rgba(252,211,77,0.75)"),
+          block("t3", "personName", f.personName, 50, 66, 82, 10, 600, "center", 7, "#fffef9"),
+          block("t4", "phone", f.phone, 50, 80, 86, 9, 400, "center", 8, "#fcd34d"),
+        ],
+      };
+    case "bilingual-ledger-pair":
+      return {
+        fields: bf,
+        logoGeom: { xPct: 50, yPct: 20, widthPct: 18, zIndex: 4 },
+        blocks: [
+          block("t1", "company", bf.company, 50, 32, 88, 12, 700, "center", 5, ink),
+          block("t2", "personName", bf.personName, 50, 44, 88, 11, 600, "center", 6, ink),
+          block("t3", "title", bf.title, 50, 56, 88, 9, 500, "center", 7, mutedDark),
+          block("t4", "phone", bf.phone, 32, 74, 38, 9, 500, "center", 8, ink),
+          block("t5", "email", bf.email, 68, 74, 38, 8, 400, "center", 9, ink),
+        ],
+      };
+    case "bilingual-bridge-field":
+      return {
+        fields: bf,
+        logoGeom: { xPct: 50, yPct: 22, widthPct: 19, zIndex: 4 },
+        blocks: [
+          block("t1", "company", bf.company, 50, 34, 88, 12, 700, "center", 5, "#3d3428"),
+          block("t2", "personName", bf.personName, 50, 46, 88, 11, 600, "center", 6, ink),
+          block("t3", "title", bf.title, 50, 58, 88, 9, 500, "center", 7, mutedDark),
+          block("t4", "tagline", bf.tagline, 50, 68, 86, 8, 500, "center", 8, "rgba(61,52,40,0.55)"),
+          block("t5", "phone", bf.phone, 50, 82, 88, 9, 500, "center", 9, "#3d3428"),
+        ],
+      };
+    case "leonix-prism-facet":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 34, widthPct: 30, zIndex: 8 },
+        blocks: [
+          block("t1", "company", f.company, 50, 70, 88, 12, 700, "center", 5, "#d4af37"),
+          block("t2", "personName", f.personName, 50, 82, 88, 10, 500, "center", 6, "rgba(255,252,247,0.92)"),
+        ],
+      };
+    case "leonix-marque-band":
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 30, widthPct: 22, zIndex: 6 },
+        blocks: [
+          block("t0", "tagline", f.tagline, 50, 44, 80, 8, 600, "center", 4, "#8a7018"),
+          block("t1", "company", f.company, 50, 56, 88, 14, 700, "center", 5, "#2c261c"),
+          block("t2", "personName", f.personName, 50, 68, 88, 11, 600, "center", 6, "#3d3428"),
+          block("t3", "phone", f.phone, 50, 82, 88, 10, 500, "center", 7, "#b8860b"),
+        ],
+      };
     default:
       return getBusinessCardTemplateFront("clean-white-premium", lang);
   }
@@ -599,6 +755,17 @@ export function getBusinessCardTemplateBack(
           block("b1", "company", f.company, 50, 36, 88, 12, 700, "center", 5, cream),
           block("b2", "address", f.address, 50, 50, 86, 9, 500, "center", 6, creamMuted),
           block("b3", "tagline", f.tagline, 50, 68, 86, 9, 500, "center", 7, cream),
+        ],
+      };
+    }
+    if (templateId === "cellar-script-plate") {
+      return {
+        fields: f,
+        logoGeom: { xPct: 50, yPct: 26, widthPct: 15, zIndex: 4 },
+        blocks: [
+          block("b1", "company", f.company, 50, 36, 88, 12, 700, "center", 5, "#fcd34d"),
+          block("b2", "address", f.address, 50, 50, 86, 9, 500, "center", 6, "rgba(255,254,249,0.82)"),
+          block("b3", "tagline", f.tagline, 50, 68, 86, 9, 500, "center", 7, "#fcd34d"),
         ],
       };
     }
@@ -687,6 +854,105 @@ export function getBusinessCardTemplateBack(
       blocks: [
         block("b1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#3d3428"),
         block("b2", "tagline", f.tagline, 50, 56, 88, 9, 500, "center", 6, muted),
+      ],
+    };
+  }
+
+  if (templateId === "bilingual-ledger-pair") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 30, widthPct: 14, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 42, 88, 12, 700, "center", 5, ink),
+        block("b2", "tagline", f.tagline, 50, 58, 88, 9, 500, "center", 6, muted),
+      ],
+    };
+  }
+
+  if (templateId === "bilingual-bridge-field") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 44, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 40, 88, 12, 700, "center", 5, "#3d3428"),
+        block("b2", "tagline", f.tagline, 50, 58, 88, 9, 500, "center", 6, muted),
+      ],
+    };
+  }
+
+  if (templateId === "velvet-midnight-gold") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 44, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 46, 86, 12, 700, "center", 5, "#d4af37"),
+        block("b2", "tagline", f.tagline, 50, 62, 86, 9, 500, "center", 6, "rgba(255,254,249,0.78)"),
+      ],
+    };
+  }
+
+  if (templateId === "sandstone-whisper") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 48, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 44, 86, 12, 700, "center", 5, "#5c5346"),
+        block("b2", "tagline", f.tagline, 50, 58, 86, 9, 500, "center", 6, "rgba(92,83,70,0.7)"),
+      ],
+    };
+  }
+
+  if (templateId === "noir-razor-stack") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 44, widthPct: 18, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 48, 88, 14, 700, "center", 5, "#e2e8f0"),
+        block("b2", "tagline", f.tagline, 50, 68, 86, 9, 500, "center", 6, "rgba(226,232,240,0.65)"),
+      ],
+    };
+  }
+
+  if (templateId === "bench-brief-easel") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 32, widthPct: 14, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 48, 88, 12, 700, "center", 5, "#c9a84a"),
+        block("b2", "tagline", f.tagline, 50, 64, 88, 9, 500, "center", 6, "rgba(248,250,252,0.82)"),
+      ],
+    };
+  }
+
+  if (templateId === "forge-steel-callout") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 40, widthPct: 18, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 44, 88, 12, 700, "center", 5, "#ea580c"),
+        block("b2", "phone", f.phone, 50, 72, 88, 12, 700, "center", 6, "#fffef9"),
+      ],
+    };
+  }
+
+  if (templateId === "leonix-prism-facet") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 42, widthPct: 26, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 66, 88, 11, 700, "center", 5, "#d4af37"),
+        block("b2", "tagline", f.tagline, 50, 80, 88, 9, 500, "center", 6, "rgba(255,252,247,0.88)"),
+      ],
+    };
+  }
+
+  if (templateId === "leonix-marque-band") {
+    return {
+      fields: f,
+      logoGeom: { xPct: 50, yPct: 46, widthPct: 16, zIndex: 4 },
+      blocks: [
+        block("b1", "company", f.company, 50, 44, 88, 12, 700, "center", 5, "#2c261c"),
+        block("b2", "tagline", f.tagline, 50, 60, 88, 9, 500, "center", 6, "rgba(44,38,28,0.65)"),
       ],
     };
   }

@@ -54,13 +54,22 @@ export function leoAdjustLogoAndScale(doc: BusinessCardDocument, intake: Busines
         logoGeom: { ...front.logoGeom, widthPct: 0.1, yPct: 50 },
       };
     }
-    if (templateId === "leonix-orbit-halo") {
+    if (templateId === "leonix-orbit-halo" || templateId === "leonix-prism-facet") {
       front = {
         ...front,
         textBlocks: front.textBlocks.map((b) =>
           b.role !== "custom" ? { ...b, yPct: Math.max(10, b.yPct - 10) } : b
         ),
         logoGeom: { ...front.logoGeom, widthPct: 0.1, yPct: 50 },
+      };
+    }
+    if (templateId === "leonix-marque-band") {
+      front = {
+        ...front,
+        textBlocks: front.textBlocks.map((b) =>
+          b.role !== "custom" ? { ...b, yPct: Math.max(12, b.yPct - 5) } : b
+        ),
+        logoGeom: { ...front.logoGeom, widthPct: 0.1, yPct: 48 },
       };
     }
     if (templateId === "carbon-soft-elevated") {
@@ -98,7 +107,11 @@ export function leoAdjustLogoAndScale(doc: BusinessCardDocument, intake: Busines
     }
   } else if (intake.emphasis === "logo") {
     const extraWide =
-      templateId === "leonix-orbit-halo" || templateId === "leonix-ledger-stripe" || templateId === "azure-confidence-strip"
+      templateId === "leonix-orbit-halo" ||
+      templateId === "leonix-prism-facet" ||
+      templateId === "leonix-ledger-stripe" ||
+      templateId === "azure-confidence-strip" ||
+      templateId === "velvet-midnight-gold"
         ? 6
         : 4;
     front = {
