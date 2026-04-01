@@ -22,13 +22,14 @@ type PreviewPhase =
   | { kind: "recover"; reason: "missing" | "corrupt" };
 
 /**
- * Thin boundary: only `useSearchParams` (may suspend). Must not contain other hooks
- * so Suspense + inner tree never change hook counts on this component between renders.
+ * Thin boundary: only `useSearchParams` (may suspend). No other hooks here.
+ * `key` forces a fresh inner instance when the query string changes so phase state
+ * never reconciles across incompatible trees (avoids #300/#310 with Next searchParams).
  */
 export function BienesRaicesNegocioPreviewRoot() {
   const searchParams = useSearchParams();
-  const reloadKey = searchParams?.get("_") ?? "";
-  return <BienesRaicesNegocioPreviewInner reloadKey={reloadKey} />;
+  const reloadKey = searchParams?.toString() ?? "";
+  return <BienesRaicesNegocioPreviewInner key={reloadKey} reloadKey={reloadKey} />;
 }
 
 /**
