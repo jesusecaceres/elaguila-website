@@ -16,9 +16,15 @@ import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constant
 import { businessCardConfigurePath, tiendaOrderPath, tiendaPublicContactPath, withLang } from "../../utils/tiendaRouting";
 import {
   BC_UPLOAD_DRAFT_PREFIX,
+  isBusinessCardSessionDesign,
   readBusinessCardSessionRaw,
   toBusinessCardSessionPayloadV3Design,
 } from "../../order/mappers/businessCardDocumentToReview";
+import {
+  buildSessionPayloadWithLogos,
+  mergeVaultedLogosIntoDocument,
+  writeSessionDesignDraft,
+} from "../../product-configurators/business-cards/businessCardDraftPersistence";
 import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
@@ -67,10 +73,21 @@ export function BusinessCardBuilderShell(props: {
   }, []);
 
   useEffect(() => {
-    const raw = readBusinessCardSessionRaw(productSlug);
-    if (!raw) return;
-    const next = hydrateBusinessCardDocumentFromSession(productSlug, raw, lang);
-    if (next) dispatch({ type: "RESET", document: next });
+    let cancelled = false;
+    void (async () => {
+      const raw = readBusinessCardSessionRaw(productSlug);
+      if (!raw) return;
+      const base = hydrateBusinessCardDocumentFromSession(productSlug, raw, lang);
+      if (!base) return;
+      let next = base;
+      if (isBusinessCardSessionDesign(raw) && raw.draftLogoVault) {
+        next = await mergeVaultedLogosIntoDocument(productSlug, base, raw.draftLogoVault);
+      }
+      if (!cancelled) dispatch({ type: "RESET", document: next });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [productSlug, lang]);
 
   useEffect(() => {
@@ -149,7 +166,11 @@ export function BusinessCardBuilderShell(props: {
   const continueToOrderDetails = useCallback(async () => {
     const ok = await persistDraftToSession();
     if (!ok) {
-      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+      window.alert(
+        lang === "en"
+          ? "Could not save draft (browser storage may be full). Try a smaller logo or clear site data for this origin."
+          : "No se pudo guardar el borrador (el almacenamiento del navegador puede estar lleno). Prueba un logo más pequeño o borra datos del sitio."
+      );
       return;
     }
     router.push(withLang(tiendaOrderPath("business-cards", productSlug), lang));

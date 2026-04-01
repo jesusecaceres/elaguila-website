@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -70,8 +70,8 @@ export default function BienesRaicesNegocioApplication() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
 
-  /* Client-only: SSR/hydration must start empty; one layout pass applies the handoff contract before paint. */
-  useLayoutEffect(() => {
+  /* Client-only: SSR/hydration starts empty; one effect pass restores return-draft → preview-draft → empty. */
+  useEffect(() => {
     setState(bootstrapBienesRaicesNegocioApplicationState());
     const t = window.setTimeout(() => {
       clearLeonixReturningToEditSessionFlag();
