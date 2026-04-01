@@ -9,6 +9,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import {
   abandonLeonixPublishFlowClient,
+  clearLeonixPreviewNavSessionFlag,
   clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromNegocioState,
   confirmLeavePublishFlow,
@@ -70,9 +71,10 @@ export default function BienesRaicesNegocioApplication() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
 
-  /* Client-only: SSR/hydration starts empty; layout pass restores return-draft → preview-draft → empty before paint. */
+  /* Client-only: SSR/hydration starts empty; layout pass restores return → preview draft → empty. Clear preview-nav token here (not on preview route) so pagehide on publish still sees in-flow during handoff. */
   useLayoutEffect(() => {
     setState(bootstrapBienesRaicesNegocioApplicationState());
+    clearLeonixPreviewNavSessionFlag();
     const t = window.setTimeout(() => {
       clearLeonixReturningToEditSessionFlag();
     }, 0);

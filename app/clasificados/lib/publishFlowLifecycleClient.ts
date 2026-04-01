@@ -15,43 +15,7 @@ export const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-prev
 /** Set before client navigates preview → publish (“Volver a editar”) so teardown does not abandon or prompt. */
 export const LEONIX_RETURNING_TO_EDIT_SESSION_FLAG = "leonix-publish-flow-returning-to-edit";
 
-/**
- * App Router client navigation can reorder `pagehide` vs preview-route effects: the preview
- * shell may clear `LEONIX_PREVIEW_NAV_SESSION_FLAG` before the publish document’s `pagehide`
- * runs, so `isInFlowPublishNavigation()` is false and `abandonLeonixPublishFlowClient` wipes
- * category preview drafts. This one-shot survives publish unmount and is consumed by the
- * first `pagehide` that must not abandon (all categories: En Venta, BRT, etc.).
- */
-let leonixPreviewHandoffSkipPagehideAbandonOnce = false;
-let leonixPreviewHandoffSkipReleaseTimer: number | undefined;
-
-function armLeonixPreviewHandoffPagehideSkip(): void {
-  if (typeof window === "undefined") return;
-  leonixPreviewHandoffSkipPagehideAbandonOnce = true;
-  if (leonixPreviewHandoffSkipReleaseTimer != null) {
-    window.clearTimeout(leonixPreviewHandoffSkipReleaseTimer);
-  }
-  leonixPreviewHandoffSkipReleaseTimer = window.setTimeout(() => {
-    leonixPreviewHandoffSkipPagehideAbandonOnce = false;
-    leonixPreviewHandoffSkipReleaseTimer = undefined;
-  }, 8000);
-}
-
-function consumeLeonixPreviewHandoffPagehideSkipIfSet(): boolean {
-  if (!leonixPreviewHandoffSkipPagehideAbandonOnce) return false;
-  leonixPreviewHandoffSkipPagehideAbandonOnce = false;
-  if (typeof window !== "undefined" && leonixPreviewHandoffSkipReleaseTimer != null) {
-    window.clearTimeout(leonixPreviewHandoffSkipReleaseTimer);
-    leonixPreviewHandoffSkipReleaseTimer = undefined;
-  }
-  return true;
-}
-
-function isLeonixPreviewHandoffPagehidePending(): boolean {
-  return leonixPreviewHandoffSkipPagehideAbandonOnce;
-}
-
-/** Call immediately before navigating to any in-flow preview route (session flag + pagehide skip). */
+/** Call immediately before navigating to any in-flow preview route. */
 export function markPublishFlowOpeningPreview(): void {
   if (typeof window === "undefined") return;
   try {
@@ -60,7 +24,6 @@ export function markPublishFlowOpeningPreview(): void {
   } catch {
     /* ignore */
   }
-  armLeonixPreviewHandoffPagehideSkip();
 }
 
 export function markPublishFlowReturningToEdit(): void {
@@ -223,7 +186,6 @@ export function useLeonixPublishLeaveGuard(p: {
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!p.isDirty) return;
-      if (isLeonixPreviewHandoffPagehidePending()) return;
       if (isInFlowPublishNavigation()) return;
       e.preventDefault();
       e.returnValue = "";
@@ -231,7 +193,6 @@ export function useLeonixPublishLeaveGuard(p: {
 
     const onPageHide = () => {
       if (p.skipAbandonOnceRef?.current) return;
-      if (consumeLeonixPreviewHandoffPagehideSkipIfSet()) return;
       if (isInFlowPublishNavigation()) return;
       if (!p.isDirty) return;
       abandonLeonixPublishFlowClient({ muxAssetIds: muxRef.current, useBeacon: true });

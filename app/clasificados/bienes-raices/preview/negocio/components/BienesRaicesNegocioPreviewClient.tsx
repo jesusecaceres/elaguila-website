@@ -1,42 +1,35 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { mapNegocioFormStateToBrNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/brNegocioInputToPreviewMap";
-import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import { loadBienesRaicesNegocioPreviewDraft } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
-import {
-  clearLeonixPreviewNavSessionFlag,
-  markPublishFlowReturningToEdit,
-} from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { BienesRaicesNegocioPreviewEmpty } from "./BienesRaicesNegocioPreviewEmpty";
 
 /**
- * Same discipline as EnVentaPreviewPage: layout clears session nav flag, effect loads draft once,
- * VM derived with useMemo. Empty UI is hook-free.
+ * BRT Negocio preview — fixed hook surface only: two useState + one useEffect.
+ * Session nav flags are cleared when the publish application mounts (not here), so
+ * `pagehide` on the editor still sees in-flow navigation and does not wipe drafts.
+ * Empty UI lives in a hook-free sibling.
  */
 export default function BienesRaicesNegocioPreviewClient() {
-  const [draft, setDraft] = useState<BienesRaicesNegocioFormState | null>(null);
-  const [hydrated, setHydrated] = useState(false);
-
-  useLayoutEffect(() => {
-    clearLeonixPreviewNavSessionFlag();
-  }, []);
+  const [vm, setVm] = useState<BienesRaicesNegocioPreviewVm | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const loaded = loadBienesRaicesNegocioPreviewDraft();
-    setDraft(loaded);
-    setHydrated(true);
+    try {
+      const loaded = loadBienesRaicesNegocioPreviewDraft();
+      setVm(loaded ? mapNegocioFormStateToBrNegocioPreviewVm(loaded) : null);
+    } catch {
+      setVm(null);
+    }
+    setReady(true);
   }, []);
 
-  const vm = useMemo((): BienesRaicesNegocioPreviewVm | null => {
-    if (!draft) return null;
-    return mapNegocioFormStateToBrNegocioPreviewVm(draft);
-  }, [draft]);
-
-  if (!hydrated) {
+  if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F9F6F1] text-[#5C5346]">
         Cargando vista previa…
