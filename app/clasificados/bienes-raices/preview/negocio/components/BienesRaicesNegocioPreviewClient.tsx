@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
@@ -21,10 +21,21 @@ type PreviewPhase =
   | { kind: "ok"; vm: BienesRaicesNegocioPreviewVm }
   | { kind: "recover"; reason: "missing" | "corrupt" };
 
-export function BienesRaicesNegocioPreviewClient() {
-  const pathname = usePathname();
+/**
+ * Thin boundary: only `useSearchParams` (may suspend). Must not contain other hooks
+ * so Suspense + inner tree never change hook counts on this component between renders.
+ */
+export function BienesRaicesNegocioPreviewRoot() {
   const searchParams = useSearchParams();
-  const draftToken = searchParams?.get("_") ?? "";
+  const reloadKey = searchParams?.get("_") ?? "";
+  return <BienesRaicesNegocioPreviewInner reloadKey={reloadKey} />;
+}
+
+/**
+ * All non–search-param hooks live here; hook order is identical every render.
+ * Recovery vs preview UI branches only after hooks run.
+ */
+function BienesRaicesNegocioPreviewInner({ reloadKey }: { reloadKey: string }) {
   const [phase, setPhase] = useState<PreviewPhase>({ kind: "loading" });
 
   useLayoutEffect(() => {
@@ -54,7 +65,6 @@ export function BienesRaicesNegocioPreviewClient() {
       setPhase(next);
     }
 
-    /* After handoff read: clear session flag on a macrotask so publish `pagehide` still sees it if it runs first. */
     clearTimer = window.setTimeout(() => {
       clearLeonixPreviewNavSessionFlag();
     }, 0);
@@ -63,7 +73,7 @@ export function BienesRaicesNegocioPreviewClient() {
       cancelled = true;
       if (clearTimer != null) window.clearTimeout(clearTimer);
     };
-  }, [pathname, draftToken]);
+  }, [reloadKey]);
 
   if (phase.kind === "loading") {
     return (

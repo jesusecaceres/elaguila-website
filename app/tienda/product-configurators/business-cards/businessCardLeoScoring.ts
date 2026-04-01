@@ -4,7 +4,7 @@ import {
   type BusinessCardTemplateId,
 } from "./businessCardTemplateCatalog";
 import type { BusinessCardLeoIntake, LeoPreferredStyle } from "./businessCardLeoTypes";
-import type { BusinessCardProductSlug } from "./types";
+import type { BusinessCardDocument, BusinessCardProductSlug } from "./types";
 
 const TIE_ORDER = new Map(BUSINESS_CARD_TEMPLATE_IDS.map((id, i) => [id, i]));
 
@@ -38,6 +38,19 @@ function countFilledFields(intake: Pick<BusinessCardLeoIntake, "profession" | "b
     intake.address,
     intake.slogan,
   ].filter((s) => String(s ?? "").trim().length > 0).length;
+}
+
+/** Few fields beyond core contact — typography-led layouts work best. */
+function isSparseContactHeavy(intake: Pick<BusinessCardLeoIntake, "title" | "website" | "address" | "slogan" | "phone" | "email" | "personName" | "businessName">): boolean {
+  const has = (s: string) => String(s ?? "").trim().length > 0;
+  const extras = [intake.title, intake.website, intake.address, intake.slogan].filter(has).length;
+  return extras === 0 && has(intake.phone) && has(intake.email) && has(intake.personName) && has(intake.businessName);
+}
+
+/** Stronger type scale on first draft when the user gave little copy. */
+export function leoShouldBoostTypography(intake: BusinessCardLeoIntake): boolean {
+  const filled = countFilledFields(intake);
+  return filled <= 5 || isSparseContactHeavy(intake);
 }
 
 const STYLE_WEIGHTS: Record<LeoPreferredStyle, Partial<Record<BusinessCardTemplateId, number>>> = {
@@ -234,4 +247,48 @@ export function scoreLeoTemplateCandidates(
 
 export function pickLeoTemplateId(intake: BusinessCardLeoIntake, productSlug: BusinessCardProductSlug): BusinessCardTemplateId {
   return scoreLeoTemplateCandidates(intake, intake.logoDataUrl, productSlug)[0];
+}
+
+/** Rebuild intake from saved LEO snapshot + current document fields (for deterministic “try another look”). */
+export function buildLeoIntakeFromDocumentForScoring(doc: BusinessCardDocument): BusinessCardLeoIntake | null {
+  const snap = doc.leoSnapshot;
+  if (!snap || doc.designIntake !== "leo") return null;
+  return {
+    profession: snap.profession,
+    businessName: doc.front.fields.company,
+    personName: doc.front.fields.personName,
+    title: doc.front.fields.title,
+    phone: doc.front.fields.phone,
+    email: doc.front.fields.email,
+    website: doc.front.fields.website,
+    address: doc.front.fields.address || doc.back.fields.address,
+    slogan: doc.front.fields.tagline,
+    preferredStyle: snap.preferredStyle,
+    preferredColors: snap.preferredColorsNote,
+    emphasis: snap.emphasis,
+    backStyle: snap.backStyle,
+    logoDataUrl: doc.front.logo.previewUrl,
+    logoNaturalWidth: doc.front.logo.naturalWidth,
+    logoNaturalHeight: doc.front.logo.naturalHeight,
+  };
+}
+
+/**
+ * Next template in LEO’s ranked list (cycles deterministically, skips current).
+ */
+export function getLeoAlternateTemplateId(doc: BusinessCardDocument): BusinessCardTemplateId | null {
+  const intake = buildLeoIntakeFromDocumentForScoring(doc);
+  if (!intake) return null;
+  const ranked = scoreLeoTemplateCandidates(intake, intake.logoDataUrl, doc.productSlug);
+  if (ranked.length < 2) return null;
+  const cur = doc.selectedTemplateId;
+  const idx = cur ? ranked.indexOf(cur) : -1;
+  if (idx < 0) {
+    return ranked.find((id) => id !== cur) ?? null;
+  }
+  for (let step = 1; step < ranked.length; step++) {
+    const j = (idx + step) % ranked.length;
+    if (ranked[j] !== cur) return ranked[j];
+  }
+  return null;
 }

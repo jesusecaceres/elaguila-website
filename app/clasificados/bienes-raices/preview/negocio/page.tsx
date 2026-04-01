@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BienesRaicesNegocioPreviewClient } from "./components/BienesRaicesNegocioPreviewClient";
+import { BienesRaicesNegocioPreviewRoot } from "./components/BienesRaicesNegocioPreviewClient";
 
 function PreviewFallback() {
   return (
@@ -12,7 +12,7 @@ function PreviewFallback() {
 export default function BienesRaicesNegocioPreviewRoutePage() {
   return (
     <Suspense fallback={<PreviewFallback />}>
-      <BienesRaicesNegocioPreviewClient />
+      <BienesRaicesNegocioPreviewRoot />
     </Suspense>
   );
 }
