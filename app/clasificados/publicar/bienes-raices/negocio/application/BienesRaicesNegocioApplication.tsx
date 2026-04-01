@@ -11,6 +11,7 @@ import {
   abandonLeonixPublishFlowClient,
   collectMuxAssetIdsFromNegocioState,
   confirmLeavePublishFlow,
+  markPublishFlowOpeningPreview,
   negocioFormHasProgress,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
@@ -92,6 +93,7 @@ export default function BienesRaicesNegocioApplication() {
   );
 
   const openPreview = useCallback(() => {
+    markPublishFlowOpeningPreview();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
     router.push(BR_PREVIEW_NEGOCIO);

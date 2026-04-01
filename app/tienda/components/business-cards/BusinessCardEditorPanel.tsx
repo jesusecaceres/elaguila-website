@@ -56,6 +56,8 @@ export function BusinessCardEditorPanel(props: {
 }) {
   const { lang, doc, side, dispatch, onPickLogo, selectedTextBlockId, onSelectTextBlock, logoInspectorActive } = props;
   const state = side === "front" ? doc.front : doc.back;
+  /** Template-driven sides use absolute text blocks; legacy empty sides use stacked fields only. */
+  const blockMode = state.textBlocks.length > 0;
   const selectedBlock = state.textBlocks.find((b) => b.id === selectedTextBlockId) ?? null;
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
@@ -605,21 +607,28 @@ export function BusinessCardEditorPanel(props: {
 
       <div className="border-t border-black/10 pt-5">
         <h3 className="text-sm font-semibold text-[color:var(--lx-text)]">{bcPick(businessCardBuilderCopy.layoutTitle, lang)}</h3>
-        <p className="mt-1 text-[11px] text-[color:rgba(61,52,40,0.55)]">
-          {state.textBlocks.length > 0
-            ? lang === "en"
-              ? "These anchors apply only if you remove all lines and use the classic stacked layout."
-              : "Estas anclas solo aplican si quitas todas las líneas y usas el diseño clásico apilado."
-            : lang === "en"
-              ? "Position the logo and text stack when not using freeform lines."
-              : "Coloca el logo y el bloque de texto cuando no uses líneas libres."}
+        <p className="mt-1 text-[11px] text-[color:rgba(61,52,40,0.55)] leading-snug max-w-xl">
+          {blockMode
+            ? bcPick(businessCardBuilderCopy.layoutBlockModeIntro, lang)
+            : bcPick(businessCardBuilderCopy.layoutLegacyIntro, lang)}
         </p>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <BusinessCardPositionPicker
-            label={bcPick(businessCardBuilderCopy.textGroupPos, lang)}
-            value={state.textLayout.groupPosition}
-            onChange={(p) => dispatch({ type: "SET_TEXT_GROUP_POSITION", side, position: p })}
-          />
+        {blockMode ? (
+          <div className="mt-3 rounded-xl border border-[rgba(201,168,74,0.22)] bg-[rgba(201,168,74,0.07)] px-3 py-2.5">
+            <p className="text-[11px] text-[color:rgba(61,52,40,0.72)] leading-snug">
+              {bcPick(businessCardBuilderCopy.layoutTextAnchorUnavailable, lang)}
+            </p>
+          </div>
+        ) : null}
+        <div
+          className={["mt-4 grid grid-cols-1 gap-6", blockMode ? "" : "sm:grid-cols-2"].filter(Boolean).join(" ")}
+        >
+          {!blockMode ? (
+            <BusinessCardPositionPicker
+              label={bcPick(businessCardBuilderCopy.textGroupPos, lang)}
+              value={state.textLayout.groupPosition}
+              onChange={(p) => dispatch({ type: "SET_TEXT_GROUP_POSITION", side, position: p })}
+            />
+          ) : null}
           <BusinessCardPositionPicker
             label={bcPick(businessCardBuilderCopy.logoPos, lang)}
             value={state.logo.position}

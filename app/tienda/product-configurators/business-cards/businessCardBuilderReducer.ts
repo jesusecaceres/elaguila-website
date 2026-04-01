@@ -16,6 +16,11 @@ import type { BusinessCardDesignIntake } from "./types";
 import type { BusinessCardTemplateId } from "./templates";
 import { applyLeoFinishingPass } from "./businessCardLeoAdvisor";
 import { applyBusinessCardTemplateToDocument, syncFieldsFromBlocks, syncSideBlocksFromFields } from "./templates";
+import {
+  layoutPresetToLogoGeomCenter,
+  scaleToLogoPercent,
+  widthPctToNearestLogoScale,
+} from "./layoutPresets";
 
 export type BusinessCardBuilderAction =
   | { type: "SET_ACTIVE_SIDE"; side: BusinessCardSide }
@@ -113,10 +118,14 @@ export function businessCardBuilderReducer(
         textLayout: { ...s.textLayout, groupPosition: action.position },
       }));
     case "SET_LOGO_POSITION":
-      return patchSide(state, action.side, (s) => ({
-        ...s,
-        logo: { ...s.logo, position: action.position },
-      }));
+      return patchSide(state, action.side, (s) => {
+        const g = layoutPresetToLogoGeomCenter(action.position);
+        return {
+          ...s,
+          logo: { ...s.logo, position: action.position },
+          logoGeom: { ...s.logoGeom, xPct: g.xPct, yPct: g.yPct },
+        };
+      });
     case "SET_TEXT_GROUP_SCALE":
       return patchSide(state, action.side, (s) => ({
         ...s,
@@ -126,6 +135,7 @@ export function businessCardBuilderReducer(
       return patchSide(state, action.side, (s) => ({
         ...s,
         logo: { ...s.logo, scale: action.scale },
+        logoGeom: { ...s.logoGeom, widthPct: scaleToLogoPercent(action.scale) },
       }));
     case "TOGGLE_LINE":
       return patchSide(state, action.side, (s) => ({
@@ -220,10 +230,18 @@ export function businessCardBuilderReducer(
         return { ...s, textBlocks: [...s.textBlocks, copy] };
       });
     case "SET_LOGO_GEOM":
-      return patchSide(state, action.side, (s) => ({
-        ...s,
-        logoGeom: { ...s.logoGeom, ...action.patch },
-      }));
+      return patchSide(state, action.side, (s) => {
+        const nextGeom = { ...s.logoGeom, ...action.patch };
+        const nextLogo =
+          action.patch.widthPct != null
+            ? { ...s.logo, scale: widthPctToNearestLogoScale(action.patch.widthPct) }
+            : s.logo;
+        return {
+          ...s,
+          logoGeom: nextGeom,
+          logo: nextLogo,
+        };
+      });
     default:
       return state;
   }

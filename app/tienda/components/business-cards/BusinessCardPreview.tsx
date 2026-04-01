@@ -82,6 +82,10 @@ export function BusinessCardPreview(props: {
   const showLogo = state.logo.visible && Boolean(state.logo.previewUrl);
   const textColor = trimTextColor(doc);
   const useBlocks = state.textBlocks.length > 0;
+  /** In block mode, `groupScale` scales all line font sizes relative to `md` (template baseline). */
+  const blockTextScaleMul = useBlocks
+    ? scaleToTextRem(state.textLayout.groupScale) / scaleToTextRem("md")
+    : 1;
   const trimRef = useRef<HTMLDivElement>(null);
 
   const bindBlockDrag = (el: HTMLElement, id: string, startX: number, startY: number, pointerId: number) => {
@@ -227,10 +231,10 @@ export function BusinessCardPreview(props: {
                         style={{
                           left: `${b.xPct}%`,
                           top: `${b.yPct}%`,
-                          transform: "translate(-50%, -50%)",
+                          transform: mergeTransform("translate(-50%, -50%)", doc.textNudgeX, doc.textNudgeY),
                           width: `${b.widthPct}%`,
                           zIndex: b.zIndex,
-                          fontSize: `clamp(7px, ${b.fontSize * 0.092}rem, 22px)`,
+                          fontSize: `clamp(7px, ${b.fontSize * blockTextScaleMul * 0.092}rem, 22px)`,
                           fontWeight: b.fontWeight,
                           color: b.color?.startsWith("var(") ? b.color : b.color || textColor,
                           textAlign: b.textAlign,
@@ -267,7 +271,7 @@ export function BusinessCardPreview(props: {
                     style={{
                       left: `${state.logoGeom.xPct}%`,
                       top: `${state.logoGeom.yPct}%`,
-                      transform: "translate(-50%, -50%)",
+                      transform: mergeTransform("translate(-50%, -50%)", doc.logoNudgeX, doc.logoNudgeY),
                       width: `${state.logoGeom.widthPct}%`,
                       zIndex: state.logoGeom.zIndex,
                     }}

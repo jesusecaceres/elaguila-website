@@ -1,8 +1,28 @@
 /**
  * Implementación del contrato descrito en `brNegocioInputToPreviewMap.ts`.
  * Único lugar donde el estado del formulario se convierte en `BienesRaicesNegocioPreviewVm`.
+ *
+ * --- Auditoría input → preview (Negocio) — referencia única ---
+ * Paso 0 `advertiserType` → `contactRailTitle`, rama en `buildIdentity` / `buildSecondAgentVm`.
+ * Paso 1 `publicationType` → `operationSummary`, `quickFacts`, `propertyDetailsRows`, `deepDetailGroupsForPublication`,
+ *   módulos escuelas/comunidad/HOA, highlights aplicables.
+ * Paso 2 `titulo|precio|listingStatus|direccion|colonia|ciudad|estado|codigoPostal|descripcionCorta` → hero, precio, badge,
+ *   dirección, descripción (corta solo como fallback si no hay larga).
+ * Paso 3 `DatosPropiedadSection` → campos raíz + `deepDetails` según sección Detalles completos.
+ * Pasos 4–7 galería, destacados, descripción larga, detalles profundos → `media`, `highlightsRows`, `description`, `detailClusters`.
+ * Paso 8 identidad (subform por anunciante) → `identity.*` + redes/sitio filtrados por `trust`.
+ * Pasos 9–11 segundo agente / asesor → `contact.secondAgent`, `contact.lender`.
+ * Paso 12 `trust` (mostrar*) → visibilidad en preview; `confirmar*` es sólo publicación — no preview.
+ * Paso 13–14 vista previa / resumen — sin campos extra de listado en preview.
+ * Excluido a propósito del preview: `tipoOperacion` (deprecado), confirmaciones `trust.confirmar*`.
  */
-import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType, DeepDetailGroupKey } from "../schema/bienesRaicesNegocioFormState";
+import type {
+  BienesRaicesNegocioFormState,
+  BienesRaicesAdvertiserType,
+  BienesRaicesListingStatus,
+  DeepDetailGroupKey,
+} from "../schema/bienesRaicesNegocioFormState";
+import { syncNegocioListingFieldsFromPublication } from "../schema/bienesRaicesNegocioFormState";
 import { deepDetailGroupsForPublication } from "../schema/brNegocioBranching";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../schema/brDeepDetailMeta";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "../schema/brHighlightMeta";
@@ -15,13 +35,21 @@ import type {
   BienesRaicesPreviewQuickFactVm,
 } from "./bienesRaicesNegocioPreviewVm";
 
-const LISTING_STATUS_LABEL: Record<string, string> = {
+const LISTING_STATUS_LABEL: Record<BienesRaicesListingStatus, string> = {
   en_venta: "En venta",
   en_renta: "En renta",
   disponible_pronto: "Disponible pronto",
   preconstruccion: "Preconstrucción",
   bajo_contrato: "Bajo contrato",
 };
+
+const KNOWN_LISTING_STATUSES = new Set<string>(Object.keys(LISTING_STATUS_LABEL));
+
+/** SessionStorage / JSON corrupto puede dejar `listingStatus` inválido; evita etiquetas falsas. */
+function normalizeListingStatus(raw: unknown): BienesRaicesListingStatus {
+  const s = raw == null ? "" : typeof raw === "string" ? raw : String(raw);
+  return KNOWN_LISTING_STATUSES.has(s) ? (s as BienesRaicesListingStatus) : "en_venta";
+}
 
 const HIGHLIGHT_LABELS_ES: Record<string, string> = Object.fromEntries(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key, d.label]));
 
@@ -41,12 +69,20 @@ function hrefFromUserInput(t: string): string | null {
   return null;
 }
 
-function resolveProfileHref(sitioWeb: string, redes: string[]): string | null {
-  const w = hrefFromUserInput(sitioWeb);
-  if (w) return w;
-  for (const r of redes) {
-    const u = hrefFromUserInput(trim(r));
-    if (u) return u;
+function resolveProfileHref(
+  sitioWeb: string,
+  redes: string[],
+  trust: BienesRaicesNegocioFormState["trust"]
+): string | null {
+  if (trust.mostrarSitioWeb) {
+    const w = hrefFromUserInput(sitioWeb);
+    if (w) return w;
+  }
+  if (trust.mostrarRedes) {
+    for (const r of redes) {
+      const u = hrefFromUserInput(trim(r));
+      if (u) return u;
+    }
   }
   return null;
 }
@@ -75,7 +111,11 @@ function socialChipLabel(raw: string): string {
 }
 
 /** Only entries with a resolvable http(s) URL — chips alone are not linked. */
-function buildSocialLinks(raws: string[]): Array<{ label: string; href: string }> {
+function buildSocialLinks(
+  raws: string[],
+  allowRedes: boolean
+): Array<{ label: string; href: string }> {
+  if (!allowRedes) return [];
   const out: Array<{ label: string; href: string }> = [];
   for (const raw of raws) {
     const t = trim(raw);
@@ -155,7 +195,13 @@ function publicationOperationSummary(s: BienesRaicesNegocioFormState): string {
     multifamiliar_inversion: "Multifamiliar / inversión",
   };
   const base = pub ? map[pub] ?? "—" : "—";
-  if (s.listingStatus === "bajo_contrato") return `${base} · ${LISTING_STATUS_LABEL.bajo_contrato}`;
+  const status = normalizeListingStatus(s.listingStatus);
+  if (status === "bajo_contrato") return `${base} · ${LISTING_STATUS_LABEL.bajo_contrato}`;
+  const synced = pub ? syncNegocioListingFieldsFromPublication(pub) : null;
+  const defaultStatus = synced?.listingStatus;
+  if (defaultStatus && status !== defaultStatus) {
+    return `${base} · ${LISTING_STATUS_LABEL[status] ?? status}`;
+  }
   return base;
 }
 
@@ -566,23 +612,27 @@ function contactRailTitle(adv: BienesRaicesAdvertiserType): string {
 function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm["identity"] {
   const adv = s.advertiserType;
   const trust = s.trust;
+  const showBrokerage = trust.mostrarBrokerage;
 
   if (adv === "equipo_agentes") {
     const ie = s.identityEquipo;
     const social = ie.redes.map(trim).filter(Boolean).slice(0, 5);
     const photoUrl = trim(ie.imagenUrl) || null;
     const lead = trim(ie.agentePrincipalNombre);
-    const socialLinks = buildSocialLinks(social);
-    const profileHref = resolveProfileHref(ie.sitioWeb, social);
+    const socialLinks = buildSocialLinks(social, trust.mostrarRedes);
+    const profileHref = resolveProfileHref(ie.sitioWeb, social, trust);
+    const bioExtras = [trim(ie.areasServicio) ? `Áreas de servicio: ${trim(ie.areasServicio)}` : ""].filter(Boolean);
+    const bioLine = [trim(ie.bio), ...bioExtras].filter(Boolean).join("\n\n");
     return {
       photoUrl,
       name: trim(ie.nombreEquipo) || "Equipo",
       role: lead ? `Equipo · liderazgo: ${lead}` : "Equipo de agentes",
-      brokerageName: trim(ie.brokerage) || "—",
-      brokerageLogoUrl: trim(ie.logoUrl) || null,
+      brokerageName: showBrokerage ? trim(ie.brokerage) || "—" : "",
+      brokerageLogoUrl: showBrokerage ? trim(ie.logoUrl) || null : null,
+      showBrokerageBlock: showBrokerage,
       verifiedLine: "Equipo anunciante",
       licenseLine: trim(ie.agentePrincipalRol) ? `Rol principal: ${trim(ie.agentePrincipalRol)}` : "",
-      bioLine: trim(ie.bio),
+      bioLine,
       socialLinks,
       profileCtaLabel: "Ver perfil del equipo →",
       profileHref,
@@ -599,16 +649,18 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = io.redes.map(trim).filter(Boolean);
     const photoUrl = trim(io.logoUrl) || null;
     const lead = trim(io.contactoPrincipal);
-    const socialLinks = buildSocialLinks(social);
-    const profileHref = resolveProfileHref(io.sitioWeb, social);
+    const socialLinks = buildSocialLinks(social, trust.mostrarRedes);
+    const profileHref = resolveProfileHref(io.sitioWeb, social, trust);
+    const licenseLine = [trim(io.direccionOficina), trim(io.horario), trim(io.areasServicio)].filter(Boolean).join(" · ");
     return {
       photoUrl,
       name: trim(io.nombreOficina) || "Oficina",
       role: lead ? `Oficina · ${lead}` : "Brokerage",
-      brokerageName: trim(io.nombreOficina) || "—",
-      brokerageLogoUrl: trim(io.logoUrl) || null,
+      brokerageName: showBrokerage ? trim(io.nombreOficina) || "—" : "",
+      brokerageLogoUrl: showBrokerage ? trim(io.logoUrl) || null : null,
+      showBrokerageBlock: showBrokerage,
       verifiedLine: "Oficina",
-      licenseLine: trim(io.direccionOficina),
+      licenseLine,
       bioLine: trim(io.bio),
       socialLinks,
       profileCtaLabel: "Ver oficina →",
@@ -626,16 +678,26 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     const social = ic.redes.map(trim).filter(Boolean);
     const photoUrl = trim(ic.logoUrl) || null;
     const entrega = trim(ic.entregaEstimada);
-    const socialLinks = buildSocialLinks(social);
-    const profileHref = resolveProfileHref(ic.sitioWeb, social);
+    const socialLinks = buildSocialLinks(social, trust.mostrarRedes);
+    const profileHref = resolveProfileHref(ic.sitioWeb, social, trust);
+    const roleLine = [trim(ic.proyectoNombre), trim(ic.modelo)].filter(Boolean).join(" · ") || "Proyecto nuevo";
+    const licenseLine = [
+      trim(ic.estadoDesarrollo),
+      trim(ic.contactoPrincipal) ? `Contacto: ${trim(ic.contactoPrincipal)}` : "",
+      trim(ic.direccionVentas),
+      trim(ic.horarioVentas),
+    ]
+      .filter(Boolean)
+      .join(" · ");
     return {
       photoUrl,
       name: trim(ic.nombreDesarrollador) || "Desarrollador",
-      role: trim(ic.proyectoNombre) || "Proyecto nuevo",
-      brokerageName: trim(ic.proyectoNombre) || trim(ic.nombreDesarrollador) || "—",
-      brokerageLogoUrl: trim(ic.logoUrl) || null,
+      role: roleLine,
+      brokerageName: showBrokerage ? trim(ic.proyectoNombre) || trim(ic.nombreDesarrollador) || "—" : "",
+      brokerageLogoUrl: showBrokerage ? trim(ic.logoUrl) || null : null,
+      showBrokerageBlock: showBrokerage,
       verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollo inmobiliario",
-      licenseLine: trim(ic.estadoDesarrollo),
+      licenseLine,
       bioLine: trim(ic.descripcionProyecto),
       socialLinks,
       profileCtaLabel: "Ver centro de ventas →",
@@ -652,17 +714,20 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   const social = ia.redes.map(trim).filter(Boolean);
   const lic = trim(ia.licencia);
   const photoUrl = trim(ia.fotoUrl) || null;
-  const socialLinks = buildSocialLinks(social);
-  const profileHref = resolveProfileHref(ia.sitioWeb, social);
+  const socialLinks = buildSocialLinks(social, trust.mostrarRedes);
+  const profileHref = resolveProfileHref(ia.sitioWeb, social, trust);
+  const agentExtras = [trim(ia.idiomas) ? `Idiomas: ${trim(ia.idiomas)}` : "", trim(ia.areasServicio) ? `Áreas de servicio: ${trim(ia.areasServicio)}` : ""].filter(Boolean);
+  const bioLine = [trim(ia.bio), ...agentExtras].filter(Boolean).join("\n\n");
   return {
     photoUrl,
     name: trim(ia.nombre) || "Agente",
     role: trim(ia.rol) || "Agente de listado",
-    brokerageName: trim(ia.brokerage) || "—",
-    brokerageLogoUrl: trim(ia.logoBrokerageUrl) || null,
+    brokerageName: showBrokerage ? trim(ia.brokerage) || "—" : "",
+    brokerageLogoUrl: showBrokerage ? trim(ia.logoBrokerageUrl) || null : null,
+    showBrokerageBlock: showBrokerage,
     verifiedLine: trust.mostrarLicencia && lic ? "Agente verificado" : "",
-    licenseLine: lic ? `Lic. ${lic}` : "",
-    bioLine: trim(ia.bio),
+    licenseLine: trust.mostrarLicencia && lic ? `Lic. ${lic}` : "",
+    bioLine,
     socialLinks,
     profileCtaLabel: "Ver perfil profesional →",
     profileHref,
@@ -689,11 +754,16 @@ function buildSecondAgentVm(s: BienesRaicesNegocioFormState): BienesRaicesNegoci
   if (adv === "agente_individual" && s.identityAgente.segundoAgenteActivo) {
     const sg = s.segundoAgente;
     if (!trim(sg.nombre)) return null;
+    const tel = trim(sg.telefono);
+    const em = trim(sg.email);
+    const bio = trim(sg.bio);
     return {
       name: trim(sg.nombre),
       role: trim(sg.rol) || "Segundo agente",
-      phone: trim(sg.telefono) || "—",
+      phone: tel || "—",
       photoUrl: trim(sg.fotoUrl) || null,
+      emailLine: em || undefined,
+      bioLine: bio || undefined,
     };
   }
   if (adv === "oficina_brokerage") {
@@ -723,10 +793,22 @@ function buildLenderVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   const a = s.asesorFinanciero;
   if (!trim(a.nombre)) return null;
   if (!s.asesorFinancieroActivo) return null;
+  const nmls = trim(a.nmls);
+  const subtitle =
+    [
+      trim(a.compania),
+      trim(a.telefono),
+      trim(a.email),
+      nmls ? `NMLS ${nmls}` : "",
+      trim(a.sitioWeb),
+      trim(a.textoApoyo),
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Financiamiento";
   return {
     name: trim(a.nombre),
     role: trim(a.rol) || "Asesor de préstamos",
-    subtitle: [trim(a.compania), trim(a.telefono), trim(a.textoApoyo)].filter(Boolean).join(" · ") || "Financiamiento",
+    subtitle,
     photoUrl: trim(a.fotoUrl) || null,
   };
 }
@@ -833,7 +915,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
     heroTitle: trim(s.titulo) || "Título del anuncio",
     addressLine: buildAddress(s),
     priceDisplay: formatPrice(s.precio),
-    listingStatusLabel: LISTING_STATUS_LABEL[s.listingStatus] ?? "En venta",
+    listingStatusLabel: LISTING_STATUS_LABEL[normalizeListingStatus(s.listingStatus)] ?? "En venta",
     operationSummary: publicationOperationSummary(s),
     quickFacts: buildQuickFacts(s),
     contactRailTitle: contactRailTitle(s.advertiserType),

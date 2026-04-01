@@ -9,6 +9,18 @@ export const businessCardBuilderCopy = {
   sideBack: { es: "Reverso", en: "Back" },
   fieldsTitle: { es: "Información", en: "Business details" },
   layoutTitle: { es: "Disposición", en: "Layout" },
+  layoutBlockModeIntro: {
+    es: "Las plantillas usan líneas libres: mueve cada línea en la vista previa o ajusta X/Y y tamaño en el inspector. Escala global y ajuste fino aplican a todas las líneas.",
+    en: "Templates use freeform lines: drag each line on the preview, or use X/Y and size in the inspector. Global scale and nudges apply to all lines.",
+  },
+  layoutLegacyIntro: {
+    es: "Diseño clásico apilado: ancla el bloque de texto y el logo en la cuadrícula.",
+    en: "Classic stacked layout: anchor the text stack and logo on the grid.",
+  },
+  layoutTextAnchorUnavailable: {
+    es: "La cuadrícula de ancla del texto no aplica cuando hay líneas por plantilla. Usa el inspector o arrastra cada línea.",
+    en: "The text stack anchor grid does not apply when using template lines. Use the inspector or drag each line.",
+  },
   textGroupPos: { es: "Bloque de texto", en: "Text block" },
   logoPos: { es: "Logo", en: "Logo" },
   textScale: { es: "Tamaño del texto", en: "Text size" },

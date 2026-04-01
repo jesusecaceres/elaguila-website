@@ -27,7 +27,8 @@ export const BR_NEGOCIO_PREVIEW_TARGETS = {
   operationSummary: "Tipo de publicación + listingStatus (sin duplicar tipoOperación libre)",
   quickFacts: "Datos principales + tipo de publicación → filas rápidas (residencial, terreno, comercial, multifamiliar, proyecto)",
   contactRailTitle: "Tipo de anunciante → título del carril oscuro de contacto",
-  identity: "Identidad del negocio (por tipo de anunciante) + Confianza → mostrar licencia/brokerage/redes",
+  identity:
+    "Identidad del negocio (por tipo de anunciante); Confianza → mostrar licencia/brokerage/sitio/redes (confirmar* no van al preview)",
   media: "Galería multimedia → fotos/portada, videos, tour, planos, plano sitio (constructor)",
   propertyDetailsRows: "Datos principales + tipo de publicación",
   highlightsRows: "Detalles destacados → presets + líneas personalizadas",

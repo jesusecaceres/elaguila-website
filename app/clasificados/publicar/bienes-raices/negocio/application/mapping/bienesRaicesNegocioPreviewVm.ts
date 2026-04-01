@@ -13,6 +13,8 @@ export type BienesRaicesPreviewIdentityVm = {
   role: string;
   brokerageName: string;
   brokerageLogoUrl: string | null;
+  /** When false (Confianza → “Mostrar brokerage”), ocultamos marca/logo en preview. */
+  showBrokerageBlock: boolean;
   verifiedLine: string;
   licenseLine: string;
   /** Short bio when captured (agent/equipo/oficina). */
@@ -89,6 +91,9 @@ export type BienesRaicesPreviewContactVm = {
     role: string;
     phone: string;
     photoUrl: string | null;
+    /** Línea extra cuando hay correo (evita duplicar si ya va en `phone`). */
+    emailLine?: string;
+    bioLine?: string;
   };
   lender: null | {
     name: string;

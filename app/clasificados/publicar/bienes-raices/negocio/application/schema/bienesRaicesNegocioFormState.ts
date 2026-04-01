@@ -253,6 +253,10 @@ export type BienesRaicesNegocioFormState = {
     openHouseNotas: string;
   };
 
+  /**
+   * `mostrar*` controla visibilidad en la vista previa (ver `mapBienesRaicesNegocioStateToPreviewVm`).
+   * `confirmar*` son requisitos de publicación en producción, no se reflejan en el preview.
+   */
   trust: {
     mostrarLicencia: boolean;
     mostrarBrokerage: boolean;

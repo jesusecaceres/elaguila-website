@@ -818,9 +818,9 @@ export function BienesRaicesNegocioPreviewView({
               className="mt-5 flex flex-wrap gap-2 rounded-2xl border p-3 sm:gap-2.5 sm:p-3.5"
               style={{ borderColor: BORDER, background: CREAM_CARD, boxShadow: "0 10px 36px -16px rgba(42,36,22,0.12)" }}
             >
-              {quickFacts.map(({ Icon, label, value }) => (
+              {quickFacts.map(({ Icon, label, value }, qfIdx) => (
                 <div
-                  key={label}
+                  key={`${label}-${qfIdx}`}
                   className="flex min-w-[112px] flex-1 items-center gap-2 rounded-lg border px-2.5 py-2 sm:min-w-[128px]"
                   style={{ borderColor: BORDER }}
                 >
@@ -873,28 +873,30 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.identity.bioLine}
               </p>
             ) : null}
-            <div
-              className="mt-4 flex items-center gap-3 rounded-xl border px-3 py-3.5 sm:gap-4"
-              style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}
-            >
-              {vm.identity.brokerageLogoUrl &&
-              !(vm.identity.photoUrl && vm.identity.brokerageLogoUrl && vm.identity.photoUrl === vm.identity.brokerageLogoUrl) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={vm.identity.brokerageLogoUrl}
-                  alt=""
-                  className="h-14 w-auto max-w-[152px] shrink-0 object-contain object-left sm:h-16 sm:max-w-[168px]"
-                />
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-                  Inmobiliaria / marca
-                </p>
-                <p className="mt-1 text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
-                  {vm.identity.brokerageName}
-                </p>
+            {vm.identity.showBrokerageBlock !== false ? (
+              <div
+                className="mt-4 flex items-center gap-3 rounded-xl border px-3 py-3.5 sm:gap-4"
+                style={{ borderColor: BORDER, background: "rgba(249,246,241,0.6)" }}
+              >
+                {vm.identity.brokerageLogoUrl &&
+                !(vm.identity.photoUrl && vm.identity.brokerageLogoUrl && vm.identity.photoUrl === vm.identity.brokerageLogoUrl) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={vm.identity.brokerageLogoUrl}
+                    alt=""
+                    className="h-14 w-auto max-w-[152px] shrink-0 object-contain object-left sm:h-16 sm:max-w-[168px]"
+                  />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+                    Inmobiliaria / marca
+                  </p>
+                  <p className="mt-1 text-sm font-bold leading-snug" style={{ color: CHARCOAL }}>
+                    {vm.identity.brokerageName}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : null}
             {vm.identity.verifiedLine || vm.identity.licenseLine ? (
               <p className="mt-3 text-xs leading-relaxed" style={{ color: MUTED }}>
                 {vm.identity.verifiedLine ? (
@@ -1069,6 +1071,12 @@ export function BienesRaicesNegocioPreviewView({
                       <p className="text-xs font-bold text-[#F5F0E8]">{vm.contact.secondAgent.name}</p>
                       <p className="text-[10px] uppercase tracking-wide text-[#c4b8a8]">{vm.contact.secondAgent.role}</p>
                       <p className="mt-1 text-xs text-[#e8dfd4]">{vm.contact.secondAgent.phone}</p>
+                      {vm.contact.secondAgent.emailLine ? (
+                        <p className="mt-0.5 truncate text-xs text-[#e8dfd4]">{vm.contact.secondAgent.emailLine}</p>
+                      ) : null}
+                      {vm.contact.secondAgent.bioLine ? (
+                        <p className="mt-2 text-[11px] leading-snug text-[#d8cfc3]">{vm.contact.secondAgent.bioLine}</p>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}

@@ -10,7 +10,10 @@ import {
   loadBienesRaicesNegocioPreviewDraft,
   readBienesRaicesNegocioPreviewDraftRaw,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
-import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  clearLeonixPreviewNavSessionFlag,
+  markPublishFlowReturningToEdit,
+} from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
 const GRACE_STEP_MS = 200;
 const GRACE_TOTAL_MS = 1000;
@@ -22,7 +25,11 @@ function tryReadPreviewDraftForMap(): BienesRaicesNegocioPreviewVm | null {
   if (!raw) return null;
   const draft = loadBienesRaicesNegocioPreviewDraft();
   if (!draft) return null;
-  return mapNegocioFormStateToBrNegocioPreviewVm(draft);
+  try {
+    return mapNegocioFormStateToBrNegocioPreviewVm(draft);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -45,6 +52,7 @@ export default function BienesRaicesNegocioPreviewClient() {
       if (next) {
         setVm(next);
         setPhase("ready");
+        clearLeonixPreviewNavSessionFlag();
         return;
       }
       if (Date.now() >= deadline) {
