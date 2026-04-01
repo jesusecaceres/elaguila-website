@@ -15,7 +15,10 @@ export const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-prev
 /** Set before client navigates preview → publish (“Volver a editar”) so teardown does not abandon or prompt. */
 export const LEONIX_RETURNING_TO_EDIT_SESSION_FLAG = "leonix-publish-flow-returning-to-edit";
 
-/** Call immediately before navigating to any in-flow preview route. */
+/**
+ * Call immediately before navigating to any in-flow preview route (En Venta, etc.) so `pagehide` does not clear drafts.
+ * BRT Negocio publish does not mount `useLeonixPublishLeaveGuard`; it uses sessionStorage draft handoff + static routes instead.
+ */
 export function markPublishFlowOpeningPreview(): void {
   if (typeof window === "undefined") return;
   try {

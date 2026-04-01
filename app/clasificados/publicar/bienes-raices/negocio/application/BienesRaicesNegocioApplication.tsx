@@ -9,13 +9,9 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import {
   abandonLeonixPublishFlowClient,
-  clearLeonixPreviewNavSessionFlag,
-  clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromNegocioState,
   confirmLeavePublishFlow,
-  markPublishFlowOpeningPreview,
   negocioFormHasProgress,
-  useLeonixPublishLeaveGuard,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   bootstrapBienesRaicesNegocioApplicationState,
@@ -71,14 +67,9 @@ export default function BienesRaicesNegocioApplication() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
 
-  /* Client-only: SSR/hydration starts empty; layout pass restores return → preview draft → empty. Clear preview-nav token here (not on preview route) so pagehide on publish still sees in-flow during handoff. */
+  /* Client-only: SSR/hydration starts empty; layout pass restores return draft → preview draft → empty (category-owned handoff). */
   useLayoutEffect(() => {
     setState(bootstrapBienesRaicesNegocioApplicationState());
-    clearLeonixPreviewNavSessionFlag();
-    const t = window.setTimeout(() => {
-      clearLeonixReturningToEditSessionFlag();
-    }, 0);
-    return () => window.clearTimeout(t);
   }, []);
 
   const navStepLabels = useMemo(() => stepLabelsForAdvertiser(state.advertiserType), [state.advertiserType]);
@@ -89,12 +80,6 @@ export default function BienesRaicesNegocioApplication() {
 
   const isDirty = negocioFormHasProgress(state);
   const muxIds = collectMuxAssetIdsFromNegocioState(state);
-
-  useLeonixPublishLeaveGuard({
-    lang: "es",
-    isDirty,
-    muxAssetIds: muxIds,
-  });
 
   const leaveAndGo = useCallback(
     (href: string) => {
@@ -107,7 +92,6 @@ export default function BienesRaicesNegocioApplication() {
   );
 
   const openPreview = useCallback(() => {
-    markPublishFlowOpeningPreview();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
     router.push(BR_PREVIEW_NEGOCIO);
