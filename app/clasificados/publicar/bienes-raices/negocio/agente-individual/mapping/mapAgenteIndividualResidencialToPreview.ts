@@ -15,7 +15,11 @@
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AGENTE_RES_DESTACADOS_DEFS } from "../schema/agenteIndividualResidencialFormState";
 import { labelForSubtipo, TIPO_PROPIEDAD_OPCIONES } from "../schema/agenteResidencialTipoMeta";
-import type { AgenteIndividualResidencialPreviewVm } from "./agenteIndividualResidencialPreviewVm";
+import type {
+  AgenteIndividualResidencialPreviewVm,
+  AgenteResQuickFactSemanticKey,
+  AgenteResQuickFactVm,
+} from "./agenteIndividualResidencialPreviewVm";
 import { digitsOnly } from "../application/utils/phoneMask";
 
 function trim(s: unknown): string {
@@ -197,21 +201,53 @@ function listadoDownloadName(s: AgenteIndividualResidencialFormState): string | 
   return trim(s.listadoArchivoNombre) || null;
 }
 
+function quickFact(
+  key: AgenteResQuickFactSemanticKey,
+  label: string,
+  raw: string,
+): AgenteResQuickFactVm {
+  return { key, label, value: trim(raw) || "—" };
+}
+
 export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialPreviewVm {
   const photos = (Array.isArray(s.fotosDataUrls) ? s.fotosDataUrls : []).map(trim).filter(Boolean);
   const cover = Math.min(Math.max(0, Number(s.fotoPortadaIndex) || 0), Math.max(0, photos.length - 1));
   const heroUrl = photos.length ? photos[cover]! : null;
-  const secondary = photos.filter((_, i) => i !== cover).slice(0, 3);
+  const restPhotos = photos.filter((_, i) => i !== cover);
+  const secondaryPhoto1Url = restPhotos[0] ?? null;
+  const secondaryPhoto2Url = restPhotos[1] ?? null;
 
   const pubLabel = "Venta residencial";
   const cityLine = [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(" · ") || "—";
   const locationLine = [cityLine, trim(s.direccion)].filter(Boolean).join(" · ");
 
-  const quickFacts: Array<{ label: string; value: string }> = [
-    { label: "Recámaras", value: trim(s.recamaras) || "—" },
-    { label: "Baños", value: trim(s.banos) || "—" },
-    { label: "Interior", value: trim(s.tamanoInteriorSqft) || "—" },
+  /** Orden fijo de plantilla — cada fila tiene clave semántica para icono y jerarquía. */
+  const quickFacts: AgenteResQuickFactVm[] = [
+    quickFact("recamaras", "Recámaras", s.recamaras),
+    quickFact("banos", "Baños", s.banos),
+    quickFact("tamano_interior", "Interior (ft²)", s.tamanoInteriorSqft),
+    quickFact("estacionamientos", "Estacionamientos", s.estacionamientos),
+    quickFact("ano_construccion", "Año", s.anoConstruccion),
+    quickFact("tamano_lote", "Lote (ft²)", s.tamanoLoteSqft),
   ];
+
+  const videoPlayable = videoPlayableUrl(s);
+  const videoDataUrl = videoPlayable?.startsWith("data:") ? videoPlayable : null;
+  const videoExternalHref =
+    videoPlayable && !videoPlayable.startsWith("data:") ? videoPlayable : null;
+
+  const tourMedia = tourMediaHref(s);
+  const brochMedia = brochureMediaHref(s);
+  const tourOrPlanVm =
+    tourMedia != null
+      ? { role: "tour_or_plan" as const, href: tourMedia, variant: "tour" as const }
+      : brochMedia != null
+        ? { role: "tour_or_plan" as const, href: brochMedia, variant: "brochure" as const }
+        : { role: "tour_or_plan" as const, href: null, variant: "none" as const };
+
+  const hasBrandBlock = Boolean(
+    trim(s.marcaNombre) || trim(s.marcaLogoDataUrl) || hrefFromUserInput(s.marcaSitioWeb),
+  );
 
   const propertyRows: AgenteIndividualResidencialPreviewVm["propertyRows"] = [
     { label: "Tipo de propiedad", value: formatTipoPropiedadDisplay(s) },
@@ -286,10 +322,6 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
 
   const mapQuery = [trim(s.direccion), trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(", ");
 
-  const videoUrl = videoPlayableUrl(s);
-  const tourMedia = tourMediaHref(s);
-  const brochMedia = brochureMediaHref(s);
-
   return {
     hero: {
       title,
@@ -300,6 +332,7 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
       quickFacts,
     },
     professionalCard: {
+      hasBrandBlock,
       brandName: trim(s.marcaNombre),
       brandLogoUrl: trim(s.marcaLogoDataUrl) || null,
       brandLicenseLine: trim(s.marcaLicencia) ? `Licencia de oficina: ${trim(s.marcaLicencia)}` : "",
@@ -315,14 +348,20 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
       idiomasLine: trim(s.agenteIdiomas),
     },
     social,
-    media: {
-      heroUrl,
-      secondaryUrls: secondary,
-      coverIndex: cover,
-      videoEmbedUrl: videoUrl && (videoUrl.startsWith("http") || videoUrl.startsWith("data:")) ? videoUrl : null,
-      tourHref: tourMedia,
-      brochureHref: brochMedia,
-      photoCount: photos.length,
+    gallery: {
+      mainPhoto: { role: "main_photo", url: heroUrl },
+      secondaryPhoto1: { role: "secondary_photo_1", url: secondaryPhoto1Url },
+      secondaryPhoto2: { role: "secondary_photo_2", url: secondaryPhoto2Url },
+      video: {
+        role: "video",
+        dataUrl: videoDataUrl,
+        externalHref: videoExternalHref,
+      },
+      tourOrPlan: tourOrPlanVm,
+      showAllPhotosCta: {
+        visible: photos.length > 3,
+        totalPhotoCount: photos.length,
+      },
     },
     propertyRows,
     destacadosLabels,

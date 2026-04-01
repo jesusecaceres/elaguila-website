@@ -52,7 +52,7 @@ export type BusinessCardBuilderAction =
   | { type: "APPLY_TEMPLATE"; templateId: BusinessCardTemplateId; lang: Lang }
   | { type: "SET_DESIGN_INTAKE"; designIntake: BusinessCardDesignIntake }
   | { type: "SET_TEXT_BLOCK"; side: BusinessCardSide; id: string; patch: Partial<BusinessCardTextBlock> }
-  | { type: "ADD_CUSTOM_TEXT_BLOCK"; side: BusinessCardSide; lang: Lang }
+  | { type: "ADD_CUSTOM_TEXT_BLOCK"; side: BusinessCardSide; lang: Lang; blockId?: string }
   | { type: "REMOVE_TEXT_BLOCK"; side: BusinessCardSide; id: string }
   | {
       type: "DUPLICATE_CUSTOM_TEXT_BLOCK";
@@ -237,8 +237,9 @@ export function businessCardBuilderReducer(
     case "ADD_CUSTOM_TEXT_BLOCK":
       return patchSide(state, action.side, (s) => {
         const label = action.lang === "en" ? "Custom line" : "Línea personalizada";
+        const id = action.blockId ?? `c-${Date.now().toString(36)}`;
         const nb: BusinessCardTextBlock = {
-          id: `c-${Date.now().toString(36)}`,
+          id,
           role: "custom",
           text: label,
           xPct: 50,

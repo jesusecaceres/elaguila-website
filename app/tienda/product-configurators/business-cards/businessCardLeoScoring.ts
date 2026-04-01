@@ -3,10 +3,46 @@ import {
   BUSINESS_CARD_TEMPLATE_LIBRARY,
   type BusinessCardTemplateId,
 } from "./businessCardTemplateCatalog";
-import type { BusinessCardLeoIntake, LeoPreferredStyle } from "./businessCardLeoTypes";
+import type { BusinessCardLeoIntake, LeoEmphasis, LeoPreferredStyle } from "./businessCardLeoTypes";
 import type { BusinessCardDocument, BusinessCardProductSlug } from "./types";
 
 const TIE_ORDER = new Map(BUSINESS_CARD_TEMPLATE_IDS.map((id, i) => [id, i]));
+
+/** Emphasis drives template ranking (deterministic). Secondary uses the same rule set at a lower weight. */
+function addEmphasisTemplateScores(
+  emphasis: LeoEmphasis,
+  hasLogo: boolean,
+  add: (id: BusinessCardTemplateId, pts: number) => void,
+  weight: number
+): void {
+  const w = (pts: number) => Math.round(pts * weight);
+  if (emphasis === "logo") {
+    if (hasLogo) {
+      add("leonix-crest-mark", w(18));
+      add("leonix-orbit-halo", w(14));
+      add("leonix-prism-facet", w(13));
+      add("auto-dealer-stripe", w(10));
+      add("bold-modern-slab", w(9));
+    } else {
+      add("bold-modern-slab", w(12));
+      add("clean-white-premium", w(10));
+      add("gold-accent-executive", w(9));
+    }
+  } else if (emphasis === "company") {
+    add("bold-modern-slab", w(13));
+    add("auto-dealer-stripe", w(11));
+    add("leonix-grind-bar", w(9));
+    add("leonix-gold-diagonal", w(7));
+    add("noir-razor-stack", w(10));
+    add("leonix-marque-band", w(7));
+  } else {
+    add("contractor-bold-phone", w(13));
+    add("forge-steel-callout", w(11));
+    add("dental-clinical-clean", w(9));
+    add("clean-white-premium", w(8));
+    add("real-estate-horizon", w(6));
+  }
+}
 
 function suggestsBilingual(haystack: string): boolean {
   return (
@@ -157,6 +193,7 @@ export function scoreLeoTemplateCandidates(
     | "preferredColors"
     | "preferredStyle"
     | "emphasis"
+    | "emphasisSecondary"
     | "backStyle"
   >,
   logoDataUrl: string | null,
@@ -204,32 +241,10 @@ export function scoreLeoTemplateCandidates(
     add("realtor-elevated-gold", 4);
   }
 
-  if (intake.emphasis === "logo") {
-    if (hasLogo) {
-      add("leonix-crest-mark", 18);
-      add("leonix-orbit-halo", 14);
-      add("leonix-prism-facet", 13);
-      add("auto-dealer-stripe", 10);
-      add("bold-modern-slab", 9);
-    } else {
-      /* Logo-forward templates need a mark — steer to layouts that read well text-only */
-      add("bold-modern-slab", 12);
-      add("clean-white-premium", 10);
-      add("gold-accent-executive", 9);
-    }
-  } else if (intake.emphasis === "company") {
-    add("bold-modern-slab", 13);
-    add("auto-dealer-stripe", 11);
-    add("leonix-grind-bar", 9);
-    add("leonix-gold-diagonal", 7);
-    add("noir-razor-stack", 10);
-    add("leonix-marque-band", 7);
-  } else {
-    add("contractor-bold-phone", 13);
-    add("forge-steel-callout", 11);
-    add("dental-clinical-clean", 9);
-    add("clean-white-premium", 8);
-    add("real-estate-horizon", 6);
+  addEmphasisTemplateScores(intake.emphasis, hasLogo, add, 1);
+  const sec = intake.emphasisSecondary;
+  if (sec && sec !== intake.emphasis) {
+    addEmphasisTemplateScores(sec, hasLogo, add, 0.45);
   }
 
   if (!hasLogo) {
@@ -343,6 +358,7 @@ export function buildLeoIntakeFromDocumentForScoring(doc: BusinessCardDocument):
     preferredStyle: snap.preferredStyle,
     preferredColors: snap.preferredColorsNote,
     emphasis: snap.emphasis,
+    emphasisSecondary: snap.emphasisSecondary ?? null,
     backStyle: snap.backStyle,
     logoDataUrl: doc.front.logo.previewUrl,
     logoNaturalWidth: doc.front.logo.naturalWidth,

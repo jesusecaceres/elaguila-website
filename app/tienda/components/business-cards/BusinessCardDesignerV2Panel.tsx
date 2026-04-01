@@ -40,6 +40,8 @@ export function BusinessCardDesignerV2Panel(props: {
   onSelectTextBlock: (id: string | null) => void;
   onFocusLogo: () => void;
   onClearTemplateSelection: () => void;
+  /** When false, native object tools render in `BusinessCardContextualInspector` instead of here */
+  embedNativeInspector?: boolean;
 }) {
   const {
     lang,
@@ -53,6 +55,7 @@ export function BusinessCardDesignerV2Panel(props: {
     onSelectTextBlock,
     onFocusLogo,
     onClearTemplateSelection,
+    embedNativeInspector = false,
   } = props;
   const lg = lang === "en" ? "en" : "es";
   const fileRef = useRef<HTMLInputElement>(null);
@@ -246,7 +249,7 @@ export function BusinessCardDesignerV2Panel(props: {
         )}
       </div>
 
-      {selectedNative ? (
+      {embedNativeInspector && selectedNative ? (
         <BusinessCardDesignerV2NativeInspector
           lang={lg}
           side={side}

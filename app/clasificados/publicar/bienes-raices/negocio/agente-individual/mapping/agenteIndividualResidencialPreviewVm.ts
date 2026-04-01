@@ -3,17 +3,35 @@
  * Nombres tipo professionalCard.* / contactRail.* para trazabilidad.
  */
 
+/** Clave estable por significado de campo (iconografía y plantilla). */
+export type AgenteResQuickFactSemanticKey =
+  | "recamaras"
+  | "banos"
+  | "tamano_interior"
+  | "estacionamientos"
+  | "ano_construccion"
+  | "tamano_lote";
+
+export type AgenteResQuickFactVm = {
+  key: AgenteResQuickFactSemanticKey;
+  label: string;
+  value: string;
+};
+
 export type AgenteResHeroVm = {
   title: string;
   operationLine: string;
   locationLine: string;
   priceDisplay: string;
   statusPill: string;
-  quickFacts: Array<{ label: string; value: string }>;
+  /** Orden fijo de plantilla; cada ítem lleva clave semántica (no por posición decorativa). */
+  quickFacts: AgenteResQuickFactVm[];
 };
 
 /** professionalCard — tarjeta profesional + marca */
 export type ProfessionalCardVm = {
+  /** true si hay logo, nombre de marca o sitio (bloque marca dedicado). */
+  hasBrandBlock: boolean;
   brandName: string;
   brandLogoUrl: string | null;
   brandLicenseLine: string;
@@ -39,14 +57,43 @@ export type SocialSlotsVm = {
   otro: string | null;
 };
 
-export type AgenteResMediaVm = {
-  heroUrl: string | null;
-  secondaryUrls: string[];
-  coverIndex: number;
-  videoEmbedUrl: string | null;
-  tourHref: string | null;
-  brochureHref: string | null;
-  photoCount: number;
+/** Roles explícitos de mosaico (plantilla). */
+export type AgenteResGalleryTileRole =
+  | "main_photo"
+  | "secondary_photo_1"
+  | "secondary_photo_2"
+  | "video"
+  | "tour_or_plan";
+
+export type AgenteResGalleryVm = {
+  mainPhoto: {
+    role: "main_photo";
+    url: string | null;
+  };
+  secondaryPhoto1: {
+    role: "secondary_photo_1";
+    url: string | null;
+  };
+  secondaryPhoto2: {
+    role: "secondary_photo_2";
+    url: string | null;
+  };
+  video: {
+    role: "video";
+    dataUrl: string | null;
+    externalHref: string | null;
+  };
+  /** Tour virtual o plano/folleto (un slot; prioridad tour → folleto en mapper). */
+  tourOrPlan: {
+    role: "tour_or_plan";
+    href: string | null;
+    variant: "tour" | "brochure" | "none";
+  };
+  /** CTA plantilla cuando hay más fotos de las que caben en el mosaico. */
+  showAllPhotosCta: {
+    visible: boolean;
+    totalPhotoCount: number;
+  };
 };
 
 export type AgenteResPropertyRowVm = { label: string; value: string };
@@ -90,7 +137,7 @@ export type AgenteIndividualResidencialPreviewVm = {
   hero: AgenteResHeroVm;
   professionalCard: ProfessionalCardVm;
   social: SocialSlotsVm;
-  media: AgenteResMediaVm;
+  gallery: AgenteResGalleryVm;
   propertyRows: AgenteResPropertyRowVm[];
   destacadosLabels: string[];
   descripcionPrincipal: string;

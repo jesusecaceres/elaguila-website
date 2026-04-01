@@ -163,6 +163,7 @@ export function buildBusinessCardDocumentFromLeoIntake(
     preferredStyle: intake.preferredStyle,
     preferredColorsNote: intake.preferredColors.trim(),
     emphasis: intake.emphasis,
+    emphasisSecondary: intake.emphasisSecondary ?? null,
     backStyle: intake.backStyle,
     selectedTemplateId: templateId,
   };

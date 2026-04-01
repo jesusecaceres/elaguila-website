@@ -16,6 +16,8 @@ export type BusinessCardLeoSnapshot = {
   preferredStyle: LeoPreferredStyle;
   preferredColorsNote: string;
   emphasis: LeoEmphasis;
+  /** Optional second signal for template ranking only — layout polish uses `emphasis` */
+  emphasisSecondary?: LeoEmphasis | null;
   backStyle: LeoBackStyle;
   selectedTemplateId: BusinessCardTemplateId;
 };
@@ -34,6 +36,7 @@ export type BusinessCardLeoIntake = {
   preferredStyle: LeoPreferredStyle;
   preferredColors: string;
   emphasis: LeoEmphasis;
+  emphasisSecondary?: LeoEmphasis | null;
   backStyle: LeoBackStyle;
   logoDataUrl: string | null;
   logoNaturalWidth: number | null;
@@ -50,6 +53,8 @@ export function isBusinessCardLeoSnapshot(x: unknown): x is BusinessCardLeoSnaps
     LEO_STYLES.has(o.preferredStyle) &&
     typeof o.emphasis === "string" &&
     LEO_EMPHASIS.has(o.emphasis) &&
+    (o.emphasisSecondary == null ||
+      (typeof o.emphasisSecondary === "string" && LEO_EMPHASIS.has(o.emphasisSecondary))) &&
     typeof o.backStyle === "string" &&
     LEO_BACK.has(o.backStyle) &&
     typeof o.selectedTemplateId === "string" &&

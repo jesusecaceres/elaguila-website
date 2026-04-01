@@ -44,10 +44,6 @@ const BG_PRESETS = [
   { id: "sand" as const, label: { es: "Arena", en: "Sand" }, preview: "linear-gradient(145deg,#f6efe6 0%,#e2d6ca 100%)" },
 ];
 
-function clampBlockAxis(v: number): number {
-  return Math.min(95, Math.max(5, v));
-}
-
 export function BusinessCardEditorPanel(props: {
   lang: Lang;
   doc: BusinessCardDocument;
@@ -56,11 +52,10 @@ export function BusinessCardEditorPanel(props: {
   onPickLogo: (file: File | null) => void;
   selectedTextBlockId: string | null;
   onSelectTextBlock: (id: string | null) => void;
-  logoInspectorActive: boolean;
   /** Clears studio-native selection when the user applies a template (avoids competing inspectors). */
   onClearStudioNativeSelection?: () => void;
 }) {
-  const { lang, doc, side, dispatch, onPickLogo, selectedTextBlockId, onSelectTextBlock, logoInspectorActive, onClearStudioNativeSelection } =
+  const { lang, doc, side, dispatch, onPickLogo, selectedTextBlockId, onSelectTextBlock, onClearStudioNativeSelection } =
     props;
   const state = side === "front" ? doc.front : doc.back;
   /** Template-driven sides use absolute text blocks; legacy empty sides use stacked fields only. */
@@ -97,6 +92,10 @@ export function BusinessCardEditorPanel(props: {
           {bcPick(businessCardBuilderCopy.previewHelp, lang)}
         </p>
       </div>
+
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:rgba(61,52,40,0.42)]">
+        {bcPick(businessCardBuilderCopy.foundationSectionTitle, lang)}
+      </p>
 
       <div>
         <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-[color:rgba(61,52,40,0.45)]">
@@ -211,7 +210,11 @@ export function BusinessCardEditorPanel(props: {
           </h2>
           <button
             type="button"
-            onClick={() => dispatch({ type: "ADD_CUSTOM_TEXT_BLOCK", side, lang })}
+            onClick={() => {
+              const id = `c-${Date.now().toString(36)}`;
+              dispatch({ type: "ADD_CUSTOM_TEXT_BLOCK", side, lang, blockId: id });
+              onSelectTextBlock(id);
+            }}
             className="inline-flex items-center justify-center rounded-full border border-[rgba(107,91,46,0.35)] bg-[rgba(201,168,74,0.12)] px-3 py-1.5 text-[11px] font-semibold text-[color:#5c4f2e] hover:bg-[rgba(201,168,74,0.2)] touch-manipulation"
           >
             {bcpPick(businessCardProductCopy.addCustomLine, lang)}
@@ -245,339 +248,6 @@ export function BusinessCardEditorPanel(props: {
             <p className="text-[11px] text-[color:rgba(61,52,40,0.75)] leading-relaxed">
               {bcpPick(businessCardProductCopy.noBlockSelectedHint, lang)}
             </p>
-          </div>
-        ) : null}
-
-        {selectedBlock ? (
-          <div className="mt-4 space-y-3 rounded-2xl border border-[rgba(201,168,74,0.28)] bg-white/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:rgba(201,168,74,0.85)]">
-              {lang === "en" ? "Inspector" : "Inspector"}
-            </p>
-            {selectedBlock.role !== "custom" ? (
-              <p className="text-[11px] text-[color:rgba(61,52,40,0.65)]">{bcpPick(businessCardProductCopy.linkedFieldHint, lang)}</p>
-            ) : (
-              <div>
-                <label className="text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
-                  {lang === "en" ? "Custom text" : "Texto personalizado"}
-                </label>
-                <textarea
-                  className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm text-[color:var(--lx-text)]"
-                  rows={2}
-                  value={selectedBlock.text}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { text: e.target.value },
-                    })
-                  }
-                />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nid = `c-${Date.now().toString(36)}`;
-                      dispatch({
-                        type: "DUPLICATE_CUSTOM_TEXT_BLOCK",
-                        side,
-                        sourceId: selectedBlock.id,
-                        newId: nid,
-                        lang,
-                      });
-                      onSelectTextBlock(nid);
-                    }}
-                    className="rounded-full border border-black/12 bg-white px-3 py-1.5 text-[11px] font-semibold text-[color:#5c4f2e] hover:bg-black/[0.03]"
-                  >
-                    {bcpPick(businessCardProductCopy.duplicateCustomBlock, lang)}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectTextBlock(null);
-                      dispatch({ type: "REMOVE_TEXT_BLOCK", side, id: selectedBlock.id });
-                    }}
-                    className="rounded-full border border-rose-200 bg-rose-50/80 px-3 py-1.5 text-[11px] font-semibold text-rose-900 hover:bg-rose-100"
-                  >
-                    {bcpPick(businessCardProductCopy.removeCustomBlock, lang)}
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                X %
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-                  value={Math.round(selectedBlock.xPct)}
-                  min={5}
-                  max={95}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { xPct: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                Y %
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-                  value={Math.round(selectedBlock.yPct)}
-                  min={5}
-                  max={95}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { yPct: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.5)]">
-                {bcpPick(businessCardProductCopy.fineNudge, lang)}
-              </p>
-              <div className="mt-1.5 grid grid-cols-2 gap-2">
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold text-[color:var(--lx-text)] touch-manipulation"
-                    onClick={() =>
-                      dispatch({
-                        type: "SET_TEXT_BLOCK",
-                        side,
-                        id: selectedBlock.id,
-                        patch: { xPct: clampBlockAxis(selectedBlock.xPct - 1) },
-                      })
-                    }
-                  >
-                    X −
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
-                    onClick={() =>
-                      dispatch({
-                        type: "SET_TEXT_BLOCK",
-                        side,
-                        id: selectedBlock.id,
-                        patch: { xPct: clampBlockAxis(selectedBlock.xPct + 1) },
-                      })
-                    }
-                  >
-                    X +
-                  </button>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
-                    onClick={() =>
-                      dispatch({
-                        type: "SET_TEXT_BLOCK",
-                        side,
-                        id: selectedBlock.id,
-                        patch: { yPct: clampBlockAxis(selectedBlock.yPct - 1) },
-                      })
-                    }
-                  >
-                    Y −
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
-                    onClick={() =>
-                      dispatch({
-                        type: "SET_TEXT_BLOCK",
-                        side,
-                        id: selectedBlock.id,
-                        patch: { yPct: clampBlockAxis(selectedBlock.yPct + 1) },
-                      })
-                    }
-                  >
-                    Y +
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                {lang === "en" ? "Width %" : "Ancho %"}
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-                  value={Math.round(selectedBlock.widthPct)}
-                  min={20}
-                  max={92}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { widthPct: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                {lang === "en" ? "Size" : "Tamaño"}
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-                  value={selectedBlock.fontSize}
-                  min={6}
-                  max={22}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { fontSize: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                {lang === "en" ? "Weight" : "Peso"}
-              </div>
-              <div className="mt-2 flex gap-1">
-                {([400, 500, 600, 700] as const).map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() =>
-                      dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { fontWeight: w } })
-                    }
-                    className={[
-                      "flex-1 rounded-lg py-2 text-[11px] font-semibold border touch-manipulation",
-                      selectedBlock.fontWeight === w
-                        ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
-                        : "border-black/10 bg-white",
-                    ].join(" ")}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 items-end">
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                Color
-                <input
-                  type="color"
-                  className="mt-1 h-10 w-full cursor-pointer rounded-lg border border-black/10"
-                  value={
-                    selectedBlock.color.startsWith("#") ? selectedBlock.color : selectedBlock.color === "var(--lx-text)" ? "#2c2416" : "#2c2416"
-                  }
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { color: e.target.value },
-                    })
-                  }
-                />
-              </label>
-              <div>
-                <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                  {lang === "en" ? "Align" : "Alineación"}
-                </div>
-                <div className="mt-1 flex gap-1">
-                  {(["left", "center", "right"] as const).map((a) => (
-                    <button
-                      key={a}
-                      type="button"
-                      onClick={() =>
-                        dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { textAlign: a } })
-                      }
-                      className={[
-                        "flex-1 rounded-lg py-1.5 text-[10px] font-bold border uppercase touch-manipulation",
-                        selectedBlock.textAlign === a
-                          ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
-                          : "border-black/10 bg-white",
-                      ].join(" ")}
-                    >
-                      {a[0]!.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {state.logo.visible && state.logo.previewUrl ? (
-          <div
-            className={[
-              "mt-4 rounded-2xl border p-4 space-y-2 transition-shadow",
-              logoInspectorActive
-                ? "border-[rgba(201,168,74,0.55)] bg-[rgba(201,168,74,0.08)] ring-2 ring-[rgba(201,168,74,0.25)]"
-                : "border-black/10 bg-white/90",
-            ].join(" ")}
-          >
-            <p className="text-xs font-semibold text-[color:var(--lx-text)]">{bcpPick(businessCardProductCopy.logoOnCanvasTitle, lang)}</p>
-            <p className="text-[11px] text-[color:rgba(61,52,40,0.65)]">{bcpPick(businessCardProductCopy.adjustLogoHint, lang)}</p>
-            <div className="grid grid-cols-3 gap-2">
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                X %
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-1 py-1.5 text-xs"
-                  value={Math.round(state.logoGeom.xPct)}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_LOGO_GEOM",
-                      side,
-                      patch: { xPct: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                Y %
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-1 py-1.5 text-xs"
-                  value={Math.round(state.logoGeom.yPct)}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_LOGO_GEOM",
-                      side,
-                      patch: { yPct: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-              <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-                W %
-                <input
-                  type="number"
-                  className="mt-1 w-full rounded-lg border border-black/10 px-1 py-1.5 text-xs"
-                  value={Math.round(state.logoGeom.widthPct)}
-                  min={8}
-                  max={70}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_LOGO_GEOM",
-                      side,
-                      patch: { widthPct: Number(e.target.value) },
-                    })
-                  }
-                />
-              </label>
-            </div>
           </div>
         ) : null}
       </div>

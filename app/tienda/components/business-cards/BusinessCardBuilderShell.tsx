@@ -30,6 +30,7 @@ import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderC
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
+import { BusinessCardContextualInspector } from "./editor/BusinessCardContextualInspector";
 import { BusinessCardDesignerV2Panel } from "./BusinessCardDesignerV2Panel";
 import { BusinessCardSideTabs } from "./BusinessCardSideTabs";
 import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
@@ -326,6 +327,25 @@ export function BusinessCardBuilderShell(props: {
             />
           </div>
           <div className="lg:sticky lg:top-28 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1 lg:-mr-1">
+            <BusinessCardContextualInspector
+              lang={lang}
+              doc={doc}
+              side={doc.activeSide}
+              dispatch={dispatchTyped}
+              selectedTextBlockId={selectedTextBlockId}
+              onSelectTextBlock={(id) => {
+                setSelectedTextBlockId(id);
+                setLogoInspectorActive(false);
+                setSelectedV2NativeId(null);
+              }}
+              logoInspectorActive={logoInspectorActive}
+              selectedV2NativeId={selectedV2NativeId}
+              onSelectV2Native={setSelectedV2NativeId}
+              onClearTemplateSelection={() => {
+                setSelectedTextBlockId(null);
+                setLogoInspectorActive(false);
+              }}
+            />
             <BusinessCardEditorPanel
               lang={lang}
               doc={doc}
@@ -338,7 +358,6 @@ export function BusinessCardBuilderShell(props: {
                 setLogoInspectorActive(false);
                 setSelectedV2NativeId(null);
               }}
-              logoInspectorActive={logoInspectorActive}
               onClearStudioNativeSelection={() => setSelectedV2NativeId(null)}
             />
             <BusinessCardDesignerV2Panel

@@ -37,6 +37,7 @@ const emptyIntake: BusinessCardLeoIntake = {
   preferredStyle: "modern",
   preferredColors: "",
   emphasis: "company",
+  emphasisSecondary: null,
   backStyle: "clean",
   logoDataUrl: null,
   logoNaturalWidth: null,
@@ -360,6 +361,9 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
             <div>
               <label className={labelClass}>{leoPick(leoAssistCopy.preferredColors, lang)}</label>
               <input className={inputClass} value={intake.preferredColors} onChange={(e) => setField("preferredColors", e.target.value)} />
+              <p className="mt-2 text-sm text-[rgba(255,255,255,0.48)] leading-snug">
+                {leoPick(leoAssistCopy.preferredColorsHelp, lang)}
+              </p>
             </div>
             <div>
               <span className={labelClass}>{leoPick(leoAssistCopy.emphasis, lang)}</span>
@@ -368,7 +372,10 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
                   <button
                     key={v}
                     type="button"
-                    onClick={() => setField("emphasis", v)}
+                    onClick={() => {
+                      setField("emphasis", v);
+                      if (intake.emphasisSecondary === v) setField("emphasisSecondary", null);
+                    }}
                     className={[
                       "min-h-[48px] rounded-full px-4 text-sm font-semibold transition",
                       intake.emphasis === v
@@ -379,6 +386,45 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
                     {leoPick(leoAssistCopy[label], lang)}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div>
+              <span className={labelClass}>{leoPick(leoAssistCopy.emphasisSecondary, lang)}</span>
+              <p className="mt-1.5 text-sm text-[rgba(255,255,255,0.48)] leading-snug">
+                {lang === "en"
+                  ? "Adds a second ranking signal. Your name, logo, and contact can all stay visible — this only nudges template choice."
+                  : "Añade una segunda señal para el ranking. Tu nombre, logo y contacto pueden seguir visibles — solo influye en la plantilla inicial."}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setField("emphasisSecondary", null)}
+                  className={[
+                    "min-h-[48px] rounded-full px-4 text-sm font-semibold transition",
+                    intake.emphasisSecondary == null
+                      ? "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)]"
+                      : "border border-[rgba(255,255,255,0.2)] bg-transparent text-[rgba(255,247,226,0.88)]",
+                  ].join(" ")}
+                >
+                  {leoPick(leoAssistCopy.emphasisSecondaryNone, lang)}
+                </button>
+                {emphOptions
+                  .filter(({ v }) => v !== intake.emphasis)
+                  .map(({ v, label }) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setField("emphasisSecondary", v)}
+                      className={[
+                        "min-h-[48px] rounded-full px-4 text-sm font-semibold transition",
+                        intake.emphasisSecondary === v
+                          ? "bg-[rgba(201,168,74,0.22)] border border-[rgba(201,168,74,0.45)] text-[rgba(255,247,226,0.98)]"
+                          : "border border-[rgba(255,255,255,0.2)] bg-transparent text-[rgba(255,247,226,0.88)]",
+                      ].join(" ")}
+                    >
+                      {leoPick(leoAssistCopy[label], lang)}
+                    </button>
+                  ))}
               </div>
             </div>
             {productSlug === "two-sided-business-cards" ? (

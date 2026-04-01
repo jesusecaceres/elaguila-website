@@ -84,7 +84,10 @@ export function BusinessCardNativeV2PreviewLayer(props: {
           return "";
         })();
 
-        const commonClass = ["absolute", ringClass].filter(Boolean).join(" ");
+        const hoverClass =
+          !readOnly && canDrag && !selected ? "hover:ring-1 hover:ring-white/30 transition-shadow" : "";
+
+        const commonClass = ["absolute", ringClass, hoverClass].filter(Boolean).join(" ");
 
         if (o.kind === "native-shape") {
           const br: CSSProperties["borderRadius"] = o.shape === "ellipse" ? "9999px" : "4px";

@@ -21,6 +21,24 @@ function num(v: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function isHexColorString(s: string): boolean {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s.trim());
+}
+
+function hexForColorInput(s: string, fallback: string): string {
+  const t = s.trim();
+  if (isHexColorString(t)) {
+    if (t.length === 4) {
+      const r = t[1]!;
+      const g = t[2]!;
+      const b = t[3]!;
+      return `#${r}${r}${g}${g}${b}${b}`;
+    }
+    return t;
+  }
+  return fallback;
+}
+
 export function BusinessCardDesignerV2NativeInspector(props: {
   lang: "en" | "es";
   side: BusinessCardSide;
@@ -29,8 +47,10 @@ export function BusinessCardDesignerV2NativeInspector(props: {
   onDeleted: () => void;
   /** Called with the new id so the parent can select the duplicate */
   onDuplicated?: (newId: string) => void;
+  /** Default: stacked under layer list; contextual column omits top margin */
+  variant?: "default" | "contextual";
 }) {
-  const { lang, side, selected, dispatch, onDeleted, onDuplicated } = props;
+  const { lang, side, selected, dispatch, onDeleted, onDuplicated, variant = "default" } = props;
   const lg = lang;
   const locked = selected.locked === true;
 
@@ -48,7 +68,12 @@ export function BusinessCardDesignerV2NativeInspector(props: {
     selected.kind === "native-image" && selected.lockAspectRatio !== false && selected.naturalWidth && selected.naturalHeight;
 
   return (
-    <div className="mt-4 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.2)] p-3 space-y-3">
+    <div
+      className={[
+        "rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.2)] p-3 space-y-3",
+        variant === "contextual" ? "mt-0" : "mt-4",
+      ].join(" ")}
+    >
       <div>
         <p className="text-[11px] font-medium text-[rgba(201,168,74,0.9)]">
           {bcPick(businessCardBuilderCopy.nativeInspectorTitle, lg)}
@@ -222,16 +247,35 @@ export function BusinessCardDesignerV2NativeInspector(props: {
           <p className="text-[10px] font-medium text-[rgba(255,255,255,0.45)]">
             {lg === "en" ? "Shape style" : "Estilo de forma"}
           </p>
-          <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
-            {lg === "en" ? "Fill" : "Relleno"}
-            <input
-              type="text"
-              disabled={locked}
-              className="mt-0.5 w-full rounded border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-xs font-mono disabled:cursor-not-allowed disabled:opacity-40"
-              value={selected.fill}
-              onChange={(e) => patch({ fill: e.target.value })}
-            />
-          </label>
+          <div className="space-y-1.5">
+            <p className="text-[10px] text-[rgba(255,255,255,0.38)] leading-snug">
+              {lg === "en"
+                ? "Use the swatch for solid hex fills, or type any CSS color (e.g. rgba(…))."
+                : "Usa el muestrario para hex sólido, o escribe un color CSS (p. ej. rgba(…))."}
+            </p>
+            <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
+              {lg === "en" ? "Fill (CSS)" : "Relleno (CSS)"}
+              <input
+                type="text"
+                disabled={locked}
+                className="mt-0.5 w-full rounded border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-xs font-mono disabled:cursor-not-allowed disabled:opacity-40"
+                value={selected.fill}
+                onChange={(e) => patch({ fill: e.target.value })}
+              />
+            </label>
+            {isHexColorString(selected.fill) ? (
+              <label className="flex items-center gap-2 text-[10px] text-[rgba(255,255,255,0.55)]">
+                <span className="shrink-0">{lg === "en" ? "Hex swatch" : "Muestra hex"}</span>
+                <input
+                  type="color"
+                  disabled={locked}
+                  className="h-9 w-14 cursor-pointer rounded border border-[rgba(255,255,255,0.2)] bg-transparent disabled:cursor-not-allowed disabled:opacity-40"
+                  value={hexForColorInput(selected.fill, "#c9a84a")}
+                  onChange={(e) => patch({ fill: e.target.value })}
+                />
+              </label>
+            ) : null}
+          </div>
           <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
             {lg === "en" ? "Fill opacity" : "Opacidad relleno"}
             <input
@@ -244,27 +288,41 @@ export function BusinessCardDesignerV2NativeInspector(props: {
               onChange={(e) => patch({ fillOpacity: clampNativeFillOpacity(num(e.target.value) / 100) })}
             />
           </label>
-          <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
-            {lg === "en" ? "Stroke color" : "Color del borde"}
-            <input
-              type="text"
-              disabled={locked}
-              placeholder={lg === "en" ? "e.g. #c9a84a" : "ej. #c9a84a"}
-              className="mt-0.5 w-full rounded border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-xs font-mono disabled:cursor-not-allowed disabled:opacity-40"
-              value={selected.strokeColor ?? ""}
-              onChange={(e) => {
-                const v = e.target.value.trim();
-                const w = selected.strokeWidthPx ?? 0;
-                if (!v && w > 0) {
-                  const fill = selected.fill?.trim() ?? "";
-                  const fallback = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(fill) ? fill : "#c9a84a";
-                  patch({ strokeColor: fallback });
-                  return;
-                }
-                patch({ strokeColor: v || undefined });
-              }}
-            />
-          </label>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
+              {lg === "en" ? "Stroke color (CSS)" : "Color del borde (CSS)"}
+              <input
+                type="text"
+                disabled={locked}
+                placeholder={lg === "en" ? "e.g. #c9a84a" : "ej. #c9a84a"}
+                className="mt-0.5 w-full rounded border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-xs font-mono disabled:cursor-not-allowed disabled:opacity-40"
+                value={selected.strokeColor ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value.trim();
+                  const w = selected.strokeWidthPx ?? 0;
+                  if (!v && w > 0) {
+                    const fill = selected.fill?.trim() ?? "";
+                    const fallback = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(fill) ? fill : "#c9a84a";
+                    patch({ strokeColor: fallback });
+                    return;
+                  }
+                  patch({ strokeColor: v || undefined });
+                }}
+              />
+            </label>
+            {selected.strokeColor && isHexColorString(selected.strokeColor) ? (
+              <label className="flex items-center gap-2 text-[10px] text-[rgba(255,255,255,0.55)]">
+                <span className="shrink-0">{lg === "en" ? "Hex swatch" : "Muestra hex"}</span>
+                <input
+                  type="color"
+                  disabled={locked}
+                  className="h-9 w-14 cursor-pointer rounded border border-[rgba(255,255,255,0.2)] bg-transparent disabled:cursor-not-allowed disabled:opacity-40"
+                  value={hexForColorInput(selected.strokeColor, "#c9a84a")}
+                  onChange={(e) => patch({ strokeColor: e.target.value })}
+                />
+              </label>
+            ) : null}
+          </div>
           <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
             {lg === "en" ? "Stroke width (px)" : "Grosor borde (px)"}
             <input

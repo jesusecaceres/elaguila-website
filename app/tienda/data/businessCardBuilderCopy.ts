@@ -62,8 +62,25 @@ export const businessCardBuilderCopy = {
     en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix.",
   },
   previewHelp: {
-    es: "Toca una línea o el logo y arrastra. Imágenes y formas extra: en Refinamientos, abajo.",
-    en: "Tap a line or the logo and drag. Extra images and shapes: Refinements below.",
+    es: "Toca una línea, el logo o una capa en Refinamientos. Las herramientas de la selección están arriba a la derecha.",
+    en: "Tap a line, the logo, or a layer in Refinements. Selection tools are at the top of the right column.",
+  },
+  /** Right column: object-first tools for the current canvas selection */
+  selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },
+  contextualEmptyTitle: {
+    es: "Elige algo en la tarjeta",
+    en: "Select something on the card",
+  },
+  contextualEmptyBody: {
+    es: "Toca una línea de texto, el logo, o una imagen o forma añadida en Refinamientos. Las herramientas aparecen aquí.",
+    en: "Tap a text line, the logo, or an added image or shape from Refinements. Tools for that object appear here.",
+  },
+  foundationSectionTitle: { es: "Base del diseño", en: "Design setup" },
+  textInspectorTitle: { es: "Texto seleccionado", en: "Selected text" },
+  textColorLabel: { es: "Color del texto", en: "Text color" },
+  textColorHelp: {
+    es: "Elige un color sólido para esta línea.",
+    en: "Pick a solid color for this line.",
   },
   editingBanner: { es: "Editando", en: "Editing" },
   saveContinue: { es: "Guardar borrador y continuar", en: "Save draft & continue" },
@@ -80,8 +97,8 @@ export const businessCardBuilderCopy = {
   },
   refinementsTemplateGroup: { es: "Texto y logo del layout", en: "Layout text & logo" },
   refinementsTemplateHelp: {
-    es: "Toca una capa o edita en la vista. El logo se controla en la sección de logo.",
-    en: "Tap a layer or edit on the preview. Logo controls stay in the logo section.",
+    es: "Toca una capa o edita en la vista. Para el logo, selecciónalo en la vista: las herramientas aparecen arriba.",
+    en: "Tap a layer or edit on the preview. For the logo, select it on the preview — tools appear at the top.",
   },
   refinementsAddedGroup: { es: "Lo que añades", en: "What you add" },
   refinementsEmpty: {
