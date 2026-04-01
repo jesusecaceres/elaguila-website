@@ -1,3 +1,6 @@
+/**
+ * Template application: copy layout from `businessCardTemplateLayouts` and keep `fields` ↔ `textBlocks` aligned.
+ */
 import type { Lang } from "../../types/tienda";
 import type {
   BusinessCardCanvasBackground,

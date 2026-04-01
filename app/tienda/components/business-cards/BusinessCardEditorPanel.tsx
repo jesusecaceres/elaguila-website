@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Builder sidebar: template family picker, per-line fields, logo upload, layout (block vs legacy stack).
+ */
+
 import type { ChangeEvent } from "react";
 import type { Lang } from "../../types/tienda";
 import type {

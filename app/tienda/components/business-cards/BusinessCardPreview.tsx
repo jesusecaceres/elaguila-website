@@ -10,52 +10,16 @@ import {
   scaleToLogoPercent,
   scaleToTextRem,
 } from "../../product-configurators/business-cards/layoutPresets";
+import { BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD, clampPreviewDragPct } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
+import { trimSurfaceStyle, trimTextColor } from "../../product-configurators/business-cards/preview/businessCardPreviewSurface";
+import { mergeTransform } from "../../product-configurators/business-cards/preview/businessCardPreviewTransforms";
+import { blockModeTextScaleMultiplierFromGroupScale } from "../../product-configurators/business-cards/preview/businessCardPreviewBlockScale";
+import { BUSINESS_CARD_PREVIEW_LEGACY_LINE_ORDER } from "../../product-configurators/business-cards/preview/businessCardPreviewLineOrder";
 
-const LINE_ORDER: TextFieldRole[] = [
-  "company",
-  "personName",
-  "title",
-  "tagline",
-  "phone",
-  "email",
-  "website",
-  "address",
-];
-
-/** Ignore sub-pixel jitter only — use a small threshold so drags feel responsive */
-const DRAG_THRESHOLD = 0.04;
-
-function mergeTransform(base: string | undefined, nudgeX: number, nudgeY: number): string {
-  const nx = nudgeX * 3;
-  const ny = nudgeY * 3;
-  const b = base ?? "translate(-50%, -50%)";
-  return `${b} translate(${nx}%, ${ny}%)`;
-}
-
-function trimSurfaceStyle(doc: BusinessCardDocument): CSSProperties {
-  const bg = doc.canvasBackground;
-  if (bg.kind === "solid") {
-    return { backgroundColor: bg.color };
-  }
-  const gradients: Record<(typeof bg)["id"], string> = {
-    linen: "linear-gradient(145deg,#fbf9f4 0%,#ebe4d8 100%)",
-    pearl: "linear-gradient(160deg,#fffef9 0%,#f2ebe4 100%)",
-    graphite: "linear-gradient(145deg,#2a2a2e 0%,#1a1a1d 100%)",
-    sand: "linear-gradient(145deg,#f6efe6 0%,#e2d6ca 100%)",
-  };
-  return { background: gradients[bg.id] };
-}
-
-function trimTextColor(doc: BusinessCardDocument): string {
-  if (doc.canvasBackground.kind === "preset" && doc.canvasBackground.id === "graphite") {
-    return "rgba(255,252,247,0.94)";
-  }
-  return "var(--lx-text)";
-}
-
-function clampPct(v: number, min = 8, max = 92): number {
-  return Math.min(max, Math.max(min, v));
-}
+/**
+ * Trim-accurate preview for builder + export root (`data-tienda-bc-export-root`).
+ * Two render paths: block mode (`textBlocks.length > 0`) vs legacy stacked fields.
+ */
 
 export type BusinessCardPreviewEditApi = {
   selectedTextBlockId: string | null;
@@ -82,10 +46,7 @@ export function BusinessCardPreview(props: {
   const showLogo = state.logo.visible && Boolean(state.logo.previewUrl);
   const textColor = trimTextColor(doc);
   const useBlocks = state.textBlocks.length > 0;
-  /** In block mode, `groupScale` scales all line font sizes relative to `md` (template baseline). */
-  const blockTextScaleMul = useBlocks
-    ? scaleToTextRem(state.textLayout.groupScale) / scaleToTextRem("md")
-    : 1;
+  const blockTextScaleMul = useBlocks ? blockModeTextScaleMultiplierFromGroupScale(state.textLayout.groupScale) : 1;
   const trimRef = useRef<HTMLDivElement>(null);
 
   const bindBlockDrag = (el: HTMLElement, id: string, startX: number, startY: number, pointerId: number) => {
@@ -98,9 +59,9 @@ export function BusinessCardPreview(props: {
       if (ev.pointerId !== pointerId) return;
       const r = trim.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) return;
-      const x = clampPct(((ev.clientX - r.left) / r.width) * 100);
-      const y = clampPct(((ev.clientY - r.top) / r.height) * 100);
-      if (Math.hypot(x - lastX, y - lastY) < DRAG_THRESHOLD) return;
+      const x = clampPreviewDragPct(((ev.clientX - r.left) / r.width) * 100);
+      const y = clampPreviewDragPct(((ev.clientY - r.top) / r.height) * 100);
+      if (Math.hypot(x - lastX, y - lastY) < BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
       editInteraction.onMoveTextBlock(id, x, y);
@@ -138,9 +99,9 @@ export function BusinessCardPreview(props: {
       if (ev.pointerId !== pointerId) return;
       const r = trim.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) return;
-      const x = clampPct(((ev.clientX - r.left) / r.width) * 100);
-      const y = clampPct(((ev.clientY - r.top) / r.height) * 100);
-      if (Math.hypot(x - lastX, y - lastY) < DRAG_THRESHOLD) return;
+      const x = clampPreviewDragPct(((ev.clientX - r.left) / r.width) * 100);
+      const y = clampPreviewDragPct(((ev.clientY - r.top) / r.height) * 100);
+      if (Math.hypot(x - lastX, y - lastY) < BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
       editInteraction.onMoveLogo(x, y);
@@ -248,8 +209,8 @@ export function BusinessCardPreview(props: {
                                 editInteraction.onSelectTextBlock(b.id);
                                 if (!trimRef.current) return;
                                 const r = trimRef.current.getBoundingClientRect();
-                                const x = clampPct(((e.clientX - r.left) / r.width) * 100);
-                                const y = clampPct(((e.clientY - r.top) / r.height) * 100);
+                                const x = clampPreviewDragPct(((e.clientX - r.left) / r.width) * 100);
+                                const y = clampPreviewDragPct(((e.clientY - r.top) / r.height) * 100);
                                 bindBlockDrag(e.currentTarget, b.id, x, y, e.pointerId);
                               }
                             : undefined
@@ -282,8 +243,8 @@ export function BusinessCardPreview(props: {
                             editInteraction.onFocusLogo();
                             if (!trimRef.current) return;
                             const r = trimRef.current.getBoundingClientRect();
-                            const x = clampPct(((e.clientX - r.left) / r.width) * 100);
-                            const y = clampPct(((e.clientY - r.top) / r.height) * 100);
+                            const x = clampPreviewDragPct(((e.clientX - r.left) / r.width) * 100);
+                            const y = clampPreviewDragPct(((e.clientY - r.top) / r.height) * 100);
                             bindLogoDrag(e.currentTarget, x, y, e.pointerId);
                           }
                         : undefined
@@ -327,7 +288,7 @@ export function BusinessCardPreview(props: {
                       lineHeight: 1.2,
                     }}
                   >
-                    {LINE_ORDER.map((role) => {
+                    {BUSINESS_CARD_PREVIEW_LEGACY_LINE_ORDER.map((role) => {
                       if (!state.textLayout.lineVisible[role]) return null;
                       const v = state.fields[role].trim();
                       if (!v) return null;

@@ -1,3 +1,6 @@
+/**
+ * LEO (guided assistant): intake → template pick → scoring helpers → polish pass on the document.
+ */
 import type { Lang } from "../../types/tienda";
 import { createInitialBusinessCardDocument } from "./documentFactory";
 import { buildLeoIntakeFromDocumentForScoring, pickLeoTemplateId } from "./businessCardLeoScoring";

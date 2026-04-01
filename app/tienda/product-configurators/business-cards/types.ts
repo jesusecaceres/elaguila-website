@@ -1,5 +1,9 @@
 /**
  * Leonix business card builder — document model + validation types.
+ *
+ * **Block mode (dominant for templates):** `textBlocks.length > 0` — absolute blocks + `logoGeom`.
+ * **Legacy:** empty `textBlocks` — stacked `fields` + 9-point presets only.
+ * Designer V2 will likely extend `BusinessCardTextBlock` / layer concepts here first.
  */
 
 import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";

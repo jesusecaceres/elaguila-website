@@ -1,3 +1,7 @@
+/**
+ * Single place for `BusinessCardDocument` state transitions from the builder (dispatch actions).
+ * Template application, LEO finishing pass, and block/field sync are orchestrated here.
+ */
 import type { Lang } from "../../types/tienda";
 import type {
   BusinessCardApprovalChecks,
