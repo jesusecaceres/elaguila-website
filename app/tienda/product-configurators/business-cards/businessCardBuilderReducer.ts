@@ -14,6 +14,7 @@ import type {
 } from "./types";
 import type { BusinessCardDesignIntake } from "./types";
 import type { BusinessCardTemplateId } from "./templates";
+import { applyLeoFinishingPass } from "./businessCardLeoAdvisor";
 import { applyBusinessCardTemplateToDocument, syncFieldsFromBlocks, syncSideBlocksFromFields } from "./templates";
 
 export type BusinessCardBuilderAction =
@@ -159,7 +160,7 @@ export function businessCardBuilderReducer(
       );
       const keepLeo = state.designIntake === "leo";
       /* Fresh template geometry — legacy nudges fight block positions and confuse the preview */
-      return {
+      const merged: typeof state = {
         ...state,
         version: 3,
         front,
@@ -173,6 +174,7 @@ export function businessCardBuilderReducer(
         logoNudgeX: 0,
         logoNudgeY: 0,
       };
+      return keepLeo ? applyLeoFinishingPass(merged) : merged;
     }
     case "SET_TEXT_BLOCK":
       return patchSide(state, action.side, (s) => {

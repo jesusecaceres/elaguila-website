@@ -166,10 +166,10 @@ export function getBusinessCardTemplateFront(
         fields: f,
         logoGeom: { xPct: 50, yPct: 22, widthPct: 22, zIndex: 6 },
         blocks: [
-          block("t1", "company", f.company, 50, 42, 88, 12, 700, "center", 5, gold),
-          block("t2", "personName", f.personName, 50, 54, 88, 11, 600, "center", 6, "#fffef9"),
-          block("t3", "title", f.title, 50, 64, 88, 9, 500, "center", 7, muted),
-          block("t4", "phone", f.phone, 50, 76, 88, 9, 400, "center", 8, gold),
+          block("t1", "company", f.company, 50, 40, 88, 13, 700, "center", 5, gold),
+          block("t2", "personName", f.personName, 50, 52, 88, 11, 600, "center", 6, "#fffef9"),
+          block("t3", "title", f.title, 50, 62, 88, 9, 500, "center", 7, muted),
+          block("t4", "phone", f.phone, 50, 74, 88, 10, 500, "center", 8, gold),
           block("t5", "email", f.email, 50, 84, 88, 8, 400, "center", 9, muted),
         ],
       };
@@ -190,11 +190,11 @@ export function getBusinessCardTemplateFront(
         fields: f,
         logoGeom: { xPct: 50, yPct: 22, widthPct: 21, zIndex: 4 },
         blocks: [
-          block("t1", "company", f.company, 50, 42, 88, 14, 700, "center", 5, ink),
-          block("t2", "personName", f.personName, 50, 53, 88, 11, 600, "center", 6, ink),
-          block("t3", "title", f.title, 50, 62, 88, 10, 500, "center", 7, mutedDark),
-          block("t4", "phone", f.phone, 50, 73, 88, 9, 500, "center", 8, ink),
-          block("t5", "email", f.email, 50, 82, 88, 9, 400, "center", 9, ink),
+          block("t1", "company", f.company, 50, 40, 86, 15, 700, "center", 5, ink),
+          block("t2", "personName", f.personName, 50, 51, 86, 11, 600, "center", 6, ink),
+          block("t3", "title", f.title, 50, 60, 86, 10, 500, "center", 7, mutedDark),
+          block("t4", "phone", f.phone, 50, 71, 86, 9, 500, "center", 8, ink),
+          block("t5", "email", f.email, 50, 80, 86, 9, 400, "center", 9, ink),
         ],
       };
     case "bold-modern-slab":
@@ -225,11 +225,11 @@ export function getBusinessCardTemplateFront(
         fields: f,
         logoGeom: { xPct: 50, yPct: 76, widthPct: 17, zIndex: 4 },
         blocks: [
-          block("t1", "personName", f.personName, 50, 28, 80, 15, 600, "center", 5, "#2c261c"),
-          block("t2", "title", f.title, 50, 42, 72, 9, 500, "center", 6, "rgba(44,38,28,0.65)"),
-          block("t3", "company", f.company, 50, 52, 80, 12, 700, "center", 7, "#2c261c"),
-          block("t4", "tagline", f.tagline, 50, 62, 78, 9, 400, "center", 8, "rgba(44,38,28,0.55)"),
-          block("t5", "email", f.email, 50, 74, 80, 8, 400, "center", 9, "#2c261c"),
+          block("t1", "personName", f.personName, 50, 26, 80, 16, 600, "center", 5, "#2c261c"),
+          block("t2", "title", f.title, 50, 40, 72, 9, 500, "center", 6, "rgba(44,38,28,0.65)"),
+          block("t3", "company", f.company, 50, 50, 80, 12, 700, "center", 7, "#2c261c"),
+          block("t4", "tagline", f.tagline, 50, 60, 78, 9, 400, "center", 8, "rgba(44,38,28,0.55)"),
+          block("t5", "email", f.email, 50, 72, 80, 8, 400, "center", 9, "#2c261c"),
         ],
       };
     case "real-estate-horizon":
@@ -456,8 +456,8 @@ export function getBusinessCardTemplateBack(
     fields: f,
     logoGeom: { xPct: 50, yPct: 48, widthPct: 18, zIndex: 4 },
     blocks: [
-      block("b1", "company", f.company, 50, 40, 86, 13, 700, "center", 5, ink),
-      block("b2", "tagline", f.tagline, 50, 56, 86, 10, 500, "center", 6, muted),
+      block("b1", "company", f.company, 50, 38, 86, 14, 700, "center", 5, ink),
+      block("b2", "tagline", f.tagline, 50, 54, 86, 10, 500, "center", 6, muted),
     ],
   };
 }

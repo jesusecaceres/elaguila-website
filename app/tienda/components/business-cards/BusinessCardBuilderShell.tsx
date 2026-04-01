@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { getLeoAlternateTemplateId } from "../../product-configurators/business-cards/businessCardLeoScoring";
 import type { Lang } from "../../types/tienda";
 import type { BusinessCardDesignIntake, BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
 import { createInitialBusinessCardDocument } from "../../product-configurators/business-cards/documentFactory";
@@ -80,6 +81,11 @@ export function BusinessCardBuilderShell(props: {
   }, [doc.activeSide, doc.front.textBlocks, doc.back.textBlocks, selectedTextBlockId]);
 
   const validation = useMemo(() => validateBusinessCardDocument(doc), [doc]);
+
+  const leoAlternateTemplateId = useMemo(
+    () => (doc.designIntake === "leo" ? getLeoAlternateTemplateId(doc) : null),
+    [doc]
+  );
 
   const applyLogo = useCallback(
     (file: File | null) => {
@@ -201,15 +207,28 @@ export function BusinessCardBuilderShell(props: {
                 ? bcpPick(businessCardProductCopy.designIntakeLeoHint, lang)
                 : bcpPick(businessCardProductCopy.designIntakeTemplateHint, lang)}
           </p>
-          {doc.designIntake === "template" || doc.designIntake === "leo" ? (
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" })}
-              className="mt-3 text-sm font-semibold text-[rgba(201,168,74,0.95)] underline-offset-4 hover:underline"
-            >
-              {bcpPick(businessCardProductCopy.switchToCustomCta, lang)}
-            </button>
-          ) : null}
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            {doc.designIntake === "leo" && leoAlternateTemplateId ? (
+              <button
+                type="button"
+                onClick={() =>
+                  dispatchTyped({ type: "APPLY_TEMPLATE", templateId: leoAlternateTemplateId, lang })
+                }
+                className="text-left text-sm font-semibold rounded-full border border-[rgba(201,168,74,0.35)] px-4 py-2 text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.12)] transition-colors"
+              >
+                {bcPick(businessCardBuilderCopy.tryAnotherLook, lang)}
+              </button>
+            ) : null}
+            {doc.designIntake === "template" || doc.designIntake === "leo" ? (
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" })}
+                className="text-sm font-semibold text-[rgba(201,168,74,0.95)] underline-offset-4 hover:underline"
+              >
+                {bcpPick(businessCardProductCopy.switchToCustomCta, lang)}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">

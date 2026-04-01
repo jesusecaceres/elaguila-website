@@ -97,8 +97,8 @@ export const businessCardProductCopy = {
     en: "Template mode: tap a card to apply layout, colors, and positions instantly.",
   },
   designIntakeLeoHint: {
-    es: "Borrador LEO: plantilla, color y jerarquía ya aplicados. Ajusta detalles y sigue cuando quede a tu gusto.",
-    en: "LEO draft: template, color, and hierarchy are already applied. Refine details, then continue when it feels right.",
+    es: "Borrador LEO: plantilla Leonix, color y jerarquía listos para impresión. Pulir es opcional; puedes pedir cuando esté bien.",
+    en: "LEO draft: Leonix layout, color, and print-ready hierarchy are in place. Polish if you like—order when it feels right.",
   },
   switchToCustomCta: { es: "Cambiar a control total (custom)", en: "Switch to full custom control" },
 } as const;

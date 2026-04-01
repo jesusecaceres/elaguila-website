@@ -55,6 +55,10 @@ export const businessCardBuilderCopy = {
   },
   editingBanner: { es: "Editando", en: "Editing" },
   saveContinue: { es: "Guardar diseño y continuar", en: "Save design & continue" },
+  tryAnotherLook: {
+    es: "Probar otro estilo (misma información)",
+    en: "Try another look (same details)",
+  },
   savedToast: { es: "Diseño guardado en este dispositivo.", en: "Design saved on this device." },
   fieldLabels: {
     personName: { es: "Nombre", en: "Name" },

@@ -1,13 +1,13 @@
 import type { Lang } from "../../types/tienda";
 import { createInitialBusinessCardDocument } from "./documentFactory";
-import { pickLeoTemplateId } from "./businessCardLeoScoring";
+import { buildLeoIntakeFromDocumentForScoring, pickLeoTemplateId } from "./businessCardLeoScoring";
 import { leoCanvasBackgroundForIntake } from "./businessCardLeoPresetMapper";
 import type { BusinessCardLeoIntake, BusinessCardLeoSnapshot } from "./businessCardLeoTypes";
 import type { BusinessCardDocument, BusinessCardProductSlug, BusinessCardTextFields, TextFieldRole } from "./types";
 import { syncSideBlocksFromFields } from "./templates";
 import { getTemplateLineVisibilityForSide } from "./businessCardTemplateLayouts";
 import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
-import { leoAdjustLogoAndScale, leoPruneEmptyVisibleLines } from "./businessCardLeoPolish";
+import { leoAdjustLogoAndScale, leoBoostSparseTypography, leoPruneEmptyVisibleLines } from "./businessCardLeoPolish";
 
 const ROLES: TextFieldRole[] = ["company", "personName", "title", "tagline", "phone", "email", "website", "address"];
 
@@ -104,7 +104,7 @@ export function buildBusinessCardDocumentFromLeoIntake(
   const user = userFieldsFromIntake(intake);
 
   let doc = createInitialBusinessCardDocument(productSlug, lang, { designIntake: "leo", templateId });
-  doc.canvasBackground = leoCanvasBackgroundForIntake(templateId, intake.preferredColors);
+  doc.canvasBackground = leoCanvasBackgroundForIntake(templateId, intake.preferredColors, intake.preferredStyle);
 
   const frontFields = mergeUserIntoSideFields(doc.front.fields, user);
   let front = syncSideBlocksFromFields({
@@ -153,6 +153,7 @@ export function buildBusinessCardDocumentFromLeoIntake(
 
   doc = leoPruneEmptyVisibleLines(doc);
   doc = leoAdjustLogoAndScale(doc, intake, templateId);
+  doc = leoBoostSparseTypography(doc, intake);
 
   const leoSnapshot: BusinessCardLeoSnapshot = {
     profession: intake.profession.trim(),
@@ -164,4 +165,71 @@ export function buildBusinessCardDocumentFromLeoIntake(
   };
 
   return { document: { ...doc, leoSnapshot }, leoSnapshot };
+}
+
+/**
+ * After `APPLY_TEMPLATE` while `designIntake === "leo"`, restore LEO canvas, visibility rules,
+ * and polish so alternate layouts match the quality of the first draft.
+ */
+export function applyLeoFinishingPass(doc: BusinessCardDocument): BusinessCardDocument {
+  if (doc.designIntake !== "leo" || !doc.leoSnapshot) return doc;
+  const intake = buildLeoIntakeFromDocumentForScoring(doc);
+  if (!intake) return doc;
+  const templateId = doc.selectedTemplateId;
+  if (!templateId) return doc;
+
+  let next: BusinessCardDocument = {
+    ...doc,
+    canvasBackground: leoCanvasBackgroundForIntake(templateId, intake.preferredColors, intake.preferredStyle),
+  };
+
+  const frontLv = getTemplateLineVisibilityForSide("front", templateId);
+  next = applyFrontEmphasis(
+    {
+      ...next,
+      front: {
+        ...next.front,
+        textLayout: { ...next.front.textLayout, lineVisible: frontLv },
+      },
+    },
+    intake.emphasis
+  );
+
+  if (next.sidedness === "two-sided") {
+    const backLv = applyBackStyleLineVisibility(getTemplateLineVisibilityForSide("back", templateId), intake.backStyle);
+    next = {
+      ...next,
+      back: {
+        ...next.back,
+        textLayout: { ...next.back.textLayout, lineVisible: backLv },
+      },
+    };
+  }
+
+  next = applyLogoEmphasis(next, intake.emphasis, intake);
+
+  if (intake.logoDataUrl && intake.emphasis !== "logo") {
+    next = {
+      ...next,
+      front: {
+        ...next.front,
+        logo: {
+          ...next.front.logo,
+          visible: true,
+          previewUrl: intake.logoDataUrl,
+          naturalWidth: intake.logoNaturalWidth,
+          naturalHeight: intake.logoNaturalHeight,
+          file: null,
+        },
+      },
+    };
+  }
+
+  next = leoPruneEmptyVisibleLines(next);
+  next = leoAdjustLogoAndScale(next, intake, templateId);
+  next = leoBoostSparseTypography(next, intake);
+  return {
+    ...next,
+    leoSnapshot: next.leoSnapshot ? { ...next.leoSnapshot, selectedTemplateId: templateId } : undefined,
+  };
 }

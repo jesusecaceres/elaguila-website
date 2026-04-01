@@ -1,6 +1,7 @@
 import type { BusinessCardLeoIntake } from "./businessCardLeoTypes";
 import type { BusinessCardDocument, TextFieldRole } from "./types";
 import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
+import { leoShouldBoostTypography } from "./businessCardLeoScoring";
 import { syncSideBlocksFromFields } from "./templates";
 
 const ROLES: TextFieldRole[] = ["personName", "title", "company", "phone", "email", "website", "address", "tagline"];
@@ -61,6 +62,23 @@ export function leoAdjustLogoAndScale(doc: BusinessCardDocument, intake: Busines
         ),
       };
     }
+    const shiftUp = (y: number) => Math.max(10, y - 3);
+    if (templateId === "clean-white-premium" || templateId === "monochrome-power") {
+      front = {
+        ...front,
+        textBlocks: front.textBlocks.map((b) =>
+          b.role !== "custom" ? { ...b, yPct: shiftUp(b.yPct) } : b
+        ),
+      };
+    }
+    if (templateId === "dental-clinical-clean" || templateId === "luxe-editorial") {
+      front = {
+        ...front,
+        textBlocks: front.textBlocks.map((b) =>
+          b.role !== "custom" ? { ...b, yPct: Math.max(10, b.yPct - 4) } : b
+        ),
+      };
+    }
   } else if (intake.emphasis === "logo") {
     front = {
       ...front,
@@ -96,5 +114,33 @@ export function leoAdjustLogoAndScale(doc: BusinessCardDocument, intake: Busines
     ...doc,
     front: syncSideBlocksFromFields({ ...front, textLayout: nextLayout }),
     back,
+  };
+}
+
+function boostFont(fs: number): number {
+  return Math.min(16, fs + 1);
+}
+
+/**
+ * Slightly larger type on key lines when intake is sparse — fills the card more confidently.
+ */
+export function leoBoostSparseTypography(doc: BusinessCardDocument, intake: BusinessCardLeoIntake): BusinessCardDocument {
+  if (!leoShouldBoostTypography(intake)) return doc;
+
+  const boostSide = (side: BusinessCardDocument["front"]) => ({
+    ...side,
+    textBlocks: side.textBlocks.map((b) => {
+      if (b.role === "custom") return b;
+      if (b.role === "company" || b.role === "personName" || b.role === "phone" || b.role === "email" || b.role === "title") {
+        return { ...b, fontSize: boostFont(b.fontSize) };
+      }
+      return b;
+    }),
+  });
+
+  return {
+    ...doc,
+    front: syncSideBlocksFromFields(boostSide(doc.front)),
+    back: syncSideBlocksFromFields(boostSide(doc.back)),
   };
 }

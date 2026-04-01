@@ -3,16 +3,16 @@ import type { Lang } from "../types/tienda";
 export const leoAssistCopy = {
   pageTitle: { es: "LEO — borrador guiado Leonix", en: "LEO — Leonix guided draft" },
   pageSubtitle: {
-    es: "Respuestas breves, un layout Leonix alineado a tu negocio, y un borrador listo para pulir en el constructor.",
-    en: "A short intake, a Leonix layout aligned to your business, and a draft ready to polish in the builder.",
+    es: "Pocas preguntas, un layout Leonix alineado a tu negocio y un borrador premium listo en el constructor.",
+    en: "A short intake, a Leonix layout tuned to your business, and a polished first draft in the builder.",
   },
   backLink: { es: "Volver al producto", en: "Back to product" },
   progress: { es: "Paso", en: "Step" },
   of: { es: "de", en: "of" },
   whyTitle: { es: "¿Por qué LEO?", en: "Why LEO?" },
   whyBody: {
-    es: "Parte de plantillas Leonix reales — no de un lienzo vacío. Menos fricción, más claridad, y un resultado que ya se siente premium.",
-    en: "Starts from real Leonix templates—not a blank canvas. Less friction, clearer hierarchy, and a result that already feels premium.",
+    es: "Parte de plantillas Leonix reales, no de un lienzo vacío: jerarquía clara, proporciones cuidadas y un acabado que se siente de estudio.",
+    en: "Starts from real Leonix templates—not a blank canvas: clear hierarchy, balanced composition, and a studio-grade first pass.",
   },
   next: { es: "Siguiente", en: "Next" },
   back: { es: "Atrás", en: "Back" },
