@@ -12,7 +12,6 @@ import {
   clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromNegocioState,
   confirmLeavePublishFlow,
-  markBrtNegocioPreviewHandoffPagehide,
   markPublishFlowOpeningPreview,
   negocioFormHasProgress,
   useLeonixPublishLeaveGuard,
@@ -107,7 +106,6 @@ export default function BienesRaicesNegocioApplication() {
 
   const openPreview = useCallback(() => {
     markPublishFlowOpeningPreview();
-    markBrtNegocioPreviewHandoffPagehide();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
     router.push(BR_PREVIEW_NEGOCIO);

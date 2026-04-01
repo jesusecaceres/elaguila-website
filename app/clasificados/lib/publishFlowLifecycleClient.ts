@@ -16,44 +16,42 @@ export const LEONIX_PREVIEW_NAV_SESSION_FLAG = "leonix-publish-flow-opening-prev
 export const LEONIX_RETURNING_TO_EDIT_SESSION_FLAG = "leonix-publish-flow-returning-to-edit";
 
 /**
- * BRT Negocio: one-shot guard for the publish route’s `pagehide` handler.
- *
- * Proven race (App Router client nav): the preview route mounts and runs
- * `clearLeonixPreviewNavSessionFlag()` before the publish document’s `pagehide` fires.
- * Then `isInFlowPublishNavigation()` is false, `abandonLeonixPublishFlowClient` runs, and
- * `clearBienesRaicesNegocioPublishTempState` deletes `br-negocio-preview-draft` before the
- * preview client reads it. This module-level flag survives publish unmount and is consumed
- * by the first `pagehide` that should not abandon.
+ * App Router client navigation can reorder `pagehide` vs preview-route effects: the preview
+ * shell may clear `LEONIX_PREVIEW_NAV_SESSION_FLAG` before the publish document’s `pagehide`
+ * runs, so `isInFlowPublishNavigation()` is false and `abandonLeonixPublishFlowClient` wipes
+ * category preview drafts. This one-shot survives publish unmount and is consumed by the
+ * first `pagehide` that must not abandon (all categories: En Venta, BRT, etc.).
  */
-let brtNegocioPreviewPagehideSkipAbandonOnce = false;
-let brtNegocioPreviewPagehideSkipReleaseTimer: number | undefined;
+let leonixPreviewHandoffSkipPagehideAbandonOnce = false;
+let leonixPreviewHandoffSkipReleaseTimer: number | undefined;
 
-export function markBrtNegocioPreviewHandoffPagehide(): void {
+function armLeonixPreviewHandoffPagehideSkip(): void {
   if (typeof window === "undefined") return;
-  brtNegocioPreviewPagehideSkipAbandonOnce = true;
-  if (brtNegocioPreviewPagehideSkipReleaseTimer != null) {
-    window.clearTimeout(brtNegocioPreviewPagehideSkipReleaseTimer);
+  leonixPreviewHandoffSkipPagehideAbandonOnce = true;
+  if (leonixPreviewHandoffSkipReleaseTimer != null) {
+    window.clearTimeout(leonixPreviewHandoffSkipReleaseTimer);
   }
-  brtNegocioPreviewPagehideSkipReleaseTimer = window.setTimeout(() => {
-    brtNegocioPreviewPagehideSkipAbandonOnce = false;
-    brtNegocioPreviewPagehideSkipReleaseTimer = undefined;
+  leonixPreviewHandoffSkipReleaseTimer = window.setTimeout(() => {
+    leonixPreviewHandoffSkipPagehideAbandonOnce = false;
+    leonixPreviewHandoffSkipReleaseTimer = undefined;
   }, 8000);
 }
 
-function consumeBrtNegocioPreviewPagehideSkipIfSet(): boolean {
-  if (!brtNegocioPreviewPagehideSkipAbandonOnce) return false;
-  brtNegocioPreviewPagehideSkipAbandonOnce = false;
-  if (typeof window !== "undefined" && brtNegocioPreviewPagehideSkipReleaseTimer != null) {
-    window.clearTimeout(brtNegocioPreviewPagehideSkipReleaseTimer);
-    brtNegocioPreviewPagehideSkipReleaseTimer = undefined;
+function consumeLeonixPreviewHandoffPagehideSkipIfSet(): boolean {
+  if (!leonixPreviewHandoffSkipPagehideAbandonOnce) return false;
+  leonixPreviewHandoffSkipPagehideAbandonOnce = false;
+  if (typeof window !== "undefined" && leonixPreviewHandoffSkipReleaseTimer != null) {
+    window.clearTimeout(leonixPreviewHandoffSkipReleaseTimer);
+    leonixPreviewHandoffSkipReleaseTimer = undefined;
   }
   return true;
 }
 
-function isBrtNegocioPreviewHandoffPagehidePending(): boolean {
-  return brtNegocioPreviewPagehideSkipAbandonOnce;
+function isLeonixPreviewHandoffPagehidePending(): boolean {
+  return leonixPreviewHandoffSkipPagehideAbandonOnce;
 }
 
+/** Call immediately before navigating to any in-flow preview route (session flag + pagehide skip). */
 export function markPublishFlowOpeningPreview(): void {
   if (typeof window === "undefined") return;
   try {
@@ -62,6 +60,7 @@ export function markPublishFlowOpeningPreview(): void {
   } catch {
     /* ignore */
   }
+  armLeonixPreviewHandoffPagehideSkip();
 }
 
 export function markPublishFlowReturningToEdit(): void {
@@ -224,7 +223,7 @@ export function useLeonixPublishLeaveGuard(p: {
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!p.isDirty) return;
-      if (isBrtNegocioPreviewHandoffPagehidePending()) return;
+      if (isLeonixPreviewHandoffPagehidePending()) return;
       if (isInFlowPublishNavigation()) return;
       e.preventDefault();
       e.returnValue = "";
@@ -232,7 +231,7 @@ export function useLeonixPublishLeaveGuard(p: {
 
     const onPageHide = () => {
       if (p.skipAbandonOnceRef?.current) return;
-      if (consumeBrtNegocioPreviewPagehideSkipIfSet()) return;
+      if (consumeLeonixPreviewHandoffPagehideSkipIfSet()) return;
       if (isInFlowPublishNavigation()) return;
       if (!p.isDirty) return;
       abandonLeonixPublishFlowClient({ muxAssetIds: muxRef.current, useBeacon: true });
