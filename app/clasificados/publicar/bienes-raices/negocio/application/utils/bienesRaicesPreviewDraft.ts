@@ -80,11 +80,14 @@ export function readBienesRaicesNegocioPreviewDraftRaw(): string | null {
 }
 
 /**
- * BRT Negocio — single deterministic bootstrap for the publish application (category-owned handoff).
+ * BRT Negocio — bootstrap for the publish application (in-flow preview handoff only).
  *
- * Order (never reorder without updating the product contract):
- * 1. Return-to-edit payload (`BR_NEGOCIO_PREVIEW_RETURN_KEY` + in-memory Strict Mode cache)
- * 2. Else preview-roundtrip draft (`br-negocio-preview-draft`)
+ * Contract: this is NOT a general draft restore. `br-negocio-preview-draft` is written for the
+ * preview route to read only; it must never hydrate the application on a cold visit.
+ *
+ * Order:
+ * 1. In-memory return payload (React Strict Mode double-mount)
+ * 2. Else session `BR_NEGOCIO_PREVIEW_RETURN_DRAFT` (set when opening preview; consumed on “Volver a editar”)
  * 3. Else empty form state
  */
 export function bootstrapBienesRaicesNegocioApplicationState(): BienesRaicesNegocioFormState {
@@ -108,8 +111,6 @@ export function bootstrapBienesRaicesNegocioApplicationState(): BienesRaicesNego
   } catch {
     /* fall through */
   }
-  const fromDraft = loadBienesRaicesNegocioPreviewDraft();
-  if (fromDraft) return fromDraft;
   return createEmptyBienesRaicesNegocioFormState();
 }
 

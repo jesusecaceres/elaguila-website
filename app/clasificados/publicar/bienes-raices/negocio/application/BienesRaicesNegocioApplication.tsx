@@ -67,7 +67,7 @@ export default function BienesRaicesNegocioApplication() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
 
-  /* Client-only: SSR/hydration starts empty; layout pass restores return draft → preview draft → empty (category-owned handoff). */
+  /* Client-only: SSR/hydration starts empty; layout restores only return-to-edit handoff (preview roundtrip), else empty — not preview-draft. */
   useLayoutEffect(() => {
     setState(bootstrapBienesRaicesNegocioApplicationState());
   }, []);
