@@ -1,22 +1,22 @@
 import type { Lang } from "../types/tienda";
 
 export const leoAssistCopy = {
-  pageTitle: { es: "LEO — asistente para tu tarjeta", en: "LEO — your card assistant" },
+  pageTitle: { es: "LEO — borrador guiado Leonix", en: "LEO — Leonix guided draft" },
   pageSubtitle: {
-    es: "Cuéntanos tu negocio y estilo. LEO arma un borrador pulido con plantillas Leonix; luego lo afinas en el constructor.",
-    en: "Tell us about your business and style. LEO builds a polished Leonix-template draft; then you refine it in the builder.",
+    es: "Respuestas breves, un layout Leonix alineado a tu negocio, y un borrador listo para pulir en el constructor.",
+    en: "A short intake, a Leonix layout aligned to your business, and a draft ready to polish in the builder.",
   },
   backLink: { es: "Volver al producto", en: "Back to product" },
   progress: { es: "Paso", en: "Step" },
   of: { es: "de", en: "of" },
   whyTitle: { es: "¿Por qué LEO?", en: "Why LEO?" },
   whyBody: {
-    es: "Es la forma más rápida de partir de un diseño premium coherente. Ideal si conoces tu negocio pero no quieres partir de cero.",
-    en: "The fastest way to start from a coherent premium layout. Ideal when you know your business but don’t want a blank canvas.",
+    es: "Parte de plantillas Leonix reales — no de un lienzo vacío. Menos fricción, más claridad, y un resultado que ya se siente premium.",
+    en: "Starts from real Leonix templates—not a blank canvas. Less friction, clearer hierarchy, and a result that already feels premium.",
   },
   next: { es: "Siguiente", en: "Next" },
   back: { es: "Atrás", en: "Back" },
-  finish: { es: "Abrir borrador en el constructor", en: "Open draft in builder" },
+  finish: { es: "Ver borrador en el constructor", en: "Review draft in builder" },
   step1Title: { es: "Tu negocio", en: "Your business" },
   step2Title: { es: "Contacto", en: "Contact" },
   step3Title: { es: "Estilo y reverso", en: "Style & back" },

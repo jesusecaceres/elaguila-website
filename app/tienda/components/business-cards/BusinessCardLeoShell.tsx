@@ -16,6 +16,7 @@ import type { BusinessCardProductSlug } from "../../product-configurators/busine
 import type { Lang } from "../../types/tienda";
 import { BC_UPLOAD_DRAFT_PREFIX, toBusinessCardSessionPayloadV3Design } from "../../order/mappers/businessCardDocumentToReview";
 import { businessCardConfigurePath, withLang } from "../../utils/tiendaRouting";
+import { LeoBrandMark } from "./LeoBrandMark";
 
 const STEP_COUNT = 4;
 
@@ -156,40 +157,65 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
   ];
 
   return (
-    <main className="min-h-screen bg-[#070708] text-white">
-      <div className="mx-auto max-w-lg px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
-        <Link
-          href={withLang(`/tienda/p/${productSlug}`, lang)}
-          className="text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)]"
-        >
-          {leoPick(leoAssistCopy.backLink, lang)}
-        </Link>
-        <h1 className="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight">{leoPick(leoAssistCopy.pageTitle, lang)}</h1>
-        <p className="mt-2 text-sm text-[rgba(255,255,255,0.68)] leading-relaxed">{leoPick(leoAssistCopy.pageSubtitle, lang)}</p>
+    <main className="min-h-screen bg-[#050506] text-white">
+      <header className="border-b border-[rgba(201,168,74,0.12)] bg-[linear-gradient(165deg,rgba(201,168,74,0.1),rgba(5,5,6,0.98))]">
+        <div className="mx-auto max-w-lg px-4 pt-24 sm:pt-28 sm:px-6 pb-8 text-center">
+          <Link
+            href={withLang(`/tienda/p/${productSlug}`, lang)}
+            className="inline-block text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)]"
+          >
+            {leoPick(leoAssistCopy.backLink, lang)}
+          </Link>
+          <div className="mt-6 flex justify-center">
+            <div className="rounded-2xl border border-[rgba(201,168,74,0.2)] bg-[rgba(0,0,0,0.35)] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+              <LeoBrandMark width={200} className="mx-auto h-auto w-[min(100%,220px)]" />
+            </div>
+          </div>
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-[rgba(255,247,226,0.98)] sm:text-[1.65rem]">
+            {leoPick(leoAssistCopy.pageTitle, lang)}
+          </h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[rgba(255,255,255,0.68)] sm:text-[15px]">
+            {leoPick(leoAssistCopy.pageSubtitle, lang)}
+          </p>
+        </div>
+      </header>
 
-        <div className="mt-6 flex items-center gap-2" aria-live="polite">
+      <div className="mx-auto max-w-lg px-4 sm:px-6 pb-20 pt-8">
+        <div className="flex items-center gap-2" aria-live="polite" role="status">
           {Array.from({ length: STEP_COUNT }, (_, i) => (
             <div
               key={i}
               className={[
-                "h-1.5 flex-1 rounded-full transition",
-                i <= step ? "bg-[color:var(--lx-gold)]" : "bg-[rgba(255,255,255,0.12)]",
+                "h-2 flex-1 rounded-full transition duration-300",
+                i <= step ? "bg-[color:var(--lx-gold)] shadow-[0_0_12px_rgba(201,168,74,0.35)]" : "bg-[rgba(255,255,255,0.1)]",
               ].join(" ")}
             />
           ))}
         </div>
-        <p className="mt-2 text-xs text-[rgba(255,255,255,0.45)]">
-          {leoPick(leoAssistCopy.progress, lang)} {step + 1} {leoPick(leoAssistCopy.of, lang)} {STEP_COUNT}
-        </p>
+        <div className="mt-3 flex items-center justify-between text-xs text-[rgba(255,255,255,0.5)]">
+          <span>
+            {leoPick(leoAssistCopy.progress, lang)} {step + 1}/{STEP_COUNT}
+          </span>
+          <span className="font-medium text-[rgba(201,168,74,0.85)]">
+            {step === 0
+              ? leoPick(leoAssistCopy.step1Title, lang)
+              : step === 1
+                ? leoPick(leoAssistCopy.step2Title, lang)
+                : step === 2
+                  ? leoPick(leoAssistCopy.step3Title, lang)
+                  : leoPick(leoAssistCopy.step4Title, lang)}
+          </span>
+        </div>
 
         {step === 0 ? (
           <section className="mt-8 space-y-5">
             <h2 className="text-lg font-semibold text-[rgba(255,247,226,0.95)]">{leoPick(leoAssistCopy.step1Title, lang)}</h2>
-            <details className="rounded-xl border border-[rgba(201,168,74,0.25)] bg-[rgba(201,168,74,0.06)] px-4 py-3">
-              <summary className="cursor-pointer text-sm font-semibold text-[rgba(255,247,226,0.9)]">
+            <details className="rounded-2xl border border-[rgba(201,168,74,0.22)] bg-[rgba(201,168,74,0.05)] px-4 py-3.5">
+              <summary className="cursor-pointer list-none text-left text-sm font-semibold text-[rgba(255,247,226,0.92)] [&::-webkit-details-marker]:hidden">
                 {leoPick(leoAssistCopy.whyTitle, lang)}
+                <span className="ml-1 text-[rgba(201,168,74,0.9)]">+</span>
               </summary>
-              <p className="mt-2 text-sm text-[rgba(255,255,255,0.7)] leading-relaxed">{leoPick(leoAssistCopy.whyBody, lang)}</p>
+              <p className="mt-3 text-sm leading-relaxed text-[rgba(255,255,255,0.72)]">{leoPick(leoAssistCopy.whyBody, lang)}</p>
             </details>
             <div>
               <label className={labelClass}>{leoPick(leoAssistCopy.profession, lang)}</label>

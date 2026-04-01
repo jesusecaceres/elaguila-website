@@ -7,6 +7,7 @@ import type { BusinessCardDocument, BusinessCardProductSlug, BusinessCardTextFie
 import { syncSideBlocksFromFields } from "./templates";
 import { getTemplateLineVisibilityForSide } from "./businessCardTemplateLayouts";
 import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
+import { leoAdjustLogoAndScale, leoPruneEmptyVisibleLines } from "./businessCardLeoPolish";
 
 const ROLES: TextFieldRole[] = ["company", "personName", "title", "tagline", "phone", "email", "website", "address"];
 
@@ -99,7 +100,7 @@ export function buildBusinessCardDocumentFromLeoIntake(
   productSlug: BusinessCardProductSlug,
   lang: Lang
 ): { document: BusinessCardDocument; leoSnapshot: BusinessCardLeoSnapshot } {
-  const templateId: BusinessCardTemplateId = pickLeoTemplateId(intake);
+  const templateId: BusinessCardTemplateId = pickLeoTemplateId(intake, productSlug);
   const user = userFieldsFromIntake(intake);
 
   let doc = createInitialBusinessCardDocument(productSlug, lang, { designIntake: "leo", templateId });
@@ -149,6 +150,9 @@ export function buildBusinessCardDocumentFromLeoIntake(
       },
     };
   }
+
+  doc = leoPruneEmptyVisibleLines(doc);
+  doc = leoAdjustLogoAndScale(doc, intake, templateId);
 
   const leoSnapshot: BusinessCardLeoSnapshot = {
     profession: intake.profession.trim(),

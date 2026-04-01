@@ -4,6 +4,7 @@ import {
   type BusinessCardTemplateId,
 } from "./businessCardTemplateCatalog";
 import type { BusinessCardLeoIntake, LeoPreferredStyle } from "./businessCardLeoTypes";
+import type { BusinessCardProductSlug } from "./types";
 
 const TIE_ORDER = new Map(BUSINESS_CARD_TEMPLATE_IDS.map((id, i) => [id, i]));
 
@@ -25,57 +26,94 @@ function colorHints(haystack: string): { dark: boolean; light: boolean; gold: bo
   };
 }
 
+function countFilledFields(intake: Pick<BusinessCardLeoIntake, "profession" | "businessName" | "personName" | "title" | "phone" | "email" | "website" | "address" | "slogan">): number {
+  return [
+    intake.profession,
+    intake.businessName,
+    intake.personName,
+    intake.title,
+    intake.phone,
+    intake.email,
+    intake.website,
+    intake.address,
+    intake.slogan,
+  ].filter((s) => String(s ?? "").trim().length > 0).length;
+}
+
 const STYLE_WEIGHTS: Record<LeoPreferredStyle, Partial<Record<BusinessCardTemplateId, number>>> = {
   luxury: {
-    "gold-accent-executive": 14,
-    "luxe-editorial": 14,
-    "leonix-gold-diagonal": 12,
-    "leonix-crest-mark": 11,
-    "minimal-black-onyx": 6,
-    "clean-white-premium": 5,
+    "gold-accent-executive": 16,
+    "luxe-editorial": 15,
+    "leonix-gold-diagonal": 13,
+    "leonix-crest-mark": 10,
+    "lawyer-column-trust": 9,
+    "minimal-black-onyx": 8,
+    "clean-white-premium": 7,
   },
   modern: {
-    "bold-modern-slab": 14,
-    "clean-white-premium": 12,
-    "monochrome-power": 10,
-    "minimal-black-onyx": 8,
-    "leonix-grind-bar": 7,
+    "bold-modern-slab": 15,
+    "clean-white-premium": 13,
+    "monochrome-power": 11,
+    "minimal-black-onyx": 9,
+    "leonix-gold-diagonal": 8,
+    "leonix-grind-bar": 8,
   },
   bold: {
-    "bold-modern-slab": 12,
-    "auto-dealer-stripe": 12,
-    "contractor-bold-phone": 12,
-    "leonix-grind-bar": 10,
-    "minimal-black-onyx": 6,
+    "bold-modern-slab": 14,
+    "auto-dealer-stripe": 13,
+    "contractor-bold-phone": 13,
+    "leonix-grind-bar": 11,
+    "minimal-black-onyx": 7,
   },
   minimal: {
-    "minimal-black-onyx": 14,
-    "monochrome-power": 12,
-    "clean-white-premium": 11,
-    "bold-modern-slab": 4,
+    "minimal-black-onyx": 15,
+    "monochrome-power": 13,
+    "clean-white-premium": 12,
+    "bold-modern-slab": 3,
   },
   elegant: {
-    "luxe-editorial": 13,
-    "lawyer-column-trust": 12,
-    "gold-accent-executive": 11,
-    "monochrome-power": 8,
-    "clean-white-premium": 7,
+    "luxe-editorial": 14,
+    "lawyer-column-trust": 13,
+    "gold-accent-executive": 12,
+    "monochrome-power": 9,
+    "clean-white-premium": 8,
   },
 };
 
 const INDUSTRY_RULES: Array<{ re: RegExp; template: BusinessCardTemplateId; weight: number }> = [
-  { re: /real\s*estate|realtor|inmobiliaria|bienes ra[ií]ces|propiedad/i, template: "real-estate-horizon", weight: 28 },
-  { re: /auto|car dealer|dealership|automotriz|concesionaria|veh[ií]culo/i, template: "auto-dealer-stripe", weight: 28 },
-  { re: /dental|dentist|odont|cl[ií]nica dental/i, template: "dental-clinical-clean", weight: 28 },
-  { re: /law|legal|attorney|abogad|bufete|notar/i, template: "lawyer-column-trust", weight: 26 },
-  { re: /restaurant|chef|kitchen|cocina|caf[eé]|bar |food service|catering/i, template: "restaurant-warm-plate", weight: 26 },
-  { re: /contractor|plumb|hvac|roof|electric|construc|remodel|handyman|jardiner/i, template: "contractor-bold-phone", weight: 26 },
+  { re: /real\s*estate|realtor|inmobiliaria|bienes ra[ií]ces|propiedad/i, template: "real-estate-horizon", weight: 30 },
+  { re: /auto|car dealer|dealership|automotriz|concesionaria|veh[ií]culo/i, template: "auto-dealer-stripe", weight: 30 },
+  { re: /dental|dentist|odont|cl[ií]nica dental/i, template: "dental-clinical-clean", weight: 30 },
+  { re: /law|legal|attorney|abogad|bufete|notar/i, template: "lawyer-column-trust", weight: 28 },
+  { re: /restaurant|chef|kitchen|cocina|caf[eé]|bar |food service|catering/i, template: "restaurant-warm-plate", weight: 27 },
+  { re: /contractor|plumb|hvac|roof|electric|construc|remodel|handyman|jardiner/i, template: "contractor-bold-phone", weight: 27 },
+  { re: /salon|spa|beauty|est[eé]tica|barber|cosmet/i, template: "luxe-editorial", weight: 12 },
+  { re: /tech|software|saas|digital|desarrollo/i, template: "minimal-black-onyx", weight: 10 },
 ];
 
 /**
- * Deterministic template ranking for LEO V1 — higher score wins; ties follow catalog order.
+ * Deterministic template ranking for LEO — higher score wins; ties follow catalog order.
  */
-export function scoreLeoTemplateCandidates(intake: Pick<BusinessCardLeoIntake, "profession" | "businessName" | "slogan" | "preferredColors" | "preferredStyle" | "emphasis" | "backStyle">): BusinessCardTemplateId[] {
+export function scoreLeoTemplateCandidates(
+  intake: Pick<
+    BusinessCardLeoIntake,
+    | "profession"
+    | "businessName"
+    | "personName"
+    | "title"
+    | "phone"
+    | "email"
+    | "website"
+    | "address"
+    | "slogan"
+    | "preferredColors"
+    | "preferredStyle"
+    | "emphasis"
+    | "backStyle"
+  >,
+  logoDataUrl: string | null,
+  productSlug: BusinessCardProductSlug
+): BusinessCardTemplateId[] {
   const haystack = `${intake.profession} ${intake.businessName} ${intake.slogan} ${intake.preferredColors}`.trim();
   const lower = haystack.toLowerCase();
   const scores = new Map<BusinessCardTemplateId, number>();
@@ -83,18 +121,20 @@ export function scoreLeoTemplateCandidates(intake: Pick<BusinessCardLeoIntake, "
 
   const add = (id: BusinessCardTemplateId, pts: number) => scores.set(id, (scores.get(id) ?? 0) + pts);
 
-  /* Universal premium baseline so unknown professions still look polished */
-  add("clean-white-premium", 6);
-  add("gold-accent-executive", 5);
-  add("luxe-editorial", 4);
+  const hasLogo = !!logoDataUrl?.trim();
+
+  /* Universal premium baseline — unknown industries still land on strong layouts */
+  add("clean-white-premium", 8);
+  add("gold-accent-executive", 6);
+  add("luxe-editorial", 5);
 
   for (const rule of INDUSTRY_RULES) {
     if (rule.re.test(lower)) add(rule.template, rule.weight);
   }
 
   if (suggestsBilingual(lower)) {
-    add("bilingual-two-column", 22);
-    add("bilingual-dual-line", 18);
+    add("bilingual-two-column", 24);
+    add("bilingual-dual-line", 19);
   }
 
   const sw = STYLE_WEIGHTS[intake.preferredStyle];
@@ -104,47 +144,85 @@ export function scoreLeoTemplateCandidates(intake: Pick<BusinessCardLeoIntake, "
   }
 
   if (intake.emphasis === "logo") {
-    add("leonix-crest-mark", 14);
-    add("bold-modern-slab", 8);
-    add("auto-dealer-stripe", 6);
+    if (hasLogo) {
+      add("leonix-crest-mark", 18);
+      add("auto-dealer-stripe", 10);
+      add("bold-modern-slab", 9);
+    } else {
+      /* Logo-forward templates need a mark — steer to layouts that read well text-only */
+      add("bold-modern-slab", 12);
+      add("clean-white-premium", 10);
+      add("gold-accent-executive", 9);
+    }
   } else if (intake.emphasis === "company") {
-    add("bold-modern-slab", 12);
-    add("auto-dealer-stripe", 10);
-    add("leonix-grind-bar", 8);
+    add("bold-modern-slab", 13);
+    add("auto-dealer-stripe", 11);
+    add("leonix-grind-bar", 9);
+    add("leonix-gold-diagonal", 7);
   } else {
-    add("contractor-bold-phone", 12);
-    add("dental-clinical-clean", 8);
-    add("clean-white-premium", 6);
+    add("contractor-bold-phone", 13);
+    add("dental-clinical-clean", 9);
+    add("clean-white-premium", 8);
+    add("real-estate-horizon", 6);
+  }
+
+  if (!hasLogo) {
+    add("leonix-crest-mark", -22);
+    add("clean-white-premium", 10);
+    add("gold-accent-executive", 8);
+    add("lawyer-column-trust", 6);
+    add("luxe-editorial", 5);
   }
 
   if (intake.backStyle === "map-style" || intake.backStyle === "address") {
     for (const id of BUSINESS_CARD_TEMPLATE_IDS) {
-      if (BUSINESS_CARD_TEMPLATE_LIBRARY[id].mapBlockOnBack) add(id, 14);
+      if (BUSINESS_CARD_TEMPLATE_LIBRARY[id].mapBlockOnBack) add(id, 16);
     }
   } else if (intake.backStyle === "clean") {
-    add("clean-white-premium", 5);
-    add("minimal-black-onyx", 5);
-    add("monochrome-power", 4);
+    add("clean-white-premium", 6);
+    add("minimal-black-onyx", 6);
+    add("monochrome-power", 5);
   } else if (intake.backStyle === "services") {
+    add("luxe-editorial", 8);
+    add("gold-accent-executive", 6);
+    add("restaurant-warm-plate", 5);
+  }
+
+  const filled = countFilledFields(intake);
+  if (filled <= 4) {
+    add("clean-white-premium", 8);
+    add("monochrome-power", 6);
+    add("minimal-black-onyx", 5);
+  }
+
+  if (productSlug === "standard-business-cards") {
+    add("bold-modern-slab", 7);
+    add("auto-dealer-stripe", 6);
+    add("leonix-grind-bar", 6);
+    add("contractor-bold-phone", 5);
+    add("clean-white-premium", 5);
+  } else {
     add("luxe-editorial", 6);
-    add("gold-accent-executive", 5);
+    add("bilingual-two-column", 5);
+    add("bilingual-dual-line", 4);
+    add("real-estate-horizon", 4);
   }
 
   const { dark, light, gold } = colorHints(`${lower} ${intake.preferredStyle}`);
   if (dark) {
-    add("minimal-black-onyx", 12);
-    add("leonix-crest-mark", 10);
-    add("lawyer-column-trust", 6);
+    add("minimal-black-onyx", 13);
+    add("leonix-crest-mark", 8);
+    add("lawyer-column-trust", 7);
   }
   if (light && !dark) {
-    add("clean-white-premium", 8);
-    add("gold-accent-executive", 7);
-    add("monochrome-power", 5);
+    add("clean-white-premium", 9);
+    add("gold-accent-executive", 8);
+    add("monochrome-power", 6);
   }
   if (gold) {
-    add("gold-accent-executive", 10);
-    add("leonix-gold-diagonal", 10);
-    add("leonix-crest-mark", 8);
+    add("gold-accent-executive", 11);
+    add("leonix-gold-diagonal", 11);
+    add("leonix-crest-mark", hasLogo ? 8 : 0);
   }
 
   return [...BUSINESS_CARD_TEMPLATE_IDS].sort((a, b) => {
@@ -154,6 +232,6 @@ export function scoreLeoTemplateCandidates(intake: Pick<BusinessCardLeoIntake, "
   });
 }
 
-export function pickLeoTemplateId(intake: Pick<BusinessCardLeoIntake, "profession" | "businessName" | "slogan" | "preferredColors" | "preferredStyle" | "emphasis" | "backStyle">): BusinessCardTemplateId {
-  return scoreLeoTemplateCandidates(intake)[0];
+export function pickLeoTemplateId(intake: BusinessCardLeoIntake, productSlug: BusinessCardProductSlug): BusinessCardTemplateId {
+  return scoreLeoTemplateCandidates(intake, intake.logoDataUrl, productSlug)[0];
 }

@@ -29,5 +29,8 @@ export function leoCanvasBackgroundForIntake(
   if (/\b(linen|lino|textured)\b/.test(t)) {
     return { kind: "preset", id: "linen" };
   }
+  if (/\b(teal|turquesa|mint|dental|clinic|cl[ií]nica)\b/.test(t)) {
+    return { kind: "solid", color: "#f0fdfa" };
+  }
   return base;
 }

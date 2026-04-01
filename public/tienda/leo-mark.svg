@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" fill="none" aria-hidden="true">
+  <title>LEO by Leonix</title>
+  <!-- Refined abstract mark: three arcs (motion / mane) + LEO wordmark  executive, not cartoon -->
+  <g stroke="#c9a84a" stroke-width="1.35" stroke-linecap="round" opacity="0.95">
+    <path d="M6 28c4-12 10-18 18-18 6 0 10 4 12 10" />
+    <path d="M10 30c3-10 8-16 14-16 5 0 8 3 10 8" />
+    <path d="M14 32c2-6 6-10 11-10 4 0 6 3 7 7" />
+  </g>
+  <text
+    x="38"
+    y="27"
+    font-family="system-ui, Segoe UI, sans-serif"
+    font-size="15"
+    font-weight="700"
+    letter-spacing="0.28em"
+    fill="#f5f0e6"
+  >
+    LEO
+  </text>
+  <text
+    x="38"
+    y="35"
+    font-family="system-ui, Segoe UI, sans-serif"
+    font-size="5.5"
+    font-weight="500"
+    letter-spacing="0.12em"
+    fill="rgba(245,240,230,0.45)"
+  >
+    LEONIX
+  </text>
+</svg>
