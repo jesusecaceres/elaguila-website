@@ -1,33 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { mapAgenteIndividualResidencialToPreview } from "../mapping/mapAgenteIndividualResidencialToPreview";
 import type { AgenteIndividualResidencialPreviewVm } from "../mapping/agenteIndividualResidencialPreviewVm";
-import {
-  loadAgenteResPreviewDraft,
-  readAgenteResPreviewDraftRaw,
-} from "../application/utils/previewDraft";
+import { loadAgenteResPreviewDraft } from "../application/utils/previewDraft";
 import {
   clearLeonixPreviewNavSessionFlag,
   markPublishFlowReturningToEdit,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { AgenteIndividualResidencialPreviewView } from "./AgenteIndividualResidencialPreviewView";
 
-const GRACE_STEP_MS = 200;
-const GRACE_TOTAL_MS = 1000;
+const GRACE_TOTAL_MS = 3000;
+const RETRY_MS = 50;
 
 type Phase = "loading" | "ready" | "recovery";
 
 function tryMapDraft(): AgenteIndividualResidencialPreviewVm | null {
-  const raw = readAgenteResPreviewDraftRaw();
-  if (!raw) return null;
   const draft = loadAgenteResPreviewDraft();
   if (!draft) return null;
   try {
     return mapAgenteIndividualResidencialToPreview(draft);
-  } catch {
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[agente-res preview] map draft to VM failed", e);
+    }
     return null;
   }
 }
@@ -37,31 +35,44 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const [vm, setVm] = useState<AgenteIndividualResidencialPreviewVm | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let cancelled = false;
-    let timeoutId: number | undefined;
+    let tid: number | undefined;
     const deadline = Date.now() + GRACE_TOTAL_MS;
 
-    const attempt = () => {
+    const clearTimer = () => {
+      if (tid !== undefined) {
+        window.clearTimeout(tid);
+        tid = undefined;
+      }
+    };
+
+    const tick = () => {
       if (cancelled) return;
       const next = tryMapDraft();
       if (next) {
+        clearTimer();
         setVm(next);
         setPhase("ready");
         clearLeonixPreviewNavSessionFlag();
         return;
       }
       if (Date.now() >= deadline) {
+        clearTimer();
         setPhase("recovery");
         return;
       }
-      timeoutId = window.setTimeout(attempt, GRACE_STEP_MS);
+      tid = window.setTimeout(tick, RETRY_MS);
     };
 
-    attempt();
+    tick();
+    queueMicrotask(() => {
+      if (!cancelled) tick();
+    });
+
     return () => {
       cancelled = true;
-      if (timeoutId) window.clearTimeout(timeoutId);
+      clearTimer();
     };
   }, [retryKey]);
 
