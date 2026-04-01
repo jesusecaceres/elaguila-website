@@ -69,11 +69,25 @@ export function loadBienesRaicesNegocioPreviewDraft(): BienesRaicesNegocioFormSt
   }
 }
 
+/** Raw sessionStorage value for preview handoff (detect missing vs corrupt without conflating). */
+export function readBienesRaicesNegocioPreviewDraftRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Restore after preview → "Volver a editar" (return payload), else last preview draft.
- * Draft fallback keeps restore reliable if the return key was already consumed (React Strict Mode, refresh).
+ * BRT Negocio — single deterministic bootstrap for the publish application (category-owned handoff).
+ *
+ * Order (never reorder without updating the product contract):
+ * 1. Return-to-edit payload (`BR_NEGOCIO_PREVIEW_RETURN_KEY` + in-memory Strict Mode cache)
+ * 2. Else preview-roundtrip draft (`br-negocio-preview-draft`)
+ * 3. Else empty form state
  */
-export function takeBienesRaicesNegocioPreviewReturnInitialState(): BienesRaicesNegocioFormState {
+export function bootstrapBienesRaicesNegocioApplicationState(): BienesRaicesNegocioFormState {
   if (typeof window === "undefined") return createEmptyBienesRaicesNegocioFormState();
   if (previewReturnMemory) {
     scheduleClearReturnMemory();
@@ -97,4 +111,9 @@ export function takeBienesRaicesNegocioPreviewReturnInitialState(): BienesRaices
   const fromDraft = loadBienesRaicesNegocioPreviewDraft();
   if (fromDraft) return fromDraft;
   return createEmptyBienesRaicesNegocioFormState();
+}
+
+/** @deprecated Use `bootstrapBienesRaicesNegocioApplicationState` (same implementation). */
+export function takeBienesRaicesNegocioPreviewReturnInitialState(): BienesRaicesNegocioFormState {
+  return bootstrapBienesRaicesNegocioApplicationState();
 }
