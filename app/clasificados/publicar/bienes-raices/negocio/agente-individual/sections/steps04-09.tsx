@@ -7,6 +7,13 @@ import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitl
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
 
+const CONDICION_OPTS: ReadonlyArray<{ value: AgenteIndividualResidencialFormState["condicionPropiedad"]; label: string }> = [
+  { value: "excelente", label: "Excelente" },
+  { value: "buena", label: "Buena" },
+  { value: "regular", label: "Regular" },
+  { value: "necesita_reparacion", label: "Necesita reparación" },
+];
+
 export function Step04DetallesEsenciales({
   state,
   setState,
@@ -14,35 +21,80 @@ export function Step04DetallesEsenciales({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const d = state.detalles;
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>Detalles esenciales</h2>
-      <p className={aiSubClass}>Sólo lo que ayuda al comprador a decidir; sin ficha técnica de oficina.</p>
+      <p className={aiSubClass}>Sólo lo que ayuda al comprador a decidir.</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <AiField label="Recámaras">
-          <input className={aiInputClass} value={d.recamaras} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, recamaras: e.target.value } }))} inputMode="numeric" autoComplete="off" />
+          <input
+            className={aiInputClass}
+            value={state.recamaras}
+            onChange={(e) => setState((s) => ({ ...s, recamaras: e.target.value }))}
+            inputMode="numeric"
+            autoComplete="off"
+          />
         </AiField>
         <AiField label="Baños completos">
-          <input className={aiInputClass} value={d.banos} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, banos: e.target.value } }))} autoComplete="off" />
+          <input className={aiInputClass} value={state.banos} onChange={(e) => setState((s) => ({ ...s, banos: e.target.value }))} autoComplete="off" />
         </AiField>
         <AiField label="Medios baños" hint="Opcional.">
-          <input className={aiInputClass} value={d.mediosBanos} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, mediosBanos: e.target.value } }))} autoComplete="off" />
+          <input
+            className={aiInputClass}
+            value={state.mediosBanos}
+            onChange={(e) => setState((s) => ({ ...s, mediosBanos: e.target.value }))}
+            autoComplete="off"
+          />
         </AiField>
         <AiField label="Tamaño interior" hint="Pies cuadrados aproximados.">
-          <input className={aiInputClass} value={d.tamanoInterior} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, tamanoInterior: e.target.value } }))} autoComplete="off" />
+          <input
+            className={aiInputClass}
+            value={state.tamanoInteriorSqft}
+            onChange={(e) => setState((s) => ({ ...s, tamanoInteriorSqft: e.target.value }))}
+            autoComplete="off"
+          />
         </AiField>
         <AiField label="Tamaño del lote" hint="Si aplica; si no, déjalo vacío.">
-          <input className={aiInputClass} value={d.tamanoLote} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, tamanoLote: e.target.value } }))} autoComplete="off" />
+          <input
+            className={aiInputClass}
+            value={state.tamanoLoteSqft}
+            onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
+            autoComplete="off"
+          />
         </AiField>
         <AiField label="Estacionamientos">
-          <input className={aiInputClass} value={d.estacionamientos} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, estacionamientos: e.target.value } }))} autoComplete="off" />
+          <input
+            className={aiInputClass}
+            value={state.estacionamientos}
+            onChange={(e) => setState((s) => ({ ...s, estacionamientos: e.target.value }))}
+            autoComplete="off"
+          />
         </AiField>
         <AiField label="Año de construcción">
-          <input className={aiInputClass} value={d.anioConstruccion} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, anioConstruccion: e.target.value } }))} autoComplete="off" />
+          <input
+            className={aiInputClass}
+            value={state.anoConstruccion}
+            onChange={(e) => setState((s) => ({ ...s, anoConstruccion: e.target.value }))}
+            autoComplete="off"
+          />
         </AiField>
-        <AiField label="Condición de la propiedad" hint="Ej. remodelada, impecable, a actualizar.">
-          <input className={aiInputClass} value={d.condicion} onChange={(e) => setState((s) => ({ ...s, detalles: { ...s.detalles, condicion: e.target.value } }))} autoComplete="off" />
+        <AiField label="Condición de la propiedad" hint="Estado general al momento de publicar.">
+          <select
+            className={aiInputClass}
+            value={state.condicionPropiedad}
+            onChange={(e) =>
+              setState((s) => ({
+                ...s,
+                condicionPropiedad: e.target.value as AgenteIndividualResidencialFormState["condicionPropiedad"],
+              }))
+            }
+          >
+            {CONDICION_OPTS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </AiField>
       </div>
     </section>
@@ -62,15 +114,15 @@ export function Step05Caracteristicas({
       <p className={aiSubClass}>Marca lo que quieres mostrar en la vista previa.</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {AGENTE_RES_DESTACADOS_DEFS.map((def) => (
-          <label key={def.key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+          <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
-              checked={Boolean(state.destacados[def.key])}
+              checked={Boolean(state.destacados[def.id])}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
-                  destacados: { ...s.destacados, [def.key]: e.target.checked },
+                  destacados: { ...s.destacados, [def.id]: e.target.checked },
                 }))
               }
             />
@@ -101,7 +153,7 @@ export function Step06Descripcion({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Notas adicionales (opcional)" hint="Detalle interno o mensaje corto; no es el cuerpo principal.">
+        <AiField label="Notas adicionales (opcional)" hint="Mensaje corto o detalle interno; no es el cuerpo principal.">
           <textarea
             className={aiTextareaClass}
             value={state.notasAdicionales}
@@ -121,27 +173,30 @@ export function Step07InformacionProfesional({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const ag = state.agente;
-
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>Información profesional</h2>
       <p className={aiSubClass}>Tu tarjeta en el carril derecho de la vista previa.</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <AiField label="Nombre completo">
-          <input className={aiInputClass} value={ag.nombre} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, nombre: e.target.value } }))} autoComplete="name" />
+          <input className={aiInputClass} value={state.agenteNombre} onChange={(e) => setState((s) => ({ ...s, agenteNombre: e.target.value }))} autoComplete="name" />
         </AiField>
         <AiField label="Título">
-          <input className={aiInputClass} value={ag.titulo} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, titulo: e.target.value } }))} autoComplete="organization-title" />
+          <input
+            className={aiInputClass}
+            value={state.agenteTitulo}
+            onChange={(e) => setState((s) => ({ ...s, agenteTitulo: e.target.value }))}
+            autoComplete="organization-title"
+          />
         </AiField>
         <AiField label="Teléfono">
           <input
             className={aiInputClass}
-            value={formatUsPhoneDisplay(digitsOnly(ag.telefono))}
+            value={formatUsPhoneDisplay(digitsOnly(state.agenteTelefono))}
             onChange={(e) => {
-              const prev = digitsOnly(ag.telefono);
+              const prev = digitsOnly(state.agenteTelefono);
               const { display } = onPhoneInputChange(e.target.value, prev);
-              setState((s) => ({ ...s, agente: { ...s.agente, telefono: display } }));
+              setState((s) => ({ ...s, agenteTelefono: display }));
             }}
             inputMode="numeric"
             autoComplete="tel"
@@ -152,8 +207,8 @@ export function Step07InformacionProfesional({
           <input
             type="email"
             className={aiInputClass}
-            value={ag.email}
-            onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, email: e.target.value } }))}
+            value={state.agenteEmail}
+            onChange={(e) => setState((s) => ({ ...s, agenteEmail: e.target.value }))}
             autoComplete="email"
           />
         </AiField>
@@ -170,24 +225,24 @@ export function Step07InformacionProfesional({
                     const f = e.target.files?.[0];
                     e.target.value = "";
                     if (!f?.type.startsWith("image/")) return;
-                    void readFileAsDataUrl(f).then((url) => setState((s) => ({ ...s, agente: { ...s.agente, fotoUrl: url } })));
+                    void readFileAsDataUrl(f).then((url) => setState((s) => ({ ...s, agenteFotoDataUrl: url })));
                   }}
                 />
               </label>
               <input
                 className={`${aiInputClass} min-w-[200px] flex-1`}
                 type="url"
-                value={ag.fotoUrl.startsWith("data:") ? "" : ag.fotoUrl}
-                onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, fotoUrl: e.target.value } }))}
+                value={state.agenteFotoDataUrl.startsWith("data:") ? "" : state.agenteFotoDataUrl}
+                onChange={(e) => setState((s) => ({ ...s, agenteFotoDataUrl: e.target.value }))}
                 placeholder="Pegar URL de imagen"
                 autoComplete="off"
               />
             </div>
-            {ag.fotoUrl ? (
+            {state.agenteFotoDataUrl ? (
               <div className="mt-2 flex items-start gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={ag.fotoUrl} alt="" className="h-24 w-24 rounded-lg border object-cover" />
-                <button type="button" className="text-xs font-semibold text-red-800" onClick={() => setState((s) => ({ ...s, agente: { ...s.agente, fotoUrl: "" } }))}>
+                <img src={state.agenteFotoDataUrl} alt="" className="h-24 w-24 rounded-lg border object-cover" />
+                <button type="button" className="text-xs font-semibold text-red-800" onClick={() => setState((s) => ({ ...s, agenteFotoDataUrl: "" }))}>
                   Quitar
                 </button>
               </div>
@@ -195,50 +250,52 @@ export function Step07InformacionProfesional({
           </AiField>
         </div>
         <AiField label="Licencia o número profesional" hint="Si aplica en tu estado.">
-          <input className={aiInputClass} value={ag.licencia} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, licencia: e.target.value } }))} autoComplete="off" />
-        </AiField>
-        <AiField label="Marca u oficina (opcional)">
-          <input className={aiInputClass} value={ag.marcaOficina} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, marcaOficina: e.target.value } }))} autoComplete="organization" />
+          <input className={aiInputClass} value={state.agenteLicencia} onChange={(e) => setState((s) => ({ ...s, agenteLicencia: e.target.value }))} autoComplete="off" />
         </AiField>
         <div className="sm:col-span-2">
           <AiField label="Sitio web">
-            <input className={aiInputClass} type="url" value={ag.sitioWeb} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, sitioWeb: e.target.value } }))} autoComplete="url" placeholder="https://" />
+            <input
+              className={aiInputClass}
+              type="url"
+              value={state.agenteSitioWeb}
+              onChange={(e) => setState((s) => ({ ...s, agenteSitioWeb: e.target.value }))}
+              autoComplete="url"
+              placeholder="https://"
+            />
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Redes sociales (hasta 5)</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {ag.redes.map((r, i) => (
-              <input
-                key={i}
-                className={aiInputClass}
-                value={r}
-                onChange={(e) => {
-                  const next = [...ag.redes];
-                  next[i] = e.target.value;
-                  setState((s) => ({ ...s, agente: { ...s.agente, redes: next } }));
-                }}
-                placeholder={i === 0 ? "https://instagram.com/…" : `Enlace ${i + 1}`}
-                autoComplete="off"
-              />
-            ))}
-          </div>
+          <AiField label="Redes sociales" hint="Un enlace por línea (hasta cinco en la vista previa).">
+            <textarea className={aiTextareaClass} value={state.agenteRedes} onChange={(e) => setState((s) => ({ ...s, agenteRedes: e.target.value }))} autoComplete="off" rows={4} />
+          </AiField>
         </div>
         <div className="sm:col-span-2">
           <AiField label="Bio corta (opcional)">
-            <textarea className={aiTextareaClass} value={ag.bio} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, bio: e.target.value } }))} autoComplete="off" />
+            <textarea className={aiTextareaClass} value={state.agenteBioCorta} onChange={(e) => setState((s) => ({ ...s, agenteBioCorta: e.target.value }))} autoComplete="off" />
           </AiField>
         </div>
         <AiField label="Área de servicio (opcional)">
-          <input className={aiInputClass} value={ag.areaServicio} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, areaServicio: e.target.value } }))} autoComplete="off" />
+          <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
         </AiField>
         <AiField label="Idiomas (opcional)">
-          <input className={aiInputClass} value={ag.idiomas} onChange={(e) => setState((s) => ({ ...s, agente: { ...s.agente, idiomas: e.target.value } }))} placeholder="Ej. inglés y español" autoComplete="off" />
+          <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder="Ej. inglés y español" autoComplete="off" />
         </AiField>
       </div>
     </section>
   );
 }
+
+type CtaToggleKey =
+  | "permitirSolicitarInformacion"
+  | "permitirProgramarVisita"
+  | "permitirLlamar"
+  | "permitirWhatsApp"
+  | "permitirVerSitioWeb"
+  | "permitirVerRedes"
+  | "permitirVerListadoCompleto"
+  | "permitirVerMls"
+  | "permitirVerTour"
+  | "permitirVerFolleto";
 
 export function Step08CtaEnlaces({
   state,
@@ -247,32 +304,32 @@ export function Step08CtaEnlaces({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const c = state.cta;
-  const row = (key: keyof typeof c, label: string) => (
-    <label key={String(key)} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+  const row = (key: CtaToggleKey, label: string) => (
+    <label key={key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
       <input
         type="checkbox"
         className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
-        checked={Boolean(c[key])}
-        onChange={(e) => setState((s) => ({ ...s, cta: { ...s.cta, [key]: e.target.checked } }))}
+        checked={state[key]}
+        onChange={(e) => setState((s) => ({ ...s, [key]: e.target.checked }))}
       />
       {label}
     </label>
   );
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Contacto y enlaces externos</h2>
+      <h2 className={aiTitleClass}>Contacto y enlaces</h2>
       <p className={aiSubClass}>Sólo se muestran en la vista previa si están activos y tienen destino (teléfono, correo o enlace).</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        {row("permitirLlamar", "Llamar")}
-        {row("permitirWhatsapp", "WhatsApp")}
-        {row("permitirEnviarMensaje", "Enviar mensaje (correo)")}
+        {row("permitirSolicitarInformacion", "Solicitar información")}
         {row("permitirProgramarVisita", "Programar visita")}
-        {row("mostrarVerSitioWeb", "Ver sitio web")}
-        {row("mostrarVerRedes", "Ver redes")}
-        {row("mostrarVerListadoCompleto", "Ver listado completo / MLS")}
-        {row("mostrarVerTour", "Ver recorrido / tour")}
-        {row("mostrarVerFolleto", "Ver folleto / PDF")}
+        {row("permitirLlamar", "Llamar")}
+        {row("permitirWhatsApp", "WhatsApp")}
+        {row("permitirVerSitioWeb", "Ver sitio web")}
+        {row("permitirVerRedes", "Ver redes")}
+        {row("permitirVerListadoCompleto", "Ver listado completo")}
+        {row("permitirVerMls", "Ver MLS")}
+        {row("permitirVerTour", "Ver tour")}
+        {row("permitirVerFolleto", "Ver folleto")}
       </div>
     </section>
   );
@@ -285,36 +342,35 @@ export function Step09ExtrasOpcionales({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const x = state.extras;
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>Extras opcionales</h2>
-      <p className={aiSubClass}>Todo lo de abajo es opcional y sólo aparece en la vista previa si hay datos.</p>
+      <p className={aiSubClass}>Opcional; sólo aparece en la vista previa si hay datos.</p>
       <div className="mt-5 space-y-6">
         <div className="rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-[#C9B46A]"
-              checked={x.openHouseActivo}
-              onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, openHouseActivo: e.target.checked } }))}
+              checked={state.extraOpenHouse}
+              onChange={(e) => setState((s) => ({ ...s, extraOpenHouse: e.target.checked }))}
             />
-            Open house o puertas abiertas
+            Open house
           </label>
-          {x.openHouseActivo ? (
+          {state.extraOpenHouse ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <AiField label="Fecha">
-                <input type="date" className={aiInputClass} value={x.openHouseFecha} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, openHouseFecha: e.target.value } }))} />
+                <input type="date" className={aiInputClass} value={state.openHouseFecha} onChange={(e) => setState((s) => ({ ...s, openHouseFecha: e.target.value }))} />
               </AiField>
               <AiField label="Hora inicio">
-                <input type="time" className={aiInputClass} value={x.openHouseInicio} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, openHouseInicio: e.target.value } }))} />
+                <input type="time" className={aiInputClass} value={state.openHouseInicio} onChange={(e) => setState((s) => ({ ...s, openHouseInicio: e.target.value }))} />
               </AiField>
               <AiField label="Hora fin">
-                <input type="time" className={aiInputClass} value={x.openHouseFin} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, openHouseFin: e.target.value } }))} />
+                <input type="time" className={aiInputClass} value={state.openHouseFin} onChange={(e) => setState((s) => ({ ...s, openHouseFin: e.target.value }))} />
               </AiField>
               <div className="sm:col-span-2">
                 <AiField label="Notas">
-                  <input className={aiInputClass} value={x.openHouseNotas} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, openHouseNotas: e.target.value } }))} />
+                  <input className={aiInputClass} value={state.openHouseNotas} onChange={(e) => setState((s) => ({ ...s, openHouseNotas: e.target.value }))} />
                 </AiField>
               </div>
             </div>
@@ -325,32 +381,32 @@ export function Step09ExtrasOpcionales({
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-[#C9B46A]"
-              checked={x.asesorFinancieroActivo}
-              onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, asesorFinancieroActivo: e.target.checked } }))}
+              checked={state.extraAsesorFinanciero}
+              onChange={(e) => setState((s) => ({ ...s, extraAsesorFinanciero: e.target.checked }))}
             />
-            Incluir contacto de asesor financiero
+            Asesor financiero
           </label>
-          {x.asesorFinancieroActivo ? (
+          {state.extraAsesorFinanciero ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <AiField label="Nombre">
-                <input className={aiInputClass} value={x.asesorNombre} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, asesorNombre: e.target.value } }))} autoComplete="name" />
+                <input className={aiInputClass} value={state.asesorNombre} onChange={(e) => setState((s) => ({ ...s, asesorNombre: e.target.value }))} autoComplete="name" />
               </AiField>
               <AiField label="Teléfono">
-                <input className={aiInputClass} value={x.asesorTelefono} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, asesorTelefono: e.target.value } }))} autoComplete="tel" />
+                <input className={aiInputClass} value={state.asesorTelefono} onChange={(e) => setState((s) => ({ ...s, asesorTelefono: e.target.value }))} autoComplete="tel" />
               </AiField>
               <div className="sm:col-span-2">
                 <AiField label="Correo del asesor">
-                  <input type="email" className={aiInputClass} value={x.asesorEmail} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, asesorEmail: e.target.value } }))} autoComplete="email" />
+                  <input type="email" className={aiInputClass} value={state.asesorEmail} onChange={(e) => setState((s) => ({ ...s, asesorEmail: e.target.value }))} autoComplete="email" />
                 </AiField>
               </div>
             </div>
           ) : null}
         </div>
-        <AiField label="Puntos cercanos (opcional)" hint="Ej. parques, tiendas, escuelas que quieras mencionar sin saturar.">
-          <textarea className={aiTextareaClass} value={x.puntosCercanos} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, puntosCercanos: e.target.value } }))} autoComplete="off" />
+        <AiField label="Puntos cercanos (opcional)" hint="Ej. parques o servicios que quieras mencionar sin saturar.">
+          <textarea className={aiTextareaClass} value={state.puntosCercanos} onChange={(e) => setState((s) => ({ ...s, puntosCercanos: e.target.value }))} autoComplete="off" />
         </AiField>
-        <AiField label="Transporte (opcional)" hint="Ej. acceso a autopista, línea de autobús.">
-          <input className={aiInputClass} value={x.transporte} onChange={(e) => setState((s) => ({ ...s, extras: { ...s.extras, transporte: e.target.value } }))} autoComplete="off" />
+        <AiField label="Transporte (opcional)" hint="Ej. acceso a autopista o línea de autobús.">
+          <input className={aiInputClass} value={state.transporte} onChange={(e) => setState((s) => ({ ...s, transporte: e.target.value }))} autoComplete="off" />
         </AiField>
       </div>
     </section>

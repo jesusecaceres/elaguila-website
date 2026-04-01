@@ -6,26 +6,26 @@ export const businessCardProductCopy = {
     en: "Standard premium 3.5″×2″ cards — self‑serve for typical professional stock and finish. Specialty options (foil, velvet, painted edges, etc.) are quote‑only.",
   },
   pathLeoBadge: { es: "Destacado Leonix", en: "Leonix flagship" },
-  pathLeoTitle: { es: "LEO — borrador guiado", en: "LEO — guided draft" },
+  pathLeoTitle: { es: "LEO — tu arranque inteligente", en: "LEO — your smart start" },
   pathLeoBody: {
-    es: "Unas preguntas claras, una plantilla Leonix alineada a tu oficio y estilo, y un borrador listo para refinar. Rápido, pulido y coherente con tu marca.",
-    en: "A short intake, a Leonix layout matched to your trade and taste, and a polished draft ready to refine—fast, cohesive, and on-brand.",
+    es: "Pocas preguntas, un layout Leonix alineado a tu negocio y un borrador premium en el mismo editor donde refines texto, logo y capas añadidas. Un solo recorrido.",
+    en: "A short intake, a Leonix layout tuned to your business, and a polished first draft in the same editor where you refine copy, logo, and optional shapes or images—one continuous flow.",
   },
   pathLeoCta: { es: "Comenzar con LEO", en: "Start with LEO" },
   pathTemplateBadge: { es: "Biblioteca", en: "Library" },
   pathTemplateTitle: { es: "Elegir plantilla", en: "Pick a template" },
   pathTemplateBody: {
-    es: "Recorre la biblioteca Leonix, aplica un estilo y ajusta texto y logo con control directo.",
-    en: "Browse the Leonix library, apply a layout, and fine-tune copy and logo with full control.",
+    es: "Elige un estilo Leonix y entra al mismo editor: texto, logo y refinamientos en un solo lugar.",
+    en: "Pick a Leonix style and land in the same editor—layout, copy, logo, and refinements together.",
   },
   pathTemplateCta: { es: "Abrir plantillas", en: "Open templates" },
-  pathCustomBadge: { es: "Avanzado", en: "Advanced" },
-  pathCustomTitle: { es: "Constructor manual", en: "Advanced builder" },
+  pathCustomBadge: { es: "Editor completo", en: "Full editor" },
+  pathCustomTitle: { es: "Layout y refinamiento", en: "Layout & refinements" },
   pathCustomBody: {
-    es: "Control total de posición y tipografía. Ideal cuando ya tienes una visión precisa del layout.",
-    en: "Full control of placement and type—best when you already know exactly how the card should look.",
+    es: "Entra directo al editor con control total de posición y tipografía—mismas herramientas de refinamiento (imágenes y formas) que tras LEO o plantilla.",
+    en: "Jump straight into the editor with full placement and typography control—the same refinement tools (images and shapes) you get after LEO or a template.",
   },
-  pathCustomCta: { es: "Abrir constructor avanzado", en: "Open advanced builder" },
+  pathCustomCta: { es: "Abrir editor completo", en: "Open full editor" },
   pathUploadBadge: { es: "Archivo listo", en: "Print-ready file" },
   pathUploadTitle: { es: "Subir arte", en: "Upload artwork" },
   pathUploadBody: {
@@ -49,8 +49,8 @@ export const businessCardProductCopy = {
   },
   templatesHeading: { es: "Biblioteca de plantillas Leonix", en: "Leonix template library" },
   templatesSubheading: {
-    es: "Cada estilo reorganiza el texto y el logo al instante. Tu información se mantiene donde ya la escribiste.",
-    en: "Each style rearranges text and logo instantly. Details you already typed are kept.",
+    es: "Cada estilo reorganiza texto y logo al instante; tu información se conserva. Sigue refinando abajo cuando quieras.",
+    en: "Each look rearranges text and logo instantly while keeping your details—refine further below anytime.",
   },
   backgroundHeading: { es: "Color y fondo de la tarjeta", en: "Card color & background" },
   backgroundHelp: {
@@ -89,18 +89,18 @@ export const businessCardProductCopy = {
   },
   uploadOpenBuilder: { es: "Abrir constructor", en: "Open builder" },
   designIntakeCustomHint: {
-    es: "Estás en modo control total. Las plantillas siguen disponibles abajo si quieres reordenar el diseño.",
-    en: "You’re in full control mode. Templates below still apply a fresh layout when selected.",
+    es: "Controles completos de posición y tipografía activos. Las plantillas de abajo siguen disponibles; usa Refinamientos para imágenes y formas.",
+    en: "Full layout and typography controls are on. Templates below still apply when selected. Use Refinements for images and shapes.",
   },
   designIntakeTemplateHint: {
-    es: "Modo plantilla: toca una tarjeta para aplicar estilo, color y posición al instante.",
-    en: "Template mode: tap a card to apply layout, colors, and positions instantly.",
+    es: "Toca una tarjeta para aplicar un look Leonix al instante—tu información se mantiene. Refina abajo cuando quieras.",
+    en: "Tap a style to apply a Leonix look instantly—your details stay put. Refine below anytime.",
   },
   designIntakeLeoHint: {
-    es: "Borrador LEO: plantilla Leonix, color y jerarquía listos para impresión. Pulir es opcional; puedes pedir cuando esté bien.",
-    en: "LEO draft: Leonix layout, color, and print-ready hierarchy are in place. Polish if you like—order when it feels right.",
+    es: "LEO te dio el primer borrador. Sigue editando aquí: texto y logo arriba, refinamientos (imágenes y formas) en el panel inferior—mismo entorno, sin empezar de cero.",
+    en: "LEO gave you a strong first draft. Keep refining here: text and logo above, images and shapes in Refinements below—the same workspace, not a reset.",
   },
-  switchToCustomCta: { es: "Cambiar a control total (custom)", en: "Switch to full custom control" },
+  switchToCustomCta: { es: "Mostrar todos los controles de diseño", en: "Show full layout controls" },
 } as const;
 
 export function bcpPick<T>(v: { es: T; en: T }, lang: Lang): T {

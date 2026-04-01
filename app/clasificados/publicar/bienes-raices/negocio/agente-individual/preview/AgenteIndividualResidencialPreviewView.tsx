@@ -10,6 +10,13 @@ const MUTED = "#5C5346";
 const BRONZE = "#B8954A";
 const BORDER = "rgba(44, 36, 22, 0.12)";
 
+function anchorPropsForHref(href: string, downloadFallback?: string | null) {
+  if (href.startsWith("data:")) {
+    return { download: downloadFallback || "archivo.pdf" } as const;
+  }
+  return { target: "_blank" as const, rel: "noopener noreferrer" };
+}
+
 function EmptySlot({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div
@@ -130,14 +137,19 @@ export function AgenteIndividualResidencialPreviewView({
             <p className="mt-1 text-center text-xs font-semibold uppercase tracking-wide" style={{ color: BRONZE }}>
               {sb.title}
             </p>
-            {sb.marcaOficina ? (
-              <p className="mt-2 text-center text-sm" style={{ color: MUTED }}>
-                {sb.marcaOficina}
-              </p>
-            ) : null}
             {sb.bioLine ? (
               <p className="mt-3 text-center text-xs leading-relaxed" style={{ color: MUTED }}>
                 {sb.bioLine}
+              </p>
+            ) : null}
+            {sb.areaServicioLine ? (
+              <p className="mt-2 text-center text-xs" style={{ color: MUTED }}>
+                Área de servicio: {sb.areaServicioLine}
+              </p>
+            ) : null}
+            {sb.idiomasLine ? (
+              <p className="mt-1 text-center text-xs" style={{ color: MUTED }}>
+                Idiomas: {sb.idiomasLine}
               </p>
             ) : null}
             {sb.licenciaLine ? (
@@ -198,9 +210,9 @@ export function AgenteIndividualResidencialPreviewView({
                   WhatsApp
                 </a>
               ) : null}
-              {vm.cta.showEmail && vm.cta.emailHref ? (
-                <a href={vm.cta.emailHref} className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold">
-                  Enviar mensaje
+              {vm.cta.showSolicitarInformacion && vm.cta.solicitarInformacionHref ? (
+                <a href={vm.cta.solicitarInformacionHref} className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold">
+                  Solicitar información
                 </a>
               ) : null}
               {vm.cta.showProgramarVisita && vm.cta.visitaHref ? (
@@ -231,27 +243,38 @@ export function AgenteIndividualResidencialPreviewView({
               {vm.cta.showVerListado && vm.cta.verListadoHref ? (
                 <a
                   href={vm.cta.verListadoHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex w-full items-center justify-center rounded-xl border-2 py-2.5 text-xs font-bold"
                   style={{ borderColor: BRONZE, color: BRONZE }}
+                  {...anchorPropsForHref(vm.cta.verListadoHref, vm.cta.listadoDownloadName)}
                 >
                   Ver listado completo
+                </a>
+              ) : null}
+              {vm.cta.showVerMls && vm.cta.verMlsHref ? (
+                <a
+                  href={vm.cta.verMlsHref}
+                  className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
+                  {...anchorPropsForHref(vm.cta.verMlsHref, vm.cta.listadoDownloadName)}
+                >
+                  Ver MLS
                 </a>
               ) : null}
               {vm.cta.showVerTour && vm.cta.verTourHref ? (
                 <a
                   href={vm.cta.verTourHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
+                  {...anchorPropsForHref(vm.cta.verTourHref, "tour.pdf")}
                 >
-                  Ver recorrido
+                  Ver tour
                 </a>
               ) : null}
               {vm.cta.showVerFolleto && vm.cta.verFolletoHref ? (
-                <a href={vm.cta.verFolletoHref} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold">
-                  Ver folleto / PDF
+                <a
+                  href={vm.cta.verFolletoHref}
+                  className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
+                  {...anchorPropsForHref(vm.cta.verFolletoHref, "folleto.pdf")}
+                >
+                  Ver folleto
                 </a>
               ) : null}
             </div>
@@ -302,12 +325,11 @@ export function AgenteIndividualResidencialPreviewView({
               {m.tourHref ? (
                 <a
                   href={m.tourHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex aspect-[4/3] w-full flex-col items-center justify-center rounded-xl border text-center text-xs font-bold"
                   style={{ borderColor: BORDER, background: "#243a5e", color: "#fff" }}
+                  {...anchorPropsForHref(m.tourHref, "tour.pdf")}
                 >
-                  Tour / 360°
+                  Ver tour
                 </a>
               ) : (
                 <EmptySlot title="Tour" subtitle="Enlace o archivo." />

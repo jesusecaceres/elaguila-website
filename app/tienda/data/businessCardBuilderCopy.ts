@@ -58,20 +58,50 @@ export const businessCardBuilderCopy = {
   },
   nextTitle: { es: "Siguiente paso", en: "Next step" },
   nextBody: {
-    es: "Guardamos el diseño en este navegador y pasas a confirmar datos de contacto, entrega y envío del pedido a Leonix.",
-    en: "We save your design in this browser, then you confirm contact details, fulfillment, and submit the order to Leonix.",
+    es: "Guardamos el borrador en este navegador; después confirmas datos, entrega y envío a Leonix.",
+    en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix.",
   },
   previewHelp: {
-    es: "Toca una línea de texto o el logo. Mantén pulsado y arrastra para mover. Ajuste fino en el panel derecho.",
-    en: "Tap a line of text or the logo. Press and drag to move. Use the right panel for precise placement.",
+    es: "Toca una línea o el logo y arrastra. Imágenes y formas extra: en Refinamientos, abajo.",
+    en: "Tap a line or the logo and drag. Extra images and shapes: Refinements below.",
   },
   editingBanner: { es: "Editando", en: "Editing" },
-  saveContinue: { es: "Guardar diseño y continuar", en: "Save design & continue" },
+  saveContinue: { es: "Guardar borrador y continuar", en: "Save draft & continue" },
   tryAnotherLook: {
-    es: "Probar otro estilo (misma información)",
-    en: "Try another look (same details)",
+    es: "Probar otro look Leonix (misma información)",
+    en: "Try another Leonix look (same details)",
   },
   savedToast: { es: "Diseño guardado en este dispositivo.", en: "Design saved on this device." },
+  /** Panel: native layers + shapes/images (below the light editor card) */
+  refinementsSectionTitle: { es: "Refinamientos", en: "Refinements" },
+  refinementsSectionHint: {
+    es: "Una sola pila con la vista previa; el orden z coincide. Reordenar solo mueve lo que añades aquí.",
+    en: "One stack with the preview—z-order matches. Reorder only affects what you add here.",
+  },
+  refinementsTemplateGroup: { es: "Texto y logo del layout", en: "Layout text & logo" },
+  refinementsTemplateHelp: {
+    es: "Toca una capa o edita en la vista. El logo se controla en la sección de logo.",
+    en: "Tap a layer or edit on the preview. Logo controls stay in the logo section.",
+  },
+  refinementsAddedGroup: { es: "Lo que añades", en: "What you add" },
+  refinementsEmpty: {
+    es: "Aún no hay imágenes ni formas añadidas — usa los botones de arriba.",
+    en: "No images or shapes yet—use the buttons above.",
+  },
+  refinementsAddImage: { es: "+ Imagen", en: "+ Image" },
+  refinementsAddRect: { es: "+ Rectángulo", en: "+ Rectangle" },
+  refinementsAddEllipse: { es: "+ Elipse", en: "+ Ellipse" },
+  nativeInspectorTitle: { es: "Objeto añadido", en: "Added object" },
+  nativeInspectorHelp: {
+    es: "El texto y logo del layout se editan arriba. Adelante/atrás solo afecta a imágenes y formas de esta sección.",
+    en: "Layout text and logo are edited above. Forward/back only moves this added layer among other images and shapes here.",
+  },
+  nativeReorderTooltip: {
+    es: "Solo entre capas añadidas (texto y logo del layout: secciones de arriba).",
+    en: "Among added layers only (layout text and logo stay in the sections above).",
+  },
+  layerBadgeLayout: { es: "Layout", en: "Layout" },
+  layerBadgeAdded: { es: "Añadido", en: "Added" },
   fieldLabels: {
     personName: { es: "Nombre", en: "Name" },
     title: { es: "Puesto / título", en: "Title" },

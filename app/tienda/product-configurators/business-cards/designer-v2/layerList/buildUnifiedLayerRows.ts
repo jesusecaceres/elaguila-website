@@ -55,12 +55,12 @@ function labelForNative(
   shape?: "rect" | "ellipse"
 ): { labelEn: string; labelEs: string } {
   if (kind === "native-image") {
-    return { labelEn: "Image (studio)", labelEs: "Imagen (estudio)" };
+    return { labelEn: "Added image", labelEs: "Imagen añadida" };
   }
   const isEllipse = shape === "ellipse";
   return {
-    labelEn: isEllipse ? "Ellipse (studio)" : "Rectangle (studio)",
-    labelEs: isEllipse ? "Elipse (estudio)" : "Rectángulo (estudio)",
+    labelEn: isEllipse ? "Added ellipse" : "Added rectangle",
+    labelEs: isEllipse ? "Elipse añadida" : "Rectángulo añadido",
   };
 }
 

@@ -1,33 +1,28 @@
 /**
- * Mapa explícito campo → slot de preview (documentación; la lógica está en `mapAgenteIndividualResidencialToPreview`).
+ * Mapa explícito campo → slot de vista previa (documentación; la lógica está en `mapAgenteIndividualResidencialToPreview`).
  *
- * listing.titulo → hero.title
- * listing.tipoPublicacion → hero.operationLine
- * listing.ciudad + listing.areaCiudad + listing.direccion → hero.locationLine
- * listing.precio → hero.priceDisplay
- * listing.estadoAnuncio → hero.statusPill
- * detalles (recámaras, baños, tamanoInterior) → hero.quickFacts
- * detalles.* → propertyRows.*
- * destacados[*] → destacadosLabels[]
- * descripcionPrincipal → descripcion card
- * notasAdicionales → notas card
- * agente.fotoUrl → sidebar.photoUrl
- * agente.nombre → sidebar.name
- * agente.titulo → sidebar.title
- * agente.marcaOficina → sidebar.marcaOficina
- * agente.telefono → sidebar.phoneDisplay + CTA tel:/WhatsApp
- * agente.email → sidebar.email + mailto CTAs
- * agente.licencia → sidebar.licenciaLine
- * agente.sitioWeb → sidebar.websiteHref
- * agente.redes[] → sidebar.socialLinks
- * media.photoUrls + primaryImageIndex → media.heroUrl / secondaryUrls
- * media video/tour/brochure → media.videoEmbedUrl / tourHref / brochureHref
- * enlaceListado → cta.verListadoHref (si toggle)
- * cta.* + destinos anteriores → cta.* (sólo visible con href real)
- * extras → extras.* (módulos inferiores)
+ * tipoPublicacionFijo → hero.operationLine (fijo: «Venta residencial»)
+ * titulo → hero.title
+ * precio → hero.priceDisplay
+ * ciudad, areaCiudad, direccion → hero.locationLine
+ * estadoAnuncio → hero.statusPill
+ * recamaras, banos, tamanoInteriorSqft → hero.quickFacts
  *
- * No se muestran en preview: campos vacíos de extras opcionales (se omiten bloques).
+ * tipoPropiedadCodigo, tipoPropiedadOtro, subtipoPropiedad → propertyRows «Tipo de propiedad»
+ * detalle numérico / condicionPropiedad → propertyRows
+ *
+ * destacados[*] → destacadosLabels
+ * descripcionPrincipal, notasAdicionales → cuerpo de descripción
+ *
+ * agente* → sidebar (nombre, título, foto, licencia, bio, redes, sitio, área de servicio, idiomas)
+ *
+ * listadoUrl | listadoArchivoDataUrl → cta.verListadoHref / verMlsHref (si activos)
+ * tourUrl|tourDataUrl → cta.verTourHref; brochureUrl|brochureDataUrl → cta.verFolletoHref
+ *
+ * extras (open house, asesor, puntos, transporte) → extras.*
+ *
+ * Nota: `tipoPublicacion`/`enlaceListado`/`media`/`detalles`/`agente`/`cta`/`extras` anidados legacy
+ * se migran en `mergePartialAgenteIndividualResidencial` y no forman parte del estado nuevo.
  */
-
-export const PREVIEW_SLOT_MAP_NOTE =
+export const AGENTE_INDIVIDUAL_RESIDENCIAL_PREVIEW_SLOT_MAP_NOTE =
   "agente-individual/residencial: ver comentarios en este archivo y en mapAgenteIndividualResidencialToPreview.ts";

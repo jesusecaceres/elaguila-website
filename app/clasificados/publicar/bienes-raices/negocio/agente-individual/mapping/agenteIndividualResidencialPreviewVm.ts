@@ -4,7 +4,7 @@
 
 export type AgenteResHeroVm = {
   title: string;
-  /** Venta vs renta residencial. */
+  /** Siempre venta residencial en esta variante. */
   operationLine: string;
   locationLine: string;
   priceDisplay: string;
@@ -16,7 +16,6 @@ export type AgenteResSidebarVm = {
   photoUrl: string | null;
   name: string;
   title: string;
-  marcaOficina: string;
   bioLine: string;
   phoneDisplay: string;
   email: string;
@@ -24,6 +23,8 @@ export type AgenteResSidebarVm = {
   websiteLabel: string;
   socialLinks: Array<{ label: string; href: string }>;
   licenciaLine: string;
+  areaServicioLine: string;
+  idiomasLine: string;
 };
 
 export type AgenteResMediaVm = {
@@ -43,8 +44,8 @@ export type AgenteResCtaVm = {
   llamarHref: string | null;
   showWhatsapp: boolean;
   whatsappHref: string | null;
-  showEmail: boolean;
-  emailHref: string | null;
+  showSolicitarInformacion: boolean;
+  solicitarInformacionHref: string | null;
   showProgramarVisita: boolean;
   visitaHref: string | null;
   showVerSitioWeb: boolean;
@@ -53,6 +54,9 @@ export type AgenteResCtaVm = {
   primeraRedHref: string | null;
   showVerListado: boolean;
   verListadoHref: string | null;
+  listadoDownloadName: string | null;
+  showVerMls: boolean;
+  verMlsHref: string | null;
   showVerTour: boolean;
   verTourHref: string | null;
   showVerFolleto: boolean;

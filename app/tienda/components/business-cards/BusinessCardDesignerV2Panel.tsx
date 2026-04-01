@@ -5,6 +5,7 @@ import type { Lang } from "../../types/tienda";
 import type { BusinessCardBuilderAction } from "../../product-configurators/business-cards/businessCardBuilderReducer";
 import type { BusinessCardDocument, BusinessCardSide } from "../../product-configurators/business-cards/types";
 import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constants";
+import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { buildUnifiedLayerRows } from "../../product-configurators/business-cards/designer-v2/layerList/buildUnifiedLayerRows";
 import { compressStudioImageDataUrl } from "../../product-configurators/business-cards/designer-v2/utils/compressStudioImage";
 import {
@@ -162,7 +163,9 @@ export function BusinessCardDesignerV2Panel(props: {
                 row.layerSource === "template" ? "bg-[rgba(255,255,255,0.08)] text-[rgba(255,247,226,0.65)]" : "bg-[rgba(201,168,74,0.2)] text-[rgba(201,168,74,0.95)]",
               ].join(" ")}
             >
-              {row.layerSource === "template" ? (lg === "en" ? "Tpl" : "Plt") : lg === "en" ? "Studio" : "Estudio"}
+              {row.layerSource === "template"
+                ? bcPick(businessCardBuilderCopy.layerBadgeLayout, lang)
+                : bcPick(businessCardBuilderCopy.layerBadgeAdded, lang)}
             </span>
             <span className="truncate text-[rgba(255,247,226,0.92)]">{row.displayLabel}</span>
             {row.locked ? (
@@ -184,12 +187,10 @@ export function BusinessCardDesignerV2Panel(props: {
     <section className="mt-6 rounded-2xl border border-[rgba(201,168,74,0.22)] bg-[rgba(201,168,74,0.06)] p-4 sm:p-5">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-sm font-semibold text-[rgba(255,247,226,0.95)]">
-          {lg === "en" ? "Design layers" : "Capas del diseño"}
+          {bcPick(businessCardBuilderCopy.refinementsSectionTitle, lang)}
         </h3>
         <span className="text-[11px] text-[rgba(255,255,255,0.45)]">
-          {lg === "en"
-            ? "One stack: z-order matches the preview. Studio reorder moves only studio items."
-            : "Una pila: el z-order coincide con la vista. Reordenar en estudio solo mueve objetos de estudio."}
+          {bcPick(businessCardBuilderCopy.refinementsSectionHint, lang)}
         </span>
       </div>
 
@@ -200,21 +201,21 @@ export function BusinessCardDesignerV2Panel(props: {
           onClick={() => fileRef.current?.click()}
           className="rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.06)] px-3 py-1.5 text-xs font-medium hover:bg-[rgba(255,255,255,0.1)]"
         >
-          {lg === "en" ? "+ Studio image" : "+ Imagen estudio"}
+          {bcPick(businessCardBuilderCopy.refinementsAddImage, lang)}
         </button>
         <button
           type="button"
           onClick={addRect}
           className="rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.06)] px-3 py-1.5 text-xs font-medium hover:bg-[rgba(255,255,255,0.1)]"
         >
-          {lg === "en" ? "+ Rectangle" : "+ Rectángulo"}
+          {bcPick(businessCardBuilderCopy.refinementsAddRect, lang)}
         </button>
         <button
           type="button"
           onClick={addEllipse}
           className="rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.06)] px-3 py-1.5 text-xs font-medium hover:bg-[rgba(255,255,255,0.1)]"
         >
-          {lg === "en" ? "+ Ellipse" : "+ Elipse"}
+          {bcPick(businessCardBuilderCopy.refinementsAddEllipse, lang)}
         </button>
       </div>
 
@@ -222,12 +223,10 @@ export function BusinessCardDesignerV2Panel(props: {
         {templateRows.length > 0 ? (
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.42)]">
-              {lg === "en" ? "Leonix template" : "Plantilla Leonix"}
+              {bcPick(businessCardBuilderCopy.refinementsTemplateGroup, lang)}
             </p>
             <p className="mb-2 text-[10px] text-[rgba(255,255,255,0.35)]">
-              {lg === "en"
-                ? "Text blocks: click to edit on canvas. Logo: use logo section. Order vs studio layers is by z (see numbers)."
-                : "Bloques de texto: clic para editar en la vista. Logo: sección de logo. El orden frente a estudio es por z."}
+              {bcPick(businessCardBuilderCopy.refinementsTemplateHelp, lang)}
             </p>
             <ul className="space-y-1.5">{templateRows.map((r) => renderRow(r))}</ul>
           </div>
@@ -236,13 +235,13 @@ export function BusinessCardDesignerV2Panel(props: {
         {studioRows.length > 0 ? (
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[rgba(201,168,74,0.55)]">
-              {lg === "en" ? "Studio (your additions)" : "Estudio (tus añadidos)"}
+              {bcPick(businessCardBuilderCopy.refinementsAddedGroup, lang)}
             </p>
             <ul className="space-y-1.5">{studioRows.map((r) => renderRow(r))}</ul>
           </div>
         ) : (
           <p className="text-[11px] text-[rgba(255,255,255,0.35)]">
-            {lg === "en" ? "No studio layers yet — add an image or shape above." : "Aún no hay capas de estudio — añade imagen o forma arriba."}
+            {bcPick(businessCardBuilderCopy.refinementsEmpty, lang)}
           </p>
         )}
       </div>

@@ -1,10 +1,10 @@
 import type { Lang } from "../types/tienda";
 
 export const leoAssistCopy = {
-  pageTitle: { es: "LEO — borrador guiado Leonix", en: "LEO — Leonix guided draft" },
+  pageTitle: { es: "LEO — tu arranque Leonix", en: "LEO — your Leonix start" },
   pageSubtitle: {
-    es: "Pocas preguntas, un layout Leonix alineado a tu negocio y un borrador premium listo en el constructor.",
-    en: "A short intake, a Leonix layout tuned to your business, and a polished first draft in the builder.",
+    es: "Pocas preguntas, un layout Leonix alineado a tu negocio y un borrador listo para refinar en el mismo editor.",
+    en: "A short intake, a Leonix layout tuned to your business, and a draft ready to refine in the same editor.",
   },
   backLink: { es: "Volver al producto", en: "Back to product" },
   progress: { es: "Paso", en: "Step" },
@@ -16,7 +16,7 @@ export const leoAssistCopy = {
   },
   next: { es: "Siguiente", en: "Next" },
   back: { es: "Atrás", en: "Back" },
-  finish: { es: "Ver borrador en el constructor", en: "Review draft in builder" },
+  finish: { es: "Refinar en el editor", en: "Refine in editor" },
   step1Title: { es: "Tu negocio", en: "Your business" },
   step2Title: { es: "Contacto", en: "Contact" },
   step3Title: { es: "Estilo y reverso", en: "Style & back" },

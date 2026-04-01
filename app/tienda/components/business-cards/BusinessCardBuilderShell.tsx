@@ -389,8 +389,8 @@ export function BusinessCardBuilderShell(props: {
             {!validation.hasBlockingContentIssues && !validation.approvalComplete ? (
               <p className="mt-2 text-sm text-[rgba(201,168,74,0.85)]">
                 {lang === "en"
-                  ? "Complete the checklist above to enable save & continue."
-                  : "Completa la lista de verificación para activar guardar y continuar."}
+                  ? "Complete the checklist above to enable save draft & continue."
+                  : "Completa la lista de verificación para activar guardar borrador y continuar."}
               </p>
             ) : null}
             <div className="mt-4 flex flex-col sm:flex-row gap-3">

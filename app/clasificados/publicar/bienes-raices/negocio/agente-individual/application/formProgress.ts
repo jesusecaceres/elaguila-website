@@ -8,11 +8,11 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
   const e = createEmptyAgenteIndividualResidencialState();
   if (st(state.titulo) !== e.titulo) return true;
   if (st(state.precio) || st(state.ciudad) || st(state.areaCiudad) || st(state.direccion)) return true;
-  if (st(state.enlaceListado)) return true;
-  if (state.media.photoUrls.some((u) => st(u))) return true;
-  if (st(state.media.videoUrl) || st(state.media.videoDataUrl) || st(state.media.tourUrl) || st(state.media.brochureUrl))
+  if (st(state.listadoUrl) || st(state.listadoArchivoDataUrl)) return true;
+  if (state.fotosDataUrls.some((u) => st(u))) return true;
+  if (st(state.videoUrl) || st(state.videoDataUrl) || st(state.tourUrl) || st(state.tourDataUrl) || st(state.brochureUrl) || st(state.brochureDataUrl))
     return true;
-  if (st(state.agente.nombre) || st(state.agente.email)) return true;
+  if (st(state.agenteNombre) || st(state.agenteEmail)) return true;
   if (st(state.descripcionPrincipal)) return true;
   return false;
 }

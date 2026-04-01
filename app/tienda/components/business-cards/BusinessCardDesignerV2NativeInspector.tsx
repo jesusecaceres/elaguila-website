@@ -14,6 +14,7 @@ import {
   clampNativeStrokeWidthPx,
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import { withStrokeColorIfWidthActive } from "../../product-configurators/business-cards/designer-v2/studio/nativeShapeStroke";
+import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 
 function num(v: string): number {
   const n = Number(v);
@@ -50,12 +51,10 @@ export function BusinessCardDesignerV2NativeInspector(props: {
     <div className="mt-4 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.2)] p-3 space-y-3">
       <div>
         <p className="text-[11px] font-medium text-[rgba(201,168,74,0.9)]">
-          {lg === "en" ? "Studio object" : "Objeto de estudio"}
+          {bcPick(businessCardBuilderCopy.nativeInspectorTitle, lg)}
         </p>
         <p className="mt-1 text-[10px] text-[rgba(255,255,255,0.38)] leading-snug">
-          {lg === "en"
-            ? "Template text and logo use the editor above. Forward/back only moves this studio layer among other studio images and shapes."
-            : "El texto y logo de plantilla se editan arriba. Adelante/atrás solo mueve esta capa entre imágenes y formas de estudio."}
+          {bcPick(businessCardBuilderCopy.nativeInspectorHelp, lg)}
         </p>
       </div>
 
@@ -109,11 +108,7 @@ export function BusinessCardDesignerV2NativeInspector(props: {
           type="button"
           disabled={locked}
           className="rounded-md border border-[rgba(255,255,255,0.14)] px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40"
-          title={
-            lg === "en"
-              ? "Among studio layers only (not template text/logo)"
-              : "Solo entre capas de estudio (no texto/logo de plantilla)"
-          }
+          title={bcPick(businessCardBuilderCopy.nativeReorderTooltip, lg)}
           onClick={() => dispatch({ type: "V2_REORDER_NATIVE_OBJECT", side, id: selected.id, delta: 1 })}
         >
           {lg === "en" ? "Forward" : "Al frente"}
@@ -122,11 +117,7 @@ export function BusinessCardDesignerV2NativeInspector(props: {
           type="button"
           disabled={locked}
           className="rounded-md border border-[rgba(255,255,255,0.14)] px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40"
-          title={
-            lg === "en"
-              ? "Among studio layers only (not template text/logo)"
-              : "Solo entre capas de estudio (no texto/logo de plantilla)"
-          }
+          title={bcPick(businessCardBuilderCopy.nativeReorderTooltip, lg)}
           onClick={() => dispatch({ type: "V2_REORDER_NATIVE_OBJECT", side, id: selected.id, delta: -1 })}
         >
           {lg === "en" ? "Backward" : "Atrás"}

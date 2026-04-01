@@ -45,7 +45,7 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
         </div>
       </section>
 
-      {/* Secondary paths: manual template, production upload, advanced builder */}
+      {/* Same editor after entry: template library, print-ready upload, or full layout entry */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
         <div className="flex min-h-[260px] flex-col rounded-2xl border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] p-6">
           <span className="inline-flex self-start rounded-full border border-[rgba(255,255,255,0.22)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(255,247,226,0.78)]">
