@@ -31,6 +31,21 @@ function EmptySlot({ title, subtitle }: { title: string; subtitle: string }) {
   );
 }
 
+function SocialIcon({ label, href }: { label: string; href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-[10px] font-bold"
+      style={{ borderColor: BORDER, color: CHARCOAL }}
+      title={label}
+    >
+      {label}
+    </a>
+  );
+}
+
 export function AgenteIndividualResidencialPreviewView({
   vm,
   editHref,
@@ -43,8 +58,10 @@ export function AgenteIndividualResidencialPreviewView({
   onBeforeNavigateToEdit?: () => void;
 }) {
   const h = vm.hero;
-  const sb = vm.sidebar;
+  const pc = vm.professionalCard;
+  const soc = vm.social;
   const m = vm.media;
+  const cr = vm.contactRail;
   const mapsUrl = vm.extras.mapQuery
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vm.extras.mapQuery)}`
     : null;
@@ -80,7 +97,6 @@ export function AgenteIndividualResidencialPreviewView({
           Vista previa del anuncio
         </p>
 
-        {/* 1 Hero + rail */}
         <section className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px] lg:items-start">
           <div>
             <h1
@@ -121,87 +137,98 @@ export function AgenteIndividualResidencialPreviewView({
             </div>
           </div>
 
-          {/* Right rail */}
           <aside className="rounded-2xl border p-5 shadow-lg" style={{ borderColor: BORDER, background: CREAM }}>
-            <div className="mx-auto w-full max-w-[220px]">
-              {sb.photoUrl ? (
+            {pc.brandLogoUrl ? (
+              <div className="mx-auto mb-3 flex max-w-[180px] justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={pc.brandLogoUrl} alt="" className="max-h-16 w-auto object-contain" />
+              </div>
+            ) : null}
+            {pc.brandName ? (
+              <p className="text-center text-sm font-bold" style={{ color: MUTED }}>
+                {pc.brandName}
+              </p>
+            ) : null}
+            {pc.brandWebsiteHref ? (
+              <a
+                href={pc.brandWebsiteHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex w-full justify-center text-center text-xs font-semibold underline"
+                style={{ color: BRONZE }}
+              >
+                Sitio web
+              </a>
+            ) : null}
+
+            <div className="mx-auto mt-4 w-full max-w-[220px]">
+              {pc.agentPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={sb.photoUrl} alt="" className="mx-auto aspect-square w-full max-h-56 rounded-2xl object-cover" />
+                <img src={pc.agentPhotoUrl} alt="" className="mx-auto aspect-square w-full max-h-56 rounded-2xl object-cover" />
               ) : (
                 <div className="flex aspect-square w-full items-center justify-center rounded-2xl border text-xs" style={{ borderColor: BORDER, color: MUTED }}>
                   Foto del agente
                 </div>
               )}
             </div>
-            <p className="mt-4 text-center text-lg font-bold">{sb.name}</p>
+            <p className="mt-4 text-center text-lg font-bold">{pc.agentName}</p>
             <p className="mt-1 text-center text-xs font-semibold uppercase tracking-wide" style={{ color: BRONZE }}>
-              {sb.title}
+              {pc.agentTitle}
             </p>
-            {sb.bioLine ? (
+            {pc.agentBio ? (
               <p className="mt-3 text-center text-xs leading-relaxed" style={{ color: MUTED }}>
-                {sb.bioLine}
+                {pc.agentBio}
               </p>
             ) : null}
-            {sb.areaServicioLine ? (
+            {pc.areaServicioLine ? (
               <p className="mt-2 text-center text-xs" style={{ color: MUTED }}>
-                Área de servicio: {sb.areaServicioLine}
+                Área de servicio: {pc.areaServicioLine}
               </p>
             ) : null}
-            {sb.idiomasLine ? (
+            {pc.idiomasLine ? (
               <p className="mt-1 text-center text-xs" style={{ color: MUTED }}>
-                Idiomas: {sb.idiomasLine}
+                Idiomas: {pc.idiomasLine}
               </p>
             ) : null}
-            {sb.licenciaLine ? (
+            {pc.agentLicenseLine ? (
               <p className="mt-3 text-center text-xs" style={{ color: MUTED }}>
-                {sb.licenciaLine}
+                {pc.agentLicenseLine}
+              </p>
+            ) : null}
+            {pc.brandLicenseLine ? (
+              <p className="mt-3 text-center text-xs" style={{ color: MUTED }}>
+                {pc.brandLicenseLine}
               </p>
             ) : null}
             <div className="mt-4 space-y-1 border-t pt-4 text-center text-sm" style={{ borderColor: BORDER }}>
-              <p className="font-medium">{sb.phoneDisplay}</p>
-              <p className="truncate text-xs opacity-90">{sb.email}</p>
+              <p className="font-medium">{pc.phoneDisplay}</p>
+              <p className="truncate text-xs opacity-90">{pc.emailDisplay}</p>
             </div>
-            {sb.websiteHref && (
-              <a
-                href={sb.websiteHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 flex w-full items-center justify-center rounded-xl border py-2.5 text-xs font-bold"
-                style={{ borderColor: BRONZE, color: BRONZE }}
-              >
-                {sb.websiteLabel}
-              </a>
-            )}
-            {sb.socialLinks.length > 0 ? (
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {sb.socialLinks.map((s) => (
-                  <a
-                    key={s.href}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-9 min-w-[2rem] items-center justify-center rounded-full border px-2.5 text-[10px] font-bold"
-                    style={{ borderColor: BORDER }}
-                  >
-                    {s.label}
-                  </a>
-                ))}
+
+            {cr.showSocialIcons ? (
+              <div className="mt-4 flex flex-wrap justify-center gap-2 border-t pt-4" style={{ borderColor: BORDER }}>
+                {soc.instagram ? <SocialIcon label="IG" href={soc.instagram} /> : null}
+                {soc.facebook ? <SocialIcon label="FB" href={soc.facebook} /> : null}
+                {soc.youtube ? <SocialIcon label="YT" href={soc.youtube} /> : null}
+                {soc.tiktok ? <SocialIcon label="TT" href={soc.tiktok} /> : null}
+                {soc.x ? <SocialIcon label="X" href={soc.x} /> : null}
+                {soc.otro ? <SocialIcon label="+" href={soc.otro} /> : null}
               </div>
             ) : null}
 
             <div className="mt-5 space-y-2 border-t pt-4" style={{ borderColor: BORDER }}>
-              {vm.cta.showLlamar && vm.cta.llamarHref ? (
+              {cr.showLlamar && cr.llamarHref ? (
                 <a
-                  href={vm.cta.llamarHref}
+                  href={cr.llamarHref}
                   className="flex w-full items-center justify-center rounded-xl py-3 text-sm font-bold text-[#1E1810] shadow"
                   style={{ background: `linear-gradient(180deg, #C9A85A 0%, ${BRONZE} 100%)` }}
                 >
                   Llamar ahora
                 </a>
               ) : null}
-              {vm.cta.showWhatsapp && vm.cta.whatsappHref ? (
+              {cr.showWhatsapp && cr.whatsappHref ? (
                 <a
-                  href={vm.cta.whatsappHref}
+                  href={cr.whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold"
@@ -210,19 +237,23 @@ export function AgenteIndividualResidencialPreviewView({
                   WhatsApp
                 </a>
               ) : null}
-              {vm.cta.showSolicitarInformacion && vm.cta.solicitarInformacionHref ? (
-                <a href={vm.cta.solicitarInformacionHref} className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold">
+              {cr.showSolicitarInformacion && cr.solicitarInformacionHref ? (
+                <a href={cr.solicitarInformacionHref} className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold">
                   Solicitar información
                 </a>
               ) : null}
-              {vm.cta.showProgramarVisita && vm.cta.visitaHref ? (
-                <a href={vm.cta.visitaHref} className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold">
+              {cr.showProgramarVisita && cr.programarVisitaHref ? (
+                <a
+                  href={cr.programarVisitaHref}
+                  className="flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold"
+                  {...(cr.programarVisitaHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                >
                   Programar visita
                 </a>
               ) : null}
-              {vm.cta.showVerSitioWeb && vm.cta.verSitioHref ? (
+              {cr.showVerSitioWeb && cr.verSitioWebHref ? (
                 <a
-                  href={vm.cta.verSitioHref}
+                  href={cr.verSitioWebHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
@@ -230,49 +261,39 @@ export function AgenteIndividualResidencialPreviewView({
                   Ver sitio web
                 </a>
               ) : null}
-              {vm.cta.showVerRedes && vm.cta.primeraRedHref ? (
+              {cr.showVerListado && cr.verListadoHref ? (
                 <a
-                  href={vm.cta.primeraRedHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
-                >
-                  Ver redes
-                </a>
-              ) : null}
-              {vm.cta.showVerListado && vm.cta.verListadoHref ? (
-                <a
-                  href={vm.cta.verListadoHref}
+                  href={cr.verListadoHref}
                   className="flex w-full items-center justify-center rounded-xl border-2 py-2.5 text-xs font-bold"
                   style={{ borderColor: BRONZE, color: BRONZE }}
-                  {...anchorPropsForHref(vm.cta.verListadoHref, vm.cta.listadoDownloadName)}
+                  {...anchorPropsForHref(cr.verListadoHref, cr.listadoDownloadName)}
                 >
                   Ver listado completo
                 </a>
               ) : null}
-              {vm.cta.showVerMls && vm.cta.verMlsHref ? (
+              {cr.showVerMls && cr.verMlsHref ? (
                 <a
-                  href={vm.cta.verMlsHref}
+                  href={cr.verMlsHref}
                   className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
-                  {...anchorPropsForHref(vm.cta.verMlsHref, vm.cta.listadoDownloadName)}
+                  {...anchorPropsForHref(cr.verMlsHref, cr.listadoDownloadName)}
                 >
                   Ver MLS
                 </a>
               ) : null}
-              {vm.cta.showVerTour && vm.cta.verTourHref ? (
+              {cr.showVerTour && cr.verTourHref ? (
                 <a
-                  href={vm.cta.verTourHref}
+                  href={cr.verTourHref}
                   className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
-                  {...anchorPropsForHref(vm.cta.verTourHref, "tour.pdf")}
+                  {...anchorPropsForHref(cr.verTourHref, "tour.pdf")}
                 >
                   Ver tour
                 </a>
               ) : null}
-              {vm.cta.showVerFolleto && vm.cta.verFolletoHref ? (
+              {cr.showVerFolleto && cr.verFolletoHref ? (
                 <a
-                  href={vm.cta.verFolletoHref}
+                  href={cr.verFolletoHref}
                   className="flex w-full items-center justify-center rounded-xl border py-2 text-xs font-bold"
-                  {...anchorPropsForHref(vm.cta.verFolletoHref, "folleto.pdf")}
+                  {...anchorPropsForHref(cr.verFolletoHref, "folleto.pdf")}
                 >
                   Ver folleto
                 </a>
@@ -281,7 +302,6 @@ export function AgenteIndividualResidencialPreviewView({
           </aside>
         </section>
 
-        {/* Media grid */}
         <section className="mt-10">
           <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
             Galería
@@ -343,7 +363,6 @@ export function AgenteIndividualResidencialPreviewView({
           ) : null}
         </section>
 
-        {/* Property + destacados */}
         <section className="mt-10 grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border p-6 shadow-sm" style={{ borderColor: BORDER, background: CREAM }}>
             <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
@@ -381,7 +400,6 @@ export function AgenteIndividualResidencialPreviewView({
           </div>
         </section>
 
-        {/* Descripción */}
         <section className="mt-8 rounded-2xl border p-6 shadow-sm" style={{ borderColor: BORDER, background: CREAM }}>
           <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
             Descripción
@@ -405,12 +423,7 @@ export function AgenteIndividualResidencialPreviewView({
           ) : null}
         </section>
 
-        {/* Lower optional */}
-        {(vm.extras.openHouseSummary ||
-          vm.extras.asesorBlock ||
-          vm.extras.puntosCercanos ||
-          vm.extras.transporte ||
-          mapsUrl) && (
+        {(vm.extras.openHouseSummary || vm.extras.asesorBlock || mapsUrl) && (
           <section className="mt-10 space-y-6">
             <h2 className="text-center text-lg font-bold" style={{ fontFamily: "Georgia, serif" }}>
               Más información
@@ -432,15 +445,6 @@ export function AgenteIndividualResidencialPreviewView({
                   <p className="mt-2 text-sm font-semibold">{vm.extras.asesorBlock.name}</p>
                   <p className="text-sm">{vm.extras.asesorBlock.phone}</p>
                   <p className="truncate text-xs">{vm.extras.asesorBlock.email}</p>
-                </div>
-              ) : null}
-              {vm.extras.puntosCercanos || vm.extras.transporte ? (
-                <div className="rounded-2xl border p-5 lg:col-span-2" style={{ borderColor: BORDER, background: CREAM }}>
-                  <h4 className="text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>
-                    Entorno
-                  </h4>
-                  {vm.extras.puntosCercanos ? <p className="mt-2 text-sm">Puntos cercanos: {vm.extras.puntosCercanos}</p> : null}
-                  {vm.extras.transporte ? <p className="mt-2 text-sm">Transporte: {vm.extras.transporte}</p> : null}
                 </div>
               ) : null}
               {mapsUrl ? (

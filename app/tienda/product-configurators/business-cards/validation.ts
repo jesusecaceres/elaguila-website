@@ -16,8 +16,14 @@ function hasContact(side: BusinessCardDocument["front"]): boolean {
   return [f.phone, f.email, f.website, f.address].some((s) => s.trim().length > 0);
 }
 
-/** True when this side has nothing meaningful to print (fields, logo, or visible text blocks). */
+/** Visible Studio/native layers count as printable content on that side. */
+function sideHasVisibleNativeObjects(side: BusinessCardDocument["front"]): boolean {
+  return (side.designerV2NativeObjects ?? []).some((o) => o.visible);
+}
+
+/** True when this side has nothing meaningful to print (fields, logo, visible text blocks, or visible native layers). */
 function sideHasRenderableContent(side: BusinessCardDocument["front"]): boolean {
+  if (sideHasVisibleNativeObjects(side)) return true;
   if (side.logo.file || side.logo.previewUrl) return true;
   if (Object.values(side.fields).some((v) => v.trim().length > 0)) return true;
   for (const b of side.textBlocks) {

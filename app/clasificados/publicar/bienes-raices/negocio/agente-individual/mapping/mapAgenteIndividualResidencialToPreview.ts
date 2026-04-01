@@ -1,5 +1,16 @@
 /**
- * Único mapper: formulario → VM de vista previa (estructura fija por slots).
+ * Único mapper: formulario → VM (plantilla primero).
+ *
+ * Respaldos intencionales (solo si el campo dedicado va vacío):
+ * - Llamar: ctaNumeroLlamadas → telefonoPrincipal
+ * - WhatsApp: ctaNumeroWhatsapp → telefonoPrincipal
+ * - Solicitar información (mailto): ctaCorreoSolicitarInfo → correoPrincipal
+ * - Ver sitio web: ctaEnlaceSitioWeb → marcaSitioWeb
+ * - Ver listado completo: ctaUrlListadoCompleto → listado de información básica (URL o data)
+ * - Ver MLS: ctaUrlMls → ctaUrlListadoCompleto → listado básico
+ * - Ver tour: ctaUrlTour → tour de galería (paso medios)
+ * - Ver folleto: ctaUrlFolleto → folleto de galería
+ * Programar visita: solo ctaEnlaceProgramarVisita (sin mailto automático).
  */
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AGENTE_RES_DESTACADOS_DEFS } from "../schema/agenteIndividualResidencialFormState";
@@ -36,13 +47,21 @@ function hrefFromUserInput(t: string): string | null {
   return null;
 }
 
-/** URL o data URL de listado (enlace o archivo subido). */
-function listadoDestinoHref(s: AgenteIndividualResidencialFormState): string | null {
+/** URL o archivo del bloque «información básica» (listado de la propiedad). */
+function listadoBloqueHref(s: AgenteIndividualResidencialFormState): string | null {
   const url = hrefFromUserInput(s.listadoUrl);
   if (url) return url;
   const f = trim(s.listadoArchivoDataUrl);
   if (f.startsWith("data:")) return f;
   return null;
+}
+
+function resolveAnyHref(raw: string): string | null {
+  const t = trim(raw);
+  if (!t) return null;
+  if (t.startsWith("data:")) return t;
+  if (t.startsWith("mailto:")) return t;
+  return hrefFromUserInput(t);
 }
 
 function formatPrice(raw: string): string {
@@ -78,34 +97,6 @@ function buildWhatsappHref(phoneDigits: string, msg: string): string | null {
   return `https://wa.me/1${d}?text=${encodeURIComponent(text)}`;
 }
 
-function socialChipLabel(raw: string): string {
-  const s = trim(raw);
-  if (!s) return "";
-  const asUrl = hrefFromUserInput(s);
-  if (asUrl) {
-    try {
-      const host = new URL(asUrl).hostname.replace(/^www\./, "");
-      const base = host.split(".")[0] ?? host;
-      return base.slice(0, 3).toUpperCase();
-    } catch {
-      return s.slice(0, 8);
-    }
-  }
-  return s.length > 10 ? `${s.slice(0, 8)}…` : s;
-}
-
-function buildSocialLinksFromText(block: string): Array<{ label: string; href: string }> {
-  const lines = block.split(/\r?\n/).map(trim).filter(Boolean);
-  const out: Array<{ label: string; href: string }> = [];
-  for (const raw of lines) {
-    const href = hrefFromUserInput(raw);
-    if (!href) continue;
-    const label = socialChipLabel(raw);
-    if (label) out.push({ label, href });
-  }
-  return out.slice(0, 5);
-}
-
 function normalizeStatus(s: AgenteIndividualResidencialFormState): string {
   const st = s.estadoAnuncio;
   return STATUS_LABEL[st] ?? STATUS_LABEL.disponible;
@@ -116,16 +107,17 @@ function videoPlayableUrl(state: AgenteIndividualResidencialFormState): string |
   return u || null;
 }
 
-function tourHref(state: AgenteIndividualResidencialFormState): string | null {
+/** Galería: tour desde medios del paso «Fotos y medios». */
+function tourMediaHref(state: AgenteIndividualResidencialFormState): string | null {
   const u = trim(state.tourUrl) || trim(state.tourDataUrl);
   if (!u) return null;
-  return hrefFromUserInput(u) ?? (u.startsWith("data:") ? u : null);
+  return resolveAnyHref(u);
 }
 
-function brochureHref(state: AgenteIndividualResidencialFormState): string | null {
+function brochureMediaHref(state: AgenteIndividualResidencialFormState): string | null {
   const u = trim(state.brochureUrl) || trim(state.brochureDataUrl);
   if (!u) return null;
-  return hrefFromUserInput(u) ?? (u.startsWith("data:") ? u : null);
+  return resolveAnyHref(u);
 }
 
 function formatTipoPropiedadDisplay(s: AgenteIndividualResidencialFormState): string {
@@ -135,10 +127,74 @@ function formatTipoPropiedadDisplay(s: AgenteIndividualResidencialFormState): st
   if (s.tipoPropiedadCodigo === "otro") {
     sub = trim(s.subtipoPropiedad);
   } else {
-    const lab = labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
-    sub = lab;
+    sub = labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
   }
   return [base, sub].filter(Boolean).join(" · ") || "—";
+}
+
+/** Teléfono dedicado a CTA «Llamar»; si vacío → teléfono principal de tarjeta. */
+function numeroParaLlamar(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.ctaNumeroLlamadas) || trim(s.telefonoPrincipal);
+}
+
+/** WhatsApp dedicado; si vacío → teléfono principal. */
+function numeroParaWhatsapp(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.ctaNumeroWhatsapp) || trim(s.telefonoPrincipal);
+}
+
+/** Correo dedicado a «Solicitar información»; si vacío → correo principal. */
+function correoSolicitarInfo(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.ctaCorreoSolicitarInfo) || trim(s.correoPrincipal);
+}
+
+/**
+ * Listado completo (CTA): campo dedicado; si vacío → mismo destino que el bloque de listado de la propiedad.
+ * (Evita obligar a duplicar URL si ya está en «Información básica».)
+ */
+function hrefListadoCompleto(s: AgenteIndividualResidencialFormState): string | null {
+  const direct = resolveAnyHref(s.ctaUrlListadoCompleto);
+  if (direct) return direct;
+  return listadoBloqueHref(s);
+}
+
+/**
+ * MLS (CTA): campo dedicado; si vacío → listado completo (CTA ya resuelto); si aún vacío → bloque listado.
+ */
+function hrefMls(s: AgenteIndividualResidencialFormState): string | null {
+  const direct = resolveAnyHref(s.ctaUrlMls);
+  if (direct) return direct;
+  const listadoCta = resolveAnyHref(s.ctaUrlListadoCompleto);
+  if (listadoCta) return listadoCta;
+  return listadoBloqueHref(s);
+}
+
+/** Tour (CTA): campo dedicado; si vacío → tour de la galería (medios). */
+function hrefTourCta(s: AgenteIndividualResidencialFormState): string | null {
+  const direct = resolveAnyHref(s.ctaUrlTour);
+  if (direct) return direct;
+  return tourMediaHref(s);
+}
+
+/** Folleto (CTA): campo dedicado; si vacío → folleto de la galería. */
+function hrefFolletoCta(s: AgenteIndividualResidencialFormState): string | null {
+  const direct = resolveAnyHref(s.ctaUrlFolleto);
+  if (direct) return direct;
+  return brochureMediaHref(s);
+}
+
+/**
+ * Sitio web (CTA): enlace dedicado; si vacío → sitio de marca (tarjeta).
+ */
+function hrefSitioWebCta(s: AgenteIndividualResidencialFormState): string | null {
+  const direct = hrefFromUserInput(s.ctaEnlaceSitioWeb);
+  if (direct) return direct;
+  return hrefFromUserInput(s.marcaSitioWeb);
+}
+
+function listadoDownloadName(s: AgenteIndividualResidencialFormState): string | null {
+  const h = hrefListadoCompleto(s);
+  if (!h?.startsWith("data:")) return null;
+  return trim(s.listadoArchivoNombre) || null;
 }
 
 export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialPreviewVm {
@@ -174,30 +230,41 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
     if (s.destacados?.[def.id]) destacadosLabels.push(def.label);
   }
 
-  const site = hrefFromUserInput(s.agenteSitioWeb);
-  const redesParsed = buildSocialLinksFromText(s.agenteRedes);
   const title = trim(s.titulo) || "Título del anuncio";
-  const email = trim(s.agenteEmail);
-  const phone = trim(s.agenteTelefono);
-  const phoneDigits = digitsOnly(phone);
 
-  const listadoHref = listadoDestinoHref(s);
-  const listadoDownloadName = trim(s.listadoArchivoNombre) || null;
-  const videoUrl = videoPlayableUrl(s);
-  const tourH = tourHref(s);
-  const brochH = brochureHref(s);
+  const llamarHref = s.permitirLlamar ? buildTelHref(digitsOnly(numeroParaLlamar(s))) : null;
+  const waHref = s.permitirWhatsApp ? buildWhatsappHref(digitsOnly(numeroParaWhatsapp(s)), "") : null;
+  const solicitarEmail = correoSolicitarInfo(s);
+  const solicitarInfoHref = s.permitirSolicitarInformacion ? buildMailto(solicitarEmail, `Consulta — ${title}`, `Hola,\n\nMe interesa: ${title}`) : null;
 
-  const solicitarInfoHref = buildMailto(email, `Consulta — ${title}`, `Hola,\n\nMe interesa: ${title}`);
-  const visitaHref = buildMailto(email, `Visita — ${title}`, `Hola,\n\nMe interesa ${title} y quiero programar una visita.`);
-  const llamarHref = s.permitirLlamar ? buildTelHref(phoneDigits) : null;
-  const waHref = s.permitirWhatsApp ? buildWhatsappHref(phoneDigits, "") : null;
+  const programarRaw = trim(s.ctaEnlaceProgramarVisita);
+  const programarVisitaHref = s.permitirProgramarVisita ? resolveAnyHref(programarRaw) : null;
 
-  const showVerListado = Boolean(s.permitirVerListadoCompleto && listadoHref);
-  const showVerMls = Boolean(s.permitirVerMls && listadoHref);
+  const verSitioHref = s.permitirVerSitioWeb ? hrefSitioWebCta(s) : null;
+
+  const listadoH = hrefListadoCompleto(s);
+  const mlsH = hrefMls(s);
+  const tourH = hrefTourCta(s);
+  const folletoH = hrefFolletoCta(s);
+
+  const showVerListado = Boolean(s.permitirVerListadoCompleto && listadoH);
+  const showVerMls = Boolean(s.permitirVerMls && mlsH);
   const showVerTour = Boolean(s.permitirVerTour && tourH);
-  const showVerFolleto = Boolean(s.permitirVerFolleto && brochH);
-  const showSitio = Boolean(s.permitirVerSitioWeb && site);
-  const showRedes = Boolean(s.permitirVerRedes && redesParsed.length > 0);
+  const showVerFolleto = Boolean(s.permitirVerFolleto && folletoH);
+
+  const social: AgenteIndividualResidencialPreviewVm["social"] = {
+    instagram: resolveAnyHref(s.socialInstagram),
+    facebook: resolveAnyHref(s.socialFacebook),
+    youtube: resolveAnyHref(s.socialYoutube),
+    tiktok: resolveAnyHref(s.socialTiktok),
+    x: resolveAnyHref(s.socialX),
+    otro: resolveAnyHref(s.socialOtro),
+  };
+
+  const hasAnySocial = Boolean(
+    social.instagram || social.facebook || social.youtube || social.tiktok || social.x || social.otro,
+  );
+  const showSocialIcons = Boolean(s.permitirVerRedes && hasAnySocial);
 
   const openParts: string[] = [];
   if (s.extraOpenHouse) {
@@ -219,6 +286,10 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
 
   const mapQuery = [trim(s.direccion), trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(", ");
 
+  const videoUrl = videoPlayableUrl(s);
+  const tourMedia = tourMediaHref(s);
+  const brochMedia = brochureMediaHref(s);
+
   return {
     hero: {
       title,
@@ -228,27 +299,29 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
       statusPill: normalizeStatus(s),
       quickFacts,
     },
-    sidebar: {
-      photoUrl: trim(s.agenteFotoDataUrl) || null,
-      name: trim(s.agenteNombre) || "Nombre del agente",
-      title: trim(s.agenteTitulo) || "Agente",
-      bioLine: trim(s.agenteBioCorta),
-      phoneDisplay: phone || "—",
-      email: email || "—",
-      websiteHref: site,
-      websiteLabel: "Sitio web",
-      socialLinks: redesParsed,
-      licenciaLine: trim(s.agenteLicencia) ? `Licencia: ${trim(s.agenteLicencia)}` : "",
+    professionalCard: {
+      brandName: trim(s.marcaNombre),
+      brandLogoUrl: trim(s.marcaLogoDataUrl) || null,
+      brandLicenseLine: trim(s.marcaLicencia) ? `Licencia de oficina: ${trim(s.marcaLicencia)}` : "",
+      brandWebsiteHref: hrefFromUserInput(s.marcaSitioWeb),
+      agentPhotoUrl: trim(s.agenteFotoDataUrl) || null,
+      agentName: trim(s.agenteNombre) || "Nombre del agente",
+      agentTitle: trim(s.agenteTitulo) || "Agente",
+      agentLicenseLine: trim(s.agenteLicencia) ? `Licencia o número profesional: ${trim(s.agenteLicencia)}` : "",
+      agentBio: trim(s.agenteBioCorta),
+      phoneDisplay: trim(s.telefonoPrincipal) || "—",
+      emailDisplay: trim(s.correoPrincipal) || "—",
       areaServicioLine: trim(s.agenteAreaServicio),
       idiomasLine: trim(s.agenteIdiomas),
     },
+    social,
     media: {
       heroUrl,
       secondaryUrls: secondary,
       coverIndex: cover,
       videoEmbedUrl: videoUrl && (videoUrl.startsWith("http") || videoUrl.startsWith("data:")) ? videoUrl : null,
-      tourHref: tourH,
-      brochureHref: brochH,
+      tourHref: tourMedia,
+      brochureHref: brochMedia,
       photoCount: photos.length,
     },
     propertyRows,
@@ -257,34 +330,31 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
     notasAdicionales: trim(s.notasAdicionales),
     hasDescription: Boolean(trim(s.descripcionPrincipal)),
     hasNotas: Boolean(trim(s.notasAdicionales)),
-    cta: {
+    contactRail: {
       showLlamar: Boolean(s.permitirLlamar && llamarHref),
       llamarHref,
       showWhatsapp: Boolean(s.permitirWhatsApp && waHref),
       whatsappHref: waHref,
       showSolicitarInformacion: Boolean(s.permitirSolicitarInformacion && solicitarInfoHref),
       solicitarInformacionHref: solicitarInfoHref,
-      showProgramarVisita: Boolean(s.permitirProgramarVisita && visitaHref),
-      visitaHref,
-      showVerSitioWeb: showSitio,
-      verSitioHref: site,
-      showVerRedes: showRedes,
-      primeraRedHref: redesParsed[0]?.href ?? null,
+      showProgramarVisita: Boolean(s.permitirProgramarVisita && programarVisitaHref),
+      programarVisitaHref,
+      showVerSitioWeb: Boolean(s.permitirVerSitioWeb && verSitioHref),
+      verSitioWebHref: verSitioHref,
       showVerListado,
-      verListadoHref: listadoHref,
-      listadoDownloadName,
+      verListadoHref: listadoH,
+      listadoDownloadName: listadoDownloadName(s),
       showVerMls,
-      verMlsHref: listadoHref,
+      verMlsHref: mlsH,
       showVerTour,
       verTourHref: tourH,
       showVerFolleto,
-      verFolletoHref: brochH,
+      verFolletoHref: folletoH,
+      showSocialIcons,
     },
     extras: {
       openHouseSummary,
       asesorBlock,
-      puntosCercanos: trim(s.puntosCercanos),
-      transporte: trim(s.transporte),
       mapQuery,
     },
   };

@@ -1,10 +1,10 @@
 /**
- * VM fija para `AgenteIndividualResidencialPreviewView` — un solo mapper.
+ * VM fija — slots alineados a plantilla (un solo mapper).
+ * Nombres tipo professionalCard.* / contactRail.* para trazabilidad.
  */
 
 export type AgenteResHeroVm = {
   title: string;
-  /** Siempre venta residencial en esta variante. */
   operationLine: string;
   locationLine: string;
   priceDisplay: string;
@@ -12,19 +12,31 @@ export type AgenteResHeroVm = {
   quickFacts: Array<{ label: string; value: string }>;
 };
 
-export type AgenteResSidebarVm = {
-  photoUrl: string | null;
-  name: string;
-  title: string;
-  bioLine: string;
+/** professionalCard — tarjeta profesional + marca */
+export type ProfessionalCardVm = {
+  brandName: string;
+  brandLogoUrl: string | null;
+  brandLicenseLine: string;
+  brandWebsiteHref: string | null;
+  agentPhotoUrl: string | null;
+  agentName: string;
+  agentTitle: string;
+  agentLicenseLine: string;
+  agentBio: string;
   phoneDisplay: string;
-  email: string;
-  websiteHref: string | null;
-  websiteLabel: string;
-  socialLinks: Array<{ label: string; href: string }>;
-  licenciaLine: string;
+  emailDisplay: string;
   areaServicioLine: string;
   idiomasLine: string;
+};
+
+/** social.* — un href por icono; vacío = no render */
+export type SocialSlotsVm = {
+  instagram: string | null;
+  facebook: string | null;
+  youtube: string | null;
+  tiktok: string | null;
+  x: string | null;
+  otro: string | null;
 };
 
 export type AgenteResMediaVm = {
@@ -39,7 +51,8 @@ export type AgenteResMediaVm = {
 
 export type AgenteResPropertyRowVm = { label: string; value: string };
 
-export type AgenteResCtaVm = {
+/** contactRail — botones solo si toggle + destino resuelto */
+export type ContactRailVm = {
   showLlamar: boolean;
   llamarHref: string | null;
   showWhatsapp: boolean;
@@ -47,11 +60,9 @@ export type AgenteResCtaVm = {
   showSolicitarInformacion: boolean;
   solicitarInformacionHref: string | null;
   showProgramarVisita: boolean;
-  visitaHref: string | null;
+  programarVisitaHref: string | null;
   showVerSitioWeb: boolean;
-  verSitioHref: string | null;
-  showVerRedes: boolean;
-  primeraRedHref: string | null;
+  verSitioWebHref: string | null;
   showVerListado: boolean;
   verListadoHref: string | null;
   listadoDownloadName: string | null;
@@ -61,6 +72,8 @@ export type AgenteResCtaVm = {
   verTourHref: string | null;
   showVerFolleto: boolean;
   verFolletoHref: string | null;
+  /** Iconos sociales: toggle global en formulario */
+  showSocialIcons: boolean;
 };
 
 export type AgenteResExtrasVm = {
@@ -70,20 +83,19 @@ export type AgenteResExtrasVm = {
     phone: string;
     email: string;
   };
-  puntosCercanos: string;
-  transporte: string;
   mapQuery: string;
 };
 
 export type AgenteIndividualResidencialPreviewVm = {
   hero: AgenteResHeroVm;
-  sidebar: AgenteResSidebarVm;
+  professionalCard: ProfessionalCardVm;
+  social: SocialSlotsVm;
   media: AgenteResMediaVm;
   propertyRows: AgenteResPropertyRowVm[];
   destacadosLabels: string[];
   descripcionPrincipal: string;
   notasAdicionales: string;
-  cta: AgenteResCtaVm;
+  contactRail: ContactRailVm;
   extras: AgenteResExtrasVm;
   hasDescription: boolean;
   hasNotas: boolean;

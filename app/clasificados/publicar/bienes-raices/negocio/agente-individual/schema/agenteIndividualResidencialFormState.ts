@@ -44,8 +44,10 @@ export const AGENTE_RES_DESTACADOS_DEFS: ReadonlyArray<{
   { id: "paneles_solares", label: "Paneles solares" },
 ];
 
+/**
+ * Estado plano — claves alineadas a slots de plantilla (ver `mapAgenteIndividualResidencialToPreview`).
+ */
 export type AgenteIndividualResidencialFormState = {
-  /** Solo venta residencial en esta variante (fijo en UI). */
   tipoPublicacionFijo: "venta_residencial";
 
   titulo: string;
@@ -89,16 +91,38 @@ export type AgenteIndividualResidencialFormState = {
   descripcionPrincipal: string;
   notasAdicionales: string;
 
-  agenteNombre: string;
-  agenteTitulo: string;
-  agenteTelefono: string;
-  agenteEmail: string;
+  /** professionalCard.agentPhoto */
   agenteFotoDataUrl: string;
+  /** professionalCard.agentName */
+  agenteNombre: string;
+  /** professionalCard.agentTitle */
+  agenteTitulo: string;
+  /** professionalCard.agentLicense */
   agenteLicencia: string;
-  agenteSitioWeb: string;
-  /** Un enlace por línea (hasta 5 en salida). */
-  agenteRedes: string;
+  /** professionalCard.agentBio */
   agenteBioCorta: string;
+  /** Tarjeta: teléfono mostrado; respaldo para CTAs si el destino dedicado va vacío. */
+  telefonoPrincipal: string;
+  /** Tarjeta: correo mostrado; respaldo para «Solicitar información». */
+  correoPrincipal: string;
+
+  /** professionalCard.brandName */
+  marcaNombre: string;
+  /** professionalCard.brandLogo */
+  marcaLogoDataUrl: string;
+  /** professionalCard.brandLicense */
+  marcaLicencia: string;
+  /** professionalCard.brandWebsite (opcional) */
+  marcaSitioWeb: string;
+
+  /** Un campo por icono; sin inferencia de plataforma. */
+  socialInstagram: string;
+  socialFacebook: string;
+  socialYoutube: string;
+  socialTiktok: string;
+  socialX: string;
+  socialOtro: string;
+
   agenteAreaServicio: string;
   agenteIdiomas: string;
 
@@ -113,6 +137,25 @@ export type AgenteIndividualResidencialFormState = {
   permitirVerTour: boolean;
   permitirVerFolleto: boolean;
 
+  /** contactRail.call — si vacío, ver mapa (fallback documentado). */
+  ctaNumeroLlamadas: string;
+  /** contactRail.whatsapp */
+  ctaNumeroWhatsapp: string;
+  /** contactRail.info (correo dedicado) */
+  ctaCorreoSolicitarInfo: string;
+  /** contactRail.schedule (enlace externo) */
+  ctaEnlaceProgramarVisita: string;
+  /** contactRail.website */
+  ctaEnlaceSitioWeb: string;
+  /** contactRail.listing */
+  ctaUrlListadoCompleto: string;
+  /** contactRail.mls */
+  ctaUrlMls: string;
+  /** contactRail.tour */
+  ctaUrlTour: string;
+  /** contactRail.brochure */
+  ctaUrlFolleto: string;
+
   extraOpenHouse: boolean;
   openHouseFecha: string;
   openHouseInicio: string;
@@ -123,9 +166,6 @@ export type AgenteIndividualResidencialFormState = {
   asesorNombre: string;
   asesorTelefono: string;
   asesorEmail: string;
-
-  puntosCercanos: string;
-  transporte: string;
 };
 
 function trim(s: unknown): string {
@@ -169,8 +209,26 @@ function coerceCondicion(raw: unknown): AgenteResidencialCondicionPropiedad {
   return "buena";
 }
 
+/** Migra borradores con `agenteTelefono` / `agenteEmail` / `agenteSitioWeb` / `agenteRedes`. */
+function migrateLegacyFlatFields(legacy: Record<string, unknown>, out: Partial<AgenteIndividualResidencialFormState>): void {
+  if (typeof legacy.agenteTelefono === "string" && !trim(String(out.telefonoPrincipal ?? ""))) {
+    out.telefonoPrincipal = legacy.agenteTelefono;
+  }
+  if (typeof legacy.agenteEmail === "string" && !trim(String(out.correoPrincipal ?? ""))) {
+    out.correoPrincipal = legacy.agenteEmail;
+  }
+  if (typeof legacy.agenteSitioWeb === "string" && !trim(String(out.ctaEnlaceSitioWeb ?? ""))) {
+    out.ctaEnlaceSitioWeb = legacy.agenteSitioWeb;
+  }
+  if (typeof legacy.agenteRedes === "string" && trim(legacy.agenteRedes) && !trim(String(out.socialOtro ?? ""))) {
+    const first = trim(legacy.agenteRedes).split(/\r?\n/)[0] ?? "";
+    if (first) out.socialOtro = first;
+  }
+}
+
 function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndividualResidencialFormState> {
   const out: Partial<AgenteIndividualResidencialFormState> = {};
+  migrateLegacyFlatFields(p, out);
 
   if (typeof p.titulo === "string") out.titulo = p.titulo;
   if (typeof p.precio === "string") out.precio = p.precio;
@@ -221,13 +279,14 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
   if (ag && typeof ag === "object") {
     if (typeof ag.nombre === "string") out.agenteNombre = ag.nombre;
     if (typeof ag.titulo === "string") out.agenteTitulo = ag.titulo;
-    if (typeof ag.telefono === "string") out.agenteTelefono = ag.telefono;
-    if (typeof ag.email === "string") out.agenteEmail = ag.email;
+    if (typeof ag.telefono === "string") out.telefonoPrincipal = ag.telefono;
+    if (typeof ag.email === "string") out.correoPrincipal = ag.email;
     if (typeof ag.fotoUrl === "string") out.agenteFotoDataUrl = ag.fotoUrl;
     if (typeof ag.licencia === "string") out.agenteLicencia = ag.licencia;
-    if (typeof ag.sitioWeb === "string") out.agenteSitioWeb = ag.sitioWeb;
+    if (typeof ag.sitioWeb === "string") out.ctaEnlaceSitioWeb = ag.sitioWeb;
     if (Array.isArray(ag.redes)) {
-      out.agenteRedes = (ag.redes as string[]).filter(Boolean).join("\n");
+      const line = (ag.redes as string[]).find(Boolean);
+      if (line) out.socialOtro = line;
     }
     if (typeof ag.bio === "string") out.agenteBioCorta = ag.bio;
     if (typeof ag.areaServicio === "string") out.agenteAreaServicio = ag.areaServicio;
@@ -258,8 +317,6 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
     if (typeof extras.asesorNombre === "string") out.asesorNombre = extras.asesorNombre;
     if (typeof extras.asesorTelefono === "string") out.asesorTelefono = extras.asesorTelefono;
     if (typeof extras.asesorEmail === "string") out.asesorEmail = extras.asesorEmail;
-    if (typeof extras.puntosCercanos === "string") out.puntosCercanos = extras.puntosCercanos;
-    if (typeof extras.transporte === "string") out.transporte = extras.transporte;
   }
 
   const dest = p.destacados as Record<string, boolean> | undefined;
@@ -323,15 +380,26 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     descripcionPrincipal: "",
     notasAdicionales: "",
 
+    agenteFotoDataUrl: "",
     agenteNombre: "",
     agenteTitulo: "",
-    agenteTelefono: "",
-    agenteEmail: "",
-    agenteFotoDataUrl: "",
     agenteLicencia: "",
-    agenteSitioWeb: "",
-    agenteRedes: "",
     agenteBioCorta: "",
+    telefonoPrincipal: "",
+    correoPrincipal: "",
+
+    marcaNombre: "",
+    marcaLogoDataUrl: "",
+    marcaLicencia: "",
+    marcaSitioWeb: "",
+
+    socialInstagram: "",
+    socialFacebook: "",
+    socialYoutube: "",
+    socialTiktok: "",
+    socialX: "",
+    socialOtro: "",
+
     agenteAreaServicio: "",
     agenteIdiomas: "",
 
@@ -346,6 +414,16 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     permitirVerTour: false,
     permitirVerFolleto: false,
 
+    ctaNumeroLlamadas: "",
+    ctaNumeroWhatsapp: "",
+    ctaCorreoSolicitarInfo: "",
+    ctaEnlaceProgramarVisita: "",
+    ctaEnlaceSitioWeb: "",
+    ctaUrlListadoCompleto: "",
+    ctaUrlMls: "",
+    ctaUrlTour: "",
+    ctaUrlFolleto: "",
+
     extraOpenHouse: false,
     openHouseFecha: "",
     openHouseInicio: "",
@@ -356,13 +434,9 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     asesorNombre: "",
     asesorTelefono: "",
     asesorEmail: "",
-
-    puntosCercanos: "",
-    transporte: "",
   };
 }
 
-/** Alias usado en la aplicación y borradores. */
 export const createEmptyAgenteIndividualResidencialState = createEmptyAgenteIndividualResidencialFormState;
 
 export function mergePartialAgenteIndividualResidencial(
@@ -379,6 +453,8 @@ export function mergePartialAgenteIndividualResidencial(
     delete raw[k];
   }
   const flat = raw as Partial<AgenteIndividualResidencialFormState>;
+
+  migrateLegacyFlatFields(legacy, flat);
 
   const listadoUrl =
     typeof flat.listadoUrl === "string"
@@ -426,6 +502,10 @@ export function mergePartialAgenteIndividualResidencial(
   const maxIdx = Math.max(0, fotosDataUrls.length - 1);
   const fotoPortadaIndex = Math.min(Math.max(0, fotoPortadaIndexRaw), maxIdx);
 
+  const telefonoPrincipal = trim(flat.telefonoPrincipal) || trim(nested.telefonoPrincipal) || base.telefonoPrincipal;
+
+  const correoPrincipal = trim(flat.correoPrincipal) || trim(nested.correoPrincipal) || base.correoPrincipal;
+
   return {
     ...base,
     ...nested,
@@ -439,6 +519,8 @@ export function mergePartialAgenteIndividualResidencial(
     permitirSolicitarInformacion,
     tipoPropiedadCodigo,
     tipoPropiedadOtro,
+    telefonoPrincipal,
+    correoPrincipal,
     fotosDataUrls,
     fotoPortadaIndex,
     destacados: {
