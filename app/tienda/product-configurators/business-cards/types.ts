@@ -106,6 +106,10 @@ export type BusinessCardDesignerV2NativeImage = {
   id: string;
   kind: "native-image";
   visible: boolean;
+  /** When true, drag and geometry edits are ignored until unlocked */
+  locked?: boolean;
+  /** When true, width/height stay in proportion to intrinsic image aspect */
+  lockAspectRatio?: boolean;
   zIndex: number;
   xPct: number;
   yPct: number;
@@ -122,13 +126,21 @@ export type BusinessCardDesignerV2NativeShape = {
   kind: "native-shape";
   shape: "rect" | "ellipse";
   visible: boolean;
+  locked?: boolean;
   zIndex: number;
   xPct: number;
   yPct: number;
   widthPct: number;
   heightPct: number;
   rotationDeg: number;
+  /** Fill color (hex, rgb, or rgba) */
   fill: string;
+  /** 0–1; combined with fill when rendering */
+  fillOpacity?: number;
+  /** Stroke color; omit when no stroke */
+  strokeColor?: string;
+  /** Stroke width in px at preview scale (0 = none) */
+  strokeWidthPx?: number;
 };
 
 export type BusinessCardDesignerV2NativeObject = BusinessCardDesignerV2NativeImage | BusinessCardDesignerV2NativeShape;

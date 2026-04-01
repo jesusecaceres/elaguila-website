@@ -26,6 +26,8 @@ import {
   scaleToLogoPercent,
   widthPctToNearestLogoScale,
 } from "./layoutPresets";
+import { shouldRejectLockedNativePatch } from "./designer-v2/studio/nativeLockedGuards";
+import { duplicateNativeObject } from "./designer-v2/studio/duplicateNativeObject";
 
 export type BusinessCardBuilderAction =
   | { type: "SET_ACTIVE_SIDE"; side: BusinessCardSide }
@@ -70,6 +72,7 @@ export type BusinessCardBuilderAction =
     }
   | { type: "V2_DELETE_NATIVE_OBJECT"; side: BusinessCardSide; id: string }
   | { type: "V2_REORDER_NATIVE_OBJECT"; side: BusinessCardSide; id: string; delta: 1 | -1 }
+  | { type: "V2_DUPLICATE_NATIVE_OBJECT"; side: BusinessCardSide; id: string; newId: string }
   | { type: "RESET"; document: BusinessCardDocument };
 
 function clampPctBlock(v: number): number {
@@ -93,6 +96,7 @@ function reorderNativeZ(
   if (j < 0 || j >= sorted.length) return objects;
   const a = sorted[i];
   const b = sorted[j];
+  if (a.locked || b.locked) return objects;
   return objects.map((o) => {
     if (o.id === a.id) return { ...o, zIndex: b.zIndex };
     if (o.id === b.id) return { ...o, zIndex: a.zIndex };
@@ -296,6 +300,7 @@ export function businessCardBuilderReducer(
         ...s,
         designerV2NativeObjects: ensureNativeList(s).map((o) => {
           if (o.id !== action.id) return o;
+          if (shouldRejectLockedNativePatch(o, action.patch)) return o;
           return { ...o, ...action.patch, id: o.id, kind: o.kind } as BusinessCardDesignerV2NativeObject;
         }),
       }));
@@ -309,6 +314,14 @@ export function businessCardBuilderReducer(
         ...s,
         designerV2NativeObjects: reorderNativeZ(ensureNativeList(s), action.id, action.delta),
       }));
+    case "V2_DUPLICATE_NATIVE_OBJECT":
+      return patchSide(state, action.side, (s) => {
+        const list = ensureNativeList(s);
+        const src = list.find((o) => o.id === action.id);
+        if (!src) return s;
+        const copy = duplicateNativeObject(s, src, action.newId);
+        return { ...s, designerV2NativeObjects: [...list, copy] };
+      });
     default:
       return state;
   }

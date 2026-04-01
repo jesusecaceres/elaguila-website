@@ -31,6 +31,8 @@ export type UnifiedLayerRow = {
   studioReorderEligible: boolean;
   /** Legacy stacked text (no real block id) — list is informational */
   isInformationalTemplateText: boolean;
+  /** Studio-only: object is locked in the document */
+  locked?: boolean;
 };
 
 function labelForV2Object(o: DesignerV2Object): { labelEn: string; labelEs: string; isLogo: boolean } {
@@ -108,8 +110,9 @@ export function buildUnifiedLayerRows(
       canSelectForTemplateEdit: false,
       isTemplateLogo: false,
       isStudioObject: true,
-      studioReorderEligible: true,
+      studioReorderEligible: o.locked !== true,
       isInformationalTemplateText: false,
+      locked: o.locked === true,
     };
   });
 

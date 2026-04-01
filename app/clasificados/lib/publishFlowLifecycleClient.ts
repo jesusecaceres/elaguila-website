@@ -3,6 +3,7 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import { clearBienesRaicesNegocioPublishTempState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
+import { clearAgenteIndividualResidencialPublishTempState } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/previewDraft";
 import { clearEnVentaPublishTempState } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import { createEmptyBienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
@@ -145,6 +146,7 @@ function idempot(s: EnVentaFreeApplicationState): string {
  */
 export function abandonLeonixPublishFlowClient(opts: { muxAssetIds: string[]; useBeacon?: boolean }): void {
   clearBienesRaicesNegocioPublishTempState();
+  clearAgenteIndividualResidencialPublishTempState();
   clearEnVentaPublishTempState();
   clearAllClassifiedsDrafts();
   const ids = [...new Set(opts.muxAssetIds.map((s) => String(s ?? "").trim()).filter(Boolean))].slice(0, 16);

@@ -164,6 +164,14 @@ export function BusinessCardDesignerV2Panel(props: {
               {row.layerSource === "template" ? (lg === "en" ? "Tpl" : "Plt") : lg === "en" ? "Studio" : "Estudio"}
             </span>
             <span className="truncate text-[rgba(255,247,226,0.92)]">{row.displayLabel}</span>
+            {row.locked ? (
+              <span className="shrink-0 text-amber-400/90" title={lg === "en" ? "Locked" : "Bloqueado"} aria-hidden>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-90">
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" strokeLinecap="round" />
+                  <rect x="5" y="11" width="14" height="10" rx="2" />
+                </svg>
+              </span>
+            ) : null}
           </span>
           <span className="shrink-0 text-[10px] text-[rgba(255,255,255,0.38)]">z{row.stackOrder}</span>
         </button>
@@ -245,6 +253,10 @@ export function BusinessCardDesignerV2Panel(props: {
           selected={selectedNative}
           dispatch={dispatch}
           onDeleted={() => onSelectV2Native(null)}
+          onDuplicated={(newId) => {
+            onClearTemplateSelection();
+            onSelectV2Native(newId);
+          }}
         />
       ) : null}
     </section>

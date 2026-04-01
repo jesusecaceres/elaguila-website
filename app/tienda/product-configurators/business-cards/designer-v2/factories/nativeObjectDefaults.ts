@@ -3,12 +3,24 @@ import type {
   BusinessCardDesignerV2NativeShape,
   BusinessCardSideState,
 } from "../../types";
+import {
+  clampNativeSizePct,
+} from "../studio/geometryClamp";
 
 /** Trim is 3.5″ × 2″ — convert width% + intrinsic ratio to height% of trim */
 export function imageHeightPctFromAspect(widthPct: number, naturalWidth: number, naturalHeight: number): number {
-  if (naturalWidth <= 0 || naturalHeight <= 0) return Math.min(40, widthPct * 0.65);
+  if (naturalWidth <= 0 || naturalHeight <= 0) return clampNativeSizePct(Math.min(40, widthPct * 0.65));
   const trimAspect = 3.5 / 2;
-  return Math.min(48, (widthPct * (naturalHeight / naturalWidth)) / trimAspect);
+  const h = (widthPct * (naturalHeight / naturalWidth)) / trimAspect;
+  return clampNativeSizePct(Math.min(48, h));
+}
+
+/** Inverse of `imageHeightPctFromAspect` for locked aspect editing (height → width). */
+export function imageWidthPctFromAspectHeight(heightPct: number, naturalWidth: number, naturalHeight: number): number {
+  if (naturalWidth <= 0 || naturalHeight <= 0) return clampNativeSizePct(heightPct * 1.2);
+  const trimAspect = 3.5 / 2;
+  const w = heightPct * trimAspect * (naturalWidth / naturalHeight);
+  return clampNativeSizePct(w);
 }
 
 export function nextDesignerV2NativeZIndex(state: BusinessCardSideState): number {
@@ -33,6 +45,8 @@ export function createDefaultNativeImage(input: {
     id: input.id,
     kind: "native-image",
     visible: true,
+    locked: false,
+    lockAspectRatio: true,
     zIndex: input.zIndex,
     xPct: 50,
     yPct: 50,
@@ -51,13 +65,16 @@ export function createDefaultNativeShape(input: { id: string; zIndex: number }):
     kind: "native-shape",
     shape: "rect",
     visible: true,
+    locked: false,
     zIndex: input.zIndex,
     xPct: 50,
     yPct: 72,
     widthPct: 42,
     heightPct: 10,
     rotationDeg: 0,
-    fill: "rgba(201,168,74,0.35)",
+    fill: "#c9a84a",
+    fillOpacity: 0.35,
+    strokeWidthPx: 0,
   };
 }
 
@@ -69,6 +86,8 @@ export function createEllipseNativeShape(input: { id: string; zIndex: number }):
     yPct: 68,
     widthPct: 24,
     heightPct: 24,
-    fill: "rgba(201,168,74,0.28)",
+    fill: "#c9a84a",
+    fillOpacity: 0.28,
+    strokeWidthPx: 0,
   };
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import BienesRaicesNegocioApplication from "./application/BienesRaicesNegocioApplication";
+import AgenteIndividualResidencialApplication from "./agente-individual/application/AgenteIndividualResidencialApplication";
 
 export const metadata: Metadata = {
   title: "Publicar BR — Negocio | Leonix",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function BienesRaicesNegocioPublishPage() {
-  return <BienesRaicesNegocioApplication />;
+  return <AgenteIndividualResidencialApplication />;
 }
