@@ -15,18 +15,24 @@ import { trimSurfaceStyle, trimTextColor } from "../../product-configurators/bus
 import { mergeTransform } from "../../product-configurators/business-cards/preview/businessCardPreviewTransforms";
 import { blockModeTextScaleMultiplierFromGroupScale } from "../../product-configurators/business-cards/preview/businessCardPreviewBlockScale";
 import { BUSINESS_CARD_PREVIEW_LEGACY_LINE_ORDER } from "../../product-configurators/business-cards/preview/businessCardPreviewLineOrder";
+import { BusinessCardNativeV2PreviewLayer } from "./BusinessCardNativeV2PreviewLayer";
 
 /**
  * Trim-accurate preview for builder + export root (`data-tienda-bc-export-root`).
  * Two render paths: block mode (`textBlocks.length > 0`) vs legacy stacked fields.
+ * V2 native objects render above V1 in the same trim (see `BusinessCardNativeV2PreviewLayer`).
  */
 
 export type BusinessCardPreviewEditApi = {
   selectedTextBlockId: string | null;
   logoSelected: boolean;
+  /** Studio-only layers (not template text / logo) */
+  selectedV2NativeId?: string | null;
   onSelectTextBlock: (id: string | null) => void;
   onDeselectCanvas: () => void;
   onFocusLogo: () => void;
+  onSelectV2Native?: (id: string | null) => void;
+  onMoveV2Native?: (id: string, xPct: number, yPct: number) => void;
   onMoveTextBlock: (id: string, xPct: number, yPct: number) => void;
   onMoveLogo: (xPct: number, yPct: number) => void;
 };
@@ -315,6 +321,16 @@ export function BusinessCardPreview(props: {
                 </div>
               </>
             )}
+            {(state.designerV2NativeObjects ?? []).length > 0 ? (
+              <BusinessCardNativeV2PreviewLayer
+                trimRef={trimRef}
+                objects={state.designerV2NativeObjects ?? []}
+                selectedId={editInteraction?.selectedV2NativeId ?? null}
+                readOnly={!editInteraction?.onSelectV2Native}
+                onSelect={editInteraction?.onSelectV2Native ?? (() => {})}
+                onMove={editInteraction?.onMoveV2Native ?? (() => {})}
+              />
+            ) : null}
           </div>
         </div>
       </div>

@@ -72,6 +72,7 @@ function sideFromTemplateFront(lang: Lang, templateId: BusinessCardTemplateId): 
     logo: emptyLogo(),
     textBlocks: t.blocks,
     logoGeom: t.logoGeom,
+    designerV2NativeObjects: [],
   };
   return syncSideBlocksFromFields(syncFieldsFromBlocks(base));
 }
@@ -85,6 +86,7 @@ function sideFromTemplateBack(lang: Lang, templateId: BusinessCardTemplateId): B
     logo: { ...emptyLogo(), visible: false, position: "center" },
     textBlocks: t.blocks,
     logoGeom: t.logoGeom,
+    designerV2NativeObjects: [],
   };
   return syncSideBlocksFromFields(syncFieldsFromBlocks(base));
 }
@@ -96,6 +98,7 @@ function emptySide(): BusinessCardSideState {
     logo: { ...emptyLogo(), visible: false },
     textBlocks: [],
     logoGeom: { xPct: 50, yPct: 28, widthPct: 20, zIndex: 4 },
+    designerV2NativeObjects: [],
   };
 }
 

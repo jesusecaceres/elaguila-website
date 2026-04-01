@@ -4,8 +4,11 @@
  */
 
 import imageCompression from "browser-image-compression";
-import type { BusinessCardDocument } from "./types";
-import type { BusinessCardSessionPayloadV3Design } from "../../order/mappers/businessCardDocumentToReview";
+import type { BusinessCardDesignerV2NativeObject, BusinessCardDocument } from "./types";
+import type {
+  BusinessCardSessionPayloadV3Design,
+  DraftStudioVault,
+} from "../../order/mappers/businessCardDocumentToReview";
 import { toBusinessCardSessionPayloadV3Design } from "../../order/mappers/businessCardDocumentToReview";
 
 const DB_NAME = "leonix-bc-drafts";
@@ -59,7 +62,8 @@ async function tryVaultLogo(
   }
 }
 
-export async function idbGetLogoDataUrl(key: string): Promise<string | null> {
+/** IndexedDB key lookup (logos + studio images share the same object store). */
+export async function idbGetDataUrlForKey(key: string): Promise<string | null> {
   try {
     const db = await openDb();
     return await new Promise((resolve, reject) => {
@@ -74,6 +78,10 @@ export async function idbGetLogoDataUrl(key: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export async function idbGetLogoDataUrl(key: string): Promise<string | null> {
+  return idbGetDataUrlForKey(key);
 }
 
 const SESSION_KEY = (slug: string) => `leonix-bc-draft-${slug}`;
@@ -132,6 +140,61 @@ function vaultKey(slug: string, side: "front" | "back"): string {
   return `${slug}::${side}`;
 }
 
+/** Studio native image vault keys — same DB store as logos, distinct key shape. */
+export function studioVaultKey(slug: string, side: "front" | "back", objectId: string): string {
+  return `${slug}::studio::${side}::${objectId}`;
+}
+
+const STUDIO_VAULT_MIN_BYTES = PROACTIVE_VAULT_MIN_BYTES;
+
+async function stripStudioNativeImagesToVault(
+  productSlug: string,
+  payload: BusinessCardSessionPayloadV3Design
+): Promise<BusinessCardSessionPayloadV3Design> {
+  const vault: DraftStudioVault = {};
+
+  const processSide = async (side: "front" | "back") => {
+    const sp = payload[side];
+    const list = sp.designerV2NativeObjects;
+    if (!list?.length) return sp;
+    const ids: string[] = [];
+    const next: BusinessCardDesignerV2NativeObject[] = await Promise.all(
+      list.map(async (o) => {
+        if (o.kind !== "native-image" || !o.previewUrl) return o;
+        const url = o.previewUrl;
+        if (typeof url !== "string" || !url.startsWith("data:")) return o;
+        if (dataUrlByteLength(url) <= STUDIO_VAULT_MIN_BYTES) return o;
+        try {
+          await idbPut(studioVaultKey(productSlug, side, o.id), url);
+          ids.push(o.id);
+          return { ...o, previewUrl: null };
+        } catch {
+          return o;
+        }
+      })
+    );
+    if (ids.length) vault[side] = ids;
+    return { ...sp, designerV2NativeObjects: next };
+  };
+
+  const front = await processSide("front");
+  const back = await processSide("back");
+  const has = (vault.front?.length ?? 0) + (vault.back?.length ?? 0) > 0;
+  return {
+    ...payload,
+    front,
+    back,
+    draftStudioVault: has ? vault : payload.draftStudioVault,
+  };
+}
+
+async function finalizeDesignDraftPayload(
+  productSlug: string,
+  payload: BusinessCardSessionPayloadV3Design
+): Promise<BusinessCardSessionPayloadV3Design> {
+  return stripStudioNativeImagesToVault(productSlug, payload);
+}
+
 /**
  * Build v3 session payload with compressed logos; offload to IndexedDB when inline data is heavy
  * so sessionStorage writes succeed reliably.
@@ -162,7 +225,7 @@ export async function buildSessionPayloadWithLogos(
   };
 
   let payload = pack(front, back);
-  if (JSON.stringify(payload).length < 3_800_000) return payload;
+  if (JSON.stringify(payload).length < 3_800_000) return finalizeDesignDraftPayload(doc.productSlug, payload);
 
   if (!vault.front) front = await compressLogoAggressive(resolvedLogos.front);
   else front = null;
@@ -173,7 +236,7 @@ export async function buildSessionPayloadWithLogos(
   back = await tryVaultLogo(doc.productSlug, "back", back, vault, PROACTIVE_VAULT_MIN_BYTES);
 
   payload = pack(front, back);
-  if (JSON.stringify(payload).length < 3_800_000) return payload;
+  if (JSON.stringify(payload).length < 3_800_000) return finalizeDesignDraftPayload(doc.productSlug, payload);
 
   /* Strip remaining heavy inline logos into IndexedDB */
   if (front && dataUrlByteLength(front) > STRIP_VAULT_MIN_BYTES) {
@@ -186,7 +249,7 @@ export async function buildSessionPayloadWithLogos(
   }
 
   payload = pack(front, back);
-  if (JSON.stringify(payload).length < 4_800_000) return payload;
+  if (JSON.stringify(payload).length < 4_800_000) return finalizeDesignDraftPayload(doc.productSlug, payload);
 
   /* Force both sides to vault if still oversized */
   if (resolvedLogos.front && !vault.front) {
@@ -200,7 +263,7 @@ export async function buildSessionPayloadWithLogos(
     back = v;
   }
 
-  return pack(front, back);
+  return finalizeDesignDraftPayload(doc.productSlug, pack(front, back));
 }
 
 export function writeSessionDesignDraft(
@@ -231,7 +294,7 @@ export async function mergeVaultedLogosIntoDocument(
 
   let next = doc;
   if (vault.front) {
-    const url = await idbGetLogoDataUrl(vaultKey(productSlug, "front"));
+    const url = await idbGetDataUrlForKey(vaultKey(productSlug, "front"));
     if (url) {
       next = {
         ...next,
@@ -248,7 +311,7 @@ export async function mergeVaultedLogosIntoDocument(
     }
   }
   if (vault.back) {
-    const url = await idbGetLogoDataUrl(vaultKey(productSlug, "back"));
+    const url = await idbGetDataUrlForKey(vaultKey(productSlug, "back"));
     if (url) {
       next = {
         ...next,
@@ -263,6 +326,65 @@ export async function mergeVaultedLogosIntoDocument(
         },
       };
     }
+  }
+  return next;
+}
+
+async function mergeSideStudioImages(
+  productSlug: string,
+  side: "front" | "back",
+  objects: BusinessCardDesignerV2NativeObject[],
+  vaultedIds: string[]
+): Promise<BusinessCardDesignerV2NativeObject[]> {
+  return Promise.all(
+    objects.map(async (o) => {
+      if (o.kind !== "native-image" || !vaultedIds.includes(o.id)) return o;
+      if (o.previewUrl) return o;
+      const url = await idbGetDataUrlForKey(studioVaultKey(productSlug, side, o.id));
+      if (!url) return o;
+      return { ...o, previewUrl: url };
+    })
+  );
+}
+
+/**
+ * Restores studio image data URLs from IndexedDB after session hydrate (pairs with `draftStudioVault` on save).
+ */
+export async function mergeVaultedStudioImagesIntoDocument(
+  productSlug: string,
+  doc: BusinessCardDocument,
+  vault: DraftStudioVault | undefined
+): Promise<BusinessCardDocument> {
+  if (!vault || (!vault.front?.length && !vault.back?.length)) return doc;
+
+  let next = doc;
+  if (vault.front?.length) {
+    next = {
+      ...next,
+      front: {
+        ...next.front,
+        designerV2NativeObjects: await mergeSideStudioImages(
+          productSlug,
+          "front",
+          next.front.designerV2NativeObjects ?? [],
+          vault.front
+        ),
+      },
+    };
+  }
+  if (vault.back?.length) {
+    next = {
+      ...next,
+      back: {
+        ...next.back,
+        designerV2NativeObjects: await mergeSideStudioImages(
+          productSlug,
+          "back",
+          next.back.designerV2NativeObjects ?? [],
+          vault.back
+        ),
+      },
+    };
   }
   return next;
 }

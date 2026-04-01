@@ -6,6 +6,7 @@ import type { Lang } from "../../types/tienda";
 import type {
   BusinessCardApprovalChecks,
   BusinessCardCanvasBackground,
+  BusinessCardDesignerV2NativeObject,
   BusinessCardDocument,
   BusinessCardImageBlock,
   BusinessCardLogoGeom,
@@ -59,10 +60,44 @@ export type BusinessCardBuilderAction =
       lang: Lang;
     }
   | { type: "SET_LOGO_GEOM"; side: BusinessCardSide; patch: Partial<BusinessCardLogoGeom> }
+  | { type: "V2_ADD_NATIVE_IMAGE"; side: BusinessCardSide; object: Extract<BusinessCardDesignerV2NativeObject, { kind: "native-image" }> }
+  | { type: "V2_ADD_NATIVE_SHAPE"; side: BusinessCardSide; object: Extract<BusinessCardDesignerV2NativeObject, { kind: "native-shape" }> }
+  | {
+      type: "V2_PATCH_NATIVE_OBJECT";
+      side: BusinessCardSide;
+      id: string;
+      patch: Partial<BusinessCardDesignerV2NativeObject>;
+    }
+  | { type: "V2_DELETE_NATIVE_OBJECT"; side: BusinessCardSide; id: string }
+  | { type: "V2_REORDER_NATIVE_OBJECT"; side: BusinessCardSide; id: string; delta: 1 | -1 }
   | { type: "RESET"; document: BusinessCardDocument };
 
 function clampPctBlock(v: number): number {
   return Math.min(95, Math.max(5, v));
+}
+
+function ensureNativeList(s: BusinessCardDocument["front"]): BusinessCardDesignerV2NativeObject[] {
+  return s.designerV2NativeObjects ?? [];
+}
+
+function reorderNativeZ(
+  objects: BusinessCardDesignerV2NativeObject[],
+  id: string,
+  delta: 1 | -1
+): BusinessCardDesignerV2NativeObject[] {
+  if (objects.length <= 1) return objects;
+  const sorted = [...objects].sort((a, b) => a.zIndex - b.zIndex);
+  const i = sorted.findIndex((o) => o.id === id);
+  if (i < 0) return objects;
+  const j = i + delta;
+  if (j < 0 || j >= sorted.length) return objects;
+  const a = sorted[i];
+  const b = sorted[j];
+  return objects.map((o) => {
+    if (o.id === a.id) return { ...o, zIndex: b.zIndex };
+    if (o.id === b.id) return { ...o, zIndex: a.zIndex };
+    return o;
+  });
 }
 
 function patchSide(
@@ -246,6 +281,34 @@ export function businessCardBuilderReducer(
           logo: nextLogo,
         };
       });
+    case "V2_ADD_NATIVE_IMAGE":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        designerV2NativeObjects: [...ensureNativeList(s), action.object],
+      }));
+    case "V2_ADD_NATIVE_SHAPE":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        designerV2NativeObjects: [...ensureNativeList(s), action.object],
+      }));
+    case "V2_PATCH_NATIVE_OBJECT":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        designerV2NativeObjects: ensureNativeList(s).map((o) => {
+          if (o.id !== action.id) return o;
+          return { ...o, ...action.patch, id: o.id, kind: o.kind } as BusinessCardDesignerV2NativeObject;
+        }),
+      }));
+    case "V2_DELETE_NATIVE_OBJECT":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        designerV2NativeObjects: ensureNativeList(s).filter((o) => o.id !== action.id),
+      }));
+    case "V2_REORDER_NATIVE_OBJECT":
+      return patchSide(state, action.side, (s) => ({
+        ...s,
+        designerV2NativeObjects: reorderNativeZ(ensureNativeList(s), action.id, action.delta),
+      }));
     default:
       return state;
   }

@@ -20,7 +20,10 @@ import {
   mapBusinessCardSessionToReview,
   readBusinessCardOrderSession,
 } from "../../order/mappers/businessCardDocumentToReview";
-import { mergeVaultedLogosIntoDocument } from "../../product-configurators/business-cards/businessCardDraftPersistence";
+import {
+  mergeVaultedLogosIntoDocument,
+  mergeVaultedStudioImagesIntoDocument,
+} from "../../product-configurators/business-cards/businessCardDraftPersistence";
 import {
   isPrintUploadSessionPayloadV1,
   mapPrintUploadSessionToReview,
@@ -253,6 +256,9 @@ export function TiendaOrderPageClient(props: { source: TiendaOrderSource; slug: 
           }
           if (isBusinessCardSessionDesign(raw) && raw.draftLogoVault) {
             doc = await mergeVaultedLogosIntoDocument(slug, doc, raw.draftLogoVault);
+          }
+          if (isBusinessCardSessionDesign(raw) && raw.draftStudioVault) {
+            doc = await mergeVaultedStudioImagesIntoDocument(slug, doc, raw.draftStudioVault);
           }
           flushSync(() => setBcExportDoc(doc));
           try {

@@ -22,6 +22,7 @@ import {
 import {
   buildSessionPayloadWithLogos,
   mergeVaultedLogosIntoDocument,
+  mergeVaultedStudioImagesIntoDocument,
   writeSessionDesignDraft,
 } from "../../product-configurators/business-cards/businessCardDraftPersistence";
 import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
@@ -29,6 +30,7 @@ import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderC
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
+import { BusinessCardDesignerV2Panel } from "./BusinessCardDesignerV2Panel";
 import { BusinessCardSideTabs } from "./BusinessCardSideTabs";
 import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
 import { BusinessCardApprovalPanel } from "./BusinessCardApprovalPanel";
@@ -59,6 +61,7 @@ export function BusinessCardBuilderShell(props: {
   });
   const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
   const [logoInspectorActive, setLogoInspectorActive] = useState(false);
+  const [selectedV2NativeId, setSelectedV2NativeId] = useState<string | null>(null);
   const [sessionDraftError, setSessionDraftError] = useState<string | null>(null);
 
   const docRef = useRef(doc);
@@ -83,6 +86,9 @@ export function BusinessCardBuilderShell(props: {
       if (isBusinessCardSessionDesign(raw) && raw.draftLogoVault) {
         next = await mergeVaultedLogosIntoDocument(productSlug, base, raw.draftLogoVault);
       }
+      if (isBusinessCardSessionDesign(raw) && raw.draftStudioVault) {
+        next = await mergeVaultedStudioImagesIntoDocument(productSlug, next, raw.draftStudioVault);
+      }
       if (!cancelled) dispatch({ type: "RESET", document: next });
     })();
     return () => {
@@ -96,6 +102,13 @@ export function BusinessCardBuilderShell(props: {
       setSelectedTextBlockId(null);
     }
   }, [doc.activeSide, doc.front.textBlocks, doc.back.textBlocks, selectedTextBlockId]);
+
+  useEffect(() => {
+    const native = (doc.activeSide === "front" ? doc.front : doc.back).designerV2NativeObjects ?? [];
+    if (selectedV2NativeId && !native.some((o) => o.id === selectedV2NativeId)) {
+      setSelectedV2NativeId(null);
+    }
+  }, [doc.activeSide, doc.front.designerV2NativeObjects, doc.back.designerV2NativeObjects, selectedV2NativeId]);
 
   const validation = useMemo(() => validateBusinessCardDocument(doc), [doc]);
 
@@ -211,6 +224,7 @@ export function BusinessCardBuilderShell(props: {
               onChange={(s) => {
                 setSelectedTextBlockId(null);
                 setLogoInspectorActive(false);
+                setSelectedV2NativeId(null);
                 dispatch({ type: "SET_ACTIVE_SIDE", side: s });
               }}
             />
@@ -269,18 +283,31 @@ export function BusinessCardBuilderShell(props: {
               editInteraction={{
                 selectedTextBlockId,
                 logoSelected: logoInspectorActive,
+                selectedV2NativeId,
                 onSelectTextBlock: (id) => {
                   setSelectedTextBlockId(id);
                   setLogoInspectorActive(false);
+                  setSelectedV2NativeId(null);
                 },
                 onDeselectCanvas: () => {
                   setSelectedTextBlockId(null);
                   setLogoInspectorActive(false);
+                  setSelectedV2NativeId(null);
                 },
                 onFocusLogo: () => {
                   setLogoInspectorActive(true);
                   setSelectedTextBlockId(null);
+                  setSelectedV2NativeId(null);
                 },
+                onSelectV2Native: (id) => {
+                  setSelectedV2NativeId(id);
+                  if (id) {
+                    setSelectedTextBlockId(null);
+                    setLogoInspectorActive(false);
+                  }
+                },
+                onMoveV2Native: (id, xPct, yPct) =>
+                  dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch: { xPct, yPct } }),
                 onMoveTextBlock: (id, xPct, yPct) =>
                   dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
                 onMoveLogo: (xPct, yPct) =>
@@ -299,8 +326,33 @@ export function BusinessCardBuilderShell(props: {
               onSelectTextBlock={(id) => {
                 setSelectedTextBlockId(id);
                 setLogoInspectorActive(false);
+                setSelectedV2NativeId(null);
               }}
               logoInspectorActive={logoInspectorActive}
+            />
+            <BusinessCardDesignerV2Panel
+              lang={lang}
+              doc={doc}
+              side={doc.activeSide}
+              dispatch={dispatchTyped}
+              selectedV2NativeId={selectedV2NativeId}
+              onSelectV2Native={setSelectedV2NativeId}
+              selectedTextBlockId={selectedTextBlockId}
+              logoInspectorActive={logoInspectorActive}
+              onSelectTextBlock={(id) => {
+                setSelectedTextBlockId(id);
+                setLogoInspectorActive(false);
+                setSelectedV2NativeId(null);
+              }}
+              onFocusLogo={() => {
+                setLogoInspectorActive(true);
+                setSelectedTextBlockId(null);
+                setSelectedV2NativeId(null);
+              }}
+              onClearTemplateSelection={() => {
+                setSelectedTextBlockId(null);
+                setLogoInspectorActive(false);
+              }}
             />
           </div>
         </div>

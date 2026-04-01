@@ -24,9 +24,16 @@ The live product still uses `textBlocks`, `logoGeom`, template application, and 
 - `utils/` — id normalization helpers
 - `integration.ts` — derive + selection mapping for future UI
 
+## Native studio objects (implemented)
+
+`BusinessCardSideState.designerV2NativeObjects` holds **persisted** extra images and shapes. They serialize in the v3 design session next to `textBlocks` / `logoGeom`. Large studio **image** data URLs may be stored in IndexedDB (same DB as logo vault, keys `slug::studio::side::objectId`); `draftStudioVault` lists vaulted ids and session JSON uses `previewUrl: null` until `mergeVaultedStudioImagesIntoDocument` runs on the client.
+
+## Layer stack semantics
+
+Template-derived layers and studio layers share **one** CSS z-index space in the trim box (`buildUnifiedLayerRows`, `previewStackOrder.ts`). **Studio forward/back** only swaps z-index among `designerV2NativeObjects`, not template text/logo. A future phase may introduce a single ordered `layerStack` or cross-type reorder in the reducer.
+
 ## Next phases (expected)
 
-- Wire a layers panel or canvas to `deriveDesignerV2FromBusinessCardDocument`
-- Persist V2 or dual-write — only after order pipeline agreement
+- Deeper z-merge between V1 and V2 layers in the UI (optional unified list interactions)
 - Implement reverse adapter or promote V2 to canonical
 - Add shape/decorative instances beyond placeholders in `types/objects.ts`

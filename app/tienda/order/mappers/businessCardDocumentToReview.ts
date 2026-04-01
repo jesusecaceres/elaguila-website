@@ -32,6 +32,8 @@ export type StoredSidePayload = {
 export type StoredSidePayloadV3 = StoredSidePayload & {
   textBlocks: import("../../product-configurators/business-cards/types").BusinessCardTextBlock[];
   logoGeom: import("../../product-configurators/business-cards/types").BusinessCardLogoGeom;
+  /** Designer V2 native layers — optional for backward compatibility with older saved drafts */
+  designerV2NativeObjects?: import("../../product-configurators/business-cards/types").BusinessCardDesignerV2NativeObject[];
 };
 
 export type BusinessCardSessionPayloadV2 = {
@@ -55,6 +57,9 @@ export type BusinessCardApprovalSnapshot = {
   noRedesignExpectation: boolean;
 };
 
+/** Native studio image object ids offloaded to IndexedDB per side (session JSON keeps `previewUrl: null`). */
+export type DraftStudioVault = { front?: string[]; back?: string[] };
+
 export type BusinessCardSessionPayloadV3Design = {
   v: 3;
   mode: "design-online";
@@ -69,6 +74,8 @@ export type BusinessCardSessionPayloadV3Design = {
   leoSnapshot?: BusinessCardLeoSnapshot;
   /** Large logo previews stored in IndexedDB; hydrate merges after load. */
   draftLogoVault?: { front?: boolean; back?: boolean };
+  /** Studio native image ids whose `previewUrl` was stored in IndexedDB (see `mergeVaultedStudioImagesIntoDocument`). */
+  draftStudioVault?: DraftStudioVault;
   /** Optional filename hints from LEO / builder (not sent to print). */
   draftLogoMeta?: { frontFileName?: string; backFileName?: string };
   textNudgeX?: number;
@@ -582,6 +589,7 @@ export function toBusinessCardSessionPayloadV3Design(
       },
       textBlocks: doc.front.textBlocks,
       logoGeom: doc.front.logoGeom,
+      designerV2NativeObjects: doc.front.designerV2NativeObjects ?? [],
     },
     back: {
       fields: doc.back.fields,
@@ -596,6 +604,7 @@ export function toBusinessCardSessionPayloadV3Design(
       },
       textBlocks: doc.back.textBlocks,
       logoGeom: doc.back.logoGeom,
+      designerV2NativeObjects: doc.back.designerV2NativeObjects ?? [],
     },
     approval: doc.approval,
   };

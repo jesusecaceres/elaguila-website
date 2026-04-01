@@ -98,6 +98,41 @@ export type BusinessCardLogoGeom = {
   zIndex: number;
 };
 
+/**
+ * Designer V2 native layers — persisted with the design session (data URLs for images).
+ * Separate from template `textBlocks` / logo so multiple images and shapes can coexist.
+ */
+export type BusinessCardDesignerV2NativeImage = {
+  id: string;
+  kind: "native-image";
+  visible: boolean;
+  zIndex: number;
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  heightPct: number;
+  rotationDeg: number;
+  previewUrl: string | null;
+  naturalWidth: number | null;
+  naturalHeight: number | null;
+};
+
+export type BusinessCardDesignerV2NativeShape = {
+  id: string;
+  kind: "native-shape";
+  shape: "rect" | "ellipse";
+  visible: boolean;
+  zIndex: number;
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  heightPct: number;
+  rotationDeg: number;
+  fill: string;
+};
+
+export type BusinessCardDesignerV2NativeObject = BusinessCardDesignerV2NativeImage | BusinessCardDesignerV2NativeShape;
+
 export type BusinessCardSideState = {
   fields: BusinessCardTextFields;
   textLayout: BusinessCardTextLayout;
@@ -105,6 +140,8 @@ export type BusinessCardSideState = {
   /** V3+ freeform; when non-empty, preview + export use these positions */
   textBlocks: BusinessCardTextBlock[];
   logoGeom: BusinessCardLogoGeom;
+  /** V2 studio layers (images/shapes) — additive; template + LEO flows ignore unless present */
+  designerV2NativeObjects: BusinessCardDesignerV2NativeObject[];
 };
 
 export type BusinessCardSidedness = "one-sided" | "two-sided";

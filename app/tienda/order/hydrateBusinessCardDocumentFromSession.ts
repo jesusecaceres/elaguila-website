@@ -50,6 +50,9 @@ function toSideV3(stored: BusinessCardSessionPayloadV3Design["front"]): Business
     },
     textBlocks: stored.textBlocks ?? [],
     logoGeom: stored.logoGeom ?? { xPct: 50, yPct: 28, widthPct: 20, zIndex: 4 },
+    designerV2NativeObjects: Array.isArray(stored.designerV2NativeObjects)
+      ? stored.designerV2NativeObjects
+      : [],
   };
 }
 
