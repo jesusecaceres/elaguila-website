@@ -3,8 +3,10 @@
  */
 
 import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
+import type { BusinessCardLeoSnapshot } from "./businessCardLeoTypes";
 
 export type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
+export type { BusinessCardLeoSnapshot } from "./businessCardLeoTypes";
 
 export type BusinessCardSide = "front" | "back";
 
@@ -110,7 +112,7 @@ export type BusinessCardApprovalChecks = {
   noRedesignExpectation: boolean;
 };
 
-export type BusinessCardDesignIntake = "template" | "custom";
+export type BusinessCardDesignIntake = "template" | "custom" | "leo";
 
 export type BusinessCardDocument = {
   id: string;
@@ -120,6 +122,8 @@ export type BusinessCardDocument = {
   sidedness: BusinessCardSidedness;
   /** How the customer entered the builder — template-first vs full custom (upload is a separate session). */
   designIntake?: BusinessCardDesignIntake;
+  /** Present when the customer used the LEO guided assistant (session + optional admin notes). */
+  leoSnapshot?: BusinessCardLeoSnapshot;
   /** Active Leonix template id when designIntake is template or user picked a layout. */
   selectedTemplateId?: BusinessCardTemplateId;
   activeSide: BusinessCardSide;

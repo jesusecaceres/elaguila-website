@@ -101,17 +101,34 @@ export function buildTiendaOrderEmailBodies(
         : "Creation mode / Modo: design online (builder + PNG reference exports)";
     const intakeLine =
       x.creationMode === "design-online" && x.designIntake
-        ? `Design intake / Flujo: ${x.designIntake === "template" ? "template library" : "custom builder"}`
+        ? `Design intake / Flujo: ${
+            x.designIntake === "template"
+              ? "template library"
+              : x.designIntake === "leo"
+                ? "LEO guided assistant"
+                : "custom builder"
+          }`
         : null;
     const templateLine =
       x.creationMode === "design-online" && x.templateSlug
         ? `Template / Plantilla: ${x.templateSlug}${x.templateTitleEn ? ` (${x.templateTitleEn})` : ""}`
         : null;
+    const leoDetailLines: string[] =
+      x.creationMode === "design-online" && x.designIntake === "leo"
+        ? [
+            ...(x.leoProfession ? [`LEO profession / Oficio: ${x.leoProfession}`] : []),
+            ...(x.leoPreferredStyle ? [`LEO style / Estilo: ${x.leoPreferredStyle}`] : []),
+            ...(x.leoEmphasis ? [`LEO emphasis / Énfasis: ${x.leoEmphasis}`] : []),
+            ...(x.leoBackStyle ? [`LEO back / Reverso: ${x.leoBackStyle}`] : []),
+            ...(x.leoColorsNote ? [`LEO colors / Colores: ${x.leoColorsNote}`] : []),
+          ]
+        : [];
     productBlock = [
       "--- Business cards ---",
       modeLine,
       ...(intakeLine ? [intakeLine] : []),
       ...(templateLine ? [templateLine] : []),
+      ...(leoDetailLines.length ? ["", ...leoDetailLines] : []),
       `Sidedness / Lados: ${x.sidedness}`,
       "",
       "Front field summary / Resumen frente (ES):",

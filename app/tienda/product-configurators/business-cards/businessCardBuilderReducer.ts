@@ -145,7 +145,11 @@ export function businessCardBuilderReducer(
     case "SET_CANVAS_BACKGROUND":
       return { ...state, canvasBackground: action.payload };
     case "SET_DESIGN_INTAKE":
-      return { ...state, designIntake: action.designIntake };
+      return {
+        ...state,
+        designIntake: action.designIntake,
+        leoSnapshot: action.designIntake === "custom" ? undefined : state.leoSnapshot,
+      };
     case "APPLY_TEMPLATE": {
       const { front, back, canvasBackground } = applyBusinessCardTemplateToDocument(
         action.templateId,
@@ -153,6 +157,7 @@ export function businessCardBuilderReducer(
         state.sidedness === "two-sided",
         { front: state.front, back: state.back }
       );
+      const keepLeo = state.designIntake === "leo";
       /* Fresh template geometry — legacy nudges fight block positions and confuse the preview */
       return {
         ...state,
@@ -160,7 +165,8 @@ export function businessCardBuilderReducer(
         front,
         back,
         canvasBackground,
-        designIntake: "template",
+        designIntake: keepLeo ? "leo" : "template",
+        leoSnapshot: keepLeo ? state.leoSnapshot : undefined,
         selectedTemplateId: action.templateId,
         textNudgeX: 0,
         textNudgeY: 0,

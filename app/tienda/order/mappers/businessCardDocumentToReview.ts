@@ -1,5 +1,10 @@
 import { BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO } from "../../product-configurators/business-cards/constants";
 import { getBusinessCardTemplateMeta, isBusinessCardTemplateId } from "../../product-configurators/business-cards/businessCardTemplateCatalog";
+import type { BusinessCardDocument } from "../../product-configurators/business-cards/types";
+import {
+  isBusinessCardLeoSnapshot,
+  type BusinessCardLeoSnapshot,
+} from "../../product-configurators/business-cards/businessCardLeoTypes";
 import type { BusinessCardCanvasBackground, BusinessCardTextLayout, TextFieldRole } from "../../product-configurators/business-cards/types";
 import type { TiendaOrderReviewSummary, TiendaLocalizedLine } from "../../types/orderHandoff";
 import type { BusinessCardSubmissionExtra } from "../../types/orderSubmission";
@@ -58,8 +63,10 @@ export type BusinessCardSessionPayloadV3Design = {
   sidedness: "one-sided" | "two-sided";
   canvasBackground: BusinessCardCanvasBackground;
   /** Template-first vs advanced builder — used for fulfillment notes. */
-  designIntake?: "template" | "custom";
+  designIntake?: "template" | "custom" | "leo";
   selectedTemplateId?: string;
+  /** LEO assistant snapshot when `designIntake` is `leo`. */
+  leoSnapshot?: BusinessCardLeoSnapshot;
   textNudgeX?: number;
   textNudgeY?: number;
   logoNudgeX?: number;
@@ -320,8 +327,26 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
       ? { es: "Logo en frente", en: "Logo on front" }
       : { es: "Sin logo al frente", en: "No logo on front" }
   );
-  const intake = raw.designIntake === "custom" ? "custom" : "template";
-  if (intake === "template") {
+  const intake = raw.designIntake === "custom" ? "custom" : raw.designIntake === "leo" ? "leo" : "template";
+  if (intake === "leo") {
+    const snap = isBusinessCardLeoSnapshot(raw.leoSnapshot) ? raw.leoSnapshot : null;
+    frontMeta.push({
+      es: "Flujo: LEO (asistente guiado)",
+      en: "Flow: LEO (guided assistant)",
+    });
+    if (raw.selectedTemplateId) {
+      frontMeta.push({
+        es: `Plantilla LEO: ${raw.selectedTemplateId}`,
+        en: `LEO template: ${raw.selectedTemplateId}`,
+      });
+    }
+    if (snap) {
+      frontMeta.push({
+        es: `LEO · oficio: ${snap.profession || "—"} · estilo: ${snap.preferredStyle}`,
+        en: `LEO · profession: ${snap.profession || "—"} · style: ${snap.preferredStyle}`,
+      });
+    }
+  } else if (intake === "template") {
     frontMeta.push(
       raw.selectedTemplateId
         ? {
@@ -466,26 +491,47 @@ export function mapBusinessCardSessionToReview(expectedSlug: string, raw: unknow
 }
 
 function extractExtraDesign(
-  expectedSlug: string,
+  _expectedSlug: string,
   sidedness: "one-sided" | "two-sided",
   front: StoredSidePayload | StoredSidePayloadV3,
   back: StoredSidePayload | StoredSidePayloadV3,
   approval: BusinessCardApprovalSnapshot,
-  designMeta?: { designIntake?: "template" | "custom"; selectedTemplateId?: string }
+  designMeta?: {
+    designIntake?: "template" | "custom" | "leo";
+    selectedTemplateId?: string;
+    leoSnapshot?: BusinessCardLeoSnapshot | null;
+  }
 ): BusinessCardSubmissionExtra {
   const frontLabel: TiendaLocalizedLine = { es: "Frente", en: "Front" };
   const backLabel: TiendaLocalizedLine = { es: "Reverso", en: "Back" };
   const frontLines = sideTextSummary(front, frontLabel);
   const backLines = sidedness === "two-sided" ? sideTextSummary(back, backLabel) : [];
 
-  const intake = designMeta?.designIntake === "custom" ? "custom" : "template";
+  const intake =
+    designMeta?.designIntake === "custom" ? "custom" : designMeta?.designIntake === "leo" ? "leo" : "template";
   const slug = designMeta?.selectedTemplateId?.trim();
+  const snap = designMeta?.leoSnapshot && isBusinessCardLeoSnapshot(designMeta.leoSnapshot) ? designMeta.leoSnapshot : null;
+
+  let templateTitleEs: string | undefined;
+  let templateTitleEn: string | undefined;
+  if (slug && isBusinessCardTemplateId(slug)) {
+    const m = getBusinessCardTemplateMeta(slug);
+    templateTitleEs = m.title.es;
+    templateTitleEn = m.title.en;
+  }
 
   return {
     creationMode: "design-online",
     sidedness,
     designIntake: intake,
-    templateSlug: intake === "template" && slug ? slug : undefined,
+    templateSlug: (intake === "template" || intake === "leo") && slug ? slug : undefined,
+    templateTitleEs,
+    templateTitleEn,
+    leoProfession: intake === "leo" && snap ? snap.profession : undefined,
+    leoPreferredStyle: intake === "leo" && snap ? snap.preferredStyle : undefined,
+    leoEmphasis: intake === "leo" && snap ? snap.emphasis : undefined,
+    leoBackStyle: intake === "leo" && snap ? snap.backStyle : undefined,
+    leoColorsNote: intake === "leo" && snap ? snap.preferredColorsNote : undefined,
     frontFieldLinesEs: frontLines.map((l) => l.es),
     frontFieldLinesEn: frontLines.map((l) => l.en),
     backFieldLinesEs: backLines.map((l) => l.es),
@@ -496,6 +542,58 @@ function extractExtraDesign(
     backLogoHasDataUrl: !!(back.logo?.previewUrl && String(back.logo.previewUrl).startsWith("data:")),
     designOnlineExportPixelRatio: BUSINESS_CARD_PNG_EXPORT_PIXEL_RATIO,
     approval: { ...approval },
+  };
+}
+
+/** Builds the v3 design-online session payload (logos already resolved to data URLs or other preview strings). */
+export function toBusinessCardSessionPayloadV3Design(
+  doc: BusinessCardDocument,
+  resolvedLogos: { front: string | null; back: string | null },
+  savedAt?: string
+): BusinessCardSessionPayloadV3Design {
+  return {
+    v: 3,
+    mode: "design-online",
+    savedAt: savedAt ?? new Date().toISOString(),
+    productSlug: doc.productSlug,
+    sidedness: doc.sidedness,
+    canvasBackground: doc.canvasBackground,
+    designIntake: doc.designIntake,
+    selectedTemplateId: doc.selectedTemplateId,
+    leoSnapshot: doc.leoSnapshot && isBusinessCardLeoSnapshot(doc.leoSnapshot) ? doc.leoSnapshot : undefined,
+    textNudgeX: doc.textNudgeX,
+    textNudgeY: doc.textNudgeY,
+    logoNudgeX: doc.logoNudgeX,
+    logoNudgeY: doc.logoNudgeY,
+    front: {
+      fields: doc.front.fields,
+      textLayout: doc.front.textLayout,
+      logo: {
+        visible: doc.front.logo.visible,
+        position: doc.front.logo.position,
+        scale: doc.front.logo.scale,
+        previewUrl: resolvedLogos.front,
+        naturalWidth: doc.front.logo.naturalWidth,
+        naturalHeight: doc.front.logo.naturalHeight,
+      },
+      textBlocks: doc.front.textBlocks,
+      logoGeom: doc.front.logoGeom,
+    },
+    back: {
+      fields: doc.back.fields,
+      textLayout: doc.back.textLayout,
+      logo: {
+        visible: doc.back.logo.visible,
+        position: doc.back.logo.position,
+        scale: doc.back.logo.scale,
+        previewUrl: resolvedLogos.back,
+        naturalWidth: doc.back.logo.naturalWidth,
+        naturalHeight: doc.back.logo.naturalHeight,
+      },
+      textBlocks: doc.back.textBlocks,
+      logoGeom: doc.back.logoGeom,
+    },
+    approval: doc.approval,
   };
 }
 
@@ -550,6 +648,7 @@ export function extractBusinessCardSubmissionExtra(
     return extractExtraDesign(expectedSlug, raw.sidedness, raw.front, raw.back, raw.approval, {
       designIntake: raw.designIntake,
       selectedTemplateId: raw.selectedTemplateId,
+      leoSnapshot: isBusinessCardLeoSnapshot(raw.leoSnapshot) ? raw.leoSnapshot : null,
     });
   }
 

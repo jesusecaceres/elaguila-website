@@ -1,0 +1,56 @@
+import type { Lang } from "../types/tienda";
+
+export const leoAssistCopy = {
+  pageTitle: { es: "LEO — asistente para tu tarjeta", en: "LEO — your card assistant" },
+  pageSubtitle: {
+    es: "Cuéntanos tu negocio y estilo. LEO arma un borrador pulido con plantillas Leonix; luego lo afinas en el constructor.",
+    en: "Tell us about your business and style. LEO builds a polished Leonix-template draft; then you refine it in the builder.",
+  },
+  backLink: { es: "Volver al producto", en: "Back to product" },
+  progress: { es: "Paso", en: "Step" },
+  of: { es: "de", en: "of" },
+  whyTitle: { es: "¿Por qué LEO?", en: "Why LEO?" },
+  whyBody: {
+    es: "Es la forma más rápida de partir de un diseño premium coherente. Ideal si conoces tu negocio pero no quieres partir de cero.",
+    en: "The fastest way to start from a coherent premium layout. Ideal when you know your business but don’t want a blank canvas.",
+  },
+  next: { es: "Siguiente", en: "Next" },
+  back: { es: "Atrás", en: "Back" },
+  finish: { es: "Abrir borrador en el constructor", en: "Open draft in builder" },
+  step1Title: { es: "Tu negocio", en: "Your business" },
+  step2Title: { es: "Contacto", en: "Contact" },
+  step3Title: { es: "Estilo y reverso", en: "Style & back" },
+  step4Title: { es: "Logo y envío", en: "Logo & finish" },
+  profession: { es: "Oficio / tipo de negocio", en: "Profession / business type" },
+  businessName: { es: "Nombre del negocio", en: "Business name" },
+  personName: { es: "Tu nombre", en: "Your name" },
+  title: { es: "Puesto o título", en: "Title" },
+  phone: { es: "Teléfono", en: "Phone" },
+  email: { es: "Correo", en: "Email" },
+  website: { es: "Sitio web", en: "Website" },
+  address: { es: "Dirección", en: "Address" },
+  slogan: { es: "Eslogan o descripción breve", en: "Slogan or short description" },
+  preferredStyle: { es: "Estilo preferido", en: "Preferred style" },
+  preferredColors: { es: "Colores preferidos (texto libre)", en: "Preferred colors (free text)" },
+  emphasis: { es: "Qué debe destacar al frente", en: "What should stand out on the front" },
+  backStyle: { es: "Estilo del reverso", en: "Back side style" },
+  logo: { es: "Logo (opcional)", en: "Logo (optional)" },
+  styleLuxury: { es: "Lujo", en: "Luxury" },
+  styleModern: { es: "Moderno", en: "Modern" },
+  styleBold: { es: "Audaz", en: "Bold" },
+  styleMinimal: { es: "Minimal", en: "Minimal" },
+  styleElegant: { es: "Elegante", en: "Elegant" },
+  emphLogo: { es: "Logo", en: "Logo" },
+  emphCompany: { es: "Nombre del negocio", en: "Business name" },
+  emphContact: { es: "Datos de contacto", en: "Contact details" },
+  backClean: { es: "Limpio", en: "Clean" },
+  backServices: { es: "Servicios / mensaje", en: "Services / message" },
+  backAddress: { es: "Dirección", en: "Address" },
+  backMap: { es: "Estilo mapa / ubicación", en: "Map-style / location" },
+  errRequired: { es: "Completa los campos marcados.", en: "Please complete the highlighted fields." },
+  errContact: { es: "Añade al menos teléfono o correo.", en: "Add at least a phone number or email." },
+} as const;
+
+export function leoPick<T extends Record<"es" | "en", string>>(v: T, lang: Lang): string {
+  return lang === "en" ? v.en : v.es;
+}

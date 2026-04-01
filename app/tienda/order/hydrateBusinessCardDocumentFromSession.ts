@@ -2,7 +2,9 @@ import {
   DEFAULT_BUSINESS_CARD_TEMPLATE_ID,
   isBusinessCardTemplateId,
 } from "../product-configurators/business-cards/businessCardTemplateCatalog";
+import { isBusinessCardLeoSnapshot } from "../product-configurators/business-cards/businessCardLeoTypes";
 import type {
+  BusinessCardDesignIntake,
   BusinessCardDocument,
   BusinessCardProductSlug,
   BusinessCardSideState,
@@ -51,6 +53,12 @@ function toSideV3(stored: BusinessCardSessionPayloadV3Design["front"]): Business
   };
 }
 
+function normalizeDesignIntake(raw: BusinessCardSessionPayloadV3Design["designIntake"]): BusinessCardDesignIntake {
+  if (raw === "custom") return "custom";
+  if (raw === "leo") return "leo";
+  return "template";
+}
+
 function documentFromV3Design(slug: string, raw: BusinessCardSessionPayloadV3Design): BusinessCardDocument {
   const tid =
     raw.selectedTemplateId && isBusinessCardTemplateId(raw.selectedTemplateId)
@@ -61,7 +69,8 @@ function documentFromV3Design(slug: string, raw: BusinessCardSessionPayloadV3Des
     version: 3,
     productSlug: raw.productSlug as BusinessCardProductSlug,
     sidedness: raw.sidedness,
-    designIntake: raw.designIntake === "custom" ? "custom" : "template",
+    designIntake: normalizeDesignIntake(raw.designIntake),
+    leoSnapshot: isBusinessCardLeoSnapshot(raw.leoSnapshot) ? raw.leoSnapshot : undefined,
     selectedTemplateId: tid,
     activeSide: "front",
     guidesVisible: false,

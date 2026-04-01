@@ -11,6 +11,7 @@ export function tiendaOrderFlowLabel(payload: unknown): string {
     if (m === "upload-existing") return "BC · uploaded";
     if (m === "design-online") {
       if (di === "template") return "BC · template";
+      if (di === "leo") return "BC · LEO";
       if (di === "custom") return "BC · custom";
       return "BC · designed";
     }

@@ -178,7 +178,7 @@ export function validateTiendaOrderPayload(body: unknown):
 
     if (creationMode === "design-online") {
       const di = x.designIntake;
-      if (di === "custom" || di === "template") {
+      if (di === "custom" || di === "template" || di === "leo") {
         payload.businessCardExtra.designIntake = di;
       }
       const ts = trimStr(x.templateSlug, 120);
@@ -187,6 +187,16 @@ export function validateTiendaOrderPayload(body: unknown):
       if (tte) payload.businessCardExtra.templateTitleEs = tte;
       const ttn = trimStr(x.templateTitleEn, 200);
       if (ttn) payload.businessCardExtra.templateTitleEn = ttn;
+      const lp = trimStr(x.leoProfession, 400);
+      if (lp) payload.businessCardExtra.leoProfession = lp;
+      const lps = trimStr(x.leoPreferredStyle, 80);
+      if (lps) payload.businessCardExtra.leoPreferredStyle = lps;
+      const le = trimStr(x.leoEmphasis, 80);
+      if (le) payload.businessCardExtra.leoEmphasis = le;
+      const lb = trimStr(x.leoBackStyle, 80);
+      if (lb) payload.businessCardExtra.leoBackStyle = lb;
+      const lc = trimStr(x.leoColorsNote, 400);
+      if (lc) payload.businessCardExtra.leoColorsNote = lc;
       if (typeof x.designOnlineExportPixelRatio === "number" && Number.isFinite(x.designOnlineExportPixelRatio)) {
         payload.businessCardExtra.designOnlineExportPixelRatio = x.designOnlineExportPixelRatio;
       }

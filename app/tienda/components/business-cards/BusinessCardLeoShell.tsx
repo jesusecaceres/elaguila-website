@@ -1,0 +1,390 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import { leoAssistCopy, leoPick } from "../../data/businessCardLeoAssistantCopy";
+import { LOGO_MAX_MB } from "../../product-configurators/business-cards/constants";
+import { buildBusinessCardDocumentFromLeoIntake } from "../../product-configurators/business-cards/businessCardLeoAdvisor";
+import type {
+  BusinessCardLeoIntake,
+  LeoBackStyle,
+  LeoEmphasis,
+  LeoPreferredStyle,
+} from "../../product-configurators/business-cards/businessCardLeoTypes";
+import type { BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
+import type { Lang } from "../../types/tienda";
+import { BC_UPLOAD_DRAFT_PREFIX, toBusinessCardSessionPayloadV3Design } from "../../order/mappers/businessCardDocumentToReview";
+import { businessCardConfigurePath, withLang } from "../../utils/tiendaRouting";
+
+const STEP_COUNT = 4;
+
+const emptyIntake: BusinessCardLeoIntake = {
+  profession: "",
+  businessName: "",
+  personName: "",
+  title: "",
+  phone: "",
+  email: "",
+  website: "",
+  address: "",
+  slogan: "",
+  preferredStyle: "modern",
+  preferredColors: "",
+  emphasis: "company",
+  backStyle: "clean",
+  logoDataUrl: null,
+  logoNaturalWidth: null,
+  logoNaturalHeight: null,
+};
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+const inputClass =
+  "mt-1 w-full min-h-[48px] rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-4 py-3 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(201,168,74,0.45)]";
+
+const labelClass = "block text-sm font-medium text-[rgba(255,247,226,0.88)]";
+
+export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSlug; lang: Lang }) {
+  const { productSlug, lang } = props;
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [intake, setIntake] = useState<BusinessCardLeoIntake>(emptyIntake);
+
+  const setField = useCallback(<K extends keyof BusinessCardLeoIntake>(key: K, value: BusinessCardLeoIntake[K]) => {
+    setIntake((s) => ({ ...s, [key]: value }));
+  }, []);
+
+  const validateStep = useCallback((): boolean => {
+    if (step === 0) {
+      if (!intake.businessName.trim() || !intake.personName.trim() || !intake.profession.trim()) {
+        window.alert(leoPick(leoAssistCopy.errRequired, lang));
+        return false;
+      }
+    }
+    if (step === 1) {
+      if (!intake.phone.trim() && !intake.email.trim()) {
+        window.alert(leoPick(leoAssistCopy.errContact, lang));
+        return false;
+      }
+    }
+    return true;
+  }, [step, intake, lang]);
+
+  const goNext = useCallback(() => {
+    if (!validateStep()) return;
+    setStep((s) => Math.min(STEP_COUNT - 1, s + 1));
+  }, [validateStep]);
+
+  const goBack = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
+
+  const onLogo = useCallback(
+    async (file: File | null) => {
+      if (!file) {
+        setField("logoDataUrl", null);
+        setField("logoNaturalWidth", null);
+        setField("logoNaturalHeight", null);
+        return;
+      }
+      if (file.size > LOGO_MAX_MB * 1024 * 1024) {
+        window.alert(lang === "en" ? `Logo must be under ${LOGO_MAX_MB} MB.` : `El logo debe ser menor a ${LOGO_MAX_MB} MB.`);
+        return;
+      }
+      try {
+        const dataUrl = await readAsDataUrl(file);
+        const img = new window.Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("decode"));
+          img.src = dataUrl;
+        });
+        setField("logoDataUrl", dataUrl);
+        setField("logoNaturalWidth", img.naturalWidth);
+        setField("logoNaturalHeight", img.naturalHeight);
+      } catch {
+        setField("logoDataUrl", null);
+        setField("logoNaturalWidth", null);
+        setField("logoNaturalHeight", null);
+      }
+    },
+    [lang, setField]
+  );
+
+  const finish = useCallback(() => {
+    if (!validateStep()) return;
+    const { document: doc } = buildBusinessCardDocumentFromLeoIntake(intake, productSlug, lang);
+    const payload = toBusinessCardSessionPayloadV3Design(doc, {
+      front: doc.front.logo.previewUrl,
+      back: doc.back.logo.previewUrl,
+    });
+    try {
+      sessionStorage.setItem(`leonix-bc-draft-${productSlug}`, JSON.stringify(payload));
+      sessionStorage.removeItem(`${BC_UPLOAD_DRAFT_PREFIX}${productSlug}`);
+    } catch {
+      window.alert(lang === "en" ? "Could not save draft." : "No se pudo guardar el borrador.");
+      return;
+    }
+    router.push(withLang(businessCardConfigurePath(productSlug, { entry: "leo" }), lang));
+  }, [intake, productSlug, lang, router, validateStep]);
+
+  const styleOptions: { v: LeoPreferredStyle; label: keyof typeof leoAssistCopy }[] = [
+    { v: "luxury", label: "styleLuxury" },
+    { v: "modern", label: "styleModern" },
+    { v: "bold", label: "styleBold" },
+    { v: "minimal", label: "styleMinimal" },
+    { v: "elegant", label: "styleElegant" },
+  ];
+
+  const emphOptions: { v: LeoEmphasis; label: keyof typeof leoAssistCopy }[] = [
+    { v: "logo", label: "emphLogo" },
+    { v: "company", label: "emphCompany" },
+    { v: "contact", label: "emphContact" },
+  ];
+
+  const backOptions: { v: LeoBackStyle; label: keyof typeof leoAssistCopy }[] = [
+    { v: "clean", label: "backClean" },
+    { v: "services", label: "backServices" },
+    { v: "address", label: "backAddress" },
+    { v: "map-style", label: "backMap" },
+  ];
+
+  return (
+    <main className="min-h-screen bg-[#070708] text-white">
+      <div className="mx-auto max-w-lg px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
+        <Link
+          href={withLang(`/tienda/p/${productSlug}`, lang)}
+          className="text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)]"
+        >
+          {leoPick(leoAssistCopy.backLink, lang)}
+        </Link>
+        <h1 className="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight">{leoPick(leoAssistCopy.pageTitle, lang)}</h1>
+        <p className="mt-2 text-sm text-[rgba(255,255,255,0.68)] leading-relaxed">{leoPick(leoAssistCopy.pageSubtitle, lang)}</p>
+
+        <div className="mt-6 flex items-center gap-2" aria-live="polite">
+          {Array.from({ length: STEP_COUNT }, (_, i) => (
+            <div
+              key={i}
+              className={[
+                "h-1.5 flex-1 rounded-full transition",
+                i <= step ? "bg-[color:var(--lx-gold)]" : "bg-[rgba(255,255,255,0.12)]",
+              ].join(" ")}
+            />
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-[rgba(255,255,255,0.45)]">
+          {leoPick(leoAssistCopy.progress, lang)} {step + 1} {leoPick(leoAssistCopy.of, lang)} {STEP_COUNT}
+        </p>
+
+        {step === 0 ? (
+          <section className="mt-8 space-y-5">
+            <h2 className="text-lg font-semibold text-[rgba(255,247,226,0.95)]">{leoPick(leoAssistCopy.step1Title, lang)}</h2>
+            <details className="rounded-xl border border-[rgba(201,168,74,0.25)] bg-[rgba(201,168,74,0.06)] px-4 py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-[rgba(255,247,226,0.9)]">
+                {leoPick(leoAssistCopy.whyTitle, lang)}
+              </summary>
+              <p className="mt-2 text-sm text-[rgba(255,255,255,0.7)] leading-relaxed">{leoPick(leoAssistCopy.whyBody, lang)}</p>
+            </details>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.profession, lang)}</label>
+              <input
+                className={inputClass}
+                value={intake.profession}
+                onChange={(e) => setField("profession", e.target.value)}
+                autoComplete="organization-title"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.businessName, lang)}</label>
+              <input
+                className={inputClass}
+                value={intake.businessName}
+                onChange={(e) => setField("businessName", e.target.value)}
+                autoComplete="organization"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.personName, lang)}</label>
+              <input
+                className={inputClass}
+                value={intake.personName}
+                onChange={(e) => setField("personName", e.target.value)}
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.title, lang)}</label>
+              <input className={inputClass} value={intake.title} onChange={(e) => setField("title", e.target.value)} />
+            </div>
+          </section>
+        ) : null}
+
+        {step === 1 ? (
+          <section className="mt-8 space-y-5">
+            <h2 className="text-lg font-semibold text-[rgba(255,247,226,0.95)]">{leoPick(leoAssistCopy.step2Title, lang)}</h2>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.phone, lang)}</label>
+              <input className={inputClass} value={intake.phone} onChange={(e) => setField("phone", e.target.value)} type="tel" />
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.email, lang)}</label>
+              <input className={inputClass} value={intake.email} onChange={(e) => setField("email", e.target.value)} type="email" />
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.website, lang)}</label>
+              <input className={inputClass} value={intake.website} onChange={(e) => setField("website", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.address, lang)}</label>
+              <textarea
+                className={`${inputClass} min-h-[88px] resize-y`}
+                value={intake.address}
+                onChange={(e) => setField("address", e.target.value)}
+                rows={3}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {step === 2 ? (
+          <section className="mt-8 space-y-5">
+            <h2 className="text-lg font-semibold text-[rgba(255,247,226,0.95)]">{leoPick(leoAssistCopy.step3Title, lang)}</h2>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.slogan, lang)}</label>
+              <textarea
+                className={`${inputClass} min-h-[80px] resize-y`}
+                value={intake.slogan}
+                onChange={(e) => setField("slogan", e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div>
+              <span className={labelClass}>{leoPick(leoAssistCopy.preferredStyle, lang)}</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {styleOptions.map(({ v, label }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setField("preferredStyle", v)}
+                    className={[
+                      "min-h-[48px] rounded-full px-4 text-sm font-semibold transition",
+                      intake.preferredStyle === v
+                        ? "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)]"
+                        : "border border-[rgba(255,255,255,0.2)] bg-transparent text-[rgba(255,247,226,0.88)]",
+                    ].join(" ")}
+                  >
+                    {leoPick(leoAssistCopy[label], lang)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.preferredColors, lang)}</label>
+              <input className={inputClass} value={intake.preferredColors} onChange={(e) => setField("preferredColors", e.target.value)} />
+            </div>
+            <div>
+              <span className={labelClass}>{leoPick(leoAssistCopy.emphasis, lang)}</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {emphOptions.map(({ v, label }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setField("emphasis", v)}
+                    className={[
+                      "min-h-[48px] rounded-full px-4 text-sm font-semibold transition",
+                      intake.emphasis === v
+                        ? "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)]"
+                        : "border border-[rgba(255,255,255,0.2)] bg-transparent text-[rgba(255,247,226,0.88)]",
+                    ].join(" ")}
+                  >
+                    {leoPick(leoAssistCopy[label], lang)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {productSlug === "two-sided-business-cards" ? (
+              <div>
+                <span className={labelClass}>{leoPick(leoAssistCopy.backStyle, lang)}</span>
+                <div className="mt-2 flex flex-col gap-2">
+                  {backOptions.map(({ v, label }) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setField("backStyle", v)}
+                      className={[
+                        "min-h-[48px] w-full rounded-xl px-4 text-sm font-semibold text-left transition",
+                        intake.backStyle === v
+                          ? "bg-[rgba(201,168,74,0.22)] border border-[rgba(201,168,74,0.45)] text-[rgba(255,247,226,0.98)]"
+                          : "border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] text-[rgba(255,247,226,0.88)]",
+                      ].join(" ")}
+                    >
+                      {leoPick(leoAssistCopy[label], lang)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-[rgba(255,255,255,0.5)]">
+                {lang === "en" ? "One-sided product — back layout options apply when you upgrade to two-sided." : "Producto de un lado — el reverso aplica si eliges tarjeta a dos caras."}
+              </p>
+            )}
+          </section>
+        ) : null}
+
+        {step === 3 ? (
+          <section className="mt-8 space-y-5">
+            <h2 className="text-lg font-semibold text-[rgba(255,247,226,0.95)]">{leoPick(leoAssistCopy.step4Title, lang)}</h2>
+            <div>
+              <label className={labelClass}>{leoPick(leoAssistCopy.logo, lang)}</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="mt-2 block w-full text-sm text-[rgba(255,255,255,0.75)] file:mr-3 file:rounded-lg file:border-0 file:bg-[rgba(201,168,74,0.2)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[rgba(255,247,226,0.95)]"
+                onChange={(e) => void onLogo(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <p className="text-sm text-[rgba(255,255,255,0.55)]">
+              {lang === "en"
+                ? "LEO will place your logo on the front when provided. You can nudge it in the builder."
+                : "LEO colocará el logo al frente si lo subes. Podrás ajustarlo en el constructor."}
+            </p>
+          </section>
+        ) : null}
+
+        <div className="mt-10 flex flex-col-reverse sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={step === 0}
+            className="min-h-[52px] rounded-full border border-[rgba(255,255,255,0.18)] px-6 text-sm font-semibold text-[rgba(255,247,226,0.88)] disabled:opacity-35"
+          >
+            {leoPick(leoAssistCopy.back, lang)}
+          </button>
+          {step < STEP_COUNT - 1 ? (
+            <button
+              type="button"
+              onClick={goNext}
+              className="min-h-[52px] flex-1 rounded-full bg-[color:var(--lx-gold)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
+            >
+              {leoPick(leoAssistCopy.next, lang)}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void finish()}
+              className="min-h-[52px] flex-1 rounded-full bg-[color:var(--lx-gold)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_12px_34px_rgba(201,168,74,0.22)]"
+            >
+              {leoPick(leoAssistCopy.finish, lang)}
+            </button>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

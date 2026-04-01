@@ -16,7 +16,7 @@ import { businessCardConfigurePath, tiendaOrderPath, tiendaPublicContactPath, wi
 import {
   BC_UPLOAD_DRAFT_PREFIX,
   readBusinessCardSessionRaw,
-  type BusinessCardSessionPayloadV3Design,
+  toBusinessCardSessionPayloadV3Design,
 } from "../../order/mappers/businessCardDocumentToReview";
 import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
@@ -43,11 +43,14 @@ export function BusinessCardBuilderShell(props: {
 }) {
   const { productSlug, lang, designEntry } = props;
   const router = useRouter();
-  const [doc, dispatch] = useReducer(
-    businessCardBuilderReducer,
-    undefined,
-    () => createInitialBusinessCardDocument(productSlug, lang, { designIntake: designEntry })
-  );
+  const [doc, dispatch] = useReducer(businessCardBuilderReducer, undefined, () => {
+    if (typeof window !== "undefined") {
+      const raw = readBusinessCardSessionRaw(productSlug);
+      const hydrated = raw ? hydrateBusinessCardDocumentFromSession(productSlug, raw, lang) : null;
+      if (hydrated) return hydrated;
+    }
+    return createInitialBusinessCardDocument(productSlug, lang, { designIntake: designEntry });
+  });
   const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
   const [logoInspectorActive, setLogoInspectorActive] = useState(false);
 
@@ -124,47 +127,11 @@ export function BusinessCardBuilderShell(props: {
     try {
       const frontLogo = doc.front.logo.file ? await readAsDataUrl(doc.front.logo.file) : doc.front.logo.previewUrl;
       const backLogo = doc.back.logo.file ? await readAsDataUrl(doc.back.logo.file) : doc.back.logo.previewUrl;
-      const payload: BusinessCardSessionPayloadV3Design = {
-        v: 3,
-        mode: "design-online",
-        savedAt: new Date().toISOString(),
-        productSlug: doc.productSlug,
-        sidedness: doc.sidedness,
-        canvasBackground: doc.canvasBackground,
-        textNudgeX: doc.textNudgeX,
-        textNudgeY: doc.textNudgeY,
-        logoNudgeX: doc.logoNudgeX,
-        logoNudgeY: doc.logoNudgeY,
-        front: {
-          fields: doc.front.fields,
-          textLayout: doc.front.textLayout,
-          logo: {
-            visible: doc.front.logo.visible,
-            position: doc.front.logo.position,
-            scale: doc.front.logo.scale,
-            previewUrl: frontLogo,
-            naturalWidth: doc.front.logo.naturalWidth,
-            naturalHeight: doc.front.logo.naturalHeight,
-          },
-          textBlocks: doc.front.textBlocks,
-          logoGeom: doc.front.logoGeom,
-        },
-        back: {
-          fields: doc.back.fields,
-          textLayout: doc.back.textLayout,
-          logo: {
-            visible: doc.back.logo.visible,
-            position: doc.back.logo.position,
-            scale: doc.back.logo.scale,
-            previewUrl: backLogo,
-            naturalWidth: doc.back.logo.naturalWidth,
-            naturalHeight: doc.back.logo.naturalHeight,
-          },
-          textBlocks: doc.back.textBlocks,
-          logoGeom: doc.back.logoGeom,
-        },
-        approval: doc.approval,
-      };
+      const payload = toBusinessCardSessionPayloadV3Design(
+        doc,
+        { front: frontLogo, back: backLogo },
+        new Date().toISOString()
+      );
       sessionStorage.setItem(`leonix-bc-draft-${doc.productSlug}`, JSON.stringify(payload));
       sessionStorage.removeItem(`${BC_UPLOAD_DRAFT_PREFIX}${doc.productSlug}`);
       return true;
@@ -230,9 +197,11 @@ export function BusinessCardBuilderShell(props: {
           <p className="text-sm text-[rgba(255,255,255,0.75)]">
             {doc.designIntake === "custom"
               ? bcpPick(businessCardProductCopy.designIntakeCustomHint, lang)
-              : bcpPick(businessCardProductCopy.designIntakeTemplateHint, lang)}
+              : doc.designIntake === "leo"
+                ? bcpPick(businessCardProductCopy.designIntakeLeoHint, lang)
+                : bcpPick(businessCardProductCopy.designIntakeTemplateHint, lang)}
           </p>
-          {doc.designIntake === "template" ? (
+          {doc.designIntake === "template" || doc.designIntake === "leo" ? (
             <button
               type="button"
               onClick={() => dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" })}

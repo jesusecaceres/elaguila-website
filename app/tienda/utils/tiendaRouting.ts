@@ -6,10 +6,14 @@ export function normalizeLang(raw: unknown): Lang {
   return raw === "en" ? "en" : "es";
 }
 
-export function businessCardConfigurePath(slug: string, opts?: { entry?: "template" | "custom" }): string {
+export function businessCardConfigurePath(slug: string, opts?: { entry?: "template" | "custom" | "leo" }): string {
   const base = `/tienda/configure/business-cards/${slug}`;
   if (!opts?.entry) return base;
   return `${base}?entry=${opts.entry}`;
+}
+
+export function businessCardLeoPath(slug: string): string {
+  return `/tienda/configure/business-cards/leo/${slug}`;
 }
 
 export function businessCardUploadPath(slug: string): string {

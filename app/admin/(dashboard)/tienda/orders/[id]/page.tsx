@@ -233,21 +233,44 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
             ) : null}
             {payload?.businessCardExtra?.creationMode === "design-online" &&
             payload.businessCardExtra.designIntake ? (
-              <p className="text-sm">
-                <strong>Design path:</strong>{" "}
-                {payload.businessCardExtra.designIntake === "template"
-                  ? "Template library (guided)"
-                  : "Custom builder (advanced)"}
-                {payload.businessCardExtra.templateSlug ? (
-                  <>
-                    {" "}
-                    · <span className="font-mono text-xs">{payload.businessCardExtra.templateSlug}</span>
-                    {payload.businessCardExtra.templateTitleEn ? (
-                      <span className="text-[#7A7164]"> — {payload.businessCardExtra.templateTitleEn}</span>
+              <div className="text-sm space-y-1">
+                <p>
+                  <strong>Design path:</strong>{" "}
+                  {payload.businessCardExtra.designIntake === "template"
+                    ? "Template library (manual)"
+                    : payload.businessCardExtra.designIntake === "leo"
+                      ? "LEO guided assistant"
+                      : "Custom builder (advanced)"}
+                  {payload.businessCardExtra.templateSlug ? (
+                    <>
+                      {" "}
+                      · <span className="font-mono text-xs">{payload.businessCardExtra.templateSlug}</span>
+                      {payload.businessCardExtra.templateTitleEn ? (
+                        <span className="text-[#7A7164]"> — {payload.businessCardExtra.templateTitleEn}</span>
+                      ) : null}
+                    </>
+                  ) : null}
+                </p>
+                {payload.businessCardExtra.designIntake === "leo" ? (
+                  <ul className="text-xs text-[#7A7164] list-disc pl-4 space-y-0.5">
+                    {payload.businessCardExtra.leoProfession ? (
+                      <li>LEO profession: {payload.businessCardExtra.leoProfession}</li>
                     ) : null}
-                  </>
+                    {payload.businessCardExtra.leoPreferredStyle ? (
+                      <li>LEO style: {payload.businessCardExtra.leoPreferredStyle}</li>
+                    ) : null}
+                    {payload.businessCardExtra.leoEmphasis ? (
+                      <li>LEO emphasis: {payload.businessCardExtra.leoEmphasis}</li>
+                    ) : null}
+                    {payload.businessCardExtra.leoBackStyle ? (
+                      <li>LEO back: {payload.businessCardExtra.leoBackStyle}</li>
+                    ) : null}
+                    {payload.businessCardExtra.leoColorsNote ? (
+                      <li>LEO colors note: {payload.businessCardExtra.leoColorsNote}</li>
+                    ) : null}
+                  </ul>
                 ) : null}
-              </p>
+              </div>
             ) : null}
             {payload?.businessCardExtra?.designOnlineExportPixelRatio != null &&
             payload.businessCardExtra.creationMode === "design-online" ? (

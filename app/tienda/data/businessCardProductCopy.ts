@@ -5,13 +5,20 @@ export const businessCardProductCopy = {
     es: "Tarjetas premium estándar 3.5″×2″ — autogestión para stock y acabado profesional habitual. Opciones especiales (foil, terciopelo, cantos pintados, etc.) son por cotización.",
     en: "Standard premium 3.5″×2″ cards — self‑serve for typical professional stock and finish. Specialty options (foil, velvet, painted edges, etc.) are quote‑only.",
   },
-  pathTemplateBadge: { es: "Recomendado", en: "Recommended" },
+  pathLeoBadge: { es: "Recomendado", en: "Recommended" },
+  pathLeoTitle: { es: "LEO — asistente guiado", en: "LEO — guided assistant" },
+  pathLeoBody: {
+    es: "Cuéntale a LEO tu negocio y estilo. Elige plantilla premium, aplica tu información y abre un borrador listo en el constructor.",
+    en: "Tell LEO about your business and style. LEO picks a premium template, applies your details, and opens a ready draft in the builder.",
+  },
+  pathLeoCta: { es: "Empezar con LEO", en: "Start with LEO" },
+  pathTemplateBadge: { es: "Manual", en: "Manual" },
   pathTemplateTitle: { es: "Plantilla Leonix", en: "Leonix template" },
   pathTemplateBody: {
-    es: "El camino más rápido: elige un estilo premium, añade texto y logo, y revisa en móvil sin complicar el editor.",
-    en: "Fastest path: pick a premium layout, add your logo and text, and review on mobile without fighting the editor.",
+    es: "Explora la biblioteca, aplica un estilo premium y edita texto y logo con control directo.",
+    en: "Browse the library, apply a premium layout, and edit text and logo with direct control.",
   },
-  pathTemplateCta: { es: "Empezar con plantilla", en: "Start with a template" },
+  pathTemplateCta: { es: "Elegir plantilla", en: "Choose a template" },
   pathCustomTitle: { es: "Diseño personalizado", en: "Custom design" },
   pathCustomBody: {
     es: "Control total sobre texto y posición en el constructor avanzado. Ideal si quieres ajustar cada detalle.",
@@ -86,6 +93,10 @@ export const businessCardProductCopy = {
   designIntakeTemplateHint: {
     es: "Modo plantilla: toca una tarjeta para aplicar estilo, color y posición al instante.",
     en: "Template mode: tap a card to apply layout, colors, and positions instantly.",
+  },
+  designIntakeLeoHint: {
+    es: "Borrador LEO: ya aplicamos plantilla, color y textos. Ajusta detalles y continúa cuando esté listo.",
+    en: "LEO draft: we already applied template, color, and copy. Tweak details and continue when you’re ready.",
   },
   switchToCustomCta: { es: "Cambiar a control total (custom)", en: "Switch to full custom control" },
 } as const;
