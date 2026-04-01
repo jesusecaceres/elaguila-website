@@ -15,5 +15,6 @@ Orientation for maintainers. **Dominant path today:** template-driven sides with
 | LEO | `businessCardLeoAdvisor.ts`, `businessCardLeoScoring.ts`, `businessCardLeoPolish.ts`, `businessCardLeoPresetMapper.ts`, `businessCardLeoTypes.ts` |
 | Draft persistence | `businessCardDraftPersistence.ts` |
 | Order / review mapping | `app/tienda/order/mappers/businessCardDocumentToReview.ts`, `hydrateBusinessCardDocumentFromSession.ts` |
+| **Designer V2 foundation** (typed layers, derived read model — V1 still canonical) | `designer-v2/README.md`, `designer-v2/index.ts` |
 
-**Designer V2 (future):** expect deeper changes in `BusinessCardPreview`, block model in `types.ts`, and possibly new layer modules under `preview/` or a sibling `layers/` folder. LEO and order pipeline should remain wired at boundaries.
+**Designer V2:** parallel object model under `designer-v2/`; full editor/canvas phases will build on `deriveDesignerV2FromBusinessCardDocument` and related types. Until migration, LEO, persistence, and order pipeline stay on `BusinessCardDocument` only.

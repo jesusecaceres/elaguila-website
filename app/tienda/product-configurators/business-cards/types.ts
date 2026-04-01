@@ -3,7 +3,7 @@
  *
  * **Block mode (dominant for templates):** `textBlocks.length > 0` — absolute blocks + `logoGeom`.
  * **Legacy:** empty `textBlocks` — stacked `fields` + 9-point presets only.
- * Designer V2 will likely extend `BusinessCardTextBlock` / layer concepts here first.
+ * Designer V2 layer types live in `designer-v2/types/`; V1 remains authoritative until migration phases.
  */
 
 import type { BusinessCardTemplateId } from "./businessCardTemplateCatalog";
