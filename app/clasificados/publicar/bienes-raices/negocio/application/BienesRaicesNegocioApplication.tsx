@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -12,6 +12,7 @@ import {
   clearLeonixReturningToEditSessionFlag,
   collectMuxAssetIdsFromNegocioState,
   confirmLeavePublishFlow,
+  markBrtNegocioPreviewHandoffPagehide,
   markPublishFlowOpeningPreview,
   negocioFormHasProgress,
   useLeonixPublishLeaveGuard,
@@ -70,8 +71,8 @@ export default function BienesRaicesNegocioApplication() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
 
-  /* Client-only: SSR/hydration starts empty; one effect pass restores return-draft → preview-draft → empty. */
-  useEffect(() => {
+  /* Client-only: SSR/hydration starts empty; layout pass restores return-draft → preview-draft → empty before paint. */
+  useLayoutEffect(() => {
     setState(bootstrapBienesRaicesNegocioApplicationState());
     const t = window.setTimeout(() => {
       clearLeonixReturningToEditSessionFlag();
@@ -106,6 +107,7 @@ export default function BienesRaicesNegocioApplication() {
 
   const openPreview = useCallback(() => {
     markPublishFlowOpeningPreview();
+    markBrtNegocioPreviewHandoffPagehide();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
     router.push(BR_PREVIEW_NEGOCIO);

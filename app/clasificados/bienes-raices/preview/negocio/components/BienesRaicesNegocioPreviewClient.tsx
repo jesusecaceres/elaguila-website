@@ -31,8 +31,12 @@ export default function BienesRaicesNegocioPreviewClient() {
     } catch {
       setVm(null);
     }
-    clearLeonixPreviewNavSessionFlag();
     setReady(true);
+    /* Defer clearing the session nav flag so publish `pagehide` can still see it, or rely on `markBrtNegocioPreviewHandoffPagehide` (see publishFlowLifecycleClient). */
+    const t = window.setTimeout(() => {
+      clearLeonixPreviewNavSessionFlag();
+    }, 0);
+    return () => window.clearTimeout(t);
   }, []);
 
   if (!ready) {
