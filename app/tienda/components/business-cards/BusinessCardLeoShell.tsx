@@ -168,7 +168,7 @@ export function BusinessCardLeoShell(props: { productSlug: BusinessCardProductSl
           </Link>
           <div className="mt-6 flex justify-center">
             <div className="rounded-2xl border border-[rgba(201,168,74,0.2)] bg-[rgba(0,0,0,0.35)] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
-              <LeoBrandMark width={200} className="mx-auto h-auto w-[min(100%,220px)]" />
+              <LeoBrandMark width={152} className="mx-auto max-w-[min(100%,168px)]" />
             </div>
           </div>
           <h1 className="mt-6 text-2xl font-semibold tracking-tight text-[rgba(255,247,226,0.98)] sm:text-[1.65rem]">

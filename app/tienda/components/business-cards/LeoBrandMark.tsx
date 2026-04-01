@@ -1,23 +1,22 @@
 type LeoBrandMarkProps = {
-  /** Pixel width; height scales with asset aspect. */
+  /** Max width in CSS pixels — height follows asset aspect ratio. */
   width?: number;
   className?: string;
 };
 
 /**
- * LEO by Leonix — premium mark for Tienda (gateway, intake, panels).
- * Asset: `/tienda/leo-mark.svg`
+ * LEO assistant mark for Tienda (gateway, intake, helper panels).
+ * Asset: `/ai/leo-mark.png` (replace file in `public/ai/` to update branding).
  */
 export function LeoBrandMark(props: LeoBrandMarkProps) {
-  const { width = 200, className = "" } = props;
-  const height = Math.round((width * 40) / 120);
+  const { width = 160, className = "" } = props;
   return (
     <img
-      src="/tienda/leo-mark.svg"
+      src="/ai/leo-mark.png"
       alt=""
-      width={width}
-      height={height}
-      className={className}
+      role="presentation"
+      style={{ width, maxWidth: "100%", height: "auto" }}
+      className={["object-contain object-left", className].filter(Boolean).join(" ")}
       decoding="async"
     />
   );

@@ -22,7 +22,7 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:gap-10">
           <div className="flex shrink-0 justify-center md:justify-start">
             <div className="rounded-2xl border border-[rgba(201,168,74,0.25)] bg-[rgba(0,0,0,0.25)] px-6 py-5">
-              <LeoBrandMark width={lang === "en" ? 210 : 200} className="h-auto w-full max-w-[min(100%,240px)]" />
+              <LeoBrandMark width={168} className="mx-auto max-w-[min(100%,180px)]" />
             </div>
           </div>
           <div className="min-w-0 flex-1 text-center md:text-left">
