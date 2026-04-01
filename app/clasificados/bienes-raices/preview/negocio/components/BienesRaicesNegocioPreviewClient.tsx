@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
@@ -25,6 +25,10 @@ function tryReadPreviewDraftForMap(): BienesRaicesNegocioPreviewVm | null {
   return mapNegocioFormStateToBrNegocioPreviewVm(draft);
 }
 
+/**
+ * Hooks: fixed order every render — three useState, one useEffect only.
+ * UI branches use a single return (no early return after hooks).
+ */
 export default function BienesRaicesNegocioPreviewClient() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [vm, setVm] = useState<BienesRaicesNegocioPreviewVm | null>(null);
@@ -57,59 +61,53 @@ export default function BienesRaicesNegocioPreviewClient() {
     };
   }, [retryKey]);
 
-  const handleRetryLoad = useCallback(() => {
-    setVm(null);
-    setPhase("loading");
-    setRetryKey((k) => k + 1);
-  }, []);
-
-  if (phase === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F9F6F1] text-[#5C5346]">
-        Cargando vista previa…
-      </div>
-    );
-  }
-
-  if (phase === "ready" && vm) {
-    return (
-      <BienesRaicesNegocioPreviewView
-        vm={vm}
-        editHref={BR_PUBLICAR_NEGOCIO}
-        footerExtra="Vista previa Negocio · Mismo diseño aprobado que verán los compradores. Vuelve a Publicar Negocio para seguir editando."
-        onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
-      />
-    );
-  }
-
   return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#F9F6F1] px-4 text-[#2C2416]">
-        <div className="max-w-md rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 text-center shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa</p>
-          <p className="mt-2 text-sm text-[#5C5346]">
-            No pudimos cargar el borrador de vista previa todavía. Puedes reintentar o volver al formulario para seguir
-            editando.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <button
-              type="button"
-              className="rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-2.5 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95"
-              onClick={handleRetryLoad}
-            >
-              Reintentar cargar vista previa
-            </button>
-            <Link
-              href={BR_PUBLICAR_NEGOCIO}
-              className="rounded-xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-center text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7]"
-              prefetch={false}
-              onClick={() => {
-                markPublishFlowReturningToEdit();
-              }}
-            >
-              Volver a editar
-            </Link>
+    <>
+      {phase === "loading" ? (
+        <div className="flex min-h-screen items-center justify-center bg-[#F9F6F1] text-[#5C5346]">
+          Cargando vista previa…
+        </div>
+      ) : phase === "ready" && vm != null ? (
+        <BienesRaicesNegocioPreviewView
+          vm={vm}
+          editHref={BR_PUBLICAR_NEGOCIO}
+          footerExtra="Vista previa Negocio · Mismo diseño aprobado que verán los compradores. Vuelve a Publicar Negocio para seguir editando."
+          onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
+        />
+      ) : (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#F9F6F1] px-4 text-[#2C2416]">
+          <div className="max-w-md rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 text-center shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa</p>
+            <p className="mt-2 text-sm text-[#5C5346]">
+              No pudimos cargar el borrador de vista previa todavía. Puedes reintentar o volver al formulario para seguir
+              editando.
+            </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                className="rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-2.5 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95"
+                onClick={() => {
+                  setVm(null);
+                  setPhase("loading");
+                  setRetryKey((k) => k + 1);
+                }}
+              >
+                Reintentar cargar vista previa
+              </button>
+              <Link
+                href={BR_PUBLICAR_NEGOCIO}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-center text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7]"
+                prefetch={false}
+                onClick={() => {
+                  markPublishFlowReturningToEdit();
+                }}
+              >
+                Volver a editar
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+    </>
   );
 }

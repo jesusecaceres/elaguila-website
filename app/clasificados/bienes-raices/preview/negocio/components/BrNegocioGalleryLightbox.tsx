@@ -144,9 +144,9 @@ export function BrNegocioGalleryLightbox({
 
   const current = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
 
-  if (!open || slides.length === 0) return null;
+  const show = open && slides.length > 0;
 
-  return (
+  return !show ? null : (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
       role="dialog"
@@ -228,3 +228,4 @@ export function BrNegocioGalleryLightbox({
     </div>
   );
 }
+
