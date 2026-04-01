@@ -57,8 +57,11 @@ export function BusinessCardEditorPanel(props: {
   selectedTextBlockId: string | null;
   onSelectTextBlock: (id: string | null) => void;
   logoInspectorActive: boolean;
+  /** Clears studio-native selection when the user applies a template (avoids competing inspectors). */
+  onClearStudioNativeSelection?: () => void;
 }) {
-  const { lang, doc, side, dispatch, onPickLogo, selectedTextBlockId, onSelectTextBlock, logoInspectorActive } = props;
+  const { lang, doc, side, dispatch, onPickLogo, selectedTextBlockId, onSelectTextBlock, logoInspectorActive, onClearStudioNativeSelection } =
+    props;
   const state = side === "front" ? doc.front : doc.back;
   /** Template-driven sides use absolute text blocks; legacy empty sides use stacked fields only. */
   const blockMode = state.textBlocks.length > 0;
@@ -119,7 +122,10 @@ export function BusinessCardEditorPanel(props: {
                       <button
                         key={tid}
                         type="button"
-                        onClick={() => dispatch({ type: "APPLY_TEMPLATE", templateId: tid, lang })}
+                        onClick={() => {
+                          onClearStudioNativeSelection?.();
+                          dispatch({ type: "APPLY_TEMPLATE", templateId: tid, lang });
+                        }}
                         className={[
                           "group rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-[color:rgba(201,168,74,0.65)] hover:shadow-md active:scale-[0.99]",
                           active

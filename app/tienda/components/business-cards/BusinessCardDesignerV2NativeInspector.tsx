@@ -13,6 +13,7 @@ import {
   clampNativeSizePct,
   clampNativeStrokeWidthPx,
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
+import { withStrokeColorIfWidthActive } from "../../product-configurators/business-cards/designer-v2/studio/nativeShapeStroke";
 
 function num(v: string): number {
   const n = Number(v);
@@ -57,6 +58,17 @@ export function BusinessCardDesignerV2NativeInspector(props: {
             : "El texto y logo de plantilla se editan arriba. Adelante/atrás solo mueve esta capa entre imágenes y formas de estudio."}
         </p>
       </div>
+
+      {!selected.visible ? (
+        <p
+          className="rounded-lg border border-amber-500/35 bg-amber-950/40 px-2.5 py-2 text-[10px] leading-snug text-amber-100/90"
+          role="status"
+        >
+          {lg === "en"
+            ? "This layer is hidden — it does not appear on the live preview until you tap Show."
+            : "Esta capa está oculta — no aparece en la vista previa hasta que pulses Mostrar."}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -249,7 +261,17 @@ export function BusinessCardDesignerV2NativeInspector(props: {
               placeholder={lg === "en" ? "e.g. #c9a84a" : "ej. #c9a84a"}
               className="mt-0.5 w-full rounded border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-xs font-mono disabled:cursor-not-allowed disabled:opacity-40"
               value={selected.strokeColor ?? ""}
-              onChange={(e) => patch({ strokeColor: e.target.value.trim() || undefined })}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                const w = selected.strokeWidthPx ?? 0;
+                if (!v && w > 0) {
+                  const fill = selected.fill?.trim() ?? "";
+                  const fallback = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(fill) ? fill : "#c9a84a";
+                  patch({ strokeColor: fallback });
+                  return;
+                }
+                patch({ strokeColor: v || undefined });
+              }}
             />
           </label>
           <label className="block text-[10px] text-[rgba(255,255,255,0.5)]">
@@ -262,7 +284,10 @@ export function BusinessCardDesignerV2NativeInspector(props: {
               disabled={locked}
               className="mt-0.5 w-full rounded border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40"
               value={selected.strokeWidthPx ?? 0}
-              onChange={(e) => patch({ strokeWidthPx: clampNativeStrokeWidthPx(num(e.target.value)) })}
+              onChange={(e) => {
+                const next = clampNativeStrokeWidthPx(num(e.target.value));
+                patch(withStrokeColorIfWidthActive(selected, { strokeWidthPx: next }));
+              }}
             />
           </label>
         </div>

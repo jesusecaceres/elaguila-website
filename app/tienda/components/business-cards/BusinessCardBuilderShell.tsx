@@ -61,6 +61,7 @@ export function BusinessCardBuilderShell(props: {
   });
   const [selectedTextBlockId, setSelectedTextBlockId] = useState<string | null>(null);
   const [logoInspectorActive, setLogoInspectorActive] = useState(false);
+  /** Studio layer selection — cleared on side switch, delete, template apply (see handlers), logo pick, LEO/custom CTAs. */
   const [selectedV2NativeId, setSelectedV2NativeId] = useState<string | null>(null);
   const [sessionDraftError, setSessionDraftError] = useState<string | null>(null);
 
@@ -119,6 +120,7 @@ export function BusinessCardBuilderShell(props: {
 
   const applyLogo = useCallback(
     (file: File | null) => {
+      setSelectedV2NativeId(null);
       const side = doc.activeSide;
       const cur = side === "front" ? doc.front.logo : doc.back.logo;
       if (cur.previewUrl?.startsWith("blob:")) {
@@ -251,9 +253,12 @@ export function BusinessCardBuilderShell(props: {
             {doc.designIntake === "leo" && leoAlternateTemplateId ? (
               <button
                 type="button"
-                onClick={() =>
-                  dispatchTyped({ type: "APPLY_TEMPLATE", templateId: leoAlternateTemplateId, lang })
-                }
+                onClick={() => {
+                  setSelectedTextBlockId(null);
+                  setLogoInspectorActive(false);
+                  setSelectedV2NativeId(null);
+                  dispatchTyped({ type: "APPLY_TEMPLATE", templateId: leoAlternateTemplateId, lang });
+                }}
                 className="text-left text-sm font-semibold rounded-full border border-[rgba(201,168,74,0.35)] px-4 py-2 text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.12)] transition-colors"
               >
                 {bcPick(businessCardBuilderCopy.tryAnotherLook, lang)}
@@ -262,7 +267,12 @@ export function BusinessCardBuilderShell(props: {
             {doc.designIntake === "template" || doc.designIntake === "leo" ? (
               <button
                 type="button"
-                onClick={() => dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" })}
+                onClick={() => {
+                  setSelectedTextBlockId(null);
+                  setLogoInspectorActive(false);
+                  setSelectedV2NativeId(null);
+                  dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" });
+                }}
                 className="text-sm font-semibold text-[rgba(201,168,74,0.95)] underline-offset-4 hover:underline"
               >
                 {bcpPick(businessCardProductCopy.switchToCustomCta, lang)}
@@ -329,6 +339,7 @@ export function BusinessCardBuilderShell(props: {
                 setSelectedV2NativeId(null);
               }}
               logoInspectorActive={logoInspectorActive}
+              onClearStudioNativeSelection={() => setSelectedV2NativeId(null)}
             />
             <BusinessCardDesignerV2Panel
               lang={lang}

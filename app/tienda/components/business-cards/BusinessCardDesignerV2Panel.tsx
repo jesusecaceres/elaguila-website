@@ -151,6 +151,7 @@ export function BusinessCardDesignerV2Panel(props: {
           className={[
             "w-full rounded-lg px-3 py-2 text-left text-xs flex items-center justify-between gap-2 transition-colors",
             !canSelectText && !isLogoRow && !isStudio ? "opacity-40 cursor-not-allowed" : "hover:bg-[rgba(255,255,255,0.06)]",
+            isStudio && !row.visible ? "opacity-55" : "",
             selected ? "bg-[rgba(201,168,74,0.15)] ring-1 ring-[rgba(201,168,74,0.35)]" : "bg-[rgba(0,0,0,0.15)]",
           ].join(" ")}
         >
