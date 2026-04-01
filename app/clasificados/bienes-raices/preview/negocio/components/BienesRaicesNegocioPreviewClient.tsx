@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
-import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { mapNegocioFormStateToBrNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/brNegocioInputToPreviewMap";
+import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import {
   loadBienesRaicesNegocioPreviewDraft,
   readBienesRaicesNegocioPreviewDraftRaw,
@@ -16,67 +15,42 @@ import {
   markPublishFlowReturningToEdit,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
-type PreviewPhase =
-  | { kind: "loading" }
-  | { kind: "ok"; vm: BienesRaicesNegocioPreviewVm }
-  | { kind: "recover"; reason: "missing" | "corrupt" };
-
 /**
- * Thin boundary: only `useSearchParams` (may suspend). No other hooks here.
- * `key` forces a fresh inner instance when the query string changes so phase state
- * never reconciles across incompatible trees (avoids #300/#310 with Next searchParams).
+ * BRT Negocio preview — En Venta–style plumbing: hooks are unconditional; draft hydrates once; UI branches after.
  */
-export function BienesRaicesNegocioPreviewRoot() {
-  const searchParams = useSearchParams();
-  const reloadKey = searchParams?.toString() ?? "";
-  return <BienesRaicesNegocioPreviewInner key={reloadKey} reloadKey={reloadKey} />;
-}
-
-/**
- * All non–search-param hooks live here; hook order is identical every render.
- * Recovery vs preview UI branches only after hooks run.
- */
-function BienesRaicesNegocioPreviewInner({ reloadKey }: { reloadKey: string }) {
-  const [phase, setPhase] = useState<PreviewPhase>({ kind: "loading" });
+export default function BienesRaicesNegocioPreviewClient() {
+  const [hydrated, setHydrated] = useState(false);
+  const [draft, setDraft] = useState<BienesRaicesNegocioFormState | null>(null);
+  const [recoverReason, setRecoverReason] = useState<"missing" | "corrupt" | null>(null);
 
   useLayoutEffect(() => {
-    let cancelled = false;
-    let clearTimer: number | undefined;
+    clearLeonixPreviewNavSessionFlag();
+  }, []);
 
+  useEffect(() => {
     const raw = readBienesRaicesNegocioPreviewDraftRaw();
-    let next: PreviewPhase;
-
     try {
-      const draft = loadBienesRaicesNegocioPreviewDraft();
-      if (draft) {
-        next = { kind: "ok", vm: mapNegocioFormStateToBrNegocioPreviewVm(draft) };
+      const loaded = loadBienesRaicesNegocioPreviewDraft();
+      if (loaded) {
+        setDraft(loaded);
+        setRecoverReason(null);
       } else if (raw != null && raw.length > 0) {
-        next = { kind: "recover", reason: "corrupt" };
+        setDraft(null);
+        setRecoverReason("corrupt");
       } else {
-        next = { kind: "recover", reason: "missing" };
+        setDraft(null);
+        setRecoverReason("missing");
       }
     } catch {
-      next =
-        raw != null && raw.length > 0
-          ? { kind: "recover", reason: "corrupt" }
-          : { kind: "recover", reason: "missing" };
+      setDraft(null);
+      setRecoverReason(raw != null && raw.length > 0 ? "corrupt" : "missing");
     }
+    setHydrated(true);
+  }, []);
 
-    if (!cancelled) {
-      setPhase(next);
-    }
+  const vm = useMemo(() => (draft ? mapNegocioFormStateToBrNegocioPreviewVm(draft) : null), [draft]);
 
-    clearTimer = window.setTimeout(() => {
-      clearLeonixPreviewNavSessionFlag();
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      if (clearTimer != null) window.clearTimeout(clearTimer);
-    };
-  }, [reloadKey]);
-
-  if (phase.kind === "loading") {
+  if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F9F6F1] text-[#5C5346]">
         Cargando vista previa…
@@ -84,13 +58,14 @@ function BienesRaicesNegocioPreviewInner({ reloadKey }: { reloadKey: string }) {
     );
   }
 
-  if (phase.kind === "recover") {
+  if (!draft || !vm) {
+    const reason = recoverReason ?? "missing";
     const title =
-      phase.reason === "corrupt"
+      reason === "corrupt"
         ? "No se pudo leer el borrador de vista previa"
         : "No hay borrador de vista previa en esta sesión";
     const detail =
-      phase.reason === "corrupt"
+      reason === "corrupt"
         ? "Los datos guardados parecen dañados o incompletos. Vuelve al formulario o recarga esta página."
         : "Abre la vista previa desde “Publicar Bienes Raíces — Negocio” (paso Vista previa) para generar el borrador.";
 
@@ -126,7 +101,7 @@ function BienesRaicesNegocioPreviewInner({ reloadKey }: { reloadKey: string }) {
 
   return (
     <BienesRaicesNegocioPreviewView
-      vm={phase.vm}
+      vm={vm}
       editHref={BR_PUBLICAR_NEGOCIO}
       onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
     />

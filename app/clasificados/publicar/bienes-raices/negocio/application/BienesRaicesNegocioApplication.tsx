@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -67,7 +67,6 @@ function stepLabelsForAdvertiser(adv: string): string[] {
 
 export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
-  const skipInFlowNavigationRef = useRef(false);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyBienesRaicesNegocioFormState());
 
@@ -93,7 +92,6 @@ export default function BienesRaicesNegocioApplication() {
     lang: "es",
     isDirty,
     muxAssetIds: muxIds,
-    skipInFlowNavigationRef,
   });
 
   const leaveAndGo = useCallback(
@@ -107,11 +105,10 @@ export default function BienesRaicesNegocioApplication() {
   );
 
   const openPreview = useCallback(() => {
-    skipInFlowNavigationRef.current = true;
     markPublishFlowOpeningPreview();
     saveBienesRaicesNegocioPreviewDraft(state);
     saveBienesRaicesNegocioPreviewReturnDraft(state);
-    router.push(`${BR_PREVIEW_NEGOCIO}?_=${Date.now()}`);
+    router.push(BR_PREVIEW_NEGOCIO);
   }, [router, state]);
 
   return (

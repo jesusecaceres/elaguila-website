@@ -178,8 +178,6 @@ export function useLeonixPublishLeaveGuard(p: {
   isDirty: boolean;
   muxAssetIds: string[];
   skipAbandonOnceRef?: MutableRefObject<boolean>;
-  /** Synchronous in-flow navigation (e.g. Ver vista previa): same-tick as router.push, no sessionStorage race. */
-  skipInFlowNavigationRef?: MutableRefObject<boolean>;
 }): void {
   const muxRef = useRef<string[]>([]);
   muxRef.current = p.muxAssetIds;
@@ -187,7 +185,6 @@ export function useLeonixPublishLeaveGuard(p: {
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!p.isDirty) return;
-      if (p.skipInFlowNavigationRef?.current) return;
       if (isInFlowPublishNavigation()) return;
       e.preventDefault();
       e.returnValue = "";
@@ -195,7 +192,6 @@ export function useLeonixPublishLeaveGuard(p: {
 
     const onPageHide = () => {
       if (p.skipAbandonOnceRef?.current) return;
-      if (p.skipInFlowNavigationRef?.current) return;
       if (isInFlowPublishNavigation()) return;
       if (!p.isDirty) return;
       abandonLeonixPublishFlowClient({ muxAssetIds: muxRef.current, useBeacon: true });
