@@ -70,6 +70,9 @@ const typo = {
 } as const;
 
 const SECTION_GAP = "mt-6 md:mt-7";
+/** Same split as the hero row: left content + 300px rail column (details sit under gallery, not full main width). */
+const DESKTOP_TOP_ROW_GRID = "lg:grid lg:grid-cols-[1fr_300px] lg:gap-x-7 lg:items-start";
+const DETAILS_AFTER_TOP_ROW = "mt-4 md:mt-5 lg:mt-3";
 const CARD_PAD = "px-4 py-4 sm:px-5 sm:py-4";
 const SECTION_LABEL = `${typo.kicker} mb-2.5`;
 
@@ -232,7 +235,7 @@ export function AgenteIndividualResidencialPreviewPage({
         </p>
 
         {/* 1 — Columna izq.: resumen + galería · Columna der.: tarjeta agente (items-start evita fila estirada por el rail) */}
-        <section className="mt-0 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:gap-x-7 lg:items-start">
+        <section className={`mt-0 grid grid-cols-1 gap-y-3 ${DESKTOP_TOP_ROW_GRID}`}>
           <div className="flex min-w-0 flex-col gap-3">
             <div className="rounded-xl border px-4 py-3 sm:px-6 sm:py-3" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
               {title ? (
@@ -686,51 +689,60 @@ export function AgenteIndividualResidencialPreviewPage({
           </aside>
         </section>
 
-        {/* 2 — Detalles + características */}
+        {/* 2 — Detalles + características (left column only on lg; aligns with gallery footprint) */}
         {(hasPropertyDetails(data) || hasFeatures(data)) && (
-          <section className={`${SECTION_GAP} grid gap-3.5 lg:grid-cols-2 lg:gap-4 lg:items-stretch`}>
-            {hasPropertyDetails(data) ? (
-              <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-                <div className={CARD_PAD}>
-                  <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                    Detalles de la propiedad
-                  </h3>
-                  <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-2">
-                    {propertyRows.map((r) => (
-                      <div key={r.label} className="min-w-0 border-b border-[rgba(44,36,22,0.06)] pb-2 last:border-b-0 sm:border-b-0 sm:pb-0">
-                        <dt className={typo.detailLabel} style={{ color: MUTED_LIGHT }}>
-                          {r.label}
-                        </dt>
-                        <dd className={`mt-0.5 ${typo.detailValue}`}>{r.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              </div>
-            ) : null}
-            {hasFeatures(data) ? (
-              <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-                <div className={CARD_PAD}>
-                  <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                    Características destacadas
-                  </h3>
-                  <ul className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-1.5">
-                    {destacadosLabels.map((t) => (
-                      <li key={t} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
-                        <span
-                          className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                          style={{ background: `linear-gradient(180deg, #C9A85A, ${BRONZE})` }}
-                        >
-                          ✓
-                        </span>
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ) : null}
-          </section>
+          <div className={`${DETAILS_AFTER_TOP_ROW} max-w-full ${DESKTOP_TOP_ROW_GRID}`}>
+            <div className="min-w-0">
+              <section
+                className={`grid gap-3.5 lg:gap-3 lg:items-stretch ${
+                  hasPropertyDetails(data) && hasFeatures(data) ? "lg:grid-cols-2" : "lg:grid-cols-1"
+                }`}
+              >
+                {hasPropertyDetails(data) ? (
+                  <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+                    <div className={CARD_PAD}>
+                      <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
+                        Detalles de la propiedad
+                      </h3>
+                      <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2">
+                        {propertyRows.map((r) => (
+                          <div key={r.label} className="min-w-0 border-b border-[rgba(44,36,22,0.06)] pb-2 last:border-b-0 sm:border-b-0 sm:pb-0">
+                            <dt className={typo.detailLabel} style={{ color: MUTED_LIGHT }}>
+                              {r.label}
+                            </dt>
+                            <dd className={`mt-0.5 ${typo.detailValue}`}>{r.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  </div>
+                ) : null}
+                {hasFeatures(data) ? (
+                  <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+                    <div className={CARD_PAD}>
+                      <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
+                        Características destacadas
+                      </h3>
+                      <ul className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-2.5 sm:gap-y-1.5">
+                        {destacadosLabels.map((t) => (
+                          <li key={t} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
+                            <span
+                              className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                              style={{ background: `linear-gradient(180deg, #C9A85A, ${BRONZE})` }}
+                            >
+                              ✓
+                            </span>
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            </div>
+            <div className="hidden lg:block" aria-hidden />
+          </div>
         )}
 
         {/* 3 — Descripción */}
