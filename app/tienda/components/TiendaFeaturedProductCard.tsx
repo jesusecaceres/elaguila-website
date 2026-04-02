@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Lang, TiendaFeaturedProduct } from "../types/tienda";
-import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../data/tiendaVisualAssets";
+import {
+  tiendaProductFamilyCoverLiteral,
+  tiendaProductFamilyCoverPrimary,
+  tiendaProductFamilyImageClass,
+} from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
@@ -38,10 +42,19 @@ export function TiendaFeaturedProductCard(props: { product: TiendaFeaturedProduc
           primarySrc={coverPrimary}
           fallbackSrc={coverLiteral}
           alt={lang === "en" ? `${title} — product` : `${title} — producto`}
-          className="object-cover object-center transition duration-500 group-hover:scale-[1.04]"
+          className={[
+            tiendaProductFamilyImageClass(product.slug),
+            "transition duration-500 group-hover:scale-[1.04]",
+          ].join(" ")}
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.5)] via-transparent to-[rgba(201,168,74,0.08)] opacity-90" />
+        <div
+          className={
+            product.slug === "two-sided-business-cards"
+              ? "absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.38)] via-transparent to-transparent opacity-95"
+              : "absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.5)] via-transparent to-[rgba(201,168,74,0.08)] opacity-90"
+          }
+        />
       </div>
 
       <div className="pointer-events-none absolute left-3 right-3 top-3 opacity-0 transition duration-300 group-hover:opacity-100 sm:opacity-100">

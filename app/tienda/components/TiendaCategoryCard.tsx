@@ -30,6 +30,7 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
   const slug = category.slug as TiendaCategorySlug;
   const coverPrimary = tiendaCategoryCoverPrimary(slug);
   const coverLiteral = tiendaCategoryCoverLiteral(slug);
+  const isBusinessCards = slug === "business-cards";
 
   return (
     <Link
@@ -52,7 +53,13 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
           className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.03]"
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/82 to-[#070708]/25" />
+        <div
+          className={
+            isBusinessCards
+              ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/70 to-[#070708]/15"
+              : "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/82 to-[#070708]/25"
+          }
+        />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(201,168,74,0.14),transparent_55%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100">
           <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.35),rgba(0,0,0,0))]" />

@@ -1,5 +1,9 @@
 import type { Lang, TiendaProductFamily } from "../types/tienda";
-import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../data/tiendaVisualAssets";
+import {
+  tiendaProductFamilyCoverLiteral,
+  tiendaProductFamilyCoverPrimary,
+  tiendaProductFamilyImageClass,
+} from "../data/tiendaVisualAssets";
 import { TiendaModeBadge } from "./TiendaModeBadge";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
@@ -64,12 +68,24 @@ export function TiendaProductHero(props: { product: TiendaProductFamily; lang: L
               primarySrc={coverPrimary}
               fallbackSrc={coverLiteral}
               alt={lang === "en" ? `${title} — product` : `${title} — producto`}
-              className="object-cover object-center"
+              className={tiendaProductFamilyImageClass(product.slug)}
               sizes="(max-width: 1024px) 100vw, 400px"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#070708]/88 via-[#070708]/15 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/20 lg:to-[#070708]/88" />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,rgba(201,168,74,0.14),transparent_55%)]" />
+            <div
+              className={
+                product.slug === "two-sided-business-cards"
+                  ? "absolute inset-0 bg-gradient-to-r from-[#070708]/72 via-[#070708]/08 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/10 lg:to-[#070708]/82"
+                  : "absolute inset-0 bg-gradient-to-r from-[#070708]/88 via-[#070708]/15 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/20 lg:to-[#070708]/88"
+              }
+            />
+            <div
+              className={
+                product.slug === "two-sided-business-cards"
+                  ? "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,rgba(201,168,74,0.08),transparent_55%)]"
+                  : "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,rgba(201,168,74,0.14),transparent_55%)]"
+              }
+            />
           </div>
           <div className="relative hidden border-t border-[rgba(201,168,74,0.2)] bg-[rgba(0,0,0,0.35)] px-6 py-5 lg:block">
             <div className="text-[11px] tracking-[0.14em] uppercase text-[rgba(255,247,226,0.72)]">

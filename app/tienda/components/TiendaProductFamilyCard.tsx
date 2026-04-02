@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Lang, TiendaProductFamilySummary } from "../types/tienda";
-import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../data/tiendaVisualAssets";
+import {
+  tiendaProductFamilyCoverLiteral,
+  tiendaProductFamilyCoverPrimary,
+  tiendaProductFamilyImageClass,
+} from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaModeBadge } from "./TiendaModeBadge";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
@@ -36,10 +40,16 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
           primarySrc={coverPrimary}
           fallbackSrc={coverLiteral}
           alt={lang === "en" ? `${title} — product family` : `${title} — familia de producto`}
-          className="object-cover object-center transition duration-500 group-hover:scale-[1.04]"
+          className={[tiendaProductFamilyImageClass(family.slug), "transition duration-500 group-hover:scale-[1.04]"].join(" ")}
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070708]/92 via-[#070708]/30 to-[rgba(201,168,74,0.06)]" />
+        <div
+          className={
+            family.slug === "two-sided-business-cards"
+              ? "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/80 via-[#070708]/10 to-transparent"
+              : "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/92 via-[#070708]/30 to-[rgba(201,168,74,0.06)]"
+          }
+        />
       </div>
 
       <div className="relative flex flex-1 flex-col p-6 sm:p-7">

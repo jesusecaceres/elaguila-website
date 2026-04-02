@@ -14,6 +14,7 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
   const slug = category.slug as TiendaCategorySlug;
   const coverPrimary = tiendaCategoryCoverPrimary(slug);
   const coverLiteral = tiendaCategoryCoverLiteral(slug);
+  const isBusinessCards = slug === "business-cards";
 
   return (
     <header
@@ -48,7 +49,13 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
             sizes="(max-width: 1024px) 100vw, 38vw"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/20 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/15 lg:to-[#070708]/92" />
+          <div
+            className={
+              isBusinessCards
+                ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/15 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/10 lg:to-[#070708]/88"
+                : "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/20 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/15 lg:to-[#070708]/92"
+            }
+          />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(201,168,74,0.12),transparent_50%)]" />
         </div>
       </div>

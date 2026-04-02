@@ -14,6 +14,11 @@ function us(id: string, w: number) {
   return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=85`;
 }
 
+/** Desk stack — reads instantly as premium business cards (category, hero, catalog). */
+const PHOTO_BUSINESS_CARDS_STACK = us("photo-1589829545856-d10d557cf95f", 1600);
+/** Multiple one-face card layouts — “un lado” / standard family merchandising. */
+const PHOTO_BUSINESS_CARDS_ONE_SIDED = us("photo-1611532736597-de2d4265fba3", 1600);
+
 /** Last-resort neutral print context */
 export const TIENDA_GLOBAL_FALLBACK_IMAGE = `${V}/fallback-premium-print.svg`;
 
@@ -34,7 +39,7 @@ const CATEGORY_LITERAL: Record<TiendaCategorySlug, string> = {
 
 /** Product‑truthful photography per category (premium print / retail context). */
 const CATEGORY_PHOTO: Record<TiendaCategorySlug, string> = {
-  "business-cards": us("photo-1589829545856-d10d557cf95f", 1600),
+  "business-cards": PHOTO_BUSINESS_CARDS_STACK,
   flyers: us("photo-1563986768609-322da13575f3", 1600),
   brochures: us("photo-1543002588-bfa74002ed7e", 1600),
   banners: us("photo-1505373877841-8d25f7d46678", 1600),
@@ -79,8 +84,10 @@ const FAMILY_LITERAL: Record<string, string> = {
 };
 
 const FAMILY_PHOTO: Record<string, string> = {
-  "standard-business-cards": us("photo-1589829545856-d10d557cf95f", 1600),
-  "two-sided-business-cards": us("photo-1611532736597-de2d4265fba3", 1600),
+  /** Multiple one-face layouts (photo) — “un lado” / estándar. */
+  "standard-business-cards": PHOTO_BUSINESS_CARDS_ONE_SIDED,
+  /** Front + back mockup (SVG) — clearer than unrelated stock for “dos lados”. */
+  "two-sided-business-cards": `${V}/product-two-sided-business-cards.svg`,
   "flyers-standard": us("photo-1563986768609-322da13575f3", 1600),
   "brochures-standard": us("photo-1543002588-bfa74002ed7e", 1600),
   "retractable-banners": us("photo-1511578311128-61b9dd992832", 1600),
@@ -125,12 +132,22 @@ export function tiendaProductFamilyCoverImage(slug: string, categorySlug: string
   return tiendaProductFamilyCoverPrimary(slug, categorySlug);
 }
 
+/**
+ * `object-*` for product family covers — two-sided uses SVG mockup (contain + dark matte);
+ * one-sided standard uses full-bleed photo (cover).
+ */
+export function tiendaProductFamilyImageClass(slug: string): string {
+  return slug === "two-sided-business-cards"
+    ? "object-contain object-center bg-[#0b0b0d]"
+    : "object-cover object-center";
+}
+
 /* -------------------------------------------------------------------------- */
 /* Homepage hero                                                              */
 /* -------------------------------------------------------------------------- */
 
 export const tiendaHeroAssets = {
-  businessCards: us("photo-1611532736597-de2d4265fba3", 1800),
+  businessCards: us("photo-1589829545856-d10d557cf95f", 1800),
   bannersSigns: us("photo-1531243269054-5ebf6f0526bb", 1800),
   printWorkflow: us("photo-1454165804606-c3d57bc86b40", 1800),
   thumbFlyers: us("photo-1563986768609-322da13575f3", 800),
