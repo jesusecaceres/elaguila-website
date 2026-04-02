@@ -147,14 +147,6 @@ function GalleryCaption({ children }: { children: ReactNode }) {
   );
 }
 
-function sectionHeading(text: string) {
-  return (
-    <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-      {text}
-    </h3>
-  );
-}
-
 export function AgenteIndividualResidencialPreviewView({
   vm,
   editHref,
@@ -207,13 +199,13 @@ export function AgenteIndividualResidencialPreviewView({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1140px] px-4 pb-10 pt-3 sm:px-6 lg:px-7">
-        <p className={`text-center ${typo.meta}`} style={{ color: MUTED }}>
+      <main className="mx-auto max-w-[1140px] px-4 pb-10 pt-2 sm:px-6 lg:px-7">
+        <p className={`mb-1 text-center ${typo.meta}`} style={{ color: MUTED }}>
           Vista previa del anuncio
         </p>
 
-        {/* Hero + rail — proporción plantilla: contenido flexible + carril fijo */}
-        <section className="mt-3 grid gap-4 lg:grid-cols-[1fr_286px] lg:items-start lg:gap-8">
+        {/* Hero + rail + galería: un solo bloque superior (menos hueco entre hechos y galería) */}
+        <section className="mt-2 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7 lg:gap-y-3">
           <div className="min-w-0">
             <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
               {h.title}
@@ -242,7 +234,7 @@ export function AgenteIndividualResidencialPreviewView({
             </div>
 
             <div
-              className="mt-3 overflow-hidden rounded-xl border"
+              className="mt-2 overflow-hidden rounded-xl border"
               style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
             >
               <div className="grid grid-cols-3 lg:grid-cols-6">
@@ -306,13 +298,13 @@ export function AgenteIndividualResidencialPreviewView({
               ) : null}
 
               <div className={pc.hasBrandBlock ? "pt-3" : ""}>
-                <div className="mx-auto w-full max-w-[196px]">
+                <div className="mx-auto w-full max-w-[236px]">
                   {pc.agentPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={pc.agentPhotoUrl}
                       alt=""
-                      className="mx-auto aspect-square w-full max-h-[188px] rounded-lg border object-cover"
+                      className="mx-auto aspect-square w-full max-h-[240px] rounded-lg border object-cover"
                       style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.07)" }}
                     />
                   ) : (
@@ -496,11 +488,12 @@ export function AgenteIndividualResidencialPreviewView({
               </div>
             </div>
           </aside>
-        </section>
 
-        {/* Galería — roles explícitos por slot */}
-        <section className={SECTION_GAP}>
-          {sectionHeading("Galería")}
+          {/* Galería inmediatamente bajo hechos + carril (misma sección = sin hueco vertical grande) */}
+          <div className="col-span-1 min-w-0 lg:col-span-2">
+          <h3 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
+            Galería
+          </h3>
           <div className="grid gap-2.5 lg:grid-cols-12 lg:gap-3.5 lg:items-start">
             <div className="min-w-0 lg:col-span-7">
               {g.mainPhoto.url ? (
@@ -634,6 +627,7 @@ export function AgenteIndividualResidencialPreviewView({
               </span>
             </div>
           ) : null}
+          </div>
         </section>
 
         {/* Detalles + características — misma fila visual */}

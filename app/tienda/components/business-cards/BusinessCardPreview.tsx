@@ -2,7 +2,12 @@
 
 import { useRef, type CSSProperties } from "react";
 import type { Lang } from "../../types/tienda";
-import type { BusinessCardDocument, BusinessCardSide, TextFieldRole } from "../../product-configurators/business-cards/types";
+import type {
+  BusinessCardDesignerV2NativeObject,
+  BusinessCardDocument,
+  BusinessCardSide,
+  TextFieldRole,
+} from "../../product-configurators/business-cards/types";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import {
   presetToLogoStyle,
@@ -33,6 +38,13 @@ export type BusinessCardPreviewEditApi = {
   onFocusLogo: () => void;
   onSelectV2Native?: (id: string | null) => void;
   onMoveV2Native?: (id: string, xPct: number, yPct: number) => void;
+  /** Canvas transform (resize/rotate); requires `transformInteraction` */
+  onPatchV2Native?: (
+    id: string,
+    patch: Partial<Pick<BusinessCardDesignerV2NativeObject, "xPct" | "yPct" | "widthPct" | "heightPct" | "rotationDeg">>
+  ) => void;
+  /** When true, on-canvas resize/rotate handles are active */
+  transformInteraction?: boolean;
   onMoveTextBlock: (id: string, xPct: number, yPct: number) => void;
   onMoveLogo: (xPct: number, yPct: number) => void;
 };
@@ -329,6 +341,8 @@ export function BusinessCardPreview(props: {
                 readOnly={!editInteraction?.onSelectV2Native}
                 onSelect={editInteraction?.onSelectV2Native ?? (() => {})}
                 onMove={editInteraction?.onMoveV2Native ?? (() => {})}
+                onPatchV2Native={editInteraction?.onPatchV2Native}
+                transformInteraction={editInteraction?.transformInteraction ?? false}
               />
             ) : null}
           </div>

@@ -319,6 +319,9 @@ export function BusinessCardBuilderShell(props: {
                 },
                 onMoveV2Native: (id, xPct, yPct) =>
                   dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch: { xPct, yPct } }),
+                onPatchV2Native: (id, patch) =>
+                  dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch }),
+                transformInteraction: true,
                 onMoveTextBlock: (id, xPct, yPct) =>
                   dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
                 onMoveLogo: (xPct, yPct) =>

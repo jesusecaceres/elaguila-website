@@ -1,12 +1,17 @@
 "use client";
 
-import type { CSSProperties, RefObject } from "react";
+import { Fragment, type CSSProperties, type RefObject } from "react";
 import type { BusinessCardDesignerV2NativeObject } from "../../product-configurators/business-cards/types";
 import {
   BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD,
   clampPreviewDragPct,
 } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
 import { nativePreviewTransformCss } from "../../product-configurators/business-cards/designer-v2/studio/nativePreviewTransform";
+import { BusinessCardNativeV2TransformChrome } from "./BusinessCardNativeV2TransformChrome";
+
+type NativePatch = Partial<
+  Pick<BusinessCardDesignerV2NativeObject, "xPct" | "yPct" | "widthPct" | "heightPct" | "rotationDeg">
+>;
 
 /**
  * Renders persisted Designer V2 native objects on top of V1 preview content (same trim box).
@@ -18,8 +23,21 @@ export function BusinessCardNativeV2PreviewLayer(props: {
   readOnly: boolean;
   onSelect: (id: string | null) => void;
   onMove: (id: string, xPct: number, yPct: number) => void;
+  /** Canvas resize/rotate — requires `transformInteraction` */
+  onPatchV2Native?: (id: string, patch: NativePatch) => void;
+  /** When true, resize/rotate handles are shown and wired (Phase 2+). */
+  transformInteraction?: boolean;
 }) {
-  const { trimRef, objects, selectedId, readOnly, onSelect, onMove } = props;
+  const {
+    trimRef,
+    objects,
+    selectedId,
+    readOnly,
+    onSelect,
+    onMove,
+    onPatchV2Native,
+    transformInteraction = false,
+  } = props;
 
   const bindDrag = (el: HTMLElement, oid: string, startX: number, startY: number, pointerId: number) => {
     const trim = trimRef.current;
@@ -71,7 +89,11 @@ export function BusinessCardNativeV2PreviewLayer(props: {
         const canDrag = !readOnly && !locked;
         const cursor = readOnly ? "default" : locked ? "default" : "grab";
 
+        const transformChrome = selected && !readOnly && onPatchV2Native;
         const ringClass = (() => {
+          if (transformChrome && selected) {
+            return "";
+          }
           if (selected && locked) {
             return "ring-2 ring-amber-400/90 ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] ring-dashed";
           }
@@ -89,6 +111,30 @@ export function BusinessCardNativeV2PreviewLayer(props: {
 
         const commonClass = ["absolute", ringClass, hoverClass].filter(Boolean).join(" ");
 
+        const objectStyle: CSSProperties = {
+          left: `${o.xPct}%`,
+          top: `${o.yPct}%`,
+          width: `${o.widthPct}%`,
+          height: `${o.heightPct}%`,
+          transform: nativePreviewTransformCss(o.rotationDeg),
+          zIndex: z,
+          pointerEvents: pe,
+          cursor,
+          boxSizing: "border-box",
+        };
+
+        const chrome =
+          selected && !readOnly && onPatchV2Native ? (
+            <BusinessCardNativeV2TransformChrome
+              trimRef={trimRef}
+              o={o}
+              interaction={transformInteraction}
+              readOnly={readOnly}
+              locked={locked}
+              onPatch={(patch) => onPatchV2Native(o.id, patch)}
+            />
+          ) : null;
+
         if (o.kind === "native-shape") {
           const br: CSSProperties["borderRadius"] = o.shape === "ellipse" ? "9999px" : "4px";
           const fillOp = o.fillOpacity ?? 1;
@@ -97,23 +143,61 @@ export function BusinessCardNativeV2PreviewLayer(props: {
           const showStroke = sw > 0 && sc;
 
           return (
+            <Fragment key={o.id}>
+              <div
+                className={[commonClass, canDrag ? "active:cursor-grabbing touch-manipulation" : ""].filter(Boolean).join(" ")}
+                style={{
+                  ...objectStyle,
+                  borderRadius: br,
+                  overflow: "hidden",
+                  background: "transparent",
+                }}
+                onPointerDown={
+                  readOnly
+                    ? undefined
+                    : (e) => {
+                        e.stopPropagation();
+                        onSelect(o.id);
+                        if (!canDrag) return;
+                        const trim = trimRef.current;
+                        if (!trim) return;
+                        const r = trim.getBoundingClientRect();
+                        const x = clampPreviewDragPct(((e.clientX - r.left) / r.width) * 100);
+                        const y = clampPreviewDragPct(((e.clientY - r.top) / r.height) * 100);
+                        bindDrag(e.currentTarget, o.id, x, y, e.pointerId);
+                      }
+                }
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    borderRadius: br,
+                    backgroundColor: o.fill,
+                    opacity: fillOp,
+                  }}
+                />
+                {showStroke ? (
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      borderRadius: br,
+                      border: `${sw}px solid ${sc}`,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                ) : null}
+              </div>
+              {chrome}
+            </Fragment>
+          );
+        }
+
+        if (!o.previewUrl) return null;
+        return (
+          <Fragment key={o.id}>
             <div
-              key={o.id}
               className={[commonClass, canDrag ? "active:cursor-grabbing touch-manipulation" : ""].filter(Boolean).join(" ")}
-              style={{
-                left: `${o.xPct}%`,
-                top: `${o.yPct}%`,
-                width: `${o.widthPct}%`,
-                height: `${o.heightPct}%`,
-                transform: nativePreviewTransformCss(o.rotationDeg),
-                zIndex: z,
-                pointerEvents: pe,
-                cursor,
-                boxSizing: "border-box",
-                borderRadius: br,
-                overflow: "hidden",
-                background: "transparent",
-              }}
+              style={objectStyle}
               onPointerDown={
                 readOnly
                   ? undefined
@@ -130,61 +214,10 @@ export function BusinessCardNativeV2PreviewLayer(props: {
                     }
               }
             >
-              <div
-                className="absolute inset-0"
-                style={{
-                  borderRadius: br,
-                  backgroundColor: o.fill,
-                  opacity: fillOp,
-                }}
-              />
-              {showStroke ? (
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    borderRadius: br,
-                    border: `${sw}px solid ${sc}`,
-                    boxSizing: "border-box",
-                  }}
-                />
-              ) : null}
+              <img src={o.previewUrl} alt="" className="h-full w-full object-contain pointer-events-none select-none" />
             </div>
-          );
-        }
-
-        if (!o.previewUrl) return null;
-        return (
-          <div
-            key={o.id}
-            className={[commonClass, canDrag ? "active:cursor-grabbing touch-manipulation" : ""].filter(Boolean).join(" ")}
-            style={{
-              left: `${o.xPct}%`,
-              top: `${o.yPct}%`,
-              width: `${o.widthPct}%`,
-              height: `${o.heightPct}%`,
-              transform: nativePreviewTransformCss(o.rotationDeg),
-              zIndex: z,
-              pointerEvents: pe,
-              cursor,
-            }}
-            onPointerDown={
-              readOnly
-                ? undefined
-                : (e) => {
-                    e.stopPropagation();
-                    onSelect(o.id);
-                    if (!canDrag) return;
-                    const trim = trimRef.current;
-                    if (!trim) return;
-                    const r = trim.getBoundingClientRect();
-                    const x = clampPreviewDragPct(((e.clientX - r.left) / r.width) * 100);
-                    const y = clampPreviewDragPct(((e.clientY - r.top) / r.height) * 100);
-                    bindDrag(e.currentTarget, o.id, x, y, e.pointerId);
-                  }
-            }
-          >
-            <img src={o.previewUrl} alt="" className="h-full w-full object-contain pointer-events-none select-none" />
-          </div>
+            {chrome}
+          </Fragment>
         );
       })}
     </>
