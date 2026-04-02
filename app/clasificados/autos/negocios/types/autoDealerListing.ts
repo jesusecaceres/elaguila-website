@@ -35,6 +35,29 @@ export type RelatedDealerListing = {
   href: string;
 };
 
+/** Draft/preview image row — ordering + primary hero for gallery. */
+export type MediaImageSourceType = "url" | "file";
+
+export type MediaImageEntry = {
+  id: string;
+  url: string;
+  sourceType: MediaImageSourceType;
+  isPrimary: boolean;
+  sortOrder: number;
+};
+
+/**
+ * Video source while drafting. File bytes are not uploaded to Mux until publish.
+ *
+ * Publish flow (future): if videoSourceType === "file", upload file → Mux → set muxAssetId + muxPlaybackId.
+ * Takedown (future): delete muxAssetId from Mux when listing is removed.
+ * Draft/preview: never calls Mux; local preview uses videoFileDataUrl (data: or blob) or videoUrl (https).
+ */
+export type VideoSourceType = "url" | "file" | null;
+
+/** Local draft status only — not a Mux API state. */
+export type VideoDraftUploadStatus = "local_preview" | "pending_mux" | "ready" | "error" | null;
+
 export type AutoDealerListing = {
   vehicleTitle?: string;
   year?: number;
@@ -49,23 +72,42 @@ export type AutoDealerListing = {
   state?: string;
   vin?: string;
   stockNumber?: string;
+  /** Select value; use `exteriorColorCustom` when this is `Otro`. */
   exteriorColor?: string;
+  exteriorColorCustom?: string;
   interiorColor?: string;
+  interiorColorCustom?: string;
+  bodyStyle?: string;
+  bodyStyleCustom?: string;
   drivetrain?: string;
+  drivetrainCustom?: string;
   transmission?: string;
+  transmissionCustom?: string;
   engine?: string;
   fuelType?: string;
+  fuelTypeCustom?: string;
   mpgCity?: number | null;
   mpgHighway?: number | null;
-  bodyStyle?: string;
   doors?: number;
   seats?: number;
   titleStatus?: string;
+  titleStatusCustom?: string;
   badges?: VehicleBadge[];
   features?: string[];
   description?: string;
+  /** Rich media rows (preferred). `heroImages` is derived for preview compatibility. */
+  mediaImages?: MediaImageEntry[];
+  /** Derived from `mediaImages` in normalize; legacy drafts may only have this. */
   heroImages?: string[];
+  /** External video URL when videoSourceType === "url" (YouTube/Vimeo/direct mp4, etc.). */
   videoUrl?: string | null;
+  videoSourceType?: VideoSourceType;
+  /** Local data URL for preview when videoSourceType === "file"; upload to Mux on publish only. */
+  videoFileDataUrl?: string | null;
+  videoFileName?: string | null;
+  videoUploadStatus?: VideoDraftUploadStatus;
+  muxAssetId?: string | null;
+  muxPlaybackId?: string | null;
   dealerName?: string;
   dealerLogo?: string | null;
   dealerPhone?: string;

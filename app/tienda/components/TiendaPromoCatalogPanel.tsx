@@ -13,10 +13,12 @@ export function TiendaPromoCatalogPanel(props: {
   lang: Lang;
   product: TiendaProductFamily;
   coverImageUrl: string;
+  /** Literal SVG / backup when primary remote fails */
+  coverFallbackUrl?: string;
   tone?: TiendaCatalogShowcaseTone;
   secondaryCta?: { href: string; label: { es: string; en: string } } | null;
 }) {
-  const { lang, product, coverImageUrl, tone = "promo", secondaryCta } = props;
+  const { lang, product, coverImageUrl, coverFallbackUrl, tone = "promo", secondaryCta } = props;
   const title = lang === "en" ? product.title.en : product.title.es;
   const longDesc = lang === "en" ? product.longDescription.en : product.longDescription.es;
   const contactHref = withLang(tiendaPublicContactPath(), lang);
@@ -70,18 +72,18 @@ export function TiendaPromoCatalogPanel(props: {
         : "Para merch y regalos de marca — Leonix lo surte, lo cotiza y lo produce con calidad respaldada por proveedor.";
 
   return (
-    <section className="mt-10 overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.35)] bg-[linear-gradient(145deg,rgba(201,168,74,0.10),rgba(0,0,0,0.55))] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+    <section className="mt-10 overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.4)] bg-[linear-gradient(145deg,rgba(201,168,74,0.14),rgba(40,32,24,0.55),rgba(0,0,0,0.55))] shadow-[0_24px_80px_rgba(201,168,74,0.12)]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(260px,400px)]">
-        <div className="relative min-h-[200px] border-b border-[rgba(255,255,255,0.08)] lg:min-h-[280px] lg:border-b-0 lg:border-r">
+        <div className="relative min-h-[220px] border-b border-[rgba(255,255,255,0.08)] lg:min-h-[300px] lg:border-b-0 lg:border-r">
           <TiendaRemoteFillImage
             primarySrc={coverImageUrl}
-            fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+            fallbackSrc={coverFallbackUrl ?? TIENDA_GLOBAL_FALLBACK_IMAGE}
             alt={lang === "en" ? `${title} — catalog showcase` : `${title} — vitrina de catálogo`}
-            className="object-cover"
+            className="object-cover object-center"
             sizes="(max-width: 1024px) 100vw, 400px"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent lg:bg-gradient-to-r" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/18 to-[rgba(201,168,74,0.08)] lg:bg-gradient-to-r" />
           <div className="absolute bottom-4 left-4 right-4 lg:hidden">
             <p className="text-sm font-medium text-white/95 drop-shadow-md">{lead}</p>
           </div>

@@ -28,7 +28,8 @@ export function useAutoDealerDraft() {
   overrideRef.current = vehicleTitleOverride;
 
   const persist = useCallback((next: AutoDealerListing, override: boolean) => {
-    const payload: AutosNegociosDraftV1 = { v: 1, vehicleTitleOverride: override, listing: next };
+    const normalized = normalizeLoadedListing(next);
+    const payload: AutosNegociosDraftV1 = { v: 1, vehicleTitleOverride: override, listing: normalized };
     saveAutosNegociosDraft(payload);
   }, []);
 
@@ -47,7 +48,7 @@ export function useAutoDealerDraft() {
         const merged: AutoDealerListing = { ...prev, ...patch };
         const next = applyAutoTitle(merged, overrideRef.current);
         persist(next, overrideRef.current);
-        return next;
+        return normalizeLoadedListing(next);
       });
     },
     [persist],
@@ -56,8 +57,9 @@ export function useAutoDealerDraft() {
   const replaceListing = useCallback(
     (next: AutoDealerListing) => {
       const withTitle = applyAutoTitle(next, overrideRef.current);
-      setListing(withTitle);
-      persist(withTitle, overrideRef.current);
+      const normalized = normalizeLoadedListing(withTitle);
+      setListing(normalized);
+      persist(normalized, overrideRef.current);
     },
     [persist],
   );
@@ -68,7 +70,7 @@ export function useAutoDealerDraft() {
       setListing((prev) => {
         const next = applyAutoTitle(prev, v);
         persist(next, v);
-        return next;
+        return normalizeLoadedListing(next);
       });
     },
     [persist],

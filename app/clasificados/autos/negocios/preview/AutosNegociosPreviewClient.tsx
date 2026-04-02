@@ -31,7 +31,7 @@ function resolvePreviewState(): {
       base.relatedDealerListings?.length ? base.relatedDealerListings : (mockAutoDealerListing.relatedDealerListings ?? []);
     return {
       mode: "mock",
-      listing: { ...base, relatedDealerListings },
+      listing: normalizeLoadedListing({ ...base, relatedDealerListings }),
     };
   }
 

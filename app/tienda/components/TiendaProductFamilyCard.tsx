@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Lang, TiendaProductFamilySummary } from "../types/tienda";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
+import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaModeBadge } from "./TiendaModeBadge";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
@@ -17,7 +17,8 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
   const { family, lang } = props;
   const title = lang === "en" ? family.title.en : family.title.es;
   const desc = lang === "en" ? family.description.en : family.description.es;
-  const coverSrc = tiendaProductFamilyCoverImage(family.slug, family.categorySlug);
+  const coverPrimary = tiendaProductFamilyCoverPrimary(family.slug, family.categorySlug);
+  const coverLiteral = tiendaProductFamilyCoverLiteral(family.slug, family.categorySlug);
 
   return (
     <Link
@@ -32,13 +33,13 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
         <TiendaRemoteFillImage
-          primarySrc={coverSrc}
-          fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+          primarySrc={coverPrimary}
+          fallbackSrc={coverLiteral}
           alt={lang === "en" ? `${title} — product family` : `${title} — familia de producto`}
-          className="object-cover transition duration-500 group-hover:scale-[1.04]"
+          className="object-cover object-center transition duration-500 group-hover:scale-[1.04]"
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070708]/90 via-[#070708]/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070708]/92 via-[#070708]/30 to-[rgba(201,168,74,0.06)]" />
       </div>
 
       <div className="relative flex flex-1 flex-col p-6 sm:p-7">

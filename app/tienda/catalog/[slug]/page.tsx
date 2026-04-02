@@ -6,7 +6,7 @@ import { getTiendaCatalogItemPublicBySlug } from "@/app/lib/tienda/tiendaCatalog
 import { catalogItemPriceSummary } from "@/app/lib/tienda/tiendaCatalogPricing";
 import type { Lang } from "../../types/tienda";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
+import { tiendaCatalogCoverLiteral, tiendaCatalogCoverPrimary } from "../../data/tiendaVisualAssets";
 import { TiendaRemoteFillImage } from "../../components/TiendaRemoteFillImage";
 import { normalizeLang, withLang } from "../../utils/tiendaRouting";
 import { catalogItemPrimaryAction } from "../../utils/tiendaCatalogLinks";
@@ -58,7 +58,8 @@ export default async function TiendaCatalogProductPage(props: {
   const primaryCta = catalogItemPrimaryAction(item, lang);
 
   const gallery = item.images.slice().sort((a, b) => a.sort_order - b.sort_order);
-  const fallbackHero = tiendaCatalogFallbackImage(item.category_slug);
+  const fallbackHeroPrimary = tiendaCatalogCoverPrimary(item.category_slug);
+  const fallbackHeroLiteral = tiendaCatalogCoverLiteral(item.category_slug);
   const heroImage = gallery[0];
 
   return (
@@ -141,10 +142,10 @@ export default async function TiendaCatalogProductPage(props: {
             <figure className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)] bg-black/30">
               <div className="relative aspect-[16/10] w-full max-h-[480px]">
                 <TiendaRemoteFillImage
-                  primarySrc={fallbackHero}
-                  fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                  primarySrc={fallbackHeroPrimary}
+                  fallbackSrc={fallbackHeroLiteral}
                   alt={lang === "en" ? `${title} — representative preview` : `${title} — vista representativa`}
-                  className="object-cover"
+                  className="object-cover object-center"
                   sizes="(max-width: 1152px) 100vw, 1100px"
                   priority
                 />

@@ -19,7 +19,8 @@ import {
   TRANSMISSION_OPTIONS,
   US_STATE_OPTIONS,
 } from "../lib/autoDealerTaxonomy";
-import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
+import { SelectWithOtherField } from "./SelectWithOtherField";
+import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)]";
@@ -268,34 +269,28 @@ export function AutosNegociosApplication() {
           <section className={CARD}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Especificaciones</h2>
             <div className={`${GRID2} mt-5`}>
-              <div>
-                <label className={LABEL}>Transmisión</label>
-                <select
-                  className={INPUT}
-                  value={listing.transmission ?? ""}
-                  onChange={(e) => setListingPatch({ transmission: e.target.value || undefined })}
-                >
-                  {TRANSMISSION_OPTIONS.map((s) => (
-                    <option key={s || "t"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={LABEL}>Tracción</label>
-                <select
-                  className={INPUT}
-                  value={listing.drivetrain ?? ""}
-                  onChange={(e) => setListingPatch({ drivetrain: e.target.value || undefined })}
-                >
-                  {DRIVETRAIN_OPTIONS.map((s) => (
-                    <option key={s || "d"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectWithOtherField
+                label="Transmisión"
+                options={TRANSMISSION_OPTIONS}
+                value={listing.transmission}
+                customValue={listing.transmissionCustom}
+                onChange={({ value, custom }) =>
+                  setListingPatch({ transmission: value, transmissionCustom: custom })
+                }
+                customPlaceholder="Ej. Manual de 6 velocidades"
+                incompleteHint="Especifica la transmisión."
+              />
+              <SelectWithOtherField
+                label="Tracción"
+                options={DRIVETRAIN_OPTIONS}
+                value={listing.drivetrain}
+                customValue={listing.drivetrainCustom}
+                onChange={({ value, custom }) =>
+                  setListingPatch({ drivetrain: value, drivetrainCustom: custom })
+                }
+                customPlaceholder="Describe la tracción"
+                incompleteHint="Escribe la tracción o elige otra opción."
+              />
               <div className="sm:col-span-2">
                 <label className={LABEL}>Motor</label>
                 <input
@@ -304,20 +299,15 @@ export function AutosNegociosApplication() {
                   onChange={(e) => setListingPatch({ engine: e.target.value || undefined })}
                 />
               </div>
-              <div>
-                <label className={LABEL}>Combustible</label>
-                <select
-                  className={INPUT}
-                  value={listing.fuelType ?? ""}
-                  onChange={(e) => setListingPatch({ fuelType: e.target.value || undefined })}
-                >
-                  {FUEL_OPTIONS.map((s) => (
-                    <option key={s || "f"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectWithOtherField
+                label="Combustible"
+                options={FUEL_OPTIONS}
+                value={listing.fuelType}
+                customValue={listing.fuelTypeCustom}
+                onChange={({ value, custom }) => setListingPatch({ fuelType: value, fuelTypeCustom: custom })}
+                customPlaceholder="Describe el combustible"
+                incompleteHint="Describe el combustible."
+              />
               <div>
                 <label className={LABEL}>MPG ciudad</label>
                 <input
@@ -344,48 +334,37 @@ export function AutosNegociosApplication() {
                   }
                 />
               </div>
-              <div>
-                <label className={LABEL}>Estilo de carrocería</label>
-                <select
-                  className={INPUT}
-                  value={listing.bodyStyle ?? ""}
-                  onChange={(e) => setListingPatch({ bodyStyle: e.target.value || undefined })}
-                >
-                  {BODY_STYLE_OPTIONS.map((s) => (
-                    <option key={s || "b"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={LABEL}>Color exterior</label>
-                <select
-                  className={INPUT}
-                  value={listing.exteriorColor ?? ""}
-                  onChange={(e) => setListingPatch({ exteriorColor: e.target.value || undefined })}
-                >
-                  {EXTERIOR_COLOR_OPTIONS.map((s) => (
-                    <option key={s || "ex"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={LABEL}>Color interior</label>
-                <select
-                  className={INPUT}
-                  value={listing.interiorColor ?? ""}
-                  onChange={(e) => setListingPatch({ interiorColor: e.target.value || undefined })}
-                >
-                  {INTERIOR_COLOR_OPTIONS.map((s) => (
-                    <option key={s || "in"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectWithOtherField
+                label="Estilo de carrocería"
+                options={BODY_STYLE_OPTIONS}
+                value={listing.bodyStyle}
+                customValue={listing.bodyStyleCustom}
+                onChange={({ value, custom }) => setListingPatch({ bodyStyle: value, bodyStyleCustom: custom })}
+                customPlaceholder="Describe el estilo"
+                incompleteHint="Describe el estilo de carrocería."
+              />
+              <SelectWithOtherField
+                label="Color exterior"
+                options={EXTERIOR_COLOR_OPTIONS}
+                value={listing.exteriorColor}
+                customValue={listing.exteriorColorCustom}
+                onChange={({ value, custom }) =>
+                  setListingPatch({ exteriorColor: value, exteriorColorCustom: custom })
+                }
+                customPlaceholder="Escribe el color exterior"
+                incompleteHint="Escribe el color exterior."
+              />
+              <SelectWithOtherField
+                label="Color interior"
+                options={INTERIOR_COLOR_OPTIONS}
+                value={listing.interiorColor}
+                customValue={listing.interiorColorCustom}
+                onChange={({ value, custom }) =>
+                  setListingPatch({ interiorColor: value, interiorColorCustom: custom })
+                }
+                customPlaceholder="Escribe el color interior"
+                incompleteHint="Escribe el color interior."
+              />
               <div>
                 <label className={LABEL}>Puertas</label>
                 <input
@@ -404,20 +383,17 @@ export function AutosNegociosApplication() {
                   onChange={(e) => setListingPatch({ seats: parseOptInt(e.target.value) })}
                 />
               </div>
-              <div>
-                <label className={LABEL}>Estado del título</label>
-                <select
-                  className={INPUT}
-                  value={listing.titleStatus ?? ""}
-                  onChange={(e) => setListingPatch({ titleStatus: e.target.value || undefined })}
-                >
-                  {TITLE_STATUS_OPTIONS.map((s) => (
-                    <option key={s || "ti"} value={s}>
-                      {s || "Seleccionar…"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectWithOtherField
+                label="Estado del título"
+                options={TITLE_STATUS_OPTIONS}
+                value={listing.titleStatus}
+                customValue={listing.titleStatusCustom}
+                onChange={({ value, custom }) =>
+                  setListingPatch({ titleStatus: value, titleStatusCustom: custom })
+                }
+                customPlaceholder="Describe el estado del título"
+                incompleteHint="Describe el estado del título."
+              />
             </div>
           </section>
 
@@ -457,76 +433,7 @@ export function AutosNegociosApplication() {
           </section>
 
           {/* D — Multimedia */}
-          <section className={CARD}>
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Multimedia</h2>
-            <div className="mt-4">
-              <label className={LABEL}>URLs de fotos (una por línea)</label>
-              <textarea
-                className={`${INPUT} min-h-[100px] font-mono text-xs`}
-                placeholder="https://…"
-                value={(listing.heroImages ?? []).join("\n")}
-                onChange={(e) => {
-                  const urls = e.target.value
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                  setListingPatch({ heroImages: urls });
-                }}
-              />
-            </div>
-            <div className="mt-4">
-              <label className={LABEL}>Subir imágenes (vista previa local)</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="mt-1 block w-full text-sm"
-                onChange={async (e) => {
-                  const files = e.target.files;
-                  if (!files?.length) return;
-                  const next = [...(listing.heroImages ?? [])];
-                  for (const f of Array.from(files)) {
-                    next.push(await readFileAsDataUrl(f));
-                  }
-                  setListingPatch({ heroImages: next });
-                  e.target.value = "";
-                }}
-              />
-            </div>
-            <div className="mt-4">
-              <label className={LABEL}>URL de video (recorrido)</label>
-              <input
-                className={INPUT}
-                placeholder="https://…"
-                value={listing.videoUrl ?? ""}
-                onChange={(e) => setListingPatch({ videoUrl: e.target.value.trim() || undefined })}
-              />
-            </div>
-            <div className="mt-4">
-              <label className={LABEL}>Logo del concesionario (URL o archivo)</label>
-              <input
-                className={INPUT}
-                placeholder="https://…"
-                value={listing.dealerLogo?.startsWith("data:") ? "" : listing.dealerLogo ?? ""}
-                onChange={(e) => setListingPatch({ dealerLogo: e.target.value.trim() || undefined })}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                className="mt-2 block w-full text-sm"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  const url = await readFileAsDataUrl(f);
-                  setListingPatch({ dealerLogo: url });
-                  e.target.value = "";
-                }}
-              />
-              {listing.dealerLogo?.startsWith("data:") ? (
-                <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Logo cargado desde archivo (vista previa local).</p>
-              ) : null}
-            </div>
-          </section>
+          <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} />
 
           {/* E — Negocio */}
           <section className={CARD}>

@@ -70,7 +70,7 @@ const typo = {
 } as const;
 
 /** Entre galería + tarjeta agente y la banda de título/precio (más ajustado que el resto de secciones). */
-const AFTER_TOP_MEDIA_GAP = "mt-3 md:mt-4";
+const AFTER_TOP_MEDIA_GAP = "mt-1 md:mt-2";
 const SECTION_GAP = "mt-6 md:mt-7";
 const CARD_PAD = "px-4 py-4 sm:px-5 sm:py-4";
 const SECTION_LABEL = `${typo.kicker} mb-2.5`;
@@ -228,16 +228,16 @@ export function AgenteIndividualResidencialPreviewPage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1140px] px-4 pb-10 pt-2 sm:px-6 lg:px-7">
-        <p className={`mb-1 text-center ${typo.meta}`} style={{ color: MUTED }}>
+      <main className="mx-auto max-w-[1140px] px-4 pb-10 pt-1 sm:px-6 lg:px-7">
+        <p className={`mb-0 text-center ${typo.meta}`} style={{ color: MUTED }}>
           Vista previa del anuncio
         </p>
 
         {/* 1 — Galería + tarjeta agente */}
-        <section className="mt-1 grid grid-cols-1 gap-y-2 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7 lg:gap-y-0">
+        <section className="mt-0 grid grid-cols-1 gap-y-2 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7 lg:gap-y-0 lg:content-start">
           <div className="flex min-w-0 flex-col gap-2.5">
             <div>
-              <h3 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
+              <h3 className={`${typo.kicker} mb-1.5`} style={{ color: MUTED }}>
                 Galería
               </h3>
               <div className="grid gap-2.5 lg:grid-cols-12 lg:items-start lg:gap-3.5">
@@ -248,7 +248,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       <img
                         src={g.mainUrl}
                         alt=""
-                        className="aspect-[16/10] w-full rounded-xl border object-cover lg:min-h-[min(360px,52vh)]"
+                        className="aspect-[16/10] w-full rounded-xl border object-cover"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
                       />
                       <GalleryCaption>Foto principal</GalleryCaption>

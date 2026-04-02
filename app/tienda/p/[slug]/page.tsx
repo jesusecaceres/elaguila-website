@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { pick, tiendaCopy } from "../../data/tiendaCopy";
-import { tiendaProductFamilyCoverImage } from "../../data/tiendaVisualAssets";
+import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../../data/tiendaVisualAssets";
 import {
   getCategoryBySlug,
   getProductFamilyBySlug,
@@ -60,7 +60,8 @@ export default async function TiendaProductPage(props: {
 
   const howOrdered = lang === "en" ? product.howOrdered.en : product.howOrdered.es;
   const bullets = product.responsibilityBullets.map((b) => (lang === "en" ? b.en : b.es));
-  const showcaseCover = tiendaProductFamilyCoverImage(product.slug, product.categorySlug);
+  const showcaseCover = tiendaProductFamilyCoverPrimary(product.slug, product.categorySlug);
+  const showcaseCoverFallback = tiendaProductFamilyCoverLiteral(product.slug, product.categorySlug);
 
   return (
     <main className="min-h-screen bg-[#070708] text-white">
@@ -74,7 +75,13 @@ export default async function TiendaProductPage(props: {
         <TiendaProductHero product={product} lang={lang} />
 
         {product.categorySlug === "promo-products" ? (
-          <TiendaPromoCatalogPanel lang={lang} product={product} coverImageUrl={showcaseCover} tone="promo" />
+          <TiendaPromoCatalogPanel
+            lang={lang}
+            product={product}
+            coverImageUrl={showcaseCover}
+            coverFallbackUrl={showcaseCoverFallback}
+            tone="promo"
+          />
         ) : null}
 
         {product.categorySlug === "marketing-materials" ? (
@@ -82,6 +89,7 @@ export default async function TiendaProductPage(props: {
             lang={lang}
             product={product}
             coverImageUrl={showcaseCover}
+            coverFallbackUrl={showcaseCoverFallback}
             tone="marketing"
             secondaryCta={
               isPrintUploadProductSlug(product.slug)

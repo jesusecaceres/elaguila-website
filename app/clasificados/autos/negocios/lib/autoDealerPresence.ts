@@ -1,13 +1,23 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import { deriveHeroImageUrls } from "./autoDealerHeroImages";
 import { filterDealerHoursForDisplay } from "./dealerHoursDisplay";
+import { hasListingVideo } from "./autoDealerVideo";
+import {
+  resolveBodyStyle,
+  resolveDrivetrain,
+  resolveExteriorColor,
+  resolveFuelType,
+  resolveInteriorColor,
+  resolveTitleStatus,
+  resolveTransmission,
+} from "./autoDealerSelectResolve";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
 export function hasHeroMedia(data: AutoDealerListing): boolean {
-  const imgs = data.heroImages ?? [];
-  return imgs.length > 0 || nonEmpty(data.videoUrl ?? undefined);
+  return deriveHeroImageUrls(data).length > 0 || hasListingVideo(data);
 }
 
 export function hasTitleBand(data: AutoDealerListing): boolean {
@@ -28,19 +38,19 @@ export function hasTitleBand(data: AutoDealerListing): boolean {
 export function hasSpecsSection(data: AutoDealerListing): boolean {
   const c = data.condition;
   return (
-    nonEmpty(data.bodyStyle) ||
-    nonEmpty(data.drivetrain) ||
-    nonEmpty(data.transmission) ||
+    nonEmpty(resolveBodyStyle(data)) ||
+    nonEmpty(resolveDrivetrain(data)) ||
+    nonEmpty(resolveTransmission(data)) ||
     nonEmpty(data.engine) ||
-    nonEmpty(data.fuelType) ||
+    nonEmpty(resolveFuelType(data)) ||
     (data.mpgCity != null && Number.isFinite(data.mpgCity)) ||
     (data.mpgHighway != null && Number.isFinite(data.mpgHighway)) ||
-    nonEmpty(data.exteriorColor) ||
-    nonEmpty(data.interiorColor) ||
+    nonEmpty(resolveExteriorColor(data)) ||
+    nonEmpty(resolveInteriorColor(data)) ||
     (data.doors !== undefined && Number.isFinite(data.doors)) ||
     (data.seats !== undefined && Number.isFinite(data.seats)) ||
     c !== undefined ||
-    nonEmpty(data.titleStatus) ||
+    nonEmpty(resolveTitleStatus(data)) ||
     nonEmpty(data.vin) ||
     nonEmpty(data.stockNumber) ||
     (data.mileage !== undefined && Number.isFinite(data.mileage))

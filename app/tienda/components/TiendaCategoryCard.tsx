@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { TiendaCategory, Lang } from "../types/tienda";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCategoryCoverImage } from "../data/tiendaVisualAssets";
+import { tiendaCategoryCoverLiteral, tiendaCategoryCoverPrimary } from "../data/tiendaVisualAssets";
 import type { TiendaCategorySlug } from "../data/tiendaCategories";
 import { accentStyles } from "../utils/tiendaTheme";
 import { withLang } from "../utils/tiendaRouting";
@@ -27,7 +27,9 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
   const desc = lang === "en" ? category.description.en : category.description.es;
   const eyebrow = category.eyebrow ? (lang === "en" ? category.eyebrow.en : category.eyebrow.es) : null;
 
-  const coverSrc = tiendaCategoryCoverImage(category.slug as TiendaCategorySlug);
+  const slug = category.slug as TiendaCategorySlug;
+  const coverPrimary = tiendaCategoryCoverPrimary(slug);
+  const coverLiteral = tiendaCategoryCoverLiteral(slug);
 
   return (
     <Link
@@ -44,13 +46,14 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
     >
       <div className="absolute inset-0">
         <TiendaRemoteFillImage
-          primarySrc={coverSrc}
-          fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+          primarySrc={coverPrimary}
+          fallbackSrc={coverLiteral}
           alt={lang === "en" ? `${title} — category` : `${title} — categoría`}
-          className="object-cover transition duration-700 ease-out group-hover:scale-[1.03]"
+          className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.03]"
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/88 to-[#070708]/35" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/82 to-[#070708]/25" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(201,168,74,0.14),transparent_55%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100">
           <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.35),rgba(0,0,0,0))]" />
         </div>

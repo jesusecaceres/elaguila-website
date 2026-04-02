@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Lang } from "../../types/tienda";
 import type { TiendaCatalogItemRow } from "@/app/lib/tienda/tiendaCatalogTypes";
 import { catalogItemPriceSummary } from "@/app/lib/tienda/tiendaCatalogPricing";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCatalogFallbackImage } from "../../data/tiendaVisualAssets";
+import { tiendaCatalogCoverLiteral, tiendaCatalogCoverPrimary } from "../../data/tiendaVisualAssets";
 import { withLang, tiendaCatalogProductPath } from "../../utils/tiendaRouting";
 import { TiendaRemoteFillImage } from "../TiendaRemoteFillImage";
 
@@ -16,8 +16,9 @@ export function TiendaCatalogItemCard(props: {
   const desc = lang === "en" ? item.short_description_en : item.short_description_es;
   const priceLine = catalogItemPriceSummary(item, lang);
   const href = withLang(tiendaCatalogProductPath(item.slug), lang);
-  const displaySrc = imageUrl?.trim() ? imageUrl.trim() : tiendaCatalogFallbackImage(item.category_slug);
-  const fallbackSrc = imageUrl?.trim() ? tiendaCatalogFallbackImage(item.category_slug) : TIENDA_GLOBAL_FALLBACK_IMAGE;
+  const categoryLiteral = tiendaCatalogCoverLiteral(item.category_slug);
+  const displaySrc = imageUrl?.trim() ? imageUrl.trim() : tiendaCatalogCoverPrimary(item.category_slug);
+  const fallbackSrc = categoryLiteral;
   const imgUnoptimized = !displaySrc.includes("images.unsplash.com");
 
   return (
@@ -26,7 +27,7 @@ export function TiendaCatalogItemCard(props: {
       className={[
         "group flex flex-col overflow-hidden rounded-3xl",
         "border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(0,0,0,0.2))]",
-        "shadow-[0_18px_60px_rgba(0,0,0,0.35)] transition duration-300 hover:-translate-y-0.5 hover:border-[rgba(201,168,74,0.35)]",
+        "shadow-[0_18px_60px_rgba(0,0,0,0.35)] transition duration-300 hover:-translate-y-0.5 hover:border-[rgba(201,168,74,0.42)] hover:shadow-[0_22px_70px_rgba(201,168,74,0.12)]",
       ].join(" ")}
     >
       <div className="aspect-[16/10] bg-[rgba(0,0,0,0.35)] relative overflow-hidden">
@@ -34,11 +35,11 @@ export function TiendaCatalogItemCard(props: {
           primarySrc={displaySrc}
           fallbackSrc={fallbackSrc}
           alt={lang === "en" ? `${title} — catalog` : `${title} — catálogo`}
-          className="object-cover opacity-[0.96] transition duration-300 group-hover:opacity-100 group-hover:scale-[1.02]"
+          className="object-cover object-center opacity-[0.96] transition duration-300 group-hover:opacity-100 group-hover:scale-[1.02]"
           sizes="(max-width: 768px) 100vw, 50vw"
           unoptimized={imgUnoptimized}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-[rgba(201,168,74,0.06)]" />
         {!imageUrl?.trim() ? (
           <span className="absolute bottom-2 left-3 right-3 text-[10px] font-medium uppercase tracking-wide text-white/75">
             {lang === "en" ? "Representative preview" : "Vista representativa"}

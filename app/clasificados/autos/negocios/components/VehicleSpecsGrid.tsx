@@ -12,6 +12,15 @@ import { FiLayers } from "react-icons/fi";
 import { TbArmchair, TbRoad } from "react-icons/tb";
 import type { ReactNode } from "react";
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import {
+  resolveBodyStyle,
+  resolveDrivetrain,
+  resolveExteriorColor,
+  resolveFuelType,
+  resolveInteriorColor,
+  resolveTitleStatus,
+  resolveTransmission,
+} from "../lib/autoDealerSelectResolve";
 import { formatMiles, formatMpgPair, formatStockDisplay, formatVinDisplay } from "./autoDealerFormatters";
 import { SpecIconRow } from "./SpecIconRow";
 
@@ -36,18 +45,18 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
     data.mileage !== undefined && Number.isFinite(data.mileage) ? formatMiles(data.mileage) : undefined;
 
   const rows: Array<{ key: string; label: string; value: string | undefined; icon: ReactNode }> = [
-    { key: "body", label: "Estilo de carrocería", value: data.bodyStyle, icon: <BiCar className="h-5 w-5" /> },
-    { key: "drive", label: "Tracción", value: data.drivetrain, icon: <TbRoad className="h-5 w-5" /> },
-    { key: "trans", label: "Transmisión", value: data.transmission, icon: <BiTachometer className="h-5 w-5" /> },
+    { key: "body", label: "Estilo de carrocería", value: resolveBodyStyle(data), icon: <BiCar className="h-5 w-5" /> },
+    { key: "drive", label: "Tracción", value: resolveDrivetrain(data), icon: <TbRoad className="h-5 w-5" /> },
+    { key: "trans", label: "Transmisión", value: resolveTransmission(data), icon: <BiTachometer className="h-5 w-5" /> },
     { key: "eng", label: "Motor", value: data.engine, icon: <BiCylinder className="h-5 w-5" /> },
-    { key: "fuel", label: "Combustible", value: data.fuelType, icon: <BiGasPump className="h-5 w-5" /> },
+    { key: "fuel", label: "Combustible", value: resolveFuelType(data), icon: <BiGasPump className="h-5 w-5" /> },
     { key: "mpg", label: "Rendimiento (ciudad / carretera)", value: mpg, icon: <FiLayers className="h-5 w-5" /> },
-    { key: "ex", label: "Color exterior", value: data.exteriorColor, icon: <BiPalette className="h-5 w-5" /> },
-    { key: "in", label: "Color interior", value: data.interiorColor, icon: <BiColorFill className="h-5 w-5" /> },
+    { key: "ex", label: "Color exterior", value: resolveExteriorColor(data), icon: <BiPalette className="h-5 w-5" /> },
+    { key: "in", label: "Color interior", value: resolveInteriorColor(data), icon: <BiColorFill className="h-5 w-5" /> },
     { key: "doors", label: "Puertas", value: doors, icon: <BiCar className="h-5 w-5" /> },
     { key: "seats", label: "Asientos", value: seats, icon: <TbArmchair className="h-5 w-5" /> },
     { key: "cond", label: "Condición", value: conditionEs(data.condition), icon: <BiKey className="h-5 w-5" /> },
-    { key: "title", label: "Estado del título", value: data.titleStatus, icon: <BiShieldQuarter className="h-5 w-5" /> },
+    { key: "title", label: "Estado del título", value: resolveTitleStatus(data), icon: <BiShieldQuarter className="h-5 w-5" /> },
     {
       key: "vin",
       label: "VIN",

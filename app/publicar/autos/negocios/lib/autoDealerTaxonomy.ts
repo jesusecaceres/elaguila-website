@@ -24,7 +24,7 @@ export const BODY_STYLE_OPTIONS = [
 
 export const FUEL_OPTIONS = ["", "Gasolina", "Gasolina premium", "Diésel", "Híbrido", "Híbrido enchufable", "Eléctrico", "Otro"];
 
-export const DRIVETRAIN_OPTIONS = ["", "FWD", "RWD", "AWD", "4WD"];
+export const DRIVETRAIN_OPTIONS = ["", "FWD", "RWD", "AWD", "4WD", "Otro"];
 
 export const TRANSMISSION_OPTIONS = [
   "",

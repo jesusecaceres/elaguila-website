@@ -1,35 +1,67 @@
 /**
- * Leonix Tienda visuals — local SVG assets under `/public/tienda/visuals/`.
- * Each illustration is intentionally product-literal (cards read as cards, flyers as sheets, etc.)
- * so storefront imagery cannot drift into unrelated stock photography.
+ * Leonix Tienda visuals — hybrid system:
+ * - Primary: curated Unsplash photography (print/product‑truthful scenes; `images.unsplash.com` in next.config).
+ *   Unsplash License applies to those photos (https://unsplash.com/license).
+ * - Fallback: local product‑literal SVGs under `/public/tienda/visuals/` so imagery stays on‑category if a remote fails.
  */
 
 import type { TiendaCategorySlug } from "./tiendaCategories";
 
 const V = "/tienda/visuals";
 
-/** Last-resort neutral print context — still reads as “professional print,” not a dead shell */
+/** Unsplash — `auto=format&fit=crop` keeps loads predictable; IDs are fixed for stability. */
+function us(id: string, w: number) {
+  return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=85`;
+}
+
+/** Last-resort neutral print context */
 export const TIENDA_GLOBAL_FALLBACK_IMAGE = `${V}/fallback-premium-print.svg`;
 
-/**
- * Category grid / category hero / catalog fallback by category.
- */
-export const tiendaCategoryCoverImage = (slug: TiendaCategorySlug): string => {
-  const map: Record<TiendaCategorySlug, string> = {
-    "business-cards": `${V}/category-business-cards.svg`,
-    flyers: `${V}/category-flyers.svg`,
-    brochures: `${V}/category-brochures.svg`,
-    banners: `${V}/category-banners.svg`,
-    signs: `${V}/category-signs.svg`,
-    "stickers-labels": `${V}/category-stickers-labels.svg`,
-    "promo-products": `${V}/category-promo-products.svg`,
-    "marketing-materials": `${V}/category-marketing-materials.svg`,
-  };
-  return map[slug] ?? TIENDA_GLOBAL_FALLBACK_IMAGE;
+/* -------------------------------------------------------------------------- */
+/* Category: literal SVGs (backup) + photography (primary)                    */
+/* -------------------------------------------------------------------------- */
+
+const CATEGORY_LITERAL: Record<TiendaCategorySlug, string> = {
+  "business-cards": `${V}/category-business-cards.svg`,
+  flyers: `${V}/category-flyers.svg`,
+  brochures: `${V}/category-brochures.svg`,
+  banners: `${V}/category-banners.svg`,
+  signs: `${V}/category-signs.svg`,
+  "stickers-labels": `${V}/category-stickers-labels.svg`,
+  "promo-products": `${V}/category-promo-products.svg`,
+  "marketing-materials": `${V}/category-marketing-materials.svg`,
 };
 
-/** Product family cards + product hero (matches category when not overridden) */
-const FAMILY_OVERRIDES: Record<string, string> = {
+/** Product‑truthful photography per category (premium print / retail context). */
+const CATEGORY_PHOTO: Record<TiendaCategorySlug, string> = {
+  "business-cards": us("photo-1589829545856-d10d557cf95f", 1600),
+  flyers: us("photo-1563986768609-322da13575f3", 1600),
+  brochures: us("photo-1543002588-bfa74002ed7e", 1600),
+  banners: us("photo-1505373877841-8d25f7d46678", 1600),
+  signs: us("photo-1558618666-fcd25c85cd64", 1600),
+  "stickers-labels": us("photo-1588447907846-dfae931d2ed0", 1600),
+  "promo-products": us("photo-1607082348824-0a96f2a4b9da", 1600),
+  "marketing-materials": us("photo-1513519245088-0e12902e5a38", 1600),
+};
+
+/** Literal SVG for category (backup + admin/catalog truth). */
+export function tiendaCategoryCoverLiteral(slug: TiendaCategorySlug): string {
+  return CATEGORY_LITERAL[slug] ?? TIENDA_GLOBAL_FALLBACK_IMAGE;
+}
+
+/** Primary hero/cover photo URL for category. */
+export function tiendaCategoryCoverPrimary(slug: TiendaCategorySlug): string {
+  return CATEGORY_PHOTO[slug] ?? TIENDA_GLOBAL_FALLBACK_IMAGE;
+}
+
+/** @deprecated Use tiendaCategoryCoverPrimary + tiendaCategoryCoverLiteral for remote fill */
+export const tiendaCategoryCoverImage = (slug: TiendaCategorySlug): string => tiendaCategoryCoverLiteral(slug);
+
+/* -------------------------------------------------------------------------- */
+/* Product family: literal overrides + optional photo overrides               */
+/* -------------------------------------------------------------------------- */
+
+const FAMILY_LITERAL: Record<string, string> = {
   "standard-business-cards": `${V}/product-standard-business-cards.svg`,
   "two-sided-business-cards": `${V}/product-two-sided-business-cards.svg`,
   "flyers-standard": `${V}/category-flyers.svg`,
@@ -46,11 +78,22 @@ const FAMILY_OVERRIDES: Record<string, string> = {
   "promo-apparel-program": `${V}/category-promo-products.svg`,
 };
 
-export function tiendaProductFamilyCoverImage(slug: string, categorySlug: string): string {
-  if (FAMILY_OVERRIDES[slug]) return FAMILY_OVERRIDES[slug]!;
-  if (isCategorySlug(categorySlug)) return tiendaCategoryCoverImage(categorySlug);
-  return TIENDA_GLOBAL_FALLBACK_IMAGE;
-}
+const FAMILY_PHOTO: Record<string, string> = {
+  "standard-business-cards": us("photo-1589829545856-d10d557cf95f", 1600),
+  "two-sided-business-cards": us("photo-1611532736597-de2d4265fba3", 1600),
+  "flyers-standard": us("photo-1563986768609-322da13575f3", 1600),
+  "brochures-standard": us("photo-1543002588-bfa74002ed7e", 1600),
+  "retractable-banners": us("photo-1511578311128-61b9dd992832", 1600),
+  "yard-signs": us("photo-1558618666-fcd25c85cd64", 1600),
+  "stickers-standard": us("photo-1588447907846-dfae931d2ed0", 1600),
+  "postcards-standard": us("photo-1513519245088-0e12902e5a38", 1600),
+  "promo-giveaways": us("photo-1607082348824-0a96f2a4b9da", 1600),
+  "promo-pens": us("photo-1585386959984-ba415c6d906d", 1600),
+  "promo-drinkware": us("photo-1495474472287-4d71bddd7c6d", 1600),
+  "promo-bags": us("photo-1597484661643-2f5fef640dd1", 1600),
+  "promo-desk-office": us("photo-1518455021857-6ce2b496e5f0", 1600),
+  "promo-apparel-program": us("photo-1521572163474-6864f9cf17ab", 1600),
+};
 
 function isCategorySlug(s: string): s is TiendaCategorySlug {
   return (
@@ -65,19 +108,63 @@ function isCategorySlug(s: string): s is TiendaCategorySlug {
   );
 }
 
-/** Homepage hero: primary tiles — product-literal compositions */
+export function tiendaProductFamilyCoverLiteral(slug: string, categorySlug: string): string {
+  if (FAMILY_LITERAL[slug]) return FAMILY_LITERAL[slug]!;
+  if (isCategorySlug(categorySlug)) return tiendaCategoryCoverLiteral(categorySlug);
+  return TIENDA_GLOBAL_FALLBACK_IMAGE;
+}
+
+export function tiendaProductFamilyCoverPrimary(slug: string, categorySlug: string): string {
+  if (FAMILY_PHOTO[slug]) return FAMILY_PHOTO[slug]!;
+  if (isCategorySlug(categorySlug)) return tiendaCategoryCoverPrimary(categorySlug);
+  return TIENDA_GLOBAL_FALLBACK_IMAGE;
+}
+
+/** Primary URL for cards/heroes (photography when available). */
+export function tiendaProductFamilyCoverImage(slug: string, categorySlug: string): string {
+  return tiendaProductFamilyCoverPrimary(slug, categorySlug);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Homepage hero                                                              */
+/* -------------------------------------------------------------------------- */
+
 export const tiendaHeroAssets = {
+  businessCards: us("photo-1611532736597-de2d4265fba3", 1800),
+  bannersSigns: us("photo-1531243269054-5ebf6f0526bb", 1800),
+  printWorkflow: us("photo-1454165804606-c3d57bc86b40", 1800),
+  thumbFlyers: us("photo-1563986768609-322da13575f3", 800),
+  thumbBrochures: us("photo-1543002588-bfa74002ed7e", 800),
+  thumbStickers: us("photo-1588447907846-dfae931d2ed0", 800),
+} as const;
+
+/** SVG fallbacks for hero tiles (match previous literals). */
+export const tiendaHeroLiterals = {
   businessCards: `${V}/hero-business-cards.svg`,
   bannersSigns: `${V}/hero-banners.svg`,
   printWorkflow: `${V}/hero-print-workflow.svg`,
   thumbFlyers: `${V}/thumb-flyers.svg`,
-  thumbStickers: `${V}/thumb-stickers.svg`,
   thumbBrochures: `${V}/thumb-brochures.svg`,
+  thumbStickers: `${V}/thumb-stickers.svg`,
 } as const;
 
-/** When admin catalog item has no primary image */
-export function tiendaCatalogFallbackImage(categorySlug: string | null | undefined): string {
+/* -------------------------------------------------------------------------- */
+/* Catalog (CMS missing image)                                                */
+/* -------------------------------------------------------------------------- */
+
+export function tiendaCatalogCoverPrimary(categorySlug: string | null | undefined): string {
   const key = (categorySlug ?? "").trim();
-  if (isCategorySlug(key)) return tiendaCategoryCoverImage(key);
+  if (isCategorySlug(key)) return tiendaCategoryCoverPrimary(key);
   return TIENDA_GLOBAL_FALLBACK_IMAGE;
+}
+
+export function tiendaCatalogCoverLiteral(categorySlug: string | null | undefined): string {
+  const key = (categorySlug ?? "").trim();
+  if (isCategorySlug(key)) return tiendaCategoryCoverLiteral(key);
+  return TIENDA_GLOBAL_FALLBACK_IMAGE;
+}
+
+/** @deprecated Prefer tiendaCatalogCoverPrimary + tiendaCatalogCoverLiteral */
+export function tiendaCatalogFallbackImage(categorySlug: string | null | undefined): string {
+  return tiendaCatalogCoverLiteral(categorySlug);
 }

@@ -11,10 +11,11 @@ export function TiendaCTA(props: {
 }) {
   const { lang, title, body, primary, secondary } = props;
   return (
-    <section className="rounded-[2rem] border border-[rgba(201,168,74,0.26)] bg-[linear-gradient(180deg,rgba(0,0,0,0.20),rgba(201,168,74,0.08))] p-6 sm:p-10 shadow-[0_24px_90px_rgba(0,0,0,0.38)] overflow-hidden relative">
+    <section className="rounded-[2rem] border border-[rgba(201,168,74,0.32)] bg-[linear-gradient(165deg,rgba(30,24,16,0.55),rgba(201,168,74,0.12),rgba(0,0,0,0.2))] p-6 sm:p-10 shadow-[0_28px_100px_rgba(201,168,74,0.14)] overflow-hidden relative">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-28 right-[-20%] h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.24),rgba(0,0,0,0))]" />
-        <div className="absolute -bottom-32 left-[-18%] h-80 w-80 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,252,247,0.10),rgba(0,0,0,0))]" />
+        <div className="absolute -top-28 right-[-20%] h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.32),rgba(0,0,0,0))]" />
+        <div className="absolute -bottom-32 left-[-18%] h-80 w-80 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,200,140,0.14),rgba(201,168,74,0.08),rgba(0,0,0,0))]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(201,168,74,0.45),transparent)] opacity-80" />
       </div>
 
       <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">

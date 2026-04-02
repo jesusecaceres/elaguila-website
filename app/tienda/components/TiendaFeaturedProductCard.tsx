@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Lang, TiendaFeaturedProduct } from "../types/tienda";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
+import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
@@ -18,7 +18,8 @@ export function TiendaFeaturedProductCard(props: { product: TiendaFeaturedProduc
   const title = lang === "en" ? product.title.en : product.title.es;
   const desc = lang === "en" ? product.description.en : product.description.es;
   const badge = lang === "en" ? product.badge.en : product.badge.es;
-  const coverSrc = tiendaProductFamilyCoverImage(product.slug, product.categorySlug);
+  const coverPrimary = tiendaProductFamilyCoverPrimary(product.slug, product.categorySlug);
+  const coverLiteral = tiendaProductFamilyCoverLiteral(product.slug, product.categorySlug);
 
   return (
     <Link
@@ -28,19 +29,19 @@ export function TiendaFeaturedProductCard(props: { product: TiendaFeaturedProduc
         "border border-[rgba(201,180,106,0.32)]",
         "bg-[linear-gradient(180deg,rgba(255,252,247,0.97),rgba(255,250,240,0.93))]",
         "shadow-[0_18px_60px_rgba(0,0,0,0.35)]",
-        "transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_26px_85px_rgba(0,0,0,0.42)]",
+        "transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_26px_85px_rgba(201,168,74,0.18)] hover:border-[rgba(201,168,74,0.4)]",
       ].join(" ")}
       aria-label={title}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-[rgba(30,24,16,0.08)]">
         <TiendaRemoteFillImage
-          primarySrc={coverSrc}
-          fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+          primarySrc={coverPrimary}
+          fallbackSrc={coverLiteral}
           alt={lang === "en" ? `${title} — product` : `${title} — producto`}
-          className="object-cover transition duration-500 group-hover:scale-[1.04]"
+          className="object-cover object-center transition duration-500 group-hover:scale-[1.04]"
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.45)] via-transparent to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.5)] via-transparent to-[rgba(201,168,74,0.08)] opacity-90" />
       </div>
 
       <div className="pointer-events-none absolute left-3 right-3 top-3 opacity-0 transition duration-300 group-hover:opacity-100 sm:opacity-100">

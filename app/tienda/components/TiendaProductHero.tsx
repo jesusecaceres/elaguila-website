@@ -1,5 +1,5 @@
 import type { Lang, TiendaProductFamily } from "../types/tienda";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaProductFamilyCoverImage } from "../data/tiendaVisualAssets";
+import { tiendaProductFamilyCoverLiteral, tiendaProductFamilyCoverPrimary } from "../data/tiendaVisualAssets";
 import { TiendaModeBadge } from "./TiendaModeBadge";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
@@ -16,7 +16,8 @@ export function TiendaProductHero(props: { product: TiendaProductFamily; lang: L
   const title = lang === "en" ? product.title.en : product.title.es;
   const desc = lang === "en" ? product.description.en : product.description.es;
   const longDesc = lang === "en" ? product.longDescription.en : product.longDescription.es;
-  const coverSrc = tiendaProductFamilyCoverImage(product.slug, product.categorySlug);
+  const coverPrimary = tiendaProductFamilyCoverPrimary(product.slug, product.categorySlug);
+  const coverLiteral = tiendaProductFamilyCoverLiteral(product.slug, product.categorySlug);
 
   return (
     <header className="relative overflow-hidden rounded-[2rem] border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] shadow-[0_28px_100px_rgba(0,0,0,0.45)]">
@@ -58,16 +59,17 @@ export function TiendaProductHero(props: { product: TiendaProductFamily; lang: L
           </div>
         </div>
         <div className="relative flex min-h-[240px] flex-col border-t border-[rgba(255,255,255,0.08)] lg:min-h-0 lg:border-t-0 lg:border-l">
-          <div className="relative min-h-[200px] flex-1 lg:min-h-[280px]">
+          <div className="relative min-h-[220px] flex-1 lg:min-h-[300px]">
             <TiendaRemoteFillImage
-              primarySrc={coverSrc}
-              fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+              primarySrc={coverPrimary}
+              fallbackSrc={coverLiteral}
               alt={lang === "en" ? `${title} — product` : `${title} — producto`}
-              className="object-cover"
+              className="object-cover object-center"
               sizes="(max-width: 1024px) 100vw, 400px"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#070708]/85 via-transparent to-transparent lg:bg-gradient-to-l" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#070708]/88 via-[#070708]/15 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/20 lg:to-[#070708]/88" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,rgba(201,168,74,0.14),transparent_55%)]" />
           </div>
           <div className="relative hidden border-t border-[rgba(201,168,74,0.2)] bg-[rgba(0,0,0,0.35)] px-6 py-5 lg:block">
             <div className="text-[11px] tracking-[0.14em] uppercase text-[rgba(255,247,226,0.72)]">

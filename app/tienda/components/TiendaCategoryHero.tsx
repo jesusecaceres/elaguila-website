@@ -1,5 +1,5 @@
 import type { Lang, TiendaCategory } from "../types/tienda";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaCategoryCoverImage } from "../data/tiendaVisualAssets";
+import { tiendaCategoryCoverLiteral, tiendaCategoryCoverPrimary } from "../data/tiendaVisualAssets";
 import type { TiendaCategorySlug } from "../data/tiendaCategories";
 import { accentStyles } from "../utils/tiendaTheme";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
@@ -11,7 +11,9 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
   const desc = lang === "en" ? category.description.en : category.description.es;
   const hero = lang === "en" ? category.heroSummary.en : category.heroSummary.es;
   const eyebrow = category.eyebrow ? (lang === "en" ? category.eyebrow.en : category.eyebrow.es) : null;
-  const coverSrc = tiendaCategoryCoverImage(category.slug as TiendaCategorySlug);
+  const slug = category.slug as TiendaCategorySlug;
+  const coverPrimary = tiendaCategoryCoverPrimary(slug);
+  const coverLiteral = tiendaCategoryCoverLiteral(slug);
 
   return (
     <header
@@ -37,16 +39,17 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
             </p>
           </div>
         </div>
-        <div className="relative min-h-[220px] lg:min-h-[280px] border-t border-[rgba(255,255,255,0.08)] lg:border-t-0 lg:border-l">
+        <div className="relative min-h-[220px] lg:min-h-[300px] border-t border-[rgba(255,255,255,0.08)] lg:border-t-0 lg:border-l">
           <TiendaRemoteFillImage
-            primarySrc={coverSrc}
-            fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+            primarySrc={coverPrimary}
+            fallbackSrc={coverLiteral}
             alt={lang === "en" ? `${title} — category visual` : `${title} — imagen de categoría`}
-            className="object-cover"
+            className="object-cover object-center"
             sizes="(max-width: 1024px) 100vw, 38vw"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-transparent to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-transparent lg:to-[#070708]/90" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/20 to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-[#070708]/15 lg:to-[#070708]/92" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(201,168,74,0.12),transparent_50%)]" />
         </div>
       </div>
     </header>

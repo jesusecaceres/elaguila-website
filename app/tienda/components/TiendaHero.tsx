@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Lang } from "../types/tienda";
-import { TIENDA_GLOBAL_FALLBACK_IMAGE, tiendaHeroAssets } from "../data/tiendaVisualAssets";
+import { tiendaHeroAssets, tiendaHeroLiterals } from "../data/tiendaVisualAssets";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
@@ -26,8 +26,8 @@ export function TiendaHero(props: {
   return (
     <section className="relative overflow-hidden rounded-[2.2rem] border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 -right-28 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.20),rgba(0,0,0,0))]" />
-        <div className="absolute -bottom-44 -left-28 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,252,247,0.10),rgba(0,0,0,0))]" />
+        <div className="absolute -top-40 -right-28 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.28),rgba(0,0,0,0))]" />
+        <div className="absolute -bottom-44 -left-28 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,180,120,0.12),rgba(201,168,74,0.08),rgba(0,0,0,0))]" />
         <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,rgba(255,255,255,0.0),rgba(201,168,74,0.55),rgba(255,255,255,0.0))]" />
       </div>
 
@@ -68,17 +68,17 @@ export function TiendaHero(props: {
 
         <div className="relative min-h-[340px] lg:min-h-[420px]">
           <div className="grid h-full grid-cols-2 gap-4">
-            <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.28)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
+            <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.35)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(201,168,74,0.15)]">
               <div className="relative h-[140px] w-full sm:h-[160px]">
                 <TiendaRemoteFillImage
                   primarySrc={tiendaHeroAssets.businessCards}
-                  fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                  fallbackSrc={tiendaHeroLiterals.businessCards}
                   alt={lang === "en" ? "Premium business cards stack" : "Montón de tarjetas de presentación premium"}
-                  className="object-cover"
+                  className="object-cover object-center"
                   sizes="(max-width: 1024px) 45vw, 380px"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.85)] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(30,24,16,0.88)] via-[rgba(40,32,20,0.25)] to-[rgba(201,168,74,0.12)]" />
               </div>
               <div className="relative px-4 pb-4 pt-1">
                 <div className="text-[10px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.78)]">
@@ -93,16 +93,16 @@ export function TiendaHero(props: {
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-3xl border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
+            <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.22)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
               <div className="relative h-[140px] w-full sm:h-[160px]">
                 <TiendaRemoteFillImage
                   primarySrc={tiendaHeroAssets.bannersSigns}
-                  fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                  fallbackSrc={tiendaHeroLiterals.bannersSigns}
                   alt={lang === "en" ? "Event display and large-format presence" : "Presencia en evento y gran formato"}
-                  className="object-cover"
+                  className="object-cover object-center"
                   sizes="(max-width: 1024px) 45vw, 380px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/15 to-[rgba(201,168,74,0.08)]" />
               </div>
               <div className="relative px-4 pb-4 pt-1">
                 <div className="text-[10px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.72)]">
@@ -122,12 +122,12 @@ export function TiendaHero(props: {
                 <div className="relative h-[120px] w-full sm:h-auto sm:w-[44%] shrink-0">
                   <TiendaRemoteFillImage
                     primarySrc={tiendaHeroAssets.printWorkflow}
-                    fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                    fallbackSrc={tiendaHeroLiterals.printWorkflow}
                     alt={lang === "en" ? "Files and order planning" : "Archivos y planificación del pedido"}
-                    className="object-cover sm:object-cover"
+                    className="object-cover object-center sm:object-cover"
                     sizes="(max-width: 640px) 100vw, 300px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/55 sm:bg-gradient-to-l" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/55 sm:bg-gradient-to-l sm:from-black/20 sm:to-transparent" />
                 </div>
                 <div className="relative flex flex-1 flex-col justify-center px-5 py-4 sm:py-5">
                   <div className="text-[10px] tracking-[0.16em] uppercase text-[rgba(255,247,226,0.72)]">
@@ -160,6 +160,7 @@ export function TiendaHero(props: {
                 {[
                   {
                     src: tiendaHeroAssets.thumbFlyers,
+                    fallback: tiendaHeroLiterals.thumbFlyers,
                     labelEn: "Flyers",
                     labelEs: "Volantes",
                     altEn: "Printed marketing sheets",
@@ -167,6 +168,7 @@ export function TiendaHero(props: {
                   },
                   {
                     src: tiendaHeroAssets.thumbBrochures,
+                    fallback: tiendaHeroLiterals.thumbBrochures,
                     labelEn: "Brochures",
                     labelEs: "Brochures",
                     altEn: "Folded brochure print",
@@ -174,22 +176,23 @@ export function TiendaHero(props: {
                   },
                   {
                     src: tiendaHeroAssets.thumbStickers,
+                    fallback: tiendaHeroLiterals.thumbStickers,
                     labelEn: "Stickers",
                     labelEs: "Stickers",
                     altEn: "Sticker and label print",
                     altEs: "Impresión de stickers y etiquetas",
                   },
                 ].map((t) => (
-                  <div key={t.labelEn} className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.10)]">
+                  <div key={t.labelEn} className="relative overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.2)]">
                     <div className="relative aspect-[4/3] w-full">
                       <TiendaRemoteFillImage
                         primarySrc={t.src}
-                        fallbackSrc={TIENDA_GLOBAL_FALLBACK_IMAGE}
+                        fallbackSrc={t.fallback}
                         alt={lang === "en" ? t.altEn : t.altEs}
-                        className="object-cover"
+                        className="object-cover object-center"
                         sizes="120px"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-[rgba(201,168,74,0.06)]" />
                       <span className="absolute bottom-1.5 left-2 right-2 text-[10px] font-semibold text-white/95">
                         {lang === "en" ? t.labelEn : t.labelEs}
                       </span>

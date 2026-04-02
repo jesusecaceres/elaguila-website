@@ -1,4 +1,15 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import { deriveHeroImageUrls } from "./autoDealerHeroImages";
+import { hasListingVideo } from "./autoDealerVideo";
+import {
+  resolveBodyStyle,
+  resolveDrivetrain,
+  resolveExteriorColor,
+  resolveFuelType,
+  resolveInteriorColor,
+  resolveTitleStatus,
+  resolveTransmission,
+} from "./autoDealerSelectResolve";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -20,8 +31,8 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
   if (nonEmpty(listing.monthlyEstimate ?? undefined)) return true;
   if (listing.mileage !== undefined && Number.isFinite(listing.mileage)) return true;
 
-  if ((listing.heroImages?.length ?? 0) > 0) return true;
-  if (nonEmpty(listing.videoUrl ?? undefined)) return true;
+  if (deriveHeroImageUrls(listing).length > 0) return true;
+  if (hasListingVideo(listing)) return true;
 
   if (nonEmpty(listing.city)) return true;
   if (nonEmpty(listing.state)) return true;
@@ -29,18 +40,18 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
   if (nonEmpty(listing.stockNumber)) return true;
 
   if (listing.condition !== undefined) return true;
-  if (nonEmpty(listing.transmission)) return true;
-  if (nonEmpty(listing.drivetrain)) return true;
-  if (nonEmpty(listing.bodyStyle)) return true;
+  if (nonEmpty(resolveTransmission(listing))) return true;
+  if (nonEmpty(resolveDrivetrain(listing))) return true;
   if (nonEmpty(listing.engine)) return true;
-  if (nonEmpty(listing.fuelType)) return true;
+  if (nonEmpty(resolveFuelType(listing))) return true;
   if (listing.mpgCity != null && Number.isFinite(listing.mpgCity)) return true;
   if (listing.mpgHighway != null && Number.isFinite(listing.mpgHighway)) return true;
-  if (nonEmpty(listing.exteriorColor)) return true;
-  if (nonEmpty(listing.interiorColor)) return true;
+  if (nonEmpty(resolveBodyStyle(listing))) return true;
+  if (nonEmpty(resolveExteriorColor(listing))) return true;
+  if (nonEmpty(resolveInteriorColor(listing))) return true;
   if (listing.doors !== undefined && Number.isFinite(listing.doors)) return true;
   if (listing.seats !== undefined && Number.isFinite(listing.seats)) return true;
-  if (nonEmpty(listing.titleStatus)) return true;
+  if (nonEmpty(resolveTitleStatus(listing))) return true;
 
   if ((listing.badges?.length ?? 0) > 0) return true;
   if ((listing.features?.length ?? 0) > 0) return true;
