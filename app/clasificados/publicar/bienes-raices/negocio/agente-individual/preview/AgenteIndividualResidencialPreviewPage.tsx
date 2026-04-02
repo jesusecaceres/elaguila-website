@@ -69,6 +69,8 @@ const typo = {
   lowerSerif: "text-sm font-semibold leading-tight tracking-tight",
 } as const;
 
+/** Entre galería + tarjeta agente y la banda de título/precio (más ajustado que el resto de secciones). */
+const AFTER_TOP_MEDIA_GAP = "mt-3 md:mt-4";
 const SECTION_GAP = "mt-6 md:mt-7";
 const CARD_PAD = "px-4 py-4 sm:px-5 sm:py-4";
 const SECTION_LABEL = `${typo.kicker} mb-2.5`;
@@ -232,8 +234,8 @@ export function AgenteIndividualResidencialPreviewPage({
         </p>
 
         {/* 1 — Galería + tarjeta agente */}
-        <section className="mt-2 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7">
-          <div className="flex min-w-0 flex-col gap-3">
+        <section className="mt-1 grid grid-cols-1 gap-y-2 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7 lg:gap-y-0">
+          <div className="flex min-w-0 flex-col gap-2.5">
             <div>
               <h3 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                 Galería
@@ -357,7 +359,7 @@ export function AgenteIndividualResidencialPreviewPage({
 
               {g.showAllPhotosPill ? (
                 <div
-                  className="mt-3 flex justify-center"
+                  className="mt-2 flex justify-center"
                   role="note"
                   title="En el anuncio publicado, este control abre la galería completa."
                 >
@@ -611,7 +613,7 @@ export function AgenteIndividualResidencialPreviewPage({
         </section>
 
         {/* 2 — Título, operación, ubicación, precio, estado, hechos rápidos */}
-        <section className={`${SECTION_GAP} rounded-xl border px-4 py-5 sm:px-6`} style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+        <section className={`${AFTER_TOP_MEDIA_GAP} rounded-xl border px-4 py-4 sm:px-6 sm:py-4`} style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
           {title ? (
             <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
               {title}
