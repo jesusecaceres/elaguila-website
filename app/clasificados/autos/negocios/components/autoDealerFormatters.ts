@@ -50,12 +50,29 @@ export function phoneDigitsForTel(input: string | undefined): string {
 }
 
 /**
- * Monthly line — polishes spacing; adds ` est.` when it looks like a payment estimate without a label.
+ * Monthly line — e.g. `$635/mes est.`; polishes free text and avoids duplicated `est.`.
  */
 export function polishMonthlyEstimateDisplay(raw: string | undefined): string {
   const t = (raw ?? "").trim().replace(/\s+/g, " ");
   if (!t) return "";
   if (/\best\.?\s*$/i.test(t) || /\bestim/i.test(t)) return t;
+
+  const plainNum = t.match(/^(\d+(?:\.\d+)?)$/);
+  if (plainNum) {
+    const n = Math.round(parseFloat(plainNum[1]));
+    if (Number.isFinite(n)) return `${formatUsd(n)}/mes est.`;
+  }
+
+  const moneyOnly = t.match(/^\$[\d,]+(?:\.\d{1,2})?$/);
+  if (moneyOnly) {
+    const n = parseFloat(t.replace(/[$,]/g, ""));
+    if (Number.isFinite(n)) return `${formatUsd(Math.round(n))}/mes est.`;
+  }
+
+  if (/\$/.test(t) && /\/mes/i.test(t)) {
+    return /\best\.?\s*$/i.test(t) ? t : `${t} est.`;
+  }
+
   if (/\d/.test(t)) {
     return `${t} est.`;
   }

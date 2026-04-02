@@ -98,10 +98,12 @@ export const businessCardProductCopy = {
     en: "Drop a file here or tap to browse",
   },
   uploadPreferDesign: {
-    es: "¿Prefieres diseñar en línea?",
-    en: "Prefer to design online instead?",
+    es: "¿Prefieres diseñar en línea? Studio (no es la subida final):",
+    en: "Prefer to design online? Studio paths (not this final-file upload):",
   },
-  uploadOpenBuilder: { es: "Abrir constructor", en: "Open builder" },
+  /** Print-upload shell: links into Studio — kept distinct from print-ready handoff */
+  uploadStudioTemplateCta: { es: "Biblioteca de plantillas", en: "Template library" },
+  uploadStudioRefreshCta: { es: "Renovar diseño en Studio", en: "Refresh design in Studio" },
   designIntakeCustomHint: {
     es: "Controles completos de posición y tipografía activos. Las plantillas de abajo siguen disponibles; usa Refinamientos para imágenes y formas.",
     en: "Full layout and typography controls are on. Templates below still apply when selected. Use Refinements for images and shapes.",

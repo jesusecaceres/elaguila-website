@@ -240,12 +240,20 @@ export function BusinessCardUploadShell(props: { productSlug: BusinessCardProduc
             </div>
             <div className="rounded-2xl border border-[rgba(201,168,74,0.22)] bg-[rgba(201,168,74,0.06)] px-4 py-3 text-xs text-[rgba(255,247,226,0.8)] max-w-sm">
               <p className="font-semibold text-[rgba(201,168,74,0.95)]">{bcpPick(businessCardProductCopy.uploadPreferDesign, lang)}</p>
-              <Link
-                href={withLang(businessCardConfigurePath(productSlug, { entry: "template" }), lang)}
-                className="mt-2 inline-flex rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/10"
-              >
-                {bcpPick(businessCardProductCopy.uploadOpenBuilder, lang)}
-              </Link>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link
+                  href={withLang(businessCardConfigurePath(productSlug, { entry: "template" }), lang)}
+                  className="inline-flex rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/10"
+                >
+                  {bcpPick(businessCardProductCopy.uploadStudioTemplateCta, lang)}
+                </Link>
+                <Link
+                  href={withLang(businessCardConfigurePath(productSlug, { entry: "refresh" }), lang)}
+                  className="inline-flex rounded-full border border-[rgba(201,168,74,0.35)] px-3 py-1.5 text-[11px] font-semibold text-[rgba(255,247,226,0.95)] hover:bg-[rgba(201,168,74,0.12)]"
+                >
+                  {bcpPick(businessCardProductCopy.uploadStudioRefreshCta, lang)}
+                </Link>
+              </div>
             </div>
           </div>
 

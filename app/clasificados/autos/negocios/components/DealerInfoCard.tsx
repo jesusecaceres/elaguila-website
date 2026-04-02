@@ -34,12 +34,7 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
 
   const initials = (data.dealerName ?? "NA").slice(0, 2).toUpperCase();
 
-  const ratingLine =
-    rOk && cOk
-      ? `${data.dealerRating!.toFixed(1)} · ${data.dealerReviewCount} reviews`
-      : rOk
-        ? `${data.dealerRating!.toFixed(1)} rating`
-        : null;
+  const showRatingRow = rOk || cOk;
 
   return (
     <div className={CARD}>
@@ -61,9 +56,13 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
           {nonEmpty(data.dealerName) ? (
             <h2 className="text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)]">{data.dealerName?.trim()}</h2>
           ) : null}
-          {ratingLine ? (
+          {showRatingRow ? (
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
-              <span className="font-semibold text-[color:var(--lx-gold)]">{ratingLine}</span>
+              {rOk ? (
+                <span className="font-semibold text-[color:var(--lx-gold)]">{data.dealerRating!.toFixed(1)}</span>
+              ) : null}
+              {rOk && cOk ? <span aria-hidden> · </span> : null}
+              {cOk ? <span>({data.dealerReviewCount} reseñas)</span> : null}
             </p>
           ) : null}
         </div>
