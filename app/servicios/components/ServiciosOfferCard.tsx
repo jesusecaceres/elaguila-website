@@ -1,0 +1,61 @@
+import Link from "next/link";
+import { FaTicketAlt } from "react-icons/fa";
+import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
+import { showPromoSection } from "../lib/serviciosProfileVisibility";
+
+function OfferHeadline({ text }: { text: string }) {
+  const parts = text.split(/(\$\d+)/g);
+  return (
+    <p className="mt-2 text-lg font-bold leading-snug text-[color:var(--lx-text)]">
+      {parts.map((part, i) =>
+        /^\$\d+$/.test(part) ? (
+          <span key={i} className="text-[#C9A84A]">
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </p>
+  );
+}
+
+export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+  const L = getServiciosProfileLabels(lang);
+  if (!showPromoSection(profile)) return null;
+  const promo = profile.promo!;
+
+  const inner = (
+    <div
+      className="relative overflow-hidden rounded-2xl border border-[#3B66AD]/20 px-5 py-6 shadow-md transition hover:border-[#3B66AD]/35 hover:shadow-lg"
+      style={{
+        background: `linear-gradient(135deg, rgba(59,102,173,0.12) 0%, rgba(255,255,255,0.95) 55%, rgba(59,102,173,0.08) 100%)`,
+      }}
+    >
+      <div
+        className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#3B66AD]/10"
+        aria-hidden
+      />
+      <div className="relative flex gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+          <FaTicketAlt className="h-6 w-6 text-[#3B66AD]" aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#3B66AD]/90">{L.offerTitle}</p>
+          <OfferHeadline text={promo.headline} />
+          {promo.footnote ? <p className="mt-3 text-xs text-[color:var(--lx-muted)]">{promo.footnote}</p> : null}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (promo.href) {
+    return (
+      <Link href={promo.href} className="block no-underline">
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
+}

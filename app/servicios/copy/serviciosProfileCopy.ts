@@ -1,0 +1,48 @@
+import type { ServiciosLang } from "../types/serviciosBusinessProfile";
+
+export function getServiciosProfileLabels(lang: ServiciosLang) {
+  if (lang === "en") {
+    return {
+      reviewsSuffix: (n: number) => `(${n} reviews)`,
+      openNow: "Open now",
+      closed: "Closed",
+      requestQuote: "Request quote",
+      call: "Call",
+      message: "Message",
+      viewDetails: "View details",
+      attachPhoto: "Attach photo",
+      send: "Send",
+      about: "About us",
+      services: "Our services",
+      gallery: "Project gallery",
+      trust: "Why choose us",
+      reviews: "Customer reviews",
+      serviceAreas: "Service areas",
+      offerTitle: "Special offer",
+      visitWebsite: "Visit website",
+      featured: "Featured",
+      reviewsSummary: (rating: number, count: number) => `${rating} (${count} reviews)`,
+    };
+  }
+  return {
+    reviewsSuffix: (n: number) => `(${n} reseñas)`,
+    openNow: "Abierto ahora",
+    closed: "Cerrado",
+    requestQuote: "Solicitar cotización",
+    call: "Llamar",
+    message: "Mensaje",
+    viewDetails: "Ver detalles",
+    attachPhoto: "Adjuntar foto",
+    send: "Enviar",
+    about: "Sobre nosotros",
+    services: "Nuestros servicios",
+    gallery: "Galería de trabajos",
+    trust: "¿Por qué elegirnos?",
+    reviews: "Reseñas de clientes",
+    serviceAreas: "Zonas de servicio",
+    offerTitle: "Oferta especial",
+    visitWebsite: "Visitar sitio web",
+    featured: "Destacado",
+    reviewsSummary: (rating: number, count: number) => `${rating} (${count} reseñas)`,
+  };
+}

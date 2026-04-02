@@ -30,6 +30,7 @@ import {
   buildQuickFacts,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
+  formatTipoPublicacionFijoLine,
   hasBrandBlockVisible,
   hrefFromUserInput,
   trim,
@@ -189,7 +190,7 @@ export function AgenteIndividualResidencialPreviewPage({
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
   const openHouseSummary = buildOpenHouseSummary(data);
   const asesorBlock = buildAsesorBlock(data);
-  const opLine = "Venta residencial";
+  const opLine = formatTipoPublicacionFijoLine(data);
 
   const agentLicenseLine = trim(data.agenteLicencia) ? `Licencia o número profesional: ${trim(data.agenteLicencia)}` : "";
   const brandLicenseLine =

@@ -1,5 +1,6 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { normalizeLoadedListing } from "./autoDealerDraftDefaults";
+import { stripDraftMuxFields } from "./autosNegociosDraftGuards";
 import { idbClearDraftVideo, idbGetDraftVideoDataUrl, idbPutDraftVideoDataUrl } from "./autosNegociosDraftVideoIdb";
 
 /** Matches product spec; single key for publicar + preview. */
@@ -39,7 +40,7 @@ export function loadAutosNegociosDraft(): AutosNegociosDraftV1 | null {
 export async function loadAutosNegociosDraftResolved(): Promise<AutosNegociosDraftV1 | null> {
   const sync = loadAutosNegociosDraft();
   if (!sync) return null;
-  let listing = normalizeLoadedListing(sync.listing);
+  let listing = stripDraftMuxFields(normalizeLoadedListing(sync.listing));
   if (listing.videoSourceType === "file") {
     const inline = listing.videoFileDataUrl?.trim();
     if (!inline) {
@@ -49,7 +50,7 @@ export async function loadAutosNegociosDraftResolved(): Promise<AutosNegociosDra
       }
     }
   }
-  return { ...sync, listing: normalizeLoadedListing(listing) };
+  return { ...sync, listing: stripDraftMuxFields(normalizeLoadedListing(listing)) };
 }
 
 /**
@@ -58,7 +59,7 @@ export async function loadAutosNegociosDraftResolved(): Promise<AutosNegociosDra
  */
 export async function saveAutosNegociosDraftResolved(draft: AutosNegociosDraftV1): Promise<void> {
   if (typeof window === "undefined") return;
-  let listing = normalizeLoadedListing(draft.listing);
+  let listing = stripDraftMuxFields(normalizeLoadedListing(draft.listing));
   let toStore = listing;
 
   if (listing.videoSourceType === "file") {
@@ -75,7 +76,7 @@ export async function saveAutosNegociosDraftResolved(draft: AutosNegociosDraftV1
 
   const payload: AutosNegociosDraftV1 = {
     ...draft,
-    listing: normalizeLoadedListing(toStore),
+    listing: stripDraftMuxFields(normalizeLoadedListing(toStore)),
   };
 
   try {

@@ -289,7 +289,8 @@ function NavbarContent() {
   const isPreviewSurface =
     pathname.endsWith("/preview") ||
     pathname.includes("/preview/");
-  if (pathname === "/" || isPreviewSurface) return null;
+  const isServiciosPublicProfile = pathname.startsWith("/servicios/perfil");
+  if (pathname === "/" || isPreviewSurface || isServiciosPublicProfile) return null;
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50" data-navbar-root>

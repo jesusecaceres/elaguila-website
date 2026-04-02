@@ -31,6 +31,12 @@ export function formatEstadoAnuncioLabel(s: AgenteIndividualResidencialFormState
   return STATUS_LABEL[s.estadoAnuncio] ?? STATUS_LABEL.disponible;
 }
 
+/** Fixed lane line under title; matches `tipoPublicacionFijo` for this Negocio agente-individual residencial flow. */
+export function formatTipoPublicacionFijoLine(s: AgenteIndividualResidencialFormState): string {
+  if (s.tipoPublicacionFijo === "venta_residencial") return "Venta residencial";
+  return "Venta residencial";
+}
+
 export function formatPrecioUsd(raw: string): string {
   const t = trim(raw);
   if (!t) return "";
@@ -264,7 +270,7 @@ function hrefFolletoCta(s: AgenteIndividualResidencialFormState): string | null 
 function hrefSitioWebCta(s: AgenteIndividualResidencialFormState): string | null {
   const direct = hrefFromUserInput(s.ctaEnlaceSitioWeb);
   if (direct) return direct;
-  if (!s.mostrarMarcaEnTarjeta) return null;
+  /** Fallback `marcaSitioWeb` for CTA only; visibility of the marca block is separate (`mostrarMarcaEnTarjeta`). */
   return hrefFromUserInput(s.marcaSitioWeb);
 }
 

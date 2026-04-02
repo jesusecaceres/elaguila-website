@@ -1,3 +1,5 @@
+import { safeExternalHref } from "../lib/dealerDraftSanitize";
+
 /** USD whole dollars — e.g. `$48,950` */
 export function formatUsd(n: number | undefined): string {
   if (n === undefined || !Number.isFinite(n)) return "";
@@ -87,12 +89,9 @@ export function formatCityStateLabel(city?: string, state?: string): string {
   return c || st || "";
 }
 
-/** Ensures a usable browser href when the user omits `https://`. */
+/** Safe http(s) href for website / social fields; rejects unparseable junk. */
 export function hrefForUserWebsiteUrl(input: string | undefined | null): string | undefined {
-  const t = (input ?? "").trim();
-  if (!t) return undefined;
-  if (/^https?:\/\//i.test(t)) return t;
-  return `https://${t}`;
+  return safeExternalHref(input);
 }
 
 export function formatAddressLine(raw: string | undefined): string {

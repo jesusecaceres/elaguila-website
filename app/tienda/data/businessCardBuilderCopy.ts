@@ -10,6 +10,12 @@ export const businessCardBuilderCopy = {
     en: "Editable preview for layout and proofing. Production follows what you approve in this checkout flow—the print-ready file upload is a separate path when you choose it.",
   },
   guidesToggle: { es: "Guías de impresión", en: "Print guides" },
+  studioToolbarHint: {
+    es: "Elige la cara y las guías; el lienzo grande está abajo. Las herramientas siguen a tu selección.",
+    en: "Pick the side and guides; the large canvas is below. Tools follow your selection.",
+  },
+  workspaceTabContent: { es: "Tarjeta", en: "Card" },
+  workspaceTabStudio: { es: "Capas Studio", en: "Studio layers" },
   sideFront: { es: "Frente", en: "Front" },
   sideBack: { es: "Reverso", en: "Back" },
   fieldsTitle: { es: "Información", en: "Business details" },
@@ -67,22 +73,22 @@ export const businessCardBuilderCopy = {
     en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix. Studio is your editable workspace here—the print-ready file upload is a different path when you need it.",
   },
   previewHelp: {
-    es: "Toca una línea, el logo o una capa en Refinamientos. Las herramientas de la selección activa están arriba a la derecha.",
-    en: "Tap a line, the logo, or a layer in Refinements. Active selection tools are at the top of the right column.",
+    es: "Toca el texto, el logo o una capa añadida. Las herramientas de la selección aparecen en la franja de arriba; detalles y capas están en la columna derecha.",
+    en: "Tap text, the logo, or an added layer. Selection tools appear in the strip above; details and layers stay in the right column.",
   },
   /** Right column: object-first tools for the current canvas selection */
   selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },
   selectionToolsSubtitle: {
-    es: "Lo que elijas en la vista previa define estas herramientas; las capas añadidas en Studio tienen prioridad cuando están seleccionadas. Abajo siguen información, logo y refinamientos.",
-    en: "What you select on the preview drives these tools—added Studio layers take priority when selected. Details, logo, and refinements stay below.",
+    es: "Prioridad: capa Studio seleccionada → logo → texto. La columna derecha tiene la información de la tarjeta y la pila de capas.",
+    en: "Priority: selected Studio layer → logo → text. The right column holds card details and the layer stack.",
   },
   contextualEmptyTitle: {
     es: "Elige algo en la tarjeta",
     en: "Select something on the card",
   },
   contextualEmptyBody: {
-    es: "Toca una línea de texto, el logo, o una imagen o forma añadida en Refinamientos. Las herramientas aparecen aquí; si hay capas añadidas seleccionadas, tienen prioridad sobre texto y logo.",
-    en: "Tap a text line, the logo, or an added image or shape from Refinements. Tools for that object appear here—when an added Studio layer is selected, it takes priority over text and logo.",
+    es: "Selecciona una línea, el logo o una capa en el lienzo. Usa la pestaña “Capas Studio” para añadir imágenes o formas.",
+    en: "Select a line, the logo, or a layer on the canvas. Use the “Studio layers” tab to add images or shapes.",
   },
   /** Shown above contextual tools when something is selected (preview + list stay in sync) */
   selectionBannerPrefix: { es: "Selección activa", en: "Active selection" },
@@ -157,8 +163,8 @@ export const businessCardBuilderCopy = {
     en: "Same numeric scale as text blocks and added layers—the value decides what sits on top when things overlap.",
   },
   logoInspectorUploadHint: {
-    es: "Subir, reemplazar o quitar el archivo en la columna de diseño (abajo).",
-    en: "Upload, replace, or remove the file in the layout column below.",
+    es: "Subir, reemplazar o quitar el archivo en la pestaña Tarjeta (columna derecha).",
+    en: "Upload, replace, or remove the file in the Card tab (right column).",
   },
   logoShowOnSide: { es: "Mostrar logo en esta cara", en: "Show logo on this side" },
   editingBanner: { es: "Editando", en: "Editing" },
@@ -169,7 +175,7 @@ export const businessCardBuilderCopy = {
   },
   savedToast: { es: "Diseño guardado en este dispositivo.", en: "Design saved on this device." },
   /** Panel: native layers + shapes/images (below the light editor card) */
-  refinementsSectionTitle: { es: "Refinamientos", en: "Refinements" },
+  refinementsSectionTitle: { es: "Capas Studio", en: "Studio layers" },
   refinementsSectionHint: {
     es: "Toda la tarjeta comparte un solo orden z. El texto y el logo se ajustan en sus herramientas al seleccionarlos; aquí reordenas solo las capas que añades (o su número z en esas herramientas).",
     en: "The whole card shares one z-order. Text and logo use their own tools when selected; here you reorder added layers (or set z in those tools).",

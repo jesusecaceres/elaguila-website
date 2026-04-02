@@ -3,7 +3,8 @@ import { SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
 import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
-import { formatAddressLine, formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
+import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "../lib/dealerDraftSanitize";
+import { formatAddressLine, formatUsPhoneDisplay, phoneDigitsForTel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
 
 const CARD =
@@ -20,11 +21,15 @@ function nonEmpty(s: string | undefined | null): boolean {
 export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
   if (!hasDealerCard(data)) return null;
 
-  const socials = SOCIAL_ORDER.filter((k) => Boolean(data.dealerSocials?.[k]));
+  const socials = SOCIAL_ORDER.filter((k) => {
+    const u = data.dealerSocials?.[k]?.trim();
+    return Boolean(u && safeExternalHref(u));
+  });
   const hours = filterDealerHoursForDisplay(data.dealerHours);
-  const rOk = data.dealerRating !== undefined && Number.isFinite(data.dealerRating);
-  const cOk =
-    data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount) && data.dealerReviewCount > 0;
+  const ratingVal = sanitizeDealerRating(data.dealerRating);
+  const reviewVal = sanitizeReviewCount(data.dealerReviewCount);
+  const rOk = ratingVal !== undefined;
+  const cOk = reviewVal !== undefined;
 
   const phoneDisplay = formatUsPhoneDisplay(data.dealerPhone);
   const phoneForTel = phoneDigitsForTel(data.dealerPhone);
@@ -35,6 +40,9 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
   const initials = (data.dealerName ?? "NA").slice(0, 2).toUpperCase();
 
   const showRatingRow = rOk || cOk;
+
+  const webRaw = data.dealerWebsite?.trim();
+  const webHref = webRaw ? safeExternalHref(data.dealerWebsite) : undefined;
 
   return (
     <div className={CARD}>
@@ -59,10 +67,10 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
           {showRatingRow ? (
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
               {rOk ? (
-                <span className="font-semibold text-[color:var(--lx-gold)]">{data.dealerRating!.toFixed(1)}</span>
+                <span className="font-semibold text-[color:var(--lx-gold)]">{ratingVal!.toFixed(1)}</span>
               ) : null}
               {rOk && cOk ? <span aria-hidden> · </span> : null}
-              {cOk ? <span>({data.dealerReviewCount} reseñas)</span> : null}
+              {cOk ? <span>({reviewVal} reseñas)</span> : null}
             </p>
           ) : null}
         </div>
@@ -95,7 +103,7 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
             <FiClock className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
             <div className="space-y-1.5">
               {hours.map((row, idx) => (
-                <p key={`${row.day}-${idx}`} className="leading-snug text-[color:var(--lx-text-2)]">
+                <p key={row.rowId ?? `hour-${idx}`} className="leading-snug text-[color:var(--lx-text-2)]">
                   <span className="font-semibold text-[color:var(--lx-text)]">{row.day.trim()}:</span>{" "}
                   {formatDealerHoursTimeRange(row)}
                 </p>
@@ -103,17 +111,21 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
             </div>
           </li>
         ) : null}
-        {nonEmpty(data.dealerWebsite ?? undefined) ? (
+        {webRaw ? (
           <li className={ICON_ROW}>
             <FiGlobe className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <a
-              href={hrefForUserWebsiteUrl(data.dealerWebsite) ?? "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
-            >
-              Sitio web del concesionario
-            </a>
+            {webHref ? (
+              <a
+                href={webHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
+              >
+                Sitio web del concesionario
+              </a>
+            ) : (
+              <span className="font-medium text-[color:var(--lx-text)]">{webRaw}</span>
+            )}
           </li>
         ) : null}
       </ul>
@@ -121,9 +133,10 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
       {socials.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-[color:var(--lx-nav-border)] pt-4">
           {socials.map((key) => {
-            const href = data.dealerSocials?.[key];
-            if (!href) return null;
-            const resolved = hrefForUserWebsiteUrl(href) ?? href;
+            const raw = data.dealerSocials?.[key]?.trim();
+            if (!raw) return null;
+            const resolved = safeExternalHref(raw);
+            if (!resolved) return null;
             return (
               <a
                 key={key}

@@ -1,4 +1,5 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "./dealerDraftSanitize";
 import { deriveHeroImageUrls } from "./autoDealerHeroImages";
 import { filterDealerHoursForDisplay } from "./dealerHoursDisplay";
 import { hasListingVideo } from "./autoDealerVideo";
@@ -38,6 +39,10 @@ export function hasTitleBand(data: AutoDealerListing): boolean {
 export function hasSpecsSection(data: AutoDealerListing): boolean {
   const c = data.condition;
   return (
+    (data.year !== undefined && Number.isFinite(data.year)) ||
+    nonEmpty(data.make) ||
+    nonEmpty(data.model) ||
+    nonEmpty(data.trim) ||
     nonEmpty(resolveBodyStyle(data)) ||
     nonEmpty(resolveDrivetrain(data)) ||
     nonEmpty(resolveTransmission(data)) ||
@@ -70,8 +75,8 @@ export function hasSidebarCta(data: AutoDealerListing): boolean {
 export function hasDealerCard(data: AutoDealerListing): boolean {
   const soc = data.dealerSocials ?? {};
   const hasHours = filterDealerHoursForDisplay(data.dealerHours).length > 0;
-  const hasRating = data.dealerRating !== undefined && Number.isFinite(data.dealerRating);
-  const hasReviews = data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount) && data.dealerReviewCount > 0;
+  const hasRating = sanitizeDealerRating(data.dealerRating) !== undefined;
+  const hasReviews = sanitizeReviewCount(data.dealerReviewCount) !== undefined;
   return (
     nonEmpty(data.dealerName) ||
     Boolean(data.dealerLogo) ||
@@ -79,7 +84,7 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
     nonEmpty(data.dealerAddress) ||
     hasHours ||
     nonEmpty(data.dealerWebsite ?? undefined) ||
-    Object.values(soc).some((u) => nonEmpty(u)) ||
+    Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u))) ||
     hasRating ||
     hasReviews
   );

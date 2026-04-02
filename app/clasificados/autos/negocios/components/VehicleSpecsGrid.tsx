@@ -1,4 +1,5 @@
 import {
+  BiCalendar,
   BiCar,
   BiColorFill,
   BiCylinder,
@@ -44,7 +45,17 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
   const mileageStr =
     data.mileage !== undefined && Number.isFinite(data.mileage) ? formatMiles(data.mileage) : undefined;
 
+  const yearStr =
+    data.year !== undefined && Number.isFinite(data.year) ? String(Math.round(data.year)) : undefined;
+  const makeStr = data.make?.trim() || undefined;
+  const modelStr = data.model?.trim() || undefined;
+  const trimStr = data.trim?.trim() || undefined;
+
   const rows: Array<{ key: string; label: string; value: string | undefined; icon: ReactNode }> = [
+    { key: "year", label: "Año", value: yearStr, icon: <BiCalendar className="h-5 w-5" /> },
+    { key: "make", label: "Marca", value: makeStr, icon: <BiCar className="h-5 w-5" /> },
+    { key: "model", label: "Modelo", value: modelStr, icon: <BiCar className="h-5 w-5" /> },
+    { key: "trim", label: "Versión / trim", value: trimStr, icon: <BiCar className="h-5 w-5" /> },
     { key: "body", label: "Estilo de carrocería", value: resolveBodyStyle(data), icon: <BiCar className="h-5 w-5" /> },
     { key: "drive", label: "Tracción", value: resolveDrivetrain(data), icon: <TbRoad className="h-5 w-5" /> },
     { key: "trans", label: "Transmisión", value: resolveTransmission(data), icon: <BiTachometer className="h-5 w-5" /> },

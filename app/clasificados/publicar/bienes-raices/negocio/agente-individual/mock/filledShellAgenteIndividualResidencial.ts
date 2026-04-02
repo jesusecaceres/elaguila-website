@@ -1,6 +1,6 @@
 /**
- * TEMPORAL — plantilla BR completa para verificación de slots en la ruta real de vista previa.
- * No usar como datos de producción; el cliente de vista previa debe volver a leer borrador cuando se termine la verificación.
+ * Plantilla llena para desarrollo / pruebas manuales (no es la fuente del preview en runtime).
+ * El preview en `/clasificados/bienes-raices/preview/negocio` lee `loadAgenteResPreviewDraft()`.
  */
 import {
   AGENTE_RES_DESTACADOS_DEFS,

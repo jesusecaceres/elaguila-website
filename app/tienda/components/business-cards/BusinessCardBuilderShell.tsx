@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { getLeoAlternateTemplateId } from "../../product-configurators/business-cards/businessCardLeoScoring";
 import type { Lang } from "../../types/tienda";
-import type { BusinessCardDesignIntake, BusinessCardProductSlug } from "../../product-configurators/business-cards/types";
+import type {
+  BusinessCardDesignIntake,
+  BusinessCardProductSlug,
+  BusinessCardSide,
+} from "../../product-configurators/business-cards/types";
 import { createInitialBusinessCardDocument } from "../../product-configurators/business-cards/documentFactory";
 import {
   businessCardBuilderReducer,
@@ -33,7 +37,7 @@ import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
 import { BusinessCardContextualInspector } from "./editor/BusinessCardContextualInspector";
 import { BusinessCardDesignerV2Panel } from "./BusinessCardDesignerV2Panel";
 import { BusinessCardRefreshDesignPanel } from "./BusinessCardRefreshDesignPanel";
-import { BusinessCardSideTabs } from "./BusinessCardSideTabs";
+import { BusinessCardStudioToolbar } from "./BusinessCardStudioToolbar";
 import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
 import { BusinessCardApprovalPanel } from "./BusinessCardApprovalPanel";
 
@@ -68,6 +72,8 @@ export function BusinessCardBuilderShell(props: {
   /** Native image id from the refresh flow (for quick opacity helpers). */
   const [refreshSeedId, setRefreshSeedId] = useState<string | null>(null);
   const [sessionDraftError, setSessionDraftError] = useState<string | null>(null);
+  /** Card = templates + fields + logo; Studio = native layers stack */
+  const [workspaceTab, setWorkspaceTab] = useState<"card" | "studio">("card");
 
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -114,6 +120,11 @@ export function BusinessCardBuilderShell(props: {
       setSelectedV2NativeId(null);
     }
   }, [doc.activeSide, doc.front.designerV2NativeObjects, doc.back.designerV2NativeObjects, selectedV2NativeId]);
+
+  useEffect(() => {
+    if (selectedV2NativeId) setWorkspaceTab("studio");
+    else if (selectedTextBlockId || logoInspectorActive) setWorkspaceTab("card");
+  }, [selectedTextBlockId, logoInspectorActive, selectedV2NativeId]);
 
   const validation = useMemo(() => validateBusinessCardDocument(doc), [doc]);
 
@@ -202,47 +213,42 @@ export function BusinessCardBuilderShell(props: {
 
   const dispatchTyped = dispatch as (a: BusinessCardBuilderAction) => void;
 
+  const onStudioSideChange = useCallback((s: BusinessCardSide) => {
+    setSelectedTextBlockId(null);
+    setLogoInspectorActive(false);
+    setSelectedV2NativeId(null);
+    dispatch({ type: "SET_ACTIVE_SIDE", side: s });
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#070708] text-white">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-          <div>
-            <Link
-              href={withLang(`/tienda/p/${productSlug}`, lang)}
-              className="text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)]"
-            >
-              {bcPick(businessCardBuilderCopy.backToProduct, lang)}
-            </Link>
-            <h1 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">
-              {bcPick(businessCardBuilderCopy.pageTitle, lang)}
-            </h1>
-            <p className="mt-1 text-sm text-[rgba(255,255,255,0.62)]">
-              {lang === "en"
-                ? "Premium 3.5″×2″ cards — production follows what you approve in this checkout flow."
-                : "Tarjetas 3.5″×2″ premium — la producción sigue lo que apruebes en este flujo de compra."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <BusinessCardSideTabs
-              doc={doc}
-              lang={lang}
-              active={doc.activeSide}
-              onChange={(s) => {
-                setSelectedTextBlockId(null);
-                setLogoInspectorActive(false);
-                setSelectedV2NativeId(null);
-                dispatch({ type: "SET_ACTIVE_SIDE", side: s });
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "TOGGLE_GUIDES" })}
-              className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-4 py-2 text-sm font-medium"
-            >
-              {bcPick(businessCardBuilderCopy.guidesToggle, lang)}:{" "}
-              {doc.guidesVisible ? (lang === "en" ? "On" : "Sí") : lang === "en" ? "Off" : "No"}
-            </button>
-          </div>
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
+        <div className="mb-6">
+          <Link
+            href={withLang(`/tienda/p/${productSlug}`, lang)}
+            className="text-sm font-medium text-[rgba(255,247,226,0.82)] hover:text-[rgba(201,168,74,0.95)]"
+          >
+            {bcPick(businessCardBuilderCopy.backToProduct, lang)}
+          </Link>
+          <h1 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">
+            {bcPick(businessCardBuilderCopy.pageTitle, lang)}
+          </h1>
+          <p className="mt-1 text-sm text-[rgba(255,255,255,0.62)]">
+            {lang === "en"
+              ? "Premium 3.5″×2″ cards — production follows what you approve in this checkout flow."
+              : "Tarjetas 3.5″×2″ premium — la producción sigue lo que apruebes en este flujo de compra."}
+          </p>
+        </div>
+
+        <div className="mb-4">
+          <BusinessCardStudioToolbar
+            lang={lang}
+            doc={doc}
+            activeSide={doc.activeSide}
+            guidesVisible={doc.guidesVisible}
+            onSideChange={onStudioSideChange}
+            onToggleGuides={() => dispatch({ type: "TOGGLE_GUIDES" })}
+          />
         </div>
 
         <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-4 py-3 sm:px-5 sm:py-4 mb-2">
@@ -305,57 +311,62 @@ export function BusinessCardBuilderShell(props: {
           onRefreshSeedPlaced={setRefreshSeedId}
         />
 
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
-          <div className="space-y-3 lg:space-y-4">
+        <div className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px] xl:grid-rows-[auto_minmax(0,1fr)]">
+          <div className="order-1 min-w-0 xl:order-2 xl:col-start-1 xl:row-start-2">
             <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
               {bcPick(businessCardBuilderCopy.previewTitle, lang)}
             </h2>
             <p className="mt-1.5 max-w-xl text-[11px] leading-relaxed text-[rgba(255,255,255,0.48)]">
               {bcPick(businessCardBuilderCopy.studioPreviewDisclaimer, lang)}
             </p>
-            <BusinessCardPreview
-              document={doc}
-              side={doc.activeSide}
-              lang={lang}
-              editInteraction={{
-                selectedTextBlockId,
-                logoSelected: logoInspectorActive,
-                selectedV2NativeId,
-                onSelectTextBlock: (id) => {
-                  setSelectedTextBlockId(id);
-                  setLogoInspectorActive(false);
-                  setSelectedV2NativeId(null);
-                },
-                onDeselectCanvas: () => {
-                  setSelectedTextBlockId(null);
-                  setLogoInspectorActive(false);
-                  setSelectedV2NativeId(null);
-                },
-                onFocusLogo: () => {
-                  setLogoInspectorActive(true);
-                  setSelectedTextBlockId(null);
-                  setSelectedV2NativeId(null);
-                },
-                onSelectV2Native: (id) => {
-                  setSelectedV2NativeId(id);
-                  if (id) {
-                    setSelectedTextBlockId(null);
-                    setLogoInspectorActive(false);
-                  }
-                },
-                onMoveV2Native: (id, xPct, yPct) =>
-                  dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch: { xPct, yPct } }),
-                onPatchV2Native: (id, patch) =>
-                  dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch }),
-                transformInteraction: true,
-                onMoveTextBlock: (id, xPct, yPct) =>
-                  dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
-                onMoveLogo: (xPct, yPct) =>
-                  dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch: { xPct, yPct } }),
-              }}
-            />
+            <div className="mt-4 flex justify-center">
+              <div className="w-full max-w-[min(100%,560px)] origin-top scale-[1.02] sm:scale-105">
+                <BusinessCardPreview
+                  document={doc}
+                  side={doc.activeSide}
+                  lang={lang}
+                  editInteraction={{
+                    selectedTextBlockId,
+                    logoSelected: logoInspectorActive,
+                    selectedV2NativeId,
+                    onSelectTextBlock: (id) => {
+                      setSelectedTextBlockId(id);
+                      setLogoInspectorActive(false);
+                      setSelectedV2NativeId(null);
+                    },
+                    onDeselectCanvas: () => {
+                      setSelectedTextBlockId(null);
+                      setLogoInspectorActive(false);
+                      setSelectedV2NativeId(null);
+                    },
+                    onFocusLogo: () => {
+                      setLogoInspectorActive(true);
+                      setSelectedTextBlockId(null);
+                      setSelectedV2NativeId(null);
+                    },
+                    onSelectV2Native: (id) => {
+                      setSelectedV2NativeId(id);
+                      if (id) {
+                        setSelectedTextBlockId(null);
+                        setLogoInspectorActive(false);
+                      }
+                    },
+                    onMoveV2Native: (id, xPct, yPct) =>
+                      dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch: { xPct, yPct } }),
+                    onPatchV2Native: (id, patch) =>
+                      dispatchTyped({ type: "V2_PATCH_NATIVE_OBJECT", side: doc.activeSide, id, patch }),
+                    transformInteraction: true,
+                    onMoveTextBlock: (id, xPct, yPct) =>
+                      dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
+                    onMoveLogo: (xPct, yPct) =>
+                      dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch: { xPct, yPct } }),
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <div className="lg:sticky lg:top-28 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1 lg:-mr-1">
+
+          <div className="order-2 min-w-0 xl:order-1 xl:col-span-2 xl:row-start-1">
             <BusinessCardContextualInspector
               lang={lang}
               doc={doc}
@@ -375,44 +386,78 @@ export function BusinessCardBuilderShell(props: {
                 setLogoInspectorActive(false);
               }}
             />
-            <BusinessCardEditorPanel
-              lang={lang}
-              doc={doc}
-              side={doc.activeSide}
-              dispatch={dispatchTyped}
-              onPickLogo={applyLogo}
-              selectedTextBlockId={selectedTextBlockId}
-              onSelectTextBlock={(id) => {
-                setSelectedTextBlockId(id);
-                setLogoInspectorActive(false);
-                setSelectedV2NativeId(null);
-              }}
-              onClearStudioNativeSelection={() => setSelectedV2NativeId(null)}
-            />
-            <BusinessCardDesignerV2Panel
-              lang={lang}
-              doc={doc}
-              side={doc.activeSide}
-              dispatch={dispatchTyped}
-              selectedV2NativeId={selectedV2NativeId}
-              onSelectV2Native={setSelectedV2NativeId}
-              selectedTextBlockId={selectedTextBlockId}
-              logoInspectorActive={logoInspectorActive}
-              onSelectTextBlock={(id) => {
-                setSelectedTextBlockId(id);
-                setLogoInspectorActive(false);
-                setSelectedV2NativeId(null);
-              }}
-              onFocusLogo={() => {
-                setLogoInspectorActive(true);
-                setSelectedTextBlockId(null);
-                setSelectedV2NativeId(null);
-              }}
-              onClearTemplateSelection={() => {
-                setSelectedTextBlockId(null);
-                setLogoInspectorActive(false);
-              }}
-            />
+          </div>
+
+          <div className="order-3 min-w-0 xl:order-3 xl:col-start-2 xl:row-start-2 xl:sticky xl:top-24 self-start xl:max-h-[calc(100vh-6rem)] flex flex-col min-h-0">
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] p-1.5 flex gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setWorkspaceTab("card")}
+                className={[
+                  "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                  workspaceTab === "card"
+                    ? "bg-[rgba(201,168,74,0.22)] text-[rgba(255,247,226,0.98)] ring-1 ring-[rgba(201,168,74,0.35)]"
+                    : "text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.06)]",
+                ].join(" ")}
+              >
+                {bcPick(businessCardBuilderCopy.workspaceTabContent, lang)}
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceTab("studio")}
+                className={[
+                  "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                  workspaceTab === "studio"
+                    ? "bg-[rgba(201,168,74,0.22)] text-[rgba(255,247,226,0.98)] ring-1 ring-[rgba(201,168,74,0.35)]"
+                    : "text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.06)]",
+                ].join(" ")}
+              >
+                {bcPick(businessCardBuilderCopy.workspaceTabStudio, lang)}
+              </button>
+            </div>
+            <div className="mt-3 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 pb-2">
+              {workspaceTab === "card" ? (
+                <BusinessCardEditorPanel
+                  lang={lang}
+                  doc={doc}
+                  side={doc.activeSide}
+                  dispatch={dispatchTyped}
+                  onPickLogo={applyLogo}
+                  selectedTextBlockId={selectedTextBlockId}
+                  onSelectTextBlock={(id) => {
+                    setSelectedTextBlockId(id);
+                    setLogoInspectorActive(false);
+                    setSelectedV2NativeId(null);
+                  }}
+                  onClearStudioNativeSelection={() => setSelectedV2NativeId(null)}
+                />
+              ) : (
+                <BusinessCardDesignerV2Panel
+                  lang={lang}
+                  doc={doc}
+                  side={doc.activeSide}
+                  dispatch={dispatchTyped}
+                  selectedV2NativeId={selectedV2NativeId}
+                  onSelectV2Native={setSelectedV2NativeId}
+                  selectedTextBlockId={selectedTextBlockId}
+                  logoInspectorActive={logoInspectorActive}
+                  onSelectTextBlock={(id) => {
+                    setSelectedTextBlockId(id);
+                    setLogoInspectorActive(false);
+                    setSelectedV2NativeId(null);
+                  }}
+                  onFocusLogo={() => {
+                    setLogoInspectorActive(true);
+                    setSelectedTextBlockId(null);
+                    setSelectedV2NativeId(null);
+                  }}
+                  onClearTemplateSelection={() => {
+                    setSelectedTextBlockId(null);
+                    setLogoInspectorActive(false);
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
 

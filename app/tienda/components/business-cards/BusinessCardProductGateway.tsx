@@ -18,11 +18,10 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
         className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.5)] bg-[linear-gradient(135deg,rgba(201,168,74,0.16)_0%,rgba(10,10,12,0.92)_45%,rgba(18,18,22,0.98)_100%)] p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         aria-labelledby="bc-gateway-leo-heading"
       >
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[rgba(201,168,74,0.08)] blur-3xl" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:gap-10">
           <div className="flex shrink-0 justify-center md:justify-start">
-            <div className="rounded-2xl border border-[rgba(201,168,74,0.25)] bg-[rgba(0,0,0,0.25)] px-6 py-5">
-              <LeoBrandMark width={168} className="mx-auto max-w-[min(100%,180px)]" />
+            <div className="rounded-2xl border border-[rgba(201,168,74,0.22)] bg-[rgba(0,0,0,0.2)] px-5 py-4">
+              <LeoBrandMark width={140} className="mx-auto max-w-[min(100%,160px)]" />
             </div>
           </div>
           <div className="min-w-0 flex-1 text-center md:text-left">
@@ -45,8 +44,44 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
         </div>
       </section>
 
-      {/* Same editor after entry: template, refresh-in-Studio, print-ready upload, or full layout */}
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgba(255,247,226,0.45)]">
+        {lang === "en" ? "More ways into Studio" : "Más formas de entrar a Studio"}
+      </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
+        <div className="flex min-h-[240px] flex-col rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] p-6 ring-1 ring-inset ring-[rgba(255,252,247,0.06)]">
+          <span className="inline-flex self-start rounded-full bg-[rgba(255,252,247,0.12)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(255,247,226,0.85)]">
+            {bcpPick(businessCardProductCopy.pathUploadBadge, lang)}
+          </span>
+          <h2 className="mt-3 text-lg font-semibold text-[rgba(255,247,226,0.96)]">
+            {bcpPick(businessCardProductCopy.pathUploadTitle, lang)}
+          </h2>
+          <p className="mt-2 flex-1 text-sm leading-relaxed text-[rgba(255,255,255,0.66)]">
+            {bcpPick(businessCardProductCopy.pathUploadBody, lang)}
+          </p>
+          <Link
+            href={withLang(businessCardUploadPath(productSlug), lang)}
+            className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-full border border-[rgba(255,252,247,0.35)] bg-[rgba(255,252,247,0.94)] px-5 py-3 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_12px_34px_rgba(201,168,74,0.15)] transition hover:brightness-95"
+          >
+            {bcpPick(businessCardProductCopy.pathUploadCta, lang)}
+          </Link>
+        </div>
+        <div className="flex min-h-[240px] flex-col rounded-2xl border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.06)] p-6">
+          <span className="inline-flex self-start rounded-full border border-[rgba(201,168,74,0.45)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(201,168,74,0.95)]">
+            {bcpPick(businessCardProductCopy.pathRefreshBadge, lang)}
+          </span>
+          <h2 className="mt-3 text-lg font-semibold text-[rgba(255,247,226,0.96)]">
+            {bcpPick(businessCardProductCopy.pathRefreshTitle, lang)}
+          </h2>
+          <p className="mt-2 flex-1 text-sm leading-relaxed text-[rgba(255,255,255,0.66)]">
+            {bcpPick(businessCardProductCopy.pathRefreshBody, lang)}
+          </p>
+          <Link
+            href={withLang(businessCardConfigurePath(productSlug, { entry: "refresh" }), lang)}
+            className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-full border border-[rgba(201,168,74,0.45)] bg-[rgba(201,168,74,0.14)] px-5 py-3 text-sm font-semibold text-[rgba(255,247,226,0.95)] transition hover:bg-[rgba(201,168,74,0.22)]"
+          >
+            {bcpPick(businessCardProductCopy.pathRefreshCta, lang)}
+          </Link>
+        </div>
         <div className="flex min-h-[240px] flex-col rounded-2xl border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] p-6">
           <span className="inline-flex self-start rounded-full border border-[rgba(255,255,255,0.22)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(255,247,226,0.78)]">
             {bcpPick(businessCardProductCopy.pathTemplateBadge, lang)}
@@ -62,23 +97,6 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
             className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-full border border-[rgba(201,168,74,0.45)] bg-[rgba(201,168,74,0.1)] px-5 py-3 text-sm font-semibold text-[rgba(255,247,226,0.95)] transition hover:bg-[rgba(201,168,74,0.18)]"
           >
             {bcpPick(businessCardProductCopy.pathTemplateCta, lang)}
-          </Link>
-        </div>
-        <div className="flex min-h-[260px] flex-col rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] p-6 ring-1 ring-inset ring-[rgba(255,252,247,0.06)]">
-          <span className="inline-flex self-start rounded-full bg-[rgba(255,252,247,0.12)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(255,247,226,0.85)]">
-            {bcpPick(businessCardProductCopy.pathUploadBadge, lang)}
-          </span>
-          <h2 className="mt-3 text-lg font-semibold text-[rgba(255,247,226,0.96)]">
-            {bcpPick(businessCardProductCopy.pathUploadTitle, lang)}
-          </h2>
-          <p className="mt-2 flex-1 text-sm leading-relaxed text-[rgba(255,255,255,0.66)]">
-            {bcpPick(businessCardProductCopy.pathUploadBody, lang)}
-          </p>
-          <Link
-            href={withLang(businessCardUploadPath(productSlug), lang)}
-            className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-full border border-[rgba(255,252,247,0.35)] bg-[rgba(255,252,247,0.94)] px-5 py-3 text-sm font-semibold text-[color:var(--lx-text)] shadow-[0_12px_34px_rgba(201,168,74,0.15)] transition hover:brightness-95"
-          >
-            {bcpPick(businessCardProductCopy.pathUploadCta, lang)}
           </Link>
         </div>
         <div className="flex min-h-[240px] flex-col rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] p-6">
