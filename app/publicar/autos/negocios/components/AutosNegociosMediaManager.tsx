@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { FiChevronDown, FiChevronUp, FiImage, FiPlus, FiStar, FiTrash2, FiVideo } from "react-icons/fi";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FiChevronLeft, FiChevronRight, FiImage, FiPlus, FiStar, FiTrash2, FiUpload, FiVideo } from "react-icons/fi";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { newMediaImageId } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
@@ -10,6 +10,12 @@ const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:va
 const INPUT =
   "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 const SUBHEAD = "mt-6 text-sm font-bold text-[color:var(--lx-text)]";
+const DROPZONE_BASE =
+  "rounded-xl border-2 border-dashed transition-colors px-4 py-6 text-center";
+const BTN_PRIMARY =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)]";
+const BTN_SECONDARY =
+  "inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]";
 
 function sortByOrder(images: MediaImageEntry[]): MediaImageEntry[] {
   return [...images].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -48,6 +54,14 @@ export function AutosNegociosMediaManager({
 }) {
   const images = sortByOrder(listing.mediaImages ?? []);
   const [urlBatch, setUrlBatch] = useState("");
+  const [singleImageUrlDraft, setSingleImageUrlDraft] = useState("");
+  const [dragOverPhotos, setDragOverPhotos] = useState(false);
+  const [videoUrlDraft, setVideoUrlDraft] = useState("");
+  const [logoUrlDraft, setLogoUrlDraft] = useState("");
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const commitImages = useCallback(
     (next: MediaImageEntry[]) => {
@@ -57,8 +71,32 @@ export function AutosNegociosMediaManager({
     [setListingPatch],
   );
 
-  const addUrls = () => {
-    const urls = urlBatch
+  const addFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files?.length) return;
+      const base = sortByOrder(listing.mediaImages ?? []);
+      const filesArr = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      if (!filesArr.length) return;
+      const additions: MediaImageEntry[] = [];
+      for (let i = 0; i < filesArr.length; i++) {
+        const f = filesArr[i]!;
+        const url = await readFileAsDataUrl(f);
+        additions.push({
+          id: newMediaImageId(),
+          url,
+          sourceType: "file",
+          isPrimary: base.length === 0 && i === 0,
+          sortOrder: base.length + i,
+        });
+      }
+      const merged = reindex([...base, ...additions]);
+      commitImages(ensureOnePrimary(merged));
+    },
+    [listing.mediaImages, commitImages],
+  );
+
+  const addUrlsFromText = (lines: string, clearBatchField: boolean) => {
+    const urls = lines
       .split(/\n/)
       .map((s) => s.trim())
       .filter(Boolean);
@@ -73,27 +111,14 @@ export function AutosNegociosMediaManager({
     }));
     const merged = reindex([...base, ...additions]);
     commitImages(ensureOnePrimary(merged));
-    setUrlBatch("");
+    if (clearBatchField) setUrlBatch("");
   };
 
-  const addFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
-    const base = sortByOrder(listing.mediaImages ?? []);
-    const filesArr = Array.from(files);
-    const additions: MediaImageEntry[] = [];
-    for (let i = 0; i < filesArr.length; i++) {
-      const f = filesArr[i]!;
-      const url = await readFileAsDataUrl(f);
-      additions.push({
-        id: newMediaImageId(),
-        url,
-        sourceType: "file",
-        isPrimary: base.length === 0 && i === 0,
-        sortOrder: base.length + i,
-      });
-    }
-    const merged = reindex([...base, ...additions]);
-    commitImages(ensureOnePrimary(merged));
+  const addSingleImageUrl = () => {
+    const u = singleImageUrlDraft.trim();
+    if (!u) return;
+    addUrlsFromText(u, false);
+    setSingleImageUrlDraft("");
   };
 
   const remove = (id: string) => {
@@ -126,7 +151,12 @@ export function AutosNegociosMediaManager({
   const videoUrl = listing.videoUrl?.trim() ?? "";
   const videoFile = listing.videoFileDataUrl?.trim() ?? "";
 
+  useEffect(() => {
+    setVideoUrlDraft(listing.videoUrl ?? "");
+  }, [listing.videoUrl]);
+
   const clearVideo = () => {
+    setVideoUrlDraft("");
     setListingPatch({
       videoSourceType: null,
       videoUrl: undefined,
@@ -136,28 +166,23 @@ export function AutosNegociosMediaManager({
     });
   };
 
-  const setVideoUrlMode = () => {
+  /** File source wins over URL when both would exist. */
+  const applyVideoUrl = () => {
+    const t = videoUrlDraft.trim();
     setListingPatch({
-      videoSourceType: "url",
+      videoSourceType: t ? "url" : null,
+      videoUrl: t || undefined,
       videoFileDataUrl: undefined,
       videoFileName: undefined,
-      videoUploadStatus: "local_preview",
-    });
-  };
-
-  const onVideoUrlChange = (v: string) => {
-    const t = v.trim();
-    setListingPatch({
-      videoSourceType: "url",
-      videoUrl: t || undefined,
       videoUploadStatus: t ? "local_preview" : null,
     });
   };
 
-  const onVideoFile = async (files: FileList | null) => {
+  const onVideoFilePicked = async (files: FileList | null) => {
     const f = files?.[0];
     if (!f) return;
     const dataUrl = await readFileAsDataUrl(f);
+    setVideoUrlDraft("");
     setListingPatch({
       videoSourceType: "file",
       videoUrl: undefined,
@@ -167,57 +192,148 @@ export function AutosNegociosMediaManager({
     });
   };
 
+  const setVideoModeUrl = () => {
+    setListingPatch({
+      videoSourceType: "url",
+      videoFileDataUrl: undefined,
+      videoFileName: undefined,
+      videoUploadStatus: null,
+    });
+  };
+
+  const setVideoModeFile = () => {
+    setListingPatch({
+      videoSourceType: "file",
+      videoUrl: undefined,
+      videoUploadStatus: null,
+    });
+  };
+
   const logo = listing.dealerLogo?.trim();
+  useEffect(() => {
+    if (!logo) {
+      setLogoUrlDraft("");
+      return;
+    }
+    if (!logo.startsWith("data:")) {
+      setLogoUrlDraft(logo);
+    } else {
+      setLogoUrlDraft("");
+    }
+  }, [logo]);
+
+  const applyLogoUrl = () => {
+    const t = logoUrlDraft.trim();
+    setListingPatch({ dealerLogo: t || undefined });
+  };
+
+  const onLogoFile = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    const url = await readFileAsDataUrl(f);
+    setListingPatch({ dealerLogo: url });
+    setLogoUrlDraft("");
+    if (logoInputRef.current) logoInputRef.current.value = "";
+  };
+
+  const onPhotoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverPhotos(false);
+    if (e.dataTransfer.files?.length) void addFiles(e.dataTransfer.files);
+  };
+
+  const onPhotoDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDragOverPhotos(true);
+  };
+
+  const photoDropClass = dragOverPhotos
+    ? `${DROPZONE_BASE} border-[color:var(--lx-gold)] bg-[color:var(--lx-nav-hover)]`
+    : `${DROPZONE_BASE} border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]`;
 
   return (
     <section className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)]">
-      <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Multimedia</h2>
+      <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Fotos y medios</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
-        Puedes pegar URLs o subir archivos desde tu dispositivo. Selecciona una imagen principal para el anuncio.
+        Puedes pegar URLs o subir archivos. Selecciona la imagen principal para el anuncio.
       </p>
+
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          void addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
 
       <h3 className={SUBHEAD}>Fotos del vehículo</h3>
 
-      <div className="mt-3">
-        <label className={LABEL}>Agregar por URL (una por línea)</label>
+      <div
+        className={`${photoDropClass} mt-3`}
+        onDragEnter={onPhotoDragOver}
+        onDragOver={onPhotoDragOver}
+        onDragLeave={() => setDragOverPhotos(false)}
+        onDrop={onPhotoDrop}
+      >
+        <FiImage className="mx-auto h-8 w-8 text-[color:var(--lx-muted)] opacity-70" aria-hidden />
+        <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text)]">Arrastra imágenes aquí o usa el botón</p>
+        <button type="button" className={`${BTN_PRIMARY} mt-4`} onClick={() => photoInputRef.current?.click()}>
+          <FiUpload className="h-4 w-4" aria-hidden />
+          Añadir fotos
+        </button>
+        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Se abrirá el selector de archivos del sistema.</p>
+      </div>
+
+      <div className="mt-5">
+        <label className={LABEL}>Enlace de una imagen</label>
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <input
+            className={`${INPUT} sm:min-w-0 sm:flex-1`}
+            placeholder="https://…"
+            value={singleImageUrlDraft}
+            onChange={(e) => setSingleImageUrlDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addSingleImageUrl();
+              }
+            }}
+          />
+          <button type="button" className={BTN_SECONDARY} onClick={addSingleImageUrl}>
+            Usar este enlace
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label className={LABEL}>Varias URLs (una por línea)</label>
         <textarea
           className={`${INPUT} min-h-[72px] font-mono text-xs`}
           placeholder="https://…"
           value={urlBatch}
           onChange={(e) => setUrlBatch(e.target.value)}
         />
-        <button
-          type="button"
-          className="mt-2 inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-1.5 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-          onClick={addUrls}
-        >
+        <button type="button" className={`${BTN_SECONDARY} mt-2`} onClick={() => addUrlsFromText(urlBatch, true)}>
           <FiPlus className="h-3.5 w-3.5" aria-hidden />
           Agregar URLs
         </button>
       </div>
 
-      <div className="mt-4">
-        <label className={LABEL}>Subir imágenes</label>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          className="mt-1 block w-full text-sm"
-          onChange={async (e) => {
-            await addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </div>
-
       {images.length === 0 ? (
         <div
-          className="mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-8 text-center"
+          className="mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-6 text-center"
           role="status"
         >
-          <FiImage className="h-8 w-8 text-[color:var(--lx-muted)] opacity-60" aria-hidden />
-          <p className="text-sm font-semibold text-[color:var(--lx-text-2)]">Aún no hay fotos</p>
-          <p className="text-xs text-[color:var(--lx-muted)]">Agrega URLs o sube archivos para verlas aquí.</p>
+          <p className="text-sm font-semibold text-[color:var(--lx-text-2)]">Aún no hay fotos en el borrador</p>
+          <p className="text-xs text-[color:var(--lx-muted)]">Usa «Añadir fotos» o suelta archivos en el área de arriba.</p>
         </div>
       ) : (
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -247,17 +363,17 @@ export function AutosNegociosMediaManager({
                     type="button"
                     className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, -1)}
-                    aria-label="Subir"
+                    aria-label="Antes"
                   >
-                    <FiChevronUp className="h-3 w-3" />
+                    <FiChevronLeft className="h-3 w-3" />
                   </button>
                   <button
                     type="button"
                     className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, 1)}
-                    aria-label="Bajar"
+                    aria-label="Después"
                   >
-                    <FiChevronDown className="h-3 w-3" />
+                    <FiChevronRight className="h-3 w-3" />
                   </button>
                   <button
                     type="button"
@@ -269,7 +385,7 @@ export function AutosNegociosMediaManager({
                   </button>
                 </div>
                 <p className="truncate text-[10px] text-[color:var(--lx-muted)]">
-                  {img.sourceType === "file" ? "Archivo local" : "URL"}
+                  {img.sourceType === "file" ? "Archivo local" : "URL"} · {img.isPrimary ? "Principal" : "Secundaria"}
                 </p>
               </div>
             </li>
@@ -277,10 +393,22 @@ export function AutosNegociosMediaManager({
         </ul>
       )}
 
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          void onVideoFilePicked(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
       <h3 className={SUBHEAD}>Video / recorrido</h3>
       <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        El archivo de video no se sube a Mux en la vista previa. Al publicar, el archivo se procesará en Mux. Si eliminas el
-        anuncio más adelante, el video publicado deberá eliminarse de Mux.
+        No se sube a Mux en borrador. Si hay archivo local, tiene prioridad sobre el enlace.
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -289,7 +417,7 @@ export function AutosNegociosMediaManager({
           className={`rounded-full px-3 py-1.5 text-xs font-bold ${
             vs === "url" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
           }`}
-          onClick={setVideoUrlMode}
+          onClick={setVideoModeUrl}
         >
           Enlace
         </button>
@@ -298,7 +426,7 @@ export function AutosNegociosMediaManager({
           className={`rounded-full px-3 py-1.5 text-xs font-bold ${
             vs === "file" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
           }`}
-          onClick={() => setListingPatch({ videoSourceType: "file", videoUrl: undefined, videoUploadStatus: null })}
+          onClick={setVideoModeFile}
         >
           Archivo local
         </button>
@@ -309,73 +437,116 @@ export function AutosNegociosMediaManager({
         )}
       </div>
 
-      {vs === "url" || (vs === null && videoUrl) ? (
-        <div className="mt-3">
+      {(vs === "url" || (vs === null && videoUrl)) && (
+        <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
           <label className={LABEL}>URL del video</label>
           <input
             className={INPUT}
             placeholder="https://…"
-            value={videoUrl}
-            onChange={(e) => onVideoUrlChange(e.target.value)}
+            value={videoUrlDraft}
+            onChange={(e) => setVideoUrlDraft(e.target.value)}
           />
-        </div>
-      ) : null}
-
-      {vs === "file" ? (
-        <div className="mt-3">
-          <label className={LABEL}>Archivo de video</label>
-          <input
-            type="file"
-            accept="video/*"
-            className="mt-1 block w-full text-sm"
-            onChange={(e) => {
-              void onVideoFile(e.target.files);
-              e.target.value = "";
-            }}
-          />
-          {listing.videoFileName ? (
-            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-              <FiVideo className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-              {listing.videoFileName} — listo para vista previa local
+          <button type="button" className={`${BTN_SECONDARY} mt-2`} onClick={applyVideoUrl}>
+            Usar este enlace
+          </button>
+          {videoUrl ? (
+            <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-[color:var(--lx-text-2)]">
+              <FiVideo className="h-3.5 w-3.5 text-[color:var(--lx-gold)]" aria-hidden />
+              Enlace guardado en el borrador
             </p>
           ) : null}
         </div>
-      ) : null}
+      )}
+
+      {vs === "file" && (
+        <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
+          <button type="button" className={BTN_PRIMARY} onClick={() => videoInputRef.current?.click()}>
+            <FiUpload className="h-4 w-4" aria-hidden />
+            Elegir archivo de video
+          </button>
+          {listing.videoFileName ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
+                Listo · vista previa local
+              </span>
+              <span className="text-xs text-[color:var(--lx-text-2)]">{listing.videoFileName}</span>
+              <button
+                type="button"
+                className="text-xs font-bold text-[color:var(--lx-text-2)] underline"
+                onClick={() => videoInputRef.current?.click()}
+              >
+                Reemplazar
+              </button>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Selecciona un archivo; se guarda solo en este dispositivo.</p>
+          )}
+        </div>
+      )}
 
       {vs === null && !videoUrl && !videoFile ? (
-        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Elige enlace o archivo para configurar el video.</p>
+        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Elige enlace o archivo para el video.</p>
       ) : null}
 
-      <h3 className={SUBHEAD}>Logo del negocio / concesionario</h3>
-      <div className="mt-2">
+      <input
+        ref={logoInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          void onLogoFile(e.target.files);
+        }}
+      />
+
+      <h3 className={SUBHEAD}>Logo del concesionario</h3>
+      <p className="mt-1 text-xs text-[color:var(--lx-muted)]">URL o archivo. Confirma la URL con el botón.</p>
+
+      <div className="mt-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
         <label className={LABEL}>URL del logo</label>
-        <input
-          className={INPUT}
-          placeholder="https://…"
-          value={logo?.startsWith("data:") ? "" : logo ?? ""}
-          onChange={(e) => setListingPatch({ dealerLogo: e.target.value.trim() || undefined })}
-        />
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <input
+            className={`${INPUT} sm:min-w-0 sm:flex-1`}
+            placeholder="https://…"
+            value={logoUrlDraft}
+            onChange={(e) => setLogoUrlDraft(e.target.value)}
+          />
+          <button type="button" className={BTN_SECONDARY} onClick={applyLogoUrl}>
+            Usar esta URL
+          </button>
+        </div>
+        {logo && !logo.startsWith("data:") ? (
+          <p className="mt-2 text-xs font-medium text-[color:var(--lx-text-2)]">Logo por URL activo en el borrador.</p>
+        ) : null}
       </div>
+
       <div className="mt-3">
-        <label className={LABEL}>O subir imagen</label>
-        <input
-          type="file"
-          accept="image/*"
-          className="mt-1 block w-full text-sm"
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            const url = await readFileAsDataUrl(f);
-            setListingPatch({ dealerLogo: url });
-            e.target.value = "";
-          }}
-        />
+        <button type="button" className={BTN_PRIMARY} onClick={() => logoInputRef.current?.click()}>
+          <FiUpload className="h-4 w-4" aria-hidden />
+          Subir logo desde archivo
+        </button>
+        <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Abre el selector de archivos al instante.</p>
       </div>
+
       {logo ? (
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo} alt="" className="h-14 w-14 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
-          <button type="button" className="text-xs font-bold text-red-800 underline" onClick={() => setListingPatch({ dealerLogo: undefined })}>
+          <img src={logo} alt="" className="h-16 w-16 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-[color:var(--lx-text)]">Vista previa del logo</p>
+            <p className="text-[11px] text-[color:var(--lx-muted)]">
+              {logo.startsWith("data:") ? "Archivo local (solo en este dispositivo)" : "Desde URL"}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-xs font-bold text-red-800 underline"
+            onClick={() => {
+              setLogoUrlDraft("");
+              setListingPatch({ dealerLogo: undefined });
+            }}
+          >
             Quitar logo
           </button>
         </div>

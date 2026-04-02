@@ -69,8 +69,6 @@ const typo = {
   lowerSerif: "text-sm font-semibold leading-tight tracking-tight",
 } as const;
 
-/** Entre galería + tarjeta agente y la banda de título/precio (más ajustado que el resto de secciones). */
-const AFTER_TOP_MEDIA_GAP = "mt-0";
 const SECTION_GAP = "mt-6 md:mt-7";
 const CARD_PAD = "px-4 py-4 sm:px-5 sm:py-4";
 const SECTION_LABEL = `${typo.kicker} mb-2.5`;
@@ -233,9 +231,85 @@ export function AgenteIndividualResidencialPreviewPage({
           Vista previa del anuncio
         </p>
 
-        {/* 1 — Galería + tarjeta agente */}
-        <section className="mt-0 grid grid-cols-1 gap-y-2 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7 lg:gap-y-0 lg:content-start">
-          <div className="flex min-w-0 flex-col gap-2.5">
+        {/* 1 — Columna izq.: resumen + galería · Columna der.: tarjeta agente (items-start evita fila estirada por el rail) */}
+        <section className="mt-0 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:gap-x-7 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="rounded-xl border px-4 py-3 sm:px-6 sm:py-3" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+              {title ? (
+                <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
+                  {title}
+                </h1>
+              ) : null}
+              <p className={`${title ? "mt-1" : ""} ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
+                {opLine}
+              </p>
+              {locationLine || mapsUrl ? (
+                <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
+                  {locationLine ? (
+                    <>
+                      <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
+                      <span>{locationLine}</span>
+                    </>
+                  ) : null}
+                  {mapsUrl ? (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
+                      style={{ color: BRONZE }}
+                    >
+                      Ver en mapa
+                    </a>
+                  ) : null}
+                </p>
+              ) : null}
+              <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
+                {priceDisplay ? (
+                  <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
+                    {priceDisplay}
+                  </span>
+                ) : null}
+                <span
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                  style={{
+                    border: `1px solid ${BRONZE_SOFT}`,
+                    background: "rgba(197, 160, 89, 0.1)",
+                    color: "#7A5F22",
+                  }}
+                >
+                  {statusPill}
+                </span>
+              </div>
+              {quickFacts.length ? (
+                <div
+                  className="mt-4 overflow-hidden rounded-xl border"
+                  style={{ borderColor: BORDER, background: IVORY, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)" }}
+                >
+                  <div
+                    className="grid gap-px bg-[rgba(44,36,22,0.08)]"
+                    style={{
+                      gridTemplateColumns: `repeat(${Math.min(quickFacts.length, 6)}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {quickFacts.map((q) => {
+                      const Icon = QUICK_FACT_ICON[q.key];
+                      return (
+                        <div key={q.key} className="min-w-0 bg-[#FDFBF7] px-1.5 py-2.5 sm:px-2 sm:py-3">
+                          <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
+                            <Icon className="h-4 w-4 opacity-95" />
+                          </div>
+                          <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
+                            {q.label}
+                          </p>
+                          <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <div>
               <h3 className={`${typo.kicker} mb-1.5`} style={{ color: MUTED }}>
                 Galería
@@ -612,85 +686,7 @@ export function AgenteIndividualResidencialPreviewPage({
           </aside>
         </section>
 
-        {/* 2 — Título, operación, ubicación, precio, estado, hechos rápidos */}
-        <section className={`${AFTER_TOP_MEDIA_GAP} rounded-xl border px-4 py-3 sm:px-6 sm:py-3`} style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-          {title ? (
-            <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
-              {title}
-            </h1>
-          ) : null}
-          <p className={`${title ? "mt-1" : ""} ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
-            {opLine}
-          </p>
-          {locationLine || mapsUrl ? (
-            <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
-              {locationLine ? (
-                <>
-                  <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
-                  <span>{locationLine}</span>
-                </>
-              ) : null}
-              {mapsUrl ? (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
-                  style={{ color: BRONZE }}
-                >
-                  Ver en mapa
-                </a>
-              ) : null}
-            </p>
-          ) : null}
-          <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
-            {priceDisplay ? (
-              <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
-                {priceDisplay}
-              </span>
-            ) : null}
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-              style={{
-                border: `1px solid ${BRONZE_SOFT}`,
-                background: "rgba(197, 160, 89, 0.1)",
-                color: "#7A5F22",
-              }}
-            >
-              {statusPill}
-            </span>
-          </div>
-          {quickFacts.length ? (
-            <div
-              className="mt-4 overflow-hidden rounded-xl border"
-              style={{ borderColor: BORDER, background: IVORY, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)" }}
-            >
-              <div
-                className="grid gap-px bg-[rgba(44,36,22,0.08)]"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.min(quickFacts.length, 6)}, minmax(0, 1fr))`,
-                }}
-              >
-                {quickFacts.map((q) => {
-                  const Icon = QUICK_FACT_ICON[q.key];
-                  return (
-                    <div key={q.key} className="min-w-0 bg-[#FDFBF7] px-1.5 py-2.5 sm:px-2 sm:py-3">
-                      <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
-                        <Icon className="h-4 w-4 opacity-95" />
-                      </div>
-                      <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
-                        {q.label}
-                      </p>
-                      <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-        </section>
-
-        {/* 3 — Detalles + características */}
+        {/* 2 — Detalles + características */}
         {(hasPropertyDetails(data) || hasFeatures(data)) && (
           <section className={`${SECTION_GAP} grid gap-3.5 lg:grid-cols-2 lg:gap-4 lg:items-stretch`}>
             {hasPropertyDetails(data) ? (
@@ -737,7 +733,7 @@ export function AgenteIndividualResidencialPreviewPage({
           </section>
         )}
 
-        {/* 4 — Descripción */}
+        {/* 3 — Descripción */}
         {hasDescription(data) || hasNotas(data) ? (
           <section
             className={`${SECTION_GAP} rounded-xl border`}
@@ -775,7 +771,7 @@ export function AgenteIndividualResidencialPreviewPage({
           </section>
         ) : null}
 
-        {/* 5 — Extras */}
+        {/* 4 — Extras */}
         {hasLowerExtras(data) ? (
           <section className={`${SECTION_GAP} space-y-3`}>
             <h2
