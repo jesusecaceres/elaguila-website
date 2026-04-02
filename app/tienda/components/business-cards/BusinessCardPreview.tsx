@@ -20,6 +20,7 @@ import { trimSurfaceStyle, trimTextColor } from "../../product-configurators/bus
 import { mergeTransform } from "../../product-configurators/business-cards/preview/businessCardPreviewTransforms";
 import { blockModeTextScaleMultiplierFromGroupScale } from "../../product-configurators/business-cards/preview/businessCardPreviewBlockScale";
 import { BUSINESS_CARD_PREVIEW_LEGACY_LINE_ORDER } from "../../product-configurators/business-cards/preview/businessCardPreviewLineOrder";
+import { resolveTextBlockFontFamilyCss } from "../../product-configurators/business-cards/textFontPresets";
 import { BusinessCardNativeV2PreviewLayer } from "./BusinessCardNativeV2PreviewLayer";
 
 /**
@@ -197,6 +198,7 @@ export function BusinessCardPreview(props: {
                     const t = b.text.trim();
                     if (!t) return null;
                     const selected = editInteraction?.selectedTextBlockId === b.id;
+                    const blockFontFamily = resolveTextBlockFontFamilyCss(b.fontPreset);
                     return (
                       <div
                         key={b.id}
@@ -215,6 +217,7 @@ export function BusinessCardPreview(props: {
                           zIndex: b.zIndex,
                           fontSize: `clamp(7px, ${b.fontSize * blockTextScaleMul * 0.092}rem, 22px)`,
                           fontWeight: b.fontWeight,
+                          ...(blockFontFamily ? { fontFamily: blockFontFamily } : {}),
                           color: b.color?.startsWith("var(") ? b.color : b.color || textColor,
                           textAlign: b.textAlign,
                           lineHeight: 1.2,

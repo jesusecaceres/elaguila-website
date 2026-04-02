@@ -49,11 +49,16 @@ export function BusinessCardContextualInspector(props: {
 
   return (
     <section className="mb-5 space-y-3" aria-label={bcPick(businessCardBuilderCopy.selectionToolsTitle, lang)}>
-      <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-[rgba(255,247,226,0.65)]">
-        {bcPick(businessCardBuilderCopy.selectionToolsTitle, lang)}
-      </h2>
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-[rgba(255,247,226,0.65)]">
+          {bcPick(businessCardBuilderCopy.selectionToolsTitle, lang)}
+        </h2>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-[rgba(255,247,226,0.52)]">
+          {bcPick(businessCardBuilderCopy.selectionToolsSubtitle, lang)}
+        </p>
+      </div>
       {showNative && selectedNative ? (
-        <div className="rounded-2xl border border-[rgba(201,168,74,0.22)] bg-[rgba(201,168,74,0.06)] p-3 sm:p-4">
+        <div className="rounded-2xl border border-[rgba(201,168,74,0.28)] bg-white/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
           <BusinessCardDesignerV2NativeInspector
             lang={lg}
             side={side}
@@ -68,7 +73,7 @@ export function BusinessCardContextualInspector(props: {
           />
         </div>
       ) : showLogo ? (
-        <BusinessCardLogoGeomInspector lang={lang} side={side} state={state} dispatch={dispatch} />
+        <BusinessCardLogoGeomInspector lang={lang} doc={doc} side={side} state={state} dispatch={dispatch} />
       ) : showText && selectedBlock ? (
         <BusinessCardTextBlockInspector
           lang={lang}

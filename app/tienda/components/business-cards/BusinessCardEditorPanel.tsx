@@ -452,7 +452,7 @@ export function BusinessCardEditorPanel(props: {
             checked={state.logo.visible}
             onChange={(e) => dispatch({ type: "SET_LOGO_VISIBLE", side, visible: e.target.checked })}
           />
-          {lang === "en" ? "Show logo on this side" : "Mostrar logo en esta cara"}
+          {bcPick(businessCardBuilderCopy.logoShowOnSide, lang)}
         </label>
       </div>
     </div>

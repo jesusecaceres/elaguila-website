@@ -66,7 +66,10 @@ export const businessCardProductCopy = {
     es: "Selecciona una línea de texto en la vista previa o en los botones de arriba para ver sus controles.",
     en: "Select a text line on the preview or use the chips above to edit position and type.",
   },
-  adjustLogoHint: { es: "Arrastra el logo en la vista previa o usa los controles.", en: "Drag the logo in the preview or use the sliders." },
+  adjustLogoHint: {
+    es: "Arrastra el logo en la vista previa o usa los controles numéricos.",
+    en: "Drag the logo on the preview or use the numeric controls.",
+  },
   removeCustomBlock: { es: "Eliminar línea personalizada", en: "Remove custom line" },
   addCustomLine: { es: "Añadir línea de texto", en: "Add text line" },
   linkedFieldHint: {

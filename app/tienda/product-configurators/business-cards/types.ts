@@ -77,6 +77,9 @@ export type BusinessCardCanvasBackground =
 
 export type BusinessCardBlockRole = TextFieldRole | "custom";
 
+/** Curated font stacks for template/custom lines — persisted on the block; “default” follows trim/card CSS. */
+export type BusinessCardTextFontPreset = "default" | "editorial" | "modern" | "mono";
+
 export type BusinessCardTextBlock = {
   id: string;
   role: BusinessCardBlockRole;
@@ -89,6 +92,8 @@ export type BusinessCardTextBlock = {
   color: string;
   textAlign: "left" | "center" | "right";
   zIndex: number;
+  /** Omitted or `"default"` — inherit preview typography; other values use system font stacks (see `textFontPresets.ts`). */
+  fontPreset?: BusinessCardTextFontPreset;
 };
 
 export type BusinessCardLogoGeom = {

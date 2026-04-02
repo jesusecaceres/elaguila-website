@@ -28,6 +28,8 @@ export type DesignerV2TextStyle = {
   fontWeight: 400 | 500 | 600 | 700;
   color: string;
   textAlign: "left" | "center" | "right";
+  /** Resolved CSS `font-family` when a text block uses a non-default preset */
+  fontFamily?: string;
 };
 
 /** Standard line / custom copy — maps from `BusinessCardTextBlock` today */

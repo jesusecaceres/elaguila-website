@@ -1,18 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Lang } from "../../../types/tienda";
 import type {
   BusinessCardSide,
   BusinessCardTextBlock,
+  BusinessCardTextFontPreset,
   TextFieldRole,
 } from "../../../product-configurators/business-cards/types";
 import { TEXT_FIELD_MAX } from "../../../product-configurators/business-cards/constants";
+import {
+  businessCardTextColorToHex,
+  colorIsTranslucentOrNonHex,
+  parseHexInput,
+} from "../../../product-configurators/business-cards/textColorForPicker";
+import { textFontPresetOptions } from "../../../product-configurators/business-cards/textFontPresets";
 import type { BusinessCardBuilderAction } from "../../../product-configurators/business-cards/businessCardBuilderReducer";
 import { bcPick, businessCardBuilderCopy } from "../../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../../data/businessCardProductCopy";
 
 function clampBlockAxis(v: number): number {
   return Math.min(95, Math.max(5, v));
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:rgba(61,52,40,0.5)]">{children}</p>
+  );
 }
 
 export function BusinessCardTextBlockInspector(props: {
@@ -26,189 +40,378 @@ export function BusinessCardTextBlockInspector(props: {
   const linkedRole = selectedBlock.role !== "custom" ? (selectedBlock.role as TextFieldRole) : null;
   const fieldMax = linkedRole ? TEXT_FIELD_MAX[linkedRole] : undefined;
 
+  const hexSynced = businessCardTextColorToHex(selectedBlock.color);
+  const [hexDraft, setHexDraft] = useState<string | null>(null);
+  useEffect(() => {
+    setHexDraft(null);
+  }, [selectedBlock.id]);
+  const hexFieldValue = hexDraft ?? hexSynced;
+  const showTranslucentNote = colorIsTranslucentOrNonHex(selectedBlock.color);
+
+  const presetValue: BusinessCardTextFontPreset = selectedBlock.fontPreset ?? "default";
+
   return (
-    <div className="space-y-3 rounded-2xl border border-[rgba(201,168,74,0.28)] bg-white/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:rgba(201,168,74,0.85)]">
-        {bcPick(businessCardBuilderCopy.textInspectorTitle, lang)}
-      </p>
-      {linkedRole ? (
-        <div>
-          <label className="text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
-            {bcPick(businessCardBuilderCopy.fieldLabels[linkedRole], lang)}
-          </label>
-          <textarea
-            className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm text-[color:var(--lx-text)]"
-            rows={2}
-            value={selectedBlock.text}
-            maxLength={fieldMax ?? 200}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { text: e.target.value },
-              })
-            }
-          />
-          <p className="mt-1.5 text-[10px] text-[color:rgba(61,52,40,0.55)] leading-snug">
-            {bcpPick(businessCardProductCopy.linkedFieldHint, lang)}
-          </p>
-        </div>
-      ) : (
-        <div>
-          <label className="text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
-            {lang === "en" ? "Custom text" : "Texto personalizado"}
-          </label>
-          <textarea
-            className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm text-[color:var(--lx-text)]"
-            rows={2}
-            value={selectedBlock.text}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { text: e.target.value },
-              })
-            }
-          />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const nid = `c-${Date.now().toString(36)}`;
-                dispatch({
-                  type: "DUPLICATE_CUSTOM_TEXT_BLOCK",
-                  side,
-                  sourceId: selectedBlock.id,
-                  newId: nid,
-                  lang,
-                });
-                onSelectTextBlock(nid);
-              }}
-              className="rounded-full border border-black/12 bg-white px-3 py-1.5 text-[11px] font-semibold text-[color:#5c4f2e] hover:bg-black/[0.03]"
-            >
-              {bcpPick(businessCardProductCopy.duplicateCustomBlock, lang)}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectTextBlock(null);
-                dispatch({ type: "REMOVE_TEXT_BLOCK", side, id: selectedBlock.id });
-              }}
-              className="rounded-full border border-rose-200 bg-rose-50/80 px-3 py-1.5 text-[11px] font-semibold text-rose-900 hover:bg-rose-100"
-            >
-              {bcpPick(businessCardProductCopy.removeCustomBlock, lang)}
-            </button>
-          </div>
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-          X %
-          <input
-            type="number"
-            className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-            value={Math.round(selectedBlock.xPct)}
-            min={5}
-            max={95}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { xPct: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
-        <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-          Y %
-          <input
-            type="number"
-            className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-            value={Math.round(selectedBlock.yPct)}
-            min={5}
-            max={95}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { yPct: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
-      </div>
+    <div className="space-y-4 rounded-2xl border border-[rgba(201,168,74,0.28)] bg-white/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
       <div>
-        <p className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.5)]">
-          {bcpPick(businessCardProductCopy.fineNudge, lang)}
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[color:rgba(201,168,74,0.85)]">
+          {bcPick(businessCardBuilderCopy.textInspectorTitle, lang)}
         </p>
-        <div className="mt-1.5 grid grid-cols-2 gap-2">
-          <div className="flex gap-1">
-            <button
-              type="button"
-              className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold text-[color:var(--lx-text)] touch-manipulation"
-              onClick={() =>
+        <p className="mt-0.5 text-[11px] text-[color:rgba(61,52,40,0.55)]">
+          {linkedRole
+            ? bcPick(businessCardBuilderCopy.fieldLabels[linkedRole], lang)
+            : lang === "en"
+              ? "Custom line"
+              : "Línea personalizada"}
+        </p>
+      </div>
+
+      <div className="space-y-2 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
+        <SectionTitle>{bcPick(businessCardBuilderCopy.textInspectorSectionContent, lang)}</SectionTitle>
+        {linkedRole ? (
+          <div>
+            <label className="sr-only" htmlFor={`bc-text-${selectedBlock.id}`}>
+              {bcPick(businessCardBuilderCopy.fieldLabels[linkedRole], lang)}
+            </label>
+            <textarea
+              id={`bc-text-${selectedBlock.id}`}
+              className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2.5 text-sm leading-snug text-[color:var(--lx-text)] shadow-inner outline-none ring-[color:rgba(201,168,74,0.35)] focus:border-[color:rgba(201,168,74,0.45)] focus:ring-2"
+              rows={3}
+              value={selectedBlock.text}
+              maxLength={fieldMax ?? 200}
+              onChange={(e) =>
                 dispatch({
                   type: "SET_TEXT_BLOCK",
                   side,
                   id: selectedBlock.id,
-                  patch: { xPct: clampBlockAxis(selectedBlock.xPct - 1) },
+                  patch: { text: e.target.value },
                 })
               }
-            >
-              X −
-            </button>
-            <button
-              type="button"
-              className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
-              onClick={() =>
-                dispatch({
-                  type: "SET_TEXT_BLOCK",
-                  side,
-                  id: selectedBlock.id,
-                  patch: { xPct: clampBlockAxis(selectedBlock.xPct + 1) },
-                })
-              }
-            >
-              X +
-            </button>
+            />
+            <p className="mt-1.5 text-[10px] text-[color:rgba(61,52,40,0.55)] leading-snug">
+              {bcpPick(businessCardProductCopy.linkedFieldHint, lang)}
+            </p>
           </div>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
-              onClick={() =>
+        ) : (
+          <div>
+            <label className="sr-only" htmlFor={`bc-text-${selectedBlock.id}`}>
+              {lang === "en" ? "Custom text" : "Texto personalizado"}
+            </label>
+            <textarea
+              id={`bc-text-${selectedBlock.id}`}
+              className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2.5 text-sm leading-snug text-[color:var(--lx-text)] shadow-inner outline-none ring-[color:rgba(201,168,74,0.35)] focus:border-[color:rgba(201,168,74,0.45)] focus:ring-2"
+              rows={3}
+              value={selectedBlock.text}
+              onChange={(e) =>
                 dispatch({
                   type: "SET_TEXT_BLOCK",
                   side,
                   id: selectedBlock.id,
-                  patch: { yPct: clampBlockAxis(selectedBlock.yPct - 1) },
+                  patch: { text: e.target.value },
                 })
               }
-            >
-              Y −
-            </button>
-            <button
-              type="button"
-              className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
-              onClick={() =>
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const nid = `c-${Date.now().toString(36)}`;
+                  dispatch({
+                    type: "DUPLICATE_CUSTOM_TEXT_BLOCK",
+                    side,
+                    sourceId: selectedBlock.id,
+                    newId: nid,
+                    lang,
+                  });
+                  onSelectTextBlock(nid);
+                }}
+                className="rounded-full border border-black/12 bg-white px-3 py-1.5 text-[11px] font-semibold text-[color:#5c4f2e] hover:bg-black/[0.03]"
+              >
+                {bcpPick(businessCardProductCopy.duplicateCustomBlock, lang)}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectTextBlock(null);
+                  dispatch({ type: "REMOVE_TEXT_BLOCK", side, id: selectedBlock.id });
+                }}
+                className="rounded-full border border-rose-200 bg-rose-50/80 px-3 py-1.5 text-[11px] font-semibold text-rose-900 hover:bg-rose-100"
+              >
+                {bcpPick(businessCardProductCopy.removeCustomBlock, lang)}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
+        <SectionTitle>{bcPick(businessCardBuilderCopy.textInspectorSectionTypography, lang)}</SectionTitle>
+        <label className="block">
+          <span className="text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
+            {bcPick(businessCardBuilderCopy.textFontFamilyLabel, lang)}
+          </span>
+          <select
+            className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-[color:var(--lx-text)] shadow-inner outline-none focus:border-[color:rgba(201,168,74,0.45)] focus:ring-2 focus:ring-[color:rgba(201,168,74,0.25)]"
+            value={presetValue}
+            onChange={(e) => {
+              const v = e.target.value as BusinessCardTextFontPreset;
+              dispatch({
+                type: "SET_TEXT_BLOCK",
+                side,
+                id: selectedBlock.id,
+                patch: { fontPreset: v === "default" ? undefined : v },
+              });
+            }}
+          >
+            {textFontPresetOptions(lang).map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+            {lang === "en" ? "Font size" : "Tamaño"}
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+              value={selectedBlock.fontSize}
+              min={6}
+              max={22}
+              onChange={(e) =>
                 dispatch({
                   type: "SET_TEXT_BLOCK",
                   side,
                   id: selectedBlock.id,
-                  patch: { yPct: clampBlockAxis(selectedBlock.yPct + 1) },
+                  patch: { fontSize: Number(e.target.value) },
                 })
               }
-            >
-              Y +
-            </button>
+            />
+          </label>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+              {lang === "en" ? "Weight" : "Peso"}
+            </div>
+            <div className="mt-1 flex gap-1">
+              {([400, 500, 600, 700] as const).map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() =>
+                    dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { fontWeight: w } })
+                  }
+                  className={[
+                    "flex-1 rounded-lg py-2 text-[11px] font-semibold border touch-manipulation",
+                    selectedBlock.fontWeight === w
+                      ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
+                      : "border-black/10 bg-white",
+                  ].join(" ")}
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+            {lang === "en" ? "Align" : "Alineación"}
+          </div>
+          <div className="mt-1 flex gap-1">
+            {(["left", "center", "right"] as const).map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() =>
+                  dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { textAlign: a } })
+                }
+                className={[
+                  "flex-1 rounded-lg py-1.5 text-[10px] font-bold border uppercase touch-manipulation",
+                  selectedBlock.textAlign === a
+                    ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
+                    : "border-black/10 bg-white",
+                ].join(" ")}
+              >
+                {a[0]!.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+
+      <div className="rounded-xl border border-[rgba(201,168,74,0.28)] bg-gradient-to-br from-[rgba(201,168,74,0.08)] to-white p-3 shadow-inner">
+        <SectionTitle>{bcPick(businessCardBuilderCopy.textInspectorSectionColor, lang)}</SectionTitle>
+        <label className="mt-2 block text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
+          {bcPick(businessCardBuilderCopy.textColorLabel, lang)}
+        </label>
+        <p className="mt-0.5 text-[10px] text-[color:rgba(61,52,40,0.52)] leading-snug">
+          {bcPick(businessCardBuilderCopy.textColorHelp, lang)}
+        </p>
+        {showTranslucentNote ? (
+          <p className="mt-1.5 rounded-lg border border-amber-200/80 bg-amber-50/90 px-2 py-1.5 text-[10px] text-amber-950/90">
+            {bcPick(businessCardBuilderCopy.textColorTranslucentNote, lang)}
+          </p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.45)]">
+              {lang === "en" ? "Swatch" : "Muestra"}
+            </span>
+            <input
+              type="color"
+              aria-label={bcPick(businessCardBuilderCopy.textColorLabel, lang)}
+              className="h-12 w-[4.5rem] cursor-pointer rounded-xl border-2 border-black/10 bg-white shadow-md"
+              value={hexSynced}
+              onChange={(e) => {
+                setHexDraft(null);
+                dispatch({
+                  type: "SET_TEXT_BLOCK",
+                  side,
+                  id: selectedBlock.id,
+                  patch: { color: e.target.value },
+                });
+              }}
+            />
+          </div>
+          <label className="min-w-[7rem] flex-1">
+            <span className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.45)]">
+              {bcPick(businessCardBuilderCopy.textHexLabel, lang)}
+            </span>
+            <input
+              type="text"
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 font-mono text-sm text-[color:var(--lx-text)] shadow-inner outline-none focus:border-[color:rgba(201,168,74,0.45)] focus:ring-2 focus:ring-[color:rgba(201,168,74,0.2)]"
+              value={hexFieldValue}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setHexDraft(raw);
+                const parsed = parseHexInput(raw);
+                if (parsed) {
+                  dispatch({
+                    type: "SET_TEXT_BLOCK",
+                    side,
+                    id: selectedBlock.id,
+                    patch: { color: parsed },
+                  });
+                  setHexDraft(null);
+                }
+              }}
+              onBlur={() => setHexDraft(null)}
+              placeholder="#c9a84a"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
+        <SectionTitle>{bcPick(businessCardBuilderCopy.textInspectorSectionLayout, lang)}</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+            X %
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+              value={Math.round(selectedBlock.xPct)}
+              min={5}
+              max={95}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_TEXT_BLOCK",
+                  side,
+                  id: selectedBlock.id,
+                  patch: { xPct: Number(e.target.value) },
+                })
+              }
+            />
+          </label>
+          <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+            Y %
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+              value={Math.round(selectedBlock.yPct)}
+              min={5}
+              max={95}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_TEXT_BLOCK",
+                  side,
+                  id: selectedBlock.id,
+                  patch: { yPct: Number(e.target.value) },
+                })
+              }
+            />
+          </label>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.5)]">
+            {bcpPick(businessCardProductCopy.fineNudge, lang)}
+          </p>
+          <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <div className="flex gap-1">
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold text-[color:var(--lx-text)] touch-manipulation"
+                onClick={() =>
+                  dispatch({
+                    type: "SET_TEXT_BLOCK",
+                    side,
+                    id: selectedBlock.id,
+                    patch: { xPct: clampBlockAxis(selectedBlock.xPct - 1) },
+                  })
+                }
+              >
+                X −
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
+                onClick={() =>
+                  dispatch({
+                    type: "SET_TEXT_BLOCK",
+                    side,
+                    id: selectedBlock.id,
+                    patch: { xPct: clampBlockAxis(selectedBlock.xPct + 1) },
+                  })
+                }
+              >
+                X +
+              </button>
+            </div>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
+                onClick={() =>
+                  dispatch({
+                    type: "SET_TEXT_BLOCK",
+                    side,
+                    id: selectedBlock.id,
+                    patch: { yPct: clampBlockAxis(selectedBlock.yPct - 1) },
+                  })
+                }
+              >
+                Y −
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-lg border border-black/10 bg-white py-1.5 text-sm font-bold touch-manipulation"
+                onClick={() =>
+                  dispatch({
+                    type: "SET_TEXT_BLOCK",
+                    side,
+                    id: selectedBlock.id,
+                    patch: { yPct: clampBlockAxis(selectedBlock.yPct + 1) },
+                  })
+                }
+              >
+                Y +
+              </button>
+            </div>
+          </div>
+        </div>
         <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
           {lang === "en" ? "Width %" : "Ancho %"}
           <input
@@ -227,100 +430,6 @@ export function BusinessCardTextBlockInspector(props: {
             }
           />
         </label>
-        <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-          {lang === "en" ? "Size" : "Tamaño"}
-          <input
-            type="number"
-            className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-            value={selectedBlock.fontSize}
-            min={6}
-            max={22}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { fontSize: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
-      </div>
-      <div>
-        <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-          {lang === "en" ? "Weight" : "Peso"}
-        </div>
-        <div className="mt-2 flex gap-1">
-          {([400, 500, 600, 700] as const).map((w) => (
-            <button
-              key={w}
-              type="button"
-              onClick={() =>
-                dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { fontWeight: w } })
-              }
-              className={[
-                "flex-1 rounded-lg py-2 text-[11px] font-semibold border touch-manipulation",
-                selectedBlock.fontWeight === w
-                  ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
-                  : "border-black/10 bg-white",
-              ].join(" ")}
-            >
-              {w}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-xl border border-[rgba(201,168,74,0.22)] bg-[rgba(201,168,74,0.06)] p-3">
-        <label className="text-[10px] font-semibold uppercase tracking-wide text-[color:rgba(61,52,40,0.6)]">
-          {bcPick(businessCardBuilderCopy.textColorLabel, lang)}
-        </label>
-        <p className="mt-0.5 text-[10px] text-[color:rgba(61,52,40,0.5)] leading-snug">
-          {bcPick(businessCardBuilderCopy.textColorHelp, lang)}
-        </p>
-        <input
-          type="color"
-          aria-label={bcPick(businessCardBuilderCopy.textColorLabel, lang)}
-          className="mt-2 h-11 w-full max-w-[8rem] cursor-pointer rounded-lg border border-black/12 bg-white shadow-inner"
-          value={
-            selectedBlock.color.startsWith("#")
-              ? selectedBlock.color
-              : selectedBlock.color === "var(--lx-text)"
-                ? "#2c2416"
-                : "#2c2416"
-          }
-          onChange={(e) =>
-            dispatch({
-              type: "SET_TEXT_BLOCK",
-              side,
-              id: selectedBlock.id,
-              patch: { color: e.target.value },
-            })
-          }
-        />
-      </div>
-      <div>
-        <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-          {lang === "en" ? "Align" : "Alineación"}
-        </div>
-        <div className="mt-1 flex gap-1">
-          {(["left", "center", "right"] as const).map((a) => (
-            <button
-              key={a}
-              type="button"
-              onClick={() =>
-                dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { textAlign: a } })
-              }
-              className={[
-                "flex-1 rounded-lg py-1.5 text-[10px] font-bold border uppercase touch-manipulation",
-                selectedBlock.textAlign === a
-                  ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
-                  : "border-black/10 bg-white",
-              ].join(" ")}
-            >
-              {a[0]!.toUpperCase()}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

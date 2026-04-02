@@ -67,6 +67,10 @@ export const businessCardBuilderCopy = {
   },
   /** Right column: object-first tools for the current canvas selection */
   selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },
+  selectionToolsSubtitle: {
+    es: "Lo que elijas en la vista previa define estas herramientas. El panel de abajo sigue teniendo información, logo y refinamientos.",
+    en: "What you select on the preview drives these tools. The panel below still holds your details, logo, and refinements.",
+  },
   contextualEmptyTitle: {
     es: "Elige algo en la tarjeta",
     en: "Select something on the card",
@@ -77,11 +81,38 @@ export const businessCardBuilderCopy = {
   },
   foundationSectionTitle: { es: "Base del diseño", en: "Design setup" },
   textInspectorTitle: { es: "Texto seleccionado", en: "Selected text" },
+  textInspectorSectionContent: { es: "Contenido", en: "Content" },
+  textInspectorSectionTypography: { es: "Tipografía", en: "Typography" },
+  textInspectorSectionColor: { es: "Color", en: "Color" },
+  textInspectorSectionLayout: { es: "Posición y tamaño", en: "Position & size" },
+  textFontFamilyLabel: { es: "Familia tipográfica", en: "Font family" },
+  textHexLabel: { es: "Hex", en: "Hex" },
   textColorLabel: { es: "Color del texto", en: "Text color" },
   textColorHelp: {
-    es: "Elige un color sólido para esta línea.",
-    en: "Pick a solid color for this line.",
+    es: "Muestrario + hex. Si la plantilla usa un color translúcido, al elegir un sólido se reemplaza por ese tono (sin transparencia).",
+    en: "Swatch + hex. If the template used a translucent color, choosing a solid replaces it with that tone (no transparency).",
   },
+  textColorTranslucentNote: {
+    es: "Esta línea usa color con transparencia. El valor hex es una aproximación para el selector.",
+    en: "This line uses a translucent color. Hex is an approximation for the picker.",
+  },
+  logoInspectorIntro: {
+    es: "Arrastra el logo en la vista previa o ajusta posición, tamaño y capa aquí. El ajuste fino mueve el logo unos puntos sin cambiar la cuadrícula principal.",
+    en: "Drag the logo on the preview, or adjust placement, size, and stacking here. Fine nudge shifts it slightly without changing the main grid.",
+  },
+  logoInspectorPlacementSection: { es: "Colocación", en: "Placement" },
+  logoInspectorStackSection: { es: "Capa", en: "Stacking" },
+  logoInspectorNudgeSection: { es: "Ajuste fino del logo", en: "Logo fine nudge" },
+  logoInspectorNudgeExplain: {
+    es: "Desplazamiento fino sobre X/Y (igual que en el panel de diseño).",
+    en: "Sub-pixel shift applied on top of X/Y (same as the layout panel).",
+  },
+  logoInspectorZIndexLabel: { es: "Orden z (encima de texto más alto)", en: "Z-order (higher draws on top)" },
+  logoInspectorUploadHint: {
+    es: "Subir, reemplazar o quitar el archivo en la columna de diseño (abajo).",
+    en: "Upload, replace, or remove the file in the layout column below.",
+  },
+  logoShowOnSide: { es: "Mostrar logo en esta cara", en: "Show logo on this side" },
   editingBanner: { es: "Editando", en: "Editing" },
   saveContinue: { es: "Guardar borrador y continuar", en: "Save draft & continue" },
   tryAnotherLook: {
@@ -110,8 +141,8 @@ export const businessCardBuilderCopy = {
   refinementsAddEllipse: { es: "+ Elipse", en: "+ Ellipse" },
   nativeInspectorTitle: { es: "Objeto añadido", en: "Added object" },
   nativeInspectorHelp: {
-    es: "El texto y logo del layout se editan arriba. Adelante/atrás solo afecta a imágenes y formas de esta sección.",
-    en: "Layout text and logo are edited above. Forward/back only moves this added layer among other images and shapes here.",
+    es: "Misma columna que texto y logo del layout: vista previa a la izquierda, herramientas aquí. Adelante/atrás solo entre capas añadidas en Refinamientos.",
+    en: "Same column as layout text and logo: preview on the left, tools here. Forward/back only among layers you add under Refinements.",
   },
   nativeReorderTooltip: {
     es: "Solo entre capas añadidas (texto y logo del layout: secciones de arriba).",

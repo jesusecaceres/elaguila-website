@@ -204,64 +204,205 @@ export function AgenteIndividualResidencialPreviewView({
           Vista previa del anuncio
         </p>
 
-        {/* Hero + rail + galería: un solo bloque superior (menos hueco entre hechos y galería) */}
-        <section className="mt-2 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7 lg:gap-y-3">
-          <div className="min-w-0">
-            <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
-              {h.title}
-            </h1>
-            <p className={`mt-1 ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
-              {h.operationLine}
-            </p>
-            <p className={`mt-1 flex flex-wrap items-center gap-1.5 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
-              <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
-              <span>{h.locationLine}</span>
-            </p>
-            <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
-              <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
-                {h.priceDisplay}
-              </span>
-              <span
-                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-                style={{
-                  border: `1px solid ${BRONZE_SOFT}`,
-                  background: "rgba(197, 160, 89, 0.1)",
-                  color: "#7A5F22",
-                }}
-              >
-                {h.statusPill}
-              </span>
+        {/* Galería arriba (columna izq.) · texto/hechos debajo · carril derecho (flujo normal, sin sticky) */}
+        <section className="mt-2 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div>
+              <h3 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
+                Galería
+              </h3>
+              <div className="grid gap-2.5 lg:grid-cols-12 lg:gap-3.5 lg:items-start">
+                <div className="min-w-0 lg:col-span-7">
+                  {g.mainPhoto.url ? (
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={g.mainPhoto.url}
+                        alt=""
+                        className="aspect-[16/10] w-full rounded-xl border object-cover"
+                        style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
+                      />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
+                    </div>
+                  ) : (
+                    <div>
+                      <EmptySlot title="Foto principal" subtitle="Agrega fotos en el formulario." />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-5 lg:gap-2">
+                  {g.secondaryPhoto1.url ? (
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={g.secondaryPhoto1.url}
+                        alt=""
+                        className="aspect-[4/3] w-full rounded-lg border object-cover"
+                        style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
+                      />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_1}</GalleryCaption>
+                    </div>
+                  ) : (
+                    <div>
+                      <EmptySlot title="Foto 2" subtitle="Opcional" />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_1}</GalleryCaption>
+                    </div>
+                  )}
+
+                  {g.secondaryPhoto2.url ? (
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={g.secondaryPhoto2.url}
+                        alt=""
+                        className="aspect-[4/3] w-full rounded-lg border object-cover"
+                        style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
+                      />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_2}</GalleryCaption>
+                    </div>
+                  ) : (
+                    <div>
+                      <EmptySlot title="Foto 3" subtitle="Opcional" />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_2}</GalleryCaption>
+                    </div>
+                  )}
+
+                  {g.video.dataUrl ? (
+                    <div>
+                      <video
+                        src={g.video.dataUrl}
+                        controls
+                        className="aspect-[4/3] w-full rounded-lg border object-cover"
+                        style={{ borderColor: BORDER }}
+                      />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
+                    </div>
+                  ) : g.video.externalHref ? (
+                    <div>
+                      <a
+                        href={g.video.externalHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-[11px] font-bold tracking-wide"
+                        style={{ borderColor: BORDER, background: "#1a2744", color: "#fff", boxShadow: MEDIA_SHADOW }}
+                      >
+                        <FiVideo className="h-6 w-6 opacity-90" aria-hidden />
+                        Reproducir video
+                      </a>
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
+                    </div>
+                  ) : (
+                    <div>
+                      <EmptySlot
+                        title="Video"
+                        subtitle="Pega un enlace o sube un archivo."
+                        icon={<FiVideo className="h-5 w-5" aria-hidden />}
+                      />
+                      <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
+                    </div>
+                  )}
+
+                  {g.tourOrPlan.href ? (
+                    <div>
+                      <a
+                        href={g.tourOrPlan.href}
+                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-center text-[11px] font-bold tracking-wide"
+                        style={{ borderColor: BORDER, background: "#243a5e", color: "#fff", boxShadow: MEDIA_SHADOW }}
+                        {...anchorPropsForHref(g.tourOrPlan.href, g.tourOrPlan.variant === "brochure" ? "folleto.pdf" : "tour.pdf")}
+                      >
+                        {g.tourOrPlan.variant === "tour" ? "Abrir tour" : "Abrir plano / folleto"}
+                      </a>
+                      <GalleryCaption>{tourPlanSlotLabel(g.tourOrPlan.variant)}</GalleryCaption>
+                    </div>
+                  ) : (
+                    <div>
+                      <EmptySlot title="Tour / plano" subtitle="Enlace o archivo (tour o folleto)." />
+                      <GalleryCaption>{tourPlanSlotLabel("none")}</GalleryCaption>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {g.showAllPhotosCta.visible ? (
+                <div
+                  className="mt-3 flex justify-center"
+                  role="note"
+                  title="En el anuncio publicado, este control abre la galería completa."
+                >
+                  <span
+                    className={`inline-flex items-center justify-center rounded-full border px-4 py-2 ${typo.kicker}`}
+                    style={{
+                      borderColor: `${BRONZE}55`,
+                      color: BRONZE,
+                      background: "rgba(197, 160, 89, 0.08)",
+                      cursor: "default",
+                    }}
+                  >
+                    Ver todas las fotos ({g.showAllPhotosCta.totalPhotoCount})
+                  </span>
+                </div>
+              ) : null}
             </div>
 
-            <div
-              className="mt-2 overflow-hidden rounded-xl border"
-              style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
-            >
-              <div className="grid grid-cols-3 lg:grid-cols-6">
-                {h.quickFacts.map((q, i) => {
-                  const Icon = QUICK_FACT_ICON[q.key];
-                  return (
-                    <div
-                      key={q.key}
-                      className={`min-w-0 px-1.5 py-2.5 sm:px-2 sm:py-3 ${i > 0 ? "border-l" : ""}`}
-                      style={{ borderColor: "rgba(44, 36, 22, 0.08)" }}
-                    >
-                      <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
-                        <Icon className="h-4 w-4 opacity-95" />
+            <div>
+              <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
+                {h.title}
+              </h1>
+              <p className={`mt-1 ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
+                {h.operationLine}
+              </p>
+              <p className={`mt-1 flex flex-wrap items-center gap-1.5 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
+                <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
+                <span>{h.locationLine}</span>
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
+                <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
+                  {h.priceDisplay}
+                </span>
+                <span
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                  style={{
+                    border: `1px solid ${BRONZE_SOFT}`,
+                    background: "rgba(197, 160, 89, 0.1)",
+                    color: "#7A5F22",
+                  }}
+                >
+                  {h.statusPill}
+                </span>
+              </div>
+
+              <div
+                className="mt-2 overflow-hidden rounded-xl border"
+                style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
+              >
+                <div className="grid grid-cols-3 lg:grid-cols-6">
+                  {h.quickFacts.map((q, i) => {
+                    const Icon = QUICK_FACT_ICON[q.key];
+                    return (
+                      <div
+                        key={q.key}
+                        className={`min-w-0 px-1.5 py-2.5 sm:px-2 sm:py-3 ${i > 0 ? "border-l" : ""}`}
+                        style={{ borderColor: "rgba(44, 36, 22, 0.08)" }}
+                      >
+                        <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
+                          <Icon className="h-4 w-4 opacity-95" />
+                        </div>
+                        <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
+                          {q.label}
+                        </p>
+                        <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
                       </div>
-                      <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
-                        {q.label}
-                      </p>
-                      <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
 
           <aside
-            className="rounded-xl border lg:sticky lg:top-24"
+            className="rounded-xl border"
             style={{
               borderColor: BORDER,
               background: `linear-gradient(180deg, ${CREAM} 0%, #f8f4ec 100%)`,
@@ -488,146 +629,6 @@ export function AgenteIndividualResidencialPreviewView({
               </div>
             </div>
           </aside>
-
-          {/* Galería inmediatamente bajo hechos + carril (misma sección = sin hueco vertical grande) */}
-          <div className="col-span-1 min-w-0 lg:col-span-2">
-          <h3 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-            Galería
-          </h3>
-          <div className="grid gap-2.5 lg:grid-cols-12 lg:gap-3.5 lg:items-start">
-            <div className="min-w-0 lg:col-span-7">
-              {g.mainPhoto.url ? (
-                <div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={g.mainPhoto.url}
-                    alt=""
-                    className="aspect-[16/10] w-full rounded-xl border object-cover"
-                    style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
-                  />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
-                </div>
-              ) : (
-                <div>
-                  <EmptySlot title="Foto principal" subtitle="Agrega fotos en el formulario." />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
-                </div>
-              )}
-            </div>
-
-            <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-5 lg:gap-2">
-              {g.secondaryPhoto1.url ? (
-                <div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={g.secondaryPhoto1.url}
-                    alt=""
-                    className="aspect-[4/3] w-full rounded-lg border object-cover"
-                    style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
-                  />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_1}</GalleryCaption>
-                </div>
-              ) : (
-                <div>
-                  <EmptySlot title="Foto 2" subtitle="Opcional" />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_1}</GalleryCaption>
-                </div>
-              )}
-
-              {g.secondaryPhoto2.url ? (
-                <div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={g.secondaryPhoto2.url}
-                    alt=""
-                    className="aspect-[4/3] w-full rounded-lg border object-cover"
-                    style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
-                  />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_2}</GalleryCaption>
-                </div>
-              ) : (
-                <div>
-                  <EmptySlot title="Foto 3" subtitle="Opcional" />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_2}</GalleryCaption>
-                </div>
-              )}
-
-              {g.video.dataUrl ? (
-                <div>
-                  <video
-                    src={g.video.dataUrl}
-                    controls
-                    className="aspect-[4/3] w-full rounded-lg border object-cover"
-                    style={{ borderColor: BORDER }}
-                  />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
-                </div>
-              ) : g.video.externalHref ? (
-                <div>
-                  <a
-                    href={g.video.externalHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-[11px] font-bold tracking-wide"
-                    style={{ borderColor: BORDER, background: "#1a2744", color: "#fff", boxShadow: MEDIA_SHADOW }}
-                  >
-                    <FiVideo className="h-6 w-6 opacity-90" aria-hidden />
-                    Reproducir video
-                  </a>
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
-                </div>
-              ) : (
-                <div>
-                  <EmptySlot
-                    title="Video"
-                    subtitle="Pega un enlace o sube un archivo."
-                    icon={<FiVideo className="h-5 w-5" aria-hidden />}
-                  />
-                  <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
-                </div>
-              )}
-
-              {g.tourOrPlan.href ? (
-                <div>
-                  <a
-                    href={g.tourOrPlan.href}
-                    className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-center text-[11px] font-bold tracking-wide"
-                    style={{ borderColor: BORDER, background: "#243a5e", color: "#fff", boxShadow: MEDIA_SHADOW }}
-                    {...anchorPropsForHref(g.tourOrPlan.href, g.tourOrPlan.variant === "brochure" ? "folleto.pdf" : "tour.pdf")}
-                  >
-                    {g.tourOrPlan.variant === "tour" ? "Abrir tour" : "Abrir plano / folleto"}
-                  </a>
-                  <GalleryCaption>{tourPlanSlotLabel(g.tourOrPlan.variant)}</GalleryCaption>
-                </div>
-              ) : (
-                <div>
-                  <EmptySlot title="Tour / plano" subtitle="Enlace o archivo (tour o folleto)." />
-                  <GalleryCaption>{tourPlanSlotLabel("none")}</GalleryCaption>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {g.showAllPhotosCta.visible ? (
-            <div
-              className="mt-3 flex justify-center"
-              role="note"
-              title="En el anuncio publicado, este control abre la galería completa."
-            >
-              <span
-                className={`inline-flex items-center justify-center rounded-full border px-4 py-2 ${typo.kicker}`}
-                style={{
-                  borderColor: `${BRONZE}55`,
-                  color: BRONZE,
-                  background: "rgba(197, 160, 89, 0.08)",
-                  cursor: "default",
-                }}
-              >
-                Ver todas las fotos ({g.showAllPhotosCta.totalPhotoCount})
-              </span>
-            </div>
-          ) : null}
-          </div>
         </section>
 
         {/* Detalles + características — misma fila visual */}

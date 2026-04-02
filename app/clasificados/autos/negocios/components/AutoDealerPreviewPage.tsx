@@ -1,0 +1,161 @@
+import Image from "next/image";
+import Link from "next/link";
+import newLogo from "@/public/logo.png";
+import type { AutoDealerListing } from "../types/autoDealerListing";
+import { formatMiles, formatUsd } from "./autoDealerFormatters";
+import { AutoGallery } from "./AutoGallery";
+import { AutoSidebarCTA } from "./AutoSidebarCTA";
+import { DealerInfoCard } from "./DealerInfoCard";
+import { RelatedDealerCars } from "./RelatedDealerCars";
+import { VehicleDescription } from "./VehicleDescription";
+import { VehicleHighlights } from "./VehicleHighlights";
+import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
+import { VEHICLE_BADGE_LABEL } from "./vehicleBadgeLabels";
+
+const PAGE_BG = {
+  backgroundColor: "var(--lx-page)",
+  backgroundImage: `
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.2), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.45), transparent 52%),
+    radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.1), transparent 50%)
+  `,
+} as const;
+
+const MAIN_CARD =
+  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-5";
+
+export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
+  const loc = `${data.city}, ${data.state}`;
+
+  return (
+    <div className="min-h-screen pb-16 pt-6 text-[color:var(--lx-text)] md:pb-20" style={PAGE_BG}>
+      {/* Local shell: logo + breadcrumb — shallow */}
+      <header className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex shrink-0 items-start gap-4">
+            <Link href="/clasificados" className="block w-[min(200px,42vw)] max-w-[200px]">
+              <Image src={newLogo} alt="LEONIX" className="h-auto w-full object-contain object-left" priority />
+            </Link>
+            <nav aria-label="Migas de pan" className="hidden min-w-0 pt-1 text-sm text-[color:var(--lx-muted)] sm:block">
+              <ol className="flex flex-wrap items-center gap-1.5">
+                <li>
+                  <Link href="/clasificados" className="font-medium text-[color:var(--lx-text-2)] hover:text-[color:var(--lx-gold)]">
+                    Clasificados
+                  </Link>
+                </li>
+                <li aria-hidden className="text-[color:var(--lx-muted)]">
+                  /
+                </li>
+                <li>
+                  <Link href="/clasificados/autos" className="font-medium text-[color:var(--lx-text-2)] hover:text-[color:var(--lx-gold)]">
+                    Autos
+                  </Link>
+                </li>
+                <li aria-hidden className="text-[color:var(--lx-muted)]">
+                  /
+                </li>
+                <li className="font-semibold text-[color:var(--lx-text)]">Negocios</li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+        <nav aria-label="Migas de pan" className="mt-3 text-sm text-[color:var(--lx-muted)] sm:hidden">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            <li>
+              <Link href="/clasificados" className="font-medium text-[color:var(--lx-text-2)]">
+                Clasificados
+              </Link>
+            </li>
+            <span className="text-[color:var(--lx-muted)]">/</span>
+            <li>
+              <Link href="/clasificados/autos" className="font-medium text-[color:var(--lx-text-2)]">
+                Autos
+              </Link>
+            </li>
+            <span className="text-[color:var(--lx-muted)]">/</span>
+            <li className="font-semibold text-[color:var(--lx-text)]">Negocios</li>
+          </ol>
+        </nav>
+      </header>
+
+      <main className="mx-auto mt-8 max-w-[1280px] px-4 md:px-5 lg:px-6">
+        {/* Mobile/tablet: title → gallery → CTA/dealer → specs…; desktop: 7/5 + sidebar spans rows */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
+          <section className={`order-1 lg:col-span-7 lg:col-start-1 lg:row-start-1 ${MAIN_CARD}`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
+                  {data.vehicleTitle}
+                </h1>
+                {data.badges.length > 0 ? (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {data.badges.map((b) => (
+                      <li
+                        key={b}
+                        className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]"
+                      >
+                        {VEHICLE_BADGE_LABEL[b]}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <dl className="mt-4 grid gap-2 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
+                  <div className="flex gap-2">
+                    <dt className="text-[color:var(--lx-muted)]">Millaje</dt>
+                    <dd className="font-semibold">{formatMiles(data.mileage)}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-[color:var(--lx-muted)]">Ubicación</dt>
+                    <dd className="font-semibold">{loc}</dd>
+                  </div>
+                  <div className="flex flex-wrap gap-2 sm:col-span-2">
+                    <dt className="text-[color:var(--lx-muted)]">VIN</dt>
+                    <dd className="font-mono text-[13px] font-semibold tracking-tight">{data.vin}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-[color:var(--lx-muted)]">Stock</dt>
+                    <dd className="font-semibold">{data.stockNumber}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="shrink-0 border-t border-[color:var(--lx-nav-border)] pt-4 text-left lg:border-t-0 lg:pt-0 lg:text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">Precio</p>
+                <p className="mt-1 text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                  {formatUsd(data.price)}
+                </p>
+                {data.monthlyEstimate ? (
+                  <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text-2)]">{data.monthlyEstimate}</p>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          <div className="order-2 lg:col-span-7 lg:col-start-1 lg:row-start-2">
+            <AutoGallery data={data} />
+          </div>
+
+          <aside className="order-3 flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:row-span-5 lg:self-start">
+            <AutoSidebarCTA data={data} />
+            <DealerInfoCard data={data} />
+          </aside>
+
+          <div className="order-4 lg:col-span-7 lg:col-start-1 lg:row-start-3">
+            <VehicleSpecsGrid data={data} />
+          </div>
+
+          <div className="order-5 lg:col-span-7 lg:col-start-1 lg:row-start-4">
+            <VehicleHighlights data={data} />
+          </div>
+
+          <div className="order-6 lg:col-span-7 lg:col-start-1 lg:row-start-5">
+            <VehicleDescription data={data} />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <RelatedDealerCars listings={data.relatedDealerListings} />
+        </div>
+      </main>
+    </div>
+  );
+}

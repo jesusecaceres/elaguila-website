@@ -9,6 +9,7 @@ import type {
   TextFieldRole,
 } from "../../types";
 import { layoutPresetToLogoGeomCenter, scaleToLogoPercent, scaleToTextRem } from "../../layoutPresets";
+import { resolveTextBlockFontFamilyCss } from "../../textFontPresets";
 import type {
   DesignerV2CanvasBackground,
   DesignerV2Document,
@@ -54,6 +55,10 @@ function textBlockToObject(state: BusinessCardSideState, b: BusinessCardSideStat
       fontWeight: b.fontWeight,
       color: b.color,
       textAlign: b.textAlign,
+      ...(() => {
+        const ff = resolveTextBlockFontFamilyCss(b.fontPreset);
+        return ff ? { fontFamily: ff } : {};
+      })(),
     },
     transform: {
       xPct: b.xPct,
