@@ -7,4 +7,5 @@ export const VEHICLE_BADGE_LABEL: Record<VehicleBadge, string> = {
   clean_title: "Título limpio",
   one_owner: "Un dueño",
   low_miles: "Bajo millaje",
+  dealer_maintained: "Mantenido por el dealer",
 };

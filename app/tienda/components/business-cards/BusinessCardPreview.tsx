@@ -20,13 +20,17 @@ import { trimSurfaceStyle, trimTextColor } from "../../product-configurators/bus
 import { mergeTransform } from "../../product-configurators/business-cards/preview/businessCardPreviewTransforms";
 import { blockModeTextScaleMultiplierFromGroupScale } from "../../product-configurators/business-cards/preview/businessCardPreviewBlockScale";
 import { BUSINESS_CARD_PREVIEW_LEGACY_LINE_ORDER } from "../../product-configurators/business-cards/preview/businessCardPreviewLineOrder";
-import { resolveTextBlockFontFamilyCss } from "../../product-configurators/business-cards/textFontPresets";
+import {
+  textBlockInnerSpanStyle,
+  textBlockOuterStyle,
+} from "../../product-configurators/business-cards/preview/textBlockPreviewStyles";
 import { BusinessCardNativeV2PreviewLayer } from "./BusinessCardNativeV2PreviewLayer";
 
 /**
  * Trim-accurate preview for builder + export root (`data-tienda-bc-export-root`).
  * Two render paths: block mode (`textBlocks.length > 0`) vs legacy stacked fields.
- * V2 native objects render above V1 in the same trim (see `BusinessCardNativeV2PreviewLayer`).
+ * In block mode, text blocks, logo, and V2 native objects are siblings in one stacking context;
+ * paint order follows each layer’s numeric `zIndex` (see `BusinessCardNativeV2PreviewLayer`).
  */
 
 export type BusinessCardPreviewEditApi = {
@@ -198,31 +202,23 @@ export function BusinessCardPreview(props: {
                     const t = b.text.trim();
                     if (!t) return null;
                     const selected = editInteraction?.selectedTextBlockId === b.id;
-                    const blockFontFamily = resolveTextBlockFontFamilyCss(b.fontPreset);
+                    const outer = textBlockOuterStyle(b, {
+                      blockTextScaleMul: blockTextScaleMul,
+                      textColor,
+                      transform: mergeTransform("translate(-50%, -50%)", doc.textNudgeX, doc.textNudgeY),
+                    });
+                    const showBackdrop = (b.textBackdrop ?? "none") === "soft";
                     return (
                       <div
                         key={b.id}
                         className={[
                           "absolute rounded-[3px]",
-                          editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation z-[8]" : "pointer-events-none",
+                          editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
                           selected
-                            ? "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] shadow-[0_0_0_1px_rgba(201,168,74,0.35)] z-[9]"
+                            ? "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] shadow-[0_0_0_1px_rgba(201,168,74,0.35)]"
                             : "",
                         ].join(" ")}
-                        style={{
-                          left: `${b.xPct}%`,
-                          top: `${b.yPct}%`,
-                          transform: mergeTransform("translate(-50%, -50%)", doc.textNudgeX, doc.textNudgeY),
-                          width: `${b.widthPct}%`,
-                          zIndex: b.zIndex,
-                          fontSize: `clamp(7px, ${b.fontSize * blockTextScaleMul * 0.092}rem, 22px)`,
-                          fontWeight: b.fontWeight,
-                          ...(blockFontFamily ? { fontFamily: blockFontFamily } : {}),
-                          color: b.color?.startsWith("var(") ? b.color : b.color || textColor,
-                          textAlign: b.textAlign,
-                          lineHeight: 1.2,
-                          wordBreak: "break-word",
-                        }}
+                        style={outer}
                         onPointerDown={
                           editInteraction
                             ? (e) => {
@@ -237,7 +233,11 @@ export function BusinessCardPreview(props: {
                             : undefined
                         }
                       >
-                        {t}
+                        {showBackdrop ? (
+                          <span style={textBlockInnerSpanStyle(b)}>{t}</span>
+                        ) : (
+                          t
+                        )}
                       </div>
                     );
                   })}

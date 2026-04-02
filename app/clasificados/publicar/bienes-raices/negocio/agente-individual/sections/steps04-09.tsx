@@ -302,40 +302,56 @@ export function Step07InformacionProfesional({
         <AiField label="Licencia o número profesional" hint="Si aplica en tu estado.">
           <input className={aiInputClass} value={state.agenteLicencia} onChange={(e) => setState((s) => ({ ...s, agenteLicencia: e.target.value }))} autoComplete="off" />
         </AiField>
-        <div className="sm:col-span-2">
-          <AiField label="Bio corta (opcional)">
-            <textarea className={aiTextareaClass} value={state.agenteBioCorta} onChange={(e) => setState((s) => ({ ...s, agenteBioCorta: e.target.value }))} autoComplete="off" />
-          </AiField>
-        </div>
       </div>
 
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Oficina o marca</p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <AiField label="Nombre de oficina o marca">
-          <input className={aiInputClass} value={state.marcaNombre} onChange={(e) => setState((s) => ({ ...s, marcaNombre: e.target.value }))} autoComplete="organization" />
-        </AiField>
-        <div className="sm:col-span-2">
-          <PhotoOrUrlBlock
-            label="Logo de oficina o marca"
-            hint="Imagen o URL; se muestra arriba de tu foto en la vista previa."
-            value={state.marcaLogoDataUrl}
-            onChange={(v) => setState((s) => ({ ...s, marcaLogoDataUrl: v }))}
-          />
-        </div>
-        <AiField label="Licencia de broker u oficina (opcional)">
-          <input className={aiInputClass} value={state.marcaLicencia} onChange={(e) => setState((s) => ({ ...s, marcaLicencia: e.target.value }))} autoComplete="off" />
-        </AiField>
-        <AiField label="Sitio web de oficina o marca (opcional)" hint="Enlace breve bajo el nombre de la marca en la tarjeta.">
+      <div className="mt-8">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#2C2416]">
           <input
-            className={aiInputClass}
-            type="url"
-            value={state.marcaSitioWeb}
-            onChange={(e) => setState((s) => ({ ...s, marcaSitioWeb: e.target.value }))}
-            autoComplete="url"
-            placeholder="https://"
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A]"
+            checked={state.mostrarMarcaEnTarjeta}
+            onChange={(e) => setState((s) => ({ ...s, mostrarMarcaEnTarjeta: e.target.checked }))}
           />
-        </AiField>
+          <span>
+            <span className="font-semibold">Mostrar oficina o marca en la tarjeta</span>
+            <span className="mt-0.5 block text-xs text-[#5C5346]/90">
+              Si está desactivado, la vista previa no muestra el bloque de marca aunque haya datos guardados.
+            </span>
+          </span>
+        </label>
       </div>
+
+      {state.mostrarMarcaEnTarjeta ? (
+        <>
+          <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Oficina o marca</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <AiField label="Nombre de oficina o marca">
+              <input className={aiInputClass} value={state.marcaNombre} onChange={(e) => setState((s) => ({ ...s, marcaNombre: e.target.value }))} autoComplete="organization" />
+            </AiField>
+            <div className="sm:col-span-2">
+              <PhotoOrUrlBlock
+                label="Logo de oficina o marca"
+                hint="Imagen o URL; se muestra arriba de tu foto en la vista previa."
+                value={state.marcaLogoDataUrl}
+                onChange={(v) => setState((s) => ({ ...s, marcaLogoDataUrl: v }))}
+              />
+            </div>
+            <AiField label="Licencia de broker u oficina (opcional)">
+              <input className={aiInputClass} value={state.marcaLicencia} onChange={(e) => setState((s) => ({ ...s, marcaLicencia: e.target.value }))} autoComplete="off" />
+            </AiField>
+            <AiField label="Sitio web de oficina o marca (opcional)" hint="Enlace breve bajo el nombre de la marca en la tarjeta.">
+              <input
+                className={aiInputClass}
+                type="url"
+                value={state.marcaSitioWeb}
+                onChange={(e) => setState((s) => ({ ...s, marcaSitioWeb: e.target.value }))}
+                autoComplete="url"
+                placeholder="https://"
+              />
+            </AiField>
+          </div>
+        </>
+      ) : null}
 
       <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Redes sociales</p>
       <p className="mt-1 text-sm text-[#5C5346]/85">Un enlace por red; cada icono en la vista previa usa solo su campo.</p>

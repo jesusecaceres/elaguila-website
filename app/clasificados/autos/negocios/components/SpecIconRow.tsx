@@ -7,8 +7,10 @@ export function SpecIconRow({
 }: {
   icon: ReactNode;
   label: string;
-  value: string;
+  value: string | undefined;
 }) {
+  if (value === undefined || value.trim() === "") return null;
+
   return (
     <div className="flex gap-3 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-3 shadow-[0_2px_12px_rgba(42,36,22,0.04)]">
       <span

@@ -142,6 +142,9 @@ export function BusinessCardLogoGeomInspector(props: {
             }
           />
         </label>
+        <p className="text-[10px] leading-snug text-[color:rgba(61,52,40,0.48)]">
+          {bcPick(businessCardBuilderCopy.logoInspectorZIndexHelp, lang)}
+        </p>
       </div>
 
       <div className="space-y-2 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">

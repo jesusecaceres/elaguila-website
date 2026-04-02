@@ -96,6 +96,37 @@ export const businessCardBuilderCopy = {
     es: "Esta línea usa color con transparencia. El valor hex es una aproximación para el selector.",
     en: "This line uses a translucent color. Hex is an approximation for the picker.",
   },
+  textRichSpacingSectionTitle: { es: "Espaciado", en: "Spacing" },
+  textRichLetterSpacingLabel: { es: "Interletraje (em)", en: "Letter spacing (em)" },
+  textRichLineHeightLabel: { es: "Interlineado", en: "Line height" },
+  textRichCaseTitle: { es: "Mayúsculas", en: "Case" },
+  textRichCaseNormal: { es: "Normal", en: "Normal" },
+  textRichCaseUpper: { es: "Todo mayúsculas", en: "All caps" },
+  textRichToneTitle: { es: "Jerarquía rápida", en: "Quick hierarchy" },
+  textRichToneHelp: {
+    es: "Ajusta peso, interlineado y mayúsculas; puedes seguir editando después.",
+    en: "Sets weight, line height, and case—you can still fine‑tune after.",
+  },
+  textRichToneHeadline: { es: "Título", en: "Headline" },
+  textRichToneSupport: { es: "Cuerpo", en: "Supporting" },
+  textRichToneCaption: { es: "Pie / detalle", en: "Caption" },
+  textRichToneClear: { es: "Quitar jerarquía", en: "Clear hierarchy" },
+  textRichReadabilitySectionTitle: { es: "Legibilidad sobre imagen", en: "Readability on image" },
+  textRichReadabilityHelp: {
+    es: "Fondo suave y sombra ligera ayudan cuando el texto va sobre fotos u otras capas.",
+    en: "A soft backdrop and light shadow help when text sits over photos or other layers.",
+  },
+  textRichBackdropSoft: { es: "Fondo suave detrás del texto", en: "Soft backdrop behind text" },
+  textRichBackdropColor: { es: "Color del fondo", en: "Backdrop color" },
+  textRichBackdropOpacity: { es: "Opacidad del fondo", en: "Backdrop opacity" },
+  textRichShadowTitle: { es: "Sombra del texto", en: "Text shadow" },
+  textRichShadowNone: { es: "Ninguna", en: "None" },
+  textRichShadowSubtle: { es: "Sutil", en: "Subtle" },
+  textRichZIndexLabel: { es: "Capa (z-index)", en: "Layer (z-index)" },
+  textRichZIndexHelp: {
+    es: "Comparte la misma escala z que el logo y las capas añadidas: mayor número = encima en la vista previa (1–40).",
+    en: "Uses the same z scale as the logo and added layers—higher numbers draw on top in the preview (1–40).",
+  },
   logoInspectorIntro: {
     es: "Arrastra el logo en la vista previa o ajusta posición, tamaño y capa aquí. El ajuste fino mueve el logo unos puntos sin cambiar la cuadrícula principal.",
     en: "Drag the logo on the preview, or adjust placement, size, and stacking here. Fine nudge shifts it slightly without changing the main grid.",
@@ -108,6 +139,10 @@ export const businessCardBuilderCopy = {
     en: "Sub-pixel shift applied on top of X/Y (same as the layout panel).",
   },
   logoInspectorZIndexLabel: { es: "Orden z (encima de texto más alto)", en: "Z-order (higher draws on top)" },
+  logoInspectorZIndexHelp: {
+    es: "Misma escala que el texto y las capas añadidas: el número decide qué queda encima cuando se superponen.",
+    en: "Same numeric scale as text blocks and added layers—the value decides what sits on top when things overlap.",
+  },
   logoInspectorUploadHint: {
     es: "Subir, reemplazar o quitar el archivo en la columna de diseño (abajo).",
     en: "Upload, replace, or remove the file in the layout column below.",
@@ -123,9 +158,14 @@ export const businessCardBuilderCopy = {
   /** Panel: native layers + shapes/images (below the light editor card) */
   refinementsSectionTitle: { es: "Refinamientos", en: "Refinements" },
   refinementsSectionHint: {
-    es: "Una sola pila con la vista previa; el orden z coincide. Reordenar solo mueve lo que añades aquí.",
-    en: "One stack with the preview—z-order matches. Reorder only affects what you add here.",
+    es: "Toda la tarjeta comparte un solo orden z. El texto y el logo se ajustan en sus herramientas al seleccionarlos; aquí reordenas solo las capas que añades (o su número z en esas herramientas).",
+    en: "The whole card shares one z-order. Text and logo use their own tools when selected; here you reorder added layers (or set z in those tools).",
   },
+  refinementsStackCaption: {
+    es: "Arriba = al frente (z más alto). Abajo = detrás.",
+    en: "Top = front (higher z). Bottom = further back.",
+  },
+  refinementsCompositionStackTitle: { es: "Pila de composición", en: "Composition stack" },
   refinementsTemplateGroup: { es: "Texto y logo del layout", en: "Layout text & logo" },
   refinementsTemplateHelp: {
     es: "Toca una capa o edita en la vista. Para el logo, selecciónalo en la vista: las herramientas aparecen arriba.",
@@ -141,8 +181,13 @@ export const businessCardBuilderCopy = {
   refinementsAddEllipse: { es: "+ Elipse", en: "+ Ellipse" },
   nativeInspectorTitle: { es: "Objeto añadido", en: "Added object" },
   nativeInspectorHelp: {
-    es: "Misma columna que texto y logo del layout: vista previa a la izquierda, herramientas aquí. Adelante/atrás solo entre capas añadidas en Refinamientos.",
-    en: "Same column as layout text and logo: preview on the left, tools here. Forward/back only among layers you add under Refinements.",
+    es: "Colocación, apariencia y capa. El número z coincide con la lista y la vista previa.",
+    en: "Placement, appearance, and stacking—the z value matches the list and live preview.",
+  },
+  nativeInspectorLayerZLabel: { es: "Capa (z-index)", en: "Layer (z-index)" },
+  nativeInspectorLayerZHelp: {
+    es: "1–40, igual que texto y logo. Adelante/atrás solo reordena entre capas añadidas; aquí puedes colocar la capa en toda la pila.",
+    en: "1–40, same as text and the logo. Forward/back only reorders among added layers; use this to place the layer in the full stack.",
   },
   nativeImageFitSectionTitle: { es: "Ajuste en el marco", en: "Fit in frame" },
   nativeImageFitSectionHelp: {
@@ -172,11 +217,20 @@ export const businessCardBuilderCopy = {
   nativeImageMaskCircle: { es: "Círculo", en: "Circle" },
   nativeImageCornerRadiusLabel: { es: "Radio de esquina (px)", en: "Corner radius (px)" },
   nativeReorderTooltip: {
-    es: "Solo entre capas añadidas (texto y logo del layout: secciones de arriba).",
-    en: "Among added layers only (layout text and logo stay in the sections above).",
+    es: "Intercambia z solo con otra capa añadida (no mueve texto ni logo del layout). Usa el campo z-index para la pila completa.",
+    en: "Swaps z with another added layer only (does not move layout text or logo). Use the z-index field for the full stack.",
   },
   layerBadgeLayout: { es: "Layout", en: "Layout" },
   layerBadgeAdded: { es: "Añadido", en: "Added" },
+  /** Sub-badges in the unified composition stack (template vs kind) */
+  layerKindBadgeTemplateText: { es: "Texto", en: "Text" },
+  layerKindBadgeLogo: { es: "Logo", en: "Logo" },
+  layerKindBadgeStudioImage: { es: "Imagen", en: "Image" },
+  layerKindBadgeStudioShape: { es: "Forma", en: "Shape" },
+  layerRowInfoOnly: {
+    es: "Solo campos apilados — edita arriba",
+    en: "Stacked fields only — edit above",
+  },
   fieldLabels: {
     personName: { es: "Nombre", en: "Name" },
     title: { es: "Puesto / título", en: "Title" },

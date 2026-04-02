@@ -1,3 +1,7 @@
+/**
+ * Vista previa Leonix — agente individual / residencial.
+ * Regiones alineadas a `AgenteIndividualResidencialPreviewVm` y `AGENTE_RES_SLOT_INVENTORY`.
+ */
 "use client";
 
 import Link from "next/link";
@@ -347,31 +351,41 @@ export function AgenteIndividualResidencialPreviewView({
             </div>
 
             <div>
-              <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
-                {h.title}
-              </h1>
-              <p className={`mt-1 ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
+              {h.title ? (
+                <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
+                  {h.title}
+                </h1>
+              ) : null}
+              <p className={`${h.title ? "mt-1" : ""} ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
                 {h.operationLine}
               </p>
-              <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
-                <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
-                <span>{h.locationLine}</span>
-                {mapsUrl ? (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
-                    style={{ color: BRONZE }}
-                  >
-                    Ver en mapa
-                  </a>
-                ) : null}
-              </p>
+              {h.locationLine || mapsUrl ? (
+                <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
+                  {h.locationLine ? (
+                    <>
+                      <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
+                      <span>{h.locationLine}</span>
+                    </>
+                  ) : null}
+                  {mapsUrl ? (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
+                      style={{ color: BRONZE }}
+                    >
+                      Ver en mapa
+                    </a>
+                  ) : null}
+                </p>
+              ) : null}
               <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
-                <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
-                  {h.priceDisplay}
-                </span>
+                {h.priceDisplay ? (
+                  <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
+                    {h.priceDisplay}
+                  </span>
+                ) : null}
                 <span
                   className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
                   style={{
@@ -384,31 +398,34 @@ export function AgenteIndividualResidencialPreviewView({
                 </span>
               </div>
 
-              <div
-                className="mt-2 overflow-hidden rounded-xl border"
-                style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
-              >
-                <div className="grid grid-cols-3 lg:grid-cols-6">
-                  {h.quickFacts.map((q, i) => {
-                    const Icon = QUICK_FACT_ICON[q.key];
-                    return (
-                      <div
-                        key={q.key}
-                        className={`min-w-0 px-1.5 py-2.5 sm:px-2 sm:py-3 ${i > 0 ? "border-l" : ""}`}
-                        style={{ borderColor: "rgba(44, 36, 22, 0.08)" }}
-                      >
-                        <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
-                          <Icon className="h-4 w-4 opacity-95" />
+              {h.quickFacts.length ? (
+                <div
+                  className="mt-2 overflow-hidden rounded-xl border"
+                  style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
+                >
+                  <div
+                    className="grid gap-px bg-[rgba(44,36,22,0.08)]"
+                    style={{
+                      gridTemplateColumns: `repeat(${Math.min(h.quickFacts.length, 6)}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {h.quickFacts.map((q) => {
+                      const Icon = QUICK_FACT_ICON[q.key];
+                      return (
+                        <div key={q.key} className="min-w-0 bg-[#FDFBF7] px-1.5 py-2.5 sm:px-2 sm:py-3">
+                          <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
+                            <Icon className="h-4 w-4 opacity-95" />
+                          </div>
+                          <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
+                            {q.label}
+                          </p>
+                          <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
                         </div>
-                        <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
-                          {q.label}
-                        </p>
-                        <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </div>
 
@@ -472,13 +489,10 @@ export function AgenteIndividualResidencialPreviewView({
                     </div>
                   )}
                 </div>
-                <p className={`mt-2.5 text-center ${typo.railName}`}>{pc.agentName}</p>
-                <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
-                  {pc.agentTitle}
-                </p>
-                {pc.agentBio ? (
-                  <p className={`mt-2 text-center ${typo.bodySm} leading-relaxed`} style={{ color: MUTED }}>
-                    {pc.agentBio}
+                {pc.agentName ? <p className={`mt-2.5 text-center ${typo.railName}`}>{pc.agentName}</p> : null}
+                {pc.agentTitle ? (
+                  <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
+                    {pc.agentTitle}
                   </p>
                 ) : null}
                 {pc.areaServicioLine ? (
@@ -496,19 +510,21 @@ export function AgenteIndividualResidencialPreviewView({
                     {pc.agentLicenseLine}
                   </p>
                 ) : null}
-                {pc.brandLicenseLine ? (
+                {pc.hasBrandBlock && pc.brandLicenseLine ? (
                   <p className={`mt-1.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
                     {pc.brandLicenseLine}
                   </p>
                 ) : null}
 
-                <div
-                  className="mt-3 space-y-0.5 rounded-md px-2 py-2 text-center"
-                  style={{ background: "rgba(44,36,22,0.04)" }}
-                >
-                  <p className="text-sm font-semibold tracking-tight">{pc.phoneDisplay}</p>
-                  <p className={`truncate ${typo.bodySm} opacity-90`}>{pc.emailDisplay}</p>
-                </div>
+                {pc.phoneDisplay || pc.emailDisplay ? (
+                  <div
+                    className="mt-3 space-y-0.5 rounded-md px-2 py-2 text-center"
+                    style={{ background: "rgba(44,36,22,0.04)" }}
+                  >
+                    {pc.phoneDisplay ? <p className="text-sm font-semibold tracking-tight">{pc.phoneDisplay}</p> : null}
+                    {pc.emailDisplay ? <p className={`truncate ${typo.bodySm} opacity-90`}>{pc.emailDisplay}</p> : null}
+                  </div>
+                ) : null}
 
                 {cr.showSocialIcons ? (
                   <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
@@ -642,90 +658,87 @@ export function AgenteIndividualResidencialPreviewView({
           </aside>
         </section>
 
-        {/* Detalles + características — misma fila visual */}
-        <section className={`${SECTION_GAP} grid gap-3.5 lg:grid-cols-2 lg:gap-4 lg:items-stretch`}>
-          <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-            <div className={CARD_PAD}>
-              <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                Detalles de la propiedad
-              </h3>
-              <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-2">
-                {vm.propertyRows.map((r) => (
-                  <div key={r.label} className="min-w-0 border-b border-[rgba(44,36,22,0.06)] pb-2 last:border-b-0 sm:border-b-0 sm:pb-0">
-                    <dt className={typo.detailLabel} style={{ color: MUTED_LIGHT }}>
-                      {r.label}
-                    </dt>
-                    <dd className={`mt-0.5 ${typo.detailValue}`}>{r.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          </div>
-          <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-            <div className={CARD_PAD}>
-              <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                Características destacadas
-              </h3>
-              {vm.destacadosLabels.length ? (
-                <ul className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-1.5">
-                  {vm.destacadosLabels.map((t) => (
-                    <li key={t} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
-                      <span
-                        className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                        style={{ background: `linear-gradient(180deg, #C9A85A, ${BRONZE})` }}
-                      >
-                        ✓
-                      </span>
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={typo.body} style={{ color: MUTED }}>
-                  Sin características seleccionadas.
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Descripción — inmediatamente bajo el par de tarjetas */}
-        <section
-          className={`${SECTION_GAP} rounded-xl border`}
-          style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
-        >
-          <div className={CARD_PAD}>
-            <h3
-              className={`mb-2.5 ${typo.sectionSerif}`}
-              style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}
-            >
-              Descripción
-            </h3>
-            {vm.hasDescription ? (
-              <div className={`space-y-3 ${typo.body}`}>
-                {vm.descripcionPrincipal.split(/\n\n+/).map((para, i) => (
-                  <p key={i} className="whitespace-pre-wrap text-[#3a342c]">
-                    {para}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className={typo.body} style={{ color: MUTED }}>
-                Sin descripción todavía.
-              </p>
-            )}
-            {vm.hasNotas ? (
-              <div className="mt-4 border-t pt-3" style={{ borderColor: "rgba(44,36,22,0.08)" }}>
-                <p className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                  Notas adicionales
-                </p>
-                <p className={`${typo.body} whitespace-pre-wrap`} style={{ color: MUTED }}>
-                  {vm.notasAdicionales}
-                </p>
+        {/* Detalles + características — misma fila visual; cada tarjeta solo si hay filas / destacados */}
+        {(vm.propertyRows.length > 0 || vm.destacadosLabels.length > 0) && (
+          <section className={`${SECTION_GAP} grid gap-3.5 lg:grid-cols-2 lg:gap-4 lg:items-stretch`}>
+            {vm.propertyRows.length > 0 ? (
+              <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+                <div className={CARD_PAD}>
+                  <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
+                    Detalles de la propiedad
+                  </h3>
+                  <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-2">
+                    {vm.propertyRows.map((r) => (
+                      <div key={r.label} className="min-w-0 border-b border-[rgba(44,36,22,0.06)] pb-2 last:border-b-0 sm:border-b-0 sm:pb-0">
+                        <dt className={typo.detailLabel} style={{ color: MUTED_LIGHT }}>
+                          {r.label}
+                        </dt>
+                        <dd className={`mt-0.5 ${typo.detailValue}`}>{r.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
               </div>
             ) : null}
-          </div>
-        </section>
+            {vm.destacadosLabels.length > 0 ? (
+              <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+                <div className={CARD_PAD}>
+                  <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
+                    Características destacadas
+                  </h3>
+                  <ul className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-1.5">
+                    {vm.destacadosLabels.map((t) => (
+                      <li key={t} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
+                        <span
+                          className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                          style={{ background: `linear-gradient(180deg, #C9A85A, ${BRONZE})` }}
+                        >
+                          ✓
+                        </span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        )}
+
+        {vm.hasDescription || vm.hasNotas ? (
+          <section
+            className={`${SECTION_GAP} rounded-xl border`}
+            style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
+          >
+            <div className={CARD_PAD}>
+              <h3
+                className={`mb-2.5 ${typo.sectionSerif}`}
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}
+              >
+                Descripción
+              </h3>
+              {vm.hasDescription ? (
+                <div className={`space-y-3 ${typo.body}`}>
+                  {vm.descripcionPrincipal.split(/\n\n+/).map((para, i) => (
+                    <p key={i} className="whitespace-pre-wrap text-[#3a342c]">
+                      {para}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              {vm.hasNotas ? (
+                <div className={`${vm.hasDescription ? "mt-4 border-t pt-3" : ""}`} style={{ borderColor: "rgba(44,36,22,0.08)" }}>
+                  <p className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
+                    Notas adicionales
+                  </p>
+                  <p className={`${typo.body} whitespace-pre-wrap`} style={{ color: MUTED }}>
+                    {vm.notasAdicionales}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {(vm.extras.openHouseSummary || vm.extras.asesorBlock || mapsUrl) && (
           <section className={`${SECTION_GAP} space-y-3`}>

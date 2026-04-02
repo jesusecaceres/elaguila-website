@@ -52,3 +52,9 @@ export function clampNativeImageOpacity(v: number): number {
   if (!Number.isFinite(v)) return 1;
   return Math.min(1, Math.max(0, v));
 }
+
+/** Shared with layout text and logo (1–40) for a single trim stacking context */
+export function clampNativeLayerZIndex(v: number): number {
+  if (!Number.isFinite(v)) return 8;
+  return Math.min(40, Math.max(1, Math.round(v)));
+}

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
-import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
+import { AutosNegociosPreviewClient } from "./AutosNegociosPreviewClient";
 
 export const metadata: Metadata = {
   title: "Vista previa — Auto · Negocio",
@@ -12,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function ClasificadosAutosNegociosPreviewPage() {
-  return <AutoDealerPreviewPage data={mockAutoDealerListing} />;
+  return <AutosNegociosPreviewClient />;
 }

@@ -99,8 +99,6 @@ export type AgenteIndividualResidencialFormState = {
   agenteTitulo: string;
   /** professionalCard.agentLicense */
   agenteLicencia: string;
-  /** professionalCard.agentBio */
-  agenteBioCorta: string;
   /** Tarjeta: teléfono mostrado; respaldo para CTAs si el destino dedicado va vacío. */
   telefonoPrincipal: string;
   /** Tarjeta: correo mostrado; respaldo para «Solicitar información». */
@@ -114,6 +112,8 @@ export type AgenteIndividualResidencialFormState = {
   marcaLicencia: string;
   /** professionalCard.brandWebsite (opcional) */
   marcaSitioWeb: string;
+  /** Si es false, no se muestra el bloque oficina/marca en vista previa aunque haya datos. */
+  mostrarMarcaEnTarjeta: boolean;
 
   /** Un campo por icono; sin inferencia de plataforma. */
   socialInstagram: string;
@@ -288,7 +288,6 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
       const line = (ag.redes as string[]).find(Boolean);
       if (line) out.socialOtro = line;
     }
-    if (typeof ag.bio === "string") out.agenteBioCorta = ag.bio;
     if (typeof ag.areaServicio === "string") out.agenteAreaServicio = ag.areaServicio;
     if (typeof ag.idiomas === "string") out.agenteIdiomas = ag.idiomas;
   }
@@ -384,7 +383,6 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     agenteNombre: "",
     agenteTitulo: "",
     agenteLicencia: "",
-    agenteBioCorta: "",
     telefonoPrincipal: "",
     correoPrincipal: "",
 
@@ -392,6 +390,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     marcaLogoDataUrl: "",
     marcaLicencia: "",
     marcaSitioWeb: "",
+    mostrarMarcaEnTarjeta: true,
 
     socialInstagram: "",
     socialFacebook: "",
@@ -452,6 +451,7 @@ export function mergePartialAgenteIndividualResidencial(
   for (const k of ["media", "detalles", "agente", "cta", "extras", "enlaceListado", "tipoPublicacion"]) {
     delete raw[k];
   }
+  delete (raw as Record<string, unknown>).agenteBioCorta;
   const flat = raw as Partial<AgenteIndividualResidencialFormState>;
 
   migrateLegacyFlatFields(legacy, flat);
@@ -506,11 +506,19 @@ export function mergePartialAgenteIndividualResidencial(
 
   const correoPrincipal = trim(flat.correoPrincipal) || trim(nested.correoPrincipal) || base.correoPrincipal;
 
+  const mostrarMarcaEnTarjeta =
+    typeof flat.mostrarMarcaEnTarjeta === "boolean"
+      ? flat.mostrarMarcaEnTarjeta
+      : typeof nested.mostrarMarcaEnTarjeta === "boolean"
+        ? nested.mostrarMarcaEnTarjeta
+        : base.mostrarMarcaEnTarjeta;
+
   return {
     ...base,
     ...nested,
     ...flat,
     tipoPublicacionFijo: "venta_residencial",
+    mostrarMarcaEnTarjeta,
     estadoAnuncio: coerceEstado(flat.estadoAnuncio ?? nested.estadoAnuncio ?? base.estadoAnuncio),
     condicionPropiedad: coerceCondicion(flat.condicionPropiedad ?? nested.condicionPropiedad ?? base.condicionPropiedad),
     listadoUrl,

@@ -11,6 +11,7 @@ import {
   clampNativeFillOpacity,
   clampNativeRotationDeg,
   clampNativeSizePct,
+  clampNativeLayerZIndex,
   clampNativeStrokeWidthPx,
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import { withStrokeColorIfWidthActive } from "../../product-configurators/business-cards/designer-v2/studio/nativeShapeStroke";
@@ -127,6 +128,20 @@ export function BusinessCardDesignerV2NativeInspector(props: {
           {lg === "en" ? "Backward" : "Atrás"}
         </button>
       </div>
+
+      <label className={cx.labelBlock}>
+        {bcPick(businessCardBuilderCopy.nativeInspectorLayerZLabel, lg)}
+        <input
+          type="number"
+          disabled={locked}
+          min={1}
+          max={40}
+          className={cx.input}
+          value={selected.zIndex}
+          onChange={(e) => patch({ zIndex: clampNativeLayerZIndex(Number(e.target.value)) })}
+        />
+      </label>
+      <p className={cx.help}>{bcPick(businessCardBuilderCopy.nativeInspectorLayerZHelp, lg)}</p>
 
       <label className={cx.labelBlock}>
         {lg === "en" ? "Rotation (°)" : "Rotación (°)"}

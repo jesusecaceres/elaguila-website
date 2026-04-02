@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { mapAgenteIndividualResidencialToPreview } from "../mapping/mapAgenteIndividualResidencialToPreview";
 import type { AgenteIndividualResidencialPreviewVm } from "../mapping/agenteIndividualResidencialPreviewVm";
+import { getSampleAgenteIndividualResidencialPreviewVm } from "../mapping/sampleAgenteIndividualResidencialPreviewVm";
 import { loadAgenteResPreviewDraft } from "../application/utils/previewDraft";
 import {
   clearLeonixPreviewNavSessionFlag,
@@ -31,11 +33,21 @@ function tryMapDraft(): AgenteIndividualResidencialPreviewVm | null {
 }
 
 export default function AgenteIndividualResidencialPreviewClient() {
+  const searchParams = useSearchParams();
+  const isDevTemplateSample =
+    process.env.NODE_ENV === "development" && searchParams?.get("template") === "sample";
+
   const [phase, setPhase] = useState<Phase>("loading");
   const [vm, setVm] = useState<AgenteIndividualResidencialPreviewVm | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
   useLayoutEffect(() => {
+    if (isDevTemplateSample) {
+      setVm(getSampleAgenteIndividualResidencialPreviewVm());
+      setPhase("ready");
+      return;
+    }
+
     let cancelled = false;
     let tid: number | undefined;
     const deadline = Date.now() + GRACE_TOTAL_MS;
@@ -74,7 +86,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       cancelled = true;
       clearTimer();
     };
-  }, [retryKey]);
+  }, [retryKey, isDevTemplateSample]);
 
   if (phase === "loading") {
     return (

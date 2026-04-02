@@ -1,11 +1,12 @@
 /**
- * Mapa campo → slot de plantilla (documentación). Lógica: `mapAgenteIndividualResidencialToPreview`.
+ * Mapa campo → slot de plantilla. Lógica: `mapAgenteIndividualResidencialToPreview`.
+ * Inventario tabular: `mapping/agenteResPreviewSlotInventory.ts`.
  *
+ * professionalCard.* ← agente*, marca* (bloque marca solo si `mostrarMarcaEnTarjeta` y datos)
  * professionalCard.agentPhotoUrl ← agenteFotoDataUrl
  * professionalCard.agentName ← agenteNombre
  * professionalCard.agentTitle ← agenteTitulo
  * professionalCard.agentLicenseLine ← agenteLicencia
- * professionalCard.agentBio ← agenteBioCorta
  * professionalCard.phoneDisplay / emailDisplay ← telefonoPrincipal, correoPrincipal
  * professionalCard.brandLogoUrl ← marcaLogoDataUrl
  * professionalCard.brandName ← marcaNombre
@@ -19,4 +20,4 @@
  * listado bloque propiedad: listadoUrl | listadoArchivoDataUrl (información básica)
  */
 export const AGENTE_INDIVIDUAL_RESIDENCIAL_PREVIEW_SLOT_MAP_NOTE =
-  "agente-individual/residencial: ver este archivo y mapAgenteIndividualResidencialToPreview.ts";
+  "agente-individual/residencial: previewSlotMap.ts, agenteResPreviewSlotInventory.ts, mapAgenteIndividualResidencialToPreview.ts";

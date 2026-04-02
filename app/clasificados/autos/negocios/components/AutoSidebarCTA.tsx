@@ -15,25 +15,41 @@ const BTN_SECONDARY =
 const BTN_TERTIARY =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text-2)] transition hover:bg-[color:var(--lx-nav-hover)]";
 
+function nonEmpty(s: string | undefined | null): boolean {
+  return typeof s === "string" && s.trim().length > 0;
+}
+
 export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
-  const loc = `${data.city}, ${data.state}`;
+  const loc = [data.city, data.state].filter((x) => nonEmpty(x)).join(", ");
+  const priceOk = data.price !== undefined && Number.isFinite(data.price);
+  const showPriceBlock = priceOk || nonEmpty(data.monthlyEstimate ?? undefined) || nonEmpty(loc);
 
   return (
     <div className={CARD}>
-      <div className="border-b border-[color:var(--lx-nav-border)] pb-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">Precio anunciado</p>
-        <p className="mt-1 text-[1.85rem] font-bold leading-none tracking-tight text-[color:var(--lx-text)]">
-          {formatUsd(data.price)}
-        </p>
-        {data.monthlyEstimate ? (
-          <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text-2)]">{data.monthlyEstimate}</p>
-        ) : null}
-        <p className="mt-3 text-sm">
-          <span className="font-semibold text-[color:var(--lx-text-2)]">{loc}</span>
-        </p>
-      </div>
+      {showPriceBlock ? (
+        <div className="border-b border-[color:var(--lx-nav-border)] pb-4">
+          {priceOk ? (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">Precio anunciado</p>
+              <p className="mt-1 text-[1.85rem] font-bold leading-none tracking-tight text-[color:var(--lx-text)]">
+                {formatUsd(data.price)}
+              </p>
+            </>
+          ) : null}
+          {nonEmpty(data.monthlyEstimate ?? undefined) ? (
+            <p className={`text-sm font-semibold text-[color:var(--lx-text-2)] ${priceOk ? "mt-2" : ""}`}>
+              {data.monthlyEstimate}
+            </p>
+          ) : null}
+          {nonEmpty(loc) ? (
+            <p className={`text-sm ${priceOk || nonEmpty(data.monthlyEstimate ?? undefined) ? "mt-3" : ""}`}>
+              <span className="font-semibold text-[color:var(--lx-text-2)]">{loc}</span>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
-      <div className="mt-4 flex flex-col gap-3">
+      <div className={`flex flex-col gap-3 ${showPriceBlock ? "mt-4" : ""}`}>
         <button type="button" className={BTN_PRIMARY}>
           Solicitar disponibilidad
         </button>
@@ -51,10 +67,12 @@ export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
             <span className="max-[380px]:[font-size:11px]">Agendar prueba de manejo</span>
           </button>
         </div>
-        <button type="button" className={BTN_TERTIARY}>
-          <TbWorldWww className="h-[18px] w-[18px] shrink-0" aria-hidden />
-          Ver sitio web
-        </button>
+        {nonEmpty(data.dealerWebsite ?? undefined) ? (
+          <button type="button" className={BTN_TERTIARY}>
+            <TbWorldWww className="h-[18px] w-[18px] shrink-0" aria-hidden />
+            Ver sitio web
+          </button>
+        ) : null}
       </div>
     </div>
   );

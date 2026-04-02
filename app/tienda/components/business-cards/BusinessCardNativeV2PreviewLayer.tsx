@@ -18,7 +18,8 @@ type NativePatch = Partial<
 >;
 
 /**
- * Renders persisted Designer V2 native objects on top of V1 preview content (same trim box).
+ * Renders persisted Designer V2 native objects in the trim box. Stacking uses the same `zIndex`
+ * scale as block text and the logo; DOM order here does not override numeric z-index.
  */
 export function BusinessCardNativeV2PreviewLayer(props: {
   trimRef: RefObject<HTMLDivElement | null>;

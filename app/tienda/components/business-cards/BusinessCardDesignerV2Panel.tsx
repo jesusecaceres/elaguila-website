@@ -62,7 +62,6 @@ export function BusinessCardDesignerV2Panel(props: {
   const state = side === "front" ? doc.front : doc.back;
 
   const rows = useMemo(() => buildUnifiedLayerRows(doc, side, lg), [doc, side, lg]);
-  const templateRows = useMemo(() => rows.filter((r) => r.layerSource === "template"), [rows]);
   const studioRows = useMemo(() => rows.filter((r) => r.layerSource === "studio"), [rows]);
 
   const selectedNative = useMemo(
@@ -119,6 +118,36 @@ export function BusinessCardDesignerV2Panel(props: {
     onSelectV2Native(id);
   };
 
+  const kindBadgeLabel = (row: ReturnType<typeof buildUnifiedLayerRows>[number]) => {
+    switch (row.kind) {
+      case "template-text":
+        return bcPick(businessCardBuilderCopy.layerKindBadgeTemplateText, lang);
+      case "template-logo":
+        return bcPick(businessCardBuilderCopy.layerKindBadgeLogo, lang);
+      case "studio-image":
+        return bcPick(businessCardBuilderCopy.layerKindBadgeStudioImage, lang);
+      case "studio-shape":
+        return bcPick(businessCardBuilderCopy.layerKindBadgeStudioShape, lang);
+      default:
+        return "";
+    }
+  };
+
+  const kindBadgeClass = (row: ReturnType<typeof buildUnifiedLayerRows>[number]) => {
+    switch (row.kind) {
+      case "template-text":
+        return "bg-[rgba(255,255,255,0.08)] text-[rgba(255,247,226,0.78)]";
+      case "template-logo":
+        return "bg-[rgba(201,168,74,0.14)] text-[rgba(255,247,226,0.88)]";
+      case "studio-image":
+        return "bg-[rgba(201,168,74,0.22)] text-[rgba(201,168,74,0.98)]";
+      case "studio-shape":
+        return "bg-[rgba(201,168,74,0.16)] text-[rgba(255,247,226,0.82)]";
+      default:
+        return "";
+    }
+  };
+
   const renderRow = (row: ReturnType<typeof buildUnifiedLayerRows>[number]) => {
     const canSelectText = row.canSelectForTemplateEdit;
     const isLogoRow = row.isTemplateLogo;
@@ -127,6 +156,7 @@ export function BusinessCardDesignerV2Panel(props: {
       (canSelectText && selectedTextBlockId === row.id) ||
       (isLogoRow && logoInspectorActive) ||
       (isStudio && selectedV2NativeId === row.id);
+    const hidden = !row.visible;
 
     return (
       <li key={`${row.id}-${row.stackOrder}`}>
@@ -153,24 +183,28 @@ export function BusinessCardDesignerV2Panel(props: {
             }
           }}
           className={[
-            "w-full rounded-lg px-3 py-2 text-left text-xs flex items-center justify-between gap-2 transition-colors",
-            !canSelectText && !isLogoRow && !isStudio ? "opacity-40 cursor-not-allowed" : "hover:bg-[rgba(255,255,255,0.06)]",
-            isStudio && !row.visible ? "opacity-55" : "",
-            selected ? "bg-[rgba(201,168,74,0.15)] ring-1 ring-[rgba(201,168,74,0.35)]" : "bg-[rgba(0,0,0,0.15)]",
+            "w-full rounded-lg px-3 py-2.5 text-left text-xs flex items-center justify-between gap-2 transition-colors border-l-[3px]",
+            !canSelectText && !isLogoRow && !isStudio ? "opacity-40 cursor-not-allowed" : "hover:bg-[rgba(255,255,255,0.05)]",
+            hidden ? "opacity-45" : "",
+            selected
+              ? "border-[#c9a84a] bg-[rgba(201,168,74,0.16)] ring-1 ring-[rgba(201,168,74,0.42)] shadow-[inset_0_0_0_1px_rgba(201,168,74,0.12)]"
+              : "border-transparent bg-[rgba(0,0,0,0.14)]",
           ].join(" ")}
         >
-          <span className="flex min-w-0 items-center gap-2">
-            <span
-              className={[
-                "shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-                row.layerSource === "template" ? "bg-[rgba(255,255,255,0.08)] text-[rgba(255,247,226,0.65)]" : "bg-[rgba(201,168,74,0.2)] text-[rgba(201,168,74,0.95)]",
-              ].join(" ")}
-            >
-              {row.layerSource === "template"
-                ? bcPick(businessCardBuilderCopy.layerBadgeLayout, lang)
-                : bcPick(businessCardBuilderCopy.layerBadgeAdded, lang)}
+          <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span
+                className={["shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide", kindBadgeClass(row)].join(" ")}
+              >
+                {kindBadgeLabel(row)}
+              </span>
+              <span className="truncate text-[rgba(255,247,226,0.93)]">{row.displayLabel}</span>
+              {row.isInformationalTemplateText ? (
+                <span className="shrink-0 rounded bg-[rgba(255,255,255,0.06)] px-1 py-0.5 text-[8px] font-medium uppercase tracking-wide text-[rgba(255,255,255,0.42)]">
+                  {bcPick(businessCardBuilderCopy.layerRowInfoOnly, lang)}
+                </span>
+              ) : null}
             </span>
-            <span className="truncate text-[rgba(255,247,226,0.92)]">{row.displayLabel}</span>
             {row.locked ? (
               <span className="shrink-0 text-amber-400/90" title={lg === "en" ? "Locked" : "Bloqueado"} aria-hidden>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-90">
@@ -180,7 +214,7 @@ export function BusinessCardDesignerV2Panel(props: {
               </span>
             ) : null}
           </span>
-          <span className="shrink-0 text-[10px] text-[rgba(255,255,255,0.38)]">z{row.stackOrder}</span>
+          <span className="shrink-0 tabular-nums text-[10px] text-[rgba(255,255,255,0.42)]">z{row.stackOrder}</span>
         </button>
       </li>
     );
@@ -222,31 +256,26 @@ export function BusinessCardDesignerV2Panel(props: {
         </button>
       </div>
 
-      <div className="mt-4 space-y-4 max-h-[min(52vh,420px)] overflow-y-auto pr-1">
-        {templateRows.length > 0 ? (
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.42)]">
-              {bcPick(businessCardBuilderCopy.refinementsTemplateGroup, lang)}
-            </p>
-            <p className="mb-2 text-[10px] text-[rgba(255,255,255,0.35)]">
-              {bcPick(businessCardBuilderCopy.refinementsTemplateHelp, lang)}
-            </p>
-            <ul className="space-y-1.5">{templateRows.map((r) => renderRow(r))}</ul>
-          </div>
-        ) : null}
-
-        {studioRows.length > 0 ? (
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[rgba(201,168,74,0.55)]">
-              {bcPick(businessCardBuilderCopy.refinementsAddedGroup, lang)}
-            </p>
-            <ul className="space-y-1.5">{studioRows.map((r) => renderRow(r))}</ul>
-          </div>
+      <div className="mt-4 max-h-[min(52vh,420px)] overflow-y-auto pr-1">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.48)]">
+          {bcPick(businessCardBuilderCopy.refinementsCompositionStackTitle, lang)}
+        </p>
+        <p className="mb-1 text-[10px] leading-snug text-[rgba(255,255,255,0.38)]">
+          {bcPick(businessCardBuilderCopy.refinementsStackCaption, lang)}
+        </p>
+        <p className="mb-3 text-[10px] leading-snug text-[rgba(255,255,255,0.35)]">
+          {bcPick(businessCardBuilderCopy.refinementsTemplateHelp, lang)}
+        </p>
+        {rows.length > 0 ? (
+          <ul className="space-y-1.5">{rows.map((r) => renderRow(r))}</ul>
         ) : (
-          <p className="text-[11px] text-[rgba(255,255,255,0.35)]">
+          <p className="text-[11px] text-[rgba(255,255,255,0.35)]">{bcPick(businessCardBuilderCopy.refinementsEmpty, lang)}</p>
+        )}
+        {studioRows.length === 0 && rows.length > 0 ? (
+          <p className="mt-3 border-t border-[rgba(255,255,255,0.08)] pt-3 text-[10px] leading-snug text-[rgba(255,255,255,0.38)]">
             {bcPick(businessCardBuilderCopy.refinementsEmpty, lang)}
           </p>
-        )}
+        ) : null}
       </div>
 
       {embedNativeInspector && selectedNative ? (

@@ -70,7 +70,7 @@ function resolveAnyHref(raw: string): string | null {
 
 function formatPrice(raw: string): string {
   const t = trim(raw);
-  if (!t) return "—";
+  if (!t) return "";
   const n = Number(String(t).replace(/[^0-9.]/g, ""));
   if (Number.isFinite(n)) {
     try {
@@ -187,11 +187,12 @@ function hrefFolletoCta(s: AgenteIndividualResidencialFormState): string | null 
 }
 
 /**
- * Sitio web (CTA): enlace dedicado; si vacío → sitio de marca (tarjeta).
+ * Sitio web (CTA): enlace dedicado; si vacío → sitio de marca solo si el bloque marca está activo en formulario.
  */
 function hrefSitioWebCta(s: AgenteIndividualResidencialFormState): string | null {
   const direct = hrefFromUserInput(s.ctaEnlaceSitioWeb);
   if (direct) return direct;
+  if (!s.mostrarMarcaEnTarjeta) return null;
   return hrefFromUserInput(s.marcaSitioWeb);
 }
 
@@ -201,12 +202,14 @@ function listadoDownloadName(s: AgenteIndividualResidencialFormState): string | 
   return trim(s.listadoArchivoNombre) || null;
 }
 
-function quickFact(
+function quickFactOrNull(
   key: AgenteResQuickFactSemanticKey,
   label: string,
   raw: string,
-): AgenteResQuickFactVm {
-  return { key, label, value: trim(raw) || "—" };
+): AgenteResQuickFactVm | null {
+  const v = trim(raw);
+  if (!v) return null;
+  return { key, label, value: v };
 }
 
 export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialPreviewVm {
@@ -218,18 +221,18 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
   const secondaryPhoto2Url = restPhotos[1] ?? null;
 
   const pubLabel = "Venta residencial";
-  const cityLine = [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(" · ") || "—";
+  const cityLine = [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(" · ");
   const locationLine = [cityLine, trim(s.direccion)].filter(Boolean).join(" · ");
 
-  /** Orden fijo de plantilla — cada fila tiene clave semántica para icono y jerarquía. */
+  /** Orden fijo de plantilla — solo entradas con valor en formulario. */
   const quickFacts: AgenteResQuickFactVm[] = [
-    quickFact("recamaras", "Recámaras", s.recamaras),
-    quickFact("banos", "Baños", s.banos),
-    quickFact("tamano_interior", "Interior (ft²)", s.tamanoInteriorSqft),
-    quickFact("estacionamientos", "Estacionamientos", s.estacionamientos),
-    quickFact("ano_construccion", "Año", s.anoConstruccion),
-    quickFact("tamano_lote", "Lote (ft²)", s.tamanoLoteSqft),
-  ];
+    quickFactOrNull("recamaras", "Recámaras", s.recamaras),
+    quickFactOrNull("banos", "Baños", s.banos),
+    quickFactOrNull("tamano_interior", "Interior (ft²)", s.tamanoInteriorSqft),
+    quickFactOrNull("estacionamientos", "Estacionamientos", s.estacionamientos),
+    quickFactOrNull("ano_construccion", "Año", s.anoConstruccion),
+    quickFactOrNull("tamano_lote", "Lote (ft²)", s.tamanoLoteSqft),
+  ].filter((x): x is AgenteResQuickFactVm => x != null);
 
   const videoPlayable = videoPlayableUrl(s);
   const videoDataUrl = videoPlayable?.startsWith("data:") ? videoPlayable : null;
@@ -246,10 +249,11 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
         : { role: "tour_or_plan" as const, href: null, variant: "none" as const };
 
   const hasBrandBlock = Boolean(
-    trim(s.marcaNombre) || trim(s.marcaLogoDataUrl) || hrefFromUserInput(s.marcaSitioWeb),
+    s.mostrarMarcaEnTarjeta &&
+      (trim(s.marcaNombre) || trim(s.marcaLogoDataUrl) || hrefFromUserInput(s.marcaSitioWeb)),
   );
 
-  const propertyRows: AgenteIndividualResidencialPreviewVm["propertyRows"] = [
+  const propertyRowsAll: AgenteIndividualResidencialPreviewVm["propertyRows"] = [
     { label: "Tipo de propiedad", value: formatTipoPropiedadDisplay(s) },
     { label: "Recámaras", value: trim(s.recamaras) || "—" },
     { label: "Baños", value: trim(s.banos) || "—" },
@@ -260,18 +264,21 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
     { label: "Año de construcción", value: trim(s.anoConstruccion) || "—" },
     { label: "Condición", value: COND_LABEL[s.condicionPropiedad] ?? "—" },
   ];
+  const propertyRows = propertyRowsAll.filter((r) => trim(r.value) !== "" && r.value !== "—");
 
   const destacadosLabels: string[] = [];
   for (const def of AGENTE_RES_DESTACADOS_DEFS) {
     if (s.destacados?.[def.id]) destacadosLabels.push(def.label);
   }
 
-  const title = trim(s.titulo) || "Título del anuncio";
+  const title = trim(s.titulo);
 
   const llamarHref = s.permitirLlamar ? buildTelHref(digitsOnly(numeroParaLlamar(s))) : null;
   const waHref = s.permitirWhatsApp ? buildWhatsappHref(digitsOnly(numeroParaWhatsapp(s)), "") : null;
   const solicitarEmail = correoSolicitarInfo(s);
-  const solicitarInfoHref = s.permitirSolicitarInformacion ? buildMailto(solicitarEmail, `Consulta — ${title}`, `Hola,\n\nMe interesa: ${title}`) : null;
+  const mailSubject = title || "Consulta";
+  const mailBodyIntro = title ? `Me interesa: ${title}` : "Me interesa su anuncio.";
+  const solicitarInfoHref = s.permitirSolicitarInformacion ? buildMailto(solicitarEmail, `Consulta — ${mailSubject}`, `Hola,\n\n${mailBodyIntro}`) : null;
 
   const programarRaw = trim(s.ctaEnlaceProgramarVisita);
   const programarVisitaHref = s.permitirProgramarVisita ? resolveAnyHref(programarRaw) : null;
@@ -338,12 +345,11 @@ export function mapAgenteIndividualResidencialToPreview(s: AgenteIndividualResid
       brandLicenseLine: trim(s.marcaLicencia) ? `Licencia de oficina: ${trim(s.marcaLicencia)}` : "",
       brandWebsiteHref: hrefFromUserInput(s.marcaSitioWeb),
       agentPhotoUrl: trim(s.agenteFotoDataUrl) || null,
-      agentName: trim(s.agenteNombre) || "Nombre del agente",
-      agentTitle: trim(s.agenteTitulo) || "Agente",
+      agentName: trim(s.agenteNombre),
+      agentTitle: trim(s.agenteTitulo),
       agentLicenseLine: trim(s.agenteLicencia) ? `Licencia o número profesional: ${trim(s.agenteLicencia)}` : "",
-      agentBio: trim(s.agenteBioCorta),
-      phoneDisplay: trim(s.telefonoPrincipal) || "—",
-      emailDisplay: trim(s.correoPrincipal) || "—",
+      phoneDisplay: trim(s.telefonoPrincipal),
+      emailDisplay: trim(s.correoPrincipal),
       areaServicioLine: trim(s.agenteAreaServicio),
       idiomasLine: trim(s.agenteIdiomas),
     },

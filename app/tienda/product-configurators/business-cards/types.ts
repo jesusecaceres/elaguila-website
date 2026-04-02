@@ -94,6 +94,20 @@ export type BusinessCardTextBlock = {
   zIndex: number;
   /** Omitted or `"default"` — inherit preview typography; other values use system font stacks (see `textFontPresets.ts`). */
   fontPreset?: BusinessCardTextFontPreset;
+  /** 0–0.3 em; 0 or omitted = default tracking */
+  letterSpacingEm?: number;
+  /** Unitless line height (1–2.2); omitted defaults to 1.2 in preview */
+  lineHeight?: number;
+  textTransform?: "none" | "uppercase";
+  /** Soft rounded pad behind text for readability on busy backgrounds */
+  textBackdrop?: "none" | "soft";
+  /** Hex for backdrop; defaults to near-black in preview */
+  textBackdropColor?: string;
+  /** 0–1 opacity for backdrop fill */
+  textBackdropOpacity?: number;
+  textShadow?: "none" | "subtle";
+  /** Optional quick preset; cleared when user edits spacing/case manually */
+  textTone?: "headline" | "support" | "caption";
 };
 
 export type BusinessCardLogoGeom = {

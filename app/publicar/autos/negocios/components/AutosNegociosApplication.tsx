@@ -1,0 +1,723 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo } from "react";
+import type { AutoDealerListing, DealerHoursEntry, VehicleBadge } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { WEEKDAY_HOURS_TEMPLATE } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
+import { useAutoDealerDraft } from "../hooks/useAutoDealerDraft";
+import { buildVehicleTitle } from "../lib/autoDealerTitle";
+import {
+  BADGE_OPTIONS,
+  BODY_STYLE_OPTIONS,
+  CONDITION_OPTIONS,
+  DRIVETRAIN_OPTIONS,
+  EXTERIOR_COLOR_OPTIONS,
+  FEATURE_OPTIONS,
+  FUEL_OPTIONS,
+  INTERIOR_COLOR_OPTIONS,
+  TITLE_STATUS_OPTIONS,
+  TRANSMISSION_OPTIONS,
+  US_STATE_OPTIONS,
+} from "../lib/autoDealerTaxonomy";
+import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
+
+const CARD =
+  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)]";
+const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
+const INPUT =
+  "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
+const GRID2 = "grid gap-4 sm:grid-cols-2";
+
+function parseOptInt(raw: string): number | undefined {
+  const t = raw.trim();
+  if (!t) return undefined;
+  const n = parseInt(t, 10);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function parseOptFloat(raw: string): number | undefined {
+  const t = raw.trim();
+  if (!t) return undefined;
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+export function AutosNegociosApplication() {
+  const { hydrated, vehicleTitleOverride, setVehicleTitleOverrideState, listing, setListingPatch, resetDraft } =
+    useAutoDealerDraft();
+
+  const autoTitlePreview = useMemo(
+    () => buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim),
+    [listing.year, listing.make, listing.model, listing.trim],
+  );
+
+  if (!hydrated) {
+    return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
+
+  function toggleBadge(key: VehicleBadge) {
+    const cur = new Set(listing.badges ?? []);
+    if (cur.has(key)) cur.delete(key);
+    else cur.add(key);
+    setListingPatch({ badges: [...cur] });
+  }
+
+  function toggleFeature(label: string) {
+    const cur = new Set(listing.features ?? []);
+    if (cur.has(label)) cur.delete(label);
+    else cur.add(label);
+    setListingPatch({ features: [...cur] });
+  }
+
+  function updateHour(i: number, patch: Partial<DealerHoursEntry>) {
+    const rows = [...(listing.dealerHours ?? [])];
+    if (!rows[i]) return;
+    rows[i] = { ...rows[i], ...patch };
+    setListingPatch({ dealerHours: rows });
+  }
+
+  return (
+    <div
+      className="min-h-screen pb-20 text-[color:var(--lx-text)]"
+      style={{
+        backgroundColor: "var(--lx-page)",
+        backgroundImage:
+          "radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.16), transparent 55%)",
+      }}
+    >
+      <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
+        <header className="mb-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">Publicar · Clasificados</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] md:text-4xl">Autos · Negocio</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+            Completa la información de tu inventario. Los cambios se guardan en este dispositivo. Abre la vista previa para ver exactamente cómo lo verá el comprador.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
+            <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">Borrador local</span>
+            <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-1 text-[color:var(--lx-text-2)]">
+              Guardado automático
+            </span>
+          </div>
+        </header>
+
+        <div className="flex flex-col gap-6">
+          {/* A — Principal */}
+          <section className={CARD}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Información principal del vehículo</h2>
+            <p className="mt-1 text-sm text-[color:var(--lx-muted)]">Datos básicos del anuncio.</p>
+            <div className={`${GRID2} mt-5`}>
+              <div>
+                <label className={LABEL}>Año</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.year ?? ""}
+                  onChange={(e) => setListingPatch({ year: parseOptInt(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Marca</label>
+                <input
+                  className={INPUT}
+                  value={listing.make ?? ""}
+                  onChange={(e) => setListingPatch({ make: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Modelo</label>
+                <input
+                  className={INPUT}
+                  value={listing.model ?? ""}
+                  onChange={(e) => setListingPatch({ model: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Versión / trim</label>
+                <input
+                  className={INPUT}
+                  value={listing.trim ?? ""}
+                  onChange={(e) => setListingPatch({ trim: e.target.value || undefined })}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-sm font-semibold text-[color:var(--lx-text)]">Título del anuncio</label>
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
+                  <input
+                    type="checkbox"
+                    checked={vehicleTitleOverride}
+                    onChange={(e) => setVehicleTitleOverrideState(e.target.checked)}
+                    className="rounded border-[color:var(--lx-nav-border)]"
+                  />
+                  Personalizar título
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                Por defecto: año, marca, modelo y trim. Activa la casilla para editar a mano.
+              </p>
+              <input
+                className={`${INPUT} mt-2`}
+                value={(vehicleTitleOverride ? listing.vehicleTitle : autoTitlePreview) ?? ""}
+                readOnly={!vehicleTitleOverride}
+                onChange={(e) => setListingPatch({ vehicleTitle: e.target.value || undefined })}
+              />
+            </div>
+
+            <div className={`${GRID2} mt-4`}>
+              <div>
+                <label className={LABEL}>Condición</label>
+                <select
+                  className={INPUT}
+                  value={listing.condition ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setListingPatch({
+                      condition: v === "" ? undefined : (v as AutoDealerListing["condition"]),
+                    });
+                  }}
+                >
+                  {CONDITION_OPTIONS.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL}>Precio (USD)</label>
+                <input
+                  className={INPUT}
+                  inputMode="decimal"
+                  value={listing.price ?? ""}
+                  onChange={(e) => setListingPatch({ price: parseOptFloat(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Pago mensual estimado</label>
+                <input
+                  className={INPUT}
+                  placeholder="Ej. Desde $450/mes"
+                  value={listing.monthlyEstimate ?? ""}
+                  onChange={(e) => setListingPatch({ monthlyEstimate: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Millaje</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.mileage ?? ""}
+                  onChange={(e) => setListingPatch({ mileage: parseOptFloat(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Ciudad</label>
+                <input
+                  className={INPUT}
+                  value={listing.city ?? ""}
+                  onChange={(e) => setListingPatch({ city: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Estado</label>
+                <select
+                  className={INPUT}
+                  value={listing.state ?? ""}
+                  onChange={(e) => setListingPatch({ state: e.target.value || undefined })}
+                >
+                  {US_STATE_OPTIONS.map((s) => (
+                    <option key={s || "empty"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>VIN</label>
+                <input
+                  className={INPUT}
+                  value={listing.vin ?? ""}
+                  onChange={(e) => setListingPatch({ vin: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Número de stock</label>
+                <input
+                  className={INPUT}
+                  value={listing.stockNumber ?? ""}
+                  onChange={(e) => setListingPatch({ stockNumber: e.target.value || undefined })}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* B — Especificaciones */}
+          <section className={CARD}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Especificaciones</h2>
+            <div className={`${GRID2} mt-5`}>
+              <div>
+                <label className={LABEL}>Transmisión</label>
+                <select
+                  className={INPUT}
+                  value={listing.transmission ?? ""}
+                  onChange={(e) => setListingPatch({ transmission: e.target.value || undefined })}
+                >
+                  {TRANSMISSION_OPTIONS.map((s) => (
+                    <option key={s || "t"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL}>Tracción</label>
+                <select
+                  className={INPUT}
+                  value={listing.drivetrain ?? ""}
+                  onChange={(e) => setListingPatch({ drivetrain: e.target.value || undefined })}
+                >
+                  {DRIVETRAIN_OPTIONS.map((s) => (
+                    <option key={s || "d"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>Motor</label>
+                <input
+                  className={INPUT}
+                  value={listing.engine ?? ""}
+                  onChange={(e) => setListingPatch({ engine: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Combustible</label>
+                <select
+                  className={INPUT}
+                  value={listing.fuelType ?? ""}
+                  onChange={(e) => setListingPatch({ fuelType: e.target.value || undefined })}
+                >
+                  {FUEL_OPTIONS.map((s) => (
+                    <option key={s || "f"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL}>MPG ciudad</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.mpgCity ?? ""}
+                  onChange={(e) =>
+                    setListingPatch({
+                      mpgCity: e.target.value === "" ? undefined : parseOptInt(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className={LABEL}>MPG carretera</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.mpgHighway ?? ""}
+                  onChange={(e) =>
+                    setListingPatch({
+                      mpgHighway: e.target.value === "" ? undefined : parseOptInt(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Estilo de carrocería</label>
+                <select
+                  className={INPUT}
+                  value={listing.bodyStyle ?? ""}
+                  onChange={(e) => setListingPatch({ bodyStyle: e.target.value || undefined })}
+                >
+                  {BODY_STYLE_OPTIONS.map((s) => (
+                    <option key={s || "b"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL}>Color exterior</label>
+                <select
+                  className={INPUT}
+                  value={listing.exteriorColor ?? ""}
+                  onChange={(e) => setListingPatch({ exteriorColor: e.target.value || undefined })}
+                >
+                  {EXTERIOR_COLOR_OPTIONS.map((s) => (
+                    <option key={s || "ex"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL}>Color interior</label>
+                <select
+                  className={INPUT}
+                  value={listing.interiorColor ?? ""}
+                  onChange={(e) => setListingPatch({ interiorColor: e.target.value || undefined })}
+                >
+                  {INTERIOR_COLOR_OPTIONS.map((s) => (
+                    <option key={s || "in"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={LABEL}>Puertas</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.doors ?? ""}
+                  onChange={(e) => setListingPatch({ doors: parseOptInt(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Asientos</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.seats ?? ""}
+                  onChange={(e) => setListingPatch({ seats: parseOptInt(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Estado del título</label>
+                <select
+                  className={INPUT}
+                  value={listing.titleStatus ?? ""}
+                  onChange={(e) => setListingPatch({ titleStatus: e.target.value || undefined })}
+                >
+                  {TITLE_STATUS_OPTIONS.map((s) => (
+                    <option key={s || "ti"} value={s}>
+                      {s || "Seleccionar…"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          {/* C — Insignias y destacados */}
+          <section className={CARD}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Insignias y destacados</h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {BADGE_OPTIONS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleBadge(key)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                    (listing.badges ?? []).includes(key)
+                      ? "border-[color:var(--lx-gold)] bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]"
+                      : "border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">Equipamiento</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {FEATURE_OPTIONS.map((f) => (
+                <label key={f} className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[color:var(--lx-text-2)]">
+                  <input
+                    type="checkbox"
+                    checked={(listing.features ?? []).includes(f)}
+                    onChange={() => toggleFeature(f)}
+                    className="rounded border-[color:var(--lx-nav-border)]"
+                  />
+                  {f}
+                </label>
+              ))}
+            </div>
+          </section>
+
+          {/* D — Multimedia */}
+          <section className={CARD}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Multimedia</h2>
+            <div className="mt-4">
+              <label className={LABEL}>URLs de fotos (una por línea)</label>
+              <textarea
+                className={`${INPUT} min-h-[100px] font-mono text-xs`}
+                placeholder="https://…"
+                value={(listing.heroImages ?? []).join("\n")}
+                onChange={(e) => {
+                  const urls = e.target.value
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  setListingPatch({ heroImages: urls });
+                }}
+              />
+            </div>
+            <div className="mt-4">
+              <label className={LABEL}>Subir imágenes (vista previa local)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="mt-1 block w-full text-sm"
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files?.length) return;
+                  const next = [...(listing.heroImages ?? [])];
+                  for (const f of Array.from(files)) {
+                    next.push(await readFileAsDataUrl(f));
+                  }
+                  setListingPatch({ heroImages: next });
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <div className="mt-4">
+              <label className={LABEL}>URL de video (recorrido)</label>
+              <input
+                className={INPUT}
+                placeholder="https://…"
+                value={listing.videoUrl ?? ""}
+                onChange={(e) => setListingPatch({ videoUrl: e.target.value.trim() || undefined })}
+              />
+            </div>
+            <div className="mt-4">
+              <label className={LABEL}>Logo del concesionario (URL o archivo)</label>
+              <input
+                className={INPUT}
+                placeholder="https://…"
+                value={listing.dealerLogo?.startsWith("data:") ? "" : listing.dealerLogo ?? ""}
+                onChange={(e) => setListingPatch({ dealerLogo: e.target.value.trim() || undefined })}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                className="mt-2 block w-full text-sm"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  const url = await readFileAsDataUrl(f);
+                  setListingPatch({ dealerLogo: url });
+                  e.target.value = "";
+                }}
+              />
+              {listing.dealerLogo?.startsWith("data:") ? (
+                <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Logo cargado desde archivo (vista previa local).</p>
+              ) : null}
+            </div>
+          </section>
+
+          {/* E — Negocio */}
+          <section className={CARD}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Información del negocio</h2>
+            <div className={`${GRID2} mt-5`}>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>Nombre del concesionario</label>
+                <input
+                  className={INPUT}
+                  value={listing.dealerName ?? ""}
+                  onChange={(e) => setListingPatch({ dealerName: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Teléfono</label>
+                <input
+                  className={INPUT}
+                  inputMode="tel"
+                  value={listing.dealerPhone ?? ""}
+                  onChange={(e) => setListingPatch({ dealerPhone: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Sitio web</label>
+                <input
+                  className={INPUT}
+                  placeholder="https://…"
+                  value={listing.dealerWebsite ?? ""}
+                  onChange={(e) => setListingPatch({ dealerWebsite: e.target.value.trim() || undefined })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>Dirección</label>
+                <input
+                  className={INPUT}
+                  value={listing.dealerAddress ?? ""}
+                  onChange={(e) => setListingPatch({ dealerAddress: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Calificación (1–5)</label>
+                <input
+                  className={INPUT}
+                  inputMode="decimal"
+                  value={listing.dealerRating ?? ""}
+                  onChange={(e) => setListingPatch({ dealerRating: parseOptFloat(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Número de reseñas</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  value={listing.dealerReviewCount ?? ""}
+                  onChange={(e) => setListingPatch({ dealerReviewCount: parseOptInt(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">Redes sociales</p>
+            <div className={`${GRID2} mt-3`}>
+              {(
+                [
+                  ["instagram", "Instagram"],
+                  ["facebook", "Facebook"],
+                  ["youtube", "YouTube"],
+                  ["tiktok", "TikTok"],
+                  ["website", "Sitio / globo"],
+                ] as const
+              ).map(([k, lab]) => (
+                <div key={k}>
+                  <label className={LABEL}>{lab}</label>
+                  <input
+                    className={INPUT}
+                    placeholder="https://…"
+                    value={listing.dealerSocials?.[k] ?? ""}
+                    onChange={(e) =>
+                      setListingPatch({
+                        dealerSocials: { ...listing.dealerSocials, [k]: e.target.value.trim() || undefined },
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                onClick={() =>
+                  setListingPatch({
+                    dealerHours: [...WEEKDAY_HOURS_TEMPLATE.map((h) => ({ ...h }))],
+                  })
+                }
+              >
+                Aplicar plantilla de horario (Lun–Dom)
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                onClick={() =>
+                  setListingPatch({
+                    dealerHours: [
+                      ...(listing.dealerHours ?? []),
+                      { day: "Día", open: "09:00", close: "17:00", closed: false },
+                    ],
+                  })
+                }
+              >
+                Añadir fila de horario
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {(listing.dealerHours ?? []).map((row, i) => (
+                <div
+                  key={`${row.day}-${i}`}
+                  className="grid gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                >
+                  <div>
+                    <label className={LABEL}>Día</label>
+                    <input
+                      className={INPUT}
+                      value={row.day}
+                      onChange={(e) => updateHour(i, { day: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL}>Apertura</label>
+                    <input
+                      className={INPUT}
+                      disabled={row.closed}
+                      value={row.open}
+                      onChange={(e) => updateHour(i, { open: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL}>Cierre</label>
+                    <input
+                      className={INPUT}
+                      disabled={row.closed}
+                      value={row.close}
+                      onChange={(e) => updateHour(i, { close: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end gap-2 sm:flex-row sm:items-end">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
+                      <input
+                        type="checkbox"
+                        checked={row.closed}
+                        onChange={(e) => updateHour(i, { closed: e.target.checked })}
+                        className="rounded border-[color:var(--lx-nav-border)]"
+                      />
+                      Cerrado
+                    </label>
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-red-700 hover:underline"
+                      onClick={() => {
+                        const h = [...(listing.dealerHours ?? [])];
+                        h.splice(i, 1);
+                        setListingPatch({ dealerHours: h });
+                      }}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* F — Descripción */}
+          <section className={CARD}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Descripción</h2>
+            <textarea
+              className={`${INPUT} mt-3 min-h-[140px]`}
+              placeholder="Describe el vehículo con el tono de tu concesionario."
+              value={listing.description ?? ""}
+              onChange={(e) => setListingPatch({ description: e.target.value || undefined })}
+            />
+          </section>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href="/clasificados/autos/negocios/preview"
+              className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)]"
+            >
+              Ver vista previa
+            </Link>
+            <button
+              type="button"
+              className="text-sm font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[color:var(--lx-text-2)] hover:underline"
+              onClick={() => resetDraft()}
+            >
+              Reiniciar borrador
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

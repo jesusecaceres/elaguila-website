@@ -18,6 +18,8 @@ import { textFontPresetOptions } from "../../../product-configurators/business-c
 import type { BusinessCardBuilderAction } from "../../../product-configurators/business-cards/businessCardBuilderReducer";
 import { bcPick, businessCardBuilderCopy } from "../../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../../data/businessCardProductCopy";
+import { clampTextZIndex } from "../../../product-configurators/business-cards/preview/textBlockPreviewStyles";
+import { BusinessCardTextBlockRichControls } from "./BusinessCardTextBlockRichControls";
 
 function clampBlockAxis(v: number): number {
   return Math.min(95, Math.max(5, v));
@@ -183,7 +185,7 @@ export function BusinessCardTextBlockInspector(props: {
                   type: "SET_TEXT_BLOCK",
                   side,
                   id: selectedBlock.id,
-                  patch: { fontSize: Number(e.target.value) },
+                  patch: { fontSize: Number(e.target.value), textTone: undefined },
                 })
               }
             />
@@ -198,7 +200,12 @@ export function BusinessCardTextBlockInspector(props: {
                   key={w}
                   type="button"
                   onClick={() =>
-                    dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { fontWeight: w } })
+                    dispatch({
+                      type: "SET_TEXT_BLOCK",
+                      side,
+                      id: selectedBlock.id,
+                      patch: { fontWeight: w, textTone: undefined },
+                    })
                   }
                   className={[
                     "flex-1 rounded-lg py-2 text-[11px] font-semibold border touch-manipulation",
@@ -238,6 +245,8 @@ export function BusinessCardTextBlockInspector(props: {
           </div>
         </div>
       </div>
+
+      <BusinessCardTextBlockRichControls lang={lang} side={side} selectedBlock={selectedBlock} dispatch={dispatch} />
 
       <div className="rounded-xl border border-[rgba(201,168,74,0.28)] bg-gradient-to-br from-[rgba(201,168,74,0.08)] to-white p-3 shadow-inner">
         <SectionTitle>{bcPick(businessCardBuilderCopy.textInspectorSectionColor, lang)}</SectionTitle>
@@ -412,24 +421,47 @@ export function BusinessCardTextBlockInspector(props: {
             </div>
           </div>
         </div>
-        <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-          {lang === "en" ? "Width %" : "Ancho %"}
-          <input
-            type="number"
-            className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-            value={Math.round(selectedBlock.widthPct)}
-            min={20}
-            max={92}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { widthPct: Number(e.target.value) },
-              })
-            }
-          />
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+            {lang === "en" ? "Width %" : "Ancho %"}
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+              value={Math.round(selectedBlock.widthPct)}
+              min={20}
+              max={92}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_TEXT_BLOCK",
+                  side,
+                  id: selectedBlock.id,
+                  patch: { widthPct: Number(e.target.value) },
+                })
+              }
+            />
+          </label>
+          <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
+            {bcPick(businessCardBuilderCopy.textRichZIndexLabel, lang)}
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+              value={selectedBlock.zIndex}
+              min={1}
+              max={40}
+              onChange={(e) =>
+                dispatch({
+                  type: "SET_TEXT_BLOCK",
+                  side,
+                  id: selectedBlock.id,
+                  patch: { zIndex: clampTextZIndex(Number(e.target.value)) },
+                })
+              }
+            />
+          </label>
+        </div>
+        <p className="text-[10px] text-[color:rgba(61,52,40,0.48)] leading-snug">
+          {bcPick(businessCardBuilderCopy.textRichZIndexHelp, lang)}
+        </p>
       </div>
     </div>
   );

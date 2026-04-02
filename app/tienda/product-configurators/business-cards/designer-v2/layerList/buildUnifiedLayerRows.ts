@@ -25,8 +25,8 @@ export type UnifiedLayerRow = {
   /** Studio image or shape — full studio inspector + reorder among studio only */
   isStudioObject: boolean;
   /**
-   * Forward/back in inspector only applies to studio objects, and only reorders among other studio objects.
-   * Template z-order is not changed by these actions.
+   * Forward/back in the native inspector swaps z-index with another studio object only.
+   * Text/logo z-order is edited in their own inspectors (same numeric stack as the preview).
    */
   studioReorderEligible: boolean;
   /** Legacy stacked text (no real block id) — list is informational */

@@ -30,7 +30,7 @@ export type AgenteResHeroVm = {
 
 /** professionalCard — tarjeta profesional + marca */
 export type ProfessionalCardVm = {
-  /** true si hay logo, nombre de marca o sitio (bloque marca dedicado). */
+  /** true si el formulario permite marca y hay logo, nombre o sitio (ver `mostrarMarcaEnTarjeta` + mapper). */
   hasBrandBlock: boolean;
   brandName: string;
   brandLogoUrl: string | null;
@@ -40,7 +40,6 @@ export type ProfessionalCardVm = {
   agentName: string;
   agentTitle: string;
   agentLicenseLine: string;
-  agentBio: string;
   phoneDisplay: string;
   emailDisplay: string;
   areaServicioLine: string;

@@ -34,14 +34,15 @@ function BiCheckDecor() {
 }
 
 export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
-  if (data.features.length === 0) return null;
+  const feats = (data.features ?? []).map((f) => f.trim()).filter(Boolean);
+  if (feats.length === 0) return null;
 
   return (
     <section className={CARD}>
       <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">Destacados</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">Equipamiento seleccionado por el vendedor</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {data.features.map((f) => (
+        {feats.map((f) => (
           <div key={f} className={PILL}>
             {iconForFeature(f)}
             <span className="text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{f}</span>

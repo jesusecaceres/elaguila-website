@@ -66,9 +66,9 @@ export const mockAutoDealerListing: AutoDealerListing = {
   dealerPhone: "(408) 555-0142",
   dealerAddress: "1855 W San Carlos St, San José, CA 95128",
   dealerHours: [
-    { days: "Lun–Vie", hours: "9:00 a.m. – 7:00 p.m." },
-    { days: "Sáb", hours: "10:00 a.m. – 6:00 p.m." },
-    { days: "Dom", hours: "Cerrado" },
+    { day: "Lun–Vie", open: "09:00", close: "19:00", closed: false },
+    { day: "Sáb", open: "10:00", close: "18:00", closed: false },
+    { day: "Dom", open: "", close: "", closed: true },
   ],
   dealerWebsite: "https://example.com/dealer",
   dealerSocials: {
