@@ -21,6 +21,7 @@ import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constan
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisuals";
 import newLogo from "../../../public/logo.png";
+import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 
 type Lang = "es" | "en";
 
@@ -82,7 +83,9 @@ export default function PublicarRootPage() {
     const dest =
       deepLinkCat === "bienes-raices"
         ? `${BR_PUBLICAR_HUB}?${p.toString()}`
-        : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+        : deepLinkCat === "autos"
+          ? `/publicar/autos?${p.toString()}`
+          : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -179,7 +182,10 @@ export default function PublicarRootPage() {
             {CHOOSER_CATEGORIES.map(({ key, Icon }) => {
               const label = categoryConfig[key].label[lang];
               const visual = LEONIX_CATEGORY_VISUALS[key];
-              const href = `/clasificados/publicar/${key}?lang=${lang}`;
+              const href =
+                key === "autos"
+                  ? withLangParam("/publicar/autos", lang === "en" ? "en" : "es")
+                  : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

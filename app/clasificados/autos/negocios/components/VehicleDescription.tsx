@@ -18,7 +18,7 @@ export function VehicleDescription({ data }: { data: AutoDealerListing }) {
     <section className={CARD}>
       <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">{title}</h2>
       {dealer ? <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{byline(dealer)}</p> : null}
-      <p className="mt-4 max-w-[65ch] text-[15px] leading-[1.7] text-[color:var(--lx-text-2)]">{body}</p>
+      <p className="mt-4 max-w-[65ch] break-words text-[15px] leading-[1.7] text-[color:var(--lx-text-2)]">{body}</p>
     </section>
   );
 }

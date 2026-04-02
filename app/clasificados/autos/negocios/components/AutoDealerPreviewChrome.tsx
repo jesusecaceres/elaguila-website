@@ -30,11 +30,11 @@ export function AutoDealerPreviewChrome({
   const autosHref = withLangParam("/clasificados/autos", lang);
 
   return (
-    <div className="min-h-screen pb-16 pt-6 text-[color:var(--lx-text)] md:pb-20" style={AUTO_DEALER_PREVIEW_PAGE_BG}>
+    <div className="min-h-screen overflow-x-hidden pb-16 pt-4 text-[color:var(--lx-text)] sm:pt-6 md:pb-20" style={AUTO_DEALER_PREVIEW_PAGE_BG}>
       <header className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex shrink-0 items-start gap-4">
-            <Link href={classifiedsHref} className="block w-[min(200px,42vw)] max-w-[200px]">
+          <div className="flex min-w-0 shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+            <Link href={classifiedsHref} className="block w-[min(160px,52vw)] max-w-[180px] sm:w-[min(200px,42vw)] sm:max-w-[200px]">
               <Image src={newLogo} alt="LEONIX" className="h-auto w-full object-contain object-left" priority />
             </Link>
             <nav aria-label="Breadcrumb" className="hidden min-w-0 pt-1 text-sm text-[color:var(--lx-muted)] sm:block">

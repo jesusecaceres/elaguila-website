@@ -30,13 +30,17 @@ import {
   writeSessionDesignDraft,
 } from "../../product-configurators/business-cards/businessCardDraftPersistence";
 import { hydrateBusinessCardDocumentFromSession } from "../../order/hydrateBusinessCardDocumentFromSession";
+import {
+  createDefaultNativeShape,
+  nextDesignerV2NativeZIndex,
+} from "../../product-configurators/business-cards/designer-v2/factories/nativeObjectDefaults";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
 import { BusinessCardContextualInspector } from "./editor/BusinessCardContextualInspector";
 import { BusinessCardDesignerV2Panel } from "./BusinessCardDesignerV2Panel";
-import { BusinessCardRefreshDesignPanel } from "./BusinessCardRefreshDesignPanel";
+import { BusinessCardRefreshDesignPanel, type BusinessCardRebuildShortcutAction } from "./BusinessCardRefreshDesignPanel";
 import { BusinessCardStudioToolbar } from "./BusinessCardStudioToolbar";
 import { BusinessCardStudioSelectionToolbar } from "./BusinessCardStudioSelectionToolbar";
 import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
@@ -247,8 +251,8 @@ export function BusinessCardBuilderShell(props: {
           </h1>
           <p className="mt-1 text-sm text-[rgba(255,255,255,0.62)]">
             {lang === "en"
-              ? "Premium 3.5″×2″ cards — production follows what you approve in this checkout flow."
-              : "Tarjetas 3.5″×2″ premium — la producción sigue lo que apruebes en este flujo de compra."}
+              ? "Premium 3.5″×2″ cards — Studio submits a reference render; print-ready upload is the separate final-file path."
+              : "Tarjetas 3.5″×2″ premium — Studio envía un render de referencia; la subida lista para imprenta es otro camino de archivo final."}
           </p>
         </div>
 
@@ -334,6 +338,61 @@ export function BusinessCardBuilderShell(props: {
           }}
           refreshSeedId={refreshSeedId}
           onRefreshSeedPlaced={setRefreshSeedId}
+          onRebuildShortcut={(action: BusinessCardRebuildShortcutAction) => {
+            const side = doc.activeSide;
+            const sideState = side === "front" ? doc.front : doc.back;
+            if (action === "open-studio-tab") {
+              setWorkspaceTab("studio");
+              return;
+            }
+            if (action === "side-front") {
+              dispatchTyped({ type: "SET_ACTIVE_SIDE", side: "front" });
+              return;
+            }
+            if (action === "side-back") {
+              dispatchTyped({ type: "SET_ACTIVE_SIDE", side: "back" });
+              return;
+            }
+            if (action === "add-text-line") {
+              const id = `c-${Date.now().toString(36)}`;
+              dispatchTyped({ type: "ADD_CUSTOM_TEXT_BLOCK", side, lang, blockId: id });
+              setWorkspaceTab("card");
+              setSelectedTextBlockId(id);
+              setLogoInspectorActive(false);
+              setSelectedV2NativeId(null);
+              return;
+            }
+            if (action === "add-shape") {
+              const id = `nv2s-${Date.now().toString(36)}`;
+              const z = nextDesignerV2NativeZIndex(sideState);
+              dispatchTyped({
+                type: "V2_ADD_NATIVE_SHAPE",
+                side,
+                object: createDefaultNativeShape({ id, zIndex: z }),
+              });
+              setWorkspaceTab("studio");
+              setSelectedV2NativeId(id);
+              setSelectedTextBlockId(null);
+              setLogoInspectorActive(false);
+              return;
+            }
+            if (action === "toggle-lock" && refreshSeedId) {
+              const seed =
+                (doc.front.designerV2NativeObjects ?? []).find((o) => o.id === refreshSeedId) ??
+                (doc.back.designerV2NativeObjects ?? []).find((o) => o.id === refreshSeedId) ??
+                null;
+              if (!seed) return;
+              const patchSide = (doc.front.designerV2NativeObjects ?? []).some((o) => o.id === refreshSeedId)
+                ? "front"
+                : "back";
+              dispatchTyped({
+                type: "V2_PATCH_NATIVE_OBJECT",
+                side: patchSide,
+                id: refreshSeedId,
+                patch: { locked: !seed.locked },
+              });
+            }
+          }}
         />
 
         <div className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px] xl:grid-rows-[auto_minmax(0,1fr)]">
@@ -383,8 +442,12 @@ export function BusinessCardBuilderShell(props: {
                     transformInteraction: true,
                     onMoveTextBlock: (id, xPct, yPct) =>
                       dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch: { xPct, yPct } }),
+                    onPatchTextBlock: (id, patch) =>
+                      dispatchTyped({ type: "SET_TEXT_BLOCK", side: doc.activeSide, id, patch }),
                     onMoveLogo: (xPct, yPct) =>
                       dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch: { xPct, yPct } }),
+                    onPatchLogoGeom: (patch) =>
+                      dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch }),
                   }}
                 />
               </div>
@@ -414,12 +477,12 @@ export function BusinessCardBuilderShell(props: {
           </div>
 
           <div className="order-3 min-w-0 xl:order-3 xl:col-start-2 xl:row-start-2 xl:sticky xl:top-24 self-start xl:max-h-[calc(100vh-6rem)] flex flex-col min-h-0">
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] p-1.5 flex gap-1 shrink-0">
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] p-1.5 flex gap-1 shrink-0 touch-manipulation">
               <button
                 type="button"
                 onClick={() => setWorkspaceTab("card")}
                 className={[
-                  "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                  "flex-1 min-h-[48px] rounded-xl px-3 py-2.5 text-sm font-semibold transition touch-manipulation",
                   workspaceTab === "card"
                     ? "bg-[rgba(201,168,74,0.22)] text-[rgba(255,247,226,0.98)] ring-1 ring-[rgba(201,168,74,0.35)]"
                     : "text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.06)]",
@@ -431,7 +494,7 @@ export function BusinessCardBuilderShell(props: {
                 type="button"
                 onClick={() => setWorkspaceTab("studio")}
                 className={[
-                  "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                  "flex-1 min-h-[48px] rounded-xl px-3 py-2.5 text-sm font-semibold transition touch-manipulation",
                   workspaceTab === "studio"
                     ? "bg-[rgba(201,168,74,0.22)] text-[rgba(255,247,226,0.98)] ring-1 ring-[rgba(201,168,74,0.35)]"
                     : "text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.06)]",

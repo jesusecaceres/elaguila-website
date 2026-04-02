@@ -76,7 +76,7 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
           {nonEmpty(data.dealerName) ? (
-            <h2 className="text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)]">{data.dealerName?.trim()}</h2>
+            <h2 className="break-words text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)]">{data.dealerName?.trim()}</h2>
           ) : null}
           {showRatingRow ? (
             <p className="mt-1.5 text-sm text-[color:var(--lx-muted)]">

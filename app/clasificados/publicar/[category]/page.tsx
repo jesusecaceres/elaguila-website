@@ -34,12 +34,22 @@ export default function PublicarCategoryPage() {
       router.replace(`/clasificados/publicar/en-venta?lang=${lang}`);
       return;
     }
+    if (categoryFromUrl === "autos") {
+      router.replace(`/publicar/autos?lang=${lang}`);
+      return;
+    }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
   }, [slug, categoryFromUrl, lang, router]);
 
-  if (slug === "bienes-raices" || slug === "br" || !categoryFromUrl || categoryFromUrl === "en-venta") {
+  if (
+    slug === "bienes-raices" ||
+    slug === "br" ||
+    !categoryFromUrl ||
+    categoryFromUrl === "en-venta" ||
+    categoryFromUrl === "autos"
+  ) {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
         {lang === "es" ? "Redirigiendo…" : "Redirecting…"}

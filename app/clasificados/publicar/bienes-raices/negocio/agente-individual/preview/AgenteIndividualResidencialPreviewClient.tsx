@@ -7,6 +7,8 @@ import { loadAgenteResPreviewDraft } from "../application/utils/previewDraft";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AgenteIndividualResidencialPreviewPage } from "./AgenteIndividualResidencialPreviewPage";
+import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
+import { withBrAgenteResLangParam } from "../application/brAgenteResidencialLang";
 
 /**
  * Runtime: `loadAgenteResPreviewDraft()` → `mergePartialAgenteIndividualResidencial` inside the loader.
@@ -14,6 +16,7 @@ import { AgenteIndividualResidencialPreviewPage } from "./AgenteIndividualReside
  * Plantilla llena de desarrollo: `mock/filledShellAgenteIndividualResidencial.ts` (no usar como fuente de runtime).
  */
 export default function AgenteIndividualResidencialPreviewClient() {
+  const { lang, t } = useBrAgenteResidencialCopy();
   const [data, setData] = useState<AgenteIndividualResidencialFormState>(createEmptyAgenteIndividualResidencialState);
 
   useEffect(() => {
@@ -24,8 +27,8 @@ export default function AgenteIndividualResidencialPreviewClient() {
   return (
     <AgenteIndividualResidencialPreviewPage
       data={data}
-      editHref={BR_PUBLICAR_NEGOCIO}
-      footerExtra="Leonix es una vitrina premium: el listado oficial puede estar en tu MLS o sitio web."
+      editHref={withBrAgenteResLangParam(BR_PUBLICAR_NEGOCIO, lang)}
+      footerExtra={t.previewUi.footerDefault}
       onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
     />
   );

@@ -51,7 +51,7 @@ export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
         {feats.map((f) => (
           <div key={f} className={PILL}>
             {iconForFeature(f)}
-            <span className="text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{f}</span>
+            <span className="break-words text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{f}</span>
           </div>
         ))}
       </div>

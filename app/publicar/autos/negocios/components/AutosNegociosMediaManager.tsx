@@ -342,15 +342,19 @@ export function AutosNegociosMediaManager({
           {images.map((img) => (
             <li
               key={img.id}
-              className="flex gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-2 shadow-sm"
+              className="flex flex-col gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-2 shadow-sm sm:flex-row sm:items-stretch"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt="" className="h-20 w-28 shrink-0 rounded-lg object-cover" />
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-1">
-                <div className="flex flex-wrap gap-1">
+              <img
+                src={img.url}
+                alt=""
+                className="aspect-[4/3] w-full shrink-0 rounded-lg object-cover sm:h-20 sm:w-28 sm:aspect-auto"
+              />
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                    className={`inline-flex min-h-[36px] items-center gap-0.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
                       img.isPrimary
                         ? "border-[color:var(--lx-gold)] bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]"
                         : "border-[color:var(--lx-nav-border)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
@@ -363,23 +367,23 @@ export function AutosNegociosMediaManager({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
+                    className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, -1)}
                     aria-label={m.before}
                   >
-                    <FiChevronLeft className="h-3 w-3" />
+                    <FiChevronLeft className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
+                    className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, 1)}
                     aria-label={m.after}
                   >
-                    <FiChevronRight className="h-3 w-3" />
+                    <FiChevronRight className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
-                    className="ml-auto inline-flex items-center gap-0.5 rounded-full border border-red-200 px-2 py-0.5 text-[10px] font-bold text-red-800 hover:bg-red-50"
+                    className="ml-auto inline-flex min-h-[36px] items-center gap-0.5 rounded-full border border-red-200 px-2.5 py-1 text-[10px] font-bold text-red-800 hover:bg-red-50"
                     onClick={() => remove(img.id)}
                   >
                     <FiTrash2 className="h-3 w-3" aria-hidden />
@@ -414,7 +418,7 @@ export function AutosNegociosMediaManager({
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+          className={`min-h-[40px] rounded-full px-3 py-2 text-xs font-bold ${
             vs === "url" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
           }`}
           onClick={setVideoModeUrl}
@@ -423,7 +427,7 @@ export function AutosNegociosMediaManager({
         </button>
         <button
           type="button"
-          className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+          className={`min-h-[40px] rounded-full px-3 py-2 text-xs font-bold ${
             vs === "file" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
           }`}
           onClick={setVideoModeFile}
@@ -431,7 +435,7 @@ export function AutosNegociosMediaManager({
           {m.videoFileTab}
         </button>
         {(vs || videoUrl || videoFile) && (
-          <button type="button" className="text-xs font-bold text-red-800 underline" onClick={clearVideo}>
+          <button type="button" className="min-h-[40px] px-1 text-xs font-bold text-red-800 underline" onClick={clearVideo}>
             {m.removeVideo}
           </button>
         )}

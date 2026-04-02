@@ -34,7 +34,9 @@ import {
   hasBrandBlockVisible,
   hrefFromUserInput,
   trim,
+  type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
+import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import {
   hasDescription,
   hasFeatures,
@@ -88,15 +90,9 @@ const QUICK_FACT_ICON: Record<
   tamano_lote: BiShapeSquare,
 };
 
-function tourPlanSlotLabel(variant: "tour" | "brochure" | "none"): string {
-  if (variant === "tour") return "Tour virtual";
-  if (variant === "brochure") return "Plano / folleto";
-  return "Tour / plano";
-}
-
 function anchorPropsForHref(href: string, downloadFallback?: string | null) {
   if (href.startsWith("data:")) {
-    return { download: downloadFallback || "archivo.pdf" } as const;
+    return { download: downloadFallback || "file.pdf" } as const;
   }
   return { target: "_blank" as const, rel: "noopener noreferrer" };
 }
@@ -176,25 +172,34 @@ export function AgenteIndividualResidencialPreviewPage({
   footerExtra?: string;
   onBeforeNavigateToEdit?: () => void;
 }) {
+  const { lang, t } = useBrAgenteResidencialCopy();
+  const locale: AgenteResPreviewLocale = lang === "en" ? "en" : "es";
+  const p = t.previewUi;
+
+  const slotTourCaption = (variant: "tour" | "brochure" | "none") => {
+    if (variant === "tour") return p.tourVirtual;
+    if (variant === "brochure") return p.planoFolleto;
+    return p.tourPlano;
+  };
+
   const g = buildGalleryModel(data);
   const cr = buildContactModel(data);
-  const propertyRows = buildPropertyDetailRows(data);
-  const destacadosLabels = buildDestacadosLabels(data);
-  const quickFacts = buildQuickFacts(data);
+  const propertyRows = buildPropertyDetailRows(data, locale);
+  const destacadosLabels = buildDestacadosLabels(data, locale);
+  const quickFacts = buildQuickFacts(data, locale);
   const showBrand = hasBrandBlockVisible(data);
   const title = trim(data.titulo);
   const priceDisplay = formatPrecioUsd(data.precio);
-  const statusPill = formatEstadoAnuncioLabel(data);
+  const statusPill = formatEstadoAnuncioLabel(data, locale);
   const locationLine = buildLocationLine(data);
   const mapQuery = buildMapQuery(data);
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
   const openHouseSummary = buildOpenHouseSummary(data);
   const asesorBlock = buildAsesorBlock(data);
-  const opLine = formatTipoPublicacionFijoLine(data);
+  const opLine = formatTipoPublicacionFijoLine(data, locale);
 
-  const agentLicenseLine = trim(data.agenteLicencia) ? `Licencia o número profesional: ${trim(data.agenteLicencia)}` : "";
-  const brandLicenseLine =
-    showBrand && trim(data.marcaLicencia) ? `Licencia de oficina: ${trim(data.marcaLicencia)}` : "";
+  const agentLicenseLine = trim(data.agenteLicencia) ? `${p.licenciaAgente} ${trim(data.agenteLicencia)}` : "";
+  const brandLicenseLine = showBrand && trim(data.marcaLicencia) ? `${p.licenciaMarca} ${trim(data.marcaLicencia)}` : "";
   const resolvedBrandSite = showBrand ? hrefFromUserInput(data.marcaSitioWeb) : null;
 
   return (
@@ -212,7 +217,7 @@ export function AgenteIndividualResidencialPreviewPage({
               className="rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]"
               style={{ borderColor: BORDER, color: MUTED }}
             >
-              Vista previa · Negocio
+              {p.badge}
             </span>
           </div>
           {editHref ? (
@@ -223,7 +228,7 @@ export function AgenteIndividualResidencialPreviewPage({
               style={{ color: BRONZE }}
               onClick={() => onBeforeNavigateToEdit?.()}
             >
-              Volver a editar
+              {p.volverEditar}
             </Link>
           ) : null}
         </div>
@@ -231,7 +236,7 @@ export function AgenteIndividualResidencialPreviewPage({
 
       <main className="mx-auto max-w-[1140px] px-4 pb-10 pt-1 sm:px-6 lg:px-7">
         <p className={`mb-0 text-center ${typo.meta}`} style={{ color: MUTED }}>
-          Vista previa del anuncio
+          {p.meta}
         </p>
 
         {/* 1 — Shell 2 cols (lg): columna izq. = un solo stack vertical; columna der. = rail agente */}
@@ -262,7 +267,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
                       style={{ color: BRONZE }}
                     >
-                      Ver en mapa
+                      {p.verMapa}
                     </a>
                   ) : null}
                 </p>
@@ -315,7 +320,7 @@ export function AgenteIndividualResidencialPreviewPage({
             </div>
             <div>
               <h3 className={`${typo.kicker} mb-1.5`} style={{ color: MUTED }}>
-                Galería
+                {p.galeria}
               </h3>
               <div className="grid gap-2.5 lg:grid-cols-12 lg:items-start lg:gap-3.5">
                 <div className="min-w-0 lg:col-span-8">
@@ -328,12 +333,12 @@ export function AgenteIndividualResidencialPreviewPage({
                         className="aspect-[16/10] w-full rounded-xl border object-cover"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
                       />
-                      <GalleryCaption>Foto principal</GalleryCaption>
+                      <GalleryCaption>{p.fotoPrincipal}</GalleryCaption>
                     </div>
                   ) : (
                     <div>
-                      <EmptySlot title="Foto principal" subtitle="Agrega fotos en el formulario." />
-                      <GalleryCaption>Foto principal</GalleryCaption>
+                      <EmptySlot title={p.slotPrincipal} subtitle={p.slotPrincipalSub} />
+                      <GalleryCaption>{p.fotoPrincipal}</GalleryCaption>
                     </div>
                   )}
                 </div>
@@ -366,12 +371,12 @@ export function AgenteIndividualResidencialPreviewPage({
                         className="aspect-[4/3] w-full rounded-lg border object-cover"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
                       />
-                      <GalleryCaption>Foto 3</GalleryCaption>
+                      <GalleryCaption>{p.foto3}</GalleryCaption>
                     </div>
                   ) : (
                     <div>
-                      <EmptySlot title="Foto 3" subtitle="Opcional" />
-                      <GalleryCaption>Foto 3</GalleryCaption>
+                      <EmptySlot title={p.foto3} subtitle={p.opcional} />
+                      <GalleryCaption>{p.foto3}</GalleryCaption>
                     </div>
                   )}
 
@@ -383,7 +388,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         className="aspect-[4/3] w-full rounded-lg border object-cover"
                         style={{ borderColor: BORDER }}
                       />
-                      <GalleryCaption>Video</GalleryCaption>
+                      <GalleryCaption>{p.video}</GalleryCaption>
                     </div>
                   ) : g.videoExternalHref ? (
                     <div>
@@ -395,18 +400,18 @@ export function AgenteIndividualResidencialPreviewPage({
                         style={{ borderColor: BORDER, background: "#1a2744", color: "#fff", boxShadow: MEDIA_SHADOW }}
                       >
                         <FiVideo className="h-6 w-6 opacity-90" aria-hidden />
-                        Reproducir video
+                        {p.reproducirVideo}
                       </a>
-                      <GalleryCaption>Video</GalleryCaption>
+                      <GalleryCaption>{p.video}</GalleryCaption>
                     </div>
                   ) : (
                     <div>
                       <EmptySlot
-                        title="Video"
-                        subtitle="Pega un enlace o sube un archivo."
+                        title={p.slotVideoTitle}
+                        subtitle={p.slotVideoSub}
                         icon={<FiVideo className="h-5 w-5" aria-hidden />}
                       />
-                      <GalleryCaption>Video</GalleryCaption>
+                      <GalleryCaption>{p.video}</GalleryCaption>
                     </div>
                   )}
 
@@ -421,14 +426,14 @@ export function AgenteIndividualResidencialPreviewPage({
                           g.tourOrPlan.variant === "brochure" ? "folleto.pdf" : "tour.pdf",
                         )}
                       >
-                        {g.tourOrPlan.variant === "tour" ? "Abrir tour" : "Abrir plano / folleto"}
+                        {g.tourOrPlan.variant === "tour" ? p.abrirTour : p.abrirPlano}
                       </a>
-                      <GalleryCaption>{tourPlanSlotLabel(g.tourOrPlan.variant)}</GalleryCaption>
+                      <GalleryCaption>{slotTourCaption(g.tourOrPlan.variant)}</GalleryCaption>
                     </div>
                   ) : (
                     <div>
-                      <EmptySlot title="Tour / plano" subtitle="Enlace o archivo (tour o folleto)." />
-                      <GalleryCaption>{tourPlanSlotLabel("none")}</GalleryCaption>
+                      <EmptySlot title={p.slotTour} subtitle={p.slotTourSub} />
+                      <GalleryCaption>{slotTourCaption("none")}</GalleryCaption>
                     </div>
                   )}
                 </div>
@@ -438,7 +443,7 @@ export function AgenteIndividualResidencialPreviewPage({
                 <div
                   className="mt-1.5 flex justify-center"
                   role="note"
-                  title="En el anuncio publicado, este control abre la galería completa."
+                  title={p.notaVerTodasFotos}
                 >
                   <span
                     className={`inline-flex items-center justify-center rounded-full border px-4 py-2 ${typo.kicker}`}
@@ -449,7 +454,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       cursor: "default",
                     }}
                   >
-                    Ver todas las fotos ({g.totalPhotos})
+                    {p.verTodasFotos(g.totalPhotos)}
                   </span>
                 </div>
               ) : null}
@@ -465,7 +470,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                     <div className={CARD_PAD}>
                       <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                        Detalles de la propiedad
+                        {p.detallesPropiedad}
                       </h3>
                       <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2">
                         {propertyRows.map((r) => (
@@ -484,18 +489,18 @@ export function AgenteIndividualResidencialPreviewPage({
                   <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                     <div className={CARD_PAD}>
                       <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                        Características destacadas
+                        {p.caracteristicas}
                       </h3>
                       <ul className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-2.5 sm:gap-y-1.5">
-                        {destacadosLabels.map((t) => (
-                          <li key={t} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
+                        {destacadosLabels.map((lbl) => (
+                          <li key={lbl} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
                             <span
                               className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                               style={{ background: `linear-gradient(180deg, #C9A85A, ${BRONZE})` }}
                             >
                               ✓
                             </span>
-                            <span>{t}</span>
+                            <span>{lbl}</span>
                           </li>
                         ))}
                       </ul>
@@ -512,7 +517,7 @@ export function AgenteIndividualResidencialPreviewPage({
                     className={`mb-2.5 ${typo.sectionSerif}`}
                     style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}
                   >
-                    Descripción
+                    {p.descripcion}
                   </h3>
                   {hasDescription(data) ? (
                     <div className={`space-y-3 ${typo.body}`}>
@@ -528,7 +533,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {hasNotas(data) ? (
                     <div className={`${hasDescription(data) ? "mt-4 border-t pt-3" : ""}`} style={{ borderColor: "rgba(44,36,22,0.08)" }}>
                       <p className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                        Notas adicionales
+                        {p.notasAdicionales}
                       </p>
                       <p className={`${typo.body} whitespace-pre-wrap`} style={{ color: MUTED }}>
                         {trim(data.notasAdicionales)}
@@ -552,7 +557,7 @@ export function AgenteIndividualResidencialPreviewPage({
                     <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={CARD_PAD}>
                         <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                          Open house
+                          {p.openHouse}
                         </h4>
                         <p className={`${typo.body} whitespace-pre-line`}>{openHouseSummary}</p>
                       </div>
@@ -574,7 +579,7 @@ export function AgenteIndividualResidencialPreviewPage({
                     <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={`${CARD_PAD} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}>
                         <h4 className={`${typo.kicker} mb-0`} style={{ color: MUTED }}>
-                          Ubicación aproximada
+                          {p.ubicacionAprox}
                         </h4>
                         {mapsUrl ? (
                           <a
@@ -584,7 +589,7 @@ export function AgenteIndividualResidencialPreviewPage({
                             className="inline-flex shrink-0 items-center justify-center rounded-lg border px-3 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.08)]"
                             style={{ borderColor: `${BRONZE}aa`, color: BRONZE }}
                           >
-                            Abrir en mapa
+                            {p.abrirMapa}
                           </a>
                         ) : null}
                       </div>
@@ -657,7 +662,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         background: "linear-gradient(145deg, rgba(255,252,247,0.95), rgba(249,246,241,0.75))",
                       }}
                     >
-                      Foto del agente
+                      {p.fotoAgente}
                     </div>
                   )}
                 </div>
@@ -669,12 +674,12 @@ export function AgenteIndividualResidencialPreviewPage({
                 ) : null}
                 {trim(data.agenteAreaServicio) ? (
                   <p className={`mt-2 text-center ${typo.bodySm}`} style={{ color: MUTED }}>
-                    <span className="font-semibold opacity-85">Área:</span> {trim(data.agenteAreaServicio)}
+                    <span className="font-semibold opacity-85">{p.area}</span> {trim(data.agenteAreaServicio)}
                   </p>
                 ) : null}
                 {trim(data.agenteIdiomas) ? (
                   <p className={`mt-1 text-center ${typo.bodySm}`} style={{ color: MUTED }}>
-                    <span className="font-semibold opacity-85">Idiomas:</span> {trim(data.agenteIdiomas)}
+                    <span className="font-semibold opacity-85">{p.idiomas}</span> {trim(data.agenteIdiomas)}
                   </p>
                 ) : null}
                 {agentLicenseLine ? (
@@ -744,7 +749,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       className="flex w-full items-center justify-center rounded-lg py-2.5 text-[13px] font-bold text-[#1E1810] shadow-sm transition hover:brightness-[1.02]"
                       style={{ background: `linear-gradient(180deg, #C9A85A 0%, ${BRONZE} 100%)` }}
                     >
-                      Llamar ahora
+                      {p.llamar}
                     </a>
                   ) : null}
                   {cr.showWhatsapp && cr.whatsappHref ? (
@@ -755,7 +760,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       className="flex w-full items-center justify-center rounded-lg border bg-white/70 py-2 text-[13px] font-semibold transition hover:bg-white"
                       style={{ borderColor: "rgba(37,211,102,0.35)" }}
                     >
-                      WhatsApp
+                      {p.whatsapp}
                     </a>
                   ) : null}
                   {cr.showSolicitarInformacion && cr.solicitarInfoHref ? (
@@ -764,7 +769,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       className="flex w-full items-center justify-center rounded-lg border py-2 text-[13px] font-semibold"
                       style={{ borderColor: BORDER }}
                     >
-                      Solicitar información
+                      {p.solicitarInfo}
                     </a>
                   ) : null}
                   {cr.showProgramarVisita && cr.programarVisitaHref ? (
@@ -774,7 +779,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       style={{ borderColor: BORDER }}
                       {...(cr.programarVisitaHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     >
-                      Programar visita
+                      {p.programarVisita}
                     </a>
                   ) : null}
                   {cr.showVerSitioWeb && cr.verSitioWebHref ? (
@@ -785,7 +790,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       className="flex w-full items-center justify-center rounded-lg border py-1.5 text-[11px] font-bold"
                       style={{ borderColor: BORDER }}
                     >
-                      Ver sitio web
+                      {p.verSitioWeb}
                     </a>
                   ) : null}
                   {cr.showVerListado && cr.verListadoHref ? (
@@ -795,7 +800,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       style={{ borderColor: `${BRONZE}99`, color: BRONZE }}
                       {...anchorPropsForHref(cr.verListadoHref, cr.listadoDownloadName)}
                     >
-                      Ver listado completo
+                      {p.verListado}
                     </a>
                   ) : null}
                   {cr.showVerMls && cr.verMlsHref ? (
@@ -805,7 +810,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       style={{ borderColor: BORDER }}
                       {...anchorPropsForHref(cr.verMlsHref, cr.listadoDownloadName)}
                     >
-                      Ver MLS
+                      {p.verMls}
                     </a>
                   ) : null}
                   {cr.showVerTour && cr.verTourHref ? (
@@ -815,7 +820,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       style={{ borderColor: BORDER }}
                       {...anchorPropsForHref(cr.verTourHref, "tour.pdf")}
                     >
-                      Ver tour
+                      {p.verTour}
                     </a>
                   ) : null}
                   {cr.showVerFolleto && cr.verFolletoHref ? (
@@ -825,7 +830,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       style={{ borderColor: BORDER }}
                       {...anchorPropsForHref(cr.verFolletoHref, "folleto.pdf")}
                     >
-                      Ver folleto
+                      {p.verFolleto}
                     </a>
                   ) : null}
                 </div>

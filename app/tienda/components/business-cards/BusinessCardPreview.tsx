@@ -5,7 +5,9 @@ import type { Lang } from "../../types/tienda";
 import type {
   BusinessCardDesignerV2NativeObject,
   BusinessCardDocument,
+  BusinessCardLogoGeom,
   BusinessCardSide,
+  BusinessCardTextBlock,
   TextFieldRole,
 } from "../../product-configurators/business-cards/types";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
@@ -25,6 +27,7 @@ import {
   textBlockOuterStyle,
 } from "../../product-configurators/business-cards/preview/textBlockPreviewStyles";
 import { BusinessCardNativeV2PreviewLayer } from "./BusinessCardNativeV2PreviewLayer";
+import { BusinessCardLogoWidthHandle, BusinessCardTextBlockWidthHandle } from "./BusinessCardPreviewTextLogoHandles";
 
 /**
  * Trim-accurate preview for builder + export root (`data-tienda-bc-export-root`).
@@ -51,7 +54,11 @@ export type BusinessCardPreviewEditApi = {
   /** When true, on-canvas resize/rotate handles are active */
   transformInteraction?: boolean;
   onMoveTextBlock: (id: string, xPct: number, yPct: number) => void;
+  /** Optional canvas width handle for text blocks (inspector parity). */
+  onPatchTextBlock?: (id: string, patch: Partial<BusinessCardTextBlock>) => void;
   onMoveLogo: (xPct: number, yPct: number) => void;
+  /** Optional canvas resize for logo width (inspector parity). */
+  onPatchLogoGeom?: (patch: Partial<BusinessCardLogoGeom>) => void;
 };
 
 export function BusinessCardPreview(props: {
@@ -208,14 +215,18 @@ export function BusinessCardPreview(props: {
                       transform: mergeTransform("translate(-50%, -50%)", doc.textNudgeX, doc.textNudgeY),
                     });
                     const showBackdrop = (b.textBackdrop ?? "none") === "soft";
+                    const showTextWidthHandle = Boolean(selected && editInteraction?.onPatchTextBlock);
                     return (
                       <div
                         key={b.id}
+                        role="group"
+                        aria-selected={selected}
+                        data-bc-text-selected={selected ? "true" : undefined}
                         className={[
-                          "absolute rounded-[3px]",
+                          "absolute rounded-[3px] overflow-visible",
                           editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
                           selected
-                            ? "ring-[3px] ring-[#c9a84a] ring-offset-[3px] ring-offset-[rgba(0,0,0,0.18)] shadow-[0_0_0_1px_rgba(201,168,74,0.45),0_6px_18px_rgba(201,168,74,0.22)]"
+                            ? "ring-[3px] ring-[#c9a84a] ring-offset-[4px] ring-offset-[rgba(0,0,0,0.22)] shadow-[0_0_0_1px_rgba(201,168,74,0.5),0_8px_22px_rgba(201,168,74,0.25)]"
                             : "",
                         ].join(" ")}
                         style={outer}
@@ -238,16 +249,27 @@ export function BusinessCardPreview(props: {
                         ) : (
                           t
                         )}
+                        {showTextWidthHandle && editInteraction ? (
+                          <BusinessCardTextBlockWidthHandle
+                            trimRef={trimRef}
+                            blockId={b.id}
+                            startWidthPct={b.widthPct}
+                            onPatchWidth={(id, widthPct) => editInteraction.onPatchTextBlock?.(id, { widthPct })}
+                          />
+                        ) : null}
                       </div>
                     );
                   })}
                 {showLogo ? (
                   <div
+                    role="group"
+                    aria-selected={editInteraction?.logoSelected}
+                    data-bc-logo-selected={editInteraction?.logoSelected ? "true" : undefined}
                     className={[
-                      "absolute rounded-md transition-shadow",
+                      "absolute rounded-md overflow-visible transition-shadow",
                       editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
                       editInteraction?.logoSelected
-                        ? "ring-[3px] ring-[#c9a84a] ring-offset-[3px] ring-offset-[rgba(0,0,0,0.18)] shadow-[0_0_0_1px_rgba(201,168,74,0.45),0_6px_18px_rgba(201,168,74,0.22)]"
+                        ? "ring-[3px] ring-[#c9a84a] ring-offset-[4px] ring-offset-[rgba(0,0,0,0.22)] shadow-[0_0_0_1px_rgba(201,168,74,0.5),0_8px_22px_rgba(201,168,74,0.25)]"
                         : "",
                     ].join(" ")}
                     style={{
@@ -274,6 +296,13 @@ export function BusinessCardPreview(props: {
                     <div className="relative aspect-square w-full pointer-events-none">
                       <img src={state.logo.previewUrl!} alt="" className="h-full w-full object-contain" />
                     </div>
+                    {editInteraction?.logoSelected && editInteraction.onPatchLogoGeom ? (
+                      <BusinessCardLogoWidthHandle
+                        trimRef={trimRef}
+                        startWidthPct={state.logoGeom.widthPct}
+                        onPatchWidth={(widthPct) => editInteraction.onPatchLogoGeom?.({ widthPct })}
+                      />
+                    ) : null}
                   </div>
                 ) : null}
               </>

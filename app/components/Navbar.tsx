@@ -289,7 +289,8 @@ function NavbarContent() {
   const isPreviewSurface =
     pathname.endsWith("/preview") ||
     pathname.includes("/preview/");
-  const isServiciosPublicProfile = pathname.startsWith("/servicios/perfil");
+  const isServiciosPublicProfile =
+    pathname.startsWith("/servicios/perfil");
   if (pathname === "/" || isPreviewSurface || isServiciosPublicProfile) return null;
 
   return (

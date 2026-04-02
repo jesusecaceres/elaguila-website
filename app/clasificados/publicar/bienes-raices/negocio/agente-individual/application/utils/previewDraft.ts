@@ -16,6 +16,24 @@ export type AgenteResPreviewReturnPayload = {
 let previewReturnMemory: AgenteIndividualResidencialFormState | null = null;
 let previewReturnTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Full in-memory snapshot of the form (including `data:` blobs) for preview + return-from-preview.
+ * sessionStorage often strips `data:` on quota; this bridge survives same-tab navigation until consumed in bootstrap.
+ */
+let fullDraftMediaBridge: AgenteIndividualResidencialFormState | null = null;
+
+function setFullDraftMediaBridge(state: AgenteIndividualResidencialFormState): void {
+  try {
+    fullDraftMediaBridge = JSON.parse(JSON.stringify(state)) as AgenteIndividualResidencialFormState;
+  } catch {
+    fullDraftMediaBridge = null;
+  }
+}
+
+export function clearAgenteResFullDraftMediaBridge(): void {
+  fullDraftMediaBridge = null;
+}
+
 function scheduleClearReturnMemory() {
   if (previewReturnTimer) clearTimeout(previewReturnTimer);
   previewReturnTimer = setTimeout(() => {
@@ -28,6 +46,7 @@ export function clearAgenteIndividualResidencialPublishTempState(): void {
   if (previewReturnTimer) clearTimeout(previewReturnTimer);
   previewReturnTimer = null;
   previewReturnMemory = null;
+  fullDraftMediaBridge = null;
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
@@ -123,17 +142,28 @@ function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boo
 }
 
 export function saveAgenteResPreviewDraft(state: AgenteIndividualResidencialFormState): void {
+  setFullDraftMediaBridge(state);
   savePreviewPayload(state, true);
 }
 
 export function saveAgenteResPreviewReturnDraft(state: AgenteIndividualResidencialFormState): void {
   if (typeof window === "undefined") return;
+  setFullDraftMediaBridge(state);
   previewReturnMemory = null;
   saveReturnPayload({ state, savedAt: Date.now() }, true);
 }
 
 export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormState | null {
   if (typeof window === "undefined") return null;
+  if (fullDraftMediaBridge) {
+    try {
+      return mergePartialAgenteIndividualResidencial(
+        fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+      );
+    } catch {
+      /* fall through */
+    }
+  }
   try {
     const raw = sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
     if (!raw) return null;
@@ -176,8 +206,13 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
       const data = JSON.parse(raw) as Partial<AgenteResPreviewReturnPayload>;
       if (data.state && typeof data.state === "object") {
         try {
-          const merged = mergePartialAgenteIndividualResidencial(data.state as Partial<AgenteIndividualResidencialFormState>);
+          const merged = fullDraftMediaBridge
+            ? mergePartialAgenteIndividualResidencial(
+                fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+              )
+            : mergePartialAgenteIndividualResidencial(data.state as Partial<AgenteIndividualResidencialFormState>);
           sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
+          fullDraftMediaBridge = null;
           previewReturnMemory = merged;
           scheduleClearReturnMemory();
           return merged;

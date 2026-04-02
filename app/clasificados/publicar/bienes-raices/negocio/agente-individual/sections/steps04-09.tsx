@@ -6,13 +6,9 @@ import { AGENTE_RES_DESTACADOS_DEFS } from "../schema/agenteIndividualResidencia
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
-
-const CONDICION_OPTS: ReadonlyArray<{ value: AgenteIndividualResidencialFormState["condicionPropiedad"]; label: string }> = [
-  { value: "excelente", label: "Excelente" },
-  { value: "buena", label: "Buena" },
-  { value: "regular", label: "Regular" },
-  { value: "necesita_reparacion", label: "Necesita reparación" },
-];
+import type { BrAgenteResidencialCopy } from "../application/brAgenteResidencialCopy";
+import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
+import { labelDestacadoForPublishStep } from "../lib/agenteResidencialPreviewFormat";
 
 export function Step04DetallesEsenciales({
   state,
@@ -21,12 +17,15 @@ export function Step04DetallesEsenciales({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
+  const { t } = useBrAgenteResidencialCopy();
+  const c = t.previewFormat.condicion;
+
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Detalles esenciales</h2>
-      <p className={aiSubClass}>Sólo lo que ayuda al comprador a decidir.</p>
+      <h2 className={aiTitleClass}>{t.step04.title}</h2>
+      <p className={aiSubClass}>{t.step04.sub}</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <AiField label="Recámaras">
+        <AiField label={t.step04.recamaras}>
           <input
             className={aiInputClass}
             value={state.recamaras}
@@ -35,10 +34,10 @@ export function Step04DetallesEsenciales({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Baños completos">
+        <AiField label={t.step04.banos}>
           <input className={aiInputClass} value={state.banos} onChange={(e) => setState((s) => ({ ...s, banos: e.target.value }))} autoComplete="off" />
         </AiField>
-        <AiField label="Medios baños" hint="Opcional.">
+        <AiField label={t.step04.mediosBanos} hint={t.step04.mediosHint}>
           <input
             className={aiInputClass}
             value={state.mediosBanos}
@@ -46,7 +45,7 @@ export function Step04DetallesEsenciales({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Tamaño interior" hint="Pies cuadrados aproximados.">
+        <AiField label={t.step04.tamanoInterior} hint={t.step04.tamanoInteriorHint}>
           <input
             className={aiInputClass}
             value={state.tamanoInteriorSqft}
@@ -54,7 +53,7 @@ export function Step04DetallesEsenciales({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Tamaño del lote" hint="Si aplica; si no, déjalo vacío.">
+        <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
           <input
             className={aiInputClass}
             value={state.tamanoLoteSqft}
@@ -62,7 +61,7 @@ export function Step04DetallesEsenciales({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Estacionamientos">
+        <AiField label={t.step04.estacionamientos}>
           <input
             className={aiInputClass}
             value={state.estacionamientos}
@@ -70,7 +69,7 @@ export function Step04DetallesEsenciales({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Año de construcción">
+        <AiField label={t.step04.ano}>
           <input
             className={aiInputClass}
             value={state.anoConstruccion}
@@ -78,7 +77,7 @@ export function Step04DetallesEsenciales({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Condición de la propiedad" hint="Estado general al momento de publicar.">
+        <AiField label={t.step04.condicion} hint={t.step04.condicionHint}>
           <select
             className={aiInputClass}
             value={state.condicionPropiedad}
@@ -89,11 +88,10 @@ export function Step04DetallesEsenciales({
               }))
             }
           >
-            {CONDICION_OPTS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
+            <option value="excelente">{c.excelente}</option>
+            <option value="buena">{c.buena}</option>
+            <option value="regular">{c.regular}</option>
+            <option value="necesita_reparacion">{c.necesita_reparacion}</option>
           </select>
         </AiField>
       </div>
@@ -108,10 +106,13 @@ export function Step05Caracteristicas({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
+  const { lang, t } = useBrAgenteResidencialCopy();
+  const loc = lang === "en" ? "en" : "es";
+
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Características destacadas</h2>
-      <p className={aiSubClass}>Marca lo que quieres mostrar en la vista previa.</p>
+      <h2 className={aiTitleClass}>{t.step05.title}</h2>
+      <p className={aiSubClass}>{t.step05.sub}</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {AGENTE_RES_DESTACADOS_DEFS.map((def) => (
           <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
@@ -126,7 +127,7 @@ export function Step05Caracteristicas({
                 }))
               }
             />
-            {def.label}
+            {labelDestacadoForPublishStep(def.id, loc)}
           </label>
         ))}
       </div>
@@ -141,11 +142,13 @@ export function Step06Descripcion({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
+  const { t } = useBrAgenteResidencialCopy();
+
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Descripción</h2>
+      <h2 className={aiTitleClass}>{t.step06.title}</h2>
       <div className="mt-5 space-y-4">
-        <AiField label="Descripción principal">
+        <AiField label={t.step06.principal}>
           <textarea
             className={aiTextareaClass}
             value={state.descripcionPrincipal}
@@ -153,7 +156,7 @@ export function Step06Descripcion({
             autoComplete="off"
           />
         </AiField>
-        <AiField label="Notas adicionales (opcional)" hint="Mensaje corto o detalle interno; no es el cuerpo principal.">
+        <AiField label={t.step06.notas} hint={t.step06.notasHint}>
           <textarea
             className={aiTextareaClass}
             value={state.notasAdicionales}
@@ -171,17 +174,23 @@ function PhotoOrFileRow({
   hint,
   value,
   onChange,
+  subirImagen,
+  pegarUrlImagen,
+  quitar,
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (next: string) => void;
+  subirImagen: string;
+  pegarUrlImagen: string;
+  quitar: string;
 }) {
   return (
     <AiField label={label} hint={hint}>
       <div className="mt-1.5 flex flex-wrap gap-2">
         <label className="cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold">
-          Subir imagen
+          {subirImagen}
           <input
             type="file"
             accept="image/*"
@@ -199,7 +208,7 @@ function PhotoOrFileRow({
           type="url"
           value={value.startsWith("data:") ? "" : value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Pegar URL de imagen"
+          placeholder={pegarUrlImagen}
           autoComplete="off"
         />
       </div>
@@ -208,7 +217,7 @@ function PhotoOrFileRow({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="" className="h-24 w-24 rounded-lg border object-cover" />
           <button type="button" className="text-xs font-semibold text-red-800" onClick={() => onChange("")}>
-            Quitar
+            {quitar}
           </button>
         </div>
       ) : null}
@@ -221,17 +230,23 @@ function PhotoOrUrlBlock({
   hint,
   value,
   onChange,
+  subirArchivo,
+  pegarUrl,
+  quitar,
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (next: string) => void;
+  subirArchivo: string;
+  pegarUrl: string;
+  quitar: string;
 }) {
   return (
     <AiField label={label} hint={hint}>
       <div className="mt-1.5 flex flex-wrap gap-2">
         <label className="cursor-pointer rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold">
-          Subir archivo
+          {subirArchivo}
           <input
             type="file"
             accept="image/*"
@@ -249,7 +264,7 @@ function PhotoOrUrlBlock({
           type="url"
           value={value.startsWith("data:") ? "" : value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Pegar URL"
+          placeholder={pegarUrl}
           autoComplete="off"
         />
       </div>
@@ -258,7 +273,7 @@ function PhotoOrUrlBlock({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="" className="h-16 w-16 rounded-lg border object-cover" />
           <button type="button" className="text-xs font-semibold text-red-800" onClick={() => onChange("")}>
-            Quitar
+            {quitar}
           </button>
         </div>
       ) : null}
@@ -273,25 +288,32 @@ export function Step07InformacionProfesional({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
+  const { t } = useBrAgenteResidencialCopy();
+  const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
+  const quitar = t.step02.quitar;
+
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Información profesional</h2>
-      <p className={aiSubClass}>Cada campo corresponde a un espacio fijo en la vista previa.</p>
+      <h2 className={aiTitleClass}>{s7.title}</h2>
+      <p className={aiSubClass}>{s7.sub}</p>
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Agente</p>
+      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.agente}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <PhotoOrFileRow
-            label="Foto del agente"
-            hint="Sube una imagen o pega una URL pública."
+            label={s7.fotoAgente}
+            hint={s7.fotoAgenteHint}
             value={state.agenteFotoDataUrl}
             onChange={(v) => setState((s) => ({ ...s, agenteFotoDataUrl: v }))}
+            subirImagen={s7.subirImagen}
+            pegarUrlImagen={s7.pegarUrlImagen}
+            quitar={quitar}
           />
         </div>
-        <AiField label="Nombre completo">
+        <AiField label={s7.nombre}>
           <input className={aiInputClass} value={state.agenteNombre} onChange={(e) => setState((s) => ({ ...s, agenteNombre: e.target.value }))} autoComplete="name" />
         </AiField>
-        <AiField label="Título">
+        <AiField label={s7.titulo}>
           <input
             className={aiInputClass}
             value={state.agenteTitulo}
@@ -299,7 +321,7 @@ export function Step07InformacionProfesional({
             autoComplete="organization-title"
           />
         </AiField>
-        <AiField label="Licencia o número profesional" hint="Si aplica en tu estado.">
+        <AiField label={s7.licencia} hint={s7.licenciaHint}>
           <input className={aiInputClass} value={state.agenteLicencia} onChange={(e) => setState((s) => ({ ...s, agenteLicencia: e.target.value }))} autoComplete="off" />
         </AiField>
       </div>
@@ -313,33 +335,34 @@ export function Step07InformacionProfesional({
             onChange={(e) => setState((s) => ({ ...s, mostrarMarcaEnTarjeta: e.target.checked }))}
           />
           <span>
-            <span className="font-semibold">Mostrar oficina o marca en la tarjeta</span>
-            <span className="mt-0.5 block text-xs text-[#5C5346]/90">
-              Si está desactivado, la vista previa no muestra el bloque de marca aunque haya datos guardados.
-            </span>
+            <span className="font-semibold">{s7.mostrarMarca}</span>
+            <span className="mt-0.5 block text-xs text-[#5C5346]/90">{s7.mostrarMarcaHint}</span>
           </span>
         </label>
       </div>
 
       {state.mostrarMarcaEnTarjeta ? (
         <>
-          <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Oficina o marca</p>
+          <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.oficina}</p>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <AiField label="Nombre de oficina o marca">
+            <AiField label={s7.nombreMarca}>
               <input className={aiInputClass} value={state.marcaNombre} onChange={(e) => setState((s) => ({ ...s, marcaNombre: e.target.value }))} autoComplete="organization" />
             </AiField>
             <div className="sm:col-span-2">
               <PhotoOrUrlBlock
-                label="Logo de oficina o marca"
-                hint="Imagen o URL; se muestra arriba de tu foto en la vista previa."
+                label={s7.logo}
+                hint={s7.logoHint}
                 value={state.marcaLogoDataUrl}
                 onChange={(v) => setState((s) => ({ ...s, marcaLogoDataUrl: v }))}
+                subirArchivo={s7.subirArchivo}
+                pegarUrl={s7.pegarUrl}
+                quitar={quitar}
               />
             </div>
-            <AiField label="Licencia de broker u oficina (opcional)">
+            <AiField label={s7.licenciaMarca}>
               <input className={aiInputClass} value={state.marcaLicencia} onChange={(e) => setState((s) => ({ ...s, marcaLicencia: e.target.value }))} autoComplete="off" />
             </AiField>
-            <AiField label="Sitio web de oficina o marca (opcional)" hint="Enlace breve bajo el nombre de la marca en la tarjeta.">
+            <AiField label={s7.sitioMarca} hint={s7.sitioMarcaHint}>
               <input
                 className={aiInputClass}
                 type="url"
@@ -353,35 +376,35 @@ export function Step07InformacionProfesional({
         </>
       ) : null}
 
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Redes sociales</p>
-      <p className="mt-1 text-sm text-[#5C5346]/85">Un enlace por red; cada icono en la vista previa usa solo su campo.</p>
+      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
+      <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <AiField label="Instagram">
+        <AiField label={s7.instagram}>
           <input className={aiInputClass} type="url" value={state.socialInstagram} onChange={(e) => setState((s) => ({ ...s, socialInstagram: e.target.value }))} placeholder="https://" autoComplete="off" />
         </AiField>
-        <AiField label="Facebook">
+        <AiField label={s7.facebook}>
           <input className={aiInputClass} type="url" value={state.socialFacebook} onChange={(e) => setState((s) => ({ ...s, socialFacebook: e.target.value }))} placeholder="https://" autoComplete="off" />
         </AiField>
-        <AiField label="YouTube">
+        <AiField label={s7.youtube}>
           <input className={aiInputClass} type="url" value={state.socialYoutube} onChange={(e) => setState((s) => ({ ...s, socialYoutube: e.target.value }))} placeholder="https://" autoComplete="off" />
         </AiField>
-        <AiField label="TikTok">
+        <AiField label={s7.tiktok}>
           <input className={aiInputClass} type="url" value={state.socialTiktok} onChange={(e) => setState((s) => ({ ...s, socialTiktok: e.target.value }))} placeholder="https://" autoComplete="off" />
         </AiField>
-        <AiField label="X / Twitter">
+        <AiField label={s7.x}>
           <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
         </AiField>
-        <AiField label="Otro enlace social (opcional)">
+        <AiField label={s7.otroSocial}>
           <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
         </AiField>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <AiField label="Área de servicio (opcional)">
+        <AiField label={s7.areaServicio}>
           <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
         </AiField>
-        <AiField label="Idiomas (opcional)">
-          <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder="Ej. inglés y español" autoComplete="off" />
+        <AiField label={s7.idiomas}>
+          <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder={s7.idiomasPh} autoComplete="off" />
         </AiField>
       </div>
     </section>
@@ -407,6 +430,9 @@ export function Step08CtaEnlaces({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
+  const { t } = useBrAgenteResidencialCopy();
+  const s8 = t.step08;
+
   const row = (key: CtaToggleKey, label: string) => (
     <label key={key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
       <input
@@ -423,15 +449,12 @@ export function Step08CtaEnlaces({
 
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Contacto y enlaces</h2>
-      <p className={aiSubClass}>
-        Los interruptores activan el botón; el destino concreto viene del campo correspondiente. Sin destino válido, el botón no
-        aparece en la vista previa.
-      </p>
+      <h2 className={aiTitleClass}>{s8.title}</h2>
+      <p className={aiSubClass}>{s8.sub}</p>
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Contacto base (tarjeta)</p>
+      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.contactoBase}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <AiField label="Teléfono principal" hint="Se muestra en la tarjeta y sirve de respaldo si un destino de llamada va vacío.">
+        <AiField label={s8.telefono} hint={s8.telefonoHint}>
           <input
             className={aiInputClass}
             value={maskPhone(state.telefonoPrincipal)}
@@ -445,7 +468,7 @@ export function Step08CtaEnlaces({
             placeholder="(555) 555-5555"
           />
         </AiField>
-        <AiField label="Correo electrónico principal" hint="Se muestra en la tarjeta y sirve de respaldo para «Solicitar información».">
+        <AiField label={s8.correo} hint={s8.correoHint}>
           <input
             type="email"
             className={aiInputClass}
@@ -456,13 +479,10 @@ export function Step08CtaEnlaces({
         </AiField>
       </div>
 
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Destinos de los botones</p>
-      <p className="mt-1 text-xs text-[#5C5346]/85">
-        Cada botón usa solo su campo. Donde no indiques un valor, el mapa aplica respaldos (teléfono/correo principal, listado de
-        información básica o archivos de la galería); está documentado en el código del mapa.
-      </p>
+      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.destinos}</p>
+      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.destinosSub}</p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <AiField label="Número para llamadas" hint="Si vacío: teléfono principal.">
+        <AiField label={s8.numLlamadas} hint={s8.numLlamadasHint}>
           <input
             className={aiInputClass}
             value={maskPhone(state.ctaNumeroLlamadas)}
@@ -475,7 +495,7 @@ export function Step08CtaEnlaces({
             autoComplete="tel"
           />
         </AiField>
-        <AiField label="Número para WhatsApp" hint="Si vacío: teléfono principal.">
+        <AiField label={s8.numWa} hint={s8.numWaHint}>
           <input
             className={aiInputClass}
             value={maskPhone(state.ctaNumeroWhatsapp)}
@@ -488,7 +508,7 @@ export function Step08CtaEnlaces({
             autoComplete="tel"
           />
         </AiField>
-        <AiField label="Correo para solicitar información" hint="Si vacío: correo principal.">
+        <AiField label={s8.correoInfo} hint={s8.correoInfoHint}>
           <input
             type="email"
             className={aiInputClass}
@@ -497,7 +517,7 @@ export function Step08CtaEnlaces({
             autoComplete="email"
           />
         </AiField>
-        <AiField label="Enlace para programar visita" hint="Calendly u otro enlace https. Sin enlace, no hay botón.">
+        <AiField label={s8.enlaceVisita} hint={s8.enlaceVisitaHint}>
           <input
             className={aiInputClass}
             type="url"
@@ -506,7 +526,7 @@ export function Step08CtaEnlaces({
             placeholder="https://"
           />
         </AiField>
-        <AiField label="Enlace del sitio web" hint="Botón «Ver sitio web». Si vacío: sitio de oficina o marca (paso anterior).">
+        <AiField label={s8.enlaceWeb} hint={s8.enlaceWebHint}>
           <input
             className={aiInputClass}
             type="url"
@@ -515,7 +535,7 @@ export function Step08CtaEnlaces({
             placeholder="https://"
           />
         </AiField>
-        <AiField label="Enlace del MLS o listado completo" hint="Si vacío: listado de «Información básica».">
+        <AiField label={s8.enlaceListado} hint={s8.enlaceListadoHint}>
           <input
             className={aiInputClass}
             type="url"
@@ -524,7 +544,7 @@ export function Step08CtaEnlaces({
             placeholder="https://"
           />
         </AiField>
-        <AiField label="Enlace MLS (destino propio)" hint="Si vacío: mismo destino que «listado completo» o listado básico.">
+        <AiField label={s8.enlaceMls} hint={s8.enlaceMlsHint}>
           <input
             className={aiInputClass}
             type="url"
@@ -533,7 +553,7 @@ export function Step08CtaEnlaces({
             placeholder="https://"
           />
         </AiField>
-        <AiField label="Enlace del tour" hint="Si vacío: tour de «Fotos y medios».">
+        <AiField label={s8.enlaceTour} hint={s8.enlaceTourHint}>
           <input
             className={aiInputClass}
             type="url"
@@ -542,7 +562,7 @@ export function Step08CtaEnlaces({
             placeholder="https://"
           />
         </AiField>
-        <AiField label="Enlace del folleto" hint="Si vacío: folleto de «Fotos y medios».">
+        <AiField label={s8.enlaceFolleto} hint={s8.enlaceFolletoHint}>
           <input
             className={aiInputClass}
             type="url"
@@ -553,19 +573,19 @@ export function Step08CtaEnlaces({
         </AiField>
       </div>
 
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">Interruptores</p>
-      <p className="mt-1 text-xs text-[#5C5346]/85">«Mostrar iconos de redes» requiere al menos un enlace en el paso de redes.</p>
+      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.interruptores}</p>
+      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.interruptoresSub}</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {row("permitirSolicitarInformacion", "Solicitar información")}
-        {row("permitirProgramarVisita", "Programar visita")}
-        {row("permitirLlamar", "Llamar")}
-        {row("permitirWhatsApp", "WhatsApp")}
-        {row("permitirVerSitioWeb", "Ver sitio web")}
-        {row("permitirVerRedes", "Mostrar iconos de redes")}
-        {row("permitirVerListadoCompleto", "Ver listado completo")}
-        {row("permitirVerMls", "Ver MLS")}
-        {row("permitirVerTour", "Ver tour")}
-        {row("permitirVerFolleto", "Ver folleto")}
+        {row("permitirSolicitarInformacion", s8.ctaSolicitar)}
+        {row("permitirProgramarVisita", s8.ctaVisita)}
+        {row("permitirLlamar", s8.ctaLlamar)}
+        {row("permitirWhatsApp", s8.ctaWa)}
+        {row("permitirVerSitioWeb", s8.ctaWeb)}
+        {row("permitirVerRedes", s8.ctaRedes)}
+        {row("permitirVerListadoCompleto", s8.ctaListado)}
+        {row("permitirVerMls", s8.ctaMls)}
+        {row("permitirVerTour", s8.ctaTour)}
+        {row("permitirVerFolleto", s8.ctaFolleto)}
       </div>
     </section>
   );
@@ -578,10 +598,13 @@ export function Step09ExtrasOpcionales({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
+  const { t } = useBrAgenteResidencialCopy();
+  const s9 = t.step09;
+
   return (
     <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>Extras opcionales</h2>
-      <p className={aiSubClass}>Opcional; sólo aparece en la vista previa si hay datos.</p>
+      <h2 className={aiTitleClass}>{s9.title}</h2>
+      <p className={aiSubClass}>{s9.sub}</p>
       <div className="mt-5 space-y-6">
         <div className="rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
           <label className="flex items-center gap-2 text-sm font-semibold">
@@ -591,21 +614,21 @@ export function Step09ExtrasOpcionales({
               checked={state.extraOpenHouse}
               onChange={(e) => setState((s) => ({ ...s, extraOpenHouse: e.target.checked }))}
             />
-            Open house
+            {s9.openHouse}
           </label>
           {state.extraOpenHouse ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <AiField label="Fecha">
+              <AiField label={s9.fecha}>
                 <input type="date" className={aiInputClass} value={state.openHouseFecha} onChange={(e) => setState((s) => ({ ...s, openHouseFecha: e.target.value }))} />
               </AiField>
-              <AiField label="Hora inicio">
+              <AiField label={s9.horaInicio}>
                 <input type="time" className={aiInputClass} value={state.openHouseInicio} onChange={(e) => setState((s) => ({ ...s, openHouseInicio: e.target.value }))} />
               </AiField>
-              <AiField label="Hora fin">
+              <AiField label={s9.horaFin}>
                 <input type="time" className={aiInputClass} value={state.openHouseFin} onChange={(e) => setState((s) => ({ ...s, openHouseFin: e.target.value }))} />
               </AiField>
               <div className="sm:col-span-2">
-                <AiField label="Notas">
+                <AiField label={s9.notasOh}>
                   <input className={aiInputClass} value={state.openHouseNotas} onChange={(e) => setState((s) => ({ ...s, openHouseNotas: e.target.value }))} />
                 </AiField>
               </div>
@@ -620,18 +643,18 @@ export function Step09ExtrasOpcionales({
               checked={state.extraAsesorFinanciero}
               onChange={(e) => setState((s) => ({ ...s, extraAsesorFinanciero: e.target.checked }))}
             />
-            Asesor financiero
+            {s9.asesorFin}
           </label>
           {state.extraAsesorFinanciero ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <AiField label="Nombre">
+              <AiField label={s9.nombreAsesor}>
                 <input className={aiInputClass} value={state.asesorNombre} onChange={(e) => setState((s) => ({ ...s, asesorNombre: e.target.value }))} autoComplete="name" />
               </AiField>
-              <AiField label="Teléfono">
+              <AiField label={s9.telAsesor}>
                 <input className={aiInputClass} value={state.asesorTelefono} onChange={(e) => setState((s) => ({ ...s, asesorTelefono: e.target.value }))} autoComplete="tel" />
               </AiField>
               <div className="sm:col-span-2">
-                <AiField label="Correo del asesor">
+                <AiField label={s9.correoAsesor}>
                   <input type="email" className={aiInputClass} value={state.asesorEmail} onChange={(e) => setState((s) => ({ ...s, asesorEmail: e.target.value }))} autoComplete="email" />
                 </AiField>
               </div>

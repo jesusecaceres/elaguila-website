@@ -8,7 +8,7 @@ export function nativeInspectorChrome(variant: "default" | "contextual") {
       help: "mt-1 text-[10px] text-[color:rgba(61,52,40,0.55)] leading-snug",
       hiddenBanner:
         "rounded-lg border border-amber-200/90 bg-amber-50 px-2.5 py-2 text-[10px] leading-snug text-amber-950/90",
-      btn: "rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[11px] font-semibold text-[color:#3d3428] touch-manipulation hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-40",
+      btn: "rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[11px] font-semibold text-[color:#3d3428] touch-manipulation min-h-[44px] sm:min-h-0 sm:px-2 sm:py-1.5 hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-40",
       btnDanger:
         "rounded-lg border border-rose-200 bg-rose-50/90 px-2 py-1.5 text-[11px] font-semibold text-rose-900 hover:bg-rose-100",
       labelBlock: "block text-[10px] text-[color:rgba(61,52,40,0.55)]",
@@ -30,7 +30,7 @@ export function nativeInspectorChrome(variant: "default" | "contextual") {
     help: "mt-1 text-[10px] text-[rgba(255,255,255,0.38)] leading-snug",
     hiddenBanner:
       "rounded-lg border border-amber-500/35 bg-amber-950/40 px-2.5 py-2 text-[10px] leading-snug text-amber-100/90",
-    btn: "rounded-md border border-[rgba(255,255,255,0.14)] px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40",
+    btn: "touch-manipulation rounded-md border border-[rgba(255,255,255,0.14)] px-3 py-2.5 text-[11px] min-h-[44px] sm:min-h-0 sm:px-2 sm:py-1 disabled:cursor-not-allowed disabled:opacity-40",
     btnDanger: "rounded-md border border-[rgba(220,80,80,0.45)] px-2 py-1 text-[11px] text-[rgba(255,200,200,0.95)]",
     labelBlock: "block text-[10px] text-[rgba(255,255,255,0.5)]",
     labelGrid: "text-[10px] text-[rgba(255,255,255,0.5)]",

@@ -26,7 +26,7 @@ export function BusinessCardStudioToolbar(props: {
           <button
             type="button"
             onClick={onToggleGuides}
-            className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-4 py-2 text-sm font-medium"
+            className="min-h-[44px] touch-manipulation rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-4 py-2 text-sm font-medium"
           >
             {bcPick(businessCardBuilderCopy.guidesToggle, lang)}:{" "}
             {guidesVisible ? (lang === "en" ? "On" : "Sí") : lang === "en" ? "Off" : "No"}
@@ -37,8 +37,10 @@ export function BusinessCardStudioToolbar(props: {
         </p>
       </div>
       {selectionChrome != null ? (
-        <div className="rounded-2xl border border-[rgba(201,168,74,0.28)] bg-[rgba(10,10,12,0.96)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          {selectionChrome}
+        <div className="min-w-0 overflow-x-auto overflow-y-visible overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] pb-0.5">
+          <div className="rounded-2xl border border-[rgba(201,168,74,0.28)] bg-[rgba(10,10,12,0.96)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] min-w-[min(100%,680px)] sm:min-w-0">
+            {selectionChrome}
+          </div>
         </div>
       ) : null}
     </div>

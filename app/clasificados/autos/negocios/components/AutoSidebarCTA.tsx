@@ -10,13 +10,13 @@ const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]";
 
 const BTN_PRIMARY =
-  "inline-flex h-12 w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)]";
+  "inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
 
 const BTN_SECONDARY =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-2 text-center text-[13px] font-semibold leading-tight text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] sm:px-3 sm:text-sm";
+  "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-2 text-center text-[13px] font-semibold leading-tight text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] sm:px-3 sm:text-sm active:scale-[0.99]";
 
 const BTN_TERTIARY =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text-2)] transition hover:bg-[color:var(--lx-nav-hover)]";
+  "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text-2)] transition hover:bg-[color:var(--lx-nav-hover)] active:scale-[0.99]";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;

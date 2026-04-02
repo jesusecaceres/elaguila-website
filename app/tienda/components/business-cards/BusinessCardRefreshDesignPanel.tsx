@@ -10,6 +10,15 @@ import { createRefreshSeedNativeImage } from "../../product-configurators/busine
 import { clampNativeImageOpacity } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 
+/** Shell wires Studio tab, text/shape adds, side switch, and lock (vaulting-safe). */
+export type BusinessCardRebuildShortcutAction =
+  | "open-studio-tab"
+  | "add-text-line"
+  | "add-shape"
+  | "toggle-lock"
+  | "side-front"
+  | "side-back";
+
 async function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -31,9 +40,19 @@ export function BusinessCardRefreshDesignPanel(props: {
   onSkipToCustomBuilder: () => void;
   refreshSeedId: string | null;
   onRefreshSeedPlaced: (id: string | null) => void;
+  onRebuildShortcut?: (action: BusinessCardRebuildShortcutAction) => void;
 }) {
-  const { lang, doc, dispatch, onSelectV2Native, onClearTemplateSelection, onSkipToCustomBuilder, refreshSeedId, onRefreshSeedPlaced } =
-    props;
+  const {
+    lang,
+    doc,
+    dispatch,
+    onSelectV2Native,
+    onClearTemplateSelection,
+    onSkipToCustomBuilder,
+    refreshSeedId,
+    onRefreshSeedPlaced,
+    onRebuildShortcut,
+  } = props;
   const lg = lang === "en" ? "en" : "es";
   const fileRef = useRef<HTMLInputElement>(null);
   const side = doc.activeSide;
@@ -92,6 +111,7 @@ export function BusinessCardRefreshDesignPanel(props: {
 
   const patchSeedOpacity = (opacity: number) => {
     if (!refreshSeedId || !seedObject || seedObject.kind !== "native-image") return;
+    if (seedObject.locked) return;
     const patchSide: "front" | "back" = (doc.front.designerV2NativeObjects ?? []).some((o) => o.id === refreshSeedId)
       ? "front"
       : "back";
@@ -153,12 +173,18 @@ export function BusinessCardRefreshDesignPanel(props: {
             {bcpPick(businessCardProductCopy.refreshSeedHelperTitle, lang)}
           </p>
           <p className="mt-1 text-sm text-[rgba(255,255,255,0.75)]">{bcpPick(businessCardProductCopy.refreshSeedNextHint, lang)}</p>
+          {seedObject.locked ? (
+            <p className="mt-2 text-[11px] leading-snug text-[rgba(255,200,120,0.75)]">
+              {bcpPick(businessCardProductCopy.refreshOpacityDisabledLocked, lang)}
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
+              disabled={Boolean(seedObject.locked)}
               onClick={() => patchSeedOpacity(0.42)}
               className={[
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                "rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45",
                 (seedObject.imageOpacity ?? 1) <= 0.5
                   ? "border-[rgba(201,168,74,0.55)] bg-[rgba(201,168,74,0.15)] text-[rgba(255,247,226,0.95)]"
                   : "border-[rgba(255,255,255,0.18)] text-[rgba(255,255,255,0.8)] hover:bg-[rgba(255,255,255,0.06)]",
@@ -168,9 +194,10 @@ export function BusinessCardRefreshDesignPanel(props: {
             </button>
             <button
               type="button"
+              disabled={Boolean(seedObject.locked)}
               onClick={() => patchSeedOpacity(1)}
               className={[
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                "rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45",
                 (seedObject.imageOpacity ?? 1) >= 0.95
                   ? "border-[rgba(201,168,74,0.55)] bg-[rgba(201,168,74,0.15)] text-[rgba(255,247,226,0.95)]"
                   : "border-[rgba(255,255,255,0.18)] text-[rgba(255,255,255,0.8)] hover:bg-[rgba(255,255,255,0.06)]",
@@ -179,6 +206,68 @@ export function BusinessCardRefreshDesignPanel(props: {
               {bcpPick(businessCardProductCopy.refreshOpacityFull, lang)}
             </button>
           </div>
+          {onRebuildShortcut ? (
+            <>
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-[rgba(201,168,74,0.75)]">
+                {bcpPick(businessCardProductCopy.refreshRebuildShortcutsTitle, lang)}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => onRebuildShortcut("open-studio-tab")}
+                  className="rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.06)]"
+                >
+                  {bcpPick(businessCardProductCopy.refreshOpenStudioTab, lang)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRebuildShortcut("add-text-line")}
+                  className="rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.06)]"
+                >
+                  {bcpPick(businessCardProductCopy.refreshAddTextLine, lang)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRebuildShortcut("add-shape")}
+                  className="rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.06)]"
+                >
+                  {bcpPick(businessCardProductCopy.refreshAddShape, lang)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRebuildShortcut("toggle-lock")}
+                  className={[
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                    seedObject.locked
+                      ? "border-[rgba(201,168,74,0.55)] bg-[rgba(201,168,74,0.15)] text-[rgba(255,247,226,0.95)]"
+                      : "border-[rgba(255,255,255,0.2)] text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.06)]",
+                  ].join(" ")}
+                >
+                  {seedObject.locked
+                    ? bcpPick(businessCardProductCopy.refreshUnlockReference, lang)
+                    : bcpPick(businessCardProductCopy.refreshLockReference, lang)}
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => onRebuildShortcut("side-front")}
+                  disabled={doc.activeSide === "front"}
+                  className="rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.06)] disabled:cursor-default disabled:opacity-40"
+                >
+                  {bcpPick(businessCardProductCopy.refreshWorkOnFront, lang)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRebuildShortcut("side-back")}
+                  disabled={doc.activeSide === "back"}
+                  className="rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-1.5 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.06)] disabled:cursor-default disabled:opacity-40"
+                >
+                  {bcpPick(businessCardProductCopy.refreshWorkOnBack, lang)}
+                </button>
+              </div>
+            </>
+          ) : null}
         </section>
       ) : null}
     </div>

@@ -71,13 +71,13 @@ export const orderHandoffCopy = {
 
   reminderTitle: { es: "Antes de continuar", en: "Before you continue" } satisfies TiendaLocalizedLine,
   reminderIntro: {
-    es: "Leonix produce según los archivos y el diseño que apruebes en el configurador.",
-    en: "Leonix produces based on the files and design you approve in the configurator.",
+    es: "Leonix trabaja a partir de lo que envías desde este flujo: render de referencia si diseñaste en Studio, o tu archivo listo para imprenta si usaste esa subida.",
+    en: "Leonix works from what this flow submits: a reference render if you built in Studio, or your print-ready file if you used that upload path.",
   } satisfies TiendaLocalizedLine,
   reminderBullets: [
     {
-      es: "Revisa ortografía, datos de contacto y colores con calma — lo aprobado es lo que imprimimos.",
-      en: "Review spelling, contact info, and colors carefully—what you approve is what we print.",
+      es: "Revisa ortografía y datos con calma. El constructor envía una referencia visual; la subida “lista para imprenta” entrega tu archivo original.",
+      en: "Review spelling and details carefully. The builder submits a visual reference; the print-ready upload delivers your original file.",
     },
     {
       es: "Los pedidos en línea no incluyen rediseño manual salvo que contrates ayuda aparte.",

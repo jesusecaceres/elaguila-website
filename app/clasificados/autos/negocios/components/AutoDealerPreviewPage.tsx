@@ -85,8 +85,8 @@ export function AutoDealerPreviewPage({
 
   return (
     <AutoDealerPreviewChrome editBackHref={editBackHref}>
-      <main className="mx-auto mt-8 max-w-[1280px] px-4 md:px-5 lg:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
+      <main className="mx-auto mt-6 max-w-[1280px] overflow-x-hidden px-4 sm:mt-8 md:px-5 lg:px-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
             <section
               className={`${MAIN_CARD} lg:col-span-7 lg:col-start-1`}
@@ -94,7 +94,7 @@ export function AutoDealerPreviewPage({
             >
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
                 {showLeft ? (
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 max-w-full flex-1">
                     {h1 ? (
                       <h1 className="text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
                         {h1}
@@ -127,9 +127,9 @@ export function AutoDealerPreviewPage({
                           </div>
                         ) : null}
                         {showVin ? (
-                          <div className="flex flex-wrap gap-2 sm:col-span-2">
-                            <dt className="text-[color:var(--lx-muted)]">{pt.vin}</dt>
-                            <dd className="font-mono text-[13px] font-semibold tracking-wide">{formatVinDisplay(data.vin)}</dd>
+                          <div className="flex min-w-0 flex-wrap gap-2 sm:col-span-2">
+                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.vin}</dt>
+                            <dd className="min-w-0 break-all font-mono text-[13px] font-semibold tracking-wide">{formatVinDisplay(data.vin)}</dd>
                           </div>
                         ) : null}
                         {showStock ? (
@@ -144,7 +144,7 @@ export function AutoDealerPreviewPage({
                 ) : null}
                 {showPriceCol ? (
                   <div
-                    className={`shrink-0 text-left lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0" : ""}`}
+                    className={`min-w-0 shrink-0 text-left lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0" : ""}`}
                   >
                     {priceOk ? (
                       <>
@@ -172,7 +172,7 @@ export function AutoDealerPreviewPage({
           ) : null}
 
           <aside
-            className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start"
+            className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start"
             style={{
               gridRowStart: leftRowCount > 0 ? 1 : undefined,
               gridRowEnd: leftRowCount > 0 ? `span ${leftRowCount}` : undefined,

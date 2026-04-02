@@ -97,7 +97,7 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
     <section className={CARD}>
       <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">{title}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
         {visible.map((r) => (
           <SpecIconRow
             key={r.key}

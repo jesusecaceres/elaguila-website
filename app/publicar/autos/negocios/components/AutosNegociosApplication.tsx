@@ -23,7 +23,7 @@ import { SelectWithOtherField } from "./SelectWithOtherField";
 import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 
 const CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)]";
+  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5";
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
   "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -94,14 +94,14 @@ export function AutosNegociosApplication() {
 
   return (
     <div
-      className="min-h-screen pb-20 text-[color:var(--lx-text)]"
+      className="min-h-screen overflow-x-hidden pb-20 text-[color:var(--lx-text)]"
       style={{
         backgroundColor: "var(--lx-page)",
         backgroundImage:
           "radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.16), transparent 55%)",
       }}
     >
-      <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-3xl px-4 py-8 sm:py-10 md:px-6">
         <header className="mb-8">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] md:text-4xl">{t.app.pageTitle}</h1>
@@ -584,47 +584,49 @@ export function AutosNegociosApplication() {
               {(listing.dealerHours ?? []).map((row) => (
                 <div
                   key={row.rowId}
-                  className="grid gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                  className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3"
                 >
-                  <div>
-                    <label className={LABEL}>{t.app.dealer.day}</label>
-                    <input
-                      className={INPUT}
-                      value={row.day}
-                      onChange={(e) => updateDealerHourRow(row.rowId!, { day: e.target.value })}
-                    />
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="min-w-0">
+                      <label className={LABEL}>{t.app.dealer.day}</label>
+                      <input
+                        className={INPUT}
+                        value={row.day}
+                        onChange={(e) => updateDealerHourRow(row.rowId!, { day: e.target.value })}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <label className={LABEL}>{t.app.dealer.open}</label>
+                      <input
+                        className={INPUT}
+                        disabled={row.closed}
+                        value={row.open}
+                        onChange={(e) => updateDealerHourRow(row.rowId!, { open: e.target.value })}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <label className={LABEL}>{t.app.dealer.close}</label>
+                      <input
+                        className={INPUT}
+                        disabled={row.closed}
+                        value={row.close}
+                        onChange={(e) => updateDealerHourRow(row.rowId!, { close: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className={LABEL}>{t.app.dealer.open}</label>
-                    <input
-                      className={INPUT}
-                      disabled={row.closed}
-                      value={row.open}
-                      onChange={(e) => updateDealerHourRow(row.rowId!, { open: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className={LABEL}>{t.app.dealer.close}</label>
-                    <input
-                      className={INPUT}
-                      disabled={row.closed}
-                      value={row.close}
-                      onChange={(e) => updateDealerHourRow(row.rowId!, { close: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex flex-col justify-end gap-2 sm:flex-row sm:items-end">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-3">
+                    <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
                       <input
                         type="checkbox"
                         checked={row.closed}
                         onChange={(e) => updateDealerHourRow(row.rowId!, { closed: e.target.checked })}
-                        className="rounded border-[color:var(--lx-nav-border)]"
+                        className="h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
                       />
                       {t.app.dealer.closed}
                     </label>
                     <button
                       type="button"
-                      className="text-xs font-bold text-red-700 hover:underline"
+                      className="min-h-[44px] min-w-[44px] text-xs font-bold text-red-700 hover:underline sm:min-h-0 sm:min-w-0"
                       onClick={() => removeDealerHourRow(row.rowId!)}
                     >
                       {t.app.dealer.remove}
@@ -647,16 +649,16 @@ export function AutosNegociosApplication() {
           </section>
 
           {/* Actions */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <Link
               href={previewHref}
-              className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)]"
+              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)] sm:w-auto"
             >
               {t.app.actions.preview}
             </Link>
             <button
               type="button"
-              className="text-sm font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[color:var(--lx-text-2)] hover:underline"
+              className="min-h-[44px] w-full text-sm font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[color:var(--lx-text-2)] hover:underline sm:min-h-0 sm:w-auto sm:shrink-0"
               onClick={() => resetDraft()}
             >
               {t.app.actions.reset}

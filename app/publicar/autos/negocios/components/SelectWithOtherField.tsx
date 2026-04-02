@@ -36,7 +36,7 @@ export function SelectWithOtherField({
     <div>
       <label className={LABEL}>{label}</label>
       <select
-        className={INPUT}
+        className={`${INPUT} pr-10`}
         value={value ?? ""}
         onChange={(e) => {
           const v = e.target.value || undefined;

@@ -3,8 +3,16 @@
  * Sin capa VM intermedia (patrón Autos: datos de aplicación = fuente de verdad).
  */
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
-import { AGENTE_RES_DESTACADOS_DEFS } from "../schema/agenteIndividualResidencialFormState";
-import { labelForSubtipo, TIPO_PROPIEDAD_OPCIONES } from "../schema/agenteResidencialTipoMeta";
+import {
+  AGENTE_RES_DESTACADOS_DEFS,
+  type AgenteResidencialDestacadoId,
+} from "../schema/agenteIndividualResidencialFormState";
+import {
+  labelForSubtipo,
+  labelForSubtipoEn,
+  TIPO_PROPIEDAD_LABEL_EN,
+  TIPO_PROPIEDAD_OPCIONES,
+} from "../schema/agenteResidencialTipoMeta";
 import { digitsOnly } from "../application/utils/phoneMask";
 
 export function trim(s: unknown): string {
@@ -27,14 +35,33 @@ const COND_LABEL: Record<AgenteIndividualResidencialFormState["condicionPropieda
   necesita_reparacion: "Necesita reparación",
 };
 
-export function formatEstadoAnuncioLabel(s: AgenteIndividualResidencialFormState): string {
+export type AgenteResPreviewLocale = "es" | "en";
+
+export function formatEstadoAnuncioLabel(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): string {
+  if (locale === "en") {
+    const EN: Record<AgenteIndividualResidencialFormState["estadoAnuncio"], string> = {
+      disponible: "Available",
+      pendiente: "Pending",
+      bajo_contrato: "Under contract",
+      vendido: "Sold",
+    };
+    return EN[s.estadoAnuncio] ?? EN.disponible;
+  }
   return STATUS_LABEL[s.estadoAnuncio] ?? STATUS_LABEL.disponible;
 }
 
 /** Fixed lane line under title; matches `tipoPublicacionFijo` for this Negocio agente-individual residencial flow. */
-export function formatTipoPublicacionFijoLine(s: AgenteIndividualResidencialFormState): string {
-  if (s.tipoPublicacionFijo === "venta_residencial") return "Venta residencial";
-  return "Venta residencial";
+export function formatTipoPublicacionFijoLine(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): string {
+  if (s.tipoPublicacionFijo === "venta_residencial") {
+    return locale === "en" ? "Residential sale" : "Venta residencial";
+  }
+  return locale === "en" ? "Residential sale" : "Venta residencial";
 }
 
 export function formatPrecioUsd(raw: string): string {
@@ -76,14 +103,22 @@ export function listadoBloqueHref(s: AgenteIndividualResidencialFormState): stri
   return null;
 }
 
-export function formatTipoPropiedadLine(s: AgenteIndividualResidencialFormState): string {
+export function formatTipoPropiedadLine(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale = "es"): string {
   const opt = TIPO_PROPIEDAD_OPCIONES.find((x) => x.value === s.tipoPropiedadCodigo);
-  const base = s.tipoPropiedadCodigo === "otro" ? trim(s.tipoPropiedadOtro) : opt?.label ?? "";
+  const base =
+    s.tipoPropiedadCodigo === "otro"
+      ? trim(s.tipoPropiedadOtro)
+      : locale === "en"
+        ? TIPO_PROPIEDAD_LABEL_EN[s.tipoPropiedadCodigo] ?? opt?.label ?? ""
+        : opt?.label ?? "";
   let sub = "";
   if (s.tipoPropiedadCodigo === "otro") {
     sub = trim(s.subtipoPropiedad);
   } else {
-    sub = labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
+    sub =
+      locale === "en"
+        ? labelForSubtipoEn(s.tipoPropiedadCodigo, s.subtipoPropiedad)
+        : labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
   }
   return [base, sub].filter(Boolean).join(" · ") || "—";
 }
@@ -99,25 +134,93 @@ export function buildMapQuery(s: AgenteIndividualResidencialFormState): string {
 
 export type PropertyDetailRow = { label: string; value: string };
 
-export function buildPropertyDetailRows(s: AgenteIndividualResidencialFormState): PropertyDetailRow[] {
+const COND_LABEL_EN: Record<AgenteIndividualResidencialFormState["condicionPropiedad"], string> = {
+  excelente: "Excellent",
+  buena: "Good",
+  regular: "Fair",
+  necesita_reparacion: "Needs work",
+};
+
+const DESTACADO_EN: Record<(typeof AGENTE_RES_DESTACADOS_DEFS)[number]["id"], string> = {
+  piscina: "Pool",
+  patio: "Patio",
+  terraza: "Terrace",
+  balcon: "Balcony",
+  chimenea: "Fireplace",
+  oficina: "Office",
+  sotano: "Basement",
+  garaje: "Garage",
+  porton_electrico: "Electric gate",
+  adu: "ADU",
+  remodelada: "Remodeled",
+  nueva_construccion: "New construction",
+  vista: "View",
+  comunidad_cerrada: "Gated community",
+  paneles_solares: "Solar panels",
+};
+
+/** Checkbox label in the publish form (same EN strings as preview `DESTACADO_EN`). */
+export function labelDestacadoForPublishStep(
+  id: AgenteResidencialDestacadoId,
+  locale: AgenteResPreviewLocale,
+): string {
+  const def = AGENTE_RES_DESTACADOS_DEFS.find((d) => d.id === id);
+  if (!def) return "";
+  return locale === "en" ? DESTACADO_EN[id] : def.label;
+}
+
+export function buildPropertyDetailRows(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): PropertyDetailRow[] {
+  const condLab = locale === "en" ? COND_LABEL_EN[s.condicionPropiedad] : COND_LABEL[s.condicionPropiedad];
+  const L =
+    locale === "en"
+      ? {
+          tipo: "Property type",
+          rec: "Bedrooms",
+          ban: "Baths",
+          med: "Half baths",
+          interior: "Interior size",
+          lote: "Lot size",
+          est: "Parking",
+          ano: "Year built",
+          cond: "Condition",
+        }
+      : {
+          tipo: "Tipo de propiedad",
+          rec: "Recámaras",
+          ban: "Baños",
+          med: "Medios baños",
+          interior: "Tamaño interior",
+          lote: "Tamaño del lote",
+          est: "Estacionamientos",
+          ano: "Año de construcción",
+          cond: "Condición",
+        };
   const all: PropertyDetailRow[] = [
-    { label: "Tipo de propiedad", value: formatTipoPropiedadLine(s) },
-    { label: "Recámaras", value: trim(s.recamaras) || "—" },
-    { label: "Baños", value: trim(s.banos) || "—" },
-    { label: "Medios baños", value: trim(s.mediosBanos) || "—" },
-    { label: "Tamaño interior", value: trim(s.tamanoInteriorSqft) || "—" },
-    { label: "Tamaño del lote", value: trim(s.tamanoLoteSqft) || "—" },
-    { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
-    { label: "Año de construcción", value: trim(s.anoConstruccion) || "—" },
-    { label: "Condición", value: COND_LABEL[s.condicionPropiedad] ?? "—" },
+    { label: L.tipo, value: formatTipoPropiedadLine(s, locale) },
+    { label: L.rec, value: trim(s.recamaras) || "—" },
+    { label: L.ban, value: trim(s.banos) || "—" },
+    { label: L.med, value: trim(s.mediosBanos) || "—" },
+    { label: L.interior, value: trim(s.tamanoInteriorSqft) || "—" },
+    { label: L.lote, value: trim(s.tamanoLoteSqft) || "—" },
+    { label: L.est, value: trim(s.estacionamientos) || "—" },
+    { label: L.ano, value: trim(s.anoConstruccion) || "—" },
+    { label: L.cond, value: condLab ?? "—" },
   ];
   return all.filter((r) => trim(r.value) !== "" && r.value !== "—");
 }
 
-export function buildDestacadosLabels(s: AgenteIndividualResidencialFormState): string[] {
+export function buildDestacadosLabels(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): string[] {
   const out: string[] = [];
   for (const def of AGENTE_RES_DESTACADOS_DEFS) {
-    if (s.destacados?.[def.id]) out.push(def.label);
+    if (s.destacados?.[def.id]) {
+      out.push(locale === "en" ? DESTACADO_EN[def.id] : def.label);
+    }
   }
   return out;
 }
@@ -193,15 +296,25 @@ export type QuickFactKey =
 
 export type QuickFactItem = { key: QuickFactKey; label: string; value: string };
 
-export function buildQuickFacts(s: AgenteIndividualResidencialFormState): QuickFactItem[] {
-  const rows: Array<[QuickFactKey, string, string]> = [
-    ["recamaras", "Recámaras", s.recamaras],
-    ["banos", "Baños", s.banos],
-    ["tamano_interior", "Interior (ft²)", s.tamanoInteriorSqft],
-    ["estacionamientos", "Estacionamientos", s.estacionamientos],
-    ["ano_construccion", "Año", s.anoConstruccion],
-    ["tamano_lote", "Lote (ft²)", s.tamanoLoteSqft],
-  ];
+export function buildQuickFacts(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale = "es"): QuickFactItem[] {
+  const rows: Array<[QuickFactKey, string, string]> =
+    locale === "en"
+      ? [
+          ["recamaras", "Beds", s.recamaras],
+          ["banos", "Baths", s.banos],
+          ["tamano_interior", "Interior (sq ft)", s.tamanoInteriorSqft],
+          ["estacionamientos", "Parking", s.estacionamientos],
+          ["ano_construccion", "Year", s.anoConstruccion],
+          ["tamano_lote", "Lot (sq ft)", s.tamanoLoteSqft],
+        ]
+      : [
+          ["recamaras", "Recámaras", s.recamaras],
+          ["banos", "Baños", s.banos],
+          ["tamano_interior", "Interior (ft²)", s.tamanoInteriorSqft],
+          ["estacionamientos", "Estacionamientos", s.estacionamientos],
+          ["ano_construccion", "Año", s.anoConstruccion],
+          ["tamano_lote", "Lote (ft²)", s.tamanoLoteSqft],
+        ];
   const out: QuickFactItem[] = [];
   for (const [key, label, raw] of rows) {
     const v = trim(raw);

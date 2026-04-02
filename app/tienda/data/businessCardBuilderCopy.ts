@@ -50,8 +50,8 @@ export const businessCardBuilderCopy = {
   softLabel: { es: "Advertencias", en: "Warnings" },
   approvalTitle: { es: "Aprobación del diseño", en: "Design approval" },
   approvalIntro: {
-    es: "La producción sigue el arte que apruebes en este flujo de compra. Revisa ortografía, datos y colocación antes de continuar.",
-    en: "Production follows the artwork you approve in this checkout flow. Review spelling, contact details, and placement before you continue.",
+    es: "Lo que confirmas aquí orienta la producción: desde Studio enviamos un render de referencia del diseño (Leonix prepara el archivo para imprenta). Si usaste la subida de archivo listo para imprenta, ese archivo es el entregable principal.",
+    en: "What you confirm here guides production: Studio sends a reference render of your design (Leonix prepares print files). If you used the print-ready upload path, that file is the primary handoff.",
   },
   approvalItems: {
     spelling: {
@@ -63,8 +63,8 @@ export const businessCardBuilderCopy = {
       en: "I reviewed layout and design placement.",
     },
     printAsSubmitted: {
-      es: "Entiendo que Leonix producirá este pedido según el arte aprobado en este flujo (diseño en Studio aquí, o mi archivo listo para imprenta si usé esa subida).",
-      en: "I understand Leonix will produce this order from the artwork I approve in this flow (my Studio design here, or my print-ready upload when I used that path).",
+      es: "Entiendo que Leonix producirá según lo aprobado en este flujo: referencia desde Studio o mi archivo listo para imprenta si elegí esa subida, con revisión típica antes de imprenta.",
+      en: "I understand Leonix will produce from what I approve in this flow—Studio reference render or my print-ready upload when I chose that path—with normal pre-press review.",
     },
     noRedesign: {
       es: "Entiendo que los pedidos en línea no incluyen rediseño manual por Leonix.",
@@ -77,8 +77,8 @@ export const businessCardBuilderCopy = {
     en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix. Studio is your editable workspace here—the print-ready file upload is a different path when you need it.",
   },
   previewHelp: {
-    es: "Toca el texto, el logo o una capa añadida. Las herramientas de la selección aparecen en la franja de arriba; detalles y capas están en la columna derecha.",
-    en: "Tap text, the logo, or an added layer. Selection tools appear in the strip above; details and layers stay in the right column.",
+    es: "Toca el texto, el logo o una capa añadida. Arrastra para mover; con texto o logo seleccionado, usa el asa en el borde para ajustar el ancho. Herramientas arriba; detalle en la columna derecha.",
+    en: "Tap text, the logo, or an added layer. Drag to move; when text or the logo is selected, use the edge handle to adjust width. Tools above; detail in the right column.",
   },
   /** Right column: object-first tools for the current canvas selection */
   selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },

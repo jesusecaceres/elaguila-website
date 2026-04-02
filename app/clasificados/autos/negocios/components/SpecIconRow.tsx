@@ -25,7 +25,7 @@ export function SpecIconRow({
       <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--lx-muted)]">{label}</p>
         <p
-          className={`mt-0.5 text-sm font-semibold leading-snug text-[color:var(--lx-text)] ${valueClassName ?? ""}`}
+          className={`mt-0.5 break-words text-sm font-semibold leading-snug text-[color:var(--lx-text)] ${valueClassName ?? ""}`}
         >
           {value}
         </p>
