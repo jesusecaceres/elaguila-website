@@ -162,6 +162,7 @@ export function BusinessCardDesignerV2Panel(props: {
       <li key={`${row.id}-${row.stackOrder}`}>
         <button
           type="button"
+          aria-current={selected ? "true" : undefined}
           disabled={!canSelectText && !isLogoRow && !isStudio}
           title={
             row.isInformationalTemplateText
@@ -199,6 +200,11 @@ export function BusinessCardDesignerV2Panel(props: {
                 {kindBadgeLabel(row)}
               </span>
               <span className="truncate text-[rgba(255,247,226,0.93)]">{row.displayLabel}</span>
+              {selected ? (
+                <span className="shrink-0 rounded bg-[rgba(201,168,74,0.22)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#e8d5a0]">
+                  {bcPick(businessCardBuilderCopy.layerListActiveBadge, lang)}
+                </span>
+              ) : null}
               {row.isInformationalTemplateText ? (
                 <span className="shrink-0 rounded bg-[rgba(255,255,255,0.06)] px-1 py-0.5 text-[8px] font-medium uppercase tracking-wide text-[rgba(255,255,255,0.42)]">
                   {bcPick(businessCardBuilderCopy.layerRowInfoOnly, lang)}

@@ -218,8 +218,8 @@ export function BusinessCardBuilderShell(props: {
             </h1>
             <p className="mt-1 text-sm text-[rgba(255,255,255,0.62)]">
               {lang === "en"
-                ? "Premium 3.5″×2″ cards — Leonix prints what you approve."
-                : "Tarjetas 3.5″×2″ premium — Leonix imprime lo que apruebas."}
+                ? "Premium 3.5″×2″ cards — production follows what you approve in this checkout flow."
+                : "Tarjetas 3.5″×2″ premium — la producción sigue lo que apruebes en este flujo de compra."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -310,6 +310,9 @@ export function BusinessCardBuilderShell(props: {
             <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
               {bcPick(businessCardBuilderCopy.previewTitle, lang)}
             </h2>
+            <p className="mt-1.5 max-w-xl text-[11px] leading-relaxed text-[rgba(255,255,255,0.48)]">
+              {bcPick(businessCardBuilderCopy.studioPreviewDisclaimer, lang)}
+            </p>
             <BusinessCardPreview
               document={doc}
               side={doc.activeSide}

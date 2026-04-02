@@ -4,6 +4,11 @@ export const businessCardBuilderCopy = {
   pageTitle: { es: "Constructor de tarjetas", en: "Business card builder" },
   backToProduct: { es: "← Volver al producto", en: "← Back to product" },
   previewTitle: { es: "Vista previa", en: "Live preview" },
+  /** Honest scope: Studio preview vs print-ready upload path */
+  studioPreviewDisclaimer: {
+    es: "Vista previa editable para colocar y revisar el diseño. La producción sigue lo que apruebes en este flujo; la subida de archivo listo para imprenta es otro camino cuando lo elijas.",
+    en: "Editable preview for layout and proofing. Production follows what you approve in this checkout flow—the print-ready file upload is a separate path when you choose it.",
+  },
   guidesToggle: { es: "Guías de impresión", en: "Print guides" },
   sideFront: { es: "Frente", en: "Front" },
   sideBack: { es: "Reverso", en: "Back" },
@@ -35,8 +40,8 @@ export const businessCardBuilderCopy = {
   softLabel: { es: "Advertencias", en: "Warnings" },
   approvalTitle: { es: "Aprobación del diseño", en: "Design approval" },
   approvalIntro: {
-    es: "Leonix imprimirá el diseño que apruebes. Tómate un momento para verificar todo.",
-    en: "Leonix will print the design you approve. Take a moment to verify everything.",
+    es: "La producción sigue el arte que apruebes en este flujo de compra. Revisa ortografía, datos y colocación antes de continuar.",
+    en: "Production follows the artwork you approve in this checkout flow. Review spelling, contact details, and placement before you continue.",
   },
   approvalItems: {
     spelling: {
@@ -48,8 +53,8 @@ export const businessCardBuilderCopy = {
       en: "I reviewed layout and design placement.",
     },
     printAsSubmitted: {
-      es: "Entiendo que Leonix imprimirá este pedido tal como lo aprobé.",
-      en: "I understand Leonix will print this order as I approved it.",
+      es: "Entiendo que Leonix producirá este pedido según el arte aprobado en este flujo (diseño en Studio aquí, o mi archivo listo para imprenta si usé esa subida).",
+      en: "I understand Leonix will produce this order from the artwork I approve in this flow (my Studio design here, or my print-ready upload when I used that path).",
     },
     noRedesign: {
       es: "Entiendo que los pedidos en línea no incluyen rediseño manual por Leonix.",
@@ -58,27 +63,35 @@ export const businessCardBuilderCopy = {
   },
   nextTitle: { es: "Siguiente paso", en: "Next step" },
   nextBody: {
-    es: "Guardamos el borrador en este navegador; después confirmas datos, entrega y envío a Leonix.",
-    en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix.",
+    es: "Guardamos el borrador en este navegador; luego confirmas datos, entrega y envío a Leonix. Studio es tu espacio editable aquí; la subida de archivo listo para imprenta es otro camino cuando la necesites.",
+    en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix. Studio is your editable workspace here—the print-ready file upload is a different path when you need it.",
   },
   previewHelp: {
-    es: "Toca una línea, el logo o una capa en Refinamientos. Las herramientas de la selección están arriba a la derecha.",
-    en: "Tap a line, the logo, or a layer in Refinements. Selection tools are at the top of the right column.",
+    es: "Toca una línea, el logo o una capa en Refinamientos. Las herramientas de la selección activa están arriba a la derecha.",
+    en: "Tap a line, the logo, or a layer in Refinements. Active selection tools are at the top of the right column.",
   },
   /** Right column: object-first tools for the current canvas selection */
   selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },
   selectionToolsSubtitle: {
-    es: "Lo que elijas en la vista previa define estas herramientas. El panel de abajo sigue teniendo información, logo y refinamientos.",
-    en: "What you select on the preview drives these tools. The panel below still holds your details, logo, and refinements.",
+    es: "Lo que elijas en la vista previa define estas herramientas; las capas añadidas en Studio tienen prioridad cuando están seleccionadas. Abajo siguen información, logo y refinamientos.",
+    en: "What you select on the preview drives these tools—added Studio layers take priority when selected. Details, logo, and refinements stay below.",
   },
   contextualEmptyTitle: {
     es: "Elige algo en la tarjeta",
     en: "Select something on the card",
   },
   contextualEmptyBody: {
-    es: "Toca una línea de texto, el logo, o una imagen o forma añadida en Refinamientos. Las herramientas aparecen aquí.",
-    en: "Tap a text line, the logo, or an added image or shape from Refinements. Tools for that object appear here.",
+    es: "Toca una línea de texto, el logo, o una imagen o forma añadida en Refinamientos. Las herramientas aparecen aquí; si hay capas añadidas seleccionadas, tienen prioridad sobre texto y logo.",
+    en: "Tap a text line, the logo, or an added image or shape from Refinements. Tools for that object appear here—when an added Studio layer is selected, it takes priority over text and logo.",
   },
+  /** Shown above contextual tools when something is selected (preview + list stay in sync) */
+  selectionBannerPrefix: { es: "Selección activa", en: "Active selection" },
+  selectionBannerNativeImage: { es: "Imagen añadida (Studio)", en: "Added image (Studio)" },
+  selectionBannerNativeShape: { es: "Forma añadida (Studio)", en: "Added shape (Studio)" },
+  selectionBannerLogo: { es: "Logo", en: "Logo" },
+  selectionBannerTextLead: { es: "Línea de texto", en: "Text line" },
+  selectionBannerTextCustom: { es: "Línea personalizada", en: "Custom line" },
+  layerListActiveBadge: { es: "Activa", en: "Active" },
   foundationSectionTitle: { es: "Base del diseño", en: "Design setup" },
   textInspectorTitle: { es: "Texto seleccionado", en: "Selected text" },
   textInspectorSectionContent: { es: "Contenido", en: "Content" },

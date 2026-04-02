@@ -215,7 +215,7 @@ export function BusinessCardPreview(props: {
                           "absolute rounded-[3px]",
                           editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
                           selected
-                            ? "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] shadow-[0_0_0_1px_rgba(201,168,74,0.35)]"
+                            ? "ring-[3px] ring-[#c9a84a] ring-offset-[3px] ring-offset-[rgba(0,0,0,0.18)] shadow-[0_0_0_1px_rgba(201,168,74,0.45),0_6px_18px_rgba(201,168,74,0.22)]"
                             : "",
                         ].join(" ")}
                         style={outer}
@@ -247,7 +247,7 @@ export function BusinessCardPreview(props: {
                       "absolute rounded-md transition-shadow",
                       editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
                       editInteraction?.logoSelected
-                        ? "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] shadow-[0_0_0_1px_rgba(201,168,74,0.35)]"
+                        ? "ring-[3px] ring-[#c9a84a] ring-offset-[3px] ring-offset-[rgba(0,0,0,0.18)] shadow-[0_0_0_1px_rgba(201,168,74,0.45),0_6px_18px_rgba(201,168,74,0.22)]"
                         : "",
                     ].join(" ")}
                     style={{

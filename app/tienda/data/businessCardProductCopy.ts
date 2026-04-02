@@ -33,8 +33,8 @@ export const businessCardProductCopy = {
   pathUploadBadge: { es: "Archivo listo", en: "Print-ready file" },
   pathUploadTitle: { es: "Subir arte", en: "Upload artwork" },
   pathUploadBody: {
-    es: "PDF o imagen a tamaño de tarjeta. Conservamos tu archivo original para producción con trazabilidad.",
-    en: "PDF or image at card size. We retain your original file for production with clear handoff.",
+    es: "PDF o imagen a tamaño de tarjeta. Conservamos tu archivo original para producción con trazabilidad—es el camino de entrega final, no el editor Studio.",
+    en: "PDF or image at card size. We retain your original file for production with clear handoff—this is final-file delivery, not the Studio editor path.",
   },
   pathUploadCta: { es: "Subir archivos", en: "Upload files" },
   pathRefreshBadge: { es: "Renovar", en: "Refresh" },
@@ -98,8 +98,8 @@ export const businessCardProductCopy = {
     en: "Drop a file here or tap to browse",
   },
   uploadPreferDesign: {
-    es: "¿Prefieres diseñar en línea? Studio (no es la subida final):",
-    en: "Prefer to design online? Studio paths (not this final-file upload):",
+    es: "¿Prefieres diseñar en línea? Abre Studio (espacio editable; no sustituye esta subida final):",
+    en: "Prefer to design online? Open Studio (editable workspace—does not replace this final-file upload):",
   },
   /** Print-upload shell: links into Studio — kept distinct from print-ready handoff */
   uploadStudioTemplateCta: { es: "Biblioteca de plantillas", en: "Template library" },
@@ -117,13 +117,13 @@ export const businessCardProductCopy = {
     en: "LEO gave you a strong first draft. Keep refining here: text and logo above, images and shapes in Refinements below—the same workspace, not a reset.",
   },
   designIntakeRefreshHint: {
-    es: "Arranca desde tu imagen de referencia en el lienzo: ajústala en Refinamientos, añade texto y formas encima, y elige plantilla abajo si quieres un look Leonix nuevo.",
-    en: "You’re starting from a reference image on the canvas—tweak it under Refinements, layer text and shapes above, and pick a template below if you want a fresh Leonix look.",
+    es: "Parte de una imagen de referencia en el lienzo: ajústala en Refinamientos, añade texto y formas encima, y elige plantilla abajo si quieres un look nuevo. Para entregar un PDF o imagen final a imprenta, usa el flujo de archivo listo—no este renovado editable.",
+    en: "You’re starting from a reference image on the canvas—tweak it under Refinements, add text and shapes above, and pick a template below for a new look. To hand off a final print PDF or image, use the print-ready upload path—not this editable refresh flow.",
   },
   refreshPanelTitle: { es: "Sube tu referencia", en: "Upload your reference" },
   refreshPanelBody: {
-    es: "Foto, escaneo o captura de tu tarjeta actual o inspiración. La colocamos como capa nativa debajo del texto típico para que puedas reconstruir en Studio.",
-    en: "A photo, scan, or screenshot of your current card or inspiration. We place it as a native layer (usually under text) so you can rebuild in Studio.",
+    es: "Foto, escaneo o captura de tu tarjeta actual o inspiración. La colocamos como capa nativa debajo del texto típico para reconstruir en Studio—no es la subida de archivo final para imprenta.",
+    en: "A photo, scan, or screenshot of your current card or inspiration. We place it as a native layer (usually under text) so you can rebuild in Studio—not the print-ready file upload path.",
   },
   refreshPanelSideNote: {
     es: "Se coloca en la cara activa (frente o reverso). Cambia de cara arriba si quieres empezar en el otro lado.",
@@ -131,10 +131,10 @@ export const businessCardProductCopy = {
   },
   refreshPanelCta: { es: "Elegir imagen", en: "Choose image" },
   refreshPanelSkip: { es: "Saltar — abrir editor sin imagen", en: "Skip — open editor without an image" },
-  refreshSeedHelperTitle: { es: "Siguiente paso", en: "Next step" },
+  refreshSeedHelperTitle: { es: "Tu referencia ya está en la tarjeta", en: "Your reference is on the card" },
   refreshSeedNextHint: {
-    es: "Añade texto y formas en Refinamientos; sube la opacidad si la referencia debe verse fuerte, o baja con “sutil” para leer sobre ella.",
-    en: "Add text and shapes in Refinements; use full opacity for a bold reference, or faint to read type on top.",
+    es: "Trátala como guía: en Refinamientos baja opacidad (“sutil”) para escribir encima, o súbela si debe dominar. Añade texto y formas, mueve capas en la lista, y elige plantilla abajo si quieres un look Leonix nuevo. Esto es Studio editable—no sustituye la subida de archivo listo para imprenta.",
+    en: "Treat it as a guide: in Refinements use faint opacity to read type on top, or full strength when it should read clearly. Add text and shapes, reorder in the stack, and pick a template below for a fresh Leonix look if you want. This is editable Studio work—not the print-ready file upload path.",
   },
   refreshOpacityFaint: { es: "Sutil (referencia)", en: "Faint (reference)" },
   refreshOpacityFull: { es: "Opacidad completa", en: "Full opacity" },

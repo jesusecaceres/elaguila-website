@@ -100,10 +100,10 @@ export function BusinessCardNativeV2PreviewLayer(props: {
             return "";
           }
           if (selected && locked) {
-            return "ring-2 ring-amber-400/90 ring-offset-2 ring-offset-[rgba(0,0,0,0.15)] ring-dashed";
+            return "ring-[3px] ring-amber-400/90 ring-offset-[3px] ring-offset-[rgba(0,0,0,0.18)] ring-dashed shadow-[0_0_0_1px_rgba(251,191,36,0.35)]";
           }
           if (selected) {
-            return "ring-2 ring-[#c9a84a] ring-offset-2 ring-offset-[rgba(0,0,0,0.15)]";
+            return "ring-[3px] ring-[#c9a84a] ring-offset-[3px] ring-offset-[rgba(0,0,0,0.18)] shadow-[0_0_0_1px_rgba(201,168,74,0.45),0_6px_18px_rgba(201,168,74,0.2)]";
           }
           if (locked) {
             return "ring-1 ring-[rgba(251,191,36,0.45)] ring-dashed";
