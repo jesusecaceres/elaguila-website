@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
+  clearAutosNegociosDraft,
   loadAutosNegociosDraft,
   saveAutosNegociosDraft,
   type AutosNegociosDraftV1,
@@ -78,8 +79,8 @@ export function useAutoDealerDraft() {
     overrideRef.current = false;
     setVehicleTitleOverride(false);
     setListing(empty);
-    persist(empty, false);
-  }, [persist]);
+    clearAutosNegociosDraft();
+  }, []);
 
   return {
     hydrated,
