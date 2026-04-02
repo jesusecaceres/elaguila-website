@@ -212,14 +212,14 @@ export function AgenteIndividualResidencialPreviewView({
                 Galería
               </h3>
               <div className="grid gap-2.5 lg:grid-cols-12 lg:gap-3.5 lg:items-start">
-                <div className="min-w-0 lg:col-span-7">
+                <div className="min-w-0 lg:col-span-8">
                   {g.mainPhoto.url ? (
                     <div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={g.mainPhoto.url}
                         alt=""
-                        className="aspect-[16/10] w-full rounded-xl border object-cover"
+                        className="aspect-[16/10] w-full rounded-xl border object-cover lg:min-h-[min(360px,52vh)]"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
                       />
                       <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
@@ -232,7 +232,7 @@ export function AgenteIndividualResidencialPreviewView({
                   )}
                 </div>
 
-                <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-5 lg:gap-2">
+                <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-4 lg:gap-2">
                   {g.secondaryPhoto1.url ? (
                     <div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -353,9 +353,20 @@ export function AgenteIndividualResidencialPreviewView({
               <p className={`mt-1 ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
                 {h.operationLine}
               </p>
-              <p className={`mt-1 flex flex-wrap items-center gap-1.5 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
+              <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
                 <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
                 <span>{h.locationLine}</span>
+                {mapsUrl ? (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
+                    style={{ color: BRONZE }}
+                  >
+                    Ver en mapa
+                  </a>
+                ) : null}
               </p>
               <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
                 <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>

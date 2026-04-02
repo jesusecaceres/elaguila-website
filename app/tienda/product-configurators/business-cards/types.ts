@@ -124,6 +124,17 @@ export type BusinessCardDesignerV2NativeImage = {
   previewUrl: string | null;
   naturalWidth: number | null;
   naturalHeight: number | null;
+  /** CSS `object-fit` inside the placement box; default matches legacy `contain` */
+  objectFit?: "contain" | "cover" | "fill";
+  /** 0–100 each; maps to `object-position` (50 = center) */
+  objectPositionXPct?: number;
+  objectPositionYPct?: number;
+  /** Layer opacity for the framed image (0–1) */
+  imageOpacity?: number;
+  /** Corner radius when `imageClip` is `roundRect` (px at preview scale) */
+  cornerRadiusPx?: number;
+  /** Clipping shape for the placement box */
+  imageClip?: "rect" | "roundRect" | "circle";
 };
 
 export type BusinessCardDesignerV2NativeShape = {

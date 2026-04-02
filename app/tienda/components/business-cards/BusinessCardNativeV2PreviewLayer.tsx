@@ -7,6 +7,10 @@ import {
   clampPreviewDragPct,
 } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
 import { nativePreviewTransformCss } from "../../product-configurators/business-cards/designer-v2/studio/nativePreviewTransform";
+import {
+  nativeImageImgStyle,
+  nativeImageWrapperStyle,
+} from "../../product-configurators/business-cards/designer-v2/studio/nativeImagePreviewStyle";
 import { BusinessCardNativeV2TransformChrome } from "./BusinessCardNativeV2TransformChrome";
 
 type NativePatch = Partial<
@@ -214,7 +218,9 @@ export function BusinessCardNativeV2PreviewLayer(props: {
                     }
               }
             >
-              <img src={o.previewUrl} alt="" className="h-full w-full object-contain pointer-events-none select-none" />
+              <div style={nativeImageWrapperStyle(o)}>
+                <img src={o.previewUrl} alt="" style={nativeImageImgStyle(o)} />
+              </div>
             </div>
             {chrome}
           </Fragment>

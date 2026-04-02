@@ -16,7 +16,8 @@ import {
   type NativeResizeSession,
 } from "../../product-configurators/business-cards/designer-v2/studio/nativeCanvasTransform";
 
-const HANDLE_PX = 9;
+/** Slightly larger than desktop-only 9px so resize is easier on touch without shifting the hit test too far */
+const HANDLE_PX = 12;
 const ROT_ABOVE_PX = 22;
 
 type Patch = Partial<
@@ -196,12 +197,13 @@ export function BusinessCardNativeV2TransformChrome(props: {
               type="button"
               tabIndex={-1}
               aria-label={`Resize ${c}`}
-              className={`rounded-sm border-2 border-white bg-[#c9a84a] shadow-md touch-manipulation ${cornerClass[c]}`}
+              className={`rounded-sm border-2 border-white bg-[#c9a84a] shadow-md touch-none ${cornerClass[c]}`}
               style={{
                 width: HANDLE_PX,
                 height: HANDLE_PX,
                 pointerEvents: "auto",
                 cursor: cursor[c],
+                touchAction: "none",
               }}
               onPointerDown={(e) => onResizePointerDown(c, e)}
             />
@@ -213,12 +215,13 @@ export function BusinessCardNativeV2TransformChrome(props: {
           type="button"
           tabIndex={-1}
           aria-label="Rotate"
-          className="absolute left-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[rgba(201,168,74,0.95)] shadow-md touch-manipulation"
+          className="absolute left-1/2 flex h-8 w-8 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border-2 border-white bg-[rgba(201,168,74,0.95)] shadow-md touch-none sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7"
           style={{
             top: -ROT_ABOVE_PX,
             transform: "translate(-50%, -50%)",
             pointerEvents: "auto",
             cursor: "grab",
+            touchAction: "none",
           }}
           onPointerDown={onRotatePointerDown}
         >

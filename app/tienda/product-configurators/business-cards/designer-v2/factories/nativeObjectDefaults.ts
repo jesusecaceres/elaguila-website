@@ -56,6 +56,12 @@ export function createDefaultNativeImage(input: {
     previewUrl: input.previewUrl,
     naturalWidth: input.naturalWidth,
     naturalHeight: input.naturalHeight,
+    objectFit: "contain",
+    objectPositionXPct: 50,
+    objectPositionYPct: 50,
+    imageOpacity: 1,
+    cornerRadiusPx: 0,
+    imageClip: "roundRect",
   };
 }
 

@@ -36,3 +36,19 @@ export function clampNativeStrokeWidthPx(v: number): number {
   if (!Number.isFinite(v)) return 0;
   return Math.min(24, Math.max(0, v));
 }
+
+/** 0–100 for CSS `object-position` percentages */
+export function clampNativeObjectPositionPct(v: number): number {
+  if (!Number.isFinite(v)) return 50;
+  return Math.min(100, Math.max(0, v));
+}
+
+export function clampNativeCornerRadiusPx(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  return Math.min(48, Math.max(0, v));
+}
+
+export function clampNativeImageOpacity(v: number): number {
+  if (!Number.isFinite(v)) return 1;
+  return Math.min(1, Math.max(0, v));
+}
