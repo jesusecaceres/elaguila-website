@@ -30,6 +30,44 @@ export function nextDesignerV2NativeZIndex(state: BusinessCardSideState): number
   return Math.max(0, fromLogo, ...fromText, ...fromNative) + 1;
 }
 
+/**
+ * Large centered underlay for “refresh existing design” — low z-index so template text/logo
+ * typically paint above; user can raise z in Refinements if needed.
+ */
+export function createRefreshSeedNativeImage(input: {
+  id: string;
+  previewUrl: string;
+  naturalWidth: number | null;
+  naturalHeight: number | null;
+}): BusinessCardDesignerV2NativeImage {
+  const widthPct = 88;
+  const nw = input.naturalWidth ?? 1;
+  const nh = input.naturalHeight ?? 1;
+  const heightPct = imageHeightPctFromAspect(widthPct, nw, nh);
+  return {
+    id: input.id,
+    kind: "native-image",
+    visible: true,
+    locked: false,
+    lockAspectRatio: true,
+    zIndex: 3,
+    xPct: 50,
+    yPct: 50,
+    widthPct,
+    heightPct,
+    rotationDeg: 0,
+    previewUrl: input.previewUrl,
+    naturalWidth: input.naturalWidth,
+    naturalHeight: input.naturalHeight,
+    objectFit: "contain",
+    objectPositionXPct: 50,
+    objectPositionYPct: 50,
+    imageOpacity: 1,
+    cornerRadiusPx: 0,
+    imageClip: "roundRect",
+  };
+}
+
 export function createDefaultNativeImage(input: {
   id: string;
   previewUrl: string;

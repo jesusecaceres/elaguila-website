@@ -9,7 +9,14 @@ import {
   hasSpecsSection,
   hasTitleBand,
 } from "../lib/autoDealerPresence";
-import { formatMiles, formatUsd } from "./autoDealerFormatters";
+import {
+  formatCityStateLabel,
+  formatMiles,
+  formatStockDisplay,
+  formatUsd,
+  formatVinDisplay,
+  polishMonthlyEstimateDisplay,
+} from "./autoDealerFormatters";
 import { AutoGallery } from "./AutoGallery";
 import { AutoSidebarCTA } from "./AutoSidebarCTA";
 import { DealerInfoCard } from "./DealerInfoCard";
@@ -35,8 +42,15 @@ function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
-  const loc = [data.city, data.state].filter((x) => nonEmpty(x)).join(", ");
+export function AutoDealerPreviewPage({
+  data,
+  editBackHref,
+}: {
+  data: AutoDealerListing;
+  /** Subtle return link to the listing editor (e.g. Publicar flow). */
+  editBackHref?: string;
+}) {
+  const loc = formatCityStateLabel(data.city, data.state);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
   const showTitle = hasTitleBand(data);
   const showGallery = hasHeroMedia(data);
@@ -118,6 +132,16 @@ export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
             <li className="font-semibold text-[color:var(--lx-text)]">Negocios</li>
           </ol>
         </nav>
+        {editBackHref ? (
+          <div className="mt-4 flex justify-end">
+            <Link
+              href={editBackHref}
+              className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 transition hover:text-[color:var(--lx-gold)]"
+            >
+              Volver a editar
+            </Link>
+          </div>
+        ) : null}
       </header>
 
       <main className="mx-auto mt-8 max-w-[1280px] px-4 md:px-5 lg:px-6">
@@ -164,13 +188,13 @@ export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
                         {showVin ? (
                           <div className="flex flex-wrap gap-2 sm:col-span-2">
                             <dt className="text-[color:var(--lx-muted)]">VIN</dt>
-                            <dd className="font-mono text-[13px] font-semibold tracking-tight">{data.vin}</dd>
+                            <dd className="font-mono text-[13px] font-semibold tracking-wide">{formatVinDisplay(data.vin)}</dd>
                           </div>
                         ) : null}
                         {showStock ? (
                           <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">Stock</dt>
-                            <dd className="font-semibold">{data.stockNumber}</dd>
+                            <dt className="text-[color:var(--lx-muted)]">N.º de stock</dt>
+                            <dd className="font-semibold">{formatStockDisplay(data.stockNumber)}</dd>
                           </div>
                         ) : null}
                       </dl>
@@ -191,7 +215,7 @@ export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
                     ) : null}
                     {nonEmpty(data.monthlyEstimate ?? undefined) ? (
                       <p className={`text-sm font-semibold text-[color:var(--lx-text-2)] ${priceOk ? "mt-2" : ""}`}>
-                        {data.monthlyEstimate}
+                        {polishMonthlyEstimateDisplay(data.monthlyEstimate ?? undefined)}
                       </p>
                     ) : null}
                   </div>
@@ -201,10 +225,7 @@ export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
           ) : null}
 
           {showGallery ? (
-            <div
-              className="order-2 lg:order-none lg:col-span-7 lg:col-start-1"
-              style={{ gridRowStart: galleryRow, order: orderGallery }}
-            >
+            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
               <AutoGallery data={data} />
             </div>
           ) : null}
@@ -228,10 +249,7 @@ export function AutoDealerPreviewPage({ data }: { data: AutoDealerListing }) {
           ) : null}
 
           {showHighlights ? (
-            <div
-              className="order-5 lg:order-none lg:col-span-7 lg:col-start-1"
-              style={{ gridRowStart: highlightsRow, order: orderHi }}
-            >
+            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: highlightsRow, order: orderHi }}>
               <VehicleHighlights data={data} />
             </div>
           ) : null}

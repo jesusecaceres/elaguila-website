@@ -5,6 +5,10 @@ export const businessCardProductCopy = {
     es: "Tarjetas premium estándar 3.5″×2″ — autogestión para stock y acabado profesional habitual. Opciones especiales (foil, terciopelo, cantos pintados, etc.) son por cotización.",
     en: "Standard premium 3.5″×2″ cards — self‑serve for typical professional stock and finish. Specialty options (foil, velvet, painted edges, etc.) are quote‑only.",
   },
+  gatewayPathsFootnote: {
+    es: "“Renovar” coloca una imagen editable en Studio. “Archivo listo” es para entregar tu PDF o imagen final a producción—no es el mismo flujo.",
+    en: "“Refresh” places an editable image in Studio. “Print-ready file” is for handing off your final PDF or image to production—a different path.",
+  },
   pathLeoBadge: { es: "Destacado Leonix", en: "Leonix flagship" },
   pathLeoTitle: { es: "LEO — tu arranque inteligente", en: "LEO — your smart start" },
   pathLeoBody: {
@@ -33,6 +37,13 @@ export const businessCardProductCopy = {
     en: "PDF or image at card size. We retain your original file for production with clear handoff.",
   },
   pathUploadCta: { es: "Subir archivos", en: "Upload files" },
+  pathRefreshBadge: { es: "Renovar", en: "Refresh" },
+  pathRefreshTitle: { es: "Renovar un diseño existente", en: "Refresh an existing design" },
+  pathRefreshBody: {
+    es: "Sube una foto, escaneo o captura de tu tarjeta o referencia. La colocamos en Studio como capa editable para modernizar—no es el flujo de archivo final para imprenta.",
+    en: "Upload a photo, scan, or screenshot of your card or inspiration. We place it in Studio as an editable layer to rebuild from—not the print‑ready file upload path.",
+  },
+  pathRefreshCta: { es: "Empezar con tu imagen", en: "Start from your image" },
   specialtyTitle: { es: "Tarjetas especiales y de lujo", en: "Specialty & luxury cards" },
   specialtyBody: {
     es: "Acabados como foil, UV relieve, cantos pintados, cartulina extra gruesa, formas especiales o materiales distintos requieren coordinación con Leonix.",
@@ -103,6 +114,28 @@ export const businessCardProductCopy = {
     es: "LEO te dio el primer borrador. Sigue editando aquí: texto y logo arriba, refinamientos (imágenes y formas) en el panel inferior—mismo entorno, sin empezar de cero.",
     en: "LEO gave you a strong first draft. Keep refining here: text and logo above, images and shapes in Refinements below—the same workspace, not a reset.",
   },
+  designIntakeRefreshHint: {
+    es: "Arranca desde tu imagen de referencia en el lienzo: ajústala en Refinamientos, añade texto y formas encima, y elige plantilla abajo si quieres un look Leonix nuevo.",
+    en: "You’re starting from a reference image on the canvas—tweak it under Refinements, layer text and shapes above, and pick a template below if you want a fresh Leonix look.",
+  },
+  refreshPanelTitle: { es: "Sube tu referencia", en: "Upload your reference" },
+  refreshPanelBody: {
+    es: "Foto, escaneo o captura de tu tarjeta actual o inspiración. La colocamos como capa nativa debajo del texto típico para que puedas reconstruir en Studio.",
+    en: "A photo, scan, or screenshot of your current card or inspiration. We place it as a native layer (usually under text) so you can rebuild in Studio.",
+  },
+  refreshPanelSideNote: {
+    es: "Se coloca en la cara activa (frente o reverso). Cambia de cara arriba si quieres empezar en el otro lado.",
+    en: "Placed on the active side (front or back). Switch sides above if you want to start on the other face.",
+  },
+  refreshPanelCta: { es: "Elegir imagen", en: "Choose image" },
+  refreshPanelSkip: { es: "Saltar — abrir editor sin imagen", en: "Skip — open editor without an image" },
+  refreshSeedHelperTitle: { es: "Siguiente paso", en: "Next step" },
+  refreshSeedNextHint: {
+    es: "Añade texto y formas en Refinamientos; sube la opacidad si la referencia debe verse fuerte, o baja con “sutil” para leer sobre ella.",
+    en: "Add text and shapes in Refinements; use full opacity for a bold reference, or faint to read type on top.",
+  },
+  refreshOpacityFaint: { es: "Sutil (referencia)", en: "Faint (reference)" },
+  refreshOpacityFull: { es: "Opacidad completa", en: "Full opacity" },
   switchToCustomCta: { es: "Mostrar todos los controles de diseño", en: "Show full layout controls" },
 } as const;
 

@@ -32,6 +32,7 @@ import { BusinessCardPreview } from "./BusinessCardPreview";
 import { BusinessCardEditorPanel } from "./BusinessCardEditorPanel";
 import { BusinessCardContextualInspector } from "./editor/BusinessCardContextualInspector";
 import { BusinessCardDesignerV2Panel } from "./BusinessCardDesignerV2Panel";
+import { BusinessCardRefreshDesignPanel } from "./BusinessCardRefreshDesignPanel";
 import { BusinessCardSideTabs } from "./BusinessCardSideTabs";
 import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
 import { BusinessCardApprovalPanel } from "./BusinessCardApprovalPanel";
@@ -64,6 +65,8 @@ export function BusinessCardBuilderShell(props: {
   const [logoInspectorActive, setLogoInspectorActive] = useState(false);
   /** Studio layer selection — cleared on side switch, delete, template apply (see handlers), logo pick, LEO/custom CTAs. */
   const [selectedV2NativeId, setSelectedV2NativeId] = useState<string | null>(null);
+  /** Native image id from the refresh flow (for quick opacity helpers). */
+  const [refreshSeedId, setRefreshSeedId] = useState<string | null>(null);
   const [sessionDraftError, setSessionDraftError] = useState<string | null>(null);
 
   const docRef = useRef(doc);
@@ -248,7 +251,9 @@ export function BusinessCardBuilderShell(props: {
               ? bcpPick(businessCardProductCopy.designIntakeCustomHint, lang)
               : doc.designIntake === "leo"
                 ? bcpPick(businessCardProductCopy.designIntakeLeoHint, lang)
-                : bcpPick(businessCardProductCopy.designIntakeTemplateHint, lang)}
+                : doc.designIntake === "refresh"
+                  ? bcpPick(businessCardProductCopy.designIntakeRefreshHint, lang)
+                  : bcpPick(businessCardProductCopy.designIntakeTemplateHint, lang)}
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             {doc.designIntake === "leo" && leoAlternateTemplateId ? (
@@ -265,7 +270,7 @@ export function BusinessCardBuilderShell(props: {
                 {bcPick(businessCardBuilderCopy.tryAnotherLook, lang)}
               </button>
             ) : null}
-            {doc.designIntake === "template" || doc.designIntake === "leo" ? (
+            {doc.designIntake === "template" || doc.designIntake === "leo" || doc.designIntake === "refresh" ? (
               <button
                 type="button"
                 onClick={() => {
@@ -281,6 +286,24 @@ export function BusinessCardBuilderShell(props: {
             ) : null}
           </div>
         </div>
+
+        <BusinessCardRefreshDesignPanel
+          lang={lang}
+          doc={doc}
+          dispatch={dispatchTyped}
+          onSelectV2Native={setSelectedV2NativeId}
+          onClearTemplateSelection={() => {
+            setSelectedTextBlockId(null);
+            setLogoInspectorActive(false);
+          }}
+          onSkipToCustomBuilder={() => {
+            setSelectedV2NativeId(null);
+            setRefreshSeedId(null);
+            dispatchTyped({ type: "SET_DESIGN_INTAKE", designIntake: "custom" });
+          }}
+          refreshSeedId={refreshSeedId}
+          onRefreshSeedPlaced={setRefreshSeedId}
+        />
 
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
           <div className="space-y-3 lg:space-y-4">

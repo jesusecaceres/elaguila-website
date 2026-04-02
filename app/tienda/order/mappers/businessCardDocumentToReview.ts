@@ -68,7 +68,7 @@ export type BusinessCardSessionPayloadV3Design = {
   sidedness: "one-sided" | "two-sided";
   canvasBackground: BusinessCardCanvasBackground;
   /** Template-first vs advanced builder — used for fulfillment notes. */
-  designIntake?: "template" | "custom" | "leo";
+  designIntake?: "template" | "custom" | "leo" | "refresh";
   selectedTemplateId?: string;
   /** LEO assistant snapshot when `designIntake` is `leo`. */
   leoSnapshot?: BusinessCardLeoSnapshot;
@@ -338,7 +338,14 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
       ? { es: "Logo en frente", en: "Logo on front" }
       : { es: "Sin logo al frente", en: "No logo on front" }
   );
-  const intake = raw.designIntake === "custom" ? "custom" : raw.designIntake === "leo" ? "leo" : "template";
+  const intake =
+    raw.designIntake === "custom"
+      ? "custom"
+      : raw.designIntake === "leo"
+        ? "leo"
+        : raw.designIntake === "refresh"
+          ? "refresh"
+          : "template";
   if (intake === "leo") {
     const snap = isBusinessCardLeoSnapshot(raw.leoSnapshot) ? raw.leoSnapshot : null;
     frontMeta.push({
@@ -366,6 +373,17 @@ function mapV3DesignToReview(expectedSlug: string, raw: BusinessCardSessionPaylo
           }
         : { es: "Flujo: plantilla Leonix", en: "Flow: Leonix template" }
     );
+  } else if (intake === "refresh") {
+    frontMeta.push({
+      es: "Flujo: renovar diseño existente (imagen de referencia en Studio)",
+      en: "Flow: refresh existing design (reference image in Studio)",
+    });
+    if (raw.selectedTemplateId) {
+      frontMeta.push({
+        es: `Plantilla base: ${raw.selectedTemplateId}`,
+        en: `Base template: ${raw.selectedTemplateId}`,
+      });
+    }
   } else {
     frontMeta.push({
       es: "Flujo: constructor avanzado (custom)",
@@ -508,7 +526,7 @@ function extractExtraDesign(
   back: StoredSidePayload | StoredSidePayloadV3,
   approval: BusinessCardApprovalSnapshot,
   designMeta?: {
-    designIntake?: "template" | "custom" | "leo";
+    designIntake?: "template" | "custom" | "leo" | "refresh";
     selectedTemplateId?: string;
     leoSnapshot?: BusinessCardLeoSnapshot | null;
   }
@@ -519,7 +537,13 @@ function extractExtraDesign(
   const backLines = sidedness === "two-sided" ? sideTextSummary(back, backLabel) : [];
 
   const intake =
-    designMeta?.designIntake === "custom" ? "custom" : designMeta?.designIntake === "leo" ? "leo" : "template";
+    designMeta?.designIntake === "custom"
+      ? "custom"
+      : designMeta?.designIntake === "leo"
+        ? "leo"
+        : designMeta?.designIntake === "refresh"
+          ? "refresh"
+          : "template";
   const slug = designMeta?.selectedTemplateId?.trim();
   const snap = designMeta?.leoSnapshot && isBusinessCardLeoSnapshot(designMeta.leoSnapshot) ? designMeta.leoSnapshot : null;
 

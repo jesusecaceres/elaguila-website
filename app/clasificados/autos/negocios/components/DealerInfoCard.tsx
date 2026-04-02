@@ -1,8 +1,10 @@
-import Image from "next/image";
 import { FiClock, FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
-import type { AutoDealerListing, DealerHoursEntry, DealerSocialKey } from "../types/autoDealerListing";
+import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
+import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
+import { formatAddressLine, formatUsPhoneDisplay, phoneDigitsForTel } from "./autoDealerFormatters";
+import { MediaImage } from "./MediaImage";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4 shadow-[0_4px_24px_-6px_rgba(42,36,22,0.08)]";
@@ -15,78 +17,89 @@ function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-function formatHoursLine(h: DealerHoursEntry): string {
-  if (h.closed) return "Cerrado";
-  const o = h.open.trim();
-  const c = h.close.trim();
-  if (!o && !c) return "—";
-  return `${o} – ${c}`;
-}
-
 export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
   if (!hasDealerCard(data)) return null;
 
   const socials = SOCIAL_ORDER.filter((k) => Boolean(data.dealerSocials?.[k]));
-  const hours = data.dealerHours ?? [];
-  const showRating =
-    (data.dealerRating !== undefined && Number.isFinite(data.dealerRating)) ||
-    (data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount));
+  const hours = filterDealerHoursForDisplay(data.dealerHours);
+  const rOk = data.dealerRating !== undefined && Number.isFinite(data.dealerRating);
+  const cOk =
+    data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount) && data.dealerReviewCount > 0;
+
+  const phoneDisplay = formatUsPhoneDisplay(data.dealerPhone);
+  const phoneForTel = phoneDigitsForTel(data.dealerPhone);
+  const showPhone = nonEmpty(data.dealerPhone) && (phoneDisplay.length > 0 || phoneForTel.length > 0);
+
+  const addressLine = formatAddressLine(data.dealerAddress);
 
   const initials = (data.dealerName ?? "NA").slice(0, 2).toUpperCase();
+
+  const ratingLine =
+    rOk && cOk
+      ? `${data.dealerRating!.toFixed(1)} · ${data.dealerReviewCount} reviews`
+      : rOk
+        ? `${data.dealerRating!.toFixed(1)} rating`
+        : null;
 
   return (
     <div className={CARD}>
       <div className="flex gap-3">
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]">
           {data.dealerLogo ? (
-            <Image src={data.dealerLogo} alt={data.dealerName ?? "Concesionario"} fill className="object-cover" sizes="56px" />
+            <MediaImage
+              src={data.dealerLogo}
+              alt={data.dealerName?.trim() ? data.dealerName! : "Concesionario"}
+              fill
+              className="object-cover"
+              sizes="56px"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[color:var(--lx-muted)]">{initials}</div>
           )}
         </div>
         <div className="min-w-0 flex-1">
           {nonEmpty(data.dealerName) ? (
-            <h2 className="text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)]">{data.dealerName}</h2>
+            <h2 className="text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)]">{data.dealerName?.trim()}</h2>
           ) : null}
-          {showRating ? (
+          {ratingLine ? (
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
-              {data.dealerRating !== undefined && Number.isFinite(data.dealerRating) ? (
-                <span className="font-semibold text-[color:var(--lx-gold)]">{data.dealerRating.toFixed(1)}</span>
-              ) : null}
-              {data.dealerRating !== undefined && Number.isFinite(data.dealerRating) && data.dealerReviewCount !== undefined ? " · " : null}
-              {data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount) ? `${data.dealerReviewCount} reseñas` : null}
+              <span className="font-semibold text-[color:var(--lx-gold)]">{ratingLine}</span>
             </p>
           ) : null}
         </div>
       </div>
 
       <ul className="mt-4 space-y-3 text-sm">
-        {nonEmpty(data.dealerPhone) ? (
+        {showPhone ? (
           <li className={ICON_ROW}>
             <FiPhone className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <a
-              href={`tel:${data.dealerPhone!.replace(/\D/g, "")}`}
-              className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
-            >
-              {data.dealerPhone}
-            </a>
+            {phoneForTel ? (
+              <a
+                href={`tel:${phoneForTel}`}
+                className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
+              >
+                {phoneDisplay || data.dealerPhone?.trim()}
+              </a>
+            ) : (
+              <span className="font-medium text-[color:var(--lx-text)]">{phoneDisplay || data.dealerPhone?.trim()}</span>
+            )}
           </li>
         ) : null}
-        {nonEmpty(data.dealerAddress) ? (
+        {nonEmpty(addressLine) ? (
           <li className={ICON_ROW}>
             <FiMapPin className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <span className="leading-snug">{data.dealerAddress}</span>
+            <span className="leading-snug">{addressLine}</span>
           </li>
         ) : null}
         {hours.length > 0 ? (
           <li className={ICON_ROW}>
             <FiClock className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {hours.map((row, idx) => (
-                <div key={`${row.day}-${idx}`} className="flex flex-wrap gap-x-2 gap-y-0.5">
-                  <span className="font-semibold text-[color:var(--lx-text)]">{row.day}</span>
-                  <span className="text-[color:var(--lx-text-2)]">{formatHoursLine(row)}</span>
-                </div>
+                <p key={`${row.day}-${idx}`} className="leading-snug text-[color:var(--lx-text-2)]">
+                  <span className="font-semibold text-[color:var(--lx-text)]">{row.day.trim()}:</span>{" "}
+                  {formatDealerHoursTimeRange(row)}
+                </p>
               ))}
             </div>
           </li>

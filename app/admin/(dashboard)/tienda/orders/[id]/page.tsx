@@ -240,7 +240,9 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
                     ? "Template library (manual)"
                     : payload.businessCardExtra.designIntake === "leo"
                       ? "LEO guided assistant"
-                      : "Custom builder (advanced)"}
+                      : payload.businessCardExtra.designIntake === "refresh"
+                        ? "Refresh existing design (Studio)"
+                        : "Custom builder (advanced)"}
                   {payload.businessCardExtra.templateSlug ? (
                     <>
                       {" "}

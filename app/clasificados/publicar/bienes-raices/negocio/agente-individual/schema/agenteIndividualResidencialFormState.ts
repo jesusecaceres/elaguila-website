@@ -45,7 +45,7 @@ export const AGENTE_RES_DESTACADOS_DEFS: ReadonlyArray<{
 ];
 
 /**
- * Estado plano — claves alineadas a slots de plantilla (ver `mapAgenteIndividualResidencialToPreview`).
+ * Estado plano del formulario / borrador — misma forma que consume la vista previa (patrón Autos).
  */
 export type AgenteIndividualResidencialFormState = {
   tipoPublicacionFijo: "venta_residencial";

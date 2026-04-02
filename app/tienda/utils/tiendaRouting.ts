@@ -6,7 +6,10 @@ export function normalizeLang(raw: unknown): Lang {
   return raw === "en" ? "en" : "es";
 }
 
-export function businessCardConfigurePath(slug: string, opts?: { entry?: "template" | "custom" | "leo" }): string {
+export function businessCardConfigurePath(
+  slug: string,
+  opts?: { entry?: "template" | "custom" | "leo" | "refresh" }
+): string {
   const base = `/tienda/configure/business-cards/${slug}`;
   if (!opts?.entry) return base;
   return `${base}?entry=${opts.entry}`;

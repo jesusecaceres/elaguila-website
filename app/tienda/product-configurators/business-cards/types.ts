@@ -195,7 +195,7 @@ export type BusinessCardApprovalChecks = {
   noRedesignExpectation: boolean;
 };
 
-export type BusinessCardDesignIntake = "template" | "custom" | "leo";
+export type BusinessCardDesignIntake = "template" | "custom" | "leo" | "refresh";
 
 export type BusinessCardDocument = {
   id: string;

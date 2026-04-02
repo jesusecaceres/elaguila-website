@@ -31,7 +31,7 @@ export function RelatedDealerCars({ listings }: { listings: RelatedRow[] }) {
             </div>
             <div className="flex flex-1 flex-col p-3">
               <h3 className="text-sm font-bold leading-snug text-[color:var(--lx-text)]">
-                {car.year} {car.make} {car.model}
+                {new Intl.NumberFormat("en-US").format(car.year)} {car.make} {car.model}
               </h3>
               <p className="mt-2 text-lg font-bold text-[color:var(--lx-text)]">{formatUsd(car.price)}</p>
               <p className="mt-1 text-xs font-medium text-[color:var(--lx-muted)]">{formatMiles(car.mileage)}</p>

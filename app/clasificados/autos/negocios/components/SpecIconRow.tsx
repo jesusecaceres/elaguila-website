@@ -4,10 +4,13 @@ export function SpecIconRow({
   icon,
   label,
   value,
+  valueClassName,
 }: {
   icon: ReactNode;
   label: string;
   value: string | undefined;
+  /** e.g. `font-mono tracking-wide` for VIN */
+  valueClassName?: string;
 }) {
   if (value === undefined || value.trim() === "") return null;
 
@@ -21,7 +24,11 @@ export function SpecIconRow({
       </span>
       <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--lx-muted)]">{label}</p>
-        <p className="mt-0.5 text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{value}</p>
+        <p
+          className={`mt-0.5 text-sm font-semibold leading-snug text-[color:var(--lx-text)] ${valueClassName ?? ""}`}
+        >
+          {value}
+        </p>
       </div>
     </div>
   );

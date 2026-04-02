@@ -12,7 +12,7 @@ import { FiLayers } from "react-icons/fi";
 import { TbArmchair, TbRoad } from "react-icons/tb";
 import type { ReactNode } from "react";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import { formatMiles } from "./autoDealerFormatters";
+import { formatMiles, formatMpgPair, formatStockDisplay, formatVinDisplay } from "./autoDealerFormatters";
 import { SpecIconRow } from "./SpecIconRow";
 
 function conditionEs(c: AutoDealerListing["condition"]): string | undefined {
@@ -26,13 +26,7 @@ const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
 
 export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
-  const mpg =
-    data.mpgCity != null &&
-    Number.isFinite(data.mpgCity) &&
-    data.mpgHighway != null &&
-    Number.isFinite(data.mpgHighway)
-      ? `${data.mpgCity} / ${data.mpgHighway} mpg`
-      : undefined;
+  const mpg = formatMpgPair(data.mpgCity ?? undefined, data.mpgHighway ?? undefined) || undefined;
 
   const doors =
     data.doors !== undefined && Number.isFinite(data.doors) ? String(data.doors) : undefined;
@@ -54,8 +48,18 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
     { key: "seats", label: "Asientos", value: seats, icon: <TbArmchair className="h-5 w-5" /> },
     { key: "cond", label: "Condición", value: conditionEs(data.condition), icon: <BiKey className="h-5 w-5" /> },
     { key: "title", label: "Estado del título", value: data.titleStatus, icon: <BiShieldQuarter className="h-5 w-5" /> },
-    { key: "vin", label: "VIN", value: data.vin, icon: <span className="text-xs font-bold">VIN</span> },
-    { key: "stock", label: "Stock", value: data.stockNumber, icon: <span className="text-xs font-bold">#</span> },
+    {
+      key: "vin",
+      label: "VIN",
+      value: data.vin ? formatVinDisplay(data.vin) : undefined,
+      icon: <span className="text-xs font-bold">VIN</span>,
+    },
+    {
+      key: "stock",
+      label: "N.º de stock",
+      value: data.stockNumber ? formatStockDisplay(data.stockNumber) : undefined,
+      icon: <span className="text-xs font-bold">#</span>,
+    },
     { key: "mi", label: "Millaje", value: mileageStr, icon: <BiTachometer className="h-5 w-5" /> },
   ];
 
@@ -68,7 +72,13 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">Datos verificados por el concesionario</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {visible.map((r) => (
-          <SpecIconRow key={r.key} icon={r.icon} label={r.label} value={r.value} />
+          <SpecIconRow
+            key={r.key}
+            icon={r.icon}
+            label={r.label}
+            value={r.value}
+            valueClassName={r.key === "vin" ? "font-mono text-[13px] tracking-wide" : undefined}
+          />
         ))}
       </div>
     </section>

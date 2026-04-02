@@ -202,7 +202,8 @@ export function businessCardBuilderReducer(
       return {
         ...state,
         designIntake: action.designIntake,
-        leoSnapshot: action.designIntake === "custom" ? undefined : state.leoSnapshot,
+        leoSnapshot:
+          action.designIntake === "custom" || action.designIntake === "refresh" ? undefined : state.leoSnapshot,
       };
     case "APPLY_TEMPLATE": {
       const { front, back, canvasBackground } = applyBusinessCardTemplateToDocument(

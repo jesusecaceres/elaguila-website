@@ -106,7 +106,9 @@ export function buildTiendaOrderEmailBodies(
               ? "template library"
               : x.designIntake === "leo"
                 ? "LEO guided assistant"
-                : "custom builder"
+                : x.designIntake === "refresh"
+                  ? "refresh existing design (Studio)"
+                  : "custom builder"
           }`
         : null;
     const templateLine =

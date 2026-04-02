@@ -1,4 +1,5 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import { filterDealerHoursForDisplay } from "./dealerHoursDisplay";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -58,16 +59,19 @@ export function hasSidebarCta(data: AutoDealerListing): boolean {
 
 export function hasDealerCard(data: AutoDealerListing): boolean {
   const soc = data.dealerSocials ?? {};
+  const hasHours = filterDealerHoursForDisplay(data.dealerHours).length > 0;
+  const hasRating = data.dealerRating !== undefined && Number.isFinite(data.dealerRating);
+  const hasReviews = data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount) && data.dealerReviewCount > 0;
   return (
     nonEmpty(data.dealerName) ||
     Boolean(data.dealerLogo) ||
     nonEmpty(data.dealerPhone) ||
     nonEmpty(data.dealerAddress) ||
-    (data.dealerHours ?? []).length > 0 ||
+    hasHours ||
     nonEmpty(data.dealerWebsite ?? undefined) ||
     Object.values(soc).some((u) => nonEmpty(u)) ||
-    (data.dealerRating !== undefined && Number.isFinite(data.dealerRating)) ||
-    (data.dealerReviewCount !== undefined && Number.isFinite(data.dealerReviewCount))
+    hasRating ||
+    hasReviews
   );
 }
 

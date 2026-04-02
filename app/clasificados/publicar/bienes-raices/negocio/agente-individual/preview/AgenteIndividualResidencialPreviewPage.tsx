@@ -1,6 +1,6 @@
 /**
- * Vista previa Leonix — agente individual / residencial.
- * Regiones alineadas a `AgenteIndividualResidencialPreviewVm` y `AGENTE_RES_SLOT_INVENTORY`.
+ * Vista previa Negocio — agente individual / residencial.
+ * Datos: `AgenteIndividualResidencialFormState` directo (patrón Autos; sin VM intermedia).
  */
 "use client";
 
@@ -14,17 +14,33 @@ import {
   BiCar,
   BiShapeSquare,
 } from "react-icons/bi";
-import {
-  FiExternalLink,
-  FiMapPin,
-  FiVideo,
-} from "react-icons/fi";
+import { FiExternalLink, FiMapPin, FiVideo } from "react-icons/fi";
 import { SiFacebook, SiInstagram, SiTiktok, SiX, SiYoutube } from "react-icons/si";
-import type {
-  AgenteIndividualResidencialPreviewVm,
-  AgenteResGalleryTileRole,
-  AgenteResQuickFactSemanticKey,
-} from "../mapping/agenteIndividualResidencialPreviewVm";
+import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
+import type { QuickFactKey } from "../lib/agenteResidencialPreviewFormat";
+import {
+  buildAsesorBlock,
+  buildContactModel,
+  buildDestacadosLabels,
+  buildGalleryModel,
+  buildLocationLine,
+  buildMapQuery,
+  buildOpenHouseSummary,
+  buildPropertyDetailRows,
+  buildQuickFacts,
+  formatEstadoAnuncioLabel,
+  formatPrecioUsd,
+  hasBrandBlockVisible,
+  hrefFromUserInput,
+  trim,
+} from "../lib/agenteResidencialPreviewFormat";
+import {
+  hasDescription,
+  hasFeatures,
+  hasLowerExtras,
+  hasNotas,
+  hasPropertyDetails,
+} from "../lib/agenteResidencialPreviewPresence";
 
 const IVORY = "#F9F6F1";
 const CREAM = "#FDFBF7";
@@ -37,7 +53,6 @@ const BORDER = "rgba(44, 36, 22, 0.1)";
 const CARD_SHADOW = "0 4px 24px rgba(44, 36, 22, 0.06)";
 const MEDIA_SHADOW = "0 10px 36px rgba(44, 36, 22, 0.1)";
 
-/** Sistema tipográfico — roles fijos */
 const typo = {
   meta: "text-[9px] font-bold uppercase tracking-[0.18em]",
   kicker: "text-[10px] font-bold uppercase tracking-[0.14em]",
@@ -59,7 +74,7 @@ const CARD_PAD = "px-4 py-4 sm:px-5 sm:py-4";
 const SECTION_LABEL = `${typo.kicker} mb-2.5`;
 
 const QUICK_FACT_ICON: Record<
-  AgenteResQuickFactSemanticKey,
+  QuickFactKey,
   ComponentType<{ className?: string; "aria-hidden"?: boolean }>
 > = {
   recamaras: BiBed,
@@ -70,18 +85,10 @@ const QUICK_FACT_ICON: Record<
   tamano_lote: BiShapeSquare,
 };
 
-const GALLERY_ROLE_LABEL: Record<AgenteResGalleryTileRole, string> = {
-  main_photo: "Foto principal",
-  secondary_photo_1: "Foto 2",
-  secondary_photo_2: "Foto 3",
-  video: "Video",
-  tour_or_plan: "Tour / plano",
-};
-
 function tourPlanSlotLabel(variant: "tour" | "brochure" | "none"): string {
   if (variant === "tour") return "Tour virtual";
   if (variant === "brochure") return "Plano / folleto";
-  return GALLERY_ROLE_LABEL.tour_or_plan;
+  return "Tour / plano";
 }
 
 function anchorPropsForHref(href: string, downloadFallback?: string | null) {
@@ -110,7 +117,11 @@ function EmptySlot({
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
       }}
     >
-      {icon ? <span className="opacity-50" style={{ color: BRONZE }}>{icon}</span> : null}
+      {icon ? (
+        <span className="opacity-50" style={{ color: BRONZE }}>
+          {icon}
+        </span>
+      ) : null}
       <p className={typo.kicker} style={{ color: BRONZE }}>
         {title}
       </p>
@@ -151,25 +162,37 @@ function GalleryCaption({ children }: { children: ReactNode }) {
   );
 }
 
-export function AgenteIndividualResidencialPreviewView({
-  vm,
+export function AgenteIndividualResidencialPreviewPage({
+  data,
   editHref,
   footerExtra,
   onBeforeNavigateToEdit,
 }: {
-  vm: AgenteIndividualResidencialPreviewVm;
+  data: AgenteIndividualResidencialFormState;
   editHref?: string;
   footerExtra?: string;
   onBeforeNavigateToEdit?: () => void;
 }) {
-  const h = vm.hero;
-  const pc = vm.professionalCard;
-  const soc = vm.social;
-  const g = vm.gallery;
-  const cr = vm.contactRail;
-  const mapsUrl = vm.extras.mapQuery
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vm.extras.mapQuery)}`
-    : null;
+  const g = buildGalleryModel(data);
+  const cr = buildContactModel(data);
+  const propertyRows = buildPropertyDetailRows(data);
+  const destacadosLabels = buildDestacadosLabels(data);
+  const quickFacts = buildQuickFacts(data);
+  const showBrand = hasBrandBlockVisible(data);
+  const title = trim(data.titulo);
+  const priceDisplay = formatPrecioUsd(data.precio);
+  const statusPill = formatEstadoAnuncioLabel(data);
+  const locationLine = buildLocationLine(data);
+  const mapQuery = buildMapQuery(data);
+  const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
+  const openHouseSummary = buildOpenHouseSummary(data);
+  const asesorBlock = buildAsesorBlock(data);
+  const opLine = "Venta residencial";
+
+  const agentLicenseLine = trim(data.agenteLicencia) ? `Licencia o número profesional: ${trim(data.agenteLicencia)}` : "";
+  const brandLicenseLine =
+    showBrand && trim(data.marcaLicencia) ? `Licencia de oficina: ${trim(data.marcaLicencia)}` : "";
+  const resolvedBrandSite = showBrand ? hrefFromUserInput(data.marcaSitioWeb) : null;
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -208,85 +231,85 @@ export function AgenteIndividualResidencialPreviewView({
           Vista previa del anuncio
         </p>
 
-        {/* Galería arriba (columna izq.) · texto/hechos debajo · carril derecho (flujo normal, sin sticky) */}
+        {/* 1 — Galería + tarjeta agente */}
         <section className="mt-2 grid grid-cols-1 gap-y-3 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-x-7">
           <div className="flex min-w-0 flex-col gap-3">
             <div>
               <h3 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                 Galería
               </h3>
-              <div className="grid gap-2.5 lg:grid-cols-12 lg:gap-3.5 lg:items-start">
+              <div className="grid gap-2.5 lg:grid-cols-12 lg:items-start lg:gap-3.5">
                 <div className="min-w-0 lg:col-span-8">
-                  {g.mainPhoto.url ? (
+                  {g.mainUrl ? (
                     <div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={g.mainPhoto.url}
+                        src={g.mainUrl}
                         alt=""
                         className="aspect-[16/10] w-full rounded-xl border object-cover lg:min-h-[min(360px,52vh)]"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
                       />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
+                      <GalleryCaption>Foto principal</GalleryCaption>
                     </div>
                   ) : (
                     <div>
                       <EmptySlot title="Foto principal" subtitle="Agrega fotos en el formulario." />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.main_photo}</GalleryCaption>
+                      <GalleryCaption>Foto principal</GalleryCaption>
                     </div>
                   )}
                 </div>
 
                 <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-4 lg:gap-2">
-                  {g.secondaryPhoto1.url ? (
+                  {g.secondary1 ? (
                     <div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={g.secondaryPhoto1.url}
+                        src={g.secondary1}
                         alt=""
                         className="aspect-[4/3] w-full rounded-lg border object-cover"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
                       />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_1}</GalleryCaption>
+                      <GalleryCaption>Foto 2</GalleryCaption>
                     </div>
                   ) : (
                     <div>
                       <EmptySlot title="Foto 2" subtitle="Opcional" />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_1}</GalleryCaption>
+                      <GalleryCaption>Foto 2</GalleryCaption>
                     </div>
                   )}
 
-                  {g.secondaryPhoto2.url ? (
+                  {g.secondary2 ? (
                     <div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={g.secondaryPhoto2.url}
+                        src={g.secondary2}
                         alt=""
                         className="aspect-[4/3] w-full rounded-lg border object-cover"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
                       />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_2}</GalleryCaption>
+                      <GalleryCaption>Foto 3</GalleryCaption>
                     </div>
                   ) : (
                     <div>
                       <EmptySlot title="Foto 3" subtitle="Opcional" />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.secondary_photo_2}</GalleryCaption>
+                      <GalleryCaption>Foto 3</GalleryCaption>
                     </div>
                   )}
 
-                  {g.video.dataUrl ? (
+                  {g.videoDataUrl ? (
                     <div>
                       <video
-                        src={g.video.dataUrl}
+                        src={g.videoDataUrl}
                         controls
                         className="aspect-[4/3] w-full rounded-lg border object-cover"
                         style={{ borderColor: BORDER }}
                       />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
+                      <GalleryCaption>Video</GalleryCaption>
                     </div>
-                  ) : g.video.externalHref ? (
+                  ) : g.videoExternalHref ? (
                     <div>
                       <a
-                        href={g.video.externalHref}
+                        href={g.videoExternalHref}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-[11px] font-bold tracking-wide"
@@ -295,7 +318,7 @@ export function AgenteIndividualResidencialPreviewView({
                         <FiVideo className="h-6 w-6 opacity-90" aria-hidden />
                         Reproducir video
                       </a>
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
+                      <GalleryCaption>Video</GalleryCaption>
                     </div>
                   ) : (
                     <div>
@@ -304,7 +327,7 @@ export function AgenteIndividualResidencialPreviewView({
                         subtitle="Pega un enlace o sube un archivo."
                         icon={<FiVideo className="h-5 w-5" aria-hidden />}
                       />
-                      <GalleryCaption>{GALLERY_ROLE_LABEL.video}</GalleryCaption>
+                      <GalleryCaption>Video</GalleryCaption>
                     </div>
                   )}
 
@@ -314,7 +337,10 @@ export function AgenteIndividualResidencialPreviewView({
                         href={g.tourOrPlan.href}
                         className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-center text-[11px] font-bold tracking-wide"
                         style={{ borderColor: BORDER, background: "#243a5e", color: "#fff", boxShadow: MEDIA_SHADOW }}
-                        {...anchorPropsForHref(g.tourOrPlan.href, g.tourOrPlan.variant === "brochure" ? "folleto.pdf" : "tour.pdf")}
+                        {...anchorPropsForHref(
+                          g.tourOrPlan.href,
+                          g.tourOrPlan.variant === "brochure" ? "folleto.pdf" : "tour.pdf",
+                        )}
                       >
                         {g.tourOrPlan.variant === "tour" ? "Abrir tour" : "Abrir plano / folleto"}
                       </a>
@@ -329,7 +355,7 @@ export function AgenteIndividualResidencialPreviewView({
                 </div>
               </div>
 
-              {g.showAllPhotosCta.visible ? (
+              {g.showAllPhotosPill ? (
                 <div
                   className="mt-3 flex justify-center"
                   role="note"
@@ -344,86 +370,8 @@ export function AgenteIndividualResidencialPreviewView({
                       cursor: "default",
                     }}
                   >
-                    Ver todas las fotos ({g.showAllPhotosCta.totalPhotoCount})
+                    Ver todas las fotos ({g.totalPhotos})
                   </span>
-                </div>
-              ) : null}
-            </div>
-
-            <div>
-              {h.title ? (
-                <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
-                  {h.title}
-                </h1>
-              ) : null}
-              <p className={`${h.title ? "mt-1" : ""} ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
-                {h.operationLine}
-              </p>
-              {h.locationLine || mapsUrl ? (
-                <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
-                  {h.locationLine ? (
-                    <>
-                      <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
-                      <span>{h.locationLine}</span>
-                    </>
-                  ) : null}
-                  {mapsUrl ? (
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
-                      style={{ color: BRONZE }}
-                    >
-                      Ver en mapa
-                    </a>
-                  ) : null}
-                </p>
-              ) : null}
-              <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
-                {h.priceDisplay ? (
-                  <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
-                    {h.priceDisplay}
-                  </span>
-                ) : null}
-                <span
-                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-                  style={{
-                    border: `1px solid ${BRONZE_SOFT}`,
-                    background: "rgba(197, 160, 89, 0.1)",
-                    color: "#7A5F22",
-                  }}
-                >
-                  {h.statusPill}
-                </span>
-              </div>
-
-              {h.quickFacts.length ? (
-                <div
-                  className="mt-2 overflow-hidden rounded-xl border"
-                  style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
-                >
-                  <div
-                    className="grid gap-px bg-[rgba(44,36,22,0.08)]"
-                    style={{
-                      gridTemplateColumns: `repeat(${Math.min(h.quickFacts.length, 6)}, minmax(0, 1fr))`,
-                    }}
-                  >
-                    {h.quickFacts.map((q) => {
-                      const Icon = QUICK_FACT_ICON[q.key];
-                      return (
-                        <div key={q.key} className="min-w-0 bg-[#FDFBF7] px-1.5 py-2.5 sm:px-2 sm:py-3">
-                          <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
-                            <Icon className="h-4 w-4 opacity-95" />
-                          </div>
-                          <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
-                            {q.label}
-                          </p>
-                          <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               ) : null}
             </div>
@@ -438,25 +386,25 @@ export function AgenteIndividualResidencialPreviewView({
             }}
           >
             <div className="p-3.5 sm:p-4">
-              {pc.hasBrandBlock ? (
+              {showBrand ? (
                 <div className="border-b pb-3" style={{ borderColor: "rgba(44,36,22,0.08)" }}>
-                  {pc.brandLogoUrl ? (
+                  {trim(data.marcaLogoDataUrl) ? (
                     <div className="mx-auto mb-2 flex max-w-[148px] justify-center">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={pc.brandLogoUrl} alt="" className="max-h-11 w-auto object-contain opacity-[0.97]" />
+                      <img src={trim(data.marcaLogoDataUrl)} alt="" className="max-h-11 w-auto object-contain opacity-[0.97]" />
                     </div>
                   ) : null}
-                  {pc.brandName ? (
+                  {trim(data.marcaNombre) ? (
                     <p className={`text-center ${typo.bodySm} font-bold`} style={{ color: MUTED }}>
-                      {pc.brandName}
+                      {trim(data.marcaNombre)}
                     </p>
                   ) : null}
-                  {pc.brandWebsiteHref ? (
+                  {resolvedBrandSite ? (
                     <a
-                      href={pc.brandWebsiteHref}
+                      href={resolvedBrandSite}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`mt-1.5 flex w-full items-center justify-center gap-1 text-center text-[11px] font-semibold`}
+                      className="mt-1.5 flex w-full items-center justify-center gap-1 text-center text-[11px] font-semibold"
                       style={{ color: BRONZE }}
                     >
                       Sitio web
@@ -466,12 +414,12 @@ export function AgenteIndividualResidencialPreviewView({
                 </div>
               ) : null}
 
-              <div className={pc.hasBrandBlock ? "pt-3" : ""}>
+              <div className={showBrand ? "pt-3" : ""}>
                 <div className="mx-auto w-full max-w-[236px]">
-                  {pc.agentPhotoUrl ? (
+                  {trim(data.agenteFotoDataUrl) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={pc.agentPhotoUrl}
+                      src={trim(data.agenteFotoDataUrl)}
                       alt=""
                       className="mx-auto aspect-square w-full max-h-[240px] rounded-lg border object-cover"
                       style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.07)" }}
@@ -489,72 +437,76 @@ export function AgenteIndividualResidencialPreviewView({
                     </div>
                   )}
                 </div>
-                {pc.agentName ? <p className={`mt-2.5 text-center ${typo.railName}`}>{pc.agentName}</p> : null}
-                {pc.agentTitle ? (
+                {trim(data.agenteNombre) ? <p className={`mt-2.5 text-center ${typo.railName}`}>{trim(data.agenteNombre)}</p> : null}
+                {trim(data.agenteTitulo) ? (
                   <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
-                    {pc.agentTitle}
+                    {trim(data.agenteTitulo)}
                   </p>
                 ) : null}
-                {pc.areaServicioLine ? (
+                {trim(data.agenteAreaServicio) ? (
                   <p className={`mt-2 text-center ${typo.bodySm}`} style={{ color: MUTED }}>
-                    <span className="font-semibold opacity-85">Área:</span> {pc.areaServicioLine}
+                    <span className="font-semibold opacity-85">Área:</span> {trim(data.agenteAreaServicio)}
                   </p>
                 ) : null}
-                {pc.idiomasLine ? (
+                {trim(data.agenteIdiomas) ? (
                   <p className={`mt-1 text-center ${typo.bodySm}`} style={{ color: MUTED }}>
-                    <span className="font-semibold opacity-85">Idiomas:</span> {pc.idiomasLine}
+                    <span className="font-semibold opacity-85">Idiomas:</span> {trim(data.agenteIdiomas)}
                   </p>
                 ) : null}
-                {pc.agentLicenseLine ? (
+                {agentLicenseLine ? (
                   <p className={`mt-2.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
-                    {pc.agentLicenseLine}
+                    {agentLicenseLine}
                   </p>
                 ) : null}
-                {pc.hasBrandBlock && pc.brandLicenseLine ? (
+                {brandLicenseLine ? (
                   <p className={`mt-1.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
-                    {pc.brandLicenseLine}
+                    {brandLicenseLine}
                   </p>
                 ) : null}
 
-                {pc.phoneDisplay || pc.emailDisplay ? (
+                {trim(data.telefonoPrincipal) || trim(data.correoPrincipal) ? (
                   <div
                     className="mt-3 space-y-0.5 rounded-md px-2 py-2 text-center"
                     style={{ background: "rgba(44,36,22,0.04)" }}
                   >
-                    {pc.phoneDisplay ? <p className="text-sm font-semibold tracking-tight">{pc.phoneDisplay}</p> : null}
-                    {pc.emailDisplay ? <p className={`truncate ${typo.bodySm} opacity-90`}>{pc.emailDisplay}</p> : null}
+                    {trim(data.telefonoPrincipal) ? (
+                      <p className="text-sm font-semibold tracking-tight">{trim(data.telefonoPrincipal)}</p>
+                    ) : null}
+                    {trim(data.correoPrincipal) ? (
+                      <p className={`truncate ${typo.bodySm} opacity-90`}>{trim(data.correoPrincipal)}</p>
+                    ) : null}
                   </div>
                 ) : null}
 
                 {cr.showSocialIcons ? (
                   <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
-                    {soc.instagram ? (
-                      <SocialCircle href={soc.instagram} label="Instagram">
+                    {cr.socialInstagram ? (
+                      <SocialCircle href={cr.socialInstagram} label="Instagram">
                         <SiInstagram className="h-3.5 w-3.5" aria-hidden />
                       </SocialCircle>
                     ) : null}
-                    {soc.facebook ? (
-                      <SocialCircle href={soc.facebook} label="Facebook">
+                    {cr.socialFacebook ? (
+                      <SocialCircle href={cr.socialFacebook} label="Facebook">
                         <SiFacebook className="h-3.5 w-3.5" aria-hidden />
                       </SocialCircle>
                     ) : null}
-                    {soc.youtube ? (
-                      <SocialCircle href={soc.youtube} label="YouTube">
+                    {cr.socialYoutube ? (
+                      <SocialCircle href={cr.socialYoutube} label="YouTube">
                         <SiYoutube className="h-3.5 w-3.5" aria-hidden />
                       </SocialCircle>
                     ) : null}
-                    {soc.tiktok ? (
-                      <SocialCircle href={soc.tiktok} label="TikTok">
+                    {cr.socialTiktok ? (
+                      <SocialCircle href={cr.socialTiktok} label="TikTok">
                         <SiTiktok className="h-3.5 w-3.5" aria-hidden />
                       </SocialCircle>
                     ) : null}
-                    {soc.x ? (
-                      <SocialCircle href={soc.x} label="X">
+                    {cr.socialX ? (
+                      <SocialCircle href={cr.socialX} label="X">
                         <SiX className="h-3 w-3" aria-hidden />
                       </SocialCircle>
                     ) : null}
-                    {soc.otro ? (
-                      <SocialCircle href={soc.otro} label="Enlace">
+                    {cr.socialOtro ? (
+                      <SocialCircle href={cr.socialOtro} label="Enlace">
                         <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
                       </SocialCircle>
                     ) : null}
@@ -582,9 +534,9 @@ export function AgenteIndividualResidencialPreviewView({
                       WhatsApp
                     </a>
                   ) : null}
-                  {cr.showSolicitarInformacion && cr.solicitarInformacionHref ? (
+                  {cr.showSolicitarInformacion && cr.solicitarInfoHref ? (
                     <a
-                      href={cr.solicitarInformacionHref}
+                      href={cr.solicitarInfoHref}
                       className="flex w-full items-center justify-center rounded-lg border py-2 text-[13px] font-semibold"
                       style={{ borderColor: BORDER }}
                     >
@@ -658,17 +610,95 @@ export function AgenteIndividualResidencialPreviewView({
           </aside>
         </section>
 
-        {/* Detalles + características — misma fila visual; cada tarjeta solo si hay filas / destacados */}
-        {(vm.propertyRows.length > 0 || vm.destacadosLabels.length > 0) && (
+        {/* 2 — Título, operación, ubicación, precio, estado, hechos rápidos */}
+        <section className={`${SECTION_GAP} rounded-xl border px-4 py-5 sm:px-6`} style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+          {title ? (
+            <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
+              {title}
+            </h1>
+          ) : null}
+          <p className={`${title ? "mt-1" : ""} ${typo.bodySm} font-semibold`} style={{ color: MUTED }}>
+            {opLine}
+          </p>
+          {locationLine || mapsUrl ? (
+            <p className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 ${typo.bodySm} font-medium`} style={{ color: MUTED }}>
+              {locationLine ? (
+                <>
+                  <FiMapPin className="inline h-3.5 w-3.5 shrink-0 opacity-65" aria-hidden />
+                  <span>{locationLine}</span>
+                </>
+              ) : null}
+              {mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`shrink-0 font-semibold underline underline-offset-2 ${typo.bodySm}`}
+                  style={{ color: BRONZE }}
+                >
+                  Ver en mapa
+                </a>
+              ) : null}
+            </p>
+          ) : null}
+          <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
+            {priceDisplay ? (
+              <span className={typo.price} style={{ color: "#8E6A28", fontFamily: "Georgia, serif" }}>
+                {priceDisplay}
+              </span>
+            ) : null}
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+              style={{
+                border: `1px solid ${BRONZE_SOFT}`,
+                background: "rgba(197, 160, 89, 0.1)",
+                color: "#7A5F22",
+              }}
+            >
+              {statusPill}
+            </span>
+          </div>
+          {quickFacts.length ? (
+            <div
+              className="mt-4 overflow-hidden rounded-xl border"
+              style={{ borderColor: BORDER, background: IVORY, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)" }}
+            >
+              <div
+                className="grid gap-px bg-[rgba(44,36,22,0.08)]"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.min(quickFacts.length, 6)}, minmax(0, 1fr))`,
+                }}
+              >
+                {quickFacts.map((q) => {
+                  const Icon = QUICK_FACT_ICON[q.key];
+                  return (
+                    <div key={q.key} className="min-w-0 bg-[#FDFBF7] px-1.5 py-2.5 sm:px-2 sm:py-3">
+                      <div className="mb-1 flex justify-center" style={{ color: BRONZE }} aria-hidden>
+                        <Icon className="h-4 w-4 opacity-95" />
+                      </div>
+                      <p className={`text-center ${typo.labelCaps} leading-tight`} style={{ color: MUTED }}>
+                        {q.label}
+                      </p>
+                      <p className={`mt-0.5 truncate text-center ${typo.detailValue}`}>{q.value}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        {/* 3 — Detalles + características */}
+        {(hasPropertyDetails(data) || hasFeatures(data)) && (
           <section className={`${SECTION_GAP} grid gap-3.5 lg:grid-cols-2 lg:gap-4 lg:items-stretch`}>
-            {vm.propertyRows.length > 0 ? (
+            {hasPropertyDetails(data) ? (
               <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                 <div className={CARD_PAD}>
                   <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
                     Detalles de la propiedad
                   </h3>
                   <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-2">
-                    {vm.propertyRows.map((r) => (
+                    {propertyRows.map((r) => (
                       <div key={r.label} className="min-w-0 border-b border-[rgba(44,36,22,0.06)] pb-2 last:border-b-0 sm:border-b-0 sm:pb-0">
                         <dt className={typo.detailLabel} style={{ color: MUTED_LIGHT }}>
                           {r.label}
@@ -680,14 +710,14 @@ export function AgenteIndividualResidencialPreviewView({
                 </div>
               </div>
             ) : null}
-            {vm.destacadosLabels.length > 0 ? (
+            {hasFeatures(data) ? (
               <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                 <div className={CARD_PAD}>
                   <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
                     Características destacadas
                   </h3>
                   <ul className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-1.5">
-                    {vm.destacadosLabels.map((t) => (
+                    {destacadosLabels.map((t) => (
                       <li key={t} className={`flex items-start gap-2 ${typo.body} leading-snug`}>
                         <span
                           className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
@@ -705,7 +735,8 @@ export function AgenteIndividualResidencialPreviewView({
           </section>
         )}
 
-        {vm.hasDescription || vm.hasNotas ? (
+        {/* 4 — Descripción */}
+        {hasDescription(data) || hasNotas(data) ? (
           <section
             className={`${SECTION_GAP} rounded-xl border`}
             style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}
@@ -717,22 +748,24 @@ export function AgenteIndividualResidencialPreviewView({
               >
                 Descripción
               </h3>
-              {vm.hasDescription ? (
+              {hasDescription(data) ? (
                 <div className={`space-y-3 ${typo.body}`}>
-                  {vm.descripcionPrincipal.split(/\n\n+/).map((para, i) => (
-                    <p key={i} className="whitespace-pre-wrap text-[#3a342c]">
-                      {para}
-                    </p>
-                  ))}
+                  {trim(data.descripcionPrincipal)
+                    .split(/\n\n+/)
+                    .map((para, i) => (
+                      <p key={i} className="whitespace-pre-wrap text-[#3a342c]">
+                        {para}
+                      </p>
+                    ))}
                 </div>
               ) : null}
-              {vm.hasNotas ? (
-                <div className={`${vm.hasDescription ? "mt-4 border-t pt-3" : ""}`} style={{ borderColor: "rgba(44,36,22,0.08)" }}>
+              {hasNotas(data) ? (
+                <div className={`${hasDescription(data) ? "mt-4 border-t pt-3" : ""}`} style={{ borderColor: "rgba(44,36,22,0.08)" }}>
                   <p className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                     Notas adicionales
                   </p>
                   <p className={`${typo.body} whitespace-pre-wrap`} style={{ color: MUTED }}>
-                    {vm.notasAdicionales}
+                    {trim(data.notasAdicionales)}
                   </p>
                 </div>
               ) : null}
@@ -740,7 +773,8 @@ export function AgenteIndividualResidencialPreviewView({
           </section>
         ) : null}
 
-        {(vm.extras.openHouseSummary || vm.extras.asesorBlock || mapsUrl) && (
+        {/* 5 — Extras */}
+        {hasLowerExtras(data) ? (
           <section className={`${SECTION_GAP} space-y-3`}>
             <h2
               className={`text-center ${typo.lowerSerif}`}
@@ -749,49 +783,51 @@ export function AgenteIndividualResidencialPreviewView({
               Más información
             </h2>
             <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-              {vm.extras.openHouseSummary ? (
+              {openHouseSummary ? (
                 <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                   <div className={CARD_PAD}>
                     <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                       Open house
                     </h4>
-                    <p className={`${typo.body} whitespace-pre-line`}>{vm.extras.openHouseSummary}</p>
+                    <p className={`${typo.body} whitespace-pre-line`}>{openHouseSummary}</p>
                   </div>
                 </div>
               ) : null}
-              {vm.extras.asesorBlock ? (
+              {asesorBlock ? (
                 <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                   <div className={CARD_PAD}>
                     <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                       Contacto de financiamiento
                     </h4>
-                    <p className={`${typo.body} font-semibold`}>{vm.extras.asesorBlock.name}</p>
-                    <p className={typo.body}>{vm.extras.asesorBlock.phone}</p>
-                    <p className={`mt-0.5 truncate ${typo.bodySm} opacity-90`}>{vm.extras.asesorBlock.email}</p>
+                    <p className={`${typo.body} font-semibold`}>{asesorBlock.name}</p>
+                    <p className={typo.body}>{asesorBlock.phone}</p>
+                    <p className={`mt-0.5 truncate ${typo.bodySm} opacity-90`}>{asesorBlock.email}</p>
                   </div>
                 </div>
               ) : null}
-              {mapsUrl ? (
+              {mapQuery ? (
                 <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                   <div className={`${CARD_PAD} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}>
                     <h4 className={`${typo.kicker} mb-0`} style={{ color: MUTED }}>
                       Ubicación aproximada
                     </h4>
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex shrink-0 items-center justify-center rounded-lg border px-3 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.08)]"
-                      style={{ borderColor: `${BRONZE}aa`, color: BRONZE }}
-                    >
-                      Abrir en mapa
-                    </a>
+                    {mapsUrl ? (
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex shrink-0 items-center justify-center rounded-lg border px-3 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.08)]"
+                        style={{ borderColor: `${BRONZE}aa`, color: BRONZE }}
+                      >
+                        Abrir en mapa
+                      </a>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
             </div>
           </section>
-        )}
+        ) : null}
 
         {footerExtra ? (
           <footer className={`mt-6 border-t pt-4 text-center ${typo.bodySm}`} style={{ borderColor: BORDER, color: MUTED }}>

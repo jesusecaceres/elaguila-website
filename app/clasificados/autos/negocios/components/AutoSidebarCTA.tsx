@@ -1,7 +1,7 @@
 import { FiCalendar, FiMessageCircle, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import { formatUsd } from "./autoDealerFormatters";
+import { formatCityStateLabel, formatUsd, polishMonthlyEstimateDisplay } from "./autoDealerFormatters";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]";
@@ -20,9 +20,12 @@ function nonEmpty(s: string | undefined | null): boolean {
 }
 
 export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
-  const loc = [data.city, data.state].filter((x) => nonEmpty(x)).join(", ");
+  const loc = formatCityStateLabel(data.city, data.state);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
-  const showPriceBlock = priceOk || nonEmpty(data.monthlyEstimate ?? undefined) || nonEmpty(loc);
+  const monthlyLine = nonEmpty(data.monthlyEstimate ?? undefined)
+    ? polishMonthlyEstimateDisplay(data.monthlyEstimate ?? undefined)
+    : "";
+  const showPriceBlock = priceOk || nonEmpty(monthlyLine) || nonEmpty(loc);
 
   return (
     <div className={CARD}>
@@ -36,13 +39,11 @@ export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
               </p>
             </>
           ) : null}
-          {nonEmpty(data.monthlyEstimate ?? undefined) ? (
-            <p className={`text-sm font-semibold text-[color:var(--lx-text-2)] ${priceOk ? "mt-2" : ""}`}>
-              {data.monthlyEstimate}
-            </p>
+          {nonEmpty(monthlyLine) ? (
+            <p className={`text-sm font-semibold text-[color:var(--lx-text-2)] ${priceOk ? "mt-2" : ""}`}>{monthlyLine}</p>
           ) : null}
           {nonEmpty(loc) ? (
-            <p className={`text-sm ${priceOk || nonEmpty(data.monthlyEstimate ?? undefined) ? "mt-3" : ""}`}>
+            <p className={`text-sm ${priceOk || nonEmpty(monthlyLine) ? "mt-3" : ""}`}>
               <span className="font-semibold text-[color:var(--lx-text-2)]">{loc}</span>
             </p>
           ) : null}

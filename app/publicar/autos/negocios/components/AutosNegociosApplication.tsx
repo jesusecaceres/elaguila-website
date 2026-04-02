@@ -90,13 +90,24 @@ export function AutosNegociosApplication() {
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">Publicar · Clasificados</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--lx-text)] md:text-4xl">Autos · Negocio</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            Completa la información de tu inventario. Los cambios se guardan en este dispositivo. Abre la vista previa para ver exactamente cómo lo verá el comprador.
+            Completa el anuncio de tu inventario. La vista previa muestra la misma página que verá el comprador en Leonix.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
-            <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">Borrador local</span>
+            <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">
+              Borrador local
+            </span>
             <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-1 text-[color:var(--lx-text-2)]">
               Guardado automático
             </span>
+          </div>
+          <div
+            className="mt-5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)] shadow-sm"
+            role="note"
+          >
+            <p className="font-semibold text-[color:var(--lx-text)]">Vista previa fiel al publicado</p>
+            <p className="mt-1 text-[13px] text-[color:var(--lx-muted)]">
+              Los campos que completes aparecerán en la vista previa. Los campos vacíos no se muestran al comprador: el anuncio se adapta y solo se muestra lo que añades.
+            </p>
           </div>
         </header>
 

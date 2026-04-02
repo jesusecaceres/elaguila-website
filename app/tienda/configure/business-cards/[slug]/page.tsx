@@ -23,8 +23,14 @@ export default async function BusinessCardConfigurePage(props: {
 
   const sp = (await props.searchParams) ?? {};
   const lang: Lang = normalizeLang(sp.lang);
-  const designEntry: "template" | "custom" | "leo" =
-    sp.entry === "custom" ? "custom" : sp.entry === "leo" ? "leo" : "template";
+  const designEntry: "template" | "custom" | "leo" | "refresh" =
+    sp.entry === "custom"
+      ? "custom"
+      : sp.entry === "leo"
+        ? "leo"
+        : sp.entry === "refresh"
+          ? "refresh"
+          : "template";
 
   return <BusinessCardBuilderShell key={`${slug}-${lang}-${designEntry}`} productSlug={slug} lang={lang} designEntry={designEntry} />;
 }

@@ -7,23 +7,20 @@ import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { normalizeLoadedListing } from "../lib/autoDealerDraftDefaults";
 
-function mergeRelatedFromMock(listing: AutoDealerListing): AutoDealerListing {
-  const rel =
-    (listing.relatedDealerListings?.length ?? 0) > 0
-      ? listing.relatedDealerListings!
-      : (mockAutoDealerListing.relatedDealerListings ?? []);
-  return { ...listing, relatedDealerListings: rel };
-}
+const EDIT_HREF = "/publicar/autos/negocios";
 
 export function AutosNegociosPreviewClient() {
   const [listing, setListing] = useState<AutoDealerListing | null>(null);
+  const [previewMode, setPreviewMode] = useState<"mock" | "draft">("mock");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const d = loadAutosNegociosDraft();
     if (d) {
-      setListing(mergeRelatedFromMock(normalizeLoadedListing(d.listing)));
+      setPreviewMode("draft");
+      setListing(normalizeLoadedListing(d.listing));
     } else {
+      setPreviewMode("mock");
       setListing(null);
     }
     setReady(true);
@@ -33,6 +30,13 @@ export function AutosNegociosPreviewClient() {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
 
-  const data = listing ?? mockAutoDealerListing;
-  return <AutoDealerPreviewPage data={data} />;
+  const base = listing ?? mockAutoDealerListing;
+  const relatedDealerListings =
+    previewMode === "mock" && !(base.relatedDealerListings?.length)
+      ? (mockAutoDealerListing.relatedDealerListings ?? [])
+      : (base.relatedDealerListings ?? []);
+
+  const data: AutoDealerListing = { ...base, relatedDealerListings };
+
+  return <AutoDealerPreviewPage data={data} editBackHref={EDIT_HREF} />;
 }

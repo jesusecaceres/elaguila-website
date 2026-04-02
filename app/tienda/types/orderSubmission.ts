@@ -32,7 +32,7 @@ export type BusinessCardSubmissionExtra = {
   creationMode: "design-online" | "upload-existing";
   sidedness: "one-sided" | "two-sided";
   /** Present for design-online: template-first path vs LEO vs full custom builder. */
-  designIntake?: "template" | "custom" | "leo";
+  designIntake?: "template" | "custom" | "leo" | "refresh";
   /** Leonix template slug when designIntake is template or leo. */
   templateSlug?: string;
   /** LEO intake notes when `designIntake` is `leo`. */

@@ -45,9 +45,9 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
         </div>
       </section>
 
-      {/* Same editor after entry: template library, print-ready upload, or full layout entry */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
-        <div className="flex min-h-[260px] flex-col rounded-2xl border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] p-6">
+      {/* Same editor after entry: template, refresh-in-Studio, print-ready upload, or full layout */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
+        <div className="flex min-h-[240px] flex-col rounded-2xl border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] p-6">
           <span className="inline-flex self-start rounded-full border border-[rgba(255,255,255,0.22)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(255,247,226,0.78)]">
             {bcpPick(businessCardProductCopy.pathTemplateBadge, lang)}
           </span>
@@ -81,7 +81,7 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
             {bcpPick(businessCardProductCopy.pathUploadCta, lang)}
           </Link>
         </div>
-        <div className="flex min-h-[260px] flex-col rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] p-6">
+        <div className="flex min-h-[240px] flex-col rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] p-6">
           <span className="inline-flex self-start rounded-full border border-[rgba(201,168,74,0.35)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[rgba(201,168,74,0.9)]">
             {bcpPick(businessCardProductCopy.pathCustomBadge, lang)}
           </span>
@@ -99,6 +99,10 @@ export function BusinessCardProductGateway(props: { lang: Lang; productSlug: str
           </Link>
         </div>
       </div>
+
+      <p className="text-xs leading-relaxed text-[rgba(255,255,255,0.45)] max-w-3xl">
+        {bcpPick(businessCardProductCopy.gatewayPathsFootnote, lang)}
+      </p>
     </div>
   );
 }

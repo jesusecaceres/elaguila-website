@@ -59,6 +59,7 @@ function toSideV3(stored: BusinessCardSessionPayloadV3Design["front"]): Business
 function normalizeDesignIntake(raw: BusinessCardSessionPayloadV3Design["designIntake"]): BusinessCardDesignIntake {
   if (raw === "custom") return "custom";
   if (raw === "leo") return "leo";
+  if (raw === "refresh") return "refresh";
   return "template";
 }
 
