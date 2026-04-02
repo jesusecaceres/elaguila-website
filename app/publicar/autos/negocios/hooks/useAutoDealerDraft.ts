@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import type { AutoDealerListing, DealerHoursEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   clearAutosNegociosDraft,
-  loadAutosNegociosDraft,
-  saveAutosNegociosDraft,
+  loadAutosNegociosDraftResolved,
+  saveAutosNegociosDraftResolved,
   type AutosNegociosDraftV1,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import { buildVehicleTitle } from "../lib/autoDealerTitle";
@@ -27,27 +27,33 @@ export function useAutoDealerDraft() {
   const overrideRef = useRef(vehicleTitleOverride);
   overrideRef.current = vehicleTitleOverride;
 
-  const persist = useCallback((next: AutoDealerListing, override: boolean) => {
+  const persist = useCallback(async (next: AutoDealerListing, override: boolean) => {
     const normalized = normalizeLoadedListing(next);
     const payload: AutosNegociosDraftV1 = { v: 1, vehicleTitleOverride: override, listing: normalized };
-    saveAutosNegociosDraft(payload);
+    await saveAutosNegociosDraftResolved(payload);
   }, []);
 
   useEffect(() => {
-    const d = loadAutosNegociosDraft();
-    if (d) {
-      setVehicleTitleOverride(d.vehicleTitleOverride);
-      setListing(normalizeLoadedListing(d.listing));
-    }
-    setHydrated(true);
+    const run = async () => {
+      const d = await loadAutosNegociosDraftResolved();
+      if (d) {
+        setVehicleTitleOverride(d.vehicleTitleOverride);
+        setListing(normalizeLoadedListing(d.listing));
+      }
+      setHydrated(true);
+    };
+    void run();
   }, []);
 
   const setListingPatch = useCallback(
     (patch: Partial<AutoDealerListing>) => {
       setListing((prev) => {
         const merged: AutoDealerListing = { ...prev, ...patch };
+        if (patch.dealerSocials !== undefined) {
+          merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
+        }
         const next = applyAutoTitle(merged, overrideRef.current);
-        persist(next, overrideRef.current);
+        void persist(next, overrideRef.current);
         return normalizeLoadedListing(next);
       });
     },
@@ -59,7 +65,7 @@ export function useAutoDealerDraft() {
       const withTitle = applyAutoTitle(next, overrideRef.current);
       const normalized = normalizeLoadedListing(withTitle);
       setListing(normalized);
-      persist(normalized, overrideRef.current);
+      void persist(normalized, overrideRef.current);
     },
     [persist],
   );
@@ -69,7 +75,36 @@ export function useAutoDealerDraft() {
       setVehicleTitleOverride(v);
       setListing((prev) => {
         const next = applyAutoTitle(prev, v);
-        persist(next, v);
+        void persist(next, v);
+        return normalizeLoadedListing(next);
+      });
+    },
+    [persist],
+  );
+
+  const updateDealerHourRow = useCallback(
+    (rowId: string, patch: Partial<DealerHoursEntry>) => {
+      setListing((prev) => {
+        const rows = [...(prev.dealerHours ?? [])];
+        const i = rows.findIndex((r) => r.rowId === rowId);
+        if (i < 0) return prev;
+        rows[i] = { ...rows[i]!, ...patch };
+        const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
+        void persist(next, overrideRef.current);
+        return normalizeLoadedListing(next);
+      });
+    },
+    [persist],
+  );
+
+  const removeDealerHourRow = useCallback(
+    (rowId: string) => {
+      setListing((prev) => {
+        const before = prev.dealerHours ?? [];
+        const rows = before.filter((r) => r.rowId !== rowId);
+        if (rows.length === before.length) return prev;
+        const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
+        void persist(next, overrideRef.current);
         return normalizeLoadedListing(next);
       });
     },
@@ -92,5 +127,7 @@ export function useAutoDealerDraft() {
     setListingPatch,
     replaceListing,
     resetDraft,
+    updateDealerHourRow,
+    removeDealerHourRow,
   };
 }

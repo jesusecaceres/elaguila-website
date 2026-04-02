@@ -43,9 +43,24 @@ function parseOptFloat(raw: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function newHourRowId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `custom-${Date.now()}`;
+}
+
 export function AutosNegociosApplication() {
-  const { hydrated, vehicleTitleOverride, setVehicleTitleOverrideState, listing, setListingPatch, resetDraft } =
-    useAutoDealerDraft();
+  const {
+    hydrated,
+    vehicleTitleOverride,
+    setVehicleTitleOverrideState,
+    listing,
+    setListingPatch,
+    resetDraft,
+    updateDealerHourRow,
+    removeDealerHourRow,
+  } = useAutoDealerDraft();
 
   const autoTitlePreview = useMemo(
     () => buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim),
@@ -68,13 +83,6 @@ export function AutosNegociosApplication() {
     if (cur.has(label)) cur.delete(label);
     else cur.add(label);
     setListingPatch({ features: [...cur] });
-  }
-
-  function updateHour(i: number, patch: Partial<DealerHoursEntry>) {
-    const rows = [...(listing.dealerHours ?? [])];
-    if (!rows[i]) return;
-    rows[i] = { ...rows[i], ...patch };
-    setListingPatch({ dealerHours: rows });
   }
 
   return (
@@ -539,7 +547,7 @@ export function AutosNegociosApplication() {
                   setListingPatch({
                     dealerHours: [
                       ...(listing.dealerHours ?? []),
-                      { day: "Día", open: "09:00", close: "17:00", closed: false },
+                      { rowId: newHourRowId(), day: "Día", open: "09:00", close: "17:00", closed: false },
                     ],
                   })
                 }
@@ -549,9 +557,9 @@ export function AutosNegociosApplication() {
             </div>
 
             <div className="mt-4 space-y-3">
-              {(listing.dealerHours ?? []).map((row, i) => (
+              {(listing.dealerHours ?? []).map((row) => (
                 <div
-                  key={`${row.day}-${i}`}
+                  key={row.rowId}
                   className="grid gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
                 >
                   <div>
@@ -559,7 +567,7 @@ export function AutosNegociosApplication() {
                     <input
                       className={INPUT}
                       value={row.day}
-                      onChange={(e) => updateHour(i, { day: e.target.value })}
+                      onChange={(e) => updateDealerHourRow(row.rowId!, { day: e.target.value })}
                     />
                   </div>
                   <div>
@@ -568,7 +576,7 @@ export function AutosNegociosApplication() {
                       className={INPUT}
                       disabled={row.closed}
                       value={row.open}
-                      onChange={(e) => updateHour(i, { open: e.target.value })}
+                      onChange={(e) => updateDealerHourRow(row.rowId!, { open: e.target.value })}
                     />
                   </div>
                   <div>
@@ -577,7 +585,7 @@ export function AutosNegociosApplication() {
                       className={INPUT}
                       disabled={row.closed}
                       value={row.close}
-                      onChange={(e) => updateHour(i, { close: e.target.value })}
+                      onChange={(e) => updateDealerHourRow(row.rowId!, { close: e.target.value })}
                     />
                   </div>
                   <div className="flex flex-col justify-end gap-2 sm:flex-row sm:items-end">
@@ -585,7 +593,7 @@ export function AutosNegociosApplication() {
                       <input
                         type="checkbox"
                         checked={row.closed}
-                        onChange={(e) => updateHour(i, { closed: e.target.checked })}
+                        onChange={(e) => updateDealerHourRow(row.rowId!, { closed: e.target.checked })}
                         className="rounded border-[color:var(--lx-nav-border)]"
                       />
                       Cerrado
@@ -593,11 +601,7 @@ export function AutosNegociosApplication() {
                     <button
                       type="button"
                       className="text-xs font-bold text-red-700 hover:underline"
-                      onClick={() => {
-                        const h = [...(listing.dealerHours ?? [])];
-                        h.splice(i, 1);
-                        setListingPatch({ dealerHours: h });
-                      }}
+                      onClick={() => removeDealerHourRow(row.rowId!)}
                     >
                       Quitar
                     </button>

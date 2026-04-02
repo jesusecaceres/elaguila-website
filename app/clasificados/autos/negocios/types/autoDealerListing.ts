@@ -18,6 +18,8 @@ export type DealerSocials = Partial<Record<DealerSocialKey, string>>;
 
 /** Structured business hours (form + preview). */
 export type DealerHoursEntry = {
+  /** Stable row id for controlled updates (avoids index/key bugs). */
+  rowId?: string;
   day: string;
   open: string;
   close: string;

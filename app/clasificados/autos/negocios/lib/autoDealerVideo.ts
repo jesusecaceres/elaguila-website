@@ -15,7 +15,10 @@ export function hasListingVideo(data: AutoDealerListing): boolean {
   return false;
 }
 
-/** Direct src for <video> — not for YouTube/Vimeo embeds (use external href instead). */
+/**
+ * Direct src for `<video>`. Priority: local draft file > external URL.
+ * YouTube/Vimeo URLs are not playable as `src`; use external href tile instead.
+ */
 export function getListingVideoSrcForElement(data: AutoDealerListing): string | undefined {
   if (data.muxPlaybackId?.trim()) return undefined;
   const file = data.videoFileDataUrl?.trim();
@@ -28,10 +31,14 @@ export function getListingVideoSrcForElement(data: AutoDealerListing): string | 
   return undefined;
 }
 
-/** Open in new tab: external URL, Mux playback page, or normalized https. */
+/**
+ * Open in new tab when `<video src>` is not used (e.g. YouTube/Vimeo).
+ * Local draft file wins: if a file preview exists, do not fall back to `videoUrl`.
+ */
 export function getListingVideoExternalHref(data: AutoDealerListing): string | undefined {
   const mux = data.muxPlaybackId?.trim();
   if (mux) return `https://stream.mux.com/${mux}`;
+  if (data.videoFileDataUrl?.trim()) return undefined;
   const u = data.videoUrl?.trim();
   if (!u || u.startsWith("data:")) return undefined;
   if (u.startsWith("http://") || u.startsWith("https://")) return u;

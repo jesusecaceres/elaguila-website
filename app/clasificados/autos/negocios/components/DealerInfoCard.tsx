@@ -3,7 +3,7 @@ import { SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
 import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
-import { formatAddressLine, formatUsPhoneDisplay, phoneDigitsForTel } from "./autoDealerFormatters";
+import { formatAddressLine, formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
 
 const CARD =
@@ -107,7 +107,7 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
           <li className={ICON_ROW}>
             <FiGlobe className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
             <a
-              href={data.dealerWebsite!}
+              href={hrefForUserWebsiteUrl(data.dealerWebsite) ?? "#"}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
@@ -123,10 +123,11 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
           {socials.map((key) => {
             const href = data.dealerSocials?.[key];
             if (!href) return null;
+            const resolved = hrefForUserWebsiteUrl(href) ?? href;
             return (
               <a
                 key={key}
-                href={href}
+                href={resolved}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"

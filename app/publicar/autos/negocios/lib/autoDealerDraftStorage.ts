@@ -3,6 +3,7 @@ export {
   AUTOS_NEGOCIOS_DRAFT_KEY,
   clearAutosNegociosDraft,
   loadAutosNegociosDraft,
-  saveAutosNegociosDraft,
+  loadAutosNegociosDraftResolved,
+  saveAutosNegociosDraftResolved,
   type AutosNegociosDraftV1,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";

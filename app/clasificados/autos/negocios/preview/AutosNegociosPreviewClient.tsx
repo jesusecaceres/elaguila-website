@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
-import { AUTOS_NEGOCIOS_DRAFT_KEY, loadAutosNegociosDraft } from "../lib/autosNegociosDraftStorage";
+import { AUTOS_NEGOCIOS_DRAFT_KEY, loadAutosNegociosDraftResolved } from "../lib/autosNegociosDraftStorage";
 import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { normalizeLoadedListing } from "../lib/autoDealerDraftDefaults";
@@ -20,10 +20,10 @@ function isDemoQuery(): boolean {
   return v === "1" || v === "true";
 }
 
-function resolvePreviewState(): {
+async function resolvePreviewState(): Promise<{
   mode: AutosNegociosPreviewMode;
   listing: AutoDealerListing;
-} {
+}> {
   const demo = isDemoQuery();
   if (demo) {
     const base = mockAutoDealerListing;
@@ -35,7 +35,7 @@ function resolvePreviewState(): {
     };
   }
 
-  const d = loadAutosNegociosDraft();
+  const d = await loadAutosNegociosDraftResolved();
   const normalized = normalizeLoadedListing(d?.listing);
   if (isMeaningfulAutoDealerDraft(normalized)) {
     return { mode: "draft", listing: normalized };
@@ -49,26 +49,32 @@ export function AutosNegociosPreviewClient() {
   const [mode, setMode] = useState<AutosNegociosPreviewMode>("empty");
   const [listing, setListing] = useState<AutoDealerListing>(() => normalizeLoadedListing(undefined));
 
-  const refresh = useCallback(() => {
-    const next = resolvePreviewState();
+  const refresh = useCallback(async () => {
+    const next = await resolvePreviewState();
     setMode(next.mode);
     setListing(next.listing);
   }, []);
 
   useEffect(() => {
-    refresh();
-    setReady(true);
+    let cancelled = false;
+    void (async () => {
+      await refresh();
+      if (!cancelled) setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (e.key === AUTOS_NEGOCIOS_DRAFT_KEY || e.key === null) refresh();
+      if (e.key === AUTOS_NEGOCIOS_DRAFT_KEY || e.key === null) void refresh();
     }
     function onFocus() {
-      refresh();
+      void refresh();
     }
     function onPopState() {
-      refresh();
+      void refresh();
     }
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", onFocus);

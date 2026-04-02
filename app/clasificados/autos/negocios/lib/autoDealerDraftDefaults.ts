@@ -3,13 +3,13 @@ import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDeale
 
 /** Optional starting point for the hours editor (form button). */
 export const WEEKDAY_HOURS_TEMPLATE: DealerHoursEntry[] = [
-  { day: "Lunes", open: "09:00", close: "18:00", closed: false },
-  { day: "Martes", open: "09:00", close: "18:00", closed: false },
-  { day: "Miércoles", open: "09:00", close: "18:00", closed: false },
-  { day: "Jueves", open: "09:00", close: "18:00", closed: false },
-  { day: "Viernes", open: "09:00", close: "18:00", closed: false },
-  { day: "Sábado", open: "10:00", close: "16:00", closed: false },
-  { day: "Domingo", open: "", close: "", closed: true },
+  { rowId: "weekday-0", day: "Lunes", open: "09:00", close: "18:00", closed: false },
+  { rowId: "weekday-1", day: "Martes", open: "09:00", close: "18:00", closed: false },
+  { rowId: "weekday-2", day: "Miércoles", open: "09:00", close: "18:00", closed: false },
+  { rowId: "weekday-3", day: "Jueves", open: "09:00", close: "18:00", closed: false },
+  { rowId: "weekday-4", day: "Viernes", open: "09:00", close: "18:00", closed: false },
+  { rowId: "weekday-5", day: "Sábado", open: "10:00", close: "16:00", closed: false },
+  { rowId: "weekday-6", day: "Domingo", open: "", close: "", closed: true },
 ];
 
 export function createEmptyListing(): AutoDealerListing {
@@ -104,6 +104,12 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     mediaImages = migrateHeroImagesToMediaImages(legacyHero);
   }
 
+  const dealerHoursRaw = Array.isArray(raw.dealerHours) ? raw.dealerHours : base.dealerHours;
+  const dealerHours = (dealerHoursRaw ?? []).map((row, i) => ({
+    ...row,
+    rowId: row.rowId ?? `legacy-hour-${i}`,
+  }));
+
   const merged: AutoDealerListing = {
     ...base,
     ...raw,
@@ -111,7 +117,7 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     badges: Array.isArray(raw.badges) ? raw.badges : base.badges,
     features: Array.isArray(raw.features) ? raw.features : base.features,
     mediaImages: mediaImages ?? [],
-    dealerHours: Array.isArray(raw.dealerHours) ? raw.dealerHours : base.dealerHours,
+    dealerHours,
     dealerSocials: raw.dealerSocials && typeof raw.dealerSocials === "object" ? raw.dealerSocials : base.dealerSocials,
     relatedDealerListings: Array.isArray(raw.relatedDealerListings) ? raw.relatedDealerListings : base.relatedDealerListings,
   };

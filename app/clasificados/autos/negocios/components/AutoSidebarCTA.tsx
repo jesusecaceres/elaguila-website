@@ -1,7 +1,7 @@
 import { FiCalendar, FiMessageCircle, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import { formatCityStateLabel, formatUsd, polishMonthlyEstimateDisplay } from "./autoDealerFormatters";
+import { formatCityStateLabel, formatUsd, hrefForUserWebsiteUrl, polishMonthlyEstimateDisplay } from "./autoDealerFormatters";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]";
@@ -69,10 +69,15 @@ export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
           </button>
         </div>
         {nonEmpty(data.dealerWebsite ?? undefined) ? (
-          <button type="button" className={BTN_TERTIARY}>
+          <a
+            href={hrefForUserWebsiteUrl(data.dealerWebsite) ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={BTN_TERTIARY}
+          >
             <TbWorldWww className="h-[18px] w-[18px] shrink-0" aria-hidden />
             Ver sitio web
-          </button>
+          </a>
         ) : null}
       </div>
     </div>

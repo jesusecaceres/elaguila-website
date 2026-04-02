@@ -408,7 +408,8 @@ export function AutosNegociosMediaManager({
 
       <h3 className={SUBHEAD}>Video / recorrido</h3>
       <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        No se sube a Mux en borrador. Si hay archivo local, tiene prioridad sobre el enlace.
+        En borrador, el video se muestra localmente en tu dispositivo. Solo se enviará a Mux al publicar. Si hay
+        archivo local, tiene prioridad sobre el enlace.
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -450,9 +451,11 @@ export function AutosNegociosMediaManager({
             Usar este enlace
           </button>
           {videoUrl ? (
-            <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-[color:var(--lx-text-2)]">
-              <FiVideo className="h-3.5 w-3.5 text-[color:var(--lx-gold)]" aria-hidden />
-              Enlace guardado en el borrador
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
+                <FiVideo className="h-3.5 w-3.5 text-[color:var(--lx-gold)]" aria-hidden />
+                Video por enlace — guardado en el borrador
+              </span>
             </p>
           ) : null}
         </div>
@@ -467,7 +470,7 @@ export function AutosNegociosMediaManager({
           {listing.videoFileName ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
-                Listo · vista previa local
+                Video guardado en el borrador (local)
               </span>
               <span className="text-xs text-[color:var(--lx-text-2)]">{listing.videoFileName}</span>
               <button
@@ -517,7 +520,9 @@ export function AutosNegociosMediaManager({
           </button>
         </div>
         {logo && !logo.startsWith("data:") ? (
-          <p className="mt-2 text-xs font-medium text-[color:var(--lx-text-2)]">Logo por URL activo en el borrador.</p>
+          <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
+            Logo confirmado en el borrador (URL)
+          </p>
         ) : null}
       </div>
 
@@ -534,7 +539,7 @@ export function AutosNegociosMediaManager({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} alt="" className="h-16 w-16 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[color:var(--lx-text)]">Vista previa del logo</p>
+            <p className="text-xs font-bold text-[color:var(--lx-text)]">Logo confirmado en el borrador</p>
             <p className="text-[11px] text-[color:var(--lx-muted)]">
               {logo.startsWith("data:") ? "Archivo local (solo en este dispositivo)" : "Desde URL"}
             </p>

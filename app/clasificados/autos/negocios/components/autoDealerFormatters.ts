@@ -87,6 +87,14 @@ export function formatCityStateLabel(city?: string, state?: string): string {
   return c || st || "";
 }
 
+/** Ensures a usable browser href when the user omits `https://`. */
+export function hrefForUserWebsiteUrl(input: string | undefined | null): string | undefined {
+  const t = (input ?? "").trim();
+  if (!t) return undefined;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
 export function formatAddressLine(raw: string | undefined): string {
   const t = (raw ?? "").trim().replace(/\s+/g, " ");
   if (!t) return "";
