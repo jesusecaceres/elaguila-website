@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { FiMapPin } from "react-icons/fi";
 import { FaCheckCircle } from "react-icons/fa";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
@@ -11,18 +11,19 @@ function badgeStyle(kind: string) {
   return "border-black/[0.08] bg-white/90 text-[color:var(--lx-text-2)]";
 }
 
-export function ServiciosHero({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
-  const rating = profile.rating;
-  const reviewCount = profile.reviewCount;
+  const { identity, hero } = profile;
+  const rating = hero.rating;
+  const reviewCount = hero.reviewCount;
 
   return (
     <section className="relative w-full overflow-hidden rounded-2xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] md:rounded-3xl">
       <div className="relative aspect-[21/9] min-h-[220px] w-full sm:min-h-[280px] md:aspect-[2.4/1] md:min-h-[320px]">
-        {profile.coverImageUrl ? (
+        {hero.coverImageUrl ? (
           <Image
-            src={profile.coverImageUrl}
-            alt={profile.coverImageAlt || ""}
+            src={hero.coverImageUrl}
+            alt={hero.coverImageAlt || ""}
             fill
             className="object-cover"
             sizes="(max-width: 1280px) 100vw, 1280px"
@@ -48,11 +49,11 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosBusinessPro
             }}
           >
             <div className="flex gap-4">
-              {profile.logoUrl ? (
+              {hero.logoUrl ? (
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-sm sm:h-[72px] sm:w-[72px]">
                   <Image
-                    src={profile.logoUrl}
-                    alt={profile.logoAlt || profile.businessName}
+                    src={hero.logoUrl}
+                    alt={hero.logoAlt || identity.businessName}
                     fill
                     className="object-cover"
                     sizes="72px"
@@ -64,15 +65,15 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosBusinessPro
                   style={{ background: SV.blue }}
                   aria-hidden
                 >
-                  {profile.businessName.slice(0, 1)}
+                  {identity.businessName.slice(0, 1)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl font-bold leading-tight tracking-tight text-[color:var(--lx-text)] sm:text-2xl md:text-[1.65rem]">
-                  {profile.businessName}
+                  {identity.businessName}
                 </h1>
-                {profile.categoryLine ? (
-                  <p className="mt-1 text-sm text-[color:var(--lx-muted)] sm:text-[15px]">{profile.categoryLine}</p>
+                {hero.categoryLine ? (
+                  <p className="mt-1 text-sm text-[color:var(--lx-muted)] sm:text-[15px]">{hero.categoryLine}</p>
                 ) : null}
 
                 {rating != null && reviewCount != null ? (
@@ -88,9 +89,9 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosBusinessPro
                   </div>
                 ) : null}
 
-                {profile.heroBadges && profile.heroBadges.length > 0 ? (
+                {hero.badges.length > 0 ? (
                   <ul className="mt-4 flex flex-wrap gap-2">
-                    {profile.heroBadges.map((b) => (
+                    {hero.badges.map((b) => (
                       <li
                         key={`${b.kind}-${b.label}`}
                         className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold sm:text-xs ${badgeStyle(b.kind)}`}
@@ -104,10 +105,10 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosBusinessPro
                   </ul>
                 ) : null}
 
-                {profile.locationSummary ? (
+                {hero.locationSummary ? (
                   <p className="mt-4 flex items-start gap-2 text-sm text-[color:var(--lx-text-2)]">
                     <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
-                    <span>{profile.locationSummary}</span>
+                    <span>{hero.locationSummary}</span>
                   </p>
                 ) : null}
               </div>

@@ -38,6 +38,7 @@ import { BusinessCardContextualInspector } from "./editor/BusinessCardContextual
 import { BusinessCardDesignerV2Panel } from "./BusinessCardDesignerV2Panel";
 import { BusinessCardRefreshDesignPanel } from "./BusinessCardRefreshDesignPanel";
 import { BusinessCardStudioToolbar } from "./BusinessCardStudioToolbar";
+import { BusinessCardStudioSelectionToolbar } from "./BusinessCardStudioSelectionToolbar";
 import { BusinessCardValidationPanel } from "./BusinessCardValidationPanel";
 import { BusinessCardApprovalPanel } from "./BusinessCardApprovalPanel";
 
@@ -132,6 +133,17 @@ export function BusinessCardBuilderShell(props: {
     () => (doc.designIntake === "leo" ? getLeoAlternateTemplateId(doc) : null),
     [doc]
   );
+
+  const sideState = doc.activeSide === "front" ? doc.front : doc.back;
+  const selectedBlock = useMemo(() => {
+    if (!selectedTextBlockId) return null;
+    return sideState.textBlocks.find((b) => b.id === selectedTextBlockId) ?? null;
+  }, [sideState.textBlocks, selectedTextBlockId]);
+  const selectedNative = useMemo(() => {
+    if (!selectedV2NativeId) return null;
+    const list = sideState.designerV2NativeObjects ?? [];
+    return list.find((o) => o.id === selectedV2NativeId) ?? null;
+  }, [sideState.designerV2NativeObjects, selectedV2NativeId]);
 
   const applyLogo = useCallback(
     (file: File | null) => {
@@ -248,6 +260,19 @@ export function BusinessCardBuilderShell(props: {
             guidesVisible={doc.guidesVisible}
             onSideChange={onStudioSideChange}
             onToggleGuides={() => dispatch({ type: "TOGGLE_GUIDES" })}
+            selectionChrome={
+              <BusinessCardStudioSelectionToolbar
+                lang={lang}
+                side={doc.activeSide}
+                sideState={sideState}
+                dispatch={dispatchTyped}
+                selectedTextBlockId={selectedTextBlockId}
+                selectedBlock={selectedBlock}
+                logoInspectorActive={logoInspectorActive}
+                selectedV2NativeId={selectedV2NativeId}
+                selectedNative={selectedNative}
+              />
+            }
           />
         </div>
 

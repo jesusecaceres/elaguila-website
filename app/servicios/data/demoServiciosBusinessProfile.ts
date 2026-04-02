@@ -1,88 +1,101 @@
 import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
 
-/** Canonical demo profile aligned with the Servicios reference design (home services). */
+const IMG = {
+  logo: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=200&h=200&fit=crop",
+  cover: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=1600&h=700&fit=crop",
+  map: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=400&fit=crop",
+  s1: "https://images.unsplash.com/photo-1585704032915-cbd0c7ff3e61?w=600&h=400&fit=crop",
+  s2: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=600&h=400&fit=crop",
+  s3: "https://images.unsplash.com/photo-1563453392212-869cfe3ad210?w=600&h=400&fit=crop",
+  s4: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=600&h=400&fit=crop",
+  g1: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=500&fit=crop",
+  g2: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=500&fit=crop",
+  g3: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=500&fit=crop",
+  g4: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&h=500&fit=crop",
+} as const;
+
+/** Demo profile aligned with the Servicios reference design (home services) — ES copy. */
 export const demoExpertHomeSolutions: ServiciosBusinessProfile = {
-  slug: "expert-home-solutions",
-  businessName: "Expert Home Solutions",
-  categoryLine: "Plomería, Electricidad y Remodelación",
-  logoUrl: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=200&h=200&fit=crop",
-  logoAlt: "Logotipo de Expert Home Solutions",
-  coverImageUrl:
-    "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=1600&h=700&fit=crop",
-  coverImageAlt: "Profesional trabajando en el exterior de una casa",
-  rating: 4.9,
-  reviewCount: 87,
-  isFeatured: true,
-  featuredLabel: "Destacado",
-  heroBadges: [
-    { kind: "verified", label: "Verificado" },
-    { kind: "licensed", label: "Licenciado" },
-    { kind: "spanish", label: "Se Habla Español" },
-  ],
-  locationSummary: "Houston, TX y alrededores",
+  identity: {
+    slug: "expert-home-solutions",
+    businessName: "Expert Home Solutions",
+  },
+  hero: {
+    categoryLine: "Plomería, Electricidad y Remodelación",
+    logoUrl: IMG.logo,
+    logoAlt: "Logotipo de Expert Home Solutions",
+    coverImageUrl: IMG.cover,
+    coverImageAlt: "Profesional trabajando en el exterior de una casa",
+    rating: 4.9,
+    reviewCount: 87,
+    badges: [
+      { kind: "verified", label: "Verificado" },
+      { kind: "licensed", label: "Licenciado" },
+      { kind: "spanish", label: "Se Habla Español" },
+    ],
+    locationSummary: "Houston, TX y alrededores",
+  },
+  contact: {
+    isFeatured: true,
+    featuredLabel: "Destacado",
+    phone: "(332) 123-4567",
+    websiteUrl: "https://example.com",
+    websiteLabel: "Sitio web",
+    messageEnabled: true,
+    hours: {
+      openNowLabel: "Abierto ahora",
+      todayHoursLine: "8:00 AM - 6:00 PM",
+    },
+    primaryCtaLabel: "Solicitar cotización",
+  },
   quickFacts: [
     { kind: "years_experience", label: "19 años de experiencia" },
     { kind: "response_time", label: "Responde en 1 hora" },
     { kind: "free_estimate", label: "Estimado gratis" },
     { kind: "custom", label: "Servicio de emergencia" },
   ],
-  aboutText:
-    "Somos un equipo familiar de plomeros y electricistas con casi dos décadas sirviendo a hogares en Houston y comunidades vecinas. Nos enfocamos en diagnósticos honestos, precios transparentes y trabajo que dura. Ya sea una fuga urgente, un panel eléctrico que necesita atención o una renovación completa, tratamos su hogar con el mismo cuidado que el nuestro.",
-  aboutSpecialtiesLine:
-    "Especialidades: plomería residencial, actualizaciones eléctricas con código, remodelación de cocinas y baños.",
+  about: {
+    text: "Somos un equipo familiar de plomeros y electricistas con casi dos décadas sirviendo a hogares en Houston y comunidades vecinas. Nos enfocamos en diagnósticos honestos, precios transparentes y trabajo que dura. Ya sea una fuga urgente, un panel eléctrico que necesita atención o una renovación completa, tratamos su hogar con el mismo cuidado que el nuestro.",
+    specialtiesLine:
+      "Especialidades: plomería residencial, actualizaciones eléctricas con código, remodelación de cocinas y baños.",
+  },
   services: [
     {
       id: "1",
       title: "Reparación de plomería",
       secondaryLine: "Desde $80",
-      imageUrl: "https://images.unsplash.com/photo-1585704032915-cbd0c7ff3e61?w=600&h=400&fit=crop",
+      imageUrl: IMG.s1,
       imageAlt: "Reparación de plomería",
     },
     {
       id: "2",
       title: "Servicios eléctricos",
       secondaryLine: "Desde $95",
-      imageUrl: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=600&h=400&fit=crop",
+      imageUrl: IMG.s2,
       imageAlt: "Electricista en trabajo",
     },
     {
       id: "3",
       title: "Instalación de luminarias",
       secondaryLine: "Cotización gratis",
-      imageUrl: "https://images.unsplash.com/photo-1563453392212-869cfe3ad210?w=600&h=400&fit=crop",
+      imageUrl: IMG.s3,
       imageAlt: "Instalación de luminarias",
     },
     {
       id: "4",
       title: "Remodelación de baños",
       secondaryLine: "Paquetes desde $2,500",
-      imageUrl: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=600&h=400&fit=crop",
+      imageUrl: IMG.s4,
       imageAlt: "Baño remodelado",
     },
   ],
   gallery: [
-    {
-      id: "g1",
-      url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=500&fit=crop",
-      alt: "Sala renovada",
-    },
-    {
-      id: "g2",
-      url: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=500&fit=crop",
-      alt: "Cocina moderna",
-    },
-    {
-      id: "g3",
-      url: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=500&fit=crop",
-      alt: "Detalle eléctrico",
-    },
-    {
-      id: "g4",
-      url: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&h=500&fit=crop",
-      alt: "Exterior de hogar",
-    },
+    { id: "g1", url: IMG.g1, alt: "Sala renovada" },
+    { id: "g2", url: IMG.g2, alt: "Cocina moderna" },
+    { id: "g3", url: IMG.g3, alt: "Detalle eléctrico" },
+    { id: "g4", url: IMG.g4, alt: "Exterior de hogar" },
   ],
-  trustItems: [
+  trust: [
     { id: "t1", label: "Licenciado y asegurado", icon: "shield" },
     { id: "t2", label: "Verificación de antecedentes", icon: "shieldCheck" },
     { id: "t3", label: "Negocio familiar", icon: "star" },
@@ -104,86 +117,94 @@ export const demoExpertHomeSolutions: ServiciosBusinessProfile = {
       rating: 5,
     },
   ],
-  serviceAreas: [
-    { id: "a1", label: "Houston, TX", kind: "city" },
-    { id: "a2", label: "Katy", kind: "city" },
-    { id: "a3", label: "Sugar Land", kind: "city" },
-    { id: "a4", label: "Pearland", kind: "city" },
-    { id: "a5", label: "The Woodlands", kind: "region" },
-  ],
-  serviceAreaMapImageUrl:
-    "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=400&fit=crop",
+  serviceAreas: {
+    items: [
+      { id: "a1", label: "Houston, TX", kind: "city" },
+      { id: "a2", label: "Katy", kind: "city" },
+      { id: "a3", label: "Sugar Land", kind: "city" },
+      { id: "a4", label: "Pearland", kind: "city" },
+      { id: "a5", label: "The Woodlands", kind: "region" },
+    ],
+    mapImageUrl: IMG.map,
+  },
   promo: {
     id: "p1",
     headline: "$50 de descuento en tu primer servicio",
     footnote: "Aplican términos y condiciones.",
   },
-  phone: "(332) 123-4567",
-  websiteUrl: "https://example.com",
-  websiteLabel: "Sitio web",
-  messageEnabled: true,
-  hours: {
-    openNowLabel: "Abierto ahora",
-    todayHoursLine: "8:00 AM - 6:00 PM",
-  },
-  primaryCtaLabel: "Solicitar cotización",
 };
 
 const demoExpertHomeSolutionsEn: ServiciosBusinessProfile = {
   ...demoExpertHomeSolutions,
-  categoryLine: "Plumbing, Electrical & Remodeling",
-  coverImageAlt: "Professional working on a home exterior",
-  heroBadges: [
-    { kind: "verified", label: "Verified" },
-    { kind: "licensed", label: "Licensed" },
-    { kind: "spanish", label: "Spanish spoken" },
-  ],
-  locationSummary: "Houston, TX and surrounding areas",
+  hero: {
+    ...demoExpertHomeSolutions.hero,
+    categoryLine: "Plumbing, Electrical & Remodeling",
+    coverImageAlt: "Professional working on a home exterior",
+    badges: [
+      { kind: "verified", label: "Verified" },
+      { kind: "licensed", label: "Licensed" },
+      { kind: "spanish", label: "Spanish spoken" },
+    ],
+    locationSummary: "Houston, TX and surrounding areas",
+  },
+  contact: {
+    ...demoExpertHomeSolutions.contact,
+    featuredLabel: "Featured",
+    websiteLabel: "Website",
+    hours: {
+      openNowLabel: "Open now",
+      todayHoursLine: "8:00 AM - 6:00 PM",
+    },
+    primaryCtaLabel: "Request quote",
+  },
   quickFacts: [
     { kind: "years_experience", label: "19 years of experience" },
     { kind: "response_time", label: "Responds within 1 hour" },
     { kind: "free_estimate", label: "Free estimate" },
     { kind: "custom", label: "Emergency service" },
   ],
-  aboutText:
-    "We are a family team of plumbers and electricians with nearly two decades serving homes in Houston and nearby communities. We focus on honest diagnostics, transparent pricing, and work that lasts. Whether it is an urgent leak, an electrical panel that needs attention, or a full remodel, we treat your home with the same care as our own.",
-  aboutSpecialtiesLine:
-    "Specialties: residential plumbing, code-compliant electrical upgrades, kitchen and bath remodeling.",
+  about: {
+    text: "We are a family team of plumbers and electricians with nearly two decades serving homes in Houston and nearby communities. We focus on honest diagnostics, transparent pricing, and work that lasts. Whether it is an urgent leak, an electrical panel that needs attention, or a full remodel, we treat your home with the same care as our own.",
+    specialtiesLine:
+      "Specialties: residential plumbing, code-compliant electrical upgrades, kitchen and bath remodeling.",
+  },
   services: [
     {
       id: "1",
       title: "Plumbing repair",
       secondaryLine: "From $80",
-      imageUrl: demoExpertHomeSolutions.services![0].imageUrl,
+      imageUrl: IMG.s1,
       imageAlt: "Plumbing repair",
     },
     {
       id: "2",
       title: "Electrical services",
       secondaryLine: "From $95",
-      imageUrl: demoExpertHomeSolutions.services![1].imageUrl,
+      imageUrl: IMG.s2,
       imageAlt: "Electrician at work",
     },
     {
       id: "3",
       title: "Lighting installation",
       secondaryLine: "Free quote",
-      imageUrl: demoExpertHomeSolutions.services![2].imageUrl,
+      imageUrl: IMG.s3,
       imageAlt: "Lighting installation",
     },
     {
       id: "4",
       title: "Bath remodeling",
       secondaryLine: "Packages from $2,500",
-      imageUrl: demoExpertHomeSolutions.services![3].imageUrl,
+      imageUrl: IMG.s4,
       imageAlt: "Remodeled bathroom",
     },
   ],
-  gallery: demoExpertHomeSolutions.gallery!.map((g, i) => ({
-    ...g,
-    alt: ["Renovated living room", "Modern kitchen", "Electrical detail", "Home exterior"][i] ?? g.alt,
-  })),
-  trustItems: [
+  gallery: [
+    { id: "g1", url: IMG.g1, alt: "Renovated living room" },
+    { id: "g2", url: IMG.g2, alt: "Modern kitchen" },
+    { id: "g3", url: IMG.g3, alt: "Electrical detail" },
+    { id: "g4", url: IMG.g4, alt: "Home exterior" },
+  ],
+  trust: [
     { id: "t1", label: "Licensed & insured", icon: "shield" },
     { id: "t2", label: "Background checked", icon: "shieldCheck" },
     { id: "t3", label: "Family owned", icon: "star" },
@@ -209,25 +230,26 @@ const demoExpertHomeSolutionsEn: ServiciosBusinessProfile = {
     headline: "$50 off your first service",
     footnote: "Terms and conditions apply.",
   },
-  websiteLabel: "Website",
-  hours: {
-    openNowLabel: "Open now",
-    todayHoursLine: "8:00 AM - 6:00 PM",
-  },
-  primaryCtaLabel: "Request quote",
-  featuredLabel: "Featured",
 };
 
-/** Sparse profile for testing empty sections (swap slug in resolver to preview). */
+/** Sparse profile — exercises empty-section collapse */
 export const demoMinimalProfile: ServiciosBusinessProfile = {
-  slug: "minimal-demo",
-  businessName: "Servicios Demo Mínimo",
-  categoryLine: "Servicios generales",
-  coverImageUrl:
-    "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1600&h=700&fit=crop",
-  coverImageAlt: "Banner",
-  aboutText:
-    "Este perfil muestra el diseño cuando solo hay información esencial. Las secciones vacías no aparecen.",
+  identity: {
+    slug: "minimal-demo",
+    businessName: "Servicios Demo Mínimo",
+  },
+  hero: {
+    categoryLine: "Servicios generales",
+    coverImageUrl: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1600&h=700&fit=crop",
+    coverImageAlt: "Banner",
+  },
+  contact: {
+    phone: "(555) 000-0000",
+    primaryCtaLabel: "Solicitar cotización",
+  },
+  about: {
+    text: "Este perfil muestra el diseño cuando solo hay información esencial. Las secciones vacías no aparecen.",
+  },
   services: [
     {
       id: "s1",
@@ -237,9 +259,9 @@ export const demoMinimalProfile: ServiciosBusinessProfile = {
       imageAlt: "Servicio",
     },
   ],
-  serviceAreas: [{ id: "a1", label: "Austin, TX y alrededores", kind: "region" }],
-  phone: "(555) 000-0000",
-  primaryCtaLabel: "Solicitar cotización",
+  serviceAreas: {
+    items: [{ id: "a1", label: "Austin, TX y alrededores", kind: "region" }],
+  },
 };
 
 export function getServiciosProfileBySlug(slug: string, lang: ServiciosLang = "es"): ServiciosBusinessProfile {

@@ -2,19 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { Lang } from "../../../types/tienda";
-import type {
-  BusinessCardSide,
-  BusinessCardTextBlock,
-  BusinessCardTextFontPreset,
-  TextFieldRole,
-} from "../../../product-configurators/business-cards/types";
+import type { BusinessCardSide, BusinessCardTextBlock, TextFieldRole } from "../../../product-configurators/business-cards/types";
 import { TEXT_FIELD_MAX } from "../../../product-configurators/business-cards/constants";
 import {
   businessCardTextColorToHex,
   colorIsTranslucentOrNonHex,
   parseHexInput,
 } from "../../../product-configurators/business-cards/textColorForPicker";
-import { textFontPresetOptions } from "../../../product-configurators/business-cards/textFontPresets";
 import type { BusinessCardBuilderAction } from "../../../product-configurators/business-cards/businessCardBuilderReducer";
 import { bcPick, businessCardBuilderCopy } from "../../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../../data/businessCardProductCopy";
@@ -49,8 +43,6 @@ export function BusinessCardTextBlockInspector(props: {
   }, [selectedBlock.id]);
   const hexFieldValue = hexDraft ?? hexSynced;
   const showTranslucentNote = colorIsTranslucentOrNonHex(selectedBlock.color);
-
-  const presetValue: BusinessCardTextFontPreset = selectedBlock.fontPreset ?? "default";
 
   return (
     <div className="space-y-4 rounded-2xl border border-[rgba(201,168,74,0.28)] bg-white/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
@@ -145,106 +137,11 @@ export function BusinessCardTextBlockInspector(props: {
         )}
       </div>
 
-      <div className="space-y-3 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
-        <SectionTitle>{bcPick(businessCardBuilderCopy.textInspectorSectionTypography, lang)}</SectionTitle>
-        <label className="block">
-          <span className="text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
-            {bcPick(businessCardBuilderCopy.textFontFamilyLabel, lang)}
-          </span>
-          <select
-            className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-[color:var(--lx-text)] shadow-inner outline-none focus:border-[color:rgba(201,168,74,0.45)] focus:ring-2 focus:ring-[color:rgba(201,168,74,0.25)]"
-            value={presetValue}
-            onChange={(e) => {
-              const v = e.target.value as BusinessCardTextFontPreset;
-              dispatch({
-                type: "SET_TEXT_BLOCK",
-                side,
-                id: selectedBlock.id,
-                patch: { fontPreset: v === "default" ? undefined : v },
-              });
-            }}
-          >
-            {textFontPresetOptions(lang).map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-            {lang === "en" ? "Font size" : "Tamaño"}
-            <input
-              type="number"
-              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
-              value={selectedBlock.fontSize}
-              min={6}
-              max={22}
-              onChange={(e) =>
-                dispatch({
-                  type: "SET_TEXT_BLOCK",
-                  side,
-                  id: selectedBlock.id,
-                  patch: { fontSize: Number(e.target.value), textTone: undefined },
-                })
-              }
-            />
-          </label>
-          <div>
-            <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-              {lang === "en" ? "Weight" : "Peso"}
-            </div>
-            <div className="mt-1 flex gap-1">
-              {([400, 500, 600, 700] as const).map((w) => (
-                <button
-                  key={w}
-                  type="button"
-                  onClick={() =>
-                    dispatch({
-                      type: "SET_TEXT_BLOCK",
-                      side,
-                      id: selectedBlock.id,
-                      patch: { fontWeight: w, textTone: undefined },
-                    })
-                  }
-                  className={[
-                    "flex-1 rounded-lg py-2 text-[11px] font-semibold border touch-manipulation",
-                    selectedBlock.fontWeight === w
-                      ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
-                      : "border-black/10 bg-white",
-                  ].join(" ")}
-                >
-                  {w}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] font-semibold uppercase text-[color:rgba(61,52,40,0.55)]">
-            {lang === "en" ? "Align" : "Alineación"}
-          </div>
-          <div className="mt-1 flex gap-1">
-            {(["left", "center", "right"] as const).map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() =>
-                  dispatch({ type: "SET_TEXT_BLOCK", side, id: selectedBlock.id, patch: { textAlign: a } })
-                }
-                className={[
-                  "flex-1 rounded-lg py-1.5 text-[10px] font-bold border uppercase touch-manipulation",
-                  selectedBlock.textAlign === a
-                    ? "border-[color:var(--lx-gold)] bg-[color:rgba(201,168,74,0.2)]"
-                    : "border-black/10 bg-white",
-                ].join(" ")}
-              >
-                {a[0]!.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <p className="text-[10px] text-[color:rgba(61,52,40,0.52)] leading-snug">
+        {lang === "en"
+          ? "Font, size, weight, color, alignment, spacing, and hierarchy: use the top toolbar while this line is selected."
+          : "Fuente, tamaño, peso, color, alineación, espaciado y jerarquía: usa la barra superior con esta línea seleccionada."}
+      </p>
 
       <BusinessCardTextBlockRichControls lang={lang} side={side} selectedBlock={selectedBlock} dispatch={dispatch} />
 

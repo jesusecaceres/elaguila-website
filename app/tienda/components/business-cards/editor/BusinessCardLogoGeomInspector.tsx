@@ -30,8 +30,10 @@ export function BusinessCardLogoGeomInspector(props: {
   side: BusinessCardSide;
   state: BusinessCardSideState;
   dispatch: (a: BusinessCardBuilderAction) => void;
+  /** Top toolbar has visibility, scale, z, center — keep nudge + optional upload note */
+  toolbarParity?: boolean;
 }) {
-  const { lang, doc, side, state, dispatch } = props;
+  const { lang, doc, side, state, dispatch, toolbarParity } = props;
   const hasAsset = Boolean(state.logo.previewUrl);
 
   return (
@@ -46,8 +48,16 @@ export function BusinessCardLogoGeomInspector(props: {
         <p className="mt-2 text-[10px] text-[color:rgba(61,52,40,0.52)] leading-snug">
           {bcpPick(businessCardProductCopy.adjustLogoHint, lang)}
         </p>
+        {toolbarParity ? (
+          <p className="mt-2 text-[10px] text-[color:rgba(61,52,40,0.55)]">
+            {lang === "en"
+              ? "Visibility, size (S/M/L), z-order, and center: use the top toolbar."
+              : "Visibilidad, tamaño (S/M/L), z y centrar: barra superior."}
+          </p>
+        ) : null}
       </div>
 
+      {!toolbarParity ? (
       <div className="rounded-xl border border-black/[0.06] bg-white/90 p-3 shadow-inner">
         <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[13px] font-semibold text-[color:rgba(61,52,40,0.88)]">
           <input
@@ -65,6 +75,7 @@ export function BusinessCardLogoGeomInspector(props: {
           </p>
         ) : null}
       </div>
+      ) : null}
 
       <div className="space-y-3 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
         <SectionTitle>{bcPick(businessCardBuilderCopy.logoInspectorPlacementSection, lang)}</SectionTitle>
@@ -123,6 +134,7 @@ export function BusinessCardLogoGeomInspector(props: {
         </div>
       </div>
 
+      {!toolbarParity ? (
       <div className="space-y-2 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
         <SectionTitle>{bcPick(businessCardBuilderCopy.logoInspectorStackSection, lang)}</SectionTitle>
         <label className="block text-[11px] font-semibold text-[color:rgba(61,52,40,0.75)]">
@@ -146,6 +158,7 @@ export function BusinessCardLogoGeomInspector(props: {
           {bcPick(businessCardBuilderCopy.logoInspectorZIndexHelp, lang)}
         </p>
       </div>
+      ) : null}
 
       <div className="space-y-2 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3">
         <SectionTitle>{bcPick(businessCardBuilderCopy.logoInspectorNudgeSection, lang)}</SectionTitle>

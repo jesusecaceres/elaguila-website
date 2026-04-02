@@ -1,19 +1,26 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { FiChevronRight } from "react-icons/fi";
 import type { RelatedDealerListing as RelatedRow } from "../types/autoDealerListing";
 import { formatMiles, formatUsd } from "./autoDealerFormatters";
+import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { withLangParam } from "../lib/autosNegociosLang";
 
 const SECTION =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
 
 export function RelatedDealerCars({ listings }: { listings: RelatedRow[] }) {
+  const { lang, t } = useAutosNegociosPreviewCopy();
+  const { title, subtitle, details } = t.preview.related;
+
   if (listings.length === 0) return null;
 
   return (
     <section className={SECTION}>
-      <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)]">Más autos de este negocio</h2>
-      <p className="mt-1 text-sm text-[color:var(--lx-muted)]">Solo inventario del mismo concesionario</p>
+      <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)]">{title}</h2>
+      <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {listings.map((car) => (
           <article
@@ -36,10 +43,10 @@ export function RelatedDealerCars({ listings }: { listings: RelatedRow[] }) {
               <p className="mt-2 text-lg font-bold text-[color:var(--lx-text)]">{formatUsd(car.price)}</p>
               <p className="mt-1 text-xs font-medium text-[color:var(--lx-muted)]">{formatMiles(car.mileage)}</p>
               <Link
-                href={car.href}
+                href={car.href.startsWith("/") ? withLangParam(car.href, lang) : car.href}
                 className="mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-[12px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
               >
-                Ver detalles
+                {details}
                 <FiChevronRight className="h-4 w-4" aria-hidden />
               </Link>
             </div>

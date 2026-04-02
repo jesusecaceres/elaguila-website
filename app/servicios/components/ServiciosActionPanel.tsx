@@ -1,28 +1,28 @@
 import { FiClock, FiGlobe, FiMapPin, FiMessageCircle, FiPhone, FiZap } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { nonEmpty } from "../lib/serviciosProfileVisibility";
+import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import { ServiciosLeadForm } from "./ServiciosLeadForm";
 import { ServiciosStarRating } from "./ServiciosStarRating";
-import { ServiciosSidebarAreasMap } from "./ServiciosSidebarAreasMap";
+import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { SV } from "./serviciosDesignTokens";
 
-export function ServiciosSidebar({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+/** Sticky contact / quote panel (right column). */
+export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
-  const rating = profile.rating;
-  const reviewCount = profile.reviewCount;
-  const phone = profile.phone?.trim();
-  const website = profile.websiteUrl?.trim();
-  const websiteLabel = profile.websiteLabel?.trim() || L.visitWebsite;
-  const hours = profile.hours;
-  const location = profile.locationSummary?.trim();
-  const primaryCta = profile.primaryCtaLabel?.trim() || L.requestQuote;
-  const featured = profile.isFeatured;
-  const featuredLabel = profile.featuredLabel?.trim() || L.featured;
-
-  const telHref = phone ? `tel:${phone.replace(/[^\d+]/g, "")}` : "";
+  const rating = profile.hero.rating;
+  const reviewCount = profile.hero.reviewCount;
+  const phone = profile.contact.phoneDisplay;
+  const telHref = profile.contact.phoneTelHref;
+  const website = profile.contact.websiteHref;
+  const websiteLabel = profile.contact.websiteLabel?.trim() || L.visitWebsite;
+  const hours = profile.contact.hours;
+  const location = profile.hero.locationSummary?.trim();
+  const primaryCta = profile.contact.primaryCtaLabel?.trim() || L.requestQuote;
+  const featured = profile.contact.isFeatured;
+  const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
   return (
     <div className="flex flex-col gap-5 lg:sticky lg:top-5 lg:self-start">
@@ -53,7 +53,7 @@ export function ServiciosSidebar({ profile, lang }: { profile: ServiciosBusiness
         ) : null}
 
         <div className={featured || (rating != null && reviewCount != null) ? "pt-4" : ""}>
-          {phone ? (
+          {phone && telHref ? (
             <a
               href={telHref}
               className="flex items-center gap-2 text-sm font-semibold text-[color:var(--lx-text)] hover:text-[#3B66AD]"
@@ -84,11 +84,11 @@ export function ServiciosSidebar({ profile, lang }: { profile: ServiciosBusiness
             {primaryCta}
           </button>
 
-          {phone || profile.messageEnabled === true ? (
+          {phone || profile.contact.messageEnabled === true ? (
             <div
-              className={`mt-3 grid gap-2 ${phone && profile.messageEnabled === true ? "grid-cols-2" : "grid-cols-1"}`}
+              className={`mt-3 grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-2" : "grid-cols-1"}`}
             >
-              {phone ? (
+              {phone && telHref ? (
                 <a
                   href={telHref}
                   className="flex items-center justify-center rounded-xl border border-black/[0.1] bg-white py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
@@ -97,7 +97,7 @@ export function ServiciosSidebar({ profile, lang }: { profile: ServiciosBusiness
                   {L.call}
                 </a>
               ) : null}
-              {profile.messageEnabled === true ? (
+              {profile.contact.messageEnabled ? (
                 <button
                   type="button"
                   className="flex items-center justify-center rounded-xl border border-black/[0.1] bg-white py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
@@ -130,7 +130,7 @@ export function ServiciosSidebar({ profile, lang }: { profile: ServiciosBusiness
         </div>
       </div>
 
-      <ServiciosSidebarAreasMap profile={profile} lang={lang} />
+      <ServiciosActionPanelAreasMap profile={profile} lang={lang} />
 
       <ServiciosOfferCard profile={profile} lang={lang} />
     </div>

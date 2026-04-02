@@ -14,6 +14,8 @@ export function SelectWithOtherField({
   onChange,
   customPlaceholder,
   incompleteHint,
+  emptyLabel,
+  optionLabels,
 }: {
   label: string;
   options: readonly string[];
@@ -22,6 +24,10 @@ export function SelectWithOtherField({
   onChange: (next: { value: string | undefined; custom: string | undefined }) => void;
   customPlaceholder: string;
   incompleteHint?: string;
+  /** Label for the empty option (`value=""`). Defaults to “Seleccionar…”. */
+  emptyLabel?: string;
+  /** Parallel to `options` — localized display text while `value` stays canonical. */
+  optionLabels?: readonly string[];
 }) {
   const showCustom = value === SELECT_OTHER_VALUE;
   const incomplete = incompleteHint ? isOtroIncomplete(value, customValue) : false;
@@ -41,9 +47,9 @@ export function SelectWithOtherField({
           }
         }}
       >
-        {options.map((s) => (
+        {options.map((s, i) => (
           <option key={s || "empty"} value={s}>
-            {s || "Seleccionar…"}
+            {s === "" ? emptyLabel ?? "Seleccionar…" : optionLabels?.[i] ?? s}
           </option>
         ))}
       </select>

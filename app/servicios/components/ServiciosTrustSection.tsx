@@ -1,5 +1,5 @@
 import { FaCheck, FaClock, FaHeart, FaShieldAlt, FaStar } from "react-icons/fa";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { SV } from "./serviciosDesignTokens";
 
@@ -28,10 +28,10 @@ function TrustIcon({ icon }: { icon: string }) {
   }
 }
 
-export function ServiciosTrust({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+export function ServiciosTrustSection({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
-  const items = profile.trustItems;
-  if (!items?.length) return null;
+  const items = profile.trust;
+  if (!items.length) return null;
 
   return (
     <section

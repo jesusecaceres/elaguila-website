@@ -1,13 +1,20 @@
+"use client";
+
 import { FiPlay } from "react-icons/fi";
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import type { AutosNegociosCopy } from "../lib/autosNegociosCopy";
 import { deriveHeroImageUrls } from "../lib/autoDealerHeroImages";
 import { getListingVideoExternalHref, getListingVideoSrcForElement, hasListingVideo } from "../lib/autoDealerVideo";
 import { MediaImage } from "./MediaImage";
+import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
 
 export function AutoGallery({ data }: { data: AutoDealerListing }) {
+  const { t } = useAutosNegociosPreviewCopy();
+  const g = t.preview.gallery;
+
   const images = deriveHeroImageUrls(data);
   const hasVideo = hasListingVideo(data);
   const videoSrc = getListingVideoSrcForElement(data);
@@ -15,7 +22,7 @@ export function AutoGallery({ data }: { data: AutoDealerListing }) {
   const main = images[0];
   const extra = Math.max(0, images.length - 1);
   const subImages = images.slice(1, 4);
-  const altBase = data.vehicleTitle?.trim() || "Vehículo";
+  const altBase = data.vehicleTitle?.trim() || g.vehicleFallback;
 
   if (!main && !hasVideo) return null;
 
@@ -27,6 +34,8 @@ export function AutoGallery({ data }: { data: AutoDealerListing }) {
 
   const gridCols =
     bottomCells.length >= 4 ? "md:grid-cols-4" : bottomCells.length === 3 ? "md:grid-cols-3" : bottomCells.length === 2 ? "md:grid-cols-2" : "md:grid-cols-1";
+
+  const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
 
   return (
     <div className={CARD}>
@@ -44,9 +53,9 @@ export function AutoGallery({ data }: { data: AutoDealerListing }) {
             {extra > 0 ? (
               <div
                 className="pointer-events-none absolute right-3 top-3 rounded-full border border-white/30 bg-[color:var(--lx-text)]/85 px-3 py-1 text-xs font-bold tracking-tight text-[#FFFCF7] shadow-md backdrop-blur-sm"
-                aria-label={`${extra} fotos adicionales`}
+                aria-label={moreLabel}
               >
-                +{extra} fotos
+                +{moreLabel}
               </div>
             ) : null}
           </div>
@@ -56,9 +65,9 @@ export function AutoGallery({ data }: { data: AutoDealerListing }) {
           <div className={`grid grid-cols-2 gap-3 ${gridCols}`}>
             {bottomCells.map((cell, i) =>
               cell.kind === "img" ? (
-                <Thumb key={`${cell.src}-${i}`} src={cell.src} alt={`${altBase} — vista ${i + 2}`} />
+                <Thumb key={`${cell.src}-${i}`} src={cell.src} alt={`${altBase}${g.viewAlt(i)}`} />
               ) : (
-                <VideoTile key="video" videoSrc={videoSrc} videoHref={videoHref} posterSrc={main} />
+                <VideoTile key="video" videoSrc={videoSrc} videoHref={videoHref} posterSrc={main} g={g} />
               ),
             )}
           </div>
@@ -72,17 +81,19 @@ function VideoTile({
   videoSrc,
   videoHref,
   posterSrc,
+  g,
 }: {
   videoSrc: string | undefined;
   videoHref: string | undefined;
   posterSrc: string | undefined;
+  g: AutosNegociosCopy["preview"]["gallery"];
 }) {
   if (videoSrc) {
     return (
       <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]">
         <video src={videoSrc} controls className="h-full w-full object-cover" playsInline />
         <span className="absolute bottom-2 left-2 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
-          Recorrido en video
+          {g.videoBadge}
         </span>
       </div>
     );
@@ -94,7 +105,7 @@ function VideoTile({
       target="_blank"
       rel="noopener noreferrer"
       className="group relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left md:aspect-auto md:min-h-[140px]"
-      aria-label="Abrir video del vehículo"
+      aria-label={g.videoAria}
     >
       {posterSrc ? (
         <MediaImage
@@ -112,7 +123,7 @@ function VideoTile({
         <FiPlay className="ml-0.5 h-7 w-7" aria-hidden />
       </span>
       <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
-        Recorrido en video
+        {g.videoBadge}
       </span>
     </a>
   );

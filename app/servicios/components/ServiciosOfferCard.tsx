@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { FaTicketAlt } from "react-icons/fa";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { showPromoSection } from "../lib/serviciosProfileVisibility";
+import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
 
 function OfferHeadline({ text }: { text: string }) {
   const parts = text.split(/(\$\d+)/g);
@@ -21,9 +21,9 @@ function OfferHeadline({ text }: { text: string }) {
   );
 }
 
-export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
-  if (!showPromoSection(profile)) return null;
+  if (!hasOfferSectionResolved(profile)) return null;
   const promo = profile.promo!;
 
   const inner = (
@@ -50,9 +50,9 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosBusine
     </div>
   );
 
-  if (promo.href) {
+  if (promo.hrefSafe) {
     return (
-      <Link href={promo.href} className="block no-underline">
+      <Link href={promo.hrefSafe} className="block no-underline">
         {inner}
       </Link>
     );

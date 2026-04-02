@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiImage, FiPlus, FiStar, FiTrash2, FiUpload, FiVideo } from "react-icons/fi";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import { newMediaImageId } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
 
@@ -48,10 +49,13 @@ function reindex(images: MediaImageEntry[]): MediaImageEntry[] {
 export function AutosNegociosMediaManager({
   listing,
   setListingPatch,
+  copy,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
+  copy: AutosNegociosCopy;
 }) {
+  const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
   const [urlBatch, setUrlBatch] = useState("");
   const [singleImageUrlDraft, setSingleImageUrlDraft] = useState("");
@@ -255,10 +259,8 @@ export function AutosNegociosMediaManager({
 
   return (
     <section className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)]">
-      <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Fotos y medios</h2>
-      <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
-        Puedes pegar URLs o subir archivos. Selecciona la imagen principal para el anuncio.
-      </p>
+      <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{copy.app.sections.media}</h2>
+      <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{m.sectionIntro}</p>
 
       <input
         ref={photoInputRef}
@@ -274,7 +276,7 @@ export function AutosNegociosMediaManager({
         }}
       />
 
-      <h3 className={SUBHEAD}>Fotos del vehículo</h3>
+      <h3 className={SUBHEAD}>{m.photosHeading}</h3>
 
       <div
         className={`${photoDropClass} mt-3`}
@@ -284,20 +286,20 @@ export function AutosNegociosMediaManager({
         onDrop={onPhotoDrop}
       >
         <FiImage className="mx-auto h-8 w-8 text-[color:var(--lx-muted)] opacity-70" aria-hidden />
-        <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text)]">Arrastra imágenes aquí o usa el botón</p>
+        <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text)]">{m.dropzone}</p>
         <button type="button" className={`${BTN_PRIMARY} mt-4`} onClick={() => photoInputRef.current?.click()}>
           <FiUpload className="h-4 w-4" aria-hidden />
-          Añadir fotos
+          {m.addPhotos}
         </button>
-        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Se abrirá el selector de archivos del sistema.</p>
+        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.pickerHint}</p>
       </div>
 
       <div className="mt-5">
-        <label className={LABEL}>Enlace de una imagen</label>
+        <label className={LABEL}>{m.singleUrl}</label>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
           <input
             className={`${INPUT} sm:min-w-0 sm:flex-1`}
-            placeholder="https://…"
+            placeholder={copy.app.placeholders.https}
             value={singleImageUrlDraft}
             onChange={(e) => setSingleImageUrlDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -308,22 +310,22 @@ export function AutosNegociosMediaManager({
             }}
           />
           <button type="button" className={BTN_SECONDARY} onClick={addSingleImageUrl}>
-            Usar este enlace
+            {m.useLink}
           </button>
         </div>
       </div>
 
       <div className="mt-4">
-        <label className={LABEL}>Varias URLs (una por línea)</label>
+        <label className={LABEL}>{m.batchUrls}</label>
         <textarea
           className={`${INPUT} min-h-[72px] font-mono text-xs`}
-          placeholder="https://…"
+          placeholder={copy.app.placeholders.https}
           value={urlBatch}
           onChange={(e) => setUrlBatch(e.target.value)}
         />
         <button type="button" className={`${BTN_SECONDARY} mt-2`} onClick={() => addUrlsFromText(urlBatch, true)}>
           <FiPlus className="h-3.5 w-3.5" aria-hidden />
-          Agregar URLs
+          {m.addUrls}
         </button>
       </div>
 
@@ -332,8 +334,8 @@ export function AutosNegociosMediaManager({
           className="mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-6 text-center"
           role="status"
         >
-          <p className="text-sm font-semibold text-[color:var(--lx-text-2)]">Aún no hay fotos en el borrador</p>
-          <p className="text-xs text-[color:var(--lx-muted)]">Usa «Añadir fotos» o suelta archivos en el área de arriba.</p>
+          <p className="text-sm font-semibold text-[color:var(--lx-text-2)]">{m.emptyPhotos}</p>
+          <p className="text-xs text-[color:var(--lx-muted)]">{m.emptyPhotosHint}</p>
         </div>
       ) : (
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -354,16 +356,16 @@ export function AutosNegociosMediaManager({
                         : "border-[color:var(--lx-nav-border)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     }`}
                     onClick={() => setPrimary(img.id)}
-                    title="Marcar como principal"
+                    title={m.principal}
                   >
                     <FiStar className="h-3 w-3" aria-hidden />
-                    Principal
+                    {m.principal}
                   </button>
                   <button
                     type="button"
                     className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, -1)}
-                    aria-label="Antes"
+                    aria-label={m.before}
                   >
                     <FiChevronLeft className="h-3 w-3" />
                   </button>
@@ -371,7 +373,7 @@ export function AutosNegociosMediaManager({
                     type="button"
                     className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--lx-nav-border)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, 1)}
-                    aria-label="Después"
+                    aria-label={m.after}
                   >
                     <FiChevronRight className="h-3 w-3" />
                   </button>
@@ -381,11 +383,11 @@ export function AutosNegociosMediaManager({
                     onClick={() => remove(img.id)}
                   >
                     <FiTrash2 className="h-3 w-3" aria-hidden />
-                    Quitar
+                    {m.remove}
                   </button>
                 </div>
                 <p className="truncate text-[10px] text-[color:var(--lx-muted)]">
-                  {img.sourceType === "file" ? "Archivo local" : "URL"} · {img.isPrimary ? "Principal" : "Secundaria"}
+                  {img.sourceType === "file" ? m.sourceFile : m.sourceUrl} · {img.isPrimary ? m.principal : m.secondary}
                 </p>
               </div>
             </li>
@@ -406,11 +408,8 @@ export function AutosNegociosMediaManager({
         }}
       />
 
-      <h3 className={SUBHEAD}>Video / recorrido</h3>
-      <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        En borrador, el video se muestra localmente en tu dispositivo. Solo se enviará a Mux al publicar. Si hay
-        archivo local, tiene prioridad sobre el enlace.
-      </p>
+      <h3 className={SUBHEAD}>{m.videoHeading}</h3>
+      <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{m.videoDraftNote}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -420,7 +419,7 @@ export function AutosNegociosMediaManager({
           }`}
           onClick={setVideoModeUrl}
         >
-          Enlace
+          {m.videoLinkTab}
         </button>
         <button
           type="button"
@@ -429,32 +428,32 @@ export function AutosNegociosMediaManager({
           }`}
           onClick={setVideoModeFile}
         >
-          Archivo local
+          {m.videoFileTab}
         </button>
         {(vs || videoUrl || videoFile) && (
           <button type="button" className="text-xs font-bold text-red-800 underline" onClick={clearVideo}>
-            Quitar video
+            {m.removeVideo}
           </button>
         )}
       </div>
 
       {(vs === "url" || (vs === null && videoUrl)) && (
         <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
-          <label className={LABEL}>URL del video</label>
+          <label className={LABEL}>{m.videoUrlLabel}</label>
           <input
             className={INPUT}
-            placeholder="https://…"
+            placeholder={copy.app.placeholders.https}
             value={videoUrlDraft}
             onChange={(e) => setVideoUrlDraft(e.target.value)}
           />
           <button type="button" className={`${BTN_SECONDARY} mt-2`} onClick={applyVideoUrl}>
-            Usar este enlace
+            {m.useVideoUrl}
           </button>
           {videoUrl ? (
             <p className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
               <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
                 <FiVideo className="h-3.5 w-3.5 text-[color:var(--lx-gold)]" aria-hidden />
-                Video por enlace — guardado en el borrador
+                {m.videoUrlSaved}
               </span>
             </p>
           ) : null}
@@ -465,12 +464,12 @@ export function AutosNegociosMediaManager({
         <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
           <button type="button" className={BTN_PRIMARY} onClick={() => videoInputRef.current?.click()}>
             <FiUpload className="h-4 w-4" aria-hidden />
-            Elegir archivo de video
+            {m.chooseVideo}
           </button>
           {listing.videoFileName ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
-                Video guardado en el borrador (local)
+                {m.videoReady}
               </span>
               <span className="text-xs text-[color:var(--lx-text-2)]">{listing.videoFileName}</span>
               <button
@@ -478,17 +477,17 @@ export function AutosNegociosMediaManager({
                 className="text-xs font-bold text-[color:var(--lx-text-2)] underline"
                 onClick={() => videoInputRef.current?.click()}
               >
-                Reemplazar
+                {m.videoReplace}
               </button>
             </div>
           ) : (
-            <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Selecciona un archivo; se guarda solo en este dispositivo.</p>
+            <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.videoFileHint}</p>
           )}
         </div>
       )}
 
       {vs === null && !videoUrl && !videoFile ? (
-        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">Elige enlace o archivo para el video.</p>
+        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.videoChooseMode}</p>
       ) : null}
 
       <input
@@ -503,25 +502,25 @@ export function AutosNegociosMediaManager({
         }}
       />
 
-      <h3 className={SUBHEAD}>Logo del concesionario</h3>
-      <p className="mt-1 text-xs text-[color:var(--lx-muted)]">URL o archivo. Confirma la URL con el botón.</p>
+      <h3 className={SUBHEAD}>{m.logoHeading}</h3>
+      <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{m.logoUrlHint}</p>
 
       <div className="mt-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
-        <label className={LABEL}>URL del logo</label>
+        <label className={LABEL}>{m.logoUrlLabel}</label>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
           <input
             className={`${INPUT} sm:min-w-0 sm:flex-1`}
-            placeholder="https://…"
+            placeholder={copy.app.placeholders.https}
             value={logoUrlDraft}
             onChange={(e) => setLogoUrlDraft(e.target.value)}
           />
           <button type="button" className={BTN_SECONDARY} onClick={applyLogoUrl}>
-            Usar esta URL
+            {m.useLogoUrl}
           </button>
         </div>
         {logo && !logo.startsWith("data:") ? (
           <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
-            Logo confirmado en el borrador (URL)
+            {m.logoUrlSaved}
           </p>
         ) : null}
       </div>
@@ -529,9 +528,9 @@ export function AutosNegociosMediaManager({
       <div className="mt-3">
         <button type="button" className={BTN_PRIMARY} onClick={() => logoInputRef.current?.click()}>
           <FiUpload className="h-4 w-4" aria-hidden />
-          Subir logo desde archivo
+          {m.uploadLogo}
         </button>
-        <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Abre el selector de archivos al instante.</p>
+        <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{m.uploadLogoHint}</p>
       </div>
 
       {logo ? (
@@ -539,9 +538,9 @@ export function AutosNegociosMediaManager({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} alt="" className="h-16 w-16 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[color:var(--lx-text)]">Logo confirmado en el borrador</p>
+            <p className="text-xs font-bold text-[color:var(--lx-text)]">{m.logoPreviewTitle}</p>
             <p className="text-[11px] text-[color:var(--lx-muted)]">
-              {logo.startsWith("data:") ? "Archivo local (solo en este dispositivo)" : "Desde URL"}
+              {logo.startsWith("data:") ? m.logoPreviewFile : m.logoPreviewUrl}
             </p>
           </div>
           <button
@@ -552,7 +551,7 @@ export function AutosNegociosMediaManager({
               setListingPatch({ dealerLogo: undefined });
             }}
           >
-            Quitar logo
+            {m.removeLogo}
           </button>
         </div>
       ) : null}

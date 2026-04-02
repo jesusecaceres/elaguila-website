@@ -14,6 +14,10 @@ export const businessCardBuilderCopy = {
     es: "Elige la cara y las guías; el lienzo grande está abajo. Las herramientas siguen a tu selección.",
     en: "Pick the side and guides; the large canvas is below. Tools follow your selection.",
   },
+  studioToolbarEmptySelection: {
+    es: "Selecciona texto, logo o una capa Studio en el lienzo para ver herramientas rápidas aquí.",
+    en: "Select text, the logo, or a Studio layer on the canvas for quick tools here.",
+  },
   workspaceTabContent: { es: "Tarjeta", en: "Card" },
   workspaceTabStudio: { es: "Capas Studio", en: "Studio layers" },
   sideFront: { es: "Frente", en: "Front" },
@@ -79,8 +83,8 @@ export const businessCardBuilderCopy = {
   /** Right column: object-first tools for the current canvas selection */
   selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },
   selectionToolsSubtitle: {
-    es: "Prioridad: capa Studio seleccionada → logo → texto. La columna derecha tiene la información de la tarjeta y la pila de capas.",
-    en: "Priority: selected Studio layer → logo → text. The right column holds card details and the layer stack.",
+    es: "Prioridad: capa Studio → logo → texto. La barra superior tiene atajos; el panel amplía detalle y posición fina.",
+    en: "Priority: Studio layer → logo → text. The top bar has quick actions; the panel adds detail and fine placement.",
   },
   contextualEmptyTitle: {
     es: "Elige algo en la tarjeta",

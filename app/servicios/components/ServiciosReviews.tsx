@@ -1,7 +1,8 @@
 import Image from "next/image";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { meaningfulReviews, showReviewsSection } from "../lib/serviciosProfileVisibility";
+import { meaningfulReviews } from "../lib/serviciosProfileSanitize";
+import { hasReviewsSectionResolved } from "../lib/serviciosProfilePresence";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
 
@@ -12,13 +13,13 @@ function initials(name: string) {
   return (p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
-export function ServiciosReviews({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+export function ServiciosReviews({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
-  if (!showReviewsSection(profile)) return null;
+  if (!hasReviewsSectionResolved(profile)) return null;
 
   const reviews = meaningfulReviews(profile.reviews);
-  const rating = profile.rating;
-  const count = profile.reviewCount;
+  const rating = profile.hero.rating;
+  const count = profile.hero.reviewCount;
 
   return (
     <section

@@ -1,4 +1,7 @@
-import type { AutoDealerListing } from "../types/autoDealerListing";
+"use client";
+
+import type { AutoDealerListing, VehicleBadge } from "../types/autoDealerListing";
+import type { AutosNegociosCopy } from "../lib/autosNegociosCopy";
 import {
   hasDescriptionSection,
   hasHeroMedia,
@@ -21,14 +24,18 @@ import { RelatedDealerCars } from "./RelatedDealerCars";
 import { VehicleDescription } from "./VehicleDescription";
 import { VehicleHighlights } from "./VehicleHighlights";
 import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
-import { VEHICLE_BADGE_LABEL } from "./vehicleBadgeLabels";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
+import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
 const MAIN_CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-5";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
+}
+
+function badgeLabelFor(t: AutosNegociosCopy, key: VehicleBadge): string {
+  return t.taxonomy.badges.find((b) => b.key === key)?.label ?? key;
 }
 
 export function AutoDealerPreviewPage({
@@ -39,6 +46,9 @@ export function AutoDealerPreviewPage({
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
   editBackHref?: string;
 }) {
+  const { t } = useAutosNegociosPreviewCopy();
+  const pt = t.preview.title;
+
   const loc = formatCityStateLabel(data.city, data.state);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
   const showTitle = hasTitleBand(data);
@@ -97,7 +107,7 @@ export function AutoDealerPreviewPage({
                             key={b}
                             className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]"
                           >
-                            {VEHICLE_BADGE_LABEL[b]}
+                            {badgeLabelFor(t, b)}
                           </li>
                         ))}
                       </ul>
@@ -106,25 +116,25 @@ export function AutoDealerPreviewPage({
                       <dl className="mt-4 grid gap-2 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
                         {showMileage ? (
                           <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">Millaje</dt>
+                            <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>
                             <dd className="font-semibold">{formatMiles(data.mileage)}</dd>
                           </div>
                         ) : null}
                         {showLoc ? (
                           <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">Ubicación</dt>
+                            <dt className="text-[color:var(--lx-muted)]">{pt.location}</dt>
                             <dd className="font-semibold">{loc}</dd>
                           </div>
                         ) : null}
                         {showVin ? (
                           <div className="flex flex-wrap gap-2 sm:col-span-2">
-                            <dt className="text-[color:var(--lx-muted)]">VIN</dt>
+                            <dt className="text-[color:var(--lx-muted)]">{pt.vin}</dt>
                             <dd className="font-mono text-[13px] font-semibold tracking-wide">{formatVinDisplay(data.vin)}</dd>
                           </div>
                         ) : null}
                         {showStock ? (
                           <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">N.º de stock</dt>
+                            <dt className="text-[color:var(--lx-muted)]">{pt.stock}</dt>
                             <dd className="font-semibold">{formatStockDisplay(data.stockNumber)}</dd>
                           </div>
                         ) : null}
@@ -138,7 +148,7 @@ export function AutoDealerPreviewPage({
                   >
                     {priceOk ? (
                       <>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">Precio</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
                         <p className="mt-1 text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
                           {formatUsd(data.price)}
                         </p>

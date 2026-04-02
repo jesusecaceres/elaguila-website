@@ -102,7 +102,14 @@ export function BusinessCardContextualInspector(props: {
           />
         </div>
       ) : showLogo ? (
-        <BusinessCardLogoGeomInspector lang={lang} doc={doc} side={side} state={state} dispatch={dispatch} />
+        <BusinessCardLogoGeomInspector
+          lang={lang}
+          doc={doc}
+          side={side}
+          state={state}
+          dispatch={dispatch}
+          toolbarParity
+        />
       ) : showText && selectedBlock ? (
         <BusinessCardTextBlockInspector
           lang={lang}

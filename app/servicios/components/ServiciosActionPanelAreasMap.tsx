@@ -1,16 +1,23 @@
 import Image from "next/image";
 import { FiMapPin } from "react-icons/fi";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { hasItems, showSidebarServiceAreasMap } from "../lib/serviciosProfileVisibility";
+import { hasItems } from "../lib/serviciosProfilePrimitives";
+import { hasSidebarServiceAreasMapResolved } from "../lib/serviciosProfilePresence";
 import { SV } from "./serviciosDesignTokens";
 
-/** Sidebar: map + compact city list (shown when a map image URL exists). */
-export function ServiciosSidebarAreasMap({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+/** Map + compact list under the action panel (requires sanitized map image URL). */
+export function ServiciosActionPanelAreasMap({
+  profile,
+  lang,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+}) {
   const L = getServiciosProfileLabels(lang);
-  const areas = profile.serviceAreas;
-  const mapUrl = profile.serviceAreaMapImageUrl;
-  if (!showSidebarServiceAreasMap(profile)) return null;
+  const areas = profile.serviceAreas.items;
+  const mapUrl = profile.serviceAreas.mapImageUrl;
+  if (!hasSidebarServiceAreasMapResolved(profile)) return null;
 
   return (
     <div

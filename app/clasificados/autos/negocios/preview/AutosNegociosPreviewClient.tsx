@@ -8,8 +8,10 @@ import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { normalizeLoadedListing } from "../lib/autoDealerDraftDefaults";
 import { isMeaningfulAutoDealerDraft } from "../lib/isMeaningfulAutoDealerDraft";
+import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { withLangParam } from "../lib/autosNegociosLang";
 
-const EDIT_HREF = "/publicar/autos/negocios";
+const EDIT_BASE = "/publicar/autos/negocios";
 
 type AutosNegociosPreviewMode = "empty" | "draft" | "mock";
 
@@ -42,6 +44,29 @@ async function resolvePreviewState(): Promise<{
   }
 
   return { mode: "empty", listing: normalized };
+}
+
+function AutosNegociosPreviewInner({
+  ready,
+  mode,
+  listing,
+}: {
+  ready: boolean;
+  mode: AutosNegociosPreviewMode;
+  listing: AutoDealerListing;
+}) {
+  const { lang } = useAutosNegociosPreviewCopy();
+  const editBackHref = withLangParam(EDIT_BASE, lang);
+
+  if (!ready) {
+    return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
+
+  if (mode === "empty") {
+    return <AutosNegociosPreviewEmptyState />;
+  }
+
+  return <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />;
 }
 
 export function AutosNegociosPreviewClient() {
@@ -86,13 +111,9 @@ export function AutosNegociosPreviewClient() {
     };
   }, [refresh]);
 
-  if (!ready) {
-    return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
-  }
-
-  if (mode === "empty") {
-    return <AutosNegociosPreviewEmptyState />;
-  }
-
-  return <AutoDealerPreviewPage data={listing} editBackHref={EDIT_HREF} />;
+  return (
+    <AutosNegociosPreviewLocaleProvider>
+      <AutosNegociosPreviewInner ready={ready} mode={mode} listing={listing} />
+    </AutosNegociosPreviewLocaleProvider>
+  );
 }

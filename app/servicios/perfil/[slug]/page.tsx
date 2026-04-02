@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ServiciosProfileView } from "../../components/ServiciosProfileView";
 import { getServiciosProfileBySlug } from "../../data/demoServiciosBusinessProfile";
+import { resolveServiciosProfile } from "../../lib/resolveServiciosProfile";
 import type { ServiciosLang } from "../../types/serviciosBusinessProfile";
 
 type PageProps = {
@@ -13,13 +14,14 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
   const sp = (await props.searchParams) ?? {};
   const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
-  const profile = getServiciosProfileBySlug(slug, lang);
-  const title = `${profile.businessName} · Leonix Servicios`;
+  const raw = getServiciosProfileBySlug(slug, lang);
+  const profile = resolveServiciosProfile(raw);
+  const title = `${profile.identity.businessName} · Leonix Servicios`;
   return {
     title,
     description:
-      profile.aboutText?.slice(0, 155) ||
-      `${profile.businessName} — servicios locales verificados en Leonix.`,
+      profile.about?.text?.slice(0, 155) ||
+      `${profile.identity.businessName} — servicios locales verificados en Leonix.`,
     openGraph: {
       title,
       type: "website",
@@ -34,7 +36,8 @@ export default async function ServiciosPerfilPage(props: PageProps) {
 
   if (!slug || slug.length > 200) notFound();
 
-  const profile = getServiciosProfileBySlug(slug, lang);
+  const raw = getServiciosProfileBySlug(slug, lang);
+  const profile = resolveServiciosProfile(raw);
 
   return <ServiciosProfileView profile={profile} lang={lang} />;
 }

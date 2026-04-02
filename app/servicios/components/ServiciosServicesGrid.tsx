@@ -1,12 +1,12 @@
 import Image from "next/image";
-import type { ServiciosBusinessProfile, ServiciosLang } from "../types/serviciosBusinessProfile";
+import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { SV } from "./serviciosDesignTokens";
 
-export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosBusinessProfile; lang: ServiciosLang }) {
+export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
   const L = getServiciosProfileLabels(lang);
   const items = profile.services;
-  if (!items?.length) return null;
+  if (!items.length) return null;
 
   return (
     <section

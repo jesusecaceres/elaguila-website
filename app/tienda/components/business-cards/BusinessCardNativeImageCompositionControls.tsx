@@ -23,8 +23,10 @@ export function BusinessCardNativeImageCompositionControls(props: {
   image: BusinessCardDesignerV2NativeImage;
   patch: (p: Partial<BusinessCardDesignerV2NativeObject>) => void;
   cx: NativeInspectorChrome;
+  /** When true (e.g. contextual column + top toolbar), only focal X/Y fine tuning — no fit/opacity/mask */
+  framingOnly?: boolean;
 }) {
-  const { lang, locked, image, patch, cx } = props;
+  const { lang, locked, image, patch, cx, framingOnly } = props;
   const lg = lang;
 
   const fit = image.objectFit ?? "contain";
@@ -36,6 +38,7 @@ export function BusinessCardNativeImageCompositionControls(props: {
 
   return (
     <>
+      {!framingOnly ? (
       <div className={cx.sectionTop}>
         <p className={cx.sectionTitle}>{bcPick(businessCardBuilderCopy.nativeImageFitSectionTitle, lg)}</p>
         <p className={cx.sectionHelp}>{bcPick(businessCardBuilderCopy.nativeImageFitSectionHelp, lg)}</p>
@@ -63,6 +66,7 @@ export function BusinessCardNativeImageCompositionControls(props: {
           ))}
         </div>
       </div>
+      ) : null}
 
       <div className={cx.sectionTop}>
         <p className={cx.sectionTitle}>{bcPick(businessCardBuilderCopy.nativeImageFramingSectionTitle, lg)}</p>
@@ -127,6 +131,7 @@ export function BusinessCardNativeImageCompositionControls(props: {
         </label>
       </div>
 
+      {!framingOnly ? (
       <div className={cx.sectionTop}>
         <p className={cx.sectionTitle}>{bcPick(businessCardBuilderCopy.nativeImageAppearanceSectionTitle, lg)}</p>
         <label className={cx.labelBlock}>
@@ -181,6 +186,7 @@ export function BusinessCardNativeImageCompositionControls(props: {
           </label>
         ) : null}
       </div>
+      ) : null}
     </>
   );
 }

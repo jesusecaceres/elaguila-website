@@ -1,7 +1,10 @@
+"use client";
+
 import { FiCalendar, FiMessageCircle, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { formatCityStateLabel, formatUsd, hrefForUserWebsiteUrl, polishMonthlyEstimateDisplay } from "./autoDealerFormatters";
+import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]";
@@ -20,6 +23,9 @@ function nonEmpty(s: string | undefined | null): boolean {
 }
 
 export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
+  const { t } = useAutosNegociosPreviewCopy();
+  const sb = t.preview.sidebar;
+
   const loc = formatCityStateLabel(data.city, data.state);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
   const monthlyLine = nonEmpty(data.monthlyEstimate ?? undefined)
@@ -33,7 +39,7 @@ export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
         <div className="border-b border-[color:var(--lx-nav-border)] pb-4">
           {priceOk ? (
             <>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">Precio anunciado</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{sb.priceAdvertised}</p>
               <p className="mt-1 text-[1.85rem] font-bold leading-none tracking-tight text-[color:var(--lx-text)]">
                 {formatUsd(data.price)}
               </p>
@@ -52,20 +58,20 @@ export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
 
       <div className={`flex flex-col gap-3 ${showPriceBlock ? "mt-4" : ""}`}>
         <button type="button" className={BTN_PRIMARY}>
-          Solicitar disponibilidad
+          {sb.availability}
         </button>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <button type="button" className={BTN_SECONDARY}>
             <FiPhone className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            Llamar
+            {sb.call}
           </button>
           <button type="button" className={BTN_SECONDARY}>
             <FiMessageCircle className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            Chatear
+            {sb.chat}
           </button>
           <button type="button" className={BTN_SECONDARY}>
             <FiCalendar className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            <span className="max-[380px]:[font-size:11px]">Agendar prueba de manejo</span>
+            <span className="max-[380px]:[font-size:11px]">{sb.scheduleDrive}</span>
           </button>
         </div>
         {nonEmpty(data.dealerWebsite ?? undefined) ? (
@@ -76,7 +82,7 @@ export function AutoSidebarCTA({ data }: { data: AutoDealerListing }) {
             className={BTN_TERTIARY}
           >
             <TbWorldWww className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            Ver sitio web
+            {sb.viewWebsite}
           </a>
         ) : null}
       </div>

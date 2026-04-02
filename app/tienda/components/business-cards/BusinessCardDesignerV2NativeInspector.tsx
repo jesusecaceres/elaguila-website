@@ -57,6 +57,8 @@ export function BusinessCardDesignerV2NativeInspector(props: {
   const lg = lang;
   const locked = selected.locked === true;
   const cx = nativeInspectorChrome(variant);
+  /** Top toolbar already exposes reorder, z, rotation, and image fit/opacity/mask shortcuts */
+  const compact = variant === "contextual";
 
   const patch = (p: Partial<BusinessCardDesignerV2NativeObject>) => {
     dispatch({ type: "V2_PATCH_NATIVE_OBJECT", side, id: selected.id, patch: p });
@@ -108,54 +110,64 @@ export function BusinessCardDesignerV2NativeInspector(props: {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={locked}
-          className={cx.btn}
-          title={bcPick(businessCardBuilderCopy.nativeReorderTooltip, lg)}
-          onClick={() => dispatch({ type: "V2_REORDER_NATIVE_OBJECT", side, id: selected.id, delta: 1 })}
-        >
-          {lg === "en" ? "Forward" : "Al frente"}
-        </button>
-        <button
-          type="button"
-          disabled={locked}
-          className={cx.btn}
-          title={bcPick(businessCardBuilderCopy.nativeReorderTooltip, lg)}
-          onClick={() => dispatch({ type: "V2_REORDER_NATIVE_OBJECT", side, id: selected.id, delta: -1 })}
-        >
-          {lg === "en" ? "Backward" : "Atrás"}
-        </button>
-      </div>
+      {compact ? (
+        <p className={cx.help}>
+          {lg === "en"
+            ? "Stack order, z-index, rotation, and image styling shortcuts are in the top toolbar."
+            : "Orden, z, rotación y estilo de imagen: atajos en la barra superior."}
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={locked}
+              className={cx.btn}
+              title={bcPick(businessCardBuilderCopy.nativeReorderTooltip, lg)}
+              onClick={() => dispatch({ type: "V2_REORDER_NATIVE_OBJECT", side, id: selected.id, delta: 1 })}
+            >
+              {lg === "en" ? "Forward" : "Al frente"}
+            </button>
+            <button
+              type="button"
+              disabled={locked}
+              className={cx.btn}
+              title={bcPick(businessCardBuilderCopy.nativeReorderTooltip, lg)}
+              onClick={() => dispatch({ type: "V2_REORDER_NATIVE_OBJECT", side, id: selected.id, delta: -1 })}
+            >
+              {lg === "en" ? "Backward" : "Atrás"}
+            </button>
+          </div>
 
-      <label className={cx.labelBlock}>
-        {bcPick(businessCardBuilderCopy.nativeInspectorLayerZLabel, lg)}
-        <input
-          type="number"
-          disabled={locked}
-          min={1}
-          max={40}
-          className={cx.input}
-          value={selected.zIndex}
-          onChange={(e) => patch({ zIndex: clampNativeLayerZIndex(Number(e.target.value)) })}
-        />
-      </label>
-      <p className={cx.help}>{bcPick(businessCardBuilderCopy.nativeInspectorLayerZHelp, lg)}</p>
+          <label className={cx.labelBlock}>
+            {bcPick(businessCardBuilderCopy.nativeInspectorLayerZLabel, lg)}
+            <input
+              type="number"
+              disabled={locked}
+              min={1}
+              max={40}
+              className={cx.input}
+              value={selected.zIndex}
+              onChange={(e) => patch({ zIndex: clampNativeLayerZIndex(Number(e.target.value)) })}
+            />
+          </label>
+          <p className={cx.help}>{bcPick(businessCardBuilderCopy.nativeInspectorLayerZHelp, lg)}</p>
 
-      <label className={cx.labelBlock}>
-        {lg === "en" ? "Rotation (°)" : "Rotación (°)"}
-        <input
-          type="number"
-          disabled={locked}
-          min={-180}
-          max={180}
-          step={1}
-          className={cx.input}
-          value={Math.round(selected.rotationDeg * 10) / 10}
-          onChange={(e) => patch({ rotationDeg: clampNativeRotationDeg(num(e.target.value)) })}
-        />
-      </label>
+          <label className={cx.labelBlock}>
+            {lg === "en" ? "Rotation (°)" : "Rotación (°)"}
+            <input
+              type="number"
+              disabled={locked}
+              min={-180}
+              max={180}
+              step={1}
+              className={cx.input}
+              value={Math.round(selected.rotationDeg * 10) / 10}
+              onChange={(e) => patch({ rotationDeg: clampNativeRotationDeg(num(e.target.value)) })}
+            />
+          </label>
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <label className={cx.labelGrid}>
@@ -236,11 +248,28 @@ export function BusinessCardDesignerV2NativeInspector(props: {
         </label>
       ) : null}
 
-      {selected.kind === "native-image" ? (
+      {selected.kind === "native-image" && !compact ? (
         <BusinessCardNativeImageCompositionControls lang={lg} locked={locked} image={selected} patch={patch} cx={cx} />
       ) : null}
+      {selected.kind === "native-image" && compact ? (
+        <BusinessCardNativeImageCompositionControls
+          lang={lg}
+          locked={locked}
+          image={selected}
+          patch={patch}
+          cx={cx}
+          framingOnly
+        />
+      ) : null}
 
-      {selected.kind === "native-shape" ? (
+      {selected.kind === "native-shape" && compact ? (
+        <p className={cx.help}>
+          {lg === "en"
+            ? "Quick fill, stroke, opacity, and rotation are in the top toolbar. Expand details below only for CSS colors or precise stroke width."
+            : "Relleno, borde, opacidad y rotación rápidos en la barra superior. Detalles abajo solo para colores CSS o borde fino."}
+        </p>
+      ) : null}
+      {selected.kind === "native-shape" && !compact ? (
         <div className={cx.sectionTop}>
           <p className={cx.sectionTitle}>{lg === "en" ? "Shape style" : "Estilo de forma"}</p>
           <div className="space-y-1.5">
@@ -333,6 +362,32 @@ export function BusinessCardDesignerV2NativeInspector(props: {
                 const next = clampNativeStrokeWidthPx(num(e.target.value));
                 patch(withStrokeColorIfWidthActive(selected, { strokeWidthPx: next }));
               }}
+            />
+          </label>
+        </div>
+      ) : null}
+      {selected.kind === "native-shape" && compact ? (
+        <div className={cx.sectionTop}>
+          <p className={cx.sectionTitle}>{lg === "en" ? "Advanced (CSS)" : "Avanzado (CSS)"}</p>
+          <label className={cx.labelBlock}>
+            {lg === "en" ? "Fill (CSS)" : "Relleno (CSS)"}
+            <input
+              type="text"
+              disabled={locked}
+              className={`${cx.input} font-mono`}
+              value={selected.fill}
+              onChange={(e) => patch({ fill: e.target.value })}
+            />
+          </label>
+          <label className={cx.labelBlock}>
+            {lg === "en" ? "Stroke color (CSS)" : "Color del borde (CSS)"}
+            <input
+              type="text"
+              disabled={locked}
+              placeholder={lg === "en" ? "e.g. rgba(…)" : "ej. rgba(…)"}
+              className={`${cx.input} font-mono`}
+              value={selected.strokeColor ?? ""}
+              onChange={(e) => patch({ strokeColor: e.target.value.trim() || undefined })}
             />
           </label>
         </div>

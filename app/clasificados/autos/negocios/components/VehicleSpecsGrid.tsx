@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BiCalendar,
   BiCar,
@@ -24,18 +26,21 @@ import {
 } from "../lib/autoDealerSelectResolve";
 import { formatMiles, formatMpgPair, formatStockDisplay, formatVinDisplay } from "./autoDealerFormatters";
 import { SpecIconRow } from "./SpecIconRow";
-
-function conditionEs(c: AutoDealerListing["condition"]): string | undefined {
-  if (c === undefined) return undefined;
-  if (c === "new") return "Nuevo";
-  if (c === "certified") return "Certificado";
-  return "Usado";
-}
+import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
 
 export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
+  const { t } = useAutosNegociosPreviewCopy();
+  const rowsL = t.preview.specs.rows;
+
+  function conditionLabel(c: AutoDealerListing["condition"]): string | undefined {
+    if (c === undefined) return undefined;
+    const row = t.taxonomy.condition.find((x) => x.value === c);
+    return row?.label;
+  }
+
   const mpg = formatMpgPair(data.mpgCity ?? undefined, data.mpgHighway ?? undefined) || undefined;
 
   const doors =
@@ -52,44 +57,46 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
   const trimStr = data.trim?.trim() || undefined;
 
   const rows: Array<{ key: string; label: string; value: string | undefined; icon: ReactNode }> = [
-    { key: "year", label: "Año", value: yearStr, icon: <BiCalendar className="h-5 w-5" /> },
-    { key: "make", label: "Marca", value: makeStr, icon: <BiCar className="h-5 w-5" /> },
-    { key: "model", label: "Modelo", value: modelStr, icon: <BiCar className="h-5 w-5" /> },
-    { key: "trim", label: "Versión / trim", value: trimStr, icon: <BiCar className="h-5 w-5" /> },
-    { key: "body", label: "Estilo de carrocería", value: resolveBodyStyle(data), icon: <BiCar className="h-5 w-5" /> },
-    { key: "drive", label: "Tracción", value: resolveDrivetrain(data), icon: <TbRoad className="h-5 w-5" /> },
-    { key: "trans", label: "Transmisión", value: resolveTransmission(data), icon: <BiTachometer className="h-5 w-5" /> },
-    { key: "eng", label: "Motor", value: data.engine, icon: <BiCylinder className="h-5 w-5" /> },
-    { key: "fuel", label: "Combustible", value: resolveFuelType(data), icon: <BiGasPump className="h-5 w-5" /> },
-    { key: "mpg", label: "Rendimiento (ciudad / carretera)", value: mpg, icon: <FiLayers className="h-5 w-5" /> },
-    { key: "ex", label: "Color exterior", value: resolveExteriorColor(data), icon: <BiPalette className="h-5 w-5" /> },
-    { key: "in", label: "Color interior", value: resolveInteriorColor(data), icon: <BiColorFill className="h-5 w-5" /> },
-    { key: "doors", label: "Puertas", value: doors, icon: <BiCar className="h-5 w-5" /> },
-    { key: "seats", label: "Asientos", value: seats, icon: <TbArmchair className="h-5 w-5" /> },
-    { key: "cond", label: "Condición", value: conditionEs(data.condition), icon: <BiKey className="h-5 w-5" /> },
-    { key: "title", label: "Estado del título", value: resolveTitleStatus(data), icon: <BiShieldQuarter className="h-5 w-5" /> },
+    { key: "year", label: rowsL.year, value: yearStr, icon: <BiCalendar className="h-5 w-5" /> },
+    { key: "make", label: rowsL.make, value: makeStr, icon: <BiCar className="h-5 w-5" /> },
+    { key: "model", label: rowsL.model, value: modelStr, icon: <BiCar className="h-5 w-5" /> },
+    { key: "trim", label: rowsL.trim, value: trimStr, icon: <BiCar className="h-5 w-5" /> },
+    { key: "body", label: rowsL.body, value: resolveBodyStyle(data), icon: <BiCar className="h-5 w-5" /> },
+    { key: "drive", label: rowsL.drive, value: resolveDrivetrain(data), icon: <TbRoad className="h-5 w-5" /> },
+    { key: "trans", label: rowsL.trans, value: resolveTransmission(data), icon: <BiTachometer className="h-5 w-5" /> },
+    { key: "eng", label: rowsL.eng, value: data.engine, icon: <BiCylinder className="h-5 w-5" /> },
+    { key: "fuel", label: rowsL.fuel, value: resolveFuelType(data), icon: <BiGasPump className="h-5 w-5" /> },
+    { key: "mpg", label: rowsL.mpg, value: mpg, icon: <FiLayers className="h-5 w-5" /> },
+    { key: "ex", label: rowsL.ex, value: resolveExteriorColor(data), icon: <BiPalette className="h-5 w-5" /> },
+    { key: "in", label: rowsL.in, value: resolveInteriorColor(data), icon: <BiColorFill className="h-5 w-5" /> },
+    { key: "doors", label: rowsL.doors, value: doors, icon: <BiCar className="h-5 w-5" /> },
+    { key: "seats", label: rowsL.seats, value: seats, icon: <TbArmchair className="h-5 w-5" /> },
+    { key: "cond", label: rowsL.cond, value: conditionLabel(data.condition), icon: <BiKey className="h-5 w-5" /> },
+    { key: "title", label: rowsL.title, value: resolveTitleStatus(data), icon: <BiShieldQuarter className="h-5 w-5" /> },
     {
       key: "vin",
-      label: "VIN",
+      label: rowsL.vin,
       value: data.vin ? formatVinDisplay(data.vin) : undefined,
       icon: <span className="text-xs font-bold">VIN</span>,
     },
     {
       key: "stock",
-      label: "N.º de stock",
+      label: rowsL.stock,
       value: data.stockNumber ? formatStockDisplay(data.stockNumber) : undefined,
       icon: <span className="text-xs font-bold">#</span>,
     },
-    { key: "mi", label: "Millaje", value: mileageStr, icon: <BiTachometer className="h-5 w-5" /> },
+    { key: "mi", label: rowsL.mi, value: mileageStr, icon: <BiTachometer className="h-5 w-5" /> },
   ];
 
   const visible = rows.filter((r) => r.value !== undefined && String(r.value).trim() !== "");
   if (visible.length === 0) return null;
 
+  const { title, subtitle } = t.preview.specs;
+
   return (
     <section className={CARD}>
-      <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">Especificaciones</h2>
-      <p className="mt-1 text-sm text-[color:var(--lx-muted)]">Datos verificados por el concesionario</p>
+      <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">{title}</h2>
+      <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {visible.map((r) => (
           <SpecIconRow
