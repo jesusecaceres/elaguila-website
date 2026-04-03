@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { tiendaCopy, pick } from "./data/tiendaCopy";
-import { tiendaCategories } from "./data/tiendaCategories";
+import { tiendaCategoryBySlug } from "./data/tiendaCategories";
+import { merchTierForCategorySlug, tiendaStorefrontGroups } from "./data/tiendaMerchandising";
 import { tiendaFeaturedProducts } from "./data/tiendaFeaturedProducts";
 import { TiendaHero } from "./components/TiendaHero";
 import { TiendaSectionHeading } from "./components/TiendaSectionHeading";
@@ -45,7 +46,7 @@ export default async function TiendaPage(props: {
   const featuredThumbs = await fetchPrimaryImageUrlForItems(featuredCatalog.map((i) => i.id));
 
   return (
-    <main className="min-h-screen bg-[#070708] text-white">
+    <main className="min-h-screen bg-[#070708] text-white [background-image:radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(201,168,74,0.12),transparent_50%),radial-gradient(ellipse_70%_50%_at_100%_50%,rgba(124,171,199,0.06),transparent_45%)]">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-20">
         {/* 1) HERO */}
         <TiendaHero
@@ -74,10 +75,42 @@ export default async function TiendaPage(props: {
             }
           />
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tiendaCategories.map((c) => (
-              <TiendaCategoryCard key={c.id} category={c} lang={lang} />
-            ))}
+          <div className="mt-10 space-y-14">
+            {tiendaStorefrontGroups.map((group) => {
+              const title = lang === "en" ? group.title.en : group.title.es;
+              const desc = group.description ? (lang === "en" ? group.description.en : group.description.es) : null;
+              const gridClass =
+                group.id === "flagship"
+                  ? "grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-7"
+                  : group.id === "campaign"
+                    ? "grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+                    : group.id === "signage"
+                      ? "grid grid-cols-1 gap-6 md:grid-cols-2"
+                      : "grid grid-cols-1 gap-6 md:max-w-lg md:mx-auto";
+
+              return (
+                <div key={group.id}>
+                  <div className="border-b border-[rgba(255,255,255,0.08)] pb-4">
+                    <h3 className="text-sm font-semibold tracking-tight text-[rgba(255,247,226,0.95)]">{title}</h3>
+                    {desc ? <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgba(255,255,255,0.58)]">{desc}</p> : null}
+                  </div>
+                  <div className={`mt-6 ${gridClass}`}>
+                    {group.slugs.map((slug) => {
+                      const c = tiendaCategoryBySlug[slug];
+                      if (!c) return null;
+                      return (
+                        <TiendaCategoryCard
+                          key={c.id}
+                          category={c}
+                          lang={lang}
+                          density={merchTierForCategorySlug(slug)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 

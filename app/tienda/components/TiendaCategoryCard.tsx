@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { TiendaCategory, Lang } from "../types/tienda";
 import { tiendaCategoryCoverLiteral, tiendaCategoryCoverPrimary } from "../data/tiendaVisualAssets";
 import type { TiendaCategorySlug } from "../data/tiendaCategories";
+import { categoryMerchChips, merchTierForCategorySlug, type MerchTier } from "../data/tiendaMerchandising";
 import { accentStyles } from "../utils/tiendaTheme";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
@@ -20,8 +21,19 @@ function ArrowIcon() {
   );
 }
 
-export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang }) {
-  const { category, lang } = props;
+function tierMinHeight(tier: MerchTier): string {
+  switch (tier) {
+    case "flagship":
+      return "min-h-[360px]";
+    case "support":
+      return "min-h-[260px] sm:min-h-[280px]";
+    default:
+      return "min-h-[320px]";
+  }
+}
+
+export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang; density?: MerchTier }) {
+  const { category, lang, density: densityProp } = props;
   const a = accentStyles(category.accent);
   const title = lang === "en" ? category.title.en : category.title.es;
   const desc = lang === "en" ? category.description.en : category.description.es;
@@ -31,17 +43,21 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
   const coverPrimary = tiendaCategoryCoverPrimary(slug);
   const coverLiteral = tiendaCategoryCoverLiteral(slug);
   const isBusinessCards = slug === "business-cards";
+  const tier = densityProp ?? merchTierForCategorySlug(slug);
+  const chips = categoryMerchChips(lang, slug);
 
   return (
     <Link
       href={withLang(category.href, lang)}
       className={[
-        "group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-3xl",
+        "group relative flex flex-col justify-end overflow-hidden rounded-3xl",
+        tierMinHeight(tier),
         "ring-1",
         a.ring,
         "transition duration-500 ease-out",
         "hover:-translate-y-1 hover:ring-[color:rgba(201,168,74,0.45)] hover:shadow-[0_28px_90px_rgba(0,0,0,0.5)]",
         a.glow,
+        tier === "flagship" ? "lg:min-h-[400px]" : "",
       ].join(" ")}
       aria-label={title}
     >
@@ -56,8 +72,10 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
         <div
           className={
             isBusinessCards
-              ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/70 to-[#070708]/15"
-              : "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/82 to-[#070708]/25"
+              ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/62 to-[#070708]/12"
+              : tier === "support"
+                ? "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/72 to-[#070708]/18"
+                : "absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/75 to-[#070708]/20"
           }
         />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(201,168,74,0.14),transparent_55%)]" />
@@ -76,7 +94,12 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
             <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-[rgba(255,247,226,0.98)] drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
               {title}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[rgba(255,247,226,0.88)] drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)] max-w-prose">
+            <p
+              className={[
+                "mt-2 leading-relaxed text-[rgba(255,247,226,0.88)] drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)] max-w-prose",
+                tier === "support" ? "text-xs sm:text-sm line-clamp-3" : "text-sm",
+              ].join(" ")}
+            >
               {desc}
             </p>
           </div>
@@ -89,6 +112,17 @@ export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang
               <ArrowIcon />
             </span>
           </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <span
+              key={c}
+              className="inline-flex max-w-full rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.35)] px-2.5 py-1 text-[10px] sm:text-[11px] font-medium tracking-wide text-[rgba(255,247,226,0.88)] backdrop-blur-sm"
+            >
+              {c}
+            </span>
+          ))}
         </div>
 
         <div className="mt-6 h-[1px] w-full opacity-90">

@@ -5,6 +5,7 @@ import {
   tiendaProductFamilyCoverPrimary,
   tiendaProductFamilyImageClass,
 } from "../data/tiendaVisualAssets";
+import { promoFamilyLane } from "../data/tiendaMerchandising";
 import { withLang } from "../utils/tiendaRouting";
 import { TiendaModeBadge } from "./TiendaModeBadge";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
@@ -23,6 +24,8 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
   const desc = lang === "en" ? family.description.en : family.description.es;
   const coverPrimary = tiendaProductFamilyCoverPrimary(family.slug, family.categorySlug);
   const coverLiteral = tiendaProductFamilyCoverLiteral(family.slug, family.categorySlug);
+  const lane = family.categorySlug === "promo-products" ? promoFamilyLane(family.slug) : null;
+  const isPromo = family.categorySlug === "promo-products";
 
   return (
     <Link
@@ -31,11 +34,17 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
         "group relative flex flex-col overflow-hidden rounded-3xl",
         "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]",
         "border border-[rgba(255,255,255,0.10)]",
+        lane?.leftBar ?? "",
         "shadow-[0_18px_60px_rgba(0,0,0,0.35)]",
         "transition duration-300 ease-out hover:-translate-y-1 hover:border-[rgba(201,168,74,0.4)] hover:shadow-[0_24px_70px_rgba(0,0,0,0.45)]",
       ].join(" ")}
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden border-b border-[rgba(255,255,255,0.06)]">
+      <div
+        className={[
+          "relative w-full overflow-hidden border-b border-[rgba(255,255,255,0.06)]",
+          isPromo ? "aspect-[16/10]" : "aspect-[16/9]",
+        ].join(" ")}
+      >
         <TiendaRemoteFillImage
           primarySrc={coverPrimary}
           fallbackSrc={coverLiteral}
@@ -47,13 +56,25 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
           className={
             family.slug === "two-sided-business-cards"
               ? "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/80 via-[#070708]/10 to-transparent"
-              : "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/92 via-[#070708]/30 to-[rgba(201,168,74,0.06)]"
+              : isPromo
+                ? "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/88 via-[#070708]/25 to-[rgba(201,168,74,0.08)]"
+                : "pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070708]/92 via-[#070708]/30 to-[rgba(201,168,74,0.06)]"
           }
         />
       </div>
 
       <div className="relative flex flex-1 flex-col p-6 sm:p-7">
         <div className="flex flex-wrap items-center gap-2">
+          {lane ? (
+            <span
+              className={[
+                "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
+                lane.chip,
+              ].join(" ")}
+            >
+              {lang === "en" ? lane.label.en : lane.label.es}
+            </span>
+          ) : null}
           <TiendaModeBadge mode={family.productMode} lang={lang} />
           {family.comingSoon ? (
             <span className="inline-flex rounded-full border border-[rgba(255,255,255,0.14)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.72)]">

@@ -8,6 +8,7 @@ import { TiendaBackNav } from "../../components/TiendaBackNav";
 import { TiendaCategoryHero } from "../../components/TiendaCategoryHero";
 import { TiendaModeBadgeRow } from "../../components/TiendaModeBadge";
 import { TiendaProductFamilyCard } from "../../components/TiendaProductFamilyCard";
+import { TiendaPromoFamilyQuickNav } from "../../components/TiendaPromoFamilyQuickNav";
 import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
 import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
 import { TiendaCTA } from "../../components/TiendaCTA";
@@ -61,6 +62,8 @@ export default async function TiendaCategoryPage(props: {
 
         <TiendaCategoryHero category={category} lang={lang} />
 
+        {slug === "promo-products" ? <TiendaPromoFamilyQuickNav families={families} lang={lang} /> : null}
+
         <section className="mt-8">
           <TiendaModeBadgeRow mode={category.productMode} lang={lang} />
           <p className="mt-3 text-sm text-[rgba(255,255,255,0.62)]">
@@ -74,7 +77,13 @@ export default async function TiendaCategoryPage(props: {
           <h2 className="text-xl font-semibold tracking-tight text-white">
             {pick(tiendaCopy.sections.categoryPage.productFamilies, lang)}
           </h2>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div
+            className={
+              slug === "promo-products"
+                ? "mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+                : "mt-6 grid grid-cols-1 gap-6 md:grid-cols-2"
+            }
+          >
             {families.map((f) => (
               <TiendaProductFamilyCard key={f.id} family={f} lang={lang} />
             ))}

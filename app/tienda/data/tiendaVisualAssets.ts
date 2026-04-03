@@ -40,13 +40,18 @@ const CATEGORY_LITERAL: Record<TiendaCategorySlug, string> = {
 /** Product‑truthful photography per category (premium print / retail context). */
 const CATEGORY_PHOTO: Record<TiendaCategorySlug, string> = {
   "business-cards": PHOTO_BUSINESS_CARDS_STACK,
-  flyers: us("photo-1563986768609-322da13575f3", 1600),
+  /** Leaflets / promo sheets — reads as campaign print, distinct from brochures. */
+  flyers: us("photo-1557804506-669a67965ba0", 1600),
+  /** Folded editorial — brochure truth. */
   brochures: us("photo-1543002588-bfa74002ed7e", 1600),
   banners: us("photo-1505373877841-8d25f7d46678", 1600),
   signs: us("photo-1558618666-fcd25c85cd64", 1600),
-  "stickers-labels": us("photo-1588447907846-dfae931d2ed0", 1600),
-  "promo-products": us("photo-1607082348824-0a96f2a4b9da", 1600),
-  "marketing-materials": us("photo-1513519245088-0e12902e5a38", 1600),
+  /** Color-forward sticker/label wall — more “retail merch” energy than flat stock. */
+  "stickers-labels": us("photo-1556228720-195a672e8a03", 1600),
+  /** Promo table / retail counter — breadth of merch possibilities. */
+  "promo-products": us("photo-1556742049-0cfed4f6a45d", 1600),
+  /** Editorial / mailer context — distinct from flyers + brochures covers. */
+  "marketing-materials": us("photo-1544716278-ca390e02658a", 1600),
 };
 
 /** Literal SVG for category (backup + admin/catalog truth). */
@@ -88,13 +93,14 @@ const FAMILY_PHOTO: Record<string, string> = {
   "standard-business-cards": PHOTO_BUSINESS_CARDS_ONE_SIDED,
   /** Front + back mockup (SVG) — clearer than unrelated stock for “dos lados”. */
   "two-sided-business-cards": `${V}/product-two-sided-business-cards.svg`,
-  "flyers-standard": us("photo-1563986768609-322da13575f3", 1600),
+  "flyers-standard": us("photo-1557804506-669a67965ba0", 1600),
   "brochures-standard": us("photo-1543002588-bfa74002ed7e", 1600),
   "retractable-banners": us("photo-1511578311128-61b9dd992832", 1600),
   "yard-signs": us("photo-1558618666-fcd25c85cd64", 1600),
-  "stickers-standard": us("photo-1588447907846-dfae931d2ed0", 1600),
-  "postcards-standard": us("photo-1513519245088-0e12902e5a38", 1600),
-  "promo-giveaways": us("photo-1607082348824-0a96f2a4b9da", 1600),
+  "stickers-standard": us("photo-1556228720-195a672e8a03", 1600),
+  "postcards-standard": us("photo-1544716278-ca390e02658a", 1600),
+  /** Colorful swag / gift bags — not the same table shot as category hero. */
+  "promo-giveaways": us("photo-1526178819929-0c4bd8e7ab7e", 1600),
   "promo-pens": us("photo-1585386959984-ba415c6d906d", 1600),
   "promo-drinkware": us("photo-1495474472287-4d71bddd7c6d", 1600),
   "promo-bags": us("photo-1597484661643-2f5fef640dd1", 1600),
@@ -150,9 +156,10 @@ export const tiendaHeroAssets = {
   businessCards: us("photo-1589829545856-d10d557cf95f", 1800),
   bannersSigns: us("photo-1531243269054-5ebf6f0526bb", 1800),
   printWorkflow: us("photo-1454165804606-c3d57bc86b40", 1800),
-  thumbFlyers: us("photo-1563986768609-322da13575f3", 800),
+  thumbFlyers: us("photo-1557804506-669a67965ba0", 800),
   thumbBrochures: us("photo-1543002588-bfa74002ed7e", 800),
-  thumbStickers: us("photo-1588447907846-dfae931d2ed0", 800),
+  thumbStickers: us("photo-1556228720-195a672e8a03", 800),
+  thumbPromo: us("photo-1607082348824-0a96f2a4b9da", 800),
 } as const;
 
 /** SVG fallbacks for hero tiles (match previous literals). */
@@ -163,6 +170,7 @@ export const tiendaHeroLiterals = {
   thumbFlyers: `${V}/thumb-flyers.svg`,
   thumbBrochures: `${V}/thumb-brochures.svg`,
   thumbStickers: `${V}/thumb-stickers.svg`,
+  thumbPromo: `${V}/category-promo-products.svg`,
 } as const;
 
 /* -------------------------------------------------------------------------- */

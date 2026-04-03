@@ -24,11 +24,12 @@ export function TiendaHero(props: {
       : "Tres pasos — elige producto, sube archivos listos o diseña tarjetas en línea, y Leonix confirma antes de producir.";
 
   return (
-    <section className="relative overflow-hidden rounded-[2.2rem] border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+    <section className="relative overflow-hidden rounded-[2.2rem] border border-[rgba(255,255,255,0.10)] bg-[linear-gradient(165deg,rgba(201,168,74,0.07),rgba(255,255,255,0.04),rgba(255,255,255,0.02))] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -right-28 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle_at_center,rgba(201,168,74,0.28),rgba(0,0,0,0))]" />
         <div className="absolute -bottom-44 -left-28 h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,180,120,0.12),rgba(201,168,74,0.08),rgba(0,0,0,0))]" />
         <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,rgba(255,255,255,0.0),rgba(201,168,74,0.55),rgba(255,255,255,0.0))]" />
+        <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(ellipse_at_20%_80%,rgba(56,189,248,0.55),transparent_45%),radial-gradient(ellipse_at_85%_30%,rgba(167,139,250,0.4),transparent_40%)]" />
       </div>
 
       <div className="relative grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-10 p-7 sm:p-10 lg:p-12">
@@ -156,7 +157,7 @@ export function TiendaHero(props: {
                   </ol>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 border-t border-[rgba(255,255,255,0.08)] bg-black/25 px-3 py-3">
+              <div className="grid grid-cols-2 gap-2 border-t border-[rgba(255,255,255,0.08)] bg-black/25 px-3 py-3 sm:grid-cols-4">
                 {[
                   {
                     src: tiendaHeroAssets.thumbFlyers,
@@ -181,6 +182,14 @@ export function TiendaHero(props: {
                     labelEs: "Stickers",
                     altEn: "Sticker and label print",
                     altEs: "Impresión de stickers y etiquetas",
+                  },
+                  {
+                    src: tiendaHeroAssets.thumbPromo,
+                    fallback: tiendaHeroLiterals.thumbPromo,
+                    labelEn: "Promo",
+                    labelEs: "Promo",
+                    altEn: "Branded promotional products table",
+                    altEs: "Mesa de productos promocionales de marca",
                   },
                 ].map((t) => (
                   <div key={t.labelEn} className="relative overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.2)]">

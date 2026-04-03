@@ -1,6 +1,7 @@
 import type { Lang, TiendaCategory } from "../types/tienda";
 import { tiendaCategoryCoverLiteral, tiendaCategoryCoverPrimary } from "../data/tiendaVisualAssets";
 import type { TiendaCategorySlug } from "../data/tiendaCategories";
+import { categoryHeroHints } from "../data/tiendaMerchandising";
 import { accentStyles } from "../utils/tiendaTheme";
 import { TiendaRemoteFillImage } from "./TiendaRemoteFillImage";
 
@@ -15,13 +16,16 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
   const coverPrimary = tiendaCategoryCoverPrimary(slug);
   const coverLiteral = tiendaCategoryCoverLiteral(slug);
   const isBusinessCards = slug === "business-cards";
+  const isPromo = slug === "promo-products";
+  const hints = categoryHeroHints(lang, slug);
 
   return (
     <header
       className={[
         "relative overflow-hidden rounded-[2rem] border shadow-[0_28px_100px_rgba(0,0,0,0.45)]",
-        "border-[rgba(255,255,255,0.10)]",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]",
+        isPromo
+          ? "border-[rgba(201,168,74,0.35)] bg-[linear-gradient(165deg,rgba(201,168,74,0.10),rgba(255,255,255,0.04),rgba(255,255,255,0.02))]"
+          : "border-[rgba(255,255,255,0.10)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]",
       ].join(" ")}
     >
       <div className="grid gap-0 lg:grid-cols-[1.05fr_0.75fr] lg:gap-0">
@@ -38,9 +42,19 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
             <p className="mt-5 max-w-3xl text-sm sm:text-base leading-relaxed text-[rgba(255,247,226,0.82)] border-l-2 border-[rgba(201,168,74,0.55)] pl-4">
               {hero}
             </p>
+            <ul className="mt-5 flex flex-wrap gap-2">
+              {hints.map((line) => (
+                <li
+                  key={line}
+                  className="rounded-full border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.22)] px-3 py-1.5 text-xs text-[rgba(255,247,226,0.82)]"
+                >
+                  {line}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-        <div className="relative min-h-[220px] lg:min-h-[300px] border-t border-[rgba(255,255,255,0.08)] lg:border-t-0 lg:border-l">
+        <div className="relative min-h-[260px] lg:min-h-[340px] border-t border-[rgba(255,255,255,0.08)] lg:border-t-0 lg:border-l">
           <TiendaRemoteFillImage
             primarySrc={coverPrimary}
             fallbackSrc={coverLiteral}
@@ -57,6 +71,9 @@ export function TiendaCategoryHero(props: { category: TiendaCategory; lang: Lang
             }
           />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(201,168,74,0.12),transparent_50%)]" />
+          {isPromo ? (
+            <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-soft-light bg-[linear-gradient(135deg,rgba(251,191,36,0.25),transparent_40%,rgba(56,189,248,0.2),transparent_70%,rgba(167,139,250,0.22))]" />
+          ) : null}
         </div>
       </div>
     </header>

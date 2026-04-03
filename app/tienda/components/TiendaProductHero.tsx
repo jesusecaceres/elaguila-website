@@ -50,6 +50,18 @@ export function TiendaProductHero(props: { product: TiendaProductFamily; lang: L
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white">{title}</h1>
             <p className="text-base sm:text-lg leading-relaxed text-[rgba(255,255,255,0.72)] max-w-3xl">{desc}</p>
             <p className="text-sm sm:text-base leading-relaxed text-[rgba(255,255,255,0.68)] max-w-3xl">{longDesc}</p>
+            {product.specs.length > 0 ? (
+              <ul className="mt-5 flex flex-wrap gap-2">
+                {product.specs.slice(0, 5).map((s, i) => (
+                  <li
+                    key={i}
+                    className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-3 py-1.5 text-xs text-[rgba(255,247,226,0.88)]"
+                  >
+                    {lang === "en" ? s.en : s.es}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="mt-2 inline-flex flex-wrap items-center gap-3 lg:hidden">
               <div className="rounded-2xl border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.10)] px-5 py-3">
                 <div className="text-[11px] tracking-[0.14em] uppercase text-[rgba(255,247,226,0.72)]">
@@ -62,8 +74,8 @@ export function TiendaProductHero(props: { product: TiendaProductFamily; lang: L
             </div>
           </div>
         </div>
-        <div className="relative flex min-h-[240px] flex-col border-t border-[rgba(255,255,255,0.08)] lg:min-h-0 lg:border-t-0 lg:border-l">
-          <div className="relative min-h-[220px] flex-1 lg:min-h-[300px]">
+        <div className="relative flex min-h-[260px] flex-col border-t border-[rgba(255,255,255,0.08)] lg:min-h-0 lg:border-t-0 lg:border-l">
+          <div className="relative min-h-[240px] flex-1 lg:min-h-[340px]">
             <TiendaRemoteFillImage
               primarySrc={coverPrimary}
               fallbackSrc={coverLiteral}
