@@ -1,4 +1,14 @@
 import { brCanonicalNorCalCity } from "@/app/clasificados/bienes-raices/shared/brNorCalCity";
+import type {
+  BrNegocioCategoriaPropiedad,
+  BrNegocioSellerTipo,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import {
+  BR_NEGOCIO_DEFAULT_CATEGORIA,
+  BR_NEGOCIO_DEFAULT_SELLER,
+  coerceBrNegocioCategoriaPropiedad,
+  coerceBrNegocioSellerTipo,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { TipoPropiedadCodigo } from "./agenteResidencialTipoMeta";
 
 export type { TipoPropiedadCodigo };
@@ -50,6 +60,11 @@ export const AGENTE_RES_DESTACADOS_DEFS: ReadonlyArray<{
  */
 export type AgenteIndividualResidencialFormState = {
   tipoPublicacionFijo: "venta_residencial";
+
+  /** Negocio lane: quién publica (selector + URL `seller`). */
+  sellerTipo: BrNegocioSellerTipo;
+  /** Negocio lane: categoría de propiedad (selector + URL `propiedad`). */
+  categoriaPropiedad: BrNegocioCategoriaPropiedad;
 
   titulo: string;
   precio: string;
@@ -130,6 +145,14 @@ export type AgenteIndividualResidencialFormState = {
 
   agenteAreaServicio: string;
   agenteIdiomas: string;
+
+  /** Equipo / 2 agentes — segundo agente (vista previa: bloque secundario en el rail). */
+  agente2FotoDataUrl: string;
+  agente2Nombre: string;
+  agente2Titulo: string;
+  agente2Licencia: string;
+  agente2Telefono: string;
+  agente2Correo: string;
 
   permitirSolicitarInformacion: boolean;
   permitirProgramarVisita: boolean;
@@ -343,6 +366,9 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
   return {
     tipoPublicacionFijo: "venta_residencial",
 
+    sellerTipo: BR_NEGOCIO_DEFAULT_SELLER,
+    categoriaPropiedad: BR_NEGOCIO_DEFAULT_CATEGORIA,
+
     titulo: "",
     precio: "",
     ciudad: "",
@@ -409,6 +435,13 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
 
     agenteAreaServicio: "",
     agenteIdiomas: "",
+
+    agente2FotoDataUrl: "",
+    agente2Nombre: "",
+    agente2Titulo: "",
+    agente2Licencia: "",
+    agente2Telefono: "",
+    agente2Correo: "",
 
     permitirSolicitarInformacion: true,
     permitirProgramarVisita: true,
@@ -532,11 +565,18 @@ export function mergePartialAgenteIndividualResidencial(
   );
   const ciudad = brCanonicalNorCalCity(ciudadRaw);
 
+  const sellerTipo = coerceBrNegocioSellerTipo(flat.sellerTipo ?? nested.sellerTipo ?? legacy.sellerTipo);
+  const categoriaPropiedad = coerceBrNegocioCategoriaPropiedad(
+    flat.categoriaPropiedad ?? nested.categoriaPropiedad ?? legacy.categoriaPropiedad,
+  );
+
   return {
     ...base,
     ...nested,
     ...flat,
     tipoPublicacionFijo: "venta_residencial",
+    sellerTipo,
+    categoriaPropiedad,
     ciudad,
     mostrarMarcaEnTarjeta,
     estadoAnuncio: coerceEstado(flat.estadoAnuncio ?? nested.estadoAnuncio ?? base.estadoAnuncio),

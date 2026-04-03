@@ -207,6 +207,21 @@ export function AgenteIndividualResidencialPreviewPage({
   const agentLicenseLine = trim(data.agenteLicencia) ? `${p.licenciaAgente} ${trim(data.agenteLicencia)}` : "";
   const brandLicenseLine = showBrand && trim(data.marcaLicencia) ? `${p.licenciaMarca} ${trim(data.marcaLicencia)}` : "";
   const resolvedBrandSite = showBrand ? hrefFromUserInput(data.marcaSitioWeb) : null;
+  const isOfficeSeller = data.sellerTipo === "oficina_broker";
+  const showPrimaryAgentVisual =
+    !isOfficeSeller || Boolean(trim(data.agenteNombre) || trim(data.agenteFotoDataUrl));
+  const equipoSecond =
+    data.sellerTipo === "equipo_agentes" &&
+    Boolean(
+      trim(data.agente2Nombre) ||
+        trim(data.agente2FotoDataUrl) ||
+        trim(data.agente2Titulo) ||
+        trim(data.agente2Licencia) ||
+        trim(data.agente2Telefono) ||
+        trim(data.agente2Correo),
+    );
+  const agente2PhoneDisplay = formatPreviewPhoneDisplay(trim(data.agente2Telefono));
+  const agente2LicenseLine = trim(data.agente2Licencia) ? `${p.licenciaAgente} ${trim(data.agente2Licencia)}` : "";
 
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
@@ -720,28 +735,30 @@ export function AgenteIndividualResidencialPreviewPage({
               ) : null}
 
               <div className={showBrand ? "pt-3" : ""}>
-                <div className="mx-auto w-full max-w-[236px]">
-                  {trim(data.agenteFotoDataUrl) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={trim(data.agenteFotoDataUrl)}
-                      alt=""
-                      className="mx-auto aspect-square w-full max-h-[240px] rounded-lg border object-cover"
-                      style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.07)" }}
-                    />
-                  ) : (
-                    <div
-                      className="flex aspect-square w-full items-center justify-center rounded-lg border text-[11px] font-medium"
-                      style={{
-                        borderColor: BORDER,
-                        color: MUTED,
-                        background: "linear-gradient(145deg, rgba(255,252,247,0.95), rgba(249,246,241,0.75))",
-                      }}
-                    >
-                      {p.fotoAgente}
-                    </div>
-                  )}
-                </div>
+                {showPrimaryAgentVisual ? (
+                  <div className="mx-auto w-full max-w-[236px]">
+                    {trim(data.agenteFotoDataUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={trim(data.agenteFotoDataUrl)}
+                        alt=""
+                        className="mx-auto aspect-square w-full max-h-[240px] rounded-lg border object-cover"
+                        style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.07)" }}
+                      />
+                    ) : (
+                      <div
+                        className="flex aspect-square w-full items-center justify-center rounded-lg border text-[11px] font-medium"
+                        style={{
+                          borderColor: BORDER,
+                          color: MUTED,
+                          background: "linear-gradient(145deg, rgba(255,252,247,0.95), rgba(249,246,241,0.75))",
+                        }}
+                      >
+                        {p.fotoAgente}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
                 {trim(data.agenteNombre) ? <p className={`mt-2.5 text-center ${typo.railName}`}>{trim(data.agenteNombre)}</p> : null}
                 {trim(data.agenteTitulo) ? (
                   <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
@@ -767,6 +784,51 @@ export function AgenteIndividualResidencialPreviewPage({
                   <p className={`mt-1.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
                     {brandLicenseLine}
                   </p>
+                ) : null}
+
+                {equipoSecond ? (
+                  <div
+                    className="mt-4 rounded-lg border px-3 py-3"
+                    style={{ borderColor: BORDER, background: "rgba(44,36,22,0.03)" }}
+                  >
+                    <p className={`text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
+                      {locale === "en" ? "Second agent" : "Segundo agente"}
+                    </p>
+                    {trim(data.agente2FotoDataUrl) ? (
+                      <div className="mx-auto mt-2 flex max-w-[120px] justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={trim(data.agente2FotoDataUrl)}
+                          alt=""
+                          className="aspect-square w-full max-h-[120px] rounded-md border object-cover"
+                          style={{ borderColor: BORDER }}
+                        />
+                      </div>
+                    ) : null}
+                    {trim(data.agente2Nombre) ? (
+                      <p className={`mt-2 text-center text-sm font-bold leading-tight`} style={{ color: CHARCOAL }}>
+                        {trim(data.agente2Nombre)}
+                      </p>
+                    ) : null}
+                    {trim(data.agente2Titulo) ? (
+                      <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
+                        {trim(data.agente2Titulo)}
+                      </p>
+                    ) : null}
+                    {agente2LicenseLine ? (
+                      <p className={`mt-2 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
+                        {agente2LicenseLine}
+                      </p>
+                    ) : null}
+                    {agente2PhoneDisplay || trim(data.agente2Correo) ? (
+                      <div className="mt-2 space-y-0.5 text-center">
+                        {agente2PhoneDisplay ? <p className="text-xs font-semibold">{agente2PhoneDisplay}</p> : null}
+                        {trim(data.agente2Correo) ? (
+                          <p className={`truncate text-[11px] opacity-90`}>{trim(data.agente2Correo)}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 {trim(data.telefonoPrincipal) || trim(data.correoPrincipal) ? (

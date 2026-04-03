@@ -291,13 +291,68 @@ export function Step07InformacionProfesional({
   const { t } = useBrAgenteResidencialCopy();
   const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
   const quitar = t.step02.quitar;
+  const officeFirst = state.sellerTipo === "oficina_broker";
+  const equipoMode = state.sellerTipo === "equipo_agentes";
 
-  return (
-    <section className={aiCardClass}>
-      <h2 className={aiTitleClass}>{s7.title}</h2>
-      <p className={aiSubClass}>{s7.sub}</p>
+  const marcaBlock = (
+    <>
+      <p className={`${officeFirst ? "mt-0" : "mt-8"} text-xs font-bold uppercase tracking-wide text-[#5C5346]/90`}>
+        {officeFirst ? s7.oficinaBroker : s7.oficina}
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <AiField label={s7.nombreMarca}>
+          <input className={aiInputClass} value={state.marcaNombre} onChange={(e) => setState((s) => ({ ...s, marcaNombre: e.target.value }))} autoComplete="organization" />
+        </AiField>
+        <div className="sm:col-span-2">
+          <PhotoOrUrlBlock
+            label={s7.logo}
+            hint={s7.logoHint}
+            value={state.marcaLogoDataUrl}
+            onChange={(v) => setState((s) => ({ ...s, marcaLogoDataUrl: v }))}
+            subirArchivo={s7.subirArchivo}
+            pegarUrl={s7.pegarUrl}
+            quitar={quitar}
+          />
+        </div>
+        <AiField label={s7.licenciaMarca}>
+          <input className={aiInputClass} value={state.marcaLicencia} onChange={(e) => setState((s) => ({ ...s, marcaLicencia: e.target.value }))} autoComplete="off" />
+        </AiField>
+        <AiField label={s7.sitioMarca} hint={s7.sitioMarcaHint}>
+          <input
+            className={aiInputClass}
+            type="url"
+            value={state.marcaSitioWeb}
+            onChange={(e) => setState((s) => ({ ...s, marcaSitioWeb: e.target.value }))}
+            autoComplete="url"
+            placeholder="https://"
+          />
+        </AiField>
+      </div>
+    </>
+  );
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.agente}</p>
+  const mostrarMarcaToggle = (
+    <div className="mt-8">
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#2C2416]">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A]"
+          checked={state.mostrarMarcaEnTarjeta}
+          onChange={(e) => setState((s) => ({ ...s, mostrarMarcaEnTarjeta: e.target.checked }))}
+        />
+        <span>
+          <span className="font-semibold">{s7.mostrarMarca}</span>
+          <span className="mt-0.5 block text-xs text-[#5C5346]/90">{s7.mostrarMarcaHint}</span>
+        </span>
+      </label>
+    </div>
+  );
+
+  const agenteBlock = (
+    <>
+      <p className={`${officeFirst ? "mt-8" : "mt-6"} text-xs font-bold uppercase tracking-wide text-[#5C5346]/90`}>
+        {officeFirst ? s7.contactoLead : s7.agente}
+      </p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <PhotoOrFileRow
@@ -325,56 +380,27 @@ export function Step07InformacionProfesional({
           <input className={aiInputClass} value={state.agenteLicencia} onChange={(e) => setState((s) => ({ ...s, agenteLicencia: e.target.value }))} autoComplete="off" />
         </AiField>
       </div>
+    </>
+  );
 
-      <div className="mt-8">
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#2C2416]">
-          <input
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A]"
-            checked={state.mostrarMarcaEnTarjeta}
-            onChange={(e) => setState((s) => ({ ...s, mostrarMarcaEnTarjeta: e.target.checked }))}
-          />
-          <span>
-            <span className="font-semibold">{s7.mostrarMarca}</span>
-            <span className="mt-0.5 block text-xs text-[#5C5346]/90">{s7.mostrarMarcaHint}</span>
-          </span>
-        </label>
-      </div>
+  return (
+    <section className={aiCardClass}>
+      <h2 className={aiTitleClass}>{s7.title}</h2>
+      <p className={aiSubClass}>{s7.sub}</p>
 
-      {state.mostrarMarcaEnTarjeta ? (
+      {officeFirst ? (
         <>
-          <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.oficina}</p>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <AiField label={s7.nombreMarca}>
-              <input className={aiInputClass} value={state.marcaNombre} onChange={(e) => setState((s) => ({ ...s, marcaNombre: e.target.value }))} autoComplete="organization" />
-            </AiField>
-            <div className="sm:col-span-2">
-              <PhotoOrUrlBlock
-                label={s7.logo}
-                hint={s7.logoHint}
-                value={state.marcaLogoDataUrl}
-                onChange={(v) => setState((s) => ({ ...s, marcaLogoDataUrl: v }))}
-                subirArchivo={s7.subirArchivo}
-                pegarUrl={s7.pegarUrl}
-                quitar={quitar}
-              />
-            </div>
-            <AiField label={s7.licenciaMarca}>
-              <input className={aiInputClass} value={state.marcaLicencia} onChange={(e) => setState((s) => ({ ...s, marcaLicencia: e.target.value }))} autoComplete="off" />
-            </AiField>
-            <AiField label={s7.sitioMarca} hint={s7.sitioMarcaHint}>
-              <input
-                className={aiInputClass}
-                type="url"
-                value={state.marcaSitioWeb}
-                onChange={(e) => setState((s) => ({ ...s, marcaSitioWeb: e.target.value }))}
-                autoComplete="url"
-                placeholder="https://"
-              />
-            </AiField>
-          </div>
+          <div className="mt-6">{marcaBlock}</div>
+          {mostrarMarcaToggle}
+          {agenteBlock}
         </>
-      ) : null}
+      ) : (
+        <>
+          {agenteBlock}
+          {mostrarMarcaToggle}
+          {state.mostrarMarcaEnTarjeta ? <div className="mt-2">{marcaBlock}</div> : null}
+        </>
+      )}
 
       <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
       <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
@@ -407,6 +433,72 @@ export function Step07InformacionProfesional({
           <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder={s7.idiomasPh} autoComplete="off" />
         </AiField>
       </div>
+
+      {equipoMode ? (
+        <>
+          <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.segundoAgente}</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <PhotoOrFileRow
+                label={s7.agente2Foto}
+                hint={s7.agente2FotoHint}
+                value={state.agente2FotoDataUrl}
+                onChange={(v) => setState((s) => ({ ...s, agente2FotoDataUrl: v }))}
+                subirImagen={s7.subirImagen}
+                pegarUrlImagen={s7.pegarUrlImagen}
+                quitar={quitar}
+              />
+            </div>
+            <AiField label={s7.agente2Nombre}>
+              <input
+                className={aiInputClass}
+                value={state.agente2Nombre}
+                onChange={(e) => setState((s) => ({ ...s, agente2Nombre: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+            <AiField label={s7.agente2Titulo}>
+              <input
+                className={aiInputClass}
+                value={state.agente2Titulo}
+                onChange={(e) => setState((s) => ({ ...s, agente2Titulo: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+            <AiField label={s7.agente2Licencia}>
+              <input
+                className={aiInputClass}
+                value={state.agente2Licencia}
+                onChange={(e) => setState((s) => ({ ...s, agente2Licencia: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+            <AiField label={s7.agente2Telefono}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.agente2Telefono))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.agente2Telefono);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, agente2Telefono: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
+            <AiField label={s7.agente2Correo}>
+              <input
+                type="email"
+                className={aiInputClass}
+                value={state.agente2Correo}
+                onChange={(e) => setState((s) => ({ ...s, agente2Correo: e.target.value }))}
+                autoComplete="email"
+              />
+            </AiField>
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { applyBrNegocioBranchQuery } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -37,12 +38,20 @@ import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang, t } = useBrAgenteResidencialCopy();
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
 
   useLayoutEffect(() => {
-    setState(bootstrapAgenteIndividualResidencialApplicationState());
+    const boot = bootstrapAgenteIndividualResidencialApplicationState();
+    let next = applyBrNegocioBranchQuery(boot, searchParams);
+    if (next.categoriaPropiedad === "otro" && next.tipoPropiedadCodigo !== "otro") {
+      next = { ...next, tipoPropiedadCodigo: "otro" };
+    }
+    setState(next);
+    // Branch query is applied once on entry; draft/bootstrap owns subsequent state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stepLabels = t.stepLabels;

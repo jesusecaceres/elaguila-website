@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BR_PUBLICAR_NEGOCIO,
+  BR_PUBLICAR_NEGOCIO_SELECTOR,
   BR_PUBLICAR_PRIVADO,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 
@@ -29,7 +29,7 @@ export default function BienesRaicesPublicarHubPage() {
             <p className="mt-1 text-sm text-[#5C5346]/85">Para dueños y anuncios personales.</p>
           </Link>
           <Link
-            href={BR_PUBLICAR_NEGOCIO}
+            href={BR_PUBLICAR_NEGOCIO_SELECTOR}
             className="block rounded-2xl border border-[#C9B46A]/45 bg-gradient-to-br from-[#FFF6E7] to-[#FFFCF7] p-5 shadow-md transition hover:border-[#B8954A]"
           >
             <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Profesional</p>

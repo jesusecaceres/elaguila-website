@@ -2,6 +2,8 @@
 
 export const BR_PUBLICAR_HUB = "/clasificados/publicar/bienes-raices";
 export const BR_PUBLICAR_PRIVADO = "/clasificados/publicar/bienes-raices/privado";
+/** Negocio: seller + property category selector (then continues to `BR_PUBLICAR_NEGOCIO`). */
+export const BR_PUBLICAR_NEGOCIO_SELECTOR = "/publicar/bienes-raices";
 export const BR_PUBLICAR_NEGOCIO = "/clasificados/publicar/bienes-raices/negocio";
 /** Hub: elegir Negocio vs Privado */
 export const BR_PREVIEW_HUB = "/clasificados/bienes-raices/preview";

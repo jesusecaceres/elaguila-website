@@ -12,7 +12,15 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
   if (state.fotosDataUrls.some((u) => st(u))) return true;
   if (st(state.videoUrl) || st(state.videoDataUrl) || st(state.tourUrl) || st(state.tourDataUrl) || st(state.brochureUrl) || st(state.brochureDataUrl))
     return true;
-  if (st(state.agenteNombre) || st(state.correoPrincipal) || st(state.telefonoPrincipal)) return true;
+  if (
+    st(state.agenteNombre) ||
+    st(state.correoPrincipal) ||
+    st(state.telefonoPrincipal) ||
+    st(state.agente2Nombre) ||
+    st(state.agente2Telefono) ||
+    st(state.agente2Correo)
+  )
+    return true;
   if (st(state.marcaNombre) || st(state.marcaLogoDataUrl) || st(state.marcaSitioWeb)) return true;
   if (
     st(state.socialInstagram) ||

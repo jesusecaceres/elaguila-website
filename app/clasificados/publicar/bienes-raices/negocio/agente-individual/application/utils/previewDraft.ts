@@ -74,6 +74,7 @@ function stripHeavyDataUrlsForSession(state: AgenteIndividualResidencialFormStat
   j.tourDataUrl = z(j.tourDataUrl);
   j.brochureDataUrl = z(j.brochureDataUrl);
   j.agenteFotoDataUrl = z(j.agenteFotoDataUrl);
+  j.agente2FotoDataUrl = z(j.agente2FotoDataUrl);
   j.marcaLogoDataUrl = z(j.marcaLogoDataUrl);
   if (Array.isArray(j.fotosDataUrls)) {
     j.fotosDataUrls = j.fotosDataUrls.filter((u) => typeof u === "string" && !u.startsWith("data:"));
