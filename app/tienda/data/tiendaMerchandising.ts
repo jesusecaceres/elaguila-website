@@ -16,42 +16,26 @@ export type StorefrontGroup = {
   slugs: TiendaCategorySlug[];
 };
 
+/**
+ * Homepage shop section — four major categories only (display order).
+ * Other categories remain in the registry and deep routes; they are not highlighted here.
+ */
+export const TIENDA_HOMEPAGE_CATEGORY_SLUGS = [
+  "business-cards",
+  "flyers",
+  "marketing-materials",
+  "promo-products",
+] as const satisfies readonly TiendaCategorySlug[];
+
 export const tiendaStorefrontGroups: StorefrontGroup[] = [
   {
-    id: "flagship",
-    title: { en: "Flagship showroom", es: "Vitrina principal" },
+    id: "primary-four",
+    title: { en: "Shop print & promo", es: "Impresión y promo" },
     description: {
-      en: "Tarjetas and promo — the two lanes most teams start from.",
-      es: "Tarjetas y promo — las dos rutas por donde más equipos empiezan.",
+      en: "Tarjetas, flyers, marketing materials, and promotional products — start here.",
+      es: "Tarjetas, volantes, materiales de marketing y productos promocionales — empieza aquí.",
     },
-    slugs: ["business-cards", "promo-products"],
-  },
-  {
-    id: "campaign",
-    title: { en: "Campaign & editorial print", es: "Impresión de campaña y editorial" },
-    description: {
-      en: "Flyers, brochures, and marketing mailers — coordinated like a single campaign system.",
-      es: "Volantes, brochures y mailers — coordinados como un sistema de campaña.",
-    },
-    slugs: ["flyers", "brochures", "marketing-materials"],
-  },
-  {
-    id: "signage",
-    title: { en: "Large format & signage", es: "Gran formato y señalización" },
-    description: {
-      en: "High-visibility pieces for events, retail, and outdoor presence.",
-      es: "Piezas de alto impacto para eventos, punto de venta y exterior.",
-    },
-    slugs: ["banners", "signs"],
-  },
-  {
-    id: "labels",
-    title: { en: "Labels & brand accents", es: "Etiquetas y detalles de marca" },
-    description: {
-      en: "Stickers and adhesive labels — great add-ons; pair with your core print order.",
-      es: "Stickers y etiquetas — complementos ideales; combínalos con tu pedido principal.",
-    },
-    slugs: ["stickers-labels"],
+    slugs: [...TIENDA_HOMEPAGE_CATEGORY_SLUGS],
   },
 ];
 
@@ -101,6 +85,12 @@ export function merchTierForCategorySlug(slug: TiendaCategorySlug): MerchTier {
   return "core";
 }
 
+/** Homepage grid: four tiles — two-up on large screens. */
+export function storefrontGroupGridClass(groupId: string): string {
+  if (groupId === "primary-four") return "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:gap-7";
+  return "grid grid-cols-1 gap-6 md:grid-cols-2";
+}
+
 /** Category hero — short bullet hints (display only). */
 const CATEGORY_HERO_HINTS: Record<TiendaCategorySlug, { en: string[]; es: string[] }> = {
   "business-cards": {
@@ -132,8 +122,8 @@ const CATEGORY_HERO_HINTS: Record<TiendaCategorySlug, { en: string[]; es: string
     es: ["Seis familias promo — bolígrafos a apparel", "Leonix cotiza opciones reales"],
   },
   "marketing-materials": {
-    en: ["Postcards & campaign mailers", "Pairs with flyers & brochures"],
-    es: ["Postales y mailers de campaña", "Complementa volantes y brochures"],
+    en: ["Menus, mailers, posters", "Campaign print coordinated with Leonix"],
+    es: ["Menús, mailers, posters", "Impresión de campaña con Leonix"],
   },
 };
 

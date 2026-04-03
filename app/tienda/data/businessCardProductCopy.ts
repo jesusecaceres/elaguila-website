@@ -2,12 +2,12 @@ import type { Lang } from "../types/tienda";
 
 export const businessCardProductCopy = {
   standardIntro: {
-    es: "Tarjetas premium estándar 3.5″×2″ — autogestión para stock y acabado profesional habitual. Opciones especiales (foil, terciopelo, cantos pintados, etc.) son por cotización.",
-    en: "Standard premium 3.5″×2″ cards — self‑serve for typical professional stock and finish. Specialty options (foil, velvet, painted edges, etc.) are quote‑only.",
+    es: "Elige cómo empezar: LEO, archivo final listo para imprenta, o reconstruir y editar en Studio.",
+    en: "Pick how to start: LEO, a final print-ready file, or rebuild and edit in Studio.",
   },
   gatewayPathsFootnote: {
-    es: "Tres entradas claras: (1) archivo listo solo para producción, (2) imagen o plantilla para editar en Studio, (3) LEO recopila datos y abre un borrador en Studio. La biblioteca de plantillas y Studio en blanco son atajos al mismo editor.",
-    en: "Three clear starts: (1) print-ready file for production only, (2) an image or layout to rebuild in Studio, (3) LEO gathers details and opens a draft in Studio. The template library and blank Studio are shortcuts into the same editor.",
+    es: "¿Acabados especiales (foil, cantos, stocks de lujo)?",
+    en: "Specialty finishes (foil, edges, luxury stock)?",
   },
   pathLeoBadge: { es: "Preparación", en: "Prep" },
   pathLeoTitle: { es: "LEO — datos y borrador inicial", en: "LEO — intake & starter draft" },
@@ -16,34 +16,23 @@ export const businessCardProductCopy = {
     en: "Answer the essentials; Leonix picks a fitting template and places your copy in Studio. This is not auto‑creative magic—you refine everything visually in the editor.",
   },
   pathLeoCta: { es: "Comenzar con LEO", en: "Start with LEO" },
-  pathTemplateBadge: { es: "Biblioteca", en: "Library" },
-  pathTemplateTitle: { es: "Plantilla Leonix", en: "Leonix template" },
-  pathTemplateBody: {
-    es: "Elige un estilo y entra a Studio con ese layout—mismo editor que tras LEO o al subir una imagen para editar.",
-    en: "Pick a look and open Studio with that layout—the same editor as after LEO or when you upload an image to edit.",
-  },
-  pathTemplateCta: { es: "Ver plantillas", en: "Browse templates" },
-  pathCustomBadge: { es: "Studio", en: "Studio" },
-  pathCustomTitle: { es: "Lienzo en Studio", en: "Blank Studio" },
-  pathCustomBody: {
-    es: "Abre Studio sin plantilla previa: texto, logo, imágenes y formas con las mismas herramientas que en los otros caminos.",
-    en: "Open Studio without a preselected template—text, logo, images, and shapes with the same tools as the other paths.",
-  },
-  pathCustomCta: { es: "Abrir Studio", en: "Open Studio" },
-  pathUploadBadge: { es: "Solo producción", en: "Production file" },
-  pathUploadTitle: { es: "Archivo listo para imprenta", en: "Print-ready file" },
+  pathUploadBadge: { es: "Archivo final", en: "Final file" },
+  pathUploadTitle: { es: "Subir archivo final para imprenta", en: "Upload final print file" },
   pathUploadBody: {
-    es: "PDF o imagen final a tamaño de tarjeta. Para producción directa—sin edición en Studio. Si quieres retocar el diseño aquí, usa “Editar diseño actual”.",
-    en: "Final PDF or image at card size. Handoff for production—no Studio editing. If you need to rework the design here, use “Edit your current design” instead.",
+    es: "PDF o imagen final a tamaño de tarjeta, listo para producir sin pasar por edición en Studio.",
+    en: "Final PDF or image at card size—ready to produce without Studio editing.",
   },
   pathUploadCta: { es: "Subir archivo final", en: "Upload final file" },
-  pathRefreshBadge: { es: "Reconstruir", en: "Rebuild" },
-  pathRefreshTitle: { es: "Reconstruir tu diseño o plantilla", en: "Rebuild from your design or template" },
-  pathRefreshBody: {
-    es: "Sube una foto, escaneo o captura: queda como capa editable en Studio para modernizar o redibujar encima. No es la ruta de archivo final para imprenta.",
-    en: "Upload a photo, scan, or screenshot—it lands as an editable Studio layer so you can modernize or redraw on top. Not the final print‑ready file path.",
+  pathRefreshBadge: { es: "Studio", en: "Studio" },
+  pathRefreshTitle: {
+    es: "Reconstruir o editar tu diseño en Studio",
+    en: "Rebuild or edit your design in Studio",
   },
-  pathRefreshCta: { es: "Subir imagen y reconstruir en Studio", en: "Upload image & rebuild in Studio" },
+  pathRefreshBody: {
+    es: "Sube referencia (foto o escaneo) para trabajar capas editables, o continúa un diseño y retócalo en Studio.",
+    en: "Upload a reference (photo or scan) to work in editable layers, or open Studio to keep editing an in‑progress design.",
+  },
+  pathRefreshCta: { es: "Abrir en Studio", en: "Open in Studio" },
   specialtyTitle: { es: "Tarjetas especiales y de lujo", en: "Specialty & luxury cards" },
   specialtyBody: {
     es: "Acabados como foil, UV relieve, cantos pintados, cartulina extra gruesa, formas especiales o materiales distintos requieren coordinación con Leonix.",

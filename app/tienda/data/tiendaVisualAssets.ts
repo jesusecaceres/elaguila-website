@@ -16,9 +16,6 @@ function us(id: string, w: number) {
 
 /** Desk stack — reads instantly as premium business cards (category, hero, catalog). */
 const PHOTO_BUSINESS_CARDS_STACK = us("photo-1589829545856-d10d557cf95f", 1600);
-/** Multiple one-face card layouts — “un lado” / standard family merchandising. */
-const PHOTO_BUSINESS_CARDS_ONE_SIDED = us("photo-1611532736597-de2d4265fba3", 1600);
-
 /** Last-resort neutral print context */
 export const TIENDA_GLOBAL_FALLBACK_IMAGE = `${V}/fallback-premium-print.svg`;
 
@@ -89,8 +86,8 @@ const FAMILY_LITERAL: Record<string, string> = {
 };
 
 const FAMILY_PHOTO: Record<string, string> = {
-  /** Multiple one-face layouts (photo) — “un lado” / estándar. */
-  "standard-business-cards": PHOTO_BUSINESS_CARDS_ONE_SIDED,
+  /** Premium stack — reads clearly as real business cards (avoid ambiguous flat-lay stock). */
+  "standard-business-cards": PHOTO_BUSINESS_CARDS_STACK,
   /** Front + back mockup (SVG) — clearer than unrelated stock for “dos lados”. */
   "two-sided-business-cards": `${V}/product-two-sided-business-cards.svg`,
   "flyers-standard": us("photo-1557804506-669a67965ba0", 1600),
@@ -148,6 +145,14 @@ export function tiendaProductFamilyImageClass(slug: string): string {
     : "object-cover object-center";
 }
 
+/** Tarjetas gateway — photography & SVGs that read as real business cards (no generic stock scenes). */
+export const businessCardGatewayVisuals = {
+  leo: { primary: PHOTO_BUSINESS_CARDS_STACK, fallback: `${V}/category-business-cards.svg` },
+  upload: { primary: PHOTO_BUSINESS_CARDS_STACK, fallback: `${V}/product-standard-business-cards.svg` },
+  /** Front/back mockup — communicates two-sided editing in Studio. */
+  studio: { primary: `${V}/product-two-sided-business-cards.svg`, fallback: `${V}/product-two-sided-business-cards.svg` },
+} as const;
+
 /* -------------------------------------------------------------------------- */
 /* Homepage hero                                                              */
 /* -------------------------------------------------------------------------- */
@@ -193,3 +198,24 @@ export function tiendaCatalogCoverLiteral(categorySlug: string | null | undefine
 export function tiendaCatalogFallbackImage(categorySlug: string | null | undefined): string {
   return tiendaCatalogCoverLiteral(categorySlug);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Marketing materials — showcase grid (category page merchandising only)    */
+/* -------------------------------------------------------------------------- */
+
+export type MarketingShowcaseItem = {
+  photo: string;
+  label: { en: string; es: string };
+};
+
+/** Editorial / hospitality / campaign print — visual variety for the marketing-materials category page. */
+export const marketingMaterialsShowcaseItems: MarketingShowcaseItem[] = [
+  { photo: us("photo-1506784983877-45594afb7a29", 1400), label: { en: "Calendars", es: "Calendarios" } },
+  { photo: us("photo-1555396273-367ea4eb4db1", 1400), label: { en: "Menus", es: "Menús" } },
+  { photo: us("photo-1513519245088-0e12902e5a38", 1400), label: { en: "Greeting cards", es: "Tarjetas de felicitación" } },
+  { photo: us("photo-1507003211169-0a1dd7228f2d", 1400), label: { en: "Posters", es: "Posters" } },
+  { photo: us("photo-1542744173-053420fdf4a8", 1400), label: { en: "Table tents & signs", es: "Letreros de mesa" } },
+  { photo: us("photo-1517842645767-b957828e2608", 1400), label: { en: "Notepads", es: "Libretas y blocs" } },
+  { photo: us("photo-1544947950-fa07a98d237f", 1400), label: { en: "Catalogs & booklets", es: "Catálogos y folletos" } },
+  { photo: us("photo-1586953208448-58f941f0e9f0", 1400), label: { en: "Counter cards & retail", es: "Material de mostrador" } },
+];

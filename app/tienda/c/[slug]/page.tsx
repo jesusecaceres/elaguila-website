@@ -9,6 +9,7 @@ import { TiendaCategoryHero } from "../../components/TiendaCategoryHero";
 import { TiendaModeBadgeRow } from "../../components/TiendaModeBadge";
 import { TiendaProductFamilyCard } from "../../components/TiendaProductFamilyCard";
 import { TiendaPromoFamilyQuickNav } from "../../components/TiendaPromoFamilyQuickNav";
+import { TiendaMarketingMaterialsShowcase } from "../../components/TiendaMarketingMaterialsShowcase";
 import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
 import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
 import { TiendaCTA } from "../../components/TiendaCTA";
@@ -63,6 +64,8 @@ export default async function TiendaCategoryPage(props: {
         <TiendaCategoryHero category={category} lang={lang} />
 
         {slug === "promo-products" ? <TiendaPromoFamilyQuickNav families={families} lang={lang} /> : null}
+
+        {slug === "marketing-materials" ? <TiendaMarketingMaterialsShowcase lang={lang} /> : null}
 
         <section className="mt-8">
           <TiendaModeBadgeRow mode={category.productMode} lang={lang} />

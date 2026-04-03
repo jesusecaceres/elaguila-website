@@ -26,8 +26,8 @@ export const tiendaCopy = {
       eyebrow: { es: "Explorar", en: "Browse" },
       title: { es: "Comprar por categoría", en: "Shop by category" },
       description: {
-        es: "Una base clara para crecer a páginas de categoría y productos. Empieza con los esenciales de marketing y ventas.",
-        en: "A clean foundation to scale into category and product pages. Start with business essentials.",
+        es: "Tarjetas, volantes, materiales de marketing y productos promocionales — el foco principal de la tienda.",
+        en: "Business cards, flyers, marketing materials, and promotional products — the core of the storefront.",
       },
     },
     featured: {

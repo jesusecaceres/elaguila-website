@@ -17,7 +17,6 @@ import { TiendaSpecList } from "../../components/TiendaSpecList";
 import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
 import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
 import { BusinessCardProductGateway } from "../../components/business-cards/BusinessCardProductGateway";
-import { BusinessCardSpecialtyPanel } from "../../components/business-cards/BusinessCardSpecialtyPanel";
 import { TiendaPromoCatalogPanel } from "../../components/TiendaPromoCatalogPanel";
 
 function isBusinessCardSelfServeProductSlug(slug: string): boolean {
@@ -103,9 +102,8 @@ export default async function TiendaProductPage(props: {
         ) : null}
 
         {isBusinessCardSelfServeProductSlug(product.slug) ? (
-          <div className="mt-10 space-y-10">
+          <div className="mt-10">
             <BusinessCardProductGateway lang={lang} productSlug={product.slug} />
-            <BusinessCardSpecialtyPanel lang={lang} />
           </div>
         ) : null}
 
@@ -141,17 +139,19 @@ export default async function TiendaProductPage(props: {
           </TiendaInfoPanel>
         </section>
 
-        <section className="mt-10">
-          <TiendaSupportPanel
-            lang={lang}
-            title={pick(tiendaCopy.sections.productPage.needHelp, lang)}
-            body={
-              lang === "en"
-                ? "Visit the office or reach out for design, retouching, or specialty production."
-                : "Visita la oficina o escríbenos para diseño, retoque o producción especial."
-            }
-          />
-        </section>
+        {!isBusinessCardSelfServeProductSlug(product.slug) ? (
+          <section className="mt-10">
+            <TiendaSupportPanel
+              lang={lang}
+              title={pick(tiendaCopy.sections.productPage.needHelp, lang)}
+              body={
+                lang === "en"
+                  ? "Visit the office or reach out for design, retouching, or specialty production."
+                  : "Visita la oficina o escríbenos para diseño, retoque o producción especial."
+              }
+            />
+          </section>
+        ) : null}
 
         <section className="mt-10">
           <TiendaInfoPanel title={pick(tiendaCopy.sections.productPage.futureCtaTitle, lang)}>

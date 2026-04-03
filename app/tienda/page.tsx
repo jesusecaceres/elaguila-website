@@ -2,17 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { tiendaCopy, pick } from "./data/tiendaCopy";
 import { tiendaCategoryBySlug } from "./data/tiendaCategories";
-import { merchTierForCategorySlug, tiendaStorefrontGroups } from "./data/tiendaMerchandising";
+import {
+  merchTierForCategorySlug,
+  storefrontGroupGridClass,
+  tiendaStorefrontGroups,
+} from "./data/tiendaMerchandising";
 import { tiendaFeaturedProducts } from "./data/tiendaFeaturedProducts";
 import { TiendaHero } from "./components/TiendaHero";
 import { TiendaSectionHeading } from "./components/TiendaSectionHeading";
 import { TiendaCategoryCard } from "./components/TiendaCategoryCard";
 import { TiendaFeaturedProductCard } from "./components/TiendaFeaturedProductCard";
 import { TiendaHowItWorks } from "./components/TiendaHowItWorks";
-import { TiendaServiceSplit } from "./components/TiendaServiceSplit";
 import { TiendaTrustStrip } from "./components/TiendaTrustStrip";
 import { TiendaCTA } from "./components/TiendaCTA";
-import { normalizeLang, tiendaPublicContactPath, withLang } from "./utils/tiendaRouting";
+import { normalizeLang, tiendaPublicContactPath } from "./utils/tiendaRouting";
 import { listTiendaCatalogItemsPublic, fetchPrimaryImageUrlForItems } from "@/app/lib/tienda/tiendaCatalogQueries";
 import { TiendaCatalogItemCard } from "./components/catalog/TiendaCatalogItemCard";
 
@@ -65,28 +68,13 @@ export default async function TiendaPage(props: {
             eyebrow={pick(tiendaCopy.sections.categories.eyebrow, lang)}
             title={pick(tiendaCopy.sections.categories.title, lang)}
             description={pick(tiendaCopy.sections.categories.description, lang)}
-            rightSlot={
-              <Link
-                href={withLang(tiendaPublicContactPath(), lang)}
-                className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.06)] px-5 py-2.5 text-sm font-semibold text-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.10)] transition"
-              >
-                {lang === "en" ? "Custom request" : "Pedido especial"}
-              </Link>
-            }
           />
 
           <div className="mt-10 space-y-14">
             {tiendaStorefrontGroups.map((group) => {
               const title = lang === "en" ? group.title.en : group.title.es;
               const desc = group.description ? (lang === "en" ? group.description.en : group.description.es) : null;
-              const gridClass =
-                group.id === "flagship"
-                  ? "grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-7"
-                  : group.id === "campaign"
-                    ? "grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
-                    : group.id === "signage"
-                      ? "grid grid-cols-1 gap-6 md:grid-cols-2"
-                      : "grid grid-cols-1 gap-6 md:max-w-lg md:mx-auto";
+              const gridClass = storefrontGroupGridClass(group.id);
 
               return (
                 <div key={group.id}>
@@ -171,34 +159,7 @@ export default async function TiendaPage(props: {
           </div>
         </section>
 
-        {/* 5) SELF-SERVE VS CUSTOM HELP */}
-        <section className="mt-16 sm:mt-20">
-          <TiendaSectionHeading
-            title={pick(tiendaCopy.sections.split.title, lang)}
-            description={lang === "en" ? "Pick the right path for your job." : "Elige el camino correcto para tu pedido."}
-          />
-          <div className="mt-8">
-            <TiendaServiceSplit
-              lang={lang}
-              left={{
-                title: pick(tiendaCopy.sections.split.left.title, lang),
-                body: pick(tiendaCopy.sections.split.left.body, lang),
-                bullets: pick(tiendaCopy.sections.split.left.bullets, lang),
-                ctaLabel: pick(tiendaCopy.sections.split.left.cta, lang),
-                ctaHref: "#shop",
-              }}
-              right={{
-                title: pick(tiendaCopy.sections.split.right.title, lang),
-                body: pick(tiendaCopy.sections.split.right.body, lang),
-                bullets: pick(tiendaCopy.sections.split.right.bullets, lang),
-                ctaLabel: pick(tiendaCopy.sections.split.right.cta, lang),
-                ctaHref: tiendaPublicContactPath(),
-              }}
-            />
-          </div>
-        </section>
-
-        {/* 6) TRUST / QUALITY SECTION */}
+        {/* 5) TRUST / QUALITY SECTION */}
         <section className="mt-16 sm:mt-20">
           <TiendaSectionHeading
             eyebrow={pick(tiendaCopy.sections.trust.eyebrow, lang)}
@@ -212,7 +173,7 @@ export default async function TiendaPage(props: {
           </div>
         </section>
 
-        {/* 7) FINAL CTA STRIP */}
+        {/* 6) FINAL CTA STRIP */}
         <section className="mt-16 sm:mt-20">
           <TiendaCTA
             lang={lang}

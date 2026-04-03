@@ -32,7 +32,9 @@ export function TiendaProductFamilyCard(props: { family: TiendaProductFamilySumm
       href={withLang(family.href, lang)}
       className={[
         "group relative flex flex-col overflow-hidden rounded-3xl",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]",
+        isPromo
+          ? "bg-[linear-gradient(165deg,rgba(201,168,74,0.07),rgba(255,255,255,0.04),rgba(0,0,0,0.2))]"
+          : "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))]",
         "border border-[rgba(255,255,255,0.10)]",
         lane?.leftBar ?? "",
         "shadow-[0_18px_60px_rgba(0,0,0,0.35)]",

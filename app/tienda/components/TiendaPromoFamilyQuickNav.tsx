@@ -12,14 +12,19 @@ export function TiendaPromoFamilyQuickNav(props: { families: TiendaProductFamily
   const { families, lang } = props;
 
   return (
-    <div className="mt-8 overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.22)] bg-[linear-gradient(135deg,rgba(201,168,74,0.08),rgba(0,0,0,0.35))] p-4 sm:p-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgba(201,168,74,0.88)]">
-        {lang === "en" ? "Promo lanes — pick a category" : "Familias promo — elige una"}
+    <div className="relative mt-8 overflow-hidden rounded-2xl border border-[rgba(201,168,74,0.28)] p-4 sm:p-5 shadow-[0_22px_70px_rgba(0,0,0,0.45)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(201,168,74,0.12),rgba(40,32,24,0.55),rgba(0,0,0,0.55))]" />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.2),transparent_65%)]" />
+      <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.18),transparent_60%)]" />
+      <div className="pointer-events-none absolute right-1/3 bottom-0 h-32 w-32 rounded-full bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.15),transparent_55%)]" />
+      <div className="relative">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[rgba(201,168,74,0.9)]">
+        {lang === "en" ? "Promo showroom — pick a lane" : "Showroom promo — elige un carril"}
       </p>
-      <p className="mt-1 max-w-3xl text-sm text-[rgba(255,255,255,0.62)]">
+      <p className="mt-1 max-w-3xl text-sm text-[rgba(255,255,255,0.68)]">
         {lang === "en"
-          ? "Each lane is a different vendor-backed product family — Leonix can quote and coordinate production."
-          : "Cada carril es una familia distinta con proveedor — Leonix cotiza y coordina la producción."}
+          ? "Drinkware, bags, pens, desk, giveaways, apparel — Leonix sources and quotes real vendor options."
+          : "Drinkware, bolsas, bolígrafos, escritorio, regalos, apparel — Leonix cotiza opciones reales de proveedor."}
       </p>
       <div className="mt-4 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]">
         {families.map((f) => {
@@ -32,7 +37,7 @@ export function TiendaPromoFamilyQuickNav(props: { families: TiendaProductFamily
               key={f.id}
               href={withLang(f.href, lang)}
               className={[
-                "group flex w-[132px] shrink-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.10)] bg-[rgba(0,0,0,0.35)] shadow-[0_12px_36px_rgba(0,0,0,0.4)] transition hover:border-[rgba(201,168,74,0.45)] hover:-translate-y-0.5",
+                "group flex w-[132px] shrink-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(12,12,16,0.65)] shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-[2px] transition hover:border-[rgba(201,168,74,0.5)] hover:-translate-y-0.5",
                 lane?.leftBar ?? "",
               ].join(" ")}
             >
@@ -57,6 +62,7 @@ export function TiendaPromoFamilyQuickNav(props: { families: TiendaProductFamily
             </Link>
           );
         })}
+      </div>
       </div>
     </div>
   );
