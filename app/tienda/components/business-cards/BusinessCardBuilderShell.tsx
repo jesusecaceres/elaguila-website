@@ -493,6 +493,10 @@ export function BusinessCardBuilderShell(props: {
           />
         </div>
 
+        <p className="mb-4 text-[11px] leading-relaxed text-[rgba(255,255,255,0.48)] max-w-3xl">
+          {bcPick(businessCardBuilderCopy.builderSessionTrustLine, lang)}
+        </p>
+
         <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-4 py-3 sm:px-5 sm:py-4 mb-2">
           <p className="text-sm text-[rgba(255,255,255,0.75)]">
             {doc.designIntake === "custom"

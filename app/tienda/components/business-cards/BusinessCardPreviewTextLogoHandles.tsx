@@ -52,23 +52,28 @@ function bindPointerCapture(
 }
 
 /**
- * Right-edge resize for centered text blocks: width increases when the pointer moves right (trim %).
- * Center fixed at (xPct, yPct) → delta width ≈ 2 × horizontal delta in trim %.
+ * Left/right edge resize for centered text blocks. Center fixed at (xPct, yPct) →
+ * width delta ≈ ±2 × horizontal delta in trim % (right edge widens to the right; left edge mirrors).
  */
 export function BusinessCardTextBlockWidthHandle(props: {
   trimRef: RefObject<HTMLDivElement | null>;
   blockId: string;
   startWidthPct: number;
   onPatchWidth: (id: string, widthPct: number) => void;
+  edge?: "left" | "right";
 }) {
-  const { trimRef, blockId, startWidthPct, onPatchWidth } = props;
+  const { trimRef, blockId, startWidthPct, onPatchWidth, edge = "right" } = props;
+  const isLeft = edge === "left";
 
   return (
     <button
       type="button"
       tabIndex={-1}
-      aria-label="Resize text width"
-      className="absolute right-1 top-1/2 z-[2] min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-sm border-2 border-white bg-[#c9a84a] shadow-md touch-none sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-2.5"
+      aria-label={isLeft ? "Resize text width (left edge)" : "Resize text width (right edge)"}
+      className={[
+        "absolute top-1/2 z-[2] min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-sm border-2 border-white bg-[#c9a84a] shadow-md touch-none sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-2.5",
+        isLeft ? "left-1" : "right-1",
+      ].join(" ")}
       style={{ cursor: "ew-resize", touchAction: "none", pointerEvents: "auto" }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
@@ -82,7 +87,8 @@ export function BusinessCardTextBlockWidthHandle(props: {
         let last = startWidthPct;
         bindPointerCapture(e.currentTarget, e.pointerId, (cx) => {
           const dxPct = ((cx - startX) / tw) * 100;
-          const next = clampTextWidth(startWidthPct + 2 * dxPct);
+          const delta = isLeft ? -2 * dxPct : 2 * dxPct;
+          const next = clampTextWidth(startWidthPct + delta);
           if (Math.abs(next - last) < BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD) return;
           last = next;
           onPatchWidth(blockId, next);

@@ -13,6 +13,7 @@ import {
   nativeImageImgStyle,
   nativeImageWrapperStyle,
 } from "../../product-configurators/business-cards/designer-v2/studio/nativeImagePreviewStyle";
+import { BusinessCardNativeImageFocalOverlay } from "./BusinessCardNativeImageFocalOverlay";
 import { BusinessCardNativeV2TransformChrome } from "./BusinessCardNativeV2TransformChrome";
 
 type NativePatch = Partial<
@@ -230,8 +231,14 @@ export function BusinessCardNativeV2PreviewLayer(props: {
                     }
               }
             >
-              <div style={nativeImageWrapperStyle(o)}>
+              <div className="relative h-full w-full" style={nativeImageWrapperStyle(o)}>
                 <img src={o.previewUrl} alt="" style={nativeImageImgStyle(o)} />
+                {selected && !readOnly ? (
+                  <BusinessCardNativeImageFocalOverlay
+                    objectPositionXPct={o.objectPositionXPct ?? 50}
+                    objectPositionYPct={o.objectPositionYPct ?? 50}
+                  />
+                ) : null}
               </div>
             </div>
             {chrome}

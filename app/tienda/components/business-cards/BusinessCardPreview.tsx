@@ -236,7 +236,7 @@ export function BusinessCardPreview(props: {
                         aria-selected={selected}
                         data-bc-text-selected={selected ? "true" : undefined}
                         className={[
-                          "absolute rounded-[3px] overflow-visible",
+                          "absolute rounded-[3px] overflow-visible outline-none",
                           editInteraction ? "cursor-grab active:cursor-grabbing touch-manipulation" : "pointer-events-none",
                           selected
                             ? "ring-[3px] ring-[#c9a84a] ring-offset-[4px] ring-offset-[rgba(0,0,0,0.22)] shadow-[0_0_0_1px_rgba(201,168,74,0.5),0_8px_22px_rgba(201,168,74,0.25)]"
@@ -263,12 +263,22 @@ export function BusinessCardPreview(props: {
                           t
                         )}
                         {showTextWidthHandle && editInteraction ? (
-                          <BusinessCardTextBlockWidthHandle
-                            trimRef={trimRef}
-                            blockId={b.id}
-                            startWidthPct={b.widthPct}
-                            onPatchWidth={(id, widthPct) => editInteraction.onPatchTextBlock?.(id, { widthPct })}
-                          />
+                          <>
+                            <BusinessCardTextBlockWidthHandle
+                              trimRef={trimRef}
+                              edge="left"
+                              blockId={b.id}
+                              startWidthPct={b.widthPct}
+                              onPatchWidth={(id, widthPct) => editInteraction.onPatchTextBlock?.(id, { widthPct })}
+                            />
+                            <BusinessCardTextBlockWidthHandle
+                              trimRef={trimRef}
+                              edge="right"
+                              blockId={b.id}
+                              startWidthPct={b.widthPct}
+                              onPatchWidth={(id, widthPct) => editInteraction.onPatchTextBlock?.(id, { widthPct })}
+                            />
+                          </>
                         ) : null}
                       </div>
                     );

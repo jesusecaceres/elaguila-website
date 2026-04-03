@@ -29,6 +29,7 @@ import {
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import { withStrokeColorIfWidthActive } from "../../product-configurators/business-cards/designer-v2/studio/nativeShapeStroke";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
+import { nextZAboveAllLayers } from "../../product-configurators/business-cards/designer-v2/stack/maxComposableZIndex";
 import { nativeInspectorChrome } from "./nativeInspectorChrome";
 
 const SCALES: ScalePreset[] = ["sm", "md", "lg"];
@@ -337,6 +338,8 @@ export function BusinessCardStudioSelectionToolbar(props: Props) {
   }
 
   if (showLogo) {
+    const stackTopZ = nextZAboveAllLayers(sideState);
+    const logoOnTop = sideState.logoGeom.zIndex >= stackTopZ;
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-[10px] font-bold uppercase tracking-wide text-[rgba(201,168,74,0.85)]">
@@ -398,6 +401,26 @@ export function BusinessCardStudioSelectionToolbar(props: Props) {
           }
         >
           {lg === "en" ? "Center" : "Centrar"}
+        </button>
+        <button
+          type="button"
+          disabled={logoOnTop}
+          title={bcPick(businessCardBuilderCopy.logoBringAboveLayersTooltip, lang)}
+          className={[
+            "rounded-lg border px-2.5 py-1 text-[11px] font-medium",
+            logoOnTop
+              ? "cursor-not-allowed border-white/10 text-[rgba(255,247,226,0.35)]"
+              : "border-[rgba(201,168,74,0.35)] bg-[rgba(201,168,74,0.1)] text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.18)]",
+          ].join(" ")}
+          onClick={() =>
+            dispatch({
+              type: "SET_LOGO_GEOM",
+              side,
+              patch: { zIndex: stackTopZ },
+            })
+          }
+        >
+          {bcPick(businessCardBuilderCopy.logoBringAboveLayers, lang)}
         </button>
       </div>
     );

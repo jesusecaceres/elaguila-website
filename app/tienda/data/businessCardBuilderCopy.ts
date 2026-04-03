@@ -11,12 +11,17 @@ export const businessCardBuilderCopy = {
   },
   guidesToggle: { es: "Guías de impresión", en: "Print guides" },
   studioToolbarHint: {
-    es: "Elige la cara y las guías; el lienzo grande está abajo. Las herramientas siguen a tu selección.",
-    en: "Pick the side and guides; the large canvas is below. Tools follow your selection.",
+    es: "Elige la cara y las guías de impresión; el lienzo grande está abajo. La barra superior sigue lo que seleccionas en la tarjeta.",
+    en: "Pick the side and optional print guides; the large canvas is below. The top bar tracks whatever you select on the card.",
   },
   studioToolbarEmptySelection: {
     es: "Selecciona texto, logo o una capa Studio en el lienzo para ver herramientas rápidas aquí.",
     en: "Select text, the logo, or a Studio layer on the canvas for quick tools here.",
+  },
+  logoBringAboveLayers: { es: "Logo arriba", en: "Logo on top" },
+  logoBringAboveLayersTooltip: {
+    es: "Sube el z-index del logo por encima de fotos y formas en esta cara (máx. 40).",
+    en: "Raise the logo’s z-index above photos and shapes on this side (max 40).",
   },
   workspaceTabContent: { es: "Tarjeta", en: "Card" },
   workspaceTabStudio: { es: "Capas Studio", en: "Studio layers" },
@@ -76,9 +81,13 @@ export const businessCardBuilderCopy = {
     es: "Guardamos el borrador en este navegador; luego confirmas datos, entrega y envío a Leonix. Studio es tu espacio editable aquí; la subida de archivo listo para imprenta es otro camino cuando la necesites.",
     en: "We save your draft in this browser; next you confirm details, fulfillment, and submit the order to Leonix. Studio is your editable workspace here—the print-ready file upload is a different path when you need it.",
   },
+  builderSessionTrustLine: {
+    es: "El borrador vive en este navegador hasta que continúes al pedido; si cierras la sesión o borras datos del sitio, vuelve desde el mismo dispositivo o guarda una copia del diseño.",
+    en: "Your draft stays in this browser until you continue to checkout—clearing site data or using another device can drop it, so finish on the same browser when possible.",
+  },
   previewHelp: {
-    es: "Toca el texto, el logo o una capa añadida. Arrastra para mover; con texto o logo seleccionado, usa el asa en el borde para ajustar el ancho. Herramientas arriba; detalle en la columna derecha.",
-    en: "Tap text, the logo, or an added layer. Drag to move; when text or the logo is selected, use the edge handle to adjust width. Tools above; detail in the right column.",
+    es: "Toca el texto, el logo o una capa añadida. Arrastra para mover; con texto o logo seleccionado, usa los asas izquierda/derecha para el ancho. Herramientas arriba; detalle en la columna derecha.",
+    en: "Tap text, the logo, or an added layer. Drag to move; when text or the logo is selected, use the left/right edge handles for width. Tools above; detail in the right column.",
   },
   /** Right column: object-first tools for the current canvas selection */
   selectionToolsTitle: { es: "Herramientas de selección", en: "Selection tools" },
@@ -91,8 +100,8 @@ export const businessCardBuilderCopy = {
     en: "Select something on the card",
   },
   contextualEmptyBody: {
-    es: "Selecciona una línea, el logo o una capa en el lienzo. Usa la pestaña “Capas Studio” para añadir imágenes o formas.",
-    en: "Select a line, the logo, or a layer on the canvas. Use the “Studio layers” tab to add images or shapes.",
+    es: "Selecciona una línea, el logo o una capa en el lienzo. En “Capas Studio” añade fotos, formas o elementos; ajusta z para que el logo quede encima de una imagen cuando lo necesites.",
+    en: "Select a line, the logo, or a layer on the canvas. Under “Studio layers,” add photos, shapes, or elements—use layer z so your logo can sit above a photo when needed.",
   },
   /** Shown above contextual tools when something is selected (preview + list stay in sync) */
   selectionBannerPrefix: { es: "Selección activa", en: "Active selection" },
@@ -237,6 +246,15 @@ export const businessCardBuilderCopy = {
     en: "Focal point when the image doesn’t fill the frame (contain/cover). 50% is center.",
   },
   nativeImageFramingCenter: { es: "Centrar", en: "Center" },
+  nativeImageFramingPadHint: {
+    es: "Arrastra el punto en el cuadro o usa los controles de abajo. La cruz en la vista muestra el encuadre.",
+    en: "Drag the dot in the pad, or use the controls below. The cross on the preview shows the focal point.",
+  },
+  nativeImageResetFraming: {
+    es: "Restablecer encaje y centro",
+    en: "Reset fit & center",
+  },
+  nativeImageFramingNudgeLabel: { es: "Ajuste fino (1%)", en: "Fine nudge (1%)" },
   nativeImageFramingFineX: { es: "Horizontal (focal X)", en: "Horizontal (focal X)" },
   nativeImageFramingFineY: { es: "Vertical (focal Y)", en: "Vertical (focal Y)" },
   nativeImageAppearanceSectionTitle: { es: "Apariencia", en: "Appearance" },

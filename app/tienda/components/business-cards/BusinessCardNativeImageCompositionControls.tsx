@@ -11,6 +11,7 @@ import {
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import type { NativeInspectorChrome } from "./nativeInspectorChrome";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
+import { BusinessCardNativeImageFocalPad } from "./BusinessCardNativeImageFocalPad";
 
 function num(v: string): number {
   const n = Number(v);
@@ -69,9 +70,37 @@ export function BusinessCardNativeImageCompositionControls(props: {
       ) : null}
 
       <div className={cx.sectionTop}>
-        <p className={cx.sectionTitle}>{bcPick(businessCardBuilderCopy.nativeImageFramingSectionTitle, lg)}</p>
+        <p id="bc-native-focal-pad-label" className={cx.sectionTitle}>
+          {bcPick(businessCardBuilderCopy.nativeImageFramingSectionTitle, lg)}
+        </p>
         <p className={cx.sectionHelp}>{bcPick(businessCardBuilderCopy.nativeImageFramingSectionHelp, lg)}</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <p className="mt-2 text-[10px] leading-snug text-[rgba(255,255,255,0.42)]">
+          {bcPick(businessCardBuilderCopy.nativeImageFramingPadHint, lg)}
+        </p>
+        <div className="mt-3">
+          <BusinessCardNativeImageFocalPad
+            disabled={locked}
+            objectPositionXPct={posX}
+            objectPositionYPct={posY}
+            labelId="bc-native-focal-pad-label"
+            onChange={(p) => patch(p)}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={locked}
+            className={cx.btn}
+            onClick={() =>
+              patch({
+                objectFit: "contain",
+                objectPositionXPct: 50,
+                objectPositionYPct: 50,
+              })
+            }
+          >
+            {bcPick(businessCardBuilderCopy.nativeImageResetFraming, lg)}
+          </button>
           <button
             type="button"
             disabled={locked}
@@ -80,6 +109,8 @@ export function BusinessCardNativeImageCompositionControls(props: {
           >
             {bcPick(businessCardBuilderCopy.nativeImageFramingCenter, lg)}
           </button>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
           <label className={cx.labelGrid}>
             X %
             <input
@@ -104,6 +135,34 @@ export function BusinessCardNativeImageCompositionControls(props: {
               onChange={(e) => patch({ objectPositionYPct: clampNativeObjectPositionPct(num(e.target.value)) })}
             />
           </label>
+        </div>
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          <span className="w-full text-center text-[9px] uppercase tracking-wide text-[rgba(255,255,255,0.38)]">
+            {bcPick(businessCardBuilderCopy.nativeImageFramingNudgeLabel, lg)}
+          </span>
+          {(
+            [
+              ["x", -1, 0] as const,
+              ["x", 1, 0] as const,
+              ["y", 0, -1] as const,
+              ["y", 0, 1] as const,
+            ]
+          ).map(([axis, dx, dy], i) => (
+            <button
+              key={i}
+              type="button"
+              disabled={locked}
+              className={`${cx.btn} min-w-[2.25rem] px-2 py-1 text-[11px]`}
+              onClick={() =>
+                patch({
+                  objectPositionXPct: clampNativeObjectPositionPct(posX + dx),
+                  objectPositionYPct: clampNativeObjectPositionPct(posY + dy),
+                })
+              }
+            >
+              {axis === "x" ? (dx < 0 ? "X −" : "X +") : dy < 0 ? "Y −" : "Y +"}
+            </button>
+          ))}
         </div>
         <label className={`${cx.labelBlock} mt-2`}>
           {bcPick(businessCardBuilderCopy.nativeImageFramingFineX, lg)}
