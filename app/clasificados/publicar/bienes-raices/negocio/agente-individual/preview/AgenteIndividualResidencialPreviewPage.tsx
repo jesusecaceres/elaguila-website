@@ -76,9 +76,9 @@ const typo = {
   lowerSerif: "text-sm font-semibold leading-tight tracking-tight",
 } as const;
 
-/** Desktop: left = one flex stack (hero → gallery → …); right = rail only. `items-start` avoids stretching the left cell to the rail height. */
-const DESKTOP_TWO_COL_SHELL = "lg:grid lg:grid-cols-[1fr_300px] lg:gap-x-7 lg:items-start";
-const LEFT_COLUMN_STACK = "flex min-w-0 flex-col gap-3";
+/** Mobile: gallery → headline → contact rail → body. Desktop: headline / gallery / body stacked in col1; rail col2. */
+const MAIN_GRID =
+  "mt-0 grid grid-cols-1 gap-y-3 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-x-7 lg:items-start";
 const CARD_PAD = "px-4 py-4 sm:px-5 sm:py-4";
 const SECTION_LABEL = `${typo.kicker} mb-2.5`;
 
@@ -149,7 +149,7 @@ function SocialCircle({
       rel="noopener noreferrer"
       title={label}
       aria-label={label}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-[#3d3428] transition hover:border-[#c4a85a]/50 hover:bg-[rgba(197,160,89,0.08)]"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border text-[#3d3428] transition hover:border-[#c4a85a]/50 hover:bg-[rgba(197,160,89,0.08)] sm:h-8 sm:w-8"
       style={{ borderColor: BORDER, color: CHARCOAL }}
     >
       {children}
@@ -262,9 +262,9 @@ export function AgenteIndividualResidencialPreviewPage({
           {p.meta}
         </p>
 
-        {/* 1 — Shell 2 cols (lg): columna izq. = un solo stack vertical; columna der. = rail agente */}
-        <section className={`mt-0 grid grid-cols-1 gap-y-3 ${DESKTOP_TWO_COL_SHELL}`}>
-          <div className={LEFT_COLUMN_STACK}>
+        {/* Shell: mobile order = gallery → title → rail → body; lg = title / gallery / body | rail */}
+        <section className={MAIN_GRID}>
+          <div className="order-2 min-w-0 lg:col-start-1 lg:row-start-1">
             <div className="rounded-xl border px-4 py-3 sm:px-6 sm:py-3" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
               {title ? (
                 <h1 className={typo.title} style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: CHARCOAL }}>
@@ -314,11 +314,11 @@ export function AgenteIndividualResidencialPreviewPage({
               </div>
               {quickFacts.length ? (
                 <div
-                  className="mt-4 overflow-hidden rounded-xl border"
+                  className="mt-4 overflow-x-auto overflow-y-hidden rounded-xl border [-webkit-overflow-scrolling:touch] sm:overflow-x-visible"
                   style={{ borderColor: BORDER, background: IVORY, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)" }}
                 >
                   <div
-                    className="grid gap-px bg-[rgba(44,36,22,0.08)]"
+                    className="grid min-w-max gap-px bg-[rgba(44,36,22,0.08)] sm:min-w-0"
                     style={{
                       gridTemplateColumns: `repeat(${Math.min(quickFacts.length, 6)}, minmax(0, 1fr))`,
                     }}
@@ -341,6 +341,9 @@ export function AgenteIndividualResidencialPreviewPage({
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="order-1 min-w-0 lg:col-start-1 lg:row-start-2">
             <div>
               <h3 className={`${typo.kicker} mb-1.5`} style={{ color: MUTED }}>
                 {p.galeria}
@@ -515,7 +518,9 @@ export function AgenteIndividualResidencialPreviewPage({
                 </div>
               ) : null}
             </div>
+          </div>
 
+          <div className="order-4 flex min-w-0 flex-col gap-3 lg:col-start-1 lg:row-start-3">
             {(hasPropertyDetails(data) || hasFeatures(data)) && (
               <section
                 className={`grid gap-3.5 lg:gap-3 lg:items-stretch ${
@@ -663,7 +668,7 @@ export function AgenteIndividualResidencialPreviewPage({
           </div>
 
           <aside
-            className="rounded-xl border"
+            className="order-3 rounded-xl border lg:sticky lg:top-4 lg:z-10 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start"
             style={{
               borderColor: BORDER,
               background: `linear-gradient(180deg, ${CREAM} 0%, #f8f4ec 100%)`,
@@ -802,7 +807,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showLlamar && cr.llamarHref ? (
                     <a
                       href={cr.llamarHref}
-                      className="flex w-full items-center justify-center rounded-lg py-2.5 text-[13px] font-bold text-[#1E1810] shadow-sm transition hover:brightness-[1.02]"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg px-2 py-2.5 text-[13px] font-bold text-[#1E1810] shadow-sm transition hover:brightness-[1.02] lg:min-h-0"
                       style={{ background: `linear-gradient(180deg, #C9A85A 0%, ${BRONZE} 100%)` }}
                     >
                       {p.llamar}
@@ -813,7 +818,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       href={cr.whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center rounded-lg border bg-white/70 py-2 text-[13px] font-semibold transition hover:bg-white"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border bg-white/70 px-2 py-2 text-[13px] font-semibold transition hover:bg-white lg:min-h-0"
                       style={{ borderColor: "rgba(37,211,102,0.35)" }}
                     >
                       {p.whatsapp}
@@ -822,7 +827,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showSolicitarInformacion && cr.solicitarInfoHref ? (
                     <a
                       href={cr.solicitarInfoHref}
-                      className="flex w-full items-center justify-center rounded-lg border py-2 text-[13px] font-semibold"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
                       style={{ borderColor: BORDER }}
                     >
                       {p.solicitarInfo}
@@ -831,7 +836,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showProgramarVisita && cr.programarVisitaHref ? (
                     <a
                       href={cr.programarVisitaHref}
-                      className="flex w-full items-center justify-center rounded-lg border py-2 text-[13px] font-semibold"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
                       style={{ borderColor: BORDER }}
                       {...(cr.programarVisitaHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     >
@@ -843,7 +848,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       href={cr.verSitioWebHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center rounded-lg border py-1.5 text-[11px] font-bold"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                       style={{ borderColor: BORDER }}
                     >
                       {p.verSitioWeb}
@@ -852,7 +857,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showVerListado && cr.verListadoHref ? (
                     <a
                       href={cr.verListadoHref}
-                      className="flex w-full items-center justify-center rounded-lg border py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.06)]"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.06)] lg:min-h-0"
                       style={{ borderColor: `${BRONZE}99`, color: BRONZE }}
                       {...anchorPropsForHref(cr.verListadoHref, cr.listadoDownloadName)}
                     >
@@ -862,7 +867,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showVerMls && cr.verMlsHref ? (
                     <a
                       href={cr.verMlsHref}
-                      className="flex w-full items-center justify-center rounded-lg border py-1.5 text-[11px] font-bold"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                       style={{ borderColor: BORDER }}
                       {...anchorPropsForHref(cr.verMlsHref, cr.listadoDownloadName)}
                     >
@@ -872,7 +877,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showVerTour && cr.verTourHref ? (
                     <a
                       href={cr.verTourHref}
-                      className="flex w-full items-center justify-center rounded-lg border py-1.5 text-[11px] font-bold"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                       style={{ borderColor: BORDER }}
                       {...anchorPropsForHref(cr.verTourHref, "tour.pdf")}
                     >
@@ -882,7 +887,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   {cr.showVerFolleto && cr.verFolletoHref ? (
                     <a
                       href={cr.verFolletoHref}
-                      className="flex w-full items-center justify-center rounded-lg border py-1.5 text-[11px] font-bold"
+                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                       style={{ borderColor: BORDER }}
                       {...anchorPropsForHref(cr.verFolletoHref, "folleto.pdf")}
                     >

@@ -156,7 +156,7 @@ function UrlOrFileRow({
           placeholder={pegarUrl}
           autoComplete="off"
         />
-        <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
+        <label className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold text-[#5C4E2E] touch-manipulation sm:w-auto sm:min-h-0 sm:px-3 sm:py-2">
           {subirArchivo}
           <input
             type="file"
@@ -322,7 +322,7 @@ export function Step03Media({
       <div className="mt-5 space-y-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{t.step03.fotos}</p>
-          <label className="mt-2 inline-flex cursor-pointer items-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold">
+          <label className="mt-2 inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold touch-manipulation sm:min-h-0 sm:px-3 sm:py-2">
             {t.step03.agregarFotos}
             <input
               type="file"
@@ -342,15 +342,15 @@ export function Step03Media({
             />
           </label>
           {photos.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible">
               {photos.map((u, i) => (
-                <div key={`${i}-${u.slice(0, 32)}`} className="flex flex-col gap-1">
+                <div key={`${i}-${u.slice(0, 32)}`} className="flex w-[5.5rem] shrink-0 flex-col gap-1.5 sm:w-auto sm:shrink">
                   <div className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={u} alt="" className="h-20 w-20 rounded-lg border object-cover" />
+                    <img src={u} alt="" className="h-[5.5rem] w-[5.5rem] rounded-lg border object-cover sm:h-20 sm:w-20" />
                     <button
                       type="button"
-                      className="absolute -right-1 -top-1 rounded-full bg-white px-1.5 text-xs shadow"
+                      className="absolute -right-1 -top-1 flex h-8 min-w-[2rem] items-center justify-center rounded-full bg-white px-2 text-xs shadow touch-manipulation"
                       aria-label={t.step03.eliminar}
                       onClick={() =>
                         setState((s) => {
@@ -366,11 +366,11 @@ export function Step03Media({
                       ×
                     </button>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1.5">
                     <button
                       type="button"
                       disabled={i <= 0}
-                      className="rounded border border-[#E8DFD0] bg-white px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-40"
+                      className="min-h-[40px] min-w-[2.5rem] touch-manipulation rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:px-1.5 sm:py-0.5 sm:text-[10px]"
                       aria-label={t.step03.moverIzq}
                       onClick={() => swapPhotos(i, i - 1)}
                     >
@@ -379,7 +379,7 @@ export function Step03Media({
                     <button
                       type="button"
                       disabled={i >= photos.length - 1}
-                      className="rounded border border-[#E8DFD0] bg-white px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-40"
+                      className="min-h-[40px] min-w-[2.5rem] touch-manipulation rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:px-1.5 sm:py-0.5 sm:text-[10px]"
                       aria-label={t.step03.moverDer}
                       onClick={() => swapPhotos(i, i + 1)}
                     >

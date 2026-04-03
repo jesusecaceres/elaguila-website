@@ -79,35 +79,47 @@ export default function ClasificadosPage() {
           <h2 className="text-3xl font-bold text-[color:var(--lx-text)] md:text-4xl">{t.sectionBrowse}</h2>
         </div>
 
-        {/* Mobile-only: impossible-to-miss Bienes Raíces lane (browse + publish). Grid BR card hidden below md to avoid duplicates. */}
+        {/* Mobile-only: Bienes Raíces lane — same card system as grid (premium tint + chip + footer CTA). md+ uses grid card. */}
         <div className="mt-5 md:hidden">
-          <div className="overflow-hidden rounded-3xl border-2 border-[#C9B46A]/70 bg-gradient-to-br from-[#2A2620] via-[#352F28] to-[#1E1810] p-5 shadow-[0_24px_56px_rgba(24,20,16,0.45)]">
-            <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[#C5A059]">
-              {lang === "es" ? "Categoría destacada" : "Featured category"}
-            </p>
-            <h3 className="mt-2 text-center text-2xl font-extrabold tracking-tight text-[#FAF7F2]">
-              🏘️ {lang === "es" ? "Bienes Raíces" : "Real estate"}
-            </h3>
-            <p className="mt-2 text-center text-sm font-medium leading-relaxed text-[#E8DFD0]/92">
-              {lang === "es"
-                ? "Explora casas, terrenos y comerciales — o publica tu anuncio profesional o particular."
-                : "Browse homes, land, and commercial — or post your professional or private listing."}
-            </p>
-            <div className="mt-5 flex flex-col gap-3">
-              <Link
-                href={buildHubCategoryPageUrl("bienes-raices", lang)}
-                className="flex min-h-[52px] w-full items-center justify-center rounded-2xl border-2 border-[#C9B46A]/55 bg-[#FAF7F2] px-4 py-3 text-center text-base font-extrabold text-[#1E1810] shadow-md active:scale-[0.99]"
+          {(() => {
+            const k = "bienes-raices" as const;
+            const meta = (t.cat as Record<string, { label: string; hint: string }>)[k];
+            const visual = LEONIX_CATEGORY_VISUALS[k];
+            const browseHref = buildHubCategoryPageUrl(k, lang);
+            return (
+              <div
+                className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${visual.tint} ${visual.border} ${visual.glow} transition-all duration-150`}
               >
-                {lang === "es" ? "→ Explorar Bienes Raíces" : "→ Browse real estate"}
-              </Link>
-              <Link
-                href={withLang(BR_PUBLICAR_HUB)}
-                className="flex min-h-[52px] w-full items-center justify-center rounded-2xl border-2 border-[#E8D9A8]/40 bg-gradient-to-br from-[#B8954A] to-[#8A6F3A] px-4 py-3 text-center text-base font-extrabold text-[#1E1810] shadow-lg active:scale-[0.99]"
-              >
-                ✨ {lang === "es" ? "Publicar en Bienes Raíces" : "Post in real estate"}
-              </Link>
-            </div>
-          </div>
+                <Link
+                  href={browseHref}
+                  className="relative block px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35 focus:ring-offset-2"
+                >
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12] ${visual.chipBg}`}
+                  >
+                    {visual.emoji}
+                  </span>
+                  <h3 className="mt-2 text-lg font-bold text-[#3D2C12]">
+                    {visual.emoji} {meta.label}
+                  </h3>
+                  <p className="mt-1 text-sm text-[#5D4A25]/82">{meta.hint}</p>
+                  <span className="mt-3 inline-flex min-h-[44px] items-center text-xs font-semibold text-[#6E4E18]">
+                    {lang === "es" ? "Explorar" : "Explore"}
+                  </span>
+                  <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
+                </Link>
+                <div className="border-t border-[#3D2C12]/10 px-4 pb-4 pt-3">
+                  <Link
+                    href={withLang(BR_PUBLICAR_HUB)}
+                    className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#C9B46A]/50 bg-[#2A2620] px-3 py-3 text-center text-sm font-bold text-[#FAF7F2] shadow-sm transition hover:bg-[#1E1810] active:scale-[0.99]"
+                  >
+                    <span aria-hidden>{visual.emoji}</span>
+                    {lang === "es" ? "Publicar en Bienes Raíces" : "Post in Real estate"}
+                  </Link>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

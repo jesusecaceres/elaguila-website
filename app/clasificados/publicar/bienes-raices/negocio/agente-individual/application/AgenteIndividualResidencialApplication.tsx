@@ -70,7 +70,7 @@ export default function AgenteIndividualResidencialApplication() {
 
   const nav = useMemo(
     () => (
-      <aside className="lg:sticky lg:top-28 lg:w-56 lg:shrink-0">
+      <aside className="hidden lg:block lg:sticky lg:top-28 lg:w-56 lg:shrink-0">
         <nav className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-3 shadow-sm">
           <p className="px-2 pb-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/75">{t.app.navPasos}</p>
           <ol className="max-h-[50vh] space-y-1 overflow-y-auto text-sm lg:max-h-[calc(100vh-8rem)]">
@@ -96,27 +96,58 @@ export default function AgenteIndividualResidencialApplication() {
     [step, stepLabels, t.app.navPasos]
   );
 
+  const mobileStepNav = useMemo(
+    () => (
+      <div className="mb-4 lg:hidden">
+        <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-2 shadow-sm">
+          <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{t.app.navPasos}</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+            {stepLabels.map((label, i) => (
+              <button
+                key={`m-${i}-${label}`}
+                type="button"
+                onClick={() => setStep(i)}
+                className={
+                  "min-h-[52px] w-[min(100%,9.5rem)] shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-snug transition touch-manipulation " +
+                  (i === step
+                    ? "border-[#C9B46A] bg-[#FFF0D4] text-[#6E5418] shadow-sm"
+                    : "border-[#E8DFD0]/80 bg-white/90 text-[#5C5346] active:bg-white")
+                }
+              >
+                <span className="block text-[10px] font-bold tabular-nums opacity-70">
+                  {i + 1}/{total}
+                </span>
+                <span className="line-clamp-2">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+    [step, stepLabels, t.app.navPasos, total]
+  );
+
   return (
-    <main className="min-h-screen bg-[#F6F0E2] pb-20 pt-24 text-[#2C2416] sm:pt-28">
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="mb-6 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 shadow-[0_10px_32px_-14px_rgba(42,36,22,0.1)] sm:p-5">
+    <main className="min-h-screen bg-[#F6F0E2] pb-24 pt-24 text-[#2C2416] sm:pb-20 sm:pt-28">
+      <div className="mx-auto max-w-6xl px-3 sm:px-4">
+        <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 shadow-[0_10px_32px_-14px_rgba(42,36,22,0.1)] sm:mb-6 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{t.app.kicker}</p>
               <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">{t.app.title}</h1>
-              <p className="mt-2 max-w-xl text-sm text-[#5C5346]/88">{t.app.subtitle}</p>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#5C5346]/88">{t.app.subtitle}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
               <button
                 type="button"
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7]"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
                 onClick={() => leaveAndGo(BR_PUBLICAR_HUB)}
               >
                 {t.app.cambiarCanal}
               </button>
               <button
                 type="button"
-                className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-3 py-2 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8]"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-3 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
                 onClick={() => leaveAndGo(BR_CATEGORY_HOME)}
               >
                 {t.app.verCategoria}
@@ -125,10 +156,12 @@ export default function AgenteIndividualResidencialApplication() {
           </div>
         </div>
 
+        {mobileStepNav}
+
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           {nav}
           <div className="min-w-0 flex-1 space-y-4">
-            <div className="rounded-xl border border-[#E8DFD0]/80 bg-white/60 px-3 py-2 text-sm text-[#5C5346]">
+            <div className="rounded-xl border border-[#E8DFD0]/80 bg-white/60 px-3 py-3 text-sm leading-snug text-[#5C5346] sm:py-2">
               {t.app.pasoDe} <span className="font-bold text-[#1E1810]">{step + 1}</span> {t.app.de} {total}
               <span className="mx-2 text-[#C9B46A]">·</span>
               {stepLabel}
@@ -157,32 +190,34 @@ export default function AgenteIndividualResidencialApplication() {
               </section>
             ) : null}
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/80 pt-4">
+            <div className="flex flex-col gap-3 border-t border-[#E8DFD0]/80 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <button
                 type="button"
                 disabled={step <= 0}
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-semibold text-[#2C2416] disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:min-h-0 sm:py-2.5"
               >
                 {t.app.anterior}
               </button>
-              {step === 9 ? (
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-1 sm:flex-row sm:justify-end">
+                {step === 9 ? (
+                  <button
+                    type="button"
+                    onClick={openPreview}
+                    className="min-h-[48px] w-full touch-manipulation rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md sm:min-h-0 sm:py-2.5"
+                  >
+                    {t.app.verVistaPrevia}
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  onClick={openPreview}
-                  className="rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-2.5 text-sm font-bold text-[#1E1810] shadow-md"
+                  disabled={step >= total - 1}
+                  onClick={() => setStep((s) => Math.min(total - 1, s + 1))}
+                  className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-3 text-sm font-semibold text-[#6E5418] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2.5"
                 >
-                  {t.app.verVistaPrevia}
+                  {t.app.siguiente}
                 </button>
-              ) : null}
-              <button
-                type="button"
-                disabled={step >= total - 1}
-                onClick={() => setStep((s) => Math.min(total - 1, s + 1))}
-                className="rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-2.5 text-sm font-semibold text-[#6E5418] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {t.app.siguiente}
-              </button>
+              </div>
             </div>
           </div>
         </div>
