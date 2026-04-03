@@ -76,12 +76,17 @@ export const BR_COPY_EN = {
     moverIzq: "Move left",
     moverDer: "Move right",
     eliminar: "Remove",
+    archivoSubido: "Uploaded",
+    subirVideo: "Upload video",
     video: "Video (optional)",
-    videoHint: "Public link or short file for the preview grid.",
-    tour: "Tour or walkthrough (optional)",
-    tourHint: "Matterport, 360 link, or file; links to “View tour” when enabled.",
-    folleto: "Brochure or PDF (optional)",
-    folletoHint: "Links to “View brochure” when enabled.",
+    videoHint:
+      "Public link (YouTube, Vimeo, etc.) or a short video file for preview. Nothing is uploaded to Mux until you publish.",
+    tour: "Virtual / 3D tour (optional)",
+    tourHint:
+      "Matterport, 3D or 360 tour URL, or another public tour link. You may also upload a compatible file (e.g. cover image/PDF, short clip, static HTML) for local draft preview.",
+    folleto: "Brochure / document (optional)",
+    folletoHint:
+      "PDF, Word, or brochure/plan image. Linked as “View brochure” in preview. Allowed: PDF, DOC/DOCX, JPG/PNG.",
   },
   step04: {
     title: "Essential details",
@@ -251,6 +256,14 @@ export const BR_COPY_EN = {
     licenciaMarca: "Office license:",
     enlaceGenerico: "Link",
     notaVerTodasFotos: "When published, this control opens the full gallery.",
+    lightboxClose: "Close",
+    lightboxPrev: "Previous",
+    lightboxNext: "Next",
+    lightboxVideo: "Video",
+    lightboxZoomHint: "Ctrl + scroll to zoom",
+    lightboxResetZoom: "Reset",
+    lightboxOpenVideoTab: "Open video in a new tab",
+    lightboxGalleryCount: (cur: number, total: number) => `Gallery · ${cur} / ${total}`,
     footerDefault: "Leonix is a premium showcase: the official listing may be on your MLS or website.",
   },
   previewFormat: {

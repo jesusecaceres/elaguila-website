@@ -70,12 +70,16 @@ export type AgenteIndividualResidencialFormState = {
 
   videoUrl: string;
   videoDataUrl: string;
+  /** Original filename when `videoDataUrl` is a local upload (preview UX only). */
+  videoArchivoNombre: string;
 
   tourUrl: string;
   tourDataUrl: string;
+  tourArchivoNombre: string;
 
   brochureUrl: string;
   brochureDataUrl: string;
+  brochureArchivoNombre: string;
 
   recamaras: string;
   banos: string;
@@ -358,12 +362,15 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
 
     videoUrl: "",
     videoDataUrl: "",
+    videoArchivoNombre: "",
 
     tourUrl: "",
     tourDataUrl: "",
+    tourArchivoNombre: "",
 
     brochureUrl: "",
     brochureDataUrl: "",
+    brochureArchivoNombre: "",
 
     recamaras: "",
     banos: "",

@@ -6,6 +6,8 @@ import {
   BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD,
   clampPreviewDragPct,
 } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
+import type { SnapGuideState } from "../../product-configurators/business-cards/preview/alignmentSnap";
+import { snapTrimPosition } from "../../product-configurators/business-cards/preview/alignmentSnap";
 import { nativePreviewTransformCss } from "../../product-configurators/business-cards/designer-v2/studio/nativePreviewTransform";
 import {
   nativeImageImgStyle,
@@ -32,6 +34,8 @@ export function BusinessCardNativeV2PreviewLayer(props: {
   onPatchV2Native?: (id: string, patch: NativePatch) => void;
   /** When true, resize/rotate handles are shown and wired (Phase 2+). */
   transformInteraction?: boolean;
+  guidesVisible?: boolean;
+  onSnapGuidesChange?: (guides: SnapGuideState | null) => void;
 }) {
   const {
     trimRef,
@@ -42,6 +46,8 @@ export function BusinessCardNativeV2PreviewLayer(props: {
     onMove,
     onPatchV2Native,
     transformInteraction = false,
+    guidesVisible = false,
+    onSnapGuidesChange,
   } = props;
 
   const bindDrag = (el: HTMLElement, oid: string, startX: number, startY: number, pointerId: number) => {
@@ -58,10 +64,13 @@ export function BusinessCardNativeV2PreviewLayer(props: {
       if (Math.hypot(x - lastX, y - lastY) < BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
-      onMove(oid, x, y);
+      const snapped = snapTrimPosition(x, y, { guidesVisible });
+      onSnapGuidesChange?.(snapped.guides.vertical != null || snapped.guides.horizontal != null ? snapped.guides : null);
+      onMove(oid, snapped.xPct, snapped.yPct);
     };
     const onPointerUp = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId) return;
+      onSnapGuidesChange?.(null);
       try {
         el.releasePointerCapture(pointerId);
       } catch {
@@ -136,6 +145,8 @@ export function BusinessCardNativeV2PreviewLayer(props: {
               interaction={transformInteraction}
               readOnly={readOnly}
               locked={locked}
+              guidesVisible={guidesVisible}
+              onSnapGuidesChange={onSnapGuidesChange}
               onPatch={(patch) => onPatchV2Native(o.id, patch)}
             />
           ) : null;

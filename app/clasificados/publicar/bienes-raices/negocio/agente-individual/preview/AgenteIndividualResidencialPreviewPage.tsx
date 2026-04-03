@@ -5,7 +5,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ComponentType, ReactNode } from "react";
+import { useCallback, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import {
   BiArea,
   BiBath,
@@ -30,13 +30,17 @@ import {
   buildQuickFacts,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
+  formatPreviewPhoneDisplay,
   formatTipoPublicacionFijoLine,
+  galleryPhotoUrlsOrdered,
   hasBrandBlockVisible,
   hrefFromUserInput,
+  restPhotoIndicesAfterCover,
   trim,
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
+import { AgenteIndividualResidencialMediaLightbox } from "./AgenteIndividualResidencialMediaLightbox";
 import {
   hasDescription,
   hasFeatures,
@@ -202,6 +206,25 @@ export function AgenteIndividualResidencialPreviewPage({
   const brandLicenseLine = showBrand && trim(data.marcaLicencia) ? `${p.licenciaMarca} ${trim(data.marcaLicencia)}` : "";
   const resolvedBrandSite = showBrand ? hrefFromUserInput(data.marcaSitioWeb) : null;
 
+  const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
+  const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
+
+  const photoUrlsOrdered = useMemo(() => galleryPhotoUrlsOrdered(data), [data]);
+  const restPhotoIdx = useMemo(() => restPhotoIndicesAfterCover(data), [data]);
+  const idxSecondaryA = restPhotoIdx[0];
+  const idxSecondaryB = restPhotoIdx[1];
+
+  const openMediaAt = useCallback((idx: number) => {
+    setMediaLightboxIndex(idx);
+    setMediaLightboxOpen(true);
+  }, []);
+
+  const hasVideoInLightbox = Boolean(g.videoDataUrl || g.videoExternalHref);
+  const videoSlideIndex = photoUrlsOrdered.length;
+
+  const phoneCardDisplay = formatPreviewPhoneDisplay(trim(data.telefonoPrincipal));
+  const asesorPhoneDisplay = asesorBlock ? formatPreviewPhoneDisplay(asesorBlock.phone) : "";
+
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <header
@@ -326,13 +349,20 @@ export function AgenteIndividualResidencialPreviewPage({
                 <div className="min-w-0 lg:col-span-8">
                   {g.mainUrl ? (
                     <div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={g.mainUrl}
-                        alt=""
-                        className="aspect-[16/10] w-full rounded-xl border object-cover"
+                      <button
+                        type="button"
+                        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border bg-transparent p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
-                      />
+                        onClick={() => openMediaAt(data.fotoPortadaIndex)}
+                        aria-label={p.galeria}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={g.mainUrl}
+                          alt=""
+                          className="aspect-[16/10] w-full object-cover transition duration-200 group-hover:opacity-95"
+                        />
+                      </button>
                       <GalleryCaption>{p.fotoPrincipal}</GalleryCaption>
                     </div>
                   ) : (
@@ -344,33 +374,47 @@ export function AgenteIndividualResidencialPreviewPage({
                 </div>
 
                 <div className="grid min-w-0 grid-cols-2 gap-2 lg:col-span-4 lg:gap-2">
-                  {g.secondary1 ? (
+                  {g.secondary1 && idxSecondaryA !== undefined ? (
                     <div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={g.secondary1}
-                        alt=""
-                        className="aspect-[4/3] w-full rounded-lg border object-cover"
+                      <button
+                        type="button"
+                        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg border bg-transparent p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
-                      />
-                      <GalleryCaption>Foto 2</GalleryCaption>
+                        onClick={() => openMediaAt(idxSecondaryA)}
+                        aria-label={p.foto2}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={g.secondary1}
+                          alt=""
+                          className="aspect-[4/3] w-full object-cover transition duration-200 group-hover:opacity-95"
+                        />
+                      </button>
+                      <GalleryCaption>{p.foto2}</GalleryCaption>
                     </div>
                   ) : (
                     <div>
-                      <EmptySlot title="Foto 2" subtitle="Opcional" />
-                      <GalleryCaption>Foto 2</GalleryCaption>
+                      <EmptySlot title={p.foto2} subtitle={p.opcional} />
+                      <GalleryCaption>{p.foto2}</GalleryCaption>
                     </div>
                   )}
 
-                  {g.secondary2 ? (
+                  {g.secondary2 && idxSecondaryB !== undefined ? (
                     <div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={g.secondary2}
-                        alt=""
-                        className="aspect-[4/3] w-full rounded-lg border object-cover"
+                      <button
+                        type="button"
+                        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg border bg-transparent p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
-                      />
+                        onClick={() => openMediaAt(idxSecondaryB)}
+                        aria-label={p.foto3}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={g.secondary2}
+                          alt=""
+                          className="aspect-[4/3] w-full object-cover transition duration-200 group-hover:opacity-95"
+                        />
+                      </button>
                       <GalleryCaption>{p.foto3}</GalleryCaption>
                     </div>
                   ) : (
@@ -382,26 +426,38 @@ export function AgenteIndividualResidencialPreviewPage({
 
                   {g.videoDataUrl ? (
                     <div>
-                      <video
-                        src={g.videoDataUrl}
-                        controls
-                        className="aspect-[4/3] w-full rounded-lg border object-cover"
-                        style={{ borderColor: BORDER }}
-                      />
+                      <button
+                        type="button"
+                        className="group relative block w-full overflow-hidden rounded-lg border bg-[#0f172a] p-0 text-left"
+                        style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
+                        onClick={() => hasVideoInLightbox && openMediaAt(videoSlideIndex)}
+                        aria-label={p.reproducirVideo}
+                      >
+                        <video
+                          src={g.videoDataUrl}
+                          muted
+                          playsInline
+                          className="pointer-events-none aspect-[4/3] w-full object-cover opacity-95"
+                        />
+                        <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/35 opacity-100 transition group-hover:bg-black/45">
+                          <FiVideo className="h-8 w-8 text-white drop-shadow" aria-hidden />
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-white">{p.reproducirVideo}</span>
+                        </span>
+                      </button>
                       <GalleryCaption>{p.video}</GalleryCaption>
                     </div>
                   ) : g.videoExternalHref ? (
                     <div>
-                      <a
-                        href={g.videoExternalHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-[11px] font-bold tracking-wide"
+                      <button
+                        type="button"
+                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-[11px] font-bold tracking-wide transition hover:opacity-95"
                         style={{ borderColor: BORDER, background: "#1a2744", color: "#fff", boxShadow: MEDIA_SHADOW }}
+                        onClick={() => hasVideoInLightbox && openMediaAt(videoSlideIndex)}
+                        aria-label={p.reproducirVideo}
                       >
                         <FiVideo className="h-6 w-6 opacity-90" aria-hidden />
                         {p.reproducirVideo}
-                      </a>
+                      </button>
                       <GalleryCaption>{p.video}</GalleryCaption>
                     </div>
                   ) : (
@@ -567,10 +623,10 @@ export function AgenteIndividualResidencialPreviewPage({
                     <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={CARD_PAD}>
                         <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                          Contacto de financiamiento
+                          {p.contactoFin}
                         </h4>
                         <p className={`${typo.body} font-semibold`}>{asesorBlock.name}</p>
-                        <p className={typo.body}>{asesorBlock.phone}</p>
+                        <p className={typo.body}>{asesorPhoneDisplay}</p>
                         <p className={`mt-0.5 truncate ${typo.bodySm} opacity-90`}>{asesorBlock.email}</p>
                       </div>
                     </div>
@@ -699,7 +755,7 @@ export function AgenteIndividualResidencialPreviewPage({
                     style={{ background: "rgba(44,36,22,0.04)" }}
                   >
                     {trim(data.telefonoPrincipal) ? (
-                      <p className="text-sm font-semibold tracking-tight">{trim(data.telefonoPrincipal)}</p>
+                      <p className="text-sm font-semibold tracking-tight">{phoneCardDisplay}</p>
                     ) : null}
                     {trim(data.correoPrincipal) ? (
                       <p className={`truncate ${typo.bodySm} opacity-90`}>{trim(data.correoPrincipal)}</p>
@@ -838,6 +894,25 @@ export function AgenteIndividualResidencialPreviewPage({
             </div>
           </aside>
         </section>
+
+        <AgenteIndividualResidencialMediaLightbox
+          open={mediaLightboxOpen}
+          initialIndex={mediaLightboxIndex}
+          onClose={() => setMediaLightboxOpen(false)}
+          photoUrls={photoUrlsOrdered}
+          videoDataUrl={g.videoDataUrl}
+          videoExternalHref={g.videoExternalHref}
+          labels={{
+            close: p.lightboxClose,
+            prev: p.lightboxPrev,
+            next: p.lightboxNext,
+            galleryCount: p.lightboxGalleryCount,
+            video: p.lightboxVideo,
+            zoomHint: p.lightboxZoomHint,
+            resetZoom: p.lightboxResetZoom,
+            openVideoTab: p.lightboxOpenVideoTab,
+          }}
+        />
       </main>
     </div>
   );

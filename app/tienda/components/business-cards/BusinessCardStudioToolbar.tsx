@@ -15,14 +15,41 @@ export function BusinessCardStudioToolbar(props: {
   onToggleGuides: () => void;
   /** Selection-driven quick tools (text, logo, native layers) */
   selectionChrome?: ReactNode;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }) {
-  const { lang, doc, activeSide, guidesVisible, onSideChange, onToggleGuides, selectionChrome } = props;
+  const { lang, doc, activeSide, guidesVisible, onSideChange, onToggleGuides, selectionChrome, onUndo, onRedo, canUndo, canRedo } =
+    props;
 
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 rounded-2xl border border-[rgba(255,255,255,0.12)] bg-[rgba(8,8,10,0.92)] px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <BusinessCardSideTabs doc={doc} lang={lang} active={activeSide} onChange={onSideChange} />
+          {onUndo != null && onRedo != null ? (
+            <div className="flex items-center gap-1 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(0,0,0,0.25)] p-0.5">
+              <button
+                type="button"
+                onClick={onUndo}
+                disabled={!canUndo}
+                title={lang === "en" ? "Undo (Ctrl+Z)" : "Deshacer (Ctrl+Z)"}
+                className="min-h-[40px] min-w-[40px] touch-manipulation rounded-full px-2 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.08)] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 sm:text-sm"
+              >
+                {lang === "en" ? "Undo" : "Deshacer"}
+              </button>
+              <button
+                type="button"
+                onClick={onRedo}
+                disabled={!canRedo}
+                title={lang === "en" ? "Redo (Ctrl+Shift+Z)" : "Rehacer (Ctrl+Mayús+Z)"}
+                className="min-h-[40px] min-w-[40px] touch-manipulation rounded-full px-2 text-xs font-semibold text-[rgba(255,247,226,0.9)] hover:bg-[rgba(255,255,255,0.08)] disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-1.5 sm:text-sm"
+              >
+                {lang === "en" ? "Redo" : "Rehacer"}
+              </button>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={onToggleGuides}

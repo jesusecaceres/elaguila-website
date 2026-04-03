@@ -14,6 +14,7 @@ import {
   createEllipseNativeShape,
   nextDesignerV2NativeZIndex,
 } from "../../product-configurators/business-cards/designer-v2/factories/nativeObjectDefaults";
+import { createLibraryShape, type BusinessCardElementPresetId } from "../../product-configurators/business-cards/designer-v2/businessCardElementPresets";
 import { BusinessCardDesignerV2NativeInspector } from "./BusinessCardDesignerV2NativeInspector";
 
 async function readFileAsDataUrl(file: File): Promise<string> {
@@ -114,6 +115,14 @@ export function BusinessCardDesignerV2Panel(props: {
     const id = `nv2s-${Date.now().toString(36)}`;
     const z = nextDesignerV2NativeZIndex(state);
     dispatch({ type: "V2_ADD_NATIVE_SHAPE", side, object: createEllipseNativeShape({ id, zIndex: z }) });
+    onClearTemplateSelection();
+    onSelectV2Native(id);
+  };
+
+  const addLibraryShape = (preset: BusinessCardElementPresetId) => {
+    const id = `nv2s-${Date.now().toString(36)}`;
+    const z = nextDesignerV2NativeZIndex(state);
+    dispatch({ type: "V2_ADD_NATIVE_SHAPE", side, object: createLibraryShape(id, z, preset) });
     onClearTemplateSelection();
     onSelectV2Native(id);
   };
@@ -260,6 +269,59 @@ export function BusinessCardDesignerV2Panel(props: {
         >
           {bcPick(businessCardBuilderCopy.refinementsAddEllipse, lang)}
         </button>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-[rgba(201,168,74,0.14)] bg-[rgba(0,0,0,0.12)] p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgba(255,255,255,0.5)]">
+          {bcPick(businessCardBuilderCopy.elementsLibraryTitle, lang)}
+        </p>
+        <p className="mt-1 text-[10px] leading-snug text-[rgba(255,255,255,0.38)]">
+          {bcPick(businessCardBuilderCopy.elementsLibraryHint, lang)}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => addLibraryShape("divider-h")}
+            className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-2.5 py-1 text-[11px] font-medium text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.14)]"
+          >
+            {bcPick(businessCardBuilderCopy.elementsDividerH, lang)}
+          </button>
+          <button
+            type="button"
+            onClick={() => addLibraryShape("divider-v")}
+            className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-2.5 py-1 text-[11px] font-medium text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.14)]"
+          >
+            {bcPick(businessCardBuilderCopy.elementsDividerV, lang)}
+          </button>
+          <button
+            type="button"
+            onClick={() => addLibraryShape("accent-bar")}
+            className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-2.5 py-1 text-[11px] font-medium text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.14)]"
+          >
+            {bcPick(businessCardBuilderCopy.elementsAccentBar, lang)}
+          </button>
+          <button
+            type="button"
+            onClick={() => addLibraryShape("corner-tick")}
+            className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-2.5 py-1 text-[11px] font-medium text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.14)]"
+          >
+            {bcPick(businessCardBuilderCopy.elementsCornerTick, lang)}
+          </button>
+          <button
+            type="button"
+            onClick={() => addLibraryShape("badge-pill")}
+            className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-2.5 py-1 text-[11px] font-medium text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.14)]"
+          >
+            {bcPick(businessCardBuilderCopy.elementsBadgePill, lang)}
+          </button>
+          <button
+            type="button"
+            onClick={() => addLibraryShape("gold-frame")}
+            className="rounded-full border border-[rgba(201,168,74,0.28)] bg-[rgba(201,168,74,0.08)] px-2.5 py-1 text-[11px] font-medium text-[rgba(255,247,226,0.92)] hover:bg-[rgba(201,168,74,0.14)]"
+          >
+            {bcPick(businessCardBuilderCopy.elementsGoldFrame, lang)}
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 max-h-[min(52vh,420px)] overflow-y-auto pr-1">

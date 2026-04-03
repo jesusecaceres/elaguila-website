@@ -202,6 +202,17 @@ export const businessCardBuilderCopy = {
   refinementsAddImage: { es: "+ Imagen", en: "+ Image" },
   refinementsAddRect: { es: "+ Rectángulo", en: "+ Rectangle" },
   refinementsAddEllipse: { es: "+ Elipse", en: "+ Ellipse" },
+  elementsLibraryTitle: { es: "Elementos (tarjeta)", en: "Elements (card)" },
+  elementsLibraryHint: {
+    es: "Reglas, acentos y marcos — son formas editables como el resto.",
+    en: "Rules, accents, and frames — editable shapes like any other.",
+  },
+  elementsDividerH: { es: "Línea H", en: "H rule" },
+  elementsDividerV: { es: "Línea V", en: "V rule" },
+  elementsAccentBar: { es: "Barra", en: "Bar" },
+  elementsCornerTick: { es: "Esquina", en: "Corner" },
+  elementsBadgePill: { es: "Pastilla", en: "Pill" },
+  elementsGoldFrame: { es: "Marco", en: "Frame" },
   nativeInspectorTitle: { es: "Objeto añadido", en: "Added object" },
   nativeInspectorHelp: {
     es: "Colocación, apariencia y capa. El número z coincide con la lista y la vista previa.",

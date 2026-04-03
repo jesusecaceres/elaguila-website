@@ -6,6 +6,8 @@ import type { RefObject } from "react";
 import type { BusinessCardDesignerV2NativeObject } from "../../product-configurators/business-cards/types";
 import { nativePreviewTransformCss } from "../../product-configurators/business-cards/designer-v2/studio/nativePreviewTransform";
 import { clampPreviewDragPct } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
+import type { SnapGuideState } from "../../product-configurators/business-cards/preview/alignmentSnap";
+import { snapTrimPosition } from "../../product-configurators/business-cards/preview/alignmentSnap";
 import type { NativeResizeCorner } from "../../product-configurators/business-cards/designer-v2/studio/nativeCanvasTransform";
 import {
   computeNativeResizePatchFromSession,
@@ -66,9 +68,11 @@ export function BusinessCardNativeV2TransformChrome(props: {
   interaction: boolean;
   readOnly: boolean;
   locked: boolean;
+  guidesVisible?: boolean;
+  onSnapGuidesChange?: (guides: SnapGuideState | null) => void;
   onPatch: (patch: Patch) => void;
 }) {
-  const { trimRef, o, interaction, readOnly, locked, onPatch } = props;
+  const { trimRef, o, interaction, readOnly, locked, guidesVisible = false, onSnapGuidesChange, onPatch } = props;
   const oRef = useRef(o);
   oRef.current = o;
   const rotateBaseRef = useRef(0);
@@ -115,13 +119,24 @@ export function BusinessCardNativeV2TransformChrome(props: {
       source: o0,
     };
 
-    bindPointerDrag(e.currentTarget, e.pointerId, (cx, cy) => {
-      const p = trimPctFromClient(cx, cy);
-      if (!p) return;
-      const t2 = trim.getBoundingClientRect();
-      const patch = computeNativeResizePatchFromSession(session, p.xPct, p.yPct, t2.width, t2.height);
-      onPatch(patch);
-    }, () => {});
+    bindPointerDrag(
+      e.currentTarget,
+      e.pointerId,
+      (cx, cy) => {
+        const p = trimPctFromClient(cx, cy);
+        if (!p) return;
+        const t2 = trim.getBoundingClientRect();
+        const raw = computeNativeResizePatchFromSession(session, p.xPct, p.yPct, t2.width, t2.height);
+        const snapped = snapTrimPosition(raw.xPct, raw.yPct, { guidesVisible });
+        onSnapGuidesChange?.(
+          snapped.guides.vertical != null || snapped.guides.horizontal != null ? snapped.guides : null
+        );
+        onPatch({ ...raw, xPct: snapped.xPct, yPct: snapped.yPct });
+      },
+      () => {
+        onSnapGuidesChange?.(null);
+      }
+    );
   };
 
   const onRotatePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
@@ -141,21 +156,28 @@ export function BusinessCardNativeV2TransformChrome(props: {
       th
     );
 
-    bindPointerDrag(e.currentTarget, e.pointerId, (cx, cy) => {
-      const r2 = trim.getBoundingClientRect();
-      const tw2 = r2.width;
-      const th2 = r2.height;
-      const curP = trimPointerPx(
-        clampPreviewDragPct(((cx - r2.left) / r2.width) * 100),
-        clampPreviewDragPct(((cy - r2.top) / r2.height) * 100),
-        tw2,
-        th2
-      );
-      const cxPx = (oRef.current.xPct / 100) * tw2;
-      const cyPx = (oRef.current.yPct / 100) * th2;
-      const next = rotationDegFromPointerDelta(cxPx, cyPx, rotateStartRef.current, curP, rotateBaseRef.current);
-      onPatch({ rotationDeg: next });
-    }, () => {});
+    bindPointerDrag(
+      e.currentTarget,
+      e.pointerId,
+      (cx, cy) => {
+        const r2 = trim.getBoundingClientRect();
+        const tw2 = r2.width;
+        const th2 = r2.height;
+        const curP = trimPointerPx(
+          clampPreviewDragPct(((cx - r2.left) / r2.width) * 100),
+          clampPreviewDragPct(((cy - r2.top) / r2.height) * 100),
+          tw2,
+          th2
+        );
+        const cxPx = (oRef.current.xPct / 100) * tw2;
+        const cyPx = (oRef.current.yPct / 100) * th2;
+        const next = rotationDegFromPointerDelta(cxPx, cyPx, rotateStartRef.current, curP, rotateBaseRef.current);
+        onPatch({ rotationDeg: next });
+      },
+      () => {
+        onSnapGuidesChange?.(null);
+      }
+    );
   };
 
   const corners: NativeResizeCorner[] = ["nw", "ne", "se", "sw"];

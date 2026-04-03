@@ -13,12 +13,34 @@ import {
   TIPO_PROPIEDAD_LABEL_EN,
   TIPO_PROPIEDAD_OPCIONES,
 } from "../schema/agenteResidencialTipoMeta";
-import { digitsOnly } from "../application/utils/phoneMask";
+import { digitsOnly, formatUsPhoneDisplay } from "../application/utils/phoneMask";
 
 export function trim(s: unknown): string {
   if (s == null) return "";
   if (typeof s === "string") return s.trim();
   return String(s).trim();
+}
+
+/** Preview rail display only — keeps `tel:` / WhatsApp hrefs on raw digits elsewhere. */
+export function formatPreviewPhoneDisplay(raw: string): string {
+  const s = trim(raw);
+  if (!s) return "";
+  const d = digitsOnly(s);
+  if (d.length === 10) return formatUsPhoneDisplay(d);
+  return s;
+}
+
+/** All gallery photo URLs in form order (user ordering). */
+export function galleryPhotoUrlsOrdered(s: AgenteIndividualResidencialFormState): string[] {
+  return (Array.isArray(s.fotosDataUrls) ? s.fotosDataUrls : []).map((u) => trim(String(u))).filter(Boolean);
+}
+
+/** Indices in `fotosDataUrls` for thumbnails after the cover (same logic as `buildGalleryModel` rest). */
+export function restPhotoIndicesAfterCover(s: AgenteIndividualResidencialFormState): number[] {
+  const photos = galleryPhotoUrlsOrdered(s);
+  if (!photos.length) return [];
+  const cover = Math.min(Math.max(0, Number(s.fotoPortadaIndex) || 0), photos.length - 1);
+  return photos.map((_, i) => i).filter((i) => i !== cover);
 }
 
 const STATUS_LABEL: Record<AgenteIndividualResidencialFormState["estadoAnuncio"], string> = {

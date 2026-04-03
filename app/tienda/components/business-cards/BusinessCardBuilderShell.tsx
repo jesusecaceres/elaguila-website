@@ -7,6 +7,7 @@ import { getLeoAlternateTemplateId } from "../../product-configurators/business-
 import type { Lang } from "../../types/tienda";
 import type {
   BusinessCardDesignIntake,
+  BusinessCardDocument,
   BusinessCardProductSlug,
   BusinessCardSide,
 } from "../../product-configurators/business-cards/types";
@@ -34,6 +35,10 @@ import {
   createDefaultNativeShape,
   nextDesignerV2NativeZIndex,
 } from "../../product-configurators/business-cards/designer-v2/factories/nativeObjectDefaults";
+import { cloneBusinessCardDocument } from "../../product-configurators/business-cards/businessCardDocumentClone";
+import { businessCardActionIsPositionOnly } from "../../product-configurators/business-cards/businessCardHistoryPolicy";
+import type { SnapGuideState } from "../../product-configurators/business-cards/preview/alignmentSnap";
+import { clampPreviewDragPct } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
 import { bcpPick, businessCardProductCopy } from "../../data/businessCardProductCopy";
 import { BusinessCardPreview } from "./BusinessCardPreview";
@@ -62,7 +67,7 @@ export function BusinessCardBuilderShell(props: {
 }) {
   const { productSlug, lang, designEntry } = props;
   const router = useRouter();
-  const [doc, dispatch] = useReducer(businessCardBuilderReducer, undefined, () => {
+  const [doc, baseDispatch] = useReducer(businessCardBuilderReducer, undefined, () => {
     if (typeof window !== "undefined") {
       const raw = readBusinessCardSessionRaw(productSlug);
       const hydrated = raw ? hydrateBusinessCardDocumentFromSession(productSlug, raw, lang) : null;
@@ -79,9 +84,72 @@ export function BusinessCardBuilderShell(props: {
   const [sessionDraftError, setSessionDraftError] = useState<string | null>(null);
   /** Card = templates + fields + logo; Studio = native layers stack */
   const [workspaceTab, setWorkspaceTab] = useState<"card" | "studio">("card");
+  const [snapGuides, setSnapGuides] = useState<SnapGuideState | null>(null);
+  const pastRef = useRef<BusinessCardDocument[]>([]);
+  const futureRef = useRef<BusinessCardDocument[]>([]);
+  const lastHistoryPosAtRef = useRef(0);
+  const HISTORY_MAX = 60;
+  const HISTORY_POS_THROTTLE_MS = 280;
+  const [historyRevision, setHistoryRevision] = useState(0);
 
   const docRef = useRef(doc);
   docRef.current = doc;
+
+  const dispatchWithHistory = useCallback(
+    (action: BusinessCardBuilderAction) => {
+      if (action.type === "RESET") {
+        pastRef.current = [];
+        futureRef.current = [];
+        baseDispatch(action);
+        setHistoryRevision((r) => r + 1);
+        return;
+      }
+      const now = Date.now();
+      const posOnly = businessCardActionIsPositionOnly(action);
+      const shouldPush =
+        !posOnly || now - lastHistoryPosAtRef.current >= HISTORY_POS_THROTTLE_MS;
+      if (shouldPush) {
+        if (posOnly) lastHistoryPosAtRef.current = now;
+        pastRef.current.push(cloneBusinessCardDocument(docRef.current));
+        if (pastRef.current.length > HISTORY_MAX) pastRef.current.shift();
+        futureRef.current = [];
+        setHistoryRevision((r) => r + 1);
+      }
+      baseDispatch(action);
+    },
+    [baseDispatch]
+  );
+
+  const clearCanvasSelection = useCallback(() => {
+    setSelectedTextBlockId(null);
+    setLogoInspectorActive(false);
+    setSelectedV2NativeId(null);
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = pastRef.current.pop();
+    if (!prev) return;
+    futureRef.current.push(cloneBusinessCardDocument(docRef.current));
+    if (futureRef.current.length > HISTORY_MAX) futureRef.current.shift();
+    clearCanvasSelection();
+    setSnapGuides(null);
+    baseDispatch({ type: "RESET", document: prev });
+    setHistoryRevision((r) => r + 1);
+  }, [clearCanvasSelection]);
+
+  const redo = useCallback(() => {
+    const next = futureRef.current.pop();
+    if (!next) return;
+    pastRef.current.push(cloneBusinessCardDocument(docRef.current));
+    if (pastRef.current.length > HISTORY_MAX) pastRef.current.shift();
+    clearCanvasSelection();
+    setSnapGuides(null);
+    baseDispatch({ type: "RESET", document: next });
+    setHistoryRevision((r) => r + 1);
+  }, [clearCanvasSelection]);
+
+  const canUndo = useMemo(() => pastRef.current.length > 0, [historyRevision, doc]);
+  const canRedo = useMemo(() => futureRef.current.length > 0, [historyRevision, doc]);
   useEffect(() => {
     return () => {
       const d = docRef.current;
@@ -105,7 +173,12 @@ export function BusinessCardBuilderShell(props: {
       if (isBusinessCardSessionDesign(raw) && raw.draftStudioVault) {
         next = await mergeVaultedStudioImagesIntoDocument(productSlug, next, raw.draftStudioVault);
       }
-      if (!cancelled) dispatch({ type: "RESET", document: next });
+      if (!cancelled) {
+        pastRef.current = [];
+        futureRef.current = [];
+        baseDispatch({ type: "RESET", document: next });
+        setHistoryRevision((r) => r + 1);
+      }
     })();
     return () => {
       cancelled = true;
@@ -158,7 +231,7 @@ export function BusinessCardBuilderShell(props: {
         URL.revokeObjectURL(cur.previewUrl);
       }
       if (!file) {
-        dispatch({ type: "CLEAR_LOGO", side });
+        dispatchWithHistory({ type: "CLEAR_LOGO", side });
         return;
       }
       if (file.size > LOGO_MAX_MB * 1024 * 1024) {
@@ -172,7 +245,7 @@ export function BusinessCardBuilderShell(props: {
       const previewUrl = URL.createObjectURL(file);
       const img = new window.Image();
       img.onload = () => {
-        dispatch({
+        dispatchWithHistory({
           type: "SET_LOGO",
           side,
           payload: {
@@ -185,11 +258,11 @@ export function BusinessCardBuilderShell(props: {
       };
       img.onerror = () => {
         URL.revokeObjectURL(previewUrl);
-        dispatch({ type: "CLEAR_LOGO", side });
+        dispatchWithHistory({ type: "CLEAR_LOGO", side });
       };
       img.src = previewUrl;
     },
-    [doc.activeSide, doc.front.logo, doc.back.logo]
+    [doc.activeSide, doc.front.logo, doc.back.logo, dispatchWithHistory]
   );
 
   const persistDraftToSession = useCallback(async (): Promise<boolean> => {
@@ -227,14 +300,150 @@ export function BusinessCardBuilderShell(props: {
     router.push(withLang(tiendaOrderPath("business-cards", productSlug), lang));
   }, [persistDraftToSession, lang, router, productSlug]);
 
-  const dispatchTyped = dispatch as (a: BusinessCardBuilderAction) => void;
+  const dispatchTyped = dispatchWithHistory as (a: BusinessCardBuilderAction) => void;
 
   const onStudioSideChange = useCallback((s: BusinessCardSide) => {
     setSelectedTextBlockId(null);
     setLogoInspectorActive(false);
     setSelectedV2NativeId(null);
-    dispatch({ type: "SET_ACTIVE_SIDE", side: s });
-  }, []);
+    dispatchWithHistory({ type: "SET_ACTIVE_SIDE", side: s });
+  }, [dispatchWithHistory]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const el = e.target;
+      if (el instanceof HTMLElement && el.closest('input, textarea, select, [contenteditable="true"]')) {
+        return;
+      }
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if (mod && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        clearCanvasSelection();
+        setSnapGuides(null);
+        return;
+      }
+      const step = e.shiftKey ? 2 : 0.5;
+      const side = doc.activeSide;
+      const nudge = (dx: number, dy: number) => {
+        if (selectedV2NativeId && selectedNative && !selectedNative.locked) {
+          e.preventDefault();
+          dispatchTyped({
+            type: "V2_PATCH_NATIVE_OBJECT",
+            side,
+            id: selectedV2NativeId,
+            patch: {
+              xPct: clampPreviewDragPct(selectedNative.xPct + dx),
+              yPct: clampPreviewDragPct(selectedNative.yPct + dy),
+            },
+          });
+          return true;
+        }
+        if (logoInspectorActive && sideState.logo.previewUrl) {
+          e.preventDefault();
+          dispatchTyped({
+            type: "SET_LOGO_GEOM",
+            side,
+            patch: {
+              xPct: clampPreviewDragPct(sideState.logoGeom.xPct + dx),
+              yPct: clampPreviewDragPct(sideState.logoGeom.yPct + dy),
+            },
+          });
+          return true;
+        }
+        if (selectedTextBlockId && selectedBlock) {
+          e.preventDefault();
+          dispatchTyped({
+            type: "SET_TEXT_BLOCK",
+            side,
+            id: selectedTextBlockId,
+            patch: {
+              xPct: clampPreviewDragPct(selectedBlock.xPct + dx),
+              yPct: clampPreviewDragPct(selectedBlock.yPct + dy),
+            },
+          });
+          return true;
+        }
+        return false;
+      };
+      if (e.key === "ArrowLeft") {
+        nudge(-step, 0);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        nudge(step, 0);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        nudge(0, -step);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        nudge(0, step);
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "d") {
+        if (selectedV2NativeId && selectedNative) {
+          e.preventDefault();
+          const newId = `nv2d-${Date.now().toString(36)}`;
+          dispatchTyped({ type: "V2_DUPLICATE_NATIVE_OBJECT", side, id: selectedV2NativeId, newId });
+          setSelectedV2NativeId(newId);
+        } else if (selectedTextBlockId && selectedBlock?.role === "custom") {
+          e.preventDefault();
+          const newId = `c-${Date.now().toString(36)}`;
+          dispatchTyped({
+            type: "DUPLICATE_CUSTOM_TEXT_BLOCK",
+            side,
+            sourceId: selectedTextBlockId,
+            newId,
+            lang,
+          });
+          setSelectedTextBlockId(newId);
+          setLogoInspectorActive(false);
+          setSelectedV2NativeId(null);
+        }
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedV2NativeId) {
+          e.preventDefault();
+          dispatchTyped({ type: "V2_DELETE_NATIVE_OBJECT", side, id: selectedV2NativeId });
+          setSelectedV2NativeId(null);
+          return;
+        }
+        if (selectedTextBlockId && selectedBlock?.role === "custom") {
+          e.preventDefault();
+          dispatchTyped({ type: "REMOVE_TEXT_BLOCK", side, id: selectedTextBlockId });
+          setSelectedTextBlockId(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    undo,
+    redo,
+    clearCanvasSelection,
+    selectedV2NativeId,
+    selectedNative,
+    logoInspectorActive,
+    selectedTextBlockId,
+    selectedBlock,
+    doc.activeSide,
+    sideState.logoGeom,
+    sideState.logo.previewUrl,
+    dispatchTyped,
+    lang,
+  ]);
 
   return (
     <main className="min-h-screen bg-[#070708] text-white">
@@ -263,7 +472,11 @@ export function BusinessCardBuilderShell(props: {
             activeSide={doc.activeSide}
             guidesVisible={doc.guidesVisible}
             onSideChange={onStudioSideChange}
-            onToggleGuides={() => dispatch({ type: "TOGGLE_GUIDES" })}
+            onToggleGuides={() => dispatchWithHistory({ type: "TOGGLE_GUIDES" })}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
             selectionChrome={
               <BusinessCardStudioSelectionToolbar
                 lang={lang}
@@ -312,7 +525,7 @@ export function BusinessCardBuilderShell(props: {
                   setSelectedTextBlockId(null);
                   setLogoInspectorActive(false);
                   setSelectedV2NativeId(null);
-                  dispatch({ type: "SET_DESIGN_INTAKE", designIntake: "custom" });
+                  dispatchWithHistory({ type: "SET_DESIGN_INTAKE", designIntake: "custom" });
                 }}
                 className="text-sm font-semibold text-[rgba(201,168,74,0.95)] underline-offset-4 hover:underline"
               >
@@ -409,6 +622,7 @@ export function BusinessCardBuilderShell(props: {
                   document={doc}
                   side={doc.activeSide}
                   lang={lang}
+                  snapGuidesOverlay={snapGuides}
                   editInteraction={{
                     selectedTextBlockId,
                     logoSelected: logoInspectorActive,
@@ -448,6 +662,7 @@ export function BusinessCardBuilderShell(props: {
                       dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch: { xPct, yPct } }),
                     onPatchLogoGeom: (patch) =>
                       dispatchTyped({ type: "SET_LOGO_GEOM", side: doc.activeSide, patch }),
+                    onSnapGuidesChange: setSnapGuides,
                   }}
                 />
               </div>
@@ -554,7 +769,7 @@ export function BusinessCardBuilderShell(props: {
           <BusinessCardApprovalPanel
             lang={lang}
             approval={doc.approval}
-            onChange={(patch) => dispatch({ type: "SET_APPROVAL", patch })}
+            onChange={(patch) => dispatchWithHistory({ type: "SET_APPROVAL", patch })}
           />
 
           <section className="rounded-2xl border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.04)] p-5 sm:p-6">

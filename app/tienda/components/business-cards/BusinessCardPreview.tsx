@@ -18,6 +18,9 @@ import {
   scaleToTextRem,
 } from "../../product-configurators/business-cards/layoutPresets";
 import { BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD, clampPreviewDragPct } from "../../product-configurators/business-cards/preview/businessCardPreviewConstants";
+import type { SnapGuideState } from "../../product-configurators/business-cards/preview/alignmentSnap";
+import { snapTrimPosition } from "../../product-configurators/business-cards/preview/alignmentSnap";
+import { BusinessCardSnapGuidesOverlay } from "./BusinessCardSnapGuidesOverlay";
 import { trimSurfaceStyle, trimTextColor } from "../../product-configurators/business-cards/preview/businessCardPreviewSurface";
 import { mergeTransform } from "../../product-configurators/business-cards/preview/businessCardPreviewTransforms";
 import { blockModeTextScaleMultiplierFromGroupScale } from "../../product-configurators/business-cards/preview/businessCardPreviewBlockScale";
@@ -59,6 +62,8 @@ export type BusinessCardPreviewEditApi = {
   onMoveLogo: (xPct: number, yPct: number) => void;
   /** Optional canvas resize for logo width (inspector parity). */
   onPatchLogoGeom?: (patch: Partial<BusinessCardLogoGeom>) => void;
+  /** Live alignment guides while dragging (snap). */
+  onSnapGuidesChange?: (guides: SnapGuideState | null) => void;
 };
 
 export function BusinessCardPreview(props: {
@@ -66,8 +71,10 @@ export function BusinessCardPreview(props: {
   side: BusinessCardSide;
   lang: Lang;
   editInteraction?: BusinessCardPreviewEditApi | null;
+  /** Controlled snap overlay (optional; can mirror callback-driven state from parent). */
+  snapGuidesOverlay?: SnapGuideState | null;
 }) {
-  const { document: doc, side, lang, editInteraction } = props;
+  const { document: doc, side, lang, editInteraction, snapGuidesOverlay } = props;
   const state = side === "front" ? doc.front : doc.back;
   const logoStyle = presetToLogoStyle(state.logo.position);
   const textAnchor = presetToTextAnchorStyle(state.textLayout.groupPosition);
@@ -94,11 +101,14 @@ export function BusinessCardPreview(props: {
       if (Math.hypot(x - lastX, y - lastY) < BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
-      editInteraction.onMoveTextBlock(id, x, y);
+      const snapped = snapTrimPosition(x, y, { guidesVisible: doc.guidesVisible });
+      editInteraction.onSnapGuidesChange?.(snapped.guides.vertical != null || snapped.guides.horizontal != null ? snapped.guides : null);
+      editInteraction.onMoveTextBlock(id, snapped.xPct, snapped.yPct);
     };
 
     const onUp = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId) return;
+      editInteraction.onSnapGuidesChange?.(null);
       try {
         el.releasePointerCapture(pointerId);
       } catch {
@@ -134,11 +144,14 @@ export function BusinessCardPreview(props: {
       if (Math.hypot(x - lastX, y - lastY) < BUSINESS_CARD_PREVIEW_DRAG_THRESHOLD) return;
       lastX = x;
       lastY = y;
-      editInteraction.onMoveLogo(x, y);
+      const snapped = snapTrimPosition(x, y, { guidesVisible: doc.guidesVisible });
+      editInteraction.onSnapGuidesChange?.(snapped.guides.vertical != null || snapped.guides.horizontal != null ? snapped.guides : null);
+      editInteraction.onMoveLogo(snapped.xPct, snapped.yPct);
     };
 
     const onUp = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId) return;
+      editInteraction.onSnapGuidesChange?.(null);
       try {
         el.releasePointerCapture(pointerId);
       } catch {
@@ -375,7 +388,12 @@ export function BusinessCardPreview(props: {
                 onMove={editInteraction?.onMoveV2Native ?? (() => {})}
                 onPatchV2Native={editInteraction?.onPatchV2Native}
                 transformInteraction={editInteraction?.transformInteraction ?? false}
+                guidesVisible={doc.guidesVisible}
+                onSnapGuidesChange={editInteraction?.onSnapGuidesChange}
               />
+            ) : null}
+            {snapGuidesOverlay && (snapGuidesOverlay.vertical != null || snapGuidesOverlay.horizontal != null) ? (
+              <BusinessCardSnapGuidesOverlay guides={snapGuidesOverlay} />
             ) : null}
           </div>
         </div>

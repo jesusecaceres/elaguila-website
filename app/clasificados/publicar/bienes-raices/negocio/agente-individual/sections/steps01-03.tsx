@@ -12,6 +12,14 @@ import {
 import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 
+/** Virtual tour uploads: images, PDF, short video, static HTML — not a general file dump. */
+export const BR_AGENTE_RES_TOUR_FILE_ACCEPT =
+  "image/*,application/pdf,.pdf,video/mp4,video/webm,video/quicktime,.mp4,.webm,.html,.htm";
+
+/** Brochure-style documents only (no executables). */
+export const BR_AGENTE_RES_BROCHURE_FILE_ACCEPT =
+  "application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,image/jpeg,.jpg,.jpeg,.png,image/png";
+
 export function Step01TipoAnuncio({
   state,
   setState,
@@ -120,9 +128,8 @@ function UrlOrFileRow({
   fileName,
   pegarUrl,
   subirArchivo,
-  archivo,
-  adjunto,
   quitar,
+  uploadedLabel,
 }: {
   label: string;
   hint?: string;
@@ -135,9 +142,8 @@ function UrlOrFileRow({
   fileName?: string;
   pegarUrl: string;
   subirArchivo: string;
-  archivo: string;
-  adjunto: string;
   quitar: string;
+  uploadedLabel: string;
 }) {
   return (
     <AiField label={label} hint={hint}>
@@ -166,12 +172,13 @@ function UrlOrFileRow({
         </label>
       </div>
       {fileActive ? (
-        <p className="mt-2 text-xs text-[#5C5346]">
-          {archivo} {fileName || adjunto}{" "}
-          <button type="button" className="font-semibold text-red-800" onClick={clearFile}>
+        <div className="mt-2 rounded-xl border border-[#C9B46A]/45 bg-[#FFF9E8] px-3 py-2.5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#6E5418]">{uploadedLabel}</p>
+          {fileName ? <p className="mt-1 text-sm font-semibold text-[#1E1810]">{fileName}</p> : null}
+          <button type="button" className="mt-2 text-xs font-semibold text-red-800 hover:underline" onClick={clearFile}>
             {quitar}
           </button>
-        </p>
+        </div>
       ) : null}
     </AiField>
   );
@@ -262,7 +269,7 @@ export function Step02InformacionBasica({
             label={t.step02.listado}
             hint={t.step02.listadoHint}
             urlValue={state.listadoUrl}
-            onUrl={(v) => setState((s) => ({ ...s, listadoUrl: v }))}
+            onUrl={(v) => setState((s) => ({ ...s, listadoUrl: v, listadoArchivoDataUrl: "", listadoArchivoNombre: "" }))}
             fileAccept="application/pdf,.pdf,image/*"
             onPickFile={(dataUrl, name) =>
               setState((s) => ({
@@ -277,9 +284,8 @@ export function Step02InformacionBasica({
             fileName={state.listadoArchivoNombre}
             pegarUrl={t.step02.pegarUrl}
             subirArchivo={t.step02.subirPdf}
-            archivo={t.step02.archivo}
-            adjunto={t.step02.adjunto}
             quitar={t.step02.quitar}
+            uploadedLabel={t.step03.archivoSubido}
           />
         </div>
       </div>
@@ -409,46 +415,52 @@ export function Step03Media({
           label={t.step03.video}
           hint={t.step03.videoHint}
           urlValue={state.videoUrl}
-          onUrl={(v) => setState((s) => ({ ...s, videoUrl: v, videoDataUrl: "" }))}
+          onUrl={(v) => setState((s) => ({ ...s, videoUrl: v, videoDataUrl: "", videoArchivoNombre: "" }))}
           fileAccept="video/*"
-          onPickFile={(dataUrl) => setState((s) => ({ ...s, videoDataUrl: dataUrl, videoUrl: "" }))}
-          clearFile={() => setState((s) => ({ ...s, videoDataUrl: "" }))}
+          onPickFile={(dataUrl, name) =>
+            setState((s) => ({ ...s, videoDataUrl: dataUrl, videoUrl: "", videoArchivoNombre: name }))
+          }
+          clearFile={() => setState((s) => ({ ...s, videoDataUrl: "", videoArchivoNombre: "" }))}
           fileActive={Boolean(state.videoDataUrl)}
+          fileName={state.videoArchivoNombre}
           pegarUrl={t.step02.pegarUrl}
-          subirArchivo={t.step02.subirPdf}
-          archivo={t.step02.archivo}
-          adjunto={t.step02.adjunto}
+          subirArchivo={t.step03.subirVideo}
           quitar={t.step02.quitar}
+          uploadedLabel={t.step03.archivoSubido}
         />
         <UrlOrFileRow
           label={t.step03.tour}
           hint={t.step03.tourHint}
           urlValue={state.tourUrl}
-          onUrl={(v) => setState((s) => ({ ...s, tourUrl: v, tourDataUrl: "" }))}
-          fileAccept="image/*,application/pdf,.pdf"
-          onPickFile={(dataUrl) => setState((s) => ({ ...s, tourDataUrl: dataUrl, tourUrl: "" }))}
-          clearFile={() => setState((s) => ({ ...s, tourDataUrl: "" }))}
+          onUrl={(v) => setState((s) => ({ ...s, tourUrl: v, tourDataUrl: "", tourArchivoNombre: "" }))}
+          fileAccept={BR_AGENTE_RES_TOUR_FILE_ACCEPT}
+          onPickFile={(dataUrl, name) =>
+            setState((s) => ({ ...s, tourDataUrl: dataUrl, tourUrl: "", tourArchivoNombre: name }))
+          }
+          clearFile={() => setState((s) => ({ ...s, tourDataUrl: "", tourArchivoNombre: "" }))}
           fileActive={Boolean(state.tourDataUrl)}
+          fileName={state.tourArchivoNombre}
           pegarUrl={t.step02.pegarUrl}
           subirArchivo={t.step02.subirPdf}
-          archivo={t.step02.archivo}
-          adjunto={t.step02.adjunto}
           quitar={t.step02.quitar}
+          uploadedLabel={t.step03.archivoSubido}
         />
         <UrlOrFileRow
           label={t.step03.folleto}
           hint={t.step03.folletoHint}
           urlValue={state.brochureUrl}
-          onUrl={(v) => setState((s) => ({ ...s, brochureUrl: v, brochureDataUrl: "" }))}
-          fileAccept="application/pdf,.pdf"
-          onPickFile={(dataUrl) => setState((s) => ({ ...s, brochureDataUrl: dataUrl, brochureUrl: "" }))}
-          clearFile={() => setState((s) => ({ ...s, brochureDataUrl: "" }))}
+          onUrl={(v) => setState((s) => ({ ...s, brochureUrl: v, brochureDataUrl: "", brochureArchivoNombre: "" }))}
+          fileAccept={BR_AGENTE_RES_BROCHURE_FILE_ACCEPT}
+          onPickFile={(dataUrl, name) =>
+            setState((s) => ({ ...s, brochureDataUrl: dataUrl, brochureUrl: "", brochureArchivoNombre: name }))
+          }
+          clearFile={() => setState((s) => ({ ...s, brochureDataUrl: "", brochureArchivoNombre: "" }))}
           fileActive={Boolean(state.brochureDataUrl)}
+          fileName={state.brochureArchivoNombre}
           pegarUrl={t.step02.pegarUrl}
           subirArchivo={t.step02.subirPdf}
-          archivo={t.step02.archivo}
-          adjunto={t.step02.adjunto}
           quitar={t.step02.quitar}
+          uploadedLabel={t.step03.archivoSubido}
         />
       </div>
     </section>

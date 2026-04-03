@@ -77,12 +77,17 @@ export const BR_COPY_ES = {
     moverIzq: "Mover izquierda",
     moverDer: "Mover derecha",
     eliminar: "Eliminar",
+    archivoSubido: "Archivo subido",
+    subirVideo: "Subir video",
     video: "Video (opcional)",
-    videoHint: "Enlace público o archivo breve para la cuadrícula de vista previa.",
-    tour: "Tour o recorrido (opcional)",
-    tourHint: "Matterport, enlace 360 o archivo; se enlaza con «Ver tour» si está activo.",
-    folleto: "Folleto o PDF (opcional)",
-    folletoHint: "Se enlaza con «Ver folleto» si está activo.",
+    videoHint:
+      "Enlace público (YouTube, Vimeo, etc.) o archivo de video breve para la vista previa. No se sube a Mux hasta publicar.",
+    tour: "Tour virtual / 3D (opcional)",
+    tourHint:
+      "Enlace a Matterport, tour 360, recorrido virtual o URL pública. También puedes subir un archivo compatible (p. ej. imagen/PDF de portada, video corto, HTML estático) para vista previa local.",
+    folleto: "Folleto / documento (opcional)",
+    folletoHint:
+      "PDF, Word o imagen de folleto/plano. Se enlaza con «Ver folleto» en la vista previa. Tipos permitidos: PDF, DOC/DOCX, JPG/PNG.",
   },
   step04: {
     title: "Detalles esenciales",
@@ -252,6 +257,14 @@ export const BR_COPY_ES = {
     licenciaMarca: "Licencia de oficina:",
     enlaceGenerico: "Enlace",
     notaVerTodasFotos: "En el anuncio publicado, este control abre la galería completa.",
+    lightboxClose: "Cerrar",
+    lightboxPrev: "Anterior",
+    lightboxNext: "Siguiente",
+    lightboxVideo: "Video",
+    lightboxZoomHint: "Ctrl + rueda para ampliar",
+    lightboxResetZoom: "Restablecer",
+    lightboxOpenVideoTab: "Abrir video en una pestaña nueva",
+    lightboxGalleryCount: (cur: number, total: number) => `Galería · ${cur} / ${total}`,
     footerDefault:
       "Leonix es una vitrina premium: el listado oficial puede estar en tu MLS o sitio web.",
   },
