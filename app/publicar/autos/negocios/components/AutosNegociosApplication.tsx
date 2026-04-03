@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
+import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing, VehicleBadge } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { useAutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/useAutosNegociosLang";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
@@ -233,13 +234,16 @@ export function AutosNegociosApplication() {
                   onChange={(e) => setListingPatch({ mileage: parseOptFloat(e.target.value) })}
                 />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.city}</label>
-                <input
-                  className={INPUT}
+                <CityAutocomplete
                   value={listing.city ?? ""}
-                  onChange={(e) => setListingPatch({ city: e.target.value || undefined })}
+                  onChange={(v) => setListingPatch({ city: v || undefined })}
+                  lang={lang}
+                  variant="brForm"
+                  placeholder={t.app.placeholders.city}
                 />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.cityNorCal}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.state}</label>
@@ -254,6 +258,23 @@ export function AutosNegociosApplication() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className={LABEL}>{t.app.labels.zip}</label>
+                <input
+                  className={INPUT}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={5}
+                  placeholder={t.app.placeholders.zip}
+                  value={listing.zip ?? ""}
+                  onChange={(e) => {
+                    const d = e.target.value.replace(/\D/g, "").slice(0, 5);
+                    setListingPatch({ zip: d ? d : undefined });
+                  }}
+                  aria-label={t.app.labels.zip}
+                />
+                <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.zip}</p>
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.vin}</label>

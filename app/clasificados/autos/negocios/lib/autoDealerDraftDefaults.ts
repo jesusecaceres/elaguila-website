@@ -1,5 +1,22 @@
 import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerListing";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDealerHeroImages";
+
+/** NorCal canonical city when possible; preserves unknown non-empty text for safe backward compatibility. */
+function normalizeCityField(raw: string | undefined): string | undefined {
+  const t = raw?.trim();
+  if (!t) return undefined;
+  const canon = getCanonicalCityName(t);
+  return canon || t;
+}
+
+/** Digits only, max 5 — partial OK in draft; treat full 5 as structured ZIP. */
+function normalizeZipField(raw: unknown): string | undefined {
+  const d = String(raw ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 5);
+  return d.length > 0 ? d : undefined;
+}
 
 /** Optional starting point for the hours editor (form button). */
 export const WEEKDAY_HOURS_TEMPLATE: DealerHoursEntry[] = [
@@ -25,6 +42,7 @@ export function createEmptyListing(): AutoDealerListing {
     mileage: undefined,
     city: undefined,
     state: undefined,
+    zip: undefined,
     vin: undefined,
     stockNumber: undefined,
     exteriorColor: undefined,
@@ -121,6 +139,9 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     dealerSocials: raw.dealerSocials && typeof raw.dealerSocials === "object" ? raw.dealerSocials : base.dealerSocials,
     relatedDealerListings: Array.isArray(raw.relatedDealerListings) ? raw.relatedDealerListings : base.relatedDealerListings,
   };
+
+  merged.city = normalizeCityField(merged.city);
+  merged.zip = normalizeZipField(merged.zip);
 
   merged.heroImages = deriveHeroImageUrls(merged);
   return merged;

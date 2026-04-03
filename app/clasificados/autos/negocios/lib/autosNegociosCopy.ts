@@ -187,6 +187,7 @@ const ES: AutosNegociosCopy = {
       mileage: "Millaje",
       city: "Ciudad",
       state: "Estado",
+      zip: "Código postal (ZIP)",
       vin: "VIN",
       stock: "Número de stock",
       engine: "Motor",
@@ -210,6 +211,8 @@ const ES: AutosNegociosCopy = {
       monthly: "Ej. Desde $450/mes",
       https: "https://…",
       description: "Describe el vehículo con el tono de tu concesionario.",
+      city: "Escribe y elige una ciudad",
+      zip: "Ej. 95112",
     },
     hints: {
       transmission: "Especifica la transmisión.",
@@ -226,6 +229,8 @@ const ES: AutosNegociosCopy = {
       extPh: "Escribe el color exterior",
       intPh: "Escribe el color interior",
       titlePh: "Describe el estado del título",
+      cityNorCal: "Lista NorCal: elige una ciudad canónica para filtros y calidad de datos.",
+      zip: "5 dígitos (EE. UU.). Opcional; mejora búsqueda y geofencing.",
     },
     actions: { preview: "Ver vista previa", reset: "Reiniciar borrador" },
     dealer: {
@@ -465,6 +470,7 @@ const EN: AutosNegociosCopy = {
       mileage: "Mileage",
       city: "City",
       state: "State",
+      zip: "ZIP code",
       vin: "VIN",
       stock: "Stock number",
       engine: "Engine",
@@ -488,6 +494,8 @@ const EN: AutosNegociosCopy = {
       monthly: "e.g. From $450/mo",
       https: "https://…",
       description: "Describe the vehicle in your dealership’s voice.",
+      city: "Type and pick a city",
+      zip: "e.g. 95112",
     },
     hints: {
       transmission: "Specify the transmission.",
@@ -504,6 +512,8 @@ const EN: AutosNegociosCopy = {
       extPh: "Exterior color",
       intPh: "Interior color",
       titlePh: "Describe title status",
+      cityNorCal: "NorCal list: pick a canonical city for filters and data quality.",
+      zip: "5-digit US ZIP. Optional; improves search and future geofencing.",
     },
     actions: { preview: "View preview", reset: "Reset draft" },
     dealer: {

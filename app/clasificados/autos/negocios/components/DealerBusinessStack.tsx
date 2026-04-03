@@ -94,28 +94,28 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
       {showIdentity ? (
         <>
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] shadow-[0_4px_20px_-4px_rgba(42,36,22,0.12)] max-lg:h-[6rem] max-lg:w-[6rem] max-lg:rounded-[20px]">
+            <div className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] shadow-[0_6px_28px_-6px_rgba(42,36,22,0.14)] max-lg:h-[7.75rem] max-lg:w-[7.75rem] max-lg:rounded-[24px] lg:h-[6.75rem] lg:w-[6.75rem]">
               {data.dealerLogo ? (
                 data.dealerLogo.startsWith("data:") ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={data.dealerLogo} alt={logoAlt} className="h-full w-full object-contain p-2" />
+                  <img src={data.dealerLogo} alt={logoAlt} className="h-full w-full object-contain p-2.5" />
                 ) : (
                   <MediaImage
                     src={data.dealerLogo}
                     alt={logoAlt}
                     fill
-                    className="object-contain p-2"
-                    sizes="96px"
+                    className="object-contain p-2.5"
+                    sizes="128px"
                   />
                 )
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-base font-bold text-[color:var(--lx-muted)] max-lg:text-lg">
+                <div className="flex h-full w-full items-center justify-center text-lg font-bold text-[color:var(--lx-muted)] max-lg:text-xl">
                   {initials}
                 </div>
               )}
             </div>
             {nonEmpty(data.dealerName) ? (
-              <h2 className="mt-4 break-words text-lg font-extrabold leading-tight tracking-tight text-[color:var(--lx-text)] max-lg:text-xl max-lg:leading-snug">
+              <h2 className="mt-5 break-words text-lg font-extrabold leading-tight tracking-tight text-[color:var(--lx-text)] max-lg:mt-5 max-lg:text-xl max-lg:leading-snug">
                 {data.dealerName?.trim()}
               </h2>
             ) : null}

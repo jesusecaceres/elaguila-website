@@ -70,8 +70,14 @@ export type AutoDealerListing = {
   price?: number;
   monthlyEstimate?: string | null;
   mileage?: number;
+  /** Canonical NorCal city name (from `CityAutocomplete` + `getCanonicalCityName`); legacy drafts may be normalized on load. */
   city?: string;
   state?: string;
+  /**
+   * US ZIP: digits only, up to 5 while typing; filter/geo use when length is 5.
+   * Future: pair with lat/lng from ZIP centroid if needed.
+   */
+  zip?: string;
   vin?: string;
   stockNumber?: string;
   /** Select value; use `exteriorColorCustom` when this is `Otro`. */
