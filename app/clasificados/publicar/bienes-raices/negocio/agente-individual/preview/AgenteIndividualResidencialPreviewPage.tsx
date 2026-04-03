@@ -7,7 +7,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import newLogo from "@/public/logo.png";
+import leonixMediaWordmark from "@/public/bienes-raices/preview/leonix-media-wordmark.svg";
 import {
   BiArea,
   BiBath,
@@ -233,34 +233,35 @@ export function AgenteIndividualResidencialPreviewPage({
         className="border-b backdrop-blur-sm"
         style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.92)" }}
       >
-        <div className="mx-auto max-w-[1140px] px-4 py-4 sm:px-6 sm:py-5 lg:px-7 lg:py-6">
-          <div className="relative flex min-h-[6.5rem] items-center sm:min-h-[7.5rem] lg:min-h-[168px]">
-            <div className="relative z-10 min-w-0 flex-1 pr-3">
+        <div className="mx-auto max-w-[1140px] px-4 py-3 sm:px-6 sm:py-3.5 lg:px-7 lg:py-4">
+          <div className="relative flex min-h-[2.875rem] items-center sm:min-h-[3.125rem]">
+            <div className="relative z-10 min-w-0 max-w-[38%] flex-1 pr-2 sm:max-w-[42%] sm:pr-3">
               <p
-                className="truncate text-left text-[11px] font-semibold normal-case leading-snug tracking-[0.1em] text-[#4A4338]/88 sm:text-[12px]"
-                style={{ fontVariantNumeric: "tabular-nums" }}
+                className="line-clamp-2 text-left text-[13px] font-bold leading-tight tracking-[-0.01em] text-[#2C2416] sm:text-[14px] sm:leading-snug"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "tabular-nums" }}
                 title={p.badge}
               >
                 {p.badge}
               </p>
             </div>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(4.5rem,22vw,10rem)]">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(6.5rem,30vw,11rem)]">
               <Image
-                src={newLogo}
-                alt="LEONIX"
-                width={168}
-                height={168}
-                sizes="(max-width: 1023px) 96px, 168px"
-                className="size-24 object-contain object-center sm:size-28 md:size-[140px] lg:size-[168px]"
+                src={leonixMediaWordmark}
+                alt="Leonix Media"
+                width={288}
+                height={44}
+                sizes="(max-width: 640px) 200px, (max-width: 1024px) 240px, 280px"
+                className="h-8 w-auto max-h-9 max-w-[min(280px,58vw)] object-contain object-center sm:h-9 sm:max-h-10 sm:max-w-[min(300px,52vw)]"
                 priority
               />
             </div>
-            <div className="relative z-10 flex min-h-[1.25rem] min-w-0 flex-1 items-center justify-end pl-3">
+            <div className="relative z-10 flex min-w-0 max-w-[38%] flex-1 items-center justify-end pl-2 sm:max-w-[42%] sm:pl-3">
               {editHref ? (
                 <Link
                   href={editHref}
                   prefetch={false}
-                  className="whitespace-nowrap text-right text-[10px] font-medium uppercase tracking-[0.1em] text-[#B8954A] underline decoration-[#c4a85a]/40 underline-offset-[3px] transition hover:decoration-[#B8954A]"
+                  className="inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full border border-[#C9B46A]/50 bg-[rgba(255,252,247,0.95)] px-2.5 py-1.5 text-center text-[9px] font-semibold uppercase leading-none tracking-[0.08em] text-[#5C4A28] shadow-[0_1px_2px_rgba(44,36,22,0.06)] transition hover:border-[#B8954A]/65 hover:bg-[#FFF6E7] sm:px-3 sm:text-[10px]"
+                  style={{ borderColor: "rgba(201, 180, 106, 0.42)" }}
                   onClick={() => onBeforeNavigateToEdit?.()}
                 >
                   {p.volverEditar}
