@@ -85,7 +85,9 @@ export default function PublicarRootPage() {
         ? `${BR_PUBLICAR_HUB}?${p.toString()}`
         : deepLinkCat === "autos"
           ? `/publicar/autos?${p.toString()}`
-          : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+          : deepLinkCat === "servicios"
+            ? `/servicios/publicar?${p.toString()}`
+            : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -185,7 +187,9 @@ export default function PublicarRootPage() {
               const href =
                 key === "autos"
                   ? withLangParam("/publicar/autos", lang === "en" ? "en" : "es")
-                  : `/clasificados/publicar/${key}?lang=${lang}`;
+                  : key === "servicios"
+                    ? `/servicios/publicar?lang=${lang}`
+                    : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

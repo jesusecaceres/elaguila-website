@@ -38,6 +38,10 @@ export default function PublicarCategoryPage() {
       router.replace(`/publicar/autos?lang=${lang}`);
       return;
     }
+    if (categoryFromUrl === "servicios") {
+      router.replace(`/servicios/publicar?lang=${lang}`);
+      return;
+    }
     if (!categoryFromUrl) {
       router.replace(`/clasificados/publicar?lang=${lang}`);
     }
@@ -48,7 +52,8 @@ export default function PublicarCategoryPage() {
     slug === "br" ||
     !categoryFromUrl ||
     categoryFromUrl === "en-venta" ||
-    categoryFromUrl === "autos"
+    categoryFromUrl === "autos" ||
+    categoryFromUrl === "servicios"
   ) {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
