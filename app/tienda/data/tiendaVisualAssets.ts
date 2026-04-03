@@ -14,8 +14,14 @@ function us(id: string, w: number) {
   return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=85`;
 }
 
-/** Desk stack — reads instantly as premium business cards (category, hero, catalog). */
-const PHOTO_BUSINESS_CARDS_STACK = us("photo-1589829545856-d10d557cf95f", 1600);
+/** Blank stacked cards — reads as real business cards (not legal/scales stock). */
+const PHOTO_BUSINESS_CARDS_STACK = us("photo-1623305466040-b753da413c9b", 1600);
+/** Printed sheets / handouts on a table — campaign flyers, not laptop/office scenes. */
+const PHOTO_FLYERS_HANDOUTS = us("photo-1598819672741-3989ede3cb45", 1600);
+/** Magazine/catalog stack — mixed marketing print. */
+const PHOTO_MARKETING_PRINT_MIX = us("photo-1530669731069-48706bc794ab", 1600);
+/** Gift-wrapped boxes — promo / giveaway bundle energy. */
+const PHOTO_PROMO_GIFT_BUNDLE = us("photo-1513885535751-8b9238bd345a", 1600);
 /** Last-resort neutral print context */
 export const TIENDA_GLOBAL_FALLBACK_IMAGE = `${V}/fallback-premium-print.svg`;
 
@@ -37,18 +43,13 @@ const CATEGORY_LITERAL: Record<TiendaCategorySlug, string> = {
 /** Product‑truthful photography per category (premium print / retail context). */
 const CATEGORY_PHOTO: Record<TiendaCategorySlug, string> = {
   "business-cards": PHOTO_BUSINESS_CARDS_STACK,
-  /** Leaflets / promo sheets — reads as campaign print, distinct from brochures. */
-  flyers: us("photo-1557804506-669a67965ba0", 1600),
-  /** Folded editorial — brochure truth. */
+  flyers: PHOTO_FLYERS_HANDOUTS,
   brochures: us("photo-1543002588-bfa74002ed7e", 1600),
   banners: us("photo-1505373877841-8d25f7d46678", 1600),
   signs: us("photo-1558618666-fcd25c85cd64", 1600),
-  /** Color-forward sticker/label wall — more “retail merch” energy than flat stock. */
   "stickers-labels": us("photo-1556228720-195a672e8a03", 1600),
-  /** Promo table / retail counter — breadth of merch possibilities. */
-  "promo-products": us("photo-1556742049-0cfed4f6a45d", 1600),
-  /** Editorial / mailer context — distinct from flyers + brochures covers. */
-  "marketing-materials": us("photo-1544716278-ca390e02658a", 1600),
+  "promo-products": PHOTO_PROMO_GIFT_BUNDLE,
+  "marketing-materials": PHOTO_MARKETING_PRINT_MIX,
 };
 
 /** Literal SVG for category (backup + admin/catalog truth). */
@@ -86,22 +87,19 @@ const FAMILY_LITERAL: Record<string, string> = {
 };
 
 const FAMILY_PHOTO: Record<string, string> = {
-  /** Premium stack — reads clearly as real business cards (avoid ambiguous flat-lay stock). */
   "standard-business-cards": PHOTO_BUSINESS_CARDS_STACK,
-  /** Front + back mockup (SVG) — clearer than unrelated stock for “dos lados”. */
   "two-sided-business-cards": `${V}/product-two-sided-business-cards.svg`,
-  "flyers-standard": us("photo-1557804506-669a67965ba0", 1600),
+  "flyers-standard": PHOTO_FLYERS_HANDOUTS,
   "brochures-standard": us("photo-1543002588-bfa74002ed7e", 1600),
   "retractable-banners": us("photo-1511578311128-61b9dd992832", 1600),
   "yard-signs": us("photo-1558618666-fcd25c85cd64", 1600),
   "stickers-standard": us("photo-1556228720-195a672e8a03", 1600),
-  "postcards-standard": us("photo-1544716278-ca390e02658a", 1600),
-  /** Colorful swag / gift bags — not the same table shot as category hero. */
-  "promo-giveaways": us("photo-1526178819929-0c4bd8e7ab7e", 1600),
-  "promo-pens": us("photo-1585386959984-ba415c6d906d", 1600),
-  "promo-drinkware": us("photo-1495474472287-4d71bddd7c6d", 1600),
-  "promo-bags": us("photo-1597484661643-2f5fef640dd1", 1600),
-  "promo-desk-office": us("photo-1518455021857-6ce2b496e5f0", 1600),
+  "postcards-standard": us("photo-1513519245088-0e12902e5a38", 1600),
+  "promo-giveaways": PHOTO_PROMO_GIFT_BUNDLE,
+  "promo-pens": us("photo-1513542789411-b6a5d4f31634", 1600),
+  "promo-drinkware": us("photo-1514228742587-6b1558fcca3d", 1600),
+  "promo-bags": us("photo-1590874103328-eac38a683ce7", 1600),
+  "promo-desk-office": us("photo-1503602642458-232111445657", 1600),
   "promo-apparel-program": us("photo-1521572163474-6864f9cf17ab", 1600),
 };
 
@@ -158,13 +156,13 @@ export const businessCardGatewayVisuals = {
 /* -------------------------------------------------------------------------- */
 
 export const tiendaHeroAssets = {
-  businessCards: us("photo-1589829545856-d10d557cf95f", 1800),
+  businessCards: us("photo-1623305466040-b753da413c9b", 1800),
   bannersSigns: us("photo-1531243269054-5ebf6f0526bb", 1800),
   printWorkflow: us("photo-1454165804606-c3d57bc86b40", 1800),
-  thumbFlyers: us("photo-1557804506-669a67965ba0", 800),
+  thumbFlyers: us("photo-1598819672741-3989ede3cb45", 800),
   thumbBrochures: us("photo-1543002588-bfa74002ed7e", 800),
   thumbStickers: us("photo-1556228720-195a672e8a03", 800),
-  thumbPromo: us("photo-1607082348824-0a96f2a4b9da", 800),
+  thumbPromo: us("photo-1513885535751-8b9238bd345a", 800),
 } as const;
 
 /** SVG fallbacks for hero tiles (match previous literals). */
@@ -208,14 +206,14 @@ export type MarketingShowcaseItem = {
   label: { en: string; es: string };
 };
 
-/** Editorial / hospitality / campaign print — visual variety for the marketing-materials category page. */
+/** Strict product‑literal tiles — order matches the merchandising brief. */
 export const marketingMaterialsShowcaseItems: MarketingShowcaseItem[] = [
-  { photo: us("photo-1506784983877-45594afb7a29", 1400), label: { en: "Calendars", es: "Calendarios" } },
-  { photo: us("photo-1555396273-367ea4eb4db1", 1400), label: { en: "Menus", es: "Menús" } },
+  { photo: us("photo-1631972757546-a9c28c924c2b", 1400), label: { en: "Calendars", es: "Calendarios" } },
+  { photo: us("photo-1695634365294-7e50d731722b", 1400), label: { en: "Catalogs", es: "Catálogos" } },
+  { photo: us("photo-1636314326111-b7fa652a3abf", 1400), label: { en: "Counter cards", es: "Tarjetas de mostrador" } },
+  { photo: us("photo-1557499305-bd68d0ad468d", 1400), label: { en: "Menus", es: "Menús" } },
   { photo: us("photo-1513519245088-0e12902e5a38", 1400), label: { en: "Greeting cards", es: "Tarjetas de felicitación" } },
-  { photo: us("photo-1507003211169-0a1dd7228f2d", 1400), label: { en: "Posters", es: "Posters" } },
-  { photo: us("photo-1542744173-053420fdf4a8", 1400), label: { en: "Table tents & signs", es: "Letreros de mesa" } },
-  { photo: us("photo-1517842645767-b957828e2608", 1400), label: { en: "Notepads", es: "Libretas y blocs" } },
-  { photo: us("photo-1544947950-fa07a98d237f", 1400), label: { en: "Catalogs & booklets", es: "Catálogos y folletos" } },
-  { photo: us("photo-1586953208448-58f941f0e9f0", 1400), label: { en: "Counter cards & retail", es: "Material de mostrador" } },
+  { photo: us("photo-1536236397240-9b229a37a286", 1400), label: { en: "Table tents", es: "Letreros de mesa" } },
+  { photo: us("photo-1572700433449-72c797656fe5", 1400), label: { en: "Posters", es: "Posters" } },
+  { photo: us("photo-1581431886211-6b932f8367f2", 1400), label: { en: "Notepads", es: "Libretas y blocs" } },
 ];

@@ -377,6 +377,30 @@ export function Step07InformacionProfesional({
         <AiField label={s7.licencia} hint={s7.licenciaHint}>
           <input className={aiInputClass} value={state.agenteLicencia} onChange={(e) => setState((s) => ({ ...s, agenteLicencia: e.target.value }))} autoComplete="off" />
         </AiField>
+        <div className="sm:col-span-2">
+          <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
+          <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <AiField label={s7.instagram}>
+              <input className={aiInputClass} type="url" value={state.socialInstagram} onChange={(e) => setState((s) => ({ ...s, socialInstagram: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.facebook}>
+              <input className={aiInputClass} type="url" value={state.socialFacebook} onChange={(e) => setState((s) => ({ ...s, socialFacebook: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.youtube}>
+              <input className={aiInputClass} type="url" value={state.socialYoutube} onChange={(e) => setState((s) => ({ ...s, socialYoutube: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.tiktok}>
+              <input className={aiInputClass} type="url" value={state.socialTiktok} onChange={(e) => setState((s) => ({ ...s, socialTiktok: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.x}>
+              <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.otroSocial}>
+              <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+          </div>
+        </div>
       </div>
     </>
   );
@@ -562,29 +586,6 @@ export function Step07InformacionProfesional({
           </div>
         </div>
       )}
-
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
-      <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <AiField label={s7.instagram}>
-          <input className={aiInputClass} type="url" value={state.socialInstagram} onChange={(e) => setState((s) => ({ ...s, socialInstagram: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.facebook}>
-          <input className={aiInputClass} type="url" value={state.socialFacebook} onChange={(e) => setState((s) => ({ ...s, socialFacebook: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.youtube}>
-          <input className={aiInputClass} type="url" value={state.socialYoutube} onChange={(e) => setState((s) => ({ ...s, socialYoutube: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.tiktok}>
-          <input className={aiInputClass} type="url" value={state.socialTiktok} onChange={(e) => setState((s) => ({ ...s, socialTiktok: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.x}>
-          <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.otroSocial}>
-          <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <AiField label={s7.areaServicio}>
@@ -869,32 +870,6 @@ export function Step09ExtrasOpcionales({
             >
               {s9.agregarOpenHouse}
             </button>
-          ) : null}
-        </div>
-        <div>
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-[#C9B46A]"
-              checked={state.extraAsesorFinanciero}
-              onChange={(e) => setState((s) => ({ ...s, extraAsesorFinanciero: e.target.checked }))}
-            />
-            {s9.asesorFin}
-          </label>
-          {state.extraAsesorFinanciero ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <AiField label={s9.nombreAsesor}>
-                <input className={aiInputClass} value={state.asesorNombre} onChange={(e) => setState((s) => ({ ...s, asesorNombre: e.target.value }))} autoComplete="name" />
-              </AiField>
-              <AiField label={s9.telAsesor}>
-                <input className={aiInputClass} value={state.asesorTelefono} onChange={(e) => setState((s) => ({ ...s, asesorTelefono: e.target.value }))} autoComplete="tel" />
-              </AiField>
-              <div className="sm:col-span-2">
-                <AiField label={s9.correoAsesor}>
-                  <input type="email" className={aiInputClass} value={state.asesorEmail} onChange={(e) => setState((s) => ({ ...s, asesorEmail: e.target.value }))} autoComplete="email" />
-                </AiField>
-              </div>
-            </div>
           ) : null}
         </div>
       </div>

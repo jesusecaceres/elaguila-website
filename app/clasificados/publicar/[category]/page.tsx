@@ -39,7 +39,7 @@ export default function PublicarCategoryPage() {
       return;
     }
     if (categoryFromUrl === "servicios") {
-      router.replace(`/servicios/publicar?lang=${lang}`);
+      router.replace(`/clasificados/publicar/servicios?lang=${lang}`);
       return;
     }
     if (!categoryFromUrl) {

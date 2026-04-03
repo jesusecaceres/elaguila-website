@@ -586,7 +586,13 @@ export function hasSecondAgentRailContent(s: AgenteIndividualResidencialFormStat
       trim(s.agente2Titulo) ||
       trim(s.agente2Licencia) ||
       trim(s.agente2Telefono) ||
-      trim(s.agente2Correo),
+      trim(s.agente2Correo) ||
+      trim(s.agente2SocialInstagram) ||
+      trim(s.agente2SocialFacebook) ||
+      trim(s.agente2SocialYoutube) ||
+      trim(s.agente2SocialTiktok) ||
+      trim(s.agente2SocialX) ||
+      trim(s.agente2SocialOtro),
   );
 }
 
@@ -624,13 +630,24 @@ export function buildBrokerSupportBlock(s: AgenteIndividualResidencialFormState)
   };
 }
 
-export type AsesorBlock = { name: string; phone: string; email: string };
-
-export function buildAsesorBlock(s: AgenteIndividualResidencialFormState): AsesorBlock | null {
-  if (!s.extraAsesorFinanciero || !trim(s.asesorNombre)) return null;
-  return {
-    name: trim(s.asesorNombre),
-    phone: trim(s.asesorTelefono),
-    email: trim(s.asesorEmail),
-  };
+/** Iconos de redes para la tarjeta secundaria del segundo agente (independiente del interruptor principal). */
+export function buildSecondAgentSocialHrefs(s: AgenteIndividualResidencialFormState): {
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialYoutube: string | null;
+  socialTiktok: string | null;
+  socialX: string | null;
+  socialOtro: string | null;
+  showRow: boolean;
+} {
+  const socialInstagram = resolveAnyHref(s.agente2SocialInstagram);
+  const socialFacebook = resolveAnyHref(s.agente2SocialFacebook);
+  const socialYoutube = resolveAnyHref(s.agente2SocialYoutube);
+  const socialTiktok = resolveAnyHref(s.agente2SocialTiktok);
+  const socialX = resolveAnyHref(s.agente2SocialX);
+  const socialOtro = resolveAnyHref(s.agente2SocialOtro);
+  const showRow = Boolean(
+    socialInstagram || socialFacebook || socialYoutube || socialTiktok || socialX || socialOtro,
+  );
+  return { socialInstagram, socialFacebook, socialYoutube, socialTiktok, socialX, socialOtro, showRow };
 }

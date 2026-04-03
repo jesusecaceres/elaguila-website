@@ -165,6 +165,13 @@ export type AgenteIndividualResidencialFormState = {
   agente2Licencia: string;
   agente2Telefono: string;
   agente2Correo: string;
+  /** Redes del segundo agente (vista previa: iconos en la tarjeta secundaria). */
+  agente2SocialInstagram: string;
+  agente2SocialFacebook: string;
+  agente2SocialYoutube: string;
+  agente2SocialTiktok: string;
+  agente2SocialX: string;
+  agente2SocialOtro: string;
 
   /** Broker o asesor de apoyo — sección inferior en vista previa, no rail. */
   mostrarBrokerAsesor: boolean;
@@ -220,6 +227,10 @@ export type AgenteIndividualResidencialFormState = {
   /** Open house repetible (máx. `AGENTE_RES_MAX_OPEN_HOUSE_SLOTS`). */
   openHouseSlots: AgenteResOpenHouseSlot[];
 
+  /**
+   * @deprecated Extras «Asesor financiero» eliminados del formulario; conservado para borradores.
+   * `mergePartialAgenteIndividualResidencial` reenvía datos al bloque broker/asesor si aplica.
+   */
   extraAsesorFinanciero: boolean;
   asesorNombre: string;
   asesorTelefono: string;
@@ -473,6 +484,12 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     agente2Licencia: "",
     agente2Telefono: "",
     agente2Correo: "",
+    agente2SocialInstagram: "",
+    agente2SocialFacebook: "",
+    agente2SocialYoutube: "",
+    agente2SocialTiktok: "",
+    agente2SocialX: "",
+    agente2SocialOtro: "",
 
     mostrarBrokerAsesor: false,
     brokerNombre: "",
@@ -578,7 +595,13 @@ function inferMostrarSegundoAgente(
       trim(peek.agente2Titulo) ||
       trim(peek.agente2Licencia) ||
       trim(peek.agente2Telefono) ||
-      trim(peek.agente2Correo),
+      trim(peek.agente2Correo) ||
+      trim(peek.agente2SocialInstagram) ||
+      trim(peek.agente2SocialFacebook) ||
+      trim(peek.agente2SocialYoutube) ||
+      trim(peek.agente2SocialTiktok) ||
+      trim(peek.agente2SocialX) ||
+      trim(peek.agente2SocialOtro),
   );
 }
 
@@ -603,6 +626,20 @@ function inferMostrarBrokerAsesor(
       trim(peek.brokerX) ||
       trim(peek.brokerOtro),
   );
+}
+
+/** Antiguo «Asesor financiero» (extras) → bloque broker/asesor inferior si no hay broker nuevo. */
+function migrateLegacyAsesorFinancieroToBroker(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialFormState {
+  if (trim(s.brokerNombre)) return s;
+  const n = trim(s.asesorNombre);
+  if (!n) return s;
+  return {
+    ...s,
+    brokerNombre: n,
+    brokerTelefono: trim(s.brokerTelefono) || trim(s.asesorTelefono),
+    brokerEmail: trim(s.brokerEmail) || trim(s.asesorEmail),
+    mostrarBrokerAsesor: true,
+  };
 }
 
 export function mergePartialAgenteIndividualResidencial(
@@ -696,16 +733,9 @@ export function mergePartialAgenteIndividualResidencial(
     flat.categoriaPropiedad ?? nested.categoriaPropiedad ?? legacy.categoriaPropiedad,
   );
 
-  const peek: Partial<AgenteIndividualResidencialFormState> = {
-    ...base,
-    ...nested,
-    ...flat,
-    sellerTipo,
-    categoriaPropiedad,
-  };
   const openHouseSlotsMerged = mergeOpenHouseSlots(flat, nested, legacy, base);
 
-  return {
+  const merged: AgenteIndividualResidencialFormState = {
     ...base,
     ...nested,
     ...flat,
@@ -713,8 +743,6 @@ export function mergePartialAgenteIndividualResidencial(
     sellerTipo,
     categoriaPropiedad,
     openHouseSlots: openHouseSlotsMerged,
-    mostrarSegundoAgente: inferMostrarSegundoAgente(flat, nested, peek),
-    mostrarBrokerAsesor: inferMostrarBrokerAsesor(flat, nested, peek),
     ciudad,
     mostrarMarcaEnTarjeta,
     estadoAnuncio: coerceEstado(flat.estadoAnuncio ?? nested.estadoAnuncio ?? base.estadoAnuncio),
@@ -734,5 +762,13 @@ export function mergePartialAgenteIndividualResidencial(
       ...(nested.destacados ?? {}),
       ...(flat.destacados ?? {}),
     },
+  };
+
+  const withLegacyBroker = migrateLegacyAsesorFinancieroToBroker(merged);
+
+  return {
+    ...withLegacyBroker,
+    mostrarSegundoAgente: inferMostrarSegundoAgente(flat, nested, withLegacyBroker),
+    mostrarBrokerAsesor: inferMostrarBrokerAsesor(flat, nested, withLegacyBroker),
   };
 }

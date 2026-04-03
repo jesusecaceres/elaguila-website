@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { tiendaCopy, pick } from "./data/tiendaCopy";
 import { tiendaCategoryBySlug } from "./data/tiendaCategories";
 import {
@@ -7,11 +6,9 @@ import {
   storefrontGroupGridClass,
   tiendaStorefrontGroups,
 } from "./data/tiendaMerchandising";
-import { tiendaFeaturedProducts } from "./data/tiendaFeaturedProducts";
 import { TiendaHero } from "./components/TiendaHero";
 import { TiendaSectionHeading } from "./components/TiendaSectionHeading";
 import { TiendaCategoryCard } from "./components/TiendaCategoryCard";
-import { TiendaFeaturedProductCard } from "./components/TiendaFeaturedProductCard";
 import { TiendaHowItWorks } from "./components/TiendaHowItWorks";
 import { TiendaTrustStrip } from "./components/TiendaTrustStrip";
 import { TiendaCTA } from "./components/TiendaCTA";
@@ -102,20 +99,6 @@ export default async function TiendaPage(props: {
           </div>
         </section>
 
-        {/* 3) BEST SELLERS / READY TO ORDER */}
-        <section className="mt-16 sm:mt-20">
-          <TiendaSectionHeading
-            eyebrow={pick(tiendaCopy.sections.featured.eyebrow, lang)}
-            title={pick(tiendaCopy.sections.featured.title, lang)}
-            description={pick(tiendaCopy.sections.featured.description, lang)}
-          />
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tiendaFeaturedProducts.map((p) => (
-              <TiendaFeaturedProductCard key={p.id} product={p} lang={lang} />
-            ))}
-          </div>
-        </section>
-
         {featuredCatalog.length > 0 ? (
           <section className="mt-16 sm:mt-20">
             <TiendaSectionHeading
@@ -140,7 +123,7 @@ export default async function TiendaPage(props: {
           </section>
         ) : null}
 
-        {/* 4) HOW IT WORKS */}
+        {/* 3) HOW IT WORKS */}
         <section className="mt-16 sm:mt-20">
           <TiendaSectionHeading
             eyebrow={pick(tiendaCopy.sections.howItWorks.eyebrow, lang)}
@@ -159,7 +142,7 @@ export default async function TiendaPage(props: {
           </div>
         </section>
 
-        {/* 5) TRUST / QUALITY SECTION */}
+        {/* 4) TRUST / QUALITY SECTION */}
         <section className="mt-16 sm:mt-20">
           <TiendaSectionHeading
             eyebrow={pick(tiendaCopy.sections.trust.eyebrow, lang)}
@@ -173,7 +156,7 @@ export default async function TiendaPage(props: {
           </div>
         </section>
 
-        {/* 6) FINAL CTA STRIP */}
+        {/* 5) FINAL CTA STRIP */}
         <section className="mt-16 sm:mt-20">
           <TiendaCTA
             lang={lang}

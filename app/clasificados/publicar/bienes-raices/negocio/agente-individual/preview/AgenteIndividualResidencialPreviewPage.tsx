@@ -21,7 +21,6 @@ import { SiFacebook, SiInstagram, SiTiktok, SiX, SiYoutube } from "react-icons/s
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import type { QuickFactKey } from "../lib/agenteResidencialPreviewFormat";
 import {
-  buildAsesorBlock,
   buildBrokerSupportBlock,
   buildContactModel,
   buildDestacadosLabels,
@@ -31,6 +30,7 @@ import {
   buildOpenHouseSlotSummaries,
   buildPropertyDetailRows,
   buildQuickFacts,
+  buildSecondAgentSocialHrefs,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
   formatPreviewPhoneDisplay,
@@ -205,7 +205,7 @@ export function AgenteIndividualResidencialPreviewPage({
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
   const openHouseSummaries = buildOpenHouseSlotSummaries(data, locale);
   const brokerSupportBlock = buildBrokerSupportBlock(data);
-  const asesorBlock = buildAsesorBlock(data);
+  const agente2Social = buildSecondAgentSocialHrefs(data);
   const opLine = formatTipoPublicacionFijoLine(data, locale);
 
   const agentLicenseLine = trim(data.agenteLicencia) ? `${p.licenciaAgente} ${trim(data.agenteLicencia)}` : "";
@@ -234,8 +234,6 @@ export function AgenteIndividualResidencialPreviewPage({
   const videoSlideIndex = photoUrlsOrdered.length;
 
   const phoneCardDisplay = formatPreviewPhoneDisplay(trim(data.telefonoPrincipal));
-  const asesorPhoneDisplay = asesorBlock ? formatPreviewPhoneDisplay(asesorBlock.phone) : "";
-
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <header
@@ -742,18 +740,6 @@ export function AgenteIndividualResidencialPreviewPage({
                       </div>
                     </div>
                   ) : null}
-                  {asesorBlock ? (
-                    <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-                      <div className={CARD_PAD}>
-                        <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                          {p.contactoFin}
-                        </h4>
-                        <p className={`${typo.body} font-semibold`}>{asesorBlock.name}</p>
-                        <p className={typo.body}>{asesorPhoneDisplay}</p>
-                        <p className={`mt-0.5 truncate ${typo.bodySm} opacity-90`}>{asesorBlock.email}</p>
-                      </div>
-                    </div>
-                  ) : null}
                   {mapQuery ? (
                     <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={`${CARD_PAD} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}>
@@ -913,6 +899,40 @@ export function AgenteIndividualResidencialPreviewPage({
                         {agente2PhoneDisplay ? <p className="text-xs font-semibold">{agente2PhoneDisplay}</p> : null}
                         {trim(data.agente2Correo) ? (
                           <p className={`truncate text-[11px] opacity-90`}>{trim(data.agente2Correo)}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {agente2Social.showRow ? (
+                      <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
+                        {agente2Social.socialInstagram ? (
+                          <SocialCircle href={agente2Social.socialInstagram} label="Instagram">
+                            <SiInstagram className="h-3.5 w-3.5" aria-hidden />
+                          </SocialCircle>
+                        ) : null}
+                        {agente2Social.socialFacebook ? (
+                          <SocialCircle href={agente2Social.socialFacebook} label="Facebook">
+                            <SiFacebook className="h-3.5 w-3.5" aria-hidden />
+                          </SocialCircle>
+                        ) : null}
+                        {agente2Social.socialYoutube ? (
+                          <SocialCircle href={agente2Social.socialYoutube} label="YouTube">
+                            <SiYoutube className="h-3.5 w-3.5" aria-hidden />
+                          </SocialCircle>
+                        ) : null}
+                        {agente2Social.socialTiktok ? (
+                          <SocialCircle href={agente2Social.socialTiktok} label="TikTok">
+                            <SiTiktok className="h-3.5 w-3.5" aria-hidden />
+                          </SocialCircle>
+                        ) : null}
+                        {agente2Social.socialX ? (
+                          <SocialCircle href={agente2Social.socialX} label="X">
+                            <SiX className="h-3 w-3" aria-hidden />
+                          </SocialCircle>
+                        ) : null}
+                        {agente2Social.socialOtro ? (
+                          <SocialCircle href={agente2Social.socialOtro} label="Enlace">
+                            <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
+                          </SocialCircle>
                         ) : null}
                       </div>
                     ) : null}

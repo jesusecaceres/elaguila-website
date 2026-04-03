@@ -86,7 +86,7 @@ export default function PublicarRootPage() {
         : deepLinkCat === "autos"
           ? `/publicar/autos?${p.toString()}`
           : deepLinkCat === "servicios"
-            ? `/servicios/publicar?${p.toString()}`
+            ? `/clasificados/publicar/servicios?${p.toString()}`
             : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
@@ -188,7 +188,7 @@ export default function PublicarRootPage() {
                 key === "autos"
                   ? withLangParam("/publicar/autos", lang === "en" ? "en" : "es")
                   : key === "servicios"
-                    ? `/servicios/publicar?lang=${lang}`
+                    ? `/clasificados/publicar/servicios?lang=${lang}`
                     : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link

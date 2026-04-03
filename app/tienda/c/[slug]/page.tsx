@@ -11,7 +11,6 @@ import { TiendaProductFamilyCard } from "../../components/TiendaProductFamilyCar
 import { TiendaPromoFamilyQuickNav } from "../../components/TiendaPromoFamilyQuickNav";
 import { TiendaMarketingMaterialsShowcase } from "../../components/TiendaMarketingMaterialsShowcase";
 import { TiendaInfoPanel } from "../../components/TiendaInfoPanel";
-import { TiendaSupportPanel } from "../../components/TiendaSupportPanel";
 import { TiendaCTA } from "../../components/TiendaCTA";
 import { listTiendaCatalogItemsPublic, fetchPrimaryImageUrlForItems } from "@/app/lib/tienda/tiendaCatalogQueries";
 import { TiendaCatalogItemCard } from "../../components/catalog/TiendaCatalogItemCard";
@@ -120,19 +119,6 @@ export default async function TiendaCategoryPage(props: {
           <TiendaInfoPanel title={pick(tiendaCopy.sections.categoryPage.categoryWorks, lang)}>
             <p>{howWorks}</p>
           </TiendaInfoPanel>
-        </section>
-
-        <section className="mt-10">
-          <TiendaSupportPanel
-            lang={lang}
-            title={lang === "en" ? "Need help?" : "¿Necesitas ayuda?"}
-            body={
-              lang === "en"
-                ? "Custom layouts, specialty stocks, or missing files—Leonix can guide you."
-                : "Layouts especiales, papeles distintos o archivos faltantes—Leonix te orienta."
-            }
-            message={supportMsg}
-          />
         </section>
 
         <section className="mt-12">
