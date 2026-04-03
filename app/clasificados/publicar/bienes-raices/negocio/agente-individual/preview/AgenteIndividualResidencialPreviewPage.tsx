@@ -4,8 +4,10 @@
  */
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import newLogo from "@/public/logo.png";
 import {
   BiArea,
   BiBath,
@@ -231,29 +233,40 @@ export function AgenteIndividualResidencialPreviewPage({
         className="border-b backdrop-blur-sm"
         style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.92)" }}
       >
-        <div className="mx-auto flex max-w-[1140px] flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6 lg:px-7">
-          <div className="flex items-center gap-2">
-            <a href="/clasificados" className={`${typo.meta} tracking-[0.16em]`} style={{ color: MUTED }}>
-              LEONIX
-            </a>
-            <span
-              className="rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]"
-              style={{ borderColor: BORDER, color: MUTED }}
-            >
-              {p.badge}
-            </span>
+        <div className="mx-auto max-w-[1140px] px-4 py-3.5 sm:px-6 sm:py-4 lg:px-7">
+          <div className="relative flex min-h-[2.5rem] items-center sm:min-h-[2.75rem]">
+            <div className="relative z-10 min-w-0 flex-1 pr-3">
+              <p
+                className="truncate text-left text-[10px] font-medium normal-case leading-snug tracking-[0.08em] text-[#5C5346]/72"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+                title={p.badge}
+              >
+                {p.badge}
+              </p>
+            </div>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(5.5rem,26vw,9rem)]">
+              <Image
+                src={newLogo}
+                alt="LEONIX"
+                width={112}
+                height={34}
+                className="h-7 w-auto max-h-8 max-w-[min(112px,30vw)] object-contain object-center sm:h-8"
+                priority
+              />
+            </div>
+            <div className="relative z-10 flex min-h-[1.25rem] min-w-0 flex-1 items-center justify-end pl-3">
+              {editHref ? (
+                <Link
+                  href={editHref}
+                  prefetch={false}
+                  className="whitespace-nowrap text-right text-[10px] font-medium uppercase tracking-[0.1em] text-[#B8954A] underline decoration-[#c4a85a]/40 underline-offset-[3px] transition hover:decoration-[#B8954A]"
+                  onClick={() => onBeforeNavigateToEdit?.()}
+                >
+                  {p.volverEditar}
+                </Link>
+              ) : null}
+            </div>
           </div>
-          {editHref ? (
-            <Link
-              href={editHref}
-              prefetch={false}
-              className={`${typo.meta} underline decoration-[#c4a85a]/40 underline-offset-4 transition hover:decoration-[#B8954A]`}
-              style={{ color: BRONZE }}
-              onClick={() => onBeforeNavigateToEdit?.()}
-            >
-              {p.volverEditar}
-            </Link>
-          ) : null}
         </div>
       </header>
 
