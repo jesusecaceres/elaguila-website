@@ -1,0 +1,367 @@
+import Image from "next/image";
+import Link from "next/link";
+import { FiMail, FiMapPin, FiPhone, FiVideo, FiInstagram, FiFacebook } from "react-icons/fi";
+import { FaTiktok, FaWhatsapp } from "react-icons/fa";
+import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
+
+const CARD =
+  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
+
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div
+      className="flex items-center gap-0.5"
+      role="img"
+      aria-label={`${rating.toFixed(1)} de 5 estrellas`}
+    >
+      {Array.from({ length: 5 }, (_, i) => {
+        const v = rating - i;
+        const pct = Math.round(Math.min(1, Math.max(0, v)) * 100);
+        return (
+          <span key={i} className="relative h-4 w-[1.05em] text-[15px] leading-none">
+            <span className="absolute text-white/35" aria-hidden>
+              ★
+            </span>
+            <span className="absolute overflow-hidden text-[#f0d78c]" style={{ width: `${pct}%` }} aria-hidden>
+              ★
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function mapsHref(query: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {
+  const open = data.hoursPreview.status === "open";
+
+  return (
+    <main className="mx-auto mt-6 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
+      {/* 1. HERO */}
+      <section className="relative overflow-hidden rounded-[24px] border border-black/8 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.45)]">
+        <div className="relative min-h-[min(72vh,640px)] w-full">
+          <Image
+            src={data.heroImageUrl}
+            alt={data.heroImageAlt}
+            fill
+            priority
+            className="object-cover"
+            sizes="(max-width:1280px) 100vw, 1280px"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/35 to-black/10"
+            aria-hidden
+          />
+          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-6 p-6 pb-36 sm:p-8 sm:pb-40 md:p-10 md:pb-44">
+            <div className="max-w-3xl">
+              <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.35rem] md:leading-[1.1]">
+                {data.businessName}
+              </h1>
+              {data.trustRating ? (
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/95">
+                  <StarRow rating={Math.min(5, data.trustRating.average)} />
+                  <span className="font-semibold tabular-nums">
+                    {data.trustRating.average.toFixed(1)}
+                  </span>
+                  <span className="text-white/75">
+                    ({data.trustRating.count.toLocaleString("es-US")} valoraciones)
+                  </span>
+                </div>
+              ) : null}
+              <p className="mt-2 text-[15px] font-medium text-white/88 sm:text-base">{data.cuisineTypeLine}</p>
+              <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/92 sm:text-base">
+                {data.summaryShort}
+              </p>
+              <div id="horarios" className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <p className="text-sm">
+                  <span className={open ? "font-semibold text-emerald-300" : "font-semibold text-amber-200"}>
+                    {data.hoursPreview.statusLine}
+                  </span>
+                  <span className="text-white/55"> · </span>
+                  <span className="text-white/85">{data.hoursPreview.scheduleSummary}</span>
+                </p>
+                <Link
+                  href={data.seeHoursHref}
+                  className="w-fit text-sm font-semibold text-[color:var(--lx-gold-soft)] underline decoration-white/35 underline-offset-4 hover:text-white"
+                >
+                  {data.seeHoursLabel}
+                </Link>
+              </div>
+            </div>
+          </div>
+          <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center px-3">
+            <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} />
+          </div>
+        </div>
+      </section>
+
+      {/* 3. QUICK INFO STRIP */}
+      <section className="mt-8" aria-label="Información rápida">
+        <div
+          className={`${CARD} flex flex-wrap gap-x-3 gap-y-2 px-4 py-4 sm:px-5`}
+        >
+          {data.quickInfo.map((item) => (
+            <div
+              key={item.key}
+              className="flex min-w-0 max-w-full items-baseline gap-2 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-[13px]"
+            >
+              <span className="shrink-0 font-semibold text-[color:var(--lx-muted)]">{item.label}</span>
+              <span className="min-w-0 font-medium text-[color:var(--lx-text)]">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+        <div className="min-w-0 space-y-10 lg:col-span-8">
+          {/* 4. MENU HIGHLIGHTS */}
+          <section aria-labelledby="menu-highlights-heading">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 id="menu-highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                Platos destacados
+              </h2>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {data.menuHighlights.map((d) => (
+                <article
+                  key={d.name}
+                  className={`${CARD} group overflow-hidden p-0`}
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden">
+                    <Image
+                      src={d.imageUrl}
+                      alt={d.name}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-[1.02]"
+                      sizes="(max-width:640px) 100vw, 50vw"
+                    />
+                    {d.badge ? (
+                      <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                        {d.badge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-base font-bold text-[color:var(--lx-text)]">{d.name}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{d.supportingLine}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="mt-6">
+              <a
+                href={data.fullMenuCta.href}
+                className="flex w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {data.fullMenuCta.label}
+                <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
+                  →
+                </span>
+              </a>
+            </div>
+          </section>
+
+          {/* 5. HIGHLIGHTS */}
+          <section aria-labelledby="highlights-heading">
+            <h2 id="highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+              Destacados
+            </h2>
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {data.highlightTags.map((tag) => (
+                <li key={tag.key}>
+                  <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--lx-text-2)]">
+                    {tag.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* 6. GALLERY */}
+          <section id="media" aria-labelledby="gallery-heading">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 id="gallery-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                Galería
+              </h2>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {data.gallery.map((g, idx) => (
+                <div
+                  key={`${g.alt}-${idx}`}
+                  className={`relative aspect-square overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] ${
+                    g.category === "video" ? "ring-2 ring-[color:var(--lx-gold)]/35" : ""
+                  }`}
+                >
+                  <Image
+                    src={g.imageUrl}
+                    alt={g.alt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width:1024px) 50vw, 25vw"
+                  />
+                  {g.countOverlay != null ? (
+                    <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
+                      +{g.countOverlay}
+                    </span>
+                  ) : null}
+                  {g.category === "video" ? (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg">
+                        <FiVideo className="h-5 w-5" aria-hidden />
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <div className="mt-5">
+              <a
+                href={data.galleryCta.href}
+                className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+              >
+                {data.galleryCta.label}
+              </a>
+            </div>
+          </section>
+
+          {/* 8. ABOUT */}
+          <section aria-labelledby="about-heading">
+            <h2 id="about-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+              {data.aboutTitle}
+            </h2>
+            <p className="mt-4 text-[15px] leading-[1.75] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
+          </section>
+
+          {/* 9. LIGHT TRUST */}
+          {data.trustLight ? (
+            <section
+              className={`${CARD} border-dashed px-5 py-5 sm:px-6`}
+              aria-label="Confianza"
+            >
+              <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{data.trustLight.summaryLine}</p>
+              {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel ? (
+                <a
+                  href={data.trustLight.externalTrustHref}
+                  className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                >
+                  {data.trustLight.externalTrustLabel}
+                </a>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
+
+        {/* Sidebar: 7. CONTACT + ACCESS */}
+        <aside className="min-w-0 lg:col-span-4 lg:row-span-1">
+          <div className={`${CARD} sticky top-24 space-y-5 p-5 sm:p-6`}>
+            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Contacto y acceso</h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex gap-2 text-[color:var(--lx-text-2)]">
+                <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                <div>
+                  <p>{data.contact.addressLine1}</p>
+                  {data.contact.addressLine2 ? <p>{data.contact.addressLine2}</p> : null}
+                  <a
+                    href={mapsHref(data.contact.mapsSearchQuery)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                  >
+                    Ver ubicación
+                  </a>
+                </div>
+              </div>
+              <a
+                href={data.contact.phoneTelHref}
+                className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+              >
+                <FiPhone className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
+                {data.contact.phoneDisplay}
+              </a>
+              <a
+                href={`mailto:${data.contact.email}`}
+                className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+              >
+                <FiMail className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
+                {data.contact.email}
+              </a>
+              <a
+                href={data.contact.websiteHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+              >
+                <span className="text-[color:var(--lx-gold)]" aria-hidden>
+                  ◆
+                </span>
+                {data.contact.websiteDisplay}
+              </a>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
+                Redes y mensajería
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={data.contact.instagramHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  aria-label="Instagram"
+                >
+                  <FiInstagram className="h-[1.15rem] w-[1.15rem]" />
+                </a>
+                <a
+                  href={data.contact.facebookHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  aria-label="Facebook"
+                >
+                  <FiFacebook className="h-[1.15rem] w-[1.15rem]" />
+                </a>
+                <a
+                  href={data.contact.tiktokHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  aria-label="TikTok"
+                >
+                  <FaTiktok className="h-[1.05rem] w-[1.05rem]" />
+                </a>
+                <a
+                  href={data.contact.whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 min-w-[2.5rem] items-center justify-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                >
+                  <FaWhatsapp className="h-[1.15rem] w-[1.15rem] text-emerald-700" aria-hidden />
+                  WA
+                </a>
+              </div>
+            </div>
+
+            {data.contact.menuFileHref && data.contact.menuFileLabel ? (
+              <a
+                href={data.contact.menuFileHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
+              >
+                {data.contact.menuFileLabel}
+              </a>
+            ) : null}
+          </div>
+        </aside>
+      </div>
+
+      {/* Planned modules (A–D): documented in demoRestaurantDetailShell.ts — not part of core shell UI */}
+    </main>
+  );
+}
