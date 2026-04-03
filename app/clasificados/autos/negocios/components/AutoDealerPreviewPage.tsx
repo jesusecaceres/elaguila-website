@@ -18,8 +18,7 @@ import {
   polishMonthlyEstimateDisplay,
 } from "./autoDealerFormatters";
 import { AutoGallery } from "./AutoGallery";
-import { AutoSidebarCTA } from "./AutoSidebarCTA";
-import { DealerInfoCard } from "./DealerInfoCard";
+import { DealerBusinessStack } from "./DealerBusinessStack";
 import { RelatedDealerCars } from "./RelatedDealerCars";
 import { VehicleDescription } from "./VehicleDescription";
 import { VehicleHighlights } from "./VehicleHighlights";
@@ -179,15 +178,8 @@ export function AutoDealerPreviewPage({
               order: orderAside,
             }}
           >
-            <div className="flex flex-col overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] lg:contents lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:shadow-none">
-              <AutoSidebarCTA
-                data={data}
-                className="max-lg:!rounded-none max-lg:!border-0 max-lg:!shadow-none max-lg:bg-transparent max-lg:p-5"
-              />
-              <DealerInfoCard
-                data={data}
-                className="max-lg:!rounded-none max-lg:!border-0 max-lg:!shadow-none max-lg:border-t max-lg:border-[color:var(--lx-nav-border)] max-lg:bg-[color:var(--lx-section)] max-lg:p-5 max-lg:pt-6"
-              />
+            <div className="overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] max-lg:shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] lg:rounded-[20px] lg:shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]">
+              <DealerBusinessStack data={data} className="!rounded-none !border-0 !shadow-none bg-transparent p-5 sm:p-6 max-lg:!bg-transparent" />
             </div>
           </aside>
 

@@ -29,7 +29,10 @@ import {
 } from "../../product-configurators/business-cards/designer-v2/studio/geometryClamp";
 import { withStrokeColorIfWidthActive } from "../../product-configurators/business-cards/designer-v2/studio/nativeShapeStroke";
 import { bcPick, businessCardBuilderCopy } from "../../data/businessCardBuilderCopy";
-import { nextZAboveAllLayers } from "../../product-configurators/business-cards/designer-v2/stack/maxComposableZIndex";
+import {
+  logoIsAboveOtherLayers,
+  logoZIndexBringAboveOthers,
+} from "../../product-configurators/business-cards/designer-v2/stack/maxComposableZIndex";
 import { nativeInspectorChrome } from "./nativeInspectorChrome";
 
 const SCALES: ScalePreset[] = ["sm", "md", "lg"];
@@ -338,8 +341,8 @@ export function BusinessCardStudioSelectionToolbar(props: Props) {
   }
 
   if (showLogo) {
-    const stackTopZ = nextZAboveAllLayers(sideState);
-    const logoOnTop = sideState.logoGeom.zIndex >= stackTopZ;
+    const logoOnTop = logoIsAboveOtherLayers(sideState);
+    const bringZ = logoZIndexBringAboveOthers(sideState);
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-[10px] font-bold uppercase tracking-wide text-[rgba(201,168,74,0.85)]">
@@ -416,7 +419,7 @@ export function BusinessCardStudioSelectionToolbar(props: Props) {
             dispatch({
               type: "SET_LOGO_GEOM",
               side,
-              patch: { zIndex: stackTopZ },
+              patch: { zIndex: bringZ },
             })
           }
         >

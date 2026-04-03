@@ -233,8 +233,8 @@ export function AgenteIndividualResidencialPreviewPage({
         className="border-b backdrop-blur-sm"
         style={{ borderColor: BORDER, background: "rgba(253, 251, 247, 0.92)" }}
       >
-        <div className="mx-auto max-w-[1140px] px-4 py-3.5 sm:px-6 sm:py-4 lg:px-7">
-          <div className="relative flex min-h-[2.5rem] items-center sm:min-h-[2.75rem]">
+        <div className="mx-auto max-w-[1140px] px-4 py-4 sm:px-6 sm:py-5 lg:px-7 lg:py-6">
+          <div className="relative flex min-h-[6.5rem] items-center sm:min-h-[7.5rem] lg:min-h-[168px]">
             <div className="relative z-10 min-w-0 flex-1 pr-3">
               <p
                 className="truncate text-left text-[10px] font-medium normal-case leading-snug tracking-[0.08em] text-[#5C5346]/72"
@@ -244,13 +244,14 @@ export function AgenteIndividualResidencialPreviewPage({
                 {p.badge}
               </p>
             </div>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(5.5rem,26vw,9rem)]">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(4.5rem,22vw,10rem)]">
               <Image
                 src={newLogo}
                 alt="LEONIX"
-                width={112}
-                height={34}
-                className="h-7 w-auto max-h-8 max-w-[min(112px,30vw)] object-contain object-center sm:h-8"
+                width={168}
+                height={168}
+                sizes="(max-width: 1023px) 96px, 168px"
+                className="size-24 object-contain object-center sm:size-28 md:size-[140px] lg:size-[168px]"
                 priority
               />
             </div>

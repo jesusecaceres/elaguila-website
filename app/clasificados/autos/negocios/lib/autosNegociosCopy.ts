@@ -134,6 +134,7 @@ export type AutosNegociosCopy = {
       reviewsLine: (n: number) => string;
       websiteCta: string;
       logoAltFallback: string;
+      hoursHeading: string;
     };
   };
   taxonomy: {
@@ -378,6 +379,7 @@ const ES: AutosNegociosCopy = {
       reviewsLine: (n) => `(${n} reseñas)`,
       websiteCta: "Sitio web del concesionario",
       logoAltFallback: "Concesionario",
+      hoursHeading: "Horario",
     },
   },
   taxonomy: {
@@ -655,6 +657,7 @@ const EN: AutosNegociosCopy = {
       reviewsLine: (n) => `(${n} reviews)`,
       websiteCta: "Dealership website",
       logoAltFallback: "Dealership",
+      hoursHeading: "Hours",
     },
   },
   taxonomy: {
