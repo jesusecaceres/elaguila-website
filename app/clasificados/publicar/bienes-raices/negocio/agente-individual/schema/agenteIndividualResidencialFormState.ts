@@ -1,3 +1,4 @@
+import { brCanonicalNorCalCity } from "@/app/clasificados/bienes-raices/shared/brNorCalCity";
 import type { TipoPropiedadCodigo } from "./agenteResidencialTipoMeta";
 
 export type { TipoPropiedadCodigo };
@@ -520,11 +521,23 @@ export function mergePartialAgenteIndividualResidencial(
         ? nested.mostrarMarcaEnTarjeta
         : base.mostrarMarcaEnTarjeta;
 
+  const ciudadRaw = trim(
+    String(
+      typeof flat.ciudad === "string"
+        ? flat.ciudad
+        : typeof nested.ciudad === "string"
+          ? nested.ciudad
+          : base.ciudad,
+    ),
+  );
+  const ciudad = brCanonicalNorCalCity(ciudadRaw);
+
   return {
     ...base,
     ...nested,
     ...flat,
     tipoPublicacionFijo: "venta_residencial",
+    ciudad,
     mostrarMarcaEnTarjeta,
     estadoAnuncio: coerceEstado(flat.estadoAnuncio ?? nested.estadoAnuncio ?? base.estadoAnuncio),
     condicionPropiedad: coerceCondicion(flat.condicionPropiedad ?? nested.condicionPropiedad ?? base.condicionPropiedad),

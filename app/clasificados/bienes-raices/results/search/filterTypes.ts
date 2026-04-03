@@ -1,4 +1,7 @@
-/** Filter / chip identifiers for BR Negocio results (client state). */
+/**
+ * Filter / chip identifiers for BR Negocio results (client state).
+ * Canonical `ciudad` values: `brCanonicalNorCalCity` + `BR_URL_QUERY_CIUDAD` in `shared/brNorCalCity`.
+ */
 
 export type BrPrimaryChipId =
   | "casas"

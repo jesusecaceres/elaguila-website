@@ -10,6 +10,7 @@ import {
   TIPO_PROPIEDAD_OPCIONES,
 } from "../schema/agenteResidencialTipoMeta";
 import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
+import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 
 /** Virtual tour uploads: images, PDF, short video, static HTML — not a general file dump. */
@@ -191,7 +192,7 @@ export function Step02InformacionBasica({
   state: AgenteIndividualResidencialFormState;
   setState: React.Dispatch<React.SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const { t } = useBrAgenteResidencialCopy();
+  const { lang, t } = useBrAgenteResidencialCopy();
   const est = t.step02.estados;
 
   return (
@@ -238,12 +239,15 @@ export function Step02InformacionBasica({
             <option value="vendido">{est.vendido}</option>
           </select>
         </AiField>
-        <AiField label={t.step02.ciudad}>
-          <input
-            className={aiInputClass}
+        <AiField label={t.step02.ciudad} hint={t.step02.ciudadHint}>
+          <CityAutocomplete
             value={state.ciudad}
-            onChange={(ev) => setState((s) => ({ ...s, ciudad: ev.target.value }))}
-            autoComplete="address-level2"
+            onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
+            lang={lang}
+            variant="brForm"
+            stripInvalidOnBlur
+            placeholder={t.step02.ciudadPlaceholder}
+            className="w-full"
           />
         </AiField>
         <AiField label={t.step02.area} hint={t.step02.areaHint}>

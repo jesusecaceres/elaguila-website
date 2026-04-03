@@ -52,6 +52,8 @@ export const BR_COPY_ES = {
     estadoAnuncio: "Estado del anuncio",
     estadoAnuncioHint: "Indica si sigue disponible, pendiente, bajo contrato o vendido.",
     ciudad: "Ciudad",
+    ciudadHint: "Lista oficial NorCal: escribe y elige una ciudad; al salir del campo se guarda el nombre canónico.",
+    ciudadPlaceholder: "Ej. San Jose, Fremont…",
     area: "Área de la ciudad",
     areaHint: "La zona general donde se ubica la propiedad.",
     direccion: "Dirección",

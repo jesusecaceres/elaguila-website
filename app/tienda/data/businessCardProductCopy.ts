@@ -136,6 +136,11 @@ export const businessCardProductCopy = {
     es: "Baja la opacidad si vas a escribir encima; bloquea la capa para no moverla por error. Añade líneas de texto (Tarjeta) o formas (Capas Studio). Cambia de cara abajo si trabajas el otro lado.",
     en: "Lower opacity if you’re typing over it; lock the layer to avoid accidental moves. Add text lines (Card) or shapes (Studio layers). Switch sides below if you’re working the other face.",
   },
+  /** Framing — Studio inspector + canvas focal crosshair when the reference image is selected */
+  refreshSeedFramingHint: {
+    es: "Selecciona la imagen en el lienzo: en el panel derecho o arriba ajusta encuadre (contain/cover), arrastra el punto focal y usa Restablecer si quieres volver al centro.",
+    en: "Select the image on the canvas—in the right column or top bar, adjust framing (contain/cover), drag the focal dot, and use Reset if you want to return to center.",
+  },
   refreshRebuildShortcutsTitle: { es: "Atajos de reconstrucción", en: "Rebuild shortcuts" },
   refreshOpenStudioTab: { es: "Abrir Capas Studio", en: "Open Studio layers" },
   refreshAddTextLine: { es: "Añadir línea de texto", en: "Add text line" },

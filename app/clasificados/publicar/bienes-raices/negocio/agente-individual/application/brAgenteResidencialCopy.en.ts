@@ -52,6 +52,8 @@ export const BR_COPY_EN = {
     estadoAnuncio: "Listing status",
     estadoAnuncioHint: "Available, pending, under contract, or sold.",
     ciudad: "City",
+    ciudadHint: "Official NorCal list: type and pick a city; on blur we store the canonical name.",
+    ciudadPlaceholder: "e.g. San Jose, Fremont…",
     area: "City area",
     areaHint: "The general area where the property is located.",
     direccion: "Address",

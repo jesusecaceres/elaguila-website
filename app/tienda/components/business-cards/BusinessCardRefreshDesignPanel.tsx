@@ -173,6 +173,9 @@ export function BusinessCardRefreshDesignPanel(props: {
             {bcpPick(businessCardProductCopy.refreshSeedHelperTitle, lang)}
           </p>
           <p className="mt-1 text-sm text-[rgba(255,255,255,0.75)]">{bcpPick(businessCardProductCopy.refreshSeedNextHint, lang)}</p>
+          <p className="mt-2 text-[11px] leading-relaxed text-[rgba(255,255,255,0.52)]">
+            {bcpPick(businessCardProductCopy.refreshSeedFramingHint, lang)}
+          </p>
           {seedObject.locked ? (
             <p className="mt-2 text-[11px] leading-snug text-[rgba(255,200,120,0.75)]">
               {bcpPick(businessCardProductCopy.refreshOpacityDisabledLocked, lang)}
