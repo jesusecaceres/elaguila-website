@@ -237,7 +237,7 @@ export function AgenteIndividualResidencialPreviewPage({
           <div className="relative flex min-h-[6.5rem] items-center sm:min-h-[7.5rem] lg:min-h-[168px]">
             <div className="relative z-10 min-w-0 flex-1 pr-3">
               <p
-                className="truncate text-left text-[10px] font-medium normal-case leading-snug tracking-[0.08em] text-[#5C5346]/72"
+                className="truncate text-left text-[11px] font-semibold normal-case leading-snug tracking-[0.1em] text-[#4A4338]/88 sm:text-[12px]"
                 style={{ fontVariantNumeric: "tabular-nums" }}
                 title={p.badge}
               >
