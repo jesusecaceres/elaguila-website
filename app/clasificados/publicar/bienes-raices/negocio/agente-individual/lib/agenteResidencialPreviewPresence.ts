@@ -4,10 +4,11 @@
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import {
   buildAsesorBlock,
+  buildBrokerSupportBlock,
   buildDestacadosLabels,
   buildGalleryModel,
   buildMapQuery,
-  buildOpenHouseSummary,
+  buildOpenHouseSlotSummaries,
   buildPropertyDetailRows,
   buildQuickFacts,
   trim,
@@ -67,7 +68,9 @@ export function hasAgentOrContactSurface(s: AgenteIndividualResidencialFormState
 
 export function hasLowerExtras(s: AgenteIndividualResidencialFormState): boolean {
   const mapQ = buildMapQuery(s);
-  return Boolean(buildOpenHouseSummary(s) || buildAsesorBlock(s) || mapQ);
+  return Boolean(
+    buildOpenHouseSlotSummaries(s).length > 0 || buildAsesorBlock(s) || buildBrokerSupportBlock(s) || mapQ,
+  );
 }
 
 export function hasAnyMediaOrTourSlot(s: AgenteIndividualResidencialFormState): boolean {

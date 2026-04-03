@@ -5,6 +5,8 @@
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import {
   AGENTE_RES_DESTACADOS_DEFS,
+  AGENTE_RES_MAX_OPEN_HOUSE_SLOTS,
+  type AgenteResOpenHouseSlot,
   type AgenteResidencialDestacadoId,
 } from "../schema/agenteIndividualResidencialFormState";
 import {
@@ -512,15 +514,114 @@ export function buildContactModel(s: AgenteIndividualResidencialFormState): Agen
   };
 }
 
-export function buildOpenHouseSummary(s: AgenteIndividualResidencialFormState): string | null {
-  const openParts: string[] = [];
-  if (s.extraOpenHouse) {
-    if (trim(s.openHouseFecha)) openParts.push(`Fecha: ${trim(s.openHouseFecha)}`);
-    const r = [trim(s.openHouseInicio), trim(s.openHouseFin)].filter(Boolean);
-    if (r.length) openParts.push(`Horario: ${r.join(" – ")}`);
-    if (trim(s.openHouseNotas)) openParts.push(trim(s.openHouseNotas));
+export function normalizeOpenHouseSlots(s: AgenteIndividualResidencialFormState): AgenteResOpenHouseSlot[] {
+  if (Array.isArray(s.openHouseSlots) && s.openHouseSlots.length > 0) {
+    return s.openHouseSlots.slice(0, AGENTE_RES_MAX_OPEN_HOUSE_SLOTS);
   }
-  return s.extraOpenHouse && openParts.length ? openParts.join("\n") : null;
+  if (s.extraOpenHouse && (trim(s.openHouseFecha) || trim(s.openHouseInicio) || trim(s.openHouseFin) || trim(s.openHouseNotas))) {
+    return [
+      {
+        fecha: s.openHouseFecha,
+        inicio: s.openHouseInicio,
+        fin: s.openHouseFin,
+        notas: s.openHouseNotas,
+      },
+    ];
+  }
+  return [];
+}
+
+function formatOpenHouseDateForPreview(raw: string, locale: AgenteResPreviewLocale): string {
+  const t = trim(raw);
+  if (!t) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+    const d = new Date(`${t}T12:00:00`);
+    if (!Number.isNaN(d.getTime())) {
+      try {
+        return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-US", { dateStyle: "medium" }).format(d);
+      } catch {
+        return t;
+      }
+    }
+  }
+  return t;
+}
+
+/** Un resumen por fecha (texto para mini tarjeta). */
+export function buildOpenHouseSlotSummaries(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): string[] {
+  const slots = normalizeOpenHouseSlots(s);
+  const labDate = locale === "en" ? "Date:" : "Fecha:";
+  const labHours = locale === "en" ? "Hours:" : "Horario:";
+  const out: string[] = [];
+  for (const slot of slots) {
+    const parts: string[] = [];
+    const fechaDisp = formatOpenHouseDateForPreview(slot.fecha, locale);
+    if (fechaDisp) parts.push(`${labDate} ${fechaDisp}`);
+    const r = [trim(slot.inicio), trim(slot.fin)].filter(Boolean);
+    if (r.length) parts.push(`${labHours} ${r.join(" – ")}`);
+    if (trim(slot.notas)) parts.push(trim(slot.notas));
+    if (parts.length) out.push(parts.join("\n"));
+  }
+  return out;
+}
+
+/** Compat: primer bloque o varios unidos (p. ej. metadatos). */
+export function buildOpenHouseSummary(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): string | null {
+  const summaries = buildOpenHouseSlotSummaries(s, locale);
+  if (!summaries.length) return null;
+  return summaries.join("\n\n—\n\n");
+}
+
+export function hasSecondAgentRailContent(s: AgenteIndividualResidencialFormState): boolean {
+  if (!s.mostrarSegundoAgente) return false;
+  return Boolean(
+    trim(s.agente2Nombre) ||
+      trim(s.agente2FotoDataUrl) ||
+      trim(s.agente2Titulo) ||
+      trim(s.agente2Licencia) ||
+      trim(s.agente2Telefono) ||
+      trim(s.agente2Correo),
+  );
+}
+
+export type BrokerSupportBlock = {
+  name: string;
+  title: string;
+  license: string;
+  phone: string;
+  email: string;
+  website: string | null;
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialYoutube: string | null;
+  socialTiktok: string | null;
+  socialX: string | null;
+  socialOtro: string | null;
+};
+
+export function buildBrokerSupportBlock(s: AgenteIndividualResidencialFormState): BrokerSupportBlock | null {
+  if (!s.mostrarBrokerAsesor) return null;
+  if (!trim(s.brokerNombre)) return null;
+  return {
+    name: trim(s.brokerNombre),
+    title: trim(s.brokerTitulo),
+    license: trim(s.brokerLicencia),
+    phone: trim(s.brokerTelefono),
+    email: trim(s.brokerEmail),
+    website: hrefFromUserInput(s.brokerSitioWeb),
+    socialInstagram: resolveAnyHref(s.brokerInstagram),
+    socialFacebook: resolveAnyHref(s.brokerFacebook),
+    socialYoutube: resolveAnyHref(s.brokerYoutube),
+    socialTiktok: resolveAnyHref(s.brokerTiktok),
+    socialX: resolveAnyHref(s.brokerX),
+    socialOtro: resolveAnyHref(s.brokerOtro),
+  };
 }
 
 export type AsesorBlock = { name: string; phone: string; email: string };

@@ -21,6 +21,19 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
     st(state.agente2Correo)
   )
     return true;
+  if (
+    st(state.brokerNombre) ||
+    st(state.brokerEmail) ||
+    st(state.brokerTelefono) ||
+    st(state.brokerSitioWeb) ||
+    st(state.brokerInstagram) ||
+    st(state.brokerFacebook) ||
+    st(state.brokerYoutube) ||
+    st(state.brokerTiktok) ||
+    st(state.brokerX) ||
+    st(state.brokerOtro)
+  )
+    return true;
   if (st(state.marcaNombre) || st(state.marcaLogoDataUrl) || st(state.marcaSitioWeb)) return true;
   if (
     st(state.socialInstagram) ||
@@ -32,5 +45,8 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
   )
     return true;
   if (st(state.descripcionPrincipal)) return true;
+  if (state.openHouseSlots.some((slot) => st(slot.fecha) || st(slot.inicio) || st(slot.fin) || st(slot.notas))) return true;
+  if (state.extraOpenHouse && (st(state.openHouseFecha) || st(state.openHouseInicio) || st(state.openHouseFin) || st(state.openHouseNotas)))
+    return true;
   return false;
 }

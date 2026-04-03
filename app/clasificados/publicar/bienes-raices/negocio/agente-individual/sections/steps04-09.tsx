@@ -2,7 +2,11 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
-import { AGENTE_RES_DESTACADOS_DEFS } from "../schema/agenteIndividualResidencialFormState";
+import {
+  AGENTE_RES_DESTACADOS_DEFS,
+  AGENTE_RES_MAX_OPEN_HOUSE_SLOTS,
+  type AgenteResOpenHouseSlot,
+} from "../schema/agenteIndividualResidencialFormState";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
@@ -291,14 +295,10 @@ export function Step07InformacionProfesional({
   const { t } = useBrAgenteResidencialCopy();
   const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
   const quitar = t.step02.quitar;
-  const officeFirst = state.sellerTipo === "oficina_broker";
-  const equipoMode = state.sellerTipo === "equipo_agentes";
 
   const marcaBlock = (
     <>
-      <p className={`${officeFirst ? "mt-0" : "mt-8"} text-xs font-bold uppercase tracking-wide text-[#5C5346]/90`}>
-        {officeFirst ? s7.oficinaBroker : s7.oficina}
-      </p>
+      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.oficina}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <AiField label={s7.nombreMarca}>
           <input className={aiInputClass} value={state.marcaNombre} onChange={(e) => setState((s) => ({ ...s, marcaNombre: e.target.value }))} autoComplete="organization" />
@@ -350,9 +350,7 @@ export function Step07InformacionProfesional({
 
   const agenteBlock = (
     <>
-      <p className={`${officeFirst ? "mt-8" : "mt-6"} text-xs font-bold uppercase tracking-wide text-[#5C5346]/90`}>
-        {officeFirst ? s7.contactoLead : s7.agente}
-      </p>
+      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.agente}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <PhotoOrFileRow
@@ -388,55 +386,30 @@ export function Step07InformacionProfesional({
       <h2 className={aiTitleClass}>{s7.title}</h2>
       <p className={aiSubClass}>{s7.sub}</p>
 
-      {officeFirst ? (
-        <>
-          <div className="mt-6">{marcaBlock}</div>
-          {mostrarMarcaToggle}
-          {agenteBlock}
-        </>
+      {agenteBlock}
+      {mostrarMarcaToggle}
+      {state.mostrarMarcaEnTarjeta ? <div className="mt-2">{marcaBlock}</div> : null}
+
+      {!state.mostrarSegundoAgente ? (
+        <button
+          type="button"
+          className="mt-6 w-full rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-left text-sm font-semibold text-[#2C2416] transition hover:border-[#C9B46A]/60 hover:bg-[#FFFCF7] sm:w-auto"
+          onClick={() => setState((s) => ({ ...s, mostrarSegundoAgente: true }))}
+        >
+          {s7.agregarSegundoAgente}
+        </button>
       ) : (
-        <>
-          {agenteBlock}
-          {mostrarMarcaToggle}
-          {state.mostrarMarcaEnTarjeta ? <div className="mt-2">{marcaBlock}</div> : null}
-        </>
-      )}
-
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
-      <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <AiField label={s7.instagram}>
-          <input className={aiInputClass} type="url" value={state.socialInstagram} onChange={(e) => setState((s) => ({ ...s, socialInstagram: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.facebook}>
-          <input className={aiInputClass} type="url" value={state.socialFacebook} onChange={(e) => setState((s) => ({ ...s, socialFacebook: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.youtube}>
-          <input className={aiInputClass} type="url" value={state.socialYoutube} onChange={(e) => setState((s) => ({ ...s, socialYoutube: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.tiktok}>
-          <input className={aiInputClass} type="url" value={state.socialTiktok} onChange={(e) => setState((s) => ({ ...s, socialTiktok: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.x}>
-          <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-        <AiField label={s7.otroSocial}>
-          <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
-        </AiField>
-      </div>
-
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <AiField label={s7.areaServicio}>
-          <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
-        </AiField>
-        <AiField label={s7.idiomas}>
-          <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder={s7.idiomasPh} autoComplete="off" />
-        </AiField>
-      </div>
-
-      {equipoMode ? (
-        <>
-          <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.segundoAgente}</p>
+        <div className="mt-6 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/80 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.segundoAgente}</p>
+            <button
+              type="button"
+              className="text-xs font-semibold text-[#8a5a2a] underline underline-offset-2"
+              onClick={() => setState((s) => ({ ...s, mostrarSegundoAgente: false }))}
+            >
+              {s7.ocultarSegundoAgente}
+            </button>
+          </div>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <PhotoOrFileRow
@@ -497,8 +470,130 @@ export function Step07InformacionProfesional({
               />
             </AiField>
           </div>
-        </>
-      ) : null}
+        </div>
+      )}
+
+      {!state.mostrarBrokerAsesor ? (
+        <button
+          type="button"
+          className="mt-4 w-full rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-left text-sm font-semibold text-[#2C2416] transition hover:border-[#C9B46A]/60 hover:bg-[#FFFCF7] sm:w-auto"
+          onClick={() => setState((s) => ({ ...s, mostrarBrokerAsesor: true }))}
+        >
+          {s7.agregarBrokerAsesor}
+        </button>
+      ) : (
+        <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/80 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.brokerSection}</p>
+            <button
+              type="button"
+              className="text-xs font-semibold text-[#8a5a2a] underline underline-offset-2"
+              onClick={() => setState((s) => ({ ...s, mostrarBrokerAsesor: false }))}
+            >
+              {s7.ocultarBrokerAsesor}
+            </button>
+          </div>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <AiField label={s7.brokerNombre}>
+              <input
+                className={aiInputClass}
+                value={state.brokerNombre}
+                onChange={(e) => setState((s) => ({ ...s, brokerNombre: e.target.value }))}
+                autoComplete="organization"
+              />
+            </AiField>
+            <AiField label={s7.brokerTitulo}>
+              <input className={aiInputClass} value={state.brokerTitulo} onChange={(e) => setState((s) => ({ ...s, brokerTitulo: e.target.value }))} autoComplete="off" />
+            </AiField>
+            <AiField label={s7.brokerLicencia}>
+              <input className={aiInputClass} value={state.brokerLicencia} onChange={(e) => setState((s) => ({ ...s, brokerLicencia: e.target.value }))} autoComplete="off" />
+            </AiField>
+            <AiField label={s7.brokerTelefono}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.brokerTelefono))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.brokerTelefono);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, brokerTelefono: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
+            <AiField label={s7.brokerEmail}>
+              <input
+                type="email"
+                className={aiInputClass}
+                value={state.brokerEmail}
+                onChange={(e) => setState((s) => ({ ...s, brokerEmail: e.target.value }))}
+                autoComplete="email"
+              />
+            </AiField>
+            <AiField label={s7.brokerSitioWeb} hint={s7.brokerSitioWebHint}>
+              <input
+                className={aiInputClass}
+                type="url"
+                value={state.brokerSitioWeb}
+                onChange={(e) => setState((s) => ({ ...s, brokerSitioWeb: e.target.value }))}
+                placeholder="https://"
+                autoComplete="url"
+              />
+            </AiField>
+            <AiField label={s7.brokerInstagram}>
+              <input className={aiInputClass} type="url" value={state.brokerInstagram} onChange={(e) => setState((s) => ({ ...s, brokerInstagram: e.target.value }))} placeholder="https://" />
+            </AiField>
+            <AiField label={s7.brokerFacebook}>
+              <input className={aiInputClass} type="url" value={state.brokerFacebook} onChange={(e) => setState((s) => ({ ...s, brokerFacebook: e.target.value }))} placeholder="https://" />
+            </AiField>
+            <AiField label={s7.brokerYoutube}>
+              <input className={aiInputClass} type="url" value={state.brokerYoutube} onChange={(e) => setState((s) => ({ ...s, brokerYoutube: e.target.value }))} placeholder="https://" />
+            </AiField>
+            <AiField label={s7.brokerTiktok}>
+              <input className={aiInputClass} type="url" value={state.brokerTiktok} onChange={(e) => setState((s) => ({ ...s, brokerTiktok: e.target.value }))} placeholder="https://" />
+            </AiField>
+            <AiField label={s7.brokerX}>
+              <input className={aiInputClass} type="url" value={state.brokerX} onChange={(e) => setState((s) => ({ ...s, brokerX: e.target.value }))} placeholder="https://" />
+            </AiField>
+            <AiField label={s7.brokerOtro}>
+              <input className={aiInputClass} type="url" value={state.brokerOtro} onChange={(e) => setState((s) => ({ ...s, brokerOtro: e.target.value }))} placeholder="https://" />
+            </AiField>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
+      <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <AiField label={s7.instagram}>
+          <input className={aiInputClass} type="url" value={state.socialInstagram} onChange={(e) => setState((s) => ({ ...s, socialInstagram: e.target.value }))} placeholder="https://" autoComplete="off" />
+        </AiField>
+        <AiField label={s7.facebook}>
+          <input className={aiInputClass} type="url" value={state.socialFacebook} onChange={(e) => setState((s) => ({ ...s, socialFacebook: e.target.value }))} placeholder="https://" autoComplete="off" />
+        </AiField>
+        <AiField label={s7.youtube}>
+          <input className={aiInputClass} type="url" value={state.socialYoutube} onChange={(e) => setState((s) => ({ ...s, socialYoutube: e.target.value }))} placeholder="https://" autoComplete="off" />
+        </AiField>
+        <AiField label={s7.tiktok}>
+          <input className={aiInputClass} type="url" value={state.socialTiktok} onChange={(e) => setState((s) => ({ ...s, socialTiktok: e.target.value }))} placeholder="https://" autoComplete="off" />
+        </AiField>
+        <AiField label={s7.x}>
+          <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
+        </AiField>
+        <AiField label={s7.otroSocial}>
+          <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
+        </AiField>
+      </div>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <AiField label={s7.areaServicio}>
+          <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
+        </AiField>
+        <AiField label={s7.idiomas}>
+          <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder={s7.idiomasPh} autoComplete="off" />
+        </AiField>
+      </div>
     </section>
   );
 }
@@ -683,6 +778,13 @@ export function Step08CtaEnlaces({
   );
 }
 
+const emptyOpenHouseSlot = (): AgenteResOpenHouseSlot => ({
+  fecha: "",
+  inicio: "",
+  fin: "",
+  notas: "",
+});
+
 export function Step09ExtrasOpcionales({
   state,
   setState,
@@ -692,6 +794,26 @@ export function Step09ExtrasOpcionales({
 }) {
   const { t } = useBrAgenteResidencialCopy();
   const s9 = t.step09;
+  const slots = state.openHouseSlots;
+  const canAddMore = slots.length < AGENTE_RES_MAX_OPEN_HOUSE_SLOTS;
+
+  const patchSlot = (index: number, patch: Partial<AgenteResOpenHouseSlot>) => {
+    setState((s) => ({
+      ...s,
+      openHouseSlots: s.openHouseSlots.map((row, j) => (j === index ? { ...row, ...patch } : row)),
+    }));
+  };
+
+  const removeSlot = (index: number) => {
+    setState((s) => ({ ...s, openHouseSlots: s.openHouseSlots.filter((_, j) => j !== index) }));
+  };
+
+  const addSlot = () => {
+    setState((s) => ({
+      ...s,
+      openHouseSlots: [...s.openHouseSlots, emptyOpenHouseSlot()].slice(0, AGENTE_RES_MAX_OPEN_HOUSE_SLOTS),
+    }));
+  };
 
   return (
     <section className={aiCardClass}>
@@ -699,32 +821,54 @@ export function Step09ExtrasOpcionales({
       <p className={aiSubClass}>{s9.sub}</p>
       <div className="mt-5 space-y-6">
         <div className="rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-[#C9B46A]"
-              checked={state.extraOpenHouse}
-              onChange={(e) => setState((s) => ({ ...s, extraOpenHouse: e.target.checked }))}
-            />
-            {s9.openHouse}
-          </label>
-          {state.extraOpenHouse ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <AiField label={s9.fecha}>
-                <input type="date" className={aiInputClass} value={state.openHouseFecha} onChange={(e) => setState((s) => ({ ...s, openHouseFecha: e.target.value }))} />
-              </AiField>
-              <AiField label={s9.horaInicio}>
-                <input type="time" className={aiInputClass} value={state.openHouseInicio} onChange={(e) => setState((s) => ({ ...s, openHouseInicio: e.target.value }))} />
-              </AiField>
-              <AiField label={s9.horaFin}>
-                <input type="time" className={aiInputClass} value={state.openHouseFin} onChange={(e) => setState((s) => ({ ...s, openHouseFin: e.target.value }))} />
-              </AiField>
-              <div className="sm:col-span-2">
-                <AiField label={s9.notasOh}>
-                  <input className={aiInputClass} value={state.openHouseNotas} onChange={(e) => setState((s) => ({ ...s, openHouseNotas: e.target.value }))} />
-                </AiField>
+          <p className="text-sm font-semibold">{s9.openHouse}</p>
+          <div className="mt-3 space-y-4">
+            {slots.map((slot, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-[#E8DFD0] bg-[#FFFDF9] p-3"
+              >
+                <div className="mb-2 flex justify-end">
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-[#8B7355] underline-offset-2 hover:underline"
+                    onClick={() => removeSlot(i)}
+                  >
+                    {s9.eliminarFecha}
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AiField label={s9.fecha}>
+                    <input
+                      type="date"
+                      className={aiInputClass}
+                      value={slot.fecha}
+                      onChange={(e) => patchSlot(i, { fecha: e.target.value })}
+                    />
+                  </AiField>
+                  <AiField label={s9.horaInicio}>
+                    <input type="time" className={aiInputClass} value={slot.inicio} onChange={(e) => patchSlot(i, { inicio: e.target.value })} />
+                  </AiField>
+                  <AiField label={s9.horaFin}>
+                    <input type="time" className={aiInputClass} value={slot.fin} onChange={(e) => patchSlot(i, { fin: e.target.value })} />
+                  </AiField>
+                  <div className="sm:col-span-2">
+                    <AiField label={s9.notasOh}>
+                      <input className={aiInputClass} value={slot.notas} onChange={(e) => patchSlot(i, { notas: e.target.value })} />
+                    </AiField>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
+          {canAddMore ? (
+            <button
+              type="button"
+              className="mt-4 w-full rounded-lg border border-dashed border-[#C9B46A]/60 bg-[#FFFCF7] px-3 py-2.5 text-sm font-semibold text-[#5C4A28] transition hover:border-[#B8954A]/80 hover:bg-[#FFF6E7]"
+              onClick={addSlot}
+            >
+              {s9.agregarOpenHouse}
+            </button>
           ) : null}
         </div>
         <div>

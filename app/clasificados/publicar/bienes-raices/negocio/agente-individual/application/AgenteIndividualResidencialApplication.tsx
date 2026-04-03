@@ -45,11 +45,7 @@ export default function AgenteIndividualResidencialApplication() {
 
   useLayoutEffect(() => {
     const boot = bootstrapAgenteIndividualResidencialApplicationState();
-    let next = applyBrNegocioBranchQuery(boot, searchParams);
-    if (next.categoriaPropiedad === "otro" && next.tipoPropiedadCodigo !== "otro") {
-      next = { ...next, tipoPropiedadCodigo: "otro" };
-    }
-    setState(next);
+    setState(applyBrNegocioBranchQuery(boot, searchParams));
     // Branch query is applied once on entry; draft/bootstrap owns subsequent state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -14,7 +14,7 @@
  * I. SOCIALS — wired: buildContactModel social* + permitirVerRedes (showSocialIcons).
  * J. CTA — wired: buildContactModel (all permitir* + dedicated fields + fallbacks documented in agenteResidencialPreviewFormat buildContactModel).
  * K. LISTING FALLBACK — wired: listadoBloqueHref, listadoUrl, listadoArchivoDataUrl/Nombre in hrefListadoCompleto / listadoDownloadName.
- * L. EXTRAS — wired: buildOpenHouseSummary, buildAsesorBlock, map from buildMapQuery (direccion+ciudad+areaCiudad).
+ * L. EXTRAS — wired: buildOpenHouseSlotSummaries / normalizeOpenHouseSlots, buildAsesorBlock, buildBrokerSupportBlock, map from buildMapQuery (direccion+ciudad+areaCiudad).
  *
  * Intentionally excluded (product): puntos cercanos, transporte, bio / agenteBioCorta (stripped in merge).
  */

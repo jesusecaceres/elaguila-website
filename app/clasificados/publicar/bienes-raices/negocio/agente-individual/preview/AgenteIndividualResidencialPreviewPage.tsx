@@ -22,12 +22,13 @@ import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndiv
 import type { QuickFactKey } from "../lib/agenteResidencialPreviewFormat";
 import {
   buildAsesorBlock,
+  buildBrokerSupportBlock,
   buildContactModel,
   buildDestacadosLabels,
   buildGalleryModel,
   buildLocationLine,
   buildMapQuery,
-  buildOpenHouseSummary,
+  buildOpenHouseSlotSummaries,
   buildPropertyDetailRows,
   buildQuickFacts,
   formatEstadoAnuncioLabel,
@@ -36,11 +37,13 @@ import {
   formatTipoPublicacionFijoLine,
   galleryPhotoUrlsOrdered,
   hasBrandBlockVisible,
+  hasSecondAgentRailContent,
   hrefFromUserInput,
   restPhotoIndicesAfterCover,
   trim,
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
+import { digitsOnly } from "../application/utils/phoneMask";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { AgenteIndividualResidencialMediaLightbox } from "./AgenteIndividualResidencialMediaLightbox";
 import {
@@ -200,26 +203,17 @@ export function AgenteIndividualResidencialPreviewPage({
   const locationLine = buildLocationLine(data);
   const mapQuery = buildMapQuery(data);
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
-  const openHouseSummary = buildOpenHouseSummary(data);
+  const openHouseSummaries = buildOpenHouseSlotSummaries(data, locale);
+  const brokerSupportBlock = buildBrokerSupportBlock(data);
   const asesorBlock = buildAsesorBlock(data);
   const opLine = formatTipoPublicacionFijoLine(data, locale);
 
   const agentLicenseLine = trim(data.agenteLicencia) ? `${p.licenciaAgente} ${trim(data.agenteLicencia)}` : "";
   const brandLicenseLine = showBrand && trim(data.marcaLicencia) ? `${p.licenciaMarca} ${trim(data.marcaLicencia)}` : "";
   const resolvedBrandSite = showBrand ? hrefFromUserInput(data.marcaSitioWeb) : null;
-  const isOfficeSeller = data.sellerTipo === "oficina_broker";
-  const showPrimaryAgentVisual =
-    !isOfficeSeller || Boolean(trim(data.agenteNombre) || trim(data.agenteFotoDataUrl));
-  const equipoSecond =
-    data.sellerTipo === "equipo_agentes" &&
-    Boolean(
-      trim(data.agente2Nombre) ||
-        trim(data.agente2FotoDataUrl) ||
-        trim(data.agente2Titulo) ||
-        trim(data.agente2Licencia) ||
-        trim(data.agente2Telefono) ||
-        trim(data.agente2Correo),
-    );
+  /** BR Negocio lane is fixed to `agente_individual` (see `BrNegocioSellerTipo`). */
+  const showPrimaryAgentVisual = true;
+  const showSecondAgentRail = hasSecondAgentRailContent(data);
   const agente2PhoneDisplay = formatPreviewPhoneDisplay(trim(data.agente2Telefono));
   const agente2LicenseLine = trim(data.agente2Licencia) ? `${p.licenciaAgente} ${trim(data.agente2Licencia)}` : "";
 
@@ -644,13 +638,107 @@ export function AgenteIndividualResidencialPreviewPage({
                   Más información
                 </h2>
                 <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-                  {openHouseSummary ? (
-                    <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+                  {openHouseSummaries.length > 0 ? (
+                    <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={CARD_PAD}>
                         <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                           {p.openHouse}
                         </h4>
-                        <p className={`${typo.body} whitespace-pre-line`}>{openHouseSummary}</p>
+                        <div
+                          className={`grid gap-2 ${openHouseSummaries.length > 1 ? "sm:grid-cols-2" : ""}`}
+                        >
+                          {openHouseSummaries.map((summary, i) => (
+                            <div
+                              key={i}
+                              className="rounded-lg border px-3 py-2.5"
+                              style={{ borderColor: BORDER, background: "rgba(255,252,247,0.65)" }}
+                            >
+                              <p className={`${typo.body} whitespace-pre-line`}>{summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                  {brokerSupportBlock ? (
+                    <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
+                      <div className={CARD_PAD}>
+                        <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
+                          {p.brokerAsesor}
+                        </h4>
+                        <p className={`${typo.body} font-semibold`}>{brokerSupportBlock.name}</p>
+                        {brokerSupportBlock.title ? (
+                          <p className={`${typo.bodySm} mt-0.5`} style={{ color: MUTED }}>
+                            {brokerSupportBlock.title}
+                          </p>
+                        ) : null}
+                        {brokerSupportBlock.license ? (
+                          <p className={`${typo.bodySm} mt-1 opacity-90`} style={{ color: MUTED_LIGHT }}>
+                            {brokerSupportBlock.license}
+                          </p>
+                        ) : null}
+                        {brokerSupportBlock.email ? (
+                          <a
+                            href={`mailto:${brokerSupportBlock.email}`}
+                            className="mt-2 block truncate text-sm font-semibold"
+                            style={{ color: BRONZE }}
+                          >
+                            {brokerSupportBlock.email}
+                          </a>
+                        ) : null}
+                        {brokerSupportBlock.phone ? (
+                          <a
+                            href={`tel:${digitsOnly(brokerSupportBlock.phone)}`}
+                            className={`mt-1 block ${typo.body} font-semibold`}
+                            style={{ color: CHARCOAL }}
+                          >
+                            {formatPreviewPhoneDisplay(brokerSupportBlock.phone)}
+                          </a>
+                        ) : null}
+                        {brokerSupportBlock.website ? (
+                          <a
+                            href={brokerSupportBlock.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold"
+                            style={{ color: BRONZE }}
+                          >
+                            {p.sitioWeb}
+                            <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
+                          </a>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {brokerSupportBlock.socialInstagram ? (
+                            <SocialCircle href={brokerSupportBlock.socialInstagram} label="Instagram">
+                              <SiInstagram className="h-3.5 w-3.5" aria-hidden />
+                            </SocialCircle>
+                          ) : null}
+                          {brokerSupportBlock.socialFacebook ? (
+                            <SocialCircle href={brokerSupportBlock.socialFacebook} label="Facebook">
+                              <SiFacebook className="h-3.5 w-3.5" aria-hidden />
+                            </SocialCircle>
+                          ) : null}
+                          {brokerSupportBlock.socialYoutube ? (
+                            <SocialCircle href={brokerSupportBlock.socialYoutube} label="YouTube">
+                              <SiYoutube className="h-3.5 w-3.5" aria-hidden />
+                            </SocialCircle>
+                          ) : null}
+                          {brokerSupportBlock.socialTiktok ? (
+                            <SocialCircle href={brokerSupportBlock.socialTiktok} label="TikTok">
+                              <SiTiktok className="h-3.5 w-3.5" aria-hidden />
+                            </SocialCircle>
+                          ) : null}
+                          {brokerSupportBlock.socialX ? (
+                            <SocialCircle href={brokerSupportBlock.socialX} label="X">
+                              <SiX className="h-3.5 w-3.5" aria-hidden />
+                            </SocialCircle>
+                          ) : null}
+                          {brokerSupportBlock.socialOtro ? (
+                            <SocialCircle href={brokerSupportBlock.socialOtro} label={p.verSitioWeb}>
+                              <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
+                            </SocialCircle>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -786,7 +874,7 @@ export function AgenteIndividualResidencialPreviewPage({
                   </p>
                 ) : null}
 
-                {equipoSecond ? (
+                {showSecondAgentRail ? (
                   <div
                     className="mt-4 rounded-lg border px-3 py-3"
                     style={{ borderColor: BORDER, background: "rgba(44,36,22,0.03)" }}

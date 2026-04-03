@@ -1,49 +1,46 @@
 /**
- * BR Negocio branch selector + URL query contract (seller + property category).
- * Used by `/publicar/bienes-raices` → `clasificados/publicar/bienes-raices/negocio`.
+ * BR Negocio branch: property category on the URL (`propiedad`).
+ * Seller is always the standard agent flow (no top-level seller branching).
  */
 
-export type BrNegocioSellerTipo = "agente_individual" | "equipo_agentes" | "oficina_broker";
+export type BrNegocioSellerTipo = "agente_individual";
 
-export type BrNegocioCategoriaPropiedad = "residencial" | "comercial" | "terreno_lote" | "otro";
+export type BrNegocioCategoriaPropiedad = "residencial" | "comercial" | "terreno_lote";
 
 export const BR_NEGOCIO_DEFAULT_SELLER: BrNegocioSellerTipo = "agente_individual";
 
 export const BR_NEGOCIO_DEFAULT_CATEGORIA: BrNegocioCategoriaPropiedad = "residencial";
 
-/** Query keys on the Negocio application URL. */
-export const BR_NEGOCIO_Q_SELLER = "seller";
-
+/** Query key on the Negocio application URL (category only). */
 export const BR_NEGOCIO_Q_PROPIEDAD = "propiedad";
 
-export function parseBrNegocioSellerParam(raw: string | null | undefined): BrNegocioSellerTipo | null {
-  if (raw === "agente_individual" || raw === "equipo_agentes" || raw === "oficina_broker") return raw;
-  return null;
-}
+/** @deprecated Legacy key; ignored for routing — seller is always base flow. */
+export const BR_NEGOCIO_Q_SELLER = "seller";
 
 export function parseBrNegocioPropiedadParam(raw: string | null | undefined): BrNegocioCategoriaPropiedad | null {
-  if (raw === "residencial" || raw === "comercial" || raw === "terreno_lote" || raw === "otro") return raw;
+  if (raw === "residencial" || raw === "comercial" || raw === "terreno_lote") return raw;
   return null;
 }
 
-export function coerceBrNegocioSellerTipo(raw: unknown): BrNegocioSellerTipo {
-  return parseBrNegocioSellerParam(typeof raw === "string" ? raw : null) ?? BR_NEGOCIO_DEFAULT_SELLER;
+/** Legacy drafts/URLs may use `otro`; map away for the simplified selector. */
+export function coerceBrNegocioCategoriaPropiedad(raw: unknown): BrNegocioCategoriaPropiedad {
+  const s = typeof raw === "string" ? raw : "";
+  if (s === "residencial" || s === "comercial" || s === "terreno_lote") return s;
+  return BR_NEGOCIO_DEFAULT_CATEGORIA;
 }
 
-export function coerceBrNegocioCategoriaPropiedad(raw: unknown): BrNegocioCategoriaPropiedad {
-  return parseBrNegocioPropiedadParam(typeof raw === "string" ? raw : null) ?? BR_NEGOCIO_DEFAULT_CATEGORIA;
+export function coerceBrNegocioSellerTipo(_raw: unknown): BrNegocioSellerTipo {
+  return BR_NEGOCIO_DEFAULT_SELLER;
 }
 
 export function applyBrNegocioBranchQuery<
   T extends { sellerTipo: BrNegocioSellerTipo; categoriaPropiedad: BrNegocioCategoriaPropiedad },
 >(state: T, sp: { get(name: string): string | null } | null | undefined): T {
-  if (!sp) return state;
-  const seller = parseBrNegocioSellerParam(sp.get(BR_NEGOCIO_Q_SELLER));
+  if (!sp) return { ...state, sellerTipo: BR_NEGOCIO_DEFAULT_SELLER };
   const prop = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-  if (!seller && !prop) return state;
   return {
     ...state,
-    ...(seller ? { sellerTipo: seller } : {}),
+    sellerTipo: BR_NEGOCIO_DEFAULT_SELLER,
     ...(prop ? { categoriaPropiedad: prop } : {}),
   };
 }

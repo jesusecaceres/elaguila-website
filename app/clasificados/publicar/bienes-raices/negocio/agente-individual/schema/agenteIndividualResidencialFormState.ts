@@ -17,6 +17,16 @@ export type AgenteResidencialEstadoAnuncio = "disponible" | "pendiente" | "bajo_
 
 export type AgenteResidencialCondicionPropiedad = "excelente" | "buena" | "regular" | "necesita_reparacion";
 
+/** Hasta 4 fechas de open house en «Más información». */
+export type AgenteResOpenHouseSlot = {
+  fecha: string;
+  inicio: string;
+  fin: string;
+  notas: string;
+};
+
+export const AGENTE_RES_MAX_OPEN_HOUSE_SLOTS = 4;
+
 export type AgenteResidencialDestacadoId =
   | "piscina"
   | "patio"
@@ -146,13 +156,30 @@ export type AgenteIndividualResidencialFormState = {
   agenteAreaServicio: string;
   agenteIdiomas: string;
 
-  /** Equipo / 2 agentes — segundo agente (vista previa: bloque secundario en el rail). */
+  /** Si el usuario activó el bloque «segundo agente» en publicar. */
+  mostrarSegundoAgente: boolean;
+  /** Segundo agente (rail inferior a la tarjeta principal en vista previa). */
   agente2FotoDataUrl: string;
   agente2Nombre: string;
   agente2Titulo: string;
   agente2Licencia: string;
   agente2Telefono: string;
   agente2Correo: string;
+
+  /** Broker o asesor de apoyo — sección inferior en vista previa, no rail. */
+  mostrarBrokerAsesor: boolean;
+  brokerNombre: string;
+  brokerTitulo: string;
+  brokerLicencia: string;
+  brokerTelefono: string;
+  brokerEmail: string;
+  brokerSitioWeb: string;
+  brokerInstagram: string;
+  brokerFacebook: string;
+  brokerYoutube: string;
+  brokerTiktok: string;
+  brokerX: string;
+  brokerOtro: string;
 
   permitirSolicitarInformacion: boolean;
   permitirProgramarVisita: boolean;
@@ -184,11 +211,14 @@ export type AgenteIndividualResidencialFormState = {
   /** contactRail.brochure */
   ctaUrlFolleto: string;
 
+  /** @deprecated Prefer `openHouseSlots`; conservado para borradores antiguos. */
   extraOpenHouse: boolean;
   openHouseFecha: string;
   openHouseInicio: string;
   openHouseFin: string;
   openHouseNotas: string;
+  /** Open house repetible (máx. `AGENTE_RES_MAX_OPEN_HOUSE_SLOTS`). */
+  openHouseSlots: AgenteResOpenHouseSlot[];
 
   extraAsesorFinanciero: boolean;
   asesorNombre: string;
@@ -436,12 +466,27 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     agenteAreaServicio: "",
     agenteIdiomas: "",
 
+    mostrarSegundoAgente: false,
     agente2FotoDataUrl: "",
     agente2Nombre: "",
     agente2Titulo: "",
     agente2Licencia: "",
     agente2Telefono: "",
     agente2Correo: "",
+
+    mostrarBrokerAsesor: false,
+    brokerNombre: "",
+    brokerTitulo: "",
+    brokerLicencia: "",
+    brokerTelefono: "",
+    brokerEmail: "",
+    brokerSitioWeb: "",
+    brokerInstagram: "",
+    brokerFacebook: "",
+    brokerYoutube: "",
+    brokerTiktok: "",
+    brokerX: "",
+    brokerOtro: "",
 
     permitirSolicitarInformacion: true,
     permitirProgramarVisita: true,
@@ -469,6 +514,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     openHouseInicio: "",
     openHouseFin: "",
     openHouseNotas: "",
+    openHouseSlots: [],
 
     extraAsesorFinanciero: false,
     asesorNombre: "",
@@ -478,6 +524,86 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
 }
 
 export const createEmptyAgenteIndividualResidencialState = createEmptyAgenteIndividualResidencialFormState;
+
+function coerceOpenHouseSlot(o: unknown): AgenteResOpenHouseSlot {
+  const r = o as Record<string, unknown>;
+  return {
+    fecha: typeof r?.fecha === "string" ? r.fecha : "",
+    inicio: typeof r?.inicio === "string" ? r.inicio : "",
+    fin: typeof r?.fin === "string" ? r.fin : "",
+    notas: typeof r?.notas === "string" ? r.notas : "",
+  };
+}
+
+function mergeOpenHouseSlots(
+  flat: Partial<AgenteIndividualResidencialFormState>,
+  nested: Partial<AgenteIndividualResidencialFormState>,
+  legacy: Record<string, unknown>,
+  base: AgenteIndividualResidencialFormState,
+): AgenteResOpenHouseSlot[] {
+  if (Array.isArray(flat.openHouseSlots) && flat.openHouseSlots.length > 0) {
+    return flat.openHouseSlots.slice(0, AGENTE_RES_MAX_OPEN_HOUSE_SLOTS).map((x) => coerceOpenHouseSlot(x));
+  }
+  if (Array.isArray(nested.openHouseSlots) && nested.openHouseSlots.length > 0) {
+    return nested.openHouseSlots.slice(0, AGENTE_RES_MAX_OPEN_HOUSE_SLOTS).map((x) => coerceOpenHouseSlot(x));
+  }
+  const ex =
+    typeof flat.extraOpenHouse === "boolean"
+      ? flat.extraOpenHouse
+      : typeof nested.extraOpenHouse === "boolean"
+        ? nested.extraOpenHouse
+        : typeof legacy.extraOpenHouse === "boolean"
+          ? legacy.extraOpenHouse
+          : base.extraOpenHouse;
+  const fecha = typeof flat.openHouseFecha === "string" ? flat.openHouseFecha : base.openHouseFecha;
+  const ini = typeof flat.openHouseInicio === "string" ? flat.openHouseInicio : base.openHouseInicio;
+  const fin = typeof flat.openHouseFin === "string" ? flat.openHouseFin : base.openHouseFin;
+  const notas = typeof flat.openHouseNotas === "string" ? flat.openHouseNotas : base.openHouseNotas;
+  if (ex && (trim(fecha) || trim(ini) || trim(fin) || trim(notas))) {
+    return [{ fecha, inicio: ini, fin, notas }];
+  }
+  return [];
+}
+
+function inferMostrarSegundoAgente(
+  flat: Partial<AgenteIndividualResidencialFormState>,
+  nested: Partial<AgenteIndividualResidencialFormState>,
+  peek: Partial<AgenteIndividualResidencialFormState>,
+): boolean {
+  if (typeof flat.mostrarSegundoAgente === "boolean") return flat.mostrarSegundoAgente;
+  if (typeof nested.mostrarSegundoAgente === "boolean") return nested.mostrarSegundoAgente;
+  return Boolean(
+    trim(peek.agente2Nombre) ||
+      trim(peek.agente2FotoDataUrl) ||
+      trim(peek.agente2Titulo) ||
+      trim(peek.agente2Licencia) ||
+      trim(peek.agente2Telefono) ||
+      trim(peek.agente2Correo),
+  );
+}
+
+function inferMostrarBrokerAsesor(
+  flat: Partial<AgenteIndividualResidencialFormState>,
+  nested: Partial<AgenteIndividualResidencialFormState>,
+  peek: Partial<AgenteIndividualResidencialFormState>,
+): boolean {
+  if (typeof flat.mostrarBrokerAsesor === "boolean") return flat.mostrarBrokerAsesor;
+  if (typeof nested.mostrarBrokerAsesor === "boolean") return nested.mostrarBrokerAsesor;
+  return Boolean(
+    trim(peek.brokerNombre) ||
+      trim(peek.brokerTitulo) ||
+      trim(peek.brokerLicencia) ||
+      trim(peek.brokerTelefono) ||
+      trim(peek.brokerEmail) ||
+      trim(peek.brokerSitioWeb) ||
+      trim(peek.brokerInstagram) ||
+      trim(peek.brokerFacebook) ||
+      trim(peek.brokerYoutube) ||
+      trim(peek.brokerTiktok) ||
+      trim(peek.brokerX) ||
+      trim(peek.brokerOtro),
+  );
+}
 
 export function mergePartialAgenteIndividualResidencial(
   partial: Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
@@ -570,6 +696,15 @@ export function mergePartialAgenteIndividualResidencial(
     flat.categoriaPropiedad ?? nested.categoriaPropiedad ?? legacy.categoriaPropiedad,
   );
 
+  const peek: Partial<AgenteIndividualResidencialFormState> = {
+    ...base,
+    ...nested,
+    ...flat,
+    sellerTipo,
+    categoriaPropiedad,
+  };
+  const openHouseSlotsMerged = mergeOpenHouseSlots(flat, nested, legacy, base);
+
   return {
     ...base,
     ...nested,
@@ -577,6 +712,9 @@ export function mergePartialAgenteIndividualResidencial(
     tipoPublicacionFijo: "venta_residencial",
     sellerTipo,
     categoriaPropiedad,
+    openHouseSlots: openHouseSlotsMerged,
+    mostrarSegundoAgente: inferMostrarSegundoAgente(flat, nested, peek),
+    mostrarBrokerAsesor: inferMostrarBrokerAsesor(flat, nested, peek),
     ciudad,
     mostrarMarcaEnTarjeta,
     estadoAnuncio: coerceEstado(flat.estadoAnuncio ?? nested.estadoAnuncio ?? base.estadoAnuncio),
