@@ -172,15 +172,23 @@ export function AutoDealerPreviewPage({
           ) : null}
 
           <aside
-            className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start"
+            className="flex min-w-0 flex-col gap-0 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:gap-6 lg:self-start"
             style={{
               gridRowStart: leftRowCount > 0 ? 1 : undefined,
               gridRowEnd: leftRowCount > 0 ? `span ${leftRowCount}` : undefined,
               order: orderAside,
             }}
           >
-            <AutoSidebarCTA data={data} />
-            <DealerInfoCard data={data} />
+            <div className="flex flex-col overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] lg:contents lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:shadow-none">
+              <AutoSidebarCTA
+                data={data}
+                className="max-lg:!rounded-none max-lg:!border-0 max-lg:!shadow-none max-lg:bg-transparent max-lg:p-5"
+              />
+              <DealerInfoCard
+                data={data}
+                className="max-lg:!rounded-none max-lg:!border-0 max-lg:!shadow-none max-lg:border-t max-lg:border-[color:var(--lx-nav-border)] max-lg:bg-[color:var(--lx-section)] max-lg:p-5 max-lg:pt-6"
+              />
+            </div>
           </aside>
 
           {showSpecs ? (

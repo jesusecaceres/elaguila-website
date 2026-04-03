@@ -13,7 +13,8 @@ import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleCo
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4 shadow-[0_4px_24px_-6px_rgba(42,36,22,0.08)]";
 
-const ICON_ROW = "flex gap-3 text-[color:var(--lx-text-2)]";
+const ICON_ROW =
+  "flex gap-3 text-[color:var(--lx-text-2)] max-lg:gap-3.5 max-lg:text-[15px] max-lg:leading-snug";
 
 const SOCIAL_ORDER: DealerSocialKey[] = ["instagram", "facebook", "youtube", "tiktok", "website"];
 
@@ -21,7 +22,7 @@ function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
+export function DealerInfoCard({ data, className }: { data: AutoDealerListing; className?: string }) {
   const { t } = useAutosNegociosPreviewCopy();
   const d = t.preview.dealer;
   const socialLabels = t.app.dealer.socialLabels;
@@ -54,9 +55,9 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
 
   return (
-    <div className={CARD}>
-      <div className="flex items-start gap-4">
-        <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] shadow-[0_2px_12px_rgba(42,36,22,0.06)]">
+    <div className={`${CARD} ${className ?? ""}`}>
+      <div className="flex items-start gap-4 max-lg:gap-4">
+        <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] shadow-[0_2px_12px_rgba(42,36,22,0.06)] max-lg:h-[5.25rem] max-lg:w-[5.25rem] max-lg:rounded-[18px] max-lg:shadow-[0_4px_16px_-4px_rgba(42,36,22,0.1)]">
           {data.dealerLogo ? (
             data.dealerLogo.startsWith("data:") ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -67,85 +68,94 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
                 alt={logoAlt}
                 fill
                 className="object-contain p-1.5"
-                sizes="76px"
+                sizes="84px"
               />
             )
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[color:var(--lx-muted)]">{initials}</div>
+            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[color:var(--lx-muted)] max-lg:text-base">{initials}</div>
           )}
         </div>
-        <div className="min-w-0 flex-1 pt-0.5">
+        <div className="min-w-0 flex-1 pt-0.5 max-lg:pt-1">
           {nonEmpty(data.dealerName) ? (
-            <h2 className="break-words text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)]">{data.dealerName?.trim()}</h2>
+            <h2 className="break-words text-base font-bold leading-tight tracking-tight text-[color:var(--lx-text)] max-lg:text-lg max-lg:font-extrabold max-lg:tracking-tight max-lg:text-[color:var(--lx-text)]">
+              {data.dealerName?.trim()}
+            </h2>
           ) : null}
           {showRatingRow ? (
-            <p className="mt-1.5 text-sm text-[color:var(--lx-muted)]">
+            <p className="mt-1.5 text-sm text-[color:var(--lx-muted)] max-lg:mt-2 max-lg:text-[15px]">
               {rOk ? (
-                <span className="font-semibold text-[color:var(--lx-gold)]">{ratingVal!.toFixed(1)}</span>
+                <span className="font-semibold tabular-nums text-[color:var(--lx-gold)] max-lg:inline-flex max-lg:items-center max-lg:rounded-full max-lg:border max-lg:border-[color:var(--lx-gold-border)]/45 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-2.5 max-lg:py-0.5 max-lg:text-sm max-lg:font-bold">
+                  {ratingVal!.toFixed(1)}
+                </span>
               ) : null}
               {rOk && cOk ? <span aria-hidden> · </span> : null}
-              {cOk ? <span>{d.reviewsLine(reviewVal!)}</span> : null}
+              {cOk ? (
+                <span className="font-medium text-[color:var(--lx-text-2)] max-lg:font-semibold max-lg:text-[color:var(--lx-text)]">{d.reviewsLine(reviewVal!)}</span>
+              ) : null}
             </p>
           ) : null}
         </div>
       </div>
 
-      <ul className="mt-4 space-y-3 text-sm">
+      <ul className="mt-4 space-y-3 text-sm max-lg:mt-5 max-lg:space-y-3.5">
         {showPhone ? (
           <li className={ICON_ROW}>
-            <FiPhone className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+            <FiPhone className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:mt-1 max-lg:h-5 max-lg:w-5" aria-hidden />
             {phoneForTel ? (
               <a
                 href={`tel:${phoneForTel}`}
-                className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
+                className="font-semibold text-[color:var(--lx-text)] underline-offset-2 hover:underline max-lg:text-[15px]"
               >
                 {phoneDisplay || data.dealerPhone?.trim()}
               </a>
             ) : (
-              <span className="font-medium text-[color:var(--lx-text)]">{phoneDisplay || data.dealerPhone?.trim()}</span>
+              <span className="font-semibold text-[color:var(--lx-text)] max-lg:text-[15px]">{phoneDisplay || data.dealerPhone?.trim()}</span>
             )}
           </li>
         ) : null}
         {nonEmpty(addressLine) ? (
           <li className={ICON_ROW}>
-            <FiMapPin className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <span className="leading-snug">{addressLine}</span>
+            <FiMapPin className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:mt-1 max-lg:h-5 max-lg:w-5" aria-hidden />
+            <span className="leading-snug text-[color:var(--lx-text-2)] max-lg:font-medium max-lg:text-[color:var(--lx-text)]">{addressLine}</span>
           </li>
         ) : null}
         {hours.length > 0 ? (
-          <li className={ICON_ROW}>
-            <FiClock className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <div className="space-y-1.5">
+          <li className={`${ICON_ROW} max-lg:items-start`}>
+            <FiClock className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:mt-1.5 max-lg:h-5 max-lg:w-5" aria-hidden />
+            <div className="space-y-1.5 max-lg:space-y-2.5">
               {hours.map((row, idx) => (
-                <p key={row.rowId ?? `hour-${idx}`} className="leading-snug text-[color:var(--lx-text-2)]">
-                  <span className="font-semibold text-[color:var(--lx-text)]">{row.day.trim()}:</span>{" "}
-                  {formatDealerHoursTimeRange(row)}
+                <p
+                  key={row.rowId ?? `hour-${idx}`}
+                  className="leading-snug text-[color:var(--lx-text-2)] max-lg:text-[15px] max-lg:leading-relaxed"
+                >
+                  <span className="font-bold text-[color:var(--lx-text)] max-lg:font-bold max-lg:text-[color:var(--lx-text)]">{row.day.trim()}:</span>{" "}
+                  <span className="font-medium max-lg:text-[color:var(--lx-text-2)]">{formatDealerHoursTimeRange(row)}</span>
                 </p>
               ))}
             </div>
           </li>
         ) : null}
         {webRaw ? (
-          <li className={ICON_ROW}>
-            <FiGlobe className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          <li className={`${ICON_ROW} max-lg:pt-0.5`}>
+            <FiGlobe className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:mt-1 max-lg:h-5 max-lg:w-5" aria-hidden />
             {webHref ? (
               <a
                 href={webHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-[color:var(--lx-text)] underline-offset-2 hover:underline"
+                className="font-semibold text-[color:var(--lx-text)] underline-offset-2 hover:underline max-lg:text-[15px]"
               >
                 {d.websiteCta}
               </a>
             ) : (
-              <span className="font-medium text-[color:var(--lx-text)]">{webRaw}</span>
+              <span className="font-semibold text-[color:var(--lx-text)] max-lg:text-[15px]">{webRaw}</span>
             )}
           </li>
         ) : null}
       </ul>
 
       {socials.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-[color:var(--lx-nav-border)] pt-4">
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-[color:var(--lx-nav-border)] pt-4 max-lg:mt-5 max-lg:gap-3 max-lg:pt-5">
           {socials.map((key) => {
             const raw = data.dealerSocials?.[key]?.trim();
             if (!raw) return null;
@@ -157,7 +167,7 @@ export function DealerInfoCard({ data }: { data: AutoDealerListing }) {
                 href={resolved}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] max-lg:h-11 max-lg:w-11 max-lg:border-[color:var(--lx-nav-border)]/90"
                 aria-label={socialLabels[key]}
               >
                 <SocialIcon kind={key} />
