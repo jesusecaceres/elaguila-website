@@ -114,6 +114,7 @@ export type AutosNegociosCopy = {
     sidebar: {
       priceAdvertised: string;
       availability: string;
+      whatsappCta: string;
       call: string;
       chat: string;
       scheduleDrive: string;
@@ -183,7 +184,7 @@ const ES: AutosNegociosCopy = {
       trim: "Versión / trim",
       condition: "Condición",
       price: "Precio (USD)",
-      monthly: "Pago mensual estimado",
+      monthly: "Pago mensual estimado (opcional)",
       mileage: "Millaje",
       city: "Ciudad",
       state: "Estado",
@@ -204,11 +205,13 @@ const ES: AutosNegociosCopy = {
       seats: "Asientos",
       dealerName: "Nombre del concesionario",
       phone: "Teléfono",
+      whatsapp: "WhatsApp",
       website: "Sitio web",
       address: "Dirección",
     },
     placeholders: {
       monthly: "Ej. Desde $450/mes",
+      whatsapp: "+1 408 555 0100",
       https: "https://…",
       description: "Describe el vehículo con el tono de tu concesionario.",
       city: "Escribe y elige una ciudad",
@@ -230,6 +233,8 @@ const ES: AutosNegociosCopy = {
       intPh: "Escribe el color interior",
       titlePh: "Describe el estado del título",
       cityNorCal: "Lista NorCal: elige una ciudad canónica para filtros y calidad de datos.",
+      monthlyOptional: "Opcional. Solo si quieres mostrar un pago mensual estimado.",
+      whatsapp: "Incluye código de país (p. ej. +1). La vista previa abrirá WhatsApp con el número normalizado.",
       zip: "5 dígitos (EE. UU.). Opcional; mejora búsqueda y geofencing.",
     },
     actions: { preview: "Ver vista previa", reset: "Reiniciar borrador" },
@@ -330,6 +335,7 @@ const ES: AutosNegociosCopy = {
     sidebar: {
       priceAdvertised: "Precio anunciado",
       availability: "Solicitar disponibilidad",
+      whatsappCta: "WhatsApp",
       call: "Llamar",
       chat: "Chatear",
       scheduleDrive: "Agendar prueba de manejo",
@@ -487,11 +493,13 @@ const EN: AutosNegociosCopy = {
       seats: "Seats",
       dealerName: "Dealership name",
       phone: "Phone",
+      whatsapp: "WhatsApp",
       website: "Website",
       address: "Address",
     },
     placeholders: {
       monthly: "e.g. From $450/mo",
+      whatsapp: "+1 408 555 0100",
       https: "https://…",
       description: "Describe the vehicle in your dealership’s voice.",
       city: "Type and pick a city",
@@ -513,6 +521,8 @@ const EN: AutosNegociosCopy = {
       intPh: "Interior color",
       titlePh: "Describe title status",
       cityNorCal: "NorCal list: pick a canonical city for filters and data quality.",
+      monthlyOptional: "Optional. Only if you want to show an estimated monthly payment.",
+      whatsapp: "Include country code (e.g. +1). Preview opens WhatsApp with a normalized wa.me link.",
       zip: "5-digit US ZIP. Optional; improves search and future geofencing.",
     },
     actions: { preview: "View preview", reset: "Reset draft" },
@@ -613,6 +623,7 @@ const EN: AutosNegociosCopy = {
     sidebar: {
       priceAdvertised: "Advertised price",
       availability: "Check availability",
+      whatsappCta: "WhatsApp",
       call: "Call",
       chat: "Chat",
       scheduleDrive: "Schedule test drive",

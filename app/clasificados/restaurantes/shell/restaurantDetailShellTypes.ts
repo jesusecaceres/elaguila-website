@@ -47,30 +47,28 @@ export type ShellHighlightTag = {
 };
 
 export type ShellGalleryItem = {
-  imageUrl: string;
+  /** Optional when video tile uses gradient fallback */
+  imageUrl?: string;
   alt: string;
   category: "interior" | "food" | "exterior" | "video";
   countOverlay?: number;
 };
 
+/** Contact + access: all optional — shell renders only filled rows */
 export type ShellContactBlock = {
-  addressLine1: string;
+  addressLine1?: string;
   addressLine2?: string;
-  /** Used for maps search / “Ver ubicación” */
-  mapsSearchQuery: string;
-  phoneDisplay: string;
-  phoneTelHref: string;
-  email: string;
-  websiteDisplay: string;
-  websiteHref: string;
-  instagramHandle: string;
-  instagramHref: string;
-  facebookDisplay: string;
-  facebookHref: string;
-  tiktokHandle: string;
-  tiktokHref: string;
-  whatsappDisplay: string;
-  whatsappHref: string;
+  mapsSearchQuery?: string;
+  phoneDisplay?: string;
+  phoneTelHref?: string;
+  email?: string;
+  websiteDisplay?: string;
+  websiteHref?: string;
+  instagramHref?: string;
+  facebookHref?: string;
+  tiktokHref?: string;
+  youtubeHref?: string;
+  whatsappHref?: string;
   menuFileLabel?: string;
   menuFileHref?: string;
 };
@@ -81,38 +79,44 @@ export type ShellTrustLight = {
   externalTrustLabel?: string;
 };
 
+export type ShellStackSection = {
+  id: string;
+  title: string;
+  rows: { label: string; value: string }[];
+};
+
 /**
  * Full shell payload — one object per listing in production.
+ * Optional sections may be omitted or empty; shell hides them without layout breaks.
  */
 export type RestaurantDetailShellData = {
   id: string;
-  heroImageUrl: string;
-  heroImageAlt: string;
+  heroImageUrl?: string;
+  heroImageAlt?: string;
   businessName: string;
-  cuisineTypeLine: string;
-  summaryShort: string;
+  cuisineTypeLine?: string;
+  summaryShort?: string;
   trustRating?: {
     average: number;
     count: number;
   };
   hoursPreview: {
     status: ShellHoursStatus;
-    /** e.g. "Abierto ahora · hasta las 22:00" */
     statusLine: string;
-    /** e.g. "Lun – Dom · 17:00 – 22:00" */
     scheduleSummary: string;
   };
   seeHoursLabel: string;
   seeHoursHref: string;
   primaryCtas: ShellPrimaryCta[];
-  quickInfo: ShellQuickInfoItem[];
-  menuHighlights: ShellMenuHighlight[];
-  fullMenuCta: { label: string; href: string };
-  highlightTags: ShellHighlightTag[];
-  gallery: ShellGalleryItem[];
-  galleryCta: { label: string; href: string };
-  contact: ShellContactBlock;
-  aboutTitle: string;
-  aboutBody: string;
+  quickInfo?: ShellQuickInfoItem[];
+  menuHighlights?: ShellMenuHighlight[];
+  fullMenuCta?: { label: string; href: string };
+  highlightTags?: ShellHighlightTag[];
+  gallery?: ShellGalleryItem[];
+  galleryCta?: { label: string; href: string };
+  contact?: ShellContactBlock;
+  aboutTitle?: string;
+  aboutBody?: string;
   trustLight?: ShellTrustLight;
+  stackSections?: ShellStackSection[];
 };

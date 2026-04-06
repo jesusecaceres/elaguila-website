@@ -118,6 +118,11 @@ export default function CityAutocomplete({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Always allow spaces in multi-word cities (e.g. "San Jose"); never steal Space for listbox UX.
+      if (e.key === " " || e.code === "Space") {
+        setHighlightedIndex(-1);
+        return;
+      }
       if (!showPanel) {
         if (e.key === "Escape") setOpen(false);
         return;

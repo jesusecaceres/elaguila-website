@@ -347,12 +347,55 @@ export function buildQuickFacts(s: AgenteIndividualResidencialFormState, locale:
   return out;
 }
 
-function numeroParaLlamar(s: AgenteIndividualResidencialFormState): string {
-  return trim(s.ctaNumeroLlamadas) || trim(s.telefonoPrincipal);
+export function effectiveAgenteTelefonoPersonal(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.agenteTelefonoPersonal) || trim(s.telefonoPrincipal);
 }
 
+export function effectiveAgenteTelefonoOficina(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.agenteTelefonoOficina);
+}
+
+export function effectiveAgente2TelefonoPersonal(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.agente2TelefonoPersonal) || trim(s.agente2Telefono);
+}
+
+function primaryCallDigitsFromFields(
+  personalRaw: string,
+  officeRaw: string,
+  choice: AgenteIndividualResidencialFormState["agentePrincipalLlamadas"],
+): string {
+  const p = digitsOnly(personalRaw);
+  const o = digitsOnly(officeRaw);
+  const pOk = p.length >= 10;
+  const oOk = o.length >= 10;
+  if (pOk && oOk) return choice === "oficina" ? o : p;
+  if (pOk) return p;
+  if (oOk) return o;
+  return "";
+}
+
+/** Dígitos para el CTA «Llamar» del rail (tras override `ctaNumeroLlamadas`). */
+export function primaryAgentCallDigits(s: AgenteIndividualResidencialFormState): string {
+  return primaryCallDigitsFromFields(
+    effectiveAgenteTelefonoPersonal(s),
+    effectiveAgenteTelefonoOficina(s),
+    s.agentePrincipalLlamadas,
+  );
+}
+
+function numeroParaLlamar(s: AgenteIndividualResidencialFormState): string {
+  const cta = trim(s.ctaNumeroLlamadas);
+  if (digitsOnly(cta).length >= 10) return cta;
+  const resolved = primaryAgentCallDigits(s);
+  return resolved ? resolved : "";
+}
+
+/** WhatsApp del rail: solo override CTA o campo WhatsApp del agente (sin fallback a otros teléfonos). */
 function numeroParaWhatsapp(s: AgenteIndividualResidencialFormState): string {
-  return trim(s.ctaNumeroWhatsapp) || trim(s.telefonoPrincipal);
+  const cta = trim(s.ctaNumeroWhatsapp);
+  if (digitsOnly(cta).length >= 10) return cta;
+  const wa = trim(s.agenteWhatsapp);
+  return digitsOnly(wa).length >= 10 ? wa : "";
 }
 
 function correoSolicitarInfo(s: AgenteIndividualResidencialFormState): string {
@@ -407,8 +450,15 @@ function hrefFolletoCta(s: AgenteIndividualResidencialFormState): string | null 
 function hrefSitioWebCta(s: AgenteIndividualResidencialFormState): string | null {
   const direct = hrefFromUserInput(s.ctaEnlaceSitioWeb);
   if (direct) return direct;
+  const agente = hrefFromUserInput(s.agenteSitioWeb);
+  if (agente) return agente;
   /** Fallback `marcaSitioWeb` for CTA only; visibility of the marca block is separate (`mostrarMarcaEnTarjeta`). */
   return hrefFromUserInput(s.marcaSitioWeb);
+}
+
+/** Enlace wa.me para vista previa (mismo criterio de dígitos que el rail). */
+export function previewWhatsappClickHref(raw: string): string | null {
+  return buildWhatsappHref(digitsOnly(trim(raw)), "");
 }
 
 export function listadoDownloadName(s: AgenteIndividualResidencialFormState): string | null {
@@ -589,6 +639,10 @@ export function hasSecondAgentRailContent(s: AgenteIndividualResidencialFormStat
       trim(s.agente2Titulo) ||
       trim(s.agente2Licencia) ||
       trim(s.agente2Telefono) ||
+      trim(s.agente2TelefonoPersonal) ||
+      trim(s.agente2TelefonoOficina) ||
+      trim(s.agente2Whatsapp) ||
+      trim(s.agente2SitioWeb) ||
       trim(s.agente2Correo) ||
       trim(s.agente2SocialInstagram) ||
       trim(s.agente2SocialFacebook) ||
@@ -603,7 +657,10 @@ export type BrokerSupportBlock = {
   name: string;
   title: string;
   license: string;
-  phone: string;
+  fotoDataUrl: string | null;
+  personalPhone: string;
+  officePhone: string;
+  whatsappHref: string | null;
   email: string;
   website: string | null;
   socialInstagram: string | null;
@@ -617,11 +674,17 @@ export type BrokerSupportBlock = {
 export function buildBrokerSupportBlock(s: AgenteIndividualResidencialFormState): BrokerSupportBlock | null {
   if (!s.mostrarBrokerAsesor) return null;
   if (!trim(s.brokerNombre)) return null;
+  const personalPhone = trim(s.brokerTelefonoPersonal) || trim(s.brokerTelefono);
+  const officePhone = trim(s.brokerTelefonoOficina);
+  const waHref = previewWhatsappClickHref(s.brokerWhatsapp);
   return {
     name: trim(s.brokerNombre),
     title: trim(s.brokerTitulo),
     license: trim(s.brokerLicencia),
-    phone: trim(s.brokerTelefono),
+    fotoDataUrl: trim(s.brokerFotoDataUrl) || null,
+    personalPhone,
+    officePhone,
+    whatsappHref: waHref,
     email: trim(s.brokerEmail),
     website: hrefFromUserInput(s.brokerSitioWeb),
     socialInstagram: resolveAnyHref(s.brokerInstagram),

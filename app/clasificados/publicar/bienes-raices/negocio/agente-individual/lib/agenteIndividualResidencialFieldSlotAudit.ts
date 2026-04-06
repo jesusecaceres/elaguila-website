@@ -9,7 +9,7 @@
  * D. PROPERTY DETAILS — wired: buildPropertyDetailRows (tipo*, condicion, recamaras, banos, mediosBanos, tamano*, estacionamientos, anoConstruccion).
  * E. FEATURES — wired: buildDestacadosLabels / AGENTE_RES_DESTACADOS_DEFS.
  * F. DESCRIPTION — wired: descripcionPrincipal, notasAdicionales.
- * G. AGENT CARD — wired: agenteFotoDataUrl, agenteNombre, agenteTitulo, agenteLicencia, telefonoPrincipal, correoPrincipal, agenteAreaServicio, agenteIdiomas.
+ * G. AGENT CARD — wired: agenteFotoDataUrl, agenteNombre, agenteTitulo, agenteLicencia, agenteTelefonoPersonal/Oficina, agenteWhatsapp, agentePrincipalLlamadas, agenteSitioWeb, correoPrincipal (legacy telefonoPrincipal migrado), agenteAreaServicio, agenteIdiomas.
  * H. MARCA — wired behind mostrarMarcaEnTarjeta: marcaNombre, marcaLogoDataUrl, marcaLicencia, marcaSitioWeb (hasBrandBlockVisible + rail).
  * I. SOCIALS — wired: buildContactModel social* (agente principal) + permitirVerRedes; segundo agente: buildSecondAgentSocialHrefs en rail.
  * J. CTA — wired: buildContactModel (all permitir* + dedicated fields + fallbacks documented in agenteResidencialPreviewFormat buildContactModel).

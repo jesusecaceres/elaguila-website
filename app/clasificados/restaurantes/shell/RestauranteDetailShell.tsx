@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiMail, FiMapPin, FiPhone, FiVideo, FiInstagram, FiFacebook } from "react-icons/fi";
+import { FiMail, FiMapPin, FiPhone, FiVideo, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
@@ -37,27 +37,63 @@ function mapsHref(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
+  if (!c) return false;
+  return Boolean(
+    c.addressLine1 ||
+      c.mapsSearchQuery ||
+      c.phoneDisplay ||
+      c.email ||
+      c.websiteHref ||
+      c.instagramHref ||
+      c.facebookHref ||
+      c.tiktokHref ||
+      c.youtubeHref ||
+      c.whatsappHref ||
+      c.menuFileHref
+  );
+}
+
 export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {
   const open = data.hoursPreview.status === "open";
+  const showQuick = (data.quickInfo?.length ?? 0) > 0;
+  const showFeatured = (data.menuHighlights?.length ?? 0) > 0 || Boolean(data.fullMenuCta);
+  const showHighlights = (data.highlightTags?.length ?? 0) > 0;
+  const showGallery = (data.gallery?.length ?? 0) > 0;
+  const showAbout = Boolean(data.aboutBody?.trim());
+  const showContact = hasContactContent(data.contact);
+  const showStacks = (data.stackSections?.length ?? 0) > 0;
+  const showCtas = (data.primaryCtas?.length ?? 0) > 0;
+  const hasHeroImg = Boolean(data.heroImageUrl?.trim());
 
   return (
     <main className="mx-auto mt-6 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
       {/* 1. HERO */}
       <section className="relative overflow-hidden rounded-[24px] border border-black/8 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.45)]">
         <div className="relative min-h-[min(72vh,640px)] w-full">
-          <Image
-            src={data.heroImageUrl}
-            alt={data.heroImageAlt}
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width:1280px) 100vw, 1280px"
-          />
+          {hasHeroImg ? (
+            <Image
+              src={data.heroImageUrl!}
+              alt={data.heroImageAlt ?? ""}
+              fill
+              priority
+              unoptimized={data.heroImageUrl!.startsWith("data:")}
+              className="object-cover"
+              sizes="(max-width:1280px) 100vw, 1280px"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-[#1a1814] via-[#2d2820] to-[#4a4034]"
+              aria-hidden
+            />
+          )}
           <div
             className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/35 to-black/10"
             aria-hidden
           />
-          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-6 p-6 pb-36 sm:p-8 sm:pb-40 md:p-10 md:pb-44">
+          <div
+            className={`absolute inset-x-0 bottom-0 flex flex-col gap-6 p-6 sm:p-8 md:p-10 ${showCtas ? "pb-36 sm:pb-40 md:pb-44" : "pb-10 sm:pb-12 md:pb-14"}`}
+          >
             <div className="max-w-3xl">
               <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.35rem] md:leading-[1.1]">
                 {data.businessName}
@@ -73,10 +109,14 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
                   </span>
                 </div>
               ) : null}
-              <p className="mt-2 text-[15px] font-medium text-white/88 sm:text-base">{data.cuisineTypeLine}</p>
-              <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/92 sm:text-base">
-                {data.summaryShort}
-              </p>
+              {data.cuisineTypeLine ? (
+                <p className="mt-2 text-[15px] font-medium text-white/88 sm:text-base">{data.cuisineTypeLine}</p>
+              ) : null}
+              {data.summaryShort ? (
+                <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/92 sm:text-base">
+                  {data.summaryShort}
+                </p>
+              ) : null}
               <div id="horarios" className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <p className="text-sm">
                   <span className={open ? "font-semibold text-emerald-300" : "font-semibold text-amber-200"}>
@@ -94,148 +134,188 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
               </div>
             </div>
           </div>
-          <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center px-3">
-            <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} />
-          </div>
+          {showCtas ? (
+            <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center px-3">
+              <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} />
+            </div>
+          ) : null}
         </div>
       </section>
 
       {/* 3. QUICK INFO STRIP */}
-      <section className="mt-8" aria-label="Información rápida">
-        <div
-          className={`${CARD} flex flex-wrap gap-x-3 gap-y-2 px-4 py-4 sm:px-5`}
-        >
-          {data.quickInfo.map((item) => (
-            <div
-              key={item.key}
-              className="flex min-w-0 max-w-full items-baseline gap-2 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-[13px]"
-            >
-              <span className="shrink-0 font-semibold text-[color:var(--lx-muted)]">{item.label}</span>
-              <span className="min-w-0 font-medium text-[color:var(--lx-text)]">{item.value}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      {showQuick ? (
+        <section className="mt-8" aria-label="Información rápida">
+          <div className={`${CARD} flex flex-wrap gap-x-3 gap-y-2 px-4 py-4 sm:px-5`}>
+            {data.quickInfo!.map((item) => (
+              <div
+                key={`${item.key}-${item.label}`}
+                className="flex min-w-0 max-w-full items-baseline gap-2 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-[13px]"
+              >
+                <span className="shrink-0 font-semibold text-[color:var(--lx-muted)]">{item.label}</span>
+                <span className="min-w-0 font-medium text-[color:var(--lx-text)]">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
-        <div className="min-w-0 space-y-10 lg:col-span-8">
+      <div
+        className={`mt-10 grid grid-cols-1 gap-8 ${showContact ? "lg:grid-cols-12 lg:gap-10" : ""}`}
+      >
+        <div className={`min-w-0 space-y-10 ${showContact ? "lg:col-span-8" : "lg:col-span-12"}`}>
           {/* 4. MENU HIGHLIGHTS */}
-          <section aria-labelledby="menu-highlights-heading">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <h2 id="menu-highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                Platos destacados
+          {showFeatured ? (
+            <section aria-labelledby="menu-highlights-heading">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <h2 id="menu-highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                  Platos destacados
+                </h2>
+              </div>
+              {data.menuHighlights?.length ? (
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {data.menuHighlights.map((dish) => (
+                    <article key={dish.name} className={`${CARD} group overflow-hidden p-0`}>
+                      <div className="relative aspect-[4/3] w-full overflow-hidden">
+                        <Image
+                          src={dish.imageUrl}
+                          alt={dish.name}
+                          fill
+                          unoptimized={dish.imageUrl.startsWith("data:")}
+                          className="object-cover transition duration-500 group-hover:scale-[1.02]"
+                          sizes="(max-width:640px) 100vw, 50vw"
+                        />
+                        {dish.badge ? (
+                          <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                            {dish.badge}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-base font-bold text-[color:var(--lx-text)]">{dish.name}</h3>
+                        <p className="mt-1.5 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{dish.supportingLine}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+              {data.fullMenuCta ? (
+                <div className={data.menuHighlights?.length ? "mt-6" : "mt-5"}>
+                  <a
+                    href={data.fullMenuCta.href}
+                    className="flex w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                  >
+                    {data.fullMenuCta.label}
+                    <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
+                      →
+                    </span>
+                  </a>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {/* 5. HIGHLIGHTS */}
+          {showHighlights ? (
+            <section aria-labelledby="highlights-heading">
+              <h2 id="highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                Destacados
               </h2>
-            </div>
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {data.menuHighlights.map((d) => (
-                <article
-                  key={d.name}
-                  className={`${CARD} group overflow-hidden p-0`}
-                >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden">
-                    <Image
-                      src={d.imageUrl}
-                      alt={d.name}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-[1.02]"
-                      sizes="(max-width:640px) 100vw, 50vw"
-                    />
-                    {d.badge ? (
-                      <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                        {d.badge}
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {data.highlightTags!.map((tag) => (
+                  <li key={tag.key}>
+                    <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--lx-text-2)]">
+                      {tag.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {/* Optional stacks I–K */}
+          {showStacks
+            ? data.stackSections!.map((stack) => (
+                <section key={stack.id} aria-labelledby={`stack-${stack.id}`}>
+                  <h2 id={`stack-${stack.id}`} className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                    {stack.title}
+                  </h2>
+                  <dl className={`${CARD} mt-4 space-y-3 px-5 py-4 text-sm`}>
+                    {stack.rows.map((row) => (
+                      <div key={`${row.label}-${row.value}`}>
+                        <dt className="font-semibold text-[color:var(--lx-muted)]">{row.label}</dt>
+                        <dd className="mt-0.5 text-[color:var(--lx-text-2)]">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              ))
+            : null}
+
+          {/* 6. GALLERY */}
+          {showGallery ? (
+            <section id="media" aria-labelledby="gallery-heading">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <h2 id="gallery-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                  Galería
+                </h2>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {data.gallery!.map((g, idx) => (
+                  <div
+                    key={`${g.alt}-${idx}`}
+                    className={`relative aspect-square overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] ${
+                      g.category === "video" ? "ring-2 ring-[color:var(--lx-gold)]/35" : ""
+                    }`}
+                  >
+                    {g.imageUrl ? (
+                      <Image
+                        src={g.imageUrl}
+                        alt={g.alt}
+                        fill
+                        unoptimized={g.imageUrl.startsWith("data:")}
+                        className="object-cover"
+                        sizes="(max-width:1024px) 50vw, 25vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#1a1814]" aria-hidden />
+                    )}
+                    {g.countOverlay != null ? (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        +{g.countOverlay}
+                      </span>
+                    ) : null}
+                    {g.category === "video" ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg">
+                          <FiVideo className="h-5 w-5" aria-hidden />
+                        </span>
                       </span>
                     ) : null}
                   </div>
-                  <div className="p-4">
-                    <h3 className="text-base font-bold text-[color:var(--lx-text)]">{d.name}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{d.supportingLine}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-            <div className="mt-6">
-              <a
-                href={data.fullMenuCta.href}
-                className="flex w-full items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-              >
-                {data.fullMenuCta.label}
-                <span className="ml-1 text-[color:var(--lx-gold)]" aria-hidden>
-                  →
-                </span>
-              </a>
-            </div>
-          </section>
-
-          {/* 5. HIGHLIGHTS */}
-          <section aria-labelledby="highlights-heading">
-            <h2 id="highlights-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-              Destacados
-            </h2>
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {data.highlightTags.map((tag) => (
-                <li key={tag.key}>
-                  <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-[13px] font-medium text-[color:var(--lx-text-2)]">
-                    {tag.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* 6. GALLERY */}
-          <section id="media" aria-labelledby="gallery-heading">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <h2 id="gallery-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                Galería
-              </h2>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {data.gallery.map((g, idx) => (
-                <div
-                  key={`${g.alt}-${idx}`}
-                  className={`relative aspect-square overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] ${
-                    g.category === "video" ? "ring-2 ring-[color:var(--lx-gold)]/35" : ""
-                  }`}
-                >
-                  <Image
-                    src={g.imageUrl}
-                    alt={g.alt}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width:1024px) 50vw, 25vw"
-                  />
-                  {g.countOverlay != null ? (
-                    <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
-                      +{g.countOverlay}
-                    </span>
-                  ) : null}
-                  {g.category === "video" ? (
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg">
-                        <FiVideo className="h-5 w-5" aria-hidden />
-                      </span>
-                    </span>
-                  ) : null}
+                ))}
+              </div>
+              {data.galleryCta ? (
+                <div className="mt-5">
+                  <a
+                    href={data.galleryCta.href}
+                    className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                  >
+                    {data.galleryCta.label}
+                  </a>
                 </div>
-              ))}
-            </div>
-            <div className="mt-5">
-              <a
-                href={data.galleryCta.href}
-                className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
-              >
-                {data.galleryCta.label}
-              </a>
-            </div>
-          </section>
+              ) : null}
+            </section>
+          ) : null}
 
           {/* 8. ABOUT */}
-          <section aria-labelledby="about-heading">
-            <h2 id="about-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-              {data.aboutTitle}
-            </h2>
-            <p className="mt-4 text-[15px] leading-[1.75] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
-          </section>
+          {showAbout ? (
+            <section aria-labelledby="about-heading">
+              <h2 id="about-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                {data.aboutTitle ?? "Sobre el negocio"}
+              </h2>
+              <p className="mt-4 text-[15px] leading-[1.75] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
+            </section>
+          ) : null}
 
           {/* 9. LIGHT TRUST */}
           {data.trustLight ? (
@@ -247,6 +327,8 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
               {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel ? (
                 <a
                   href={data.trustLight.externalTrustHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
                 >
                   {data.trustLight.externalTrustLabel}
@@ -256,112 +338,147 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
           ) : null}
         </div>
 
-        {/* Sidebar: 7. CONTACT + ACCESS */}
-        <aside className="min-w-0 lg:col-span-4 lg:row-span-1">
-          <div className={`${CARD} sticky top-24 space-y-5 p-5 sm:p-6`}>
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Contacto y acceso</h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex gap-2 text-[color:var(--lx-text-2)]">
-                <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                <div>
-                  <p>{data.contact.addressLine1}</p>
-                  {data.contact.addressLine2 ? <p>{data.contact.addressLine2}</p> : null}
+        {/* 7. CONTACT + ACCESS */}
+        {showContact ? (
+          <aside className="min-w-0 lg:col-span-4 lg:row-span-1">
+            <div className={`${CARD} sticky top-24 space-y-5 p-5 sm:p-6`}>
+              <h2 className="text-lg font-bold text-[color:var(--lx-text)]">Contacto y acceso</h2>
+              <div className="space-y-3 text-sm">
+                {data.contact!.addressLine1 || data.contact!.mapsSearchQuery ? (
+                  <div className="flex gap-2 text-[color:var(--lx-text-2)]">
+                    <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                    <div>
+                      {data.contact!.addressLine1 ? <p>{data.contact!.addressLine1}</p> : null}
+                      {data.contact!.addressLine2 ? <p>{data.contact!.addressLine2}</p> : null}
+                      {data.contact!.mapsSearchQuery ? (
+                        <a
+                          href={mapsHref(data.contact!.mapsSearchQuery!)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                        >
+                          Ver ubicación
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {data.contact!.phoneDisplay && data.contact!.phoneTelHref ? (
                   <a
-                    href={mapsHref(data.contact.mapsSearchQuery)}
+                    href={data.contact!.phoneTelHref}
+                    className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+                  >
+                    <FiPhone className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
+                    {data.contact!.phoneDisplay}
+                  </a>
+                ) : null}
+                {data.contact!.email ? (
+                  <a
+                    href={`mailto:${data.contact!.email}`}
+                    className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
+                  >
+                    <FiMail className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
+                    {data.contact!.email}
+                  </a>
+                ) : null}
+                {data.contact!.websiteHref && data.contact!.websiteDisplay ? (
+                  <a
+                    href={data.contact!.websiteHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
+                    className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
                   >
-                    Ver ubicación
+                    <span className="text-[color:var(--lx-gold)]" aria-hidden>
+                      ◆
+                    </span>
+                    {data.contact!.websiteDisplay}
                   </a>
+                ) : null}
+              </div>
+
+              {data.contact!.instagramHref ||
+              data.contact!.facebookHref ||
+              data.contact!.tiktokHref ||
+              data.contact!.youtubeHref ||
+              data.contact!.whatsappHref ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
+                    Redes y mensajería
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {data.contact!.instagramHref ? (
+                      <a
+                        href={data.contact!.instagramHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                        aria-label="Instagram"
+                      >
+                        <FiInstagram className="h-[1.15rem] w-[1.15rem]" />
+                      </a>
+                    ) : null}
+                    {data.contact!.facebookHref ? (
+                      <a
+                        href={data.contact!.facebookHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                        aria-label="Facebook"
+                      >
+                        <FiFacebook className="h-[1.15rem] w-[1.15rem]" />
+                      </a>
+                    ) : null}
+                    {data.contact!.tiktokHref ? (
+                      <a
+                        href={data.contact!.tiktokHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                        aria-label="TikTok"
+                      >
+                        <FaTiktok className="h-[1.05rem] w-[1.05rem]" />
+                      </a>
+                    ) : null}
+                    {data.contact!.youtubeHref ? (
+                      <a
+                        href={data.contact!.youtubeHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                        aria-label="YouTube"
+                      >
+                        <FiYoutube className="h-[1.15rem] w-[1.15rem]" />
+                      </a>
+                    ) : null}
+                    {data.contact!.whatsappHref ? (
+                      <a
+                        href={data.contact!.whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 min-w-[2.5rem] items-center justify-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                      >
+                        <FaWhatsapp className="h-[1.15rem] w-[1.15rem] text-emerald-700" aria-hidden />
+                        WA
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <a
-                href={data.contact.phoneTelHref}
-                className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
-              >
-                <FiPhone className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
-                {data.contact.phoneDisplay}
-              </a>
-              <a
-                href={`mailto:${data.contact.email}`}
-                className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
-              >
-                <FiMail className="h-4 w-4 text-[color:var(--lx-gold)]" aria-hidden />
-                {data.contact.email}
-              </a>
-              <a
-                href={data.contact.websiteHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-gold)]"
-              >
-                <span className="text-[color:var(--lx-gold)]" aria-hidden>
-                  ◆
-                </span>
-                {data.contact.websiteDisplay}
-              </a>
-            </div>
+              ) : null}
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                Redes y mensajería
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              {data.contact!.menuFileHref && data.contact!.menuFileLabel ? (
                 <a
-                  href={data.contact.instagramHref}
+                  href={data.contact!.menuFileHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="Instagram"
+                  className="flex w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
                 >
-                  <FiInstagram className="h-[1.15rem] w-[1.15rem]" />
+                  {data.contact!.menuFileLabel}
                 </a>
-                <a
-                  href={data.contact.facebookHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="Facebook"
-                >
-                  <FiFacebook className="h-[1.15rem] w-[1.15rem]" />
-                </a>
-                <a
-                  href={data.contact.tiktokHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="TikTok"
-                >
-                  <FaTiktok className="h-[1.05rem] w-[1.05rem]" />
-                </a>
-                <a
-                  href={data.contact.whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 min-w-[2.5rem] items-center justify-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                >
-                  <FaWhatsapp className="h-[1.15rem] w-[1.15rem] text-emerald-700" aria-hidden />
-                  WA
-                </a>
-              </div>
+              ) : null}
             </div>
-
-            {data.contact.menuFileHref && data.contact.menuFileLabel ? (
-              <a
-                href={data.contact.menuFileHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
-              >
-                {data.contact.menuFileLabel}
-              </a>
-            ) : null}
-          </div>
-        </aside>
+          </aside>
+        ) : null}
       </div>
-
-      {/* Planned modules (A–D): documented in demoRestaurantDetailShell.ts — not part of core shell UI */}
     </main>
   );
 }

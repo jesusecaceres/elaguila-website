@@ -296,6 +296,10 @@ export function Step07InformacionProfesional({
   const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
   const quitar = t.step02.quitar;
 
+  const agentePersonalDigits = digitsOnly(state.agenteTelefonoPersonal || state.telefonoPrincipal);
+  const agenteOfficeDigits = digitsOnly(state.agenteTelefonoOficina);
+  const showAgentePrimaryLlamadas = agentePersonalDigits.length >= 10 && agenteOfficeDigits.length >= 10;
+
   const marcaBlock = (
     <>
       <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.oficina}</p>
@@ -376,6 +380,92 @@ export function Step07InformacionProfesional({
         </AiField>
         <AiField label={s7.licencia} hint={s7.licenciaHint}>
           <input className={aiInputClass} value={state.agenteLicencia} onChange={(e) => setState((s) => ({ ...s, agenteLicencia: e.target.value }))} autoComplete="off" />
+        </AiField>
+        <AiField label={s7.telefonoPersonal}>
+          <input
+            className={aiInputClass}
+            value={formatUsPhoneDisplay(digitsOnly(state.agenteTelefonoPersonal))}
+            onChange={(e) => {
+              const prev = digitsOnly(state.agenteTelefonoPersonal);
+              const { display } = onPhoneInputChange(e.target.value, prev);
+              setState((s) => ({ ...s, agenteTelefonoPersonal: display, telefonoPrincipal: display }));
+            }}
+            inputMode="numeric"
+            autoComplete="tel"
+            placeholder="(555) 555-5555"
+          />
+        </AiField>
+        <AiField label={s7.telefonoOficina}>
+          <input
+            className={aiInputClass}
+            value={formatUsPhoneDisplay(digitsOnly(state.agenteTelefonoOficina))}
+            onChange={(e) => {
+              const prev = digitsOnly(state.agenteTelefonoOficina);
+              const { display } = onPhoneInputChange(e.target.value, prev);
+              setState((s) => ({ ...s, agenteTelefonoOficina: display }));
+            }}
+            inputMode="numeric"
+            autoComplete="tel"
+            placeholder="(555) 555-5555"
+          />
+        </AiField>
+        <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
+          <input
+            className={aiInputClass}
+            value={formatUsPhoneDisplay(digitsOnly(state.agenteWhatsapp))}
+            onChange={(e) => {
+              const prev = digitsOnly(state.agenteWhatsapp);
+              const { display } = onPhoneInputChange(e.target.value, prev);
+              setState((s) => ({ ...s, agenteWhatsapp: display }));
+            }}
+            inputMode="numeric"
+            autoComplete="tel"
+            placeholder="(555) 555-5555"
+          />
+        </AiField>
+        {showAgentePrimaryLlamadas ? (
+          <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
+            <legend className="px-1 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.numeroPrincipalLlamadas}</legend>
+            <div className="mt-2 flex flex-wrap gap-4 text-sm text-[#2C2416]">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
+                  checked={state.agentePrincipalLlamadas === "personal"}
+                  onChange={() => setState((s) => ({ ...s, agentePrincipalLlamadas: "personal" }))}
+                />
+                {s7.principalPersonal}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
+                  checked={state.agentePrincipalLlamadas === "oficina"}
+                  onChange={() => setState((s) => ({ ...s, agentePrincipalLlamadas: "oficina" }))}
+                />
+                {s7.principalOficina}
+              </label>
+            </div>
+          </fieldset>
+        ) : null}
+        <AiField label={s7.correoAgente}>
+          <input
+            type="email"
+            className={aiInputClass}
+            value={state.correoPrincipal}
+            onChange={(e) => setState((s) => ({ ...s, correoPrincipal: e.target.value }))}
+            autoComplete="email"
+          />
+        </AiField>
+        <AiField label={s7.sitioWebAgente} hint={s7.sitioWebAgenteHint}>
+          <input
+            className={aiInputClass}
+            type="url"
+            value={state.agenteSitioWeb}
+            onChange={(e) => setState((s) => ({ ...s, agenteSitioWeb: e.target.value }))}
+            placeholder="https://"
+            autoComplete="url"
+          />
         </AiField>
         <div className="sm:col-span-2">
           <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
@@ -470,20 +560,74 @@ export function Step07InformacionProfesional({
                 autoComplete="off"
               />
             </AiField>
-            <AiField label={s7.agente2Telefono}>
+            <AiField label={s7.telefonoPersonal}>
               <input
                 className={aiInputClass}
-                value={formatUsPhoneDisplay(digitsOnly(state.agente2Telefono))}
+                value={formatUsPhoneDisplay(digitsOnly(state.agente2TelefonoPersonal))}
                 onChange={(e) => {
-                  const prev = digitsOnly(state.agente2Telefono);
+                  const prev = digitsOnly(state.agente2TelefonoPersonal);
                   const { display } = onPhoneInputChange(e.target.value, prev);
-                  setState((s) => ({ ...s, agente2Telefono: display }));
+                  setState((s) => ({ ...s, agente2TelefonoPersonal: display, agente2Telefono: display }));
                 }}
                 inputMode="numeric"
                 autoComplete="tel"
                 placeholder="(555) 555-5555"
               />
             </AiField>
+            <AiField label={s7.telefonoOficina}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.agente2TelefonoOficina))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.agente2TelefonoOficina);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, agente2TelefonoOficina: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
+            <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.agente2Whatsapp))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.agente2Whatsapp);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, agente2Whatsapp: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
+            {digitsOnly(state.agente2TelefonoPersonal || state.agente2Telefono).length >= 10 &&
+            digitsOnly(state.agente2TelefonoOficina).length >= 10 ? (
+              <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
+                <legend className="px-1 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.numeroPrincipalLlamadas}</legend>
+                <div className="mt-2 flex flex-wrap gap-4 text-sm text-[#2C2416]">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
+                      checked={state.agente2PrincipalLlamadas === "personal"}
+                      onChange={() => setState((s) => ({ ...s, agente2PrincipalLlamadas: "personal" }))}
+                    />
+                    {s7.principalPersonal}
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
+                      checked={state.agente2PrincipalLlamadas === "oficina"}
+                      onChange={() => setState((s) => ({ ...s, agente2PrincipalLlamadas: "oficina" }))}
+                    />
+                    {s7.principalOficina}
+                  </label>
+                </div>
+              </fieldset>
+            ) : null}
             <AiField label={s7.agente2Correo}>
               <input
                 type="email"
@@ -493,6 +637,82 @@ export function Step07InformacionProfesional({
                 autoComplete="email"
               />
             </AiField>
+            <AiField label={s7.sitioWebAgente} hint={s7.sitioWebAgenteHint}>
+              <input
+                className={aiInputClass}
+                type="url"
+                value={state.agente2SitioWeb}
+                onChange={(e) => setState((s) => ({ ...s, agente2SitioWeb: e.target.value }))}
+                placeholder="https://"
+                autoComplete="url"
+              />
+            </AiField>
+            <div className="sm:col-span-2">
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
+              <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <AiField label={s7.instagram}>
+                  <input
+                    className={aiInputClass}
+                    type="url"
+                    value={state.agente2SocialInstagram}
+                    onChange={(e) => setState((s) => ({ ...s, agente2SocialInstagram: e.target.value }))}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                </AiField>
+                <AiField label={s7.facebook}>
+                  <input
+                    className={aiInputClass}
+                    type="url"
+                    value={state.agente2SocialFacebook}
+                    onChange={(e) => setState((s) => ({ ...s, agente2SocialFacebook: e.target.value }))}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                </AiField>
+                <AiField label={s7.youtube}>
+                  <input
+                    className={aiInputClass}
+                    type="url"
+                    value={state.agente2SocialYoutube}
+                    onChange={(e) => setState((s) => ({ ...s, agente2SocialYoutube: e.target.value }))}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                </AiField>
+                <AiField label={s7.tiktok}>
+                  <input
+                    className={aiInputClass}
+                    type="url"
+                    value={state.agente2SocialTiktok}
+                    onChange={(e) => setState((s) => ({ ...s, agente2SocialTiktok: e.target.value }))}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                </AiField>
+                <AiField label={s7.x}>
+                  <input
+                    className={aiInputClass}
+                    type="url"
+                    value={state.agente2SocialX}
+                    onChange={(e) => setState((s) => ({ ...s, agente2SocialX: e.target.value }))}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                </AiField>
+                <AiField label={s7.otroSocial}>
+                  <input
+                    className={aiInputClass}
+                    type="url"
+                    value={state.agente2SocialOtro}
+                    onChange={(e) => setState((s) => ({ ...s, agente2SocialOtro: e.target.value }))}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                </AiField>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -518,6 +738,17 @@ export function Step07InformacionProfesional({
             </button>
           </div>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <PhotoOrFileRow
+                label={s7.brokerFoto}
+                hint={s7.brokerFotoHint}
+                value={state.brokerFotoDataUrl}
+                onChange={(v) => setState((s) => ({ ...s, brokerFotoDataUrl: v }))}
+                subirImagen={s7.subirImagen}
+                pegarUrlImagen={s7.pegarUrlImagen}
+                quitar={quitar}
+              />
+            </div>
             <AiField label={s7.brokerNombre}>
               <input
                 className={aiInputClass}
@@ -532,20 +763,74 @@ export function Step07InformacionProfesional({
             <AiField label={s7.brokerLicencia}>
               <input className={aiInputClass} value={state.brokerLicencia} onChange={(e) => setState((s) => ({ ...s, brokerLicencia: e.target.value }))} autoComplete="off" />
             </AiField>
-            <AiField label={s7.brokerTelefono}>
+            <AiField label={s7.telefonoPersonal}>
               <input
                 className={aiInputClass}
-                value={formatUsPhoneDisplay(digitsOnly(state.brokerTelefono))}
+                value={formatUsPhoneDisplay(digitsOnly(state.brokerTelefonoPersonal))}
                 onChange={(e) => {
-                  const prev = digitsOnly(state.brokerTelefono);
+                  const prev = digitsOnly(state.brokerTelefonoPersonal);
                   const { display } = onPhoneInputChange(e.target.value, prev);
-                  setState((s) => ({ ...s, brokerTelefono: display }));
+                  setState((s) => ({ ...s, brokerTelefonoPersonal: display, brokerTelefono: display }));
                 }}
                 inputMode="numeric"
                 autoComplete="tel"
                 placeholder="(555) 555-5555"
               />
             </AiField>
+            <AiField label={s7.telefonoOficina}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.brokerTelefonoOficina))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.brokerTelefonoOficina);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, brokerTelefonoOficina: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
+            <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.brokerWhatsapp))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.brokerWhatsapp);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, brokerWhatsapp: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
+            {digitsOnly(state.brokerTelefonoPersonal || state.brokerTelefono).length >= 10 &&
+            digitsOnly(state.brokerTelefonoOficina).length >= 10 ? (
+              <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
+                <legend className="px-1 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.numeroPrincipalLlamadas}</legend>
+                <div className="mt-2 flex flex-wrap gap-4 text-sm text-[#2C2416]">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
+                      checked={state.brokerPrincipalLlamadas === "personal"}
+                      onChange={() => setState((s) => ({ ...s, brokerPrincipalLlamadas: "personal" }))}
+                    />
+                    {s7.principalPersonal}
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
+                      checked={state.brokerPrincipalLlamadas === "oficina"}
+                      onChange={() => setState((s) => ({ ...s, brokerPrincipalLlamadas: "oficina" }))}
+                    />
+                    {s7.principalOficina}
+                  </label>
+                </div>
+              </fieldset>
+            ) : null}
             <AiField label={s7.brokerEmail}>
               <input
                 type="email"
@@ -641,30 +926,19 @@ export function Step08CtaEnlaces({
       <p className={aiSubClass}>{s8.sub}</p>
 
       <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.contactoBase}</p>
+      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.contactoBaseSub}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <AiField label={s8.telefono} hint={s8.telefonoHint}>
-          <input
-            className={aiInputClass}
-            value={maskPhone(state.telefonoPrincipal)}
-            onChange={(e) => {
-              const prev = digitsOnly(state.telefonoPrincipal);
-              const { display } = onPhoneInputChange(e.target.value, prev);
-              setState((s) => ({ ...s, telefonoPrincipal: display }));
-            }}
-            inputMode="numeric"
-            autoComplete="tel"
-            placeholder="(555) 555-5555"
-          />
-        </AiField>
-        <AiField label={s8.correo} hint={s8.correoHint}>
-          <input
-            type="email"
-            className={aiInputClass}
-            value={state.correoPrincipal}
-            onChange={(e) => setState((s) => ({ ...s, correoPrincipal: e.target.value }))}
-            autoComplete="email"
-          />
-        </AiField>
+        <div className="sm:col-span-2">
+          <AiField label={s8.correo} hint={s8.correoHint}>
+            <input
+              type="email"
+              className={aiInputClass}
+              value={state.correoPrincipal}
+              onChange={(e) => setState((s) => ({ ...s, correoPrincipal: e.target.value }))}
+              autoComplete="email"
+            />
+          </AiField>
+        </div>
       </div>
 
       <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.destinos}</p>

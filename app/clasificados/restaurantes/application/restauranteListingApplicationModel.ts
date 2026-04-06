@@ -277,9 +277,10 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
   RestauranteInternalContract & {
     featuredDishes?: RestauranteFeaturedDish[];
     highlights?: RestauranteHighlightKey[];
-    movingVendorStack?: RestauranteMovingVendorStack;
-    homeBasedStack?: RestauranteHomeBasedStack;
-    cateringEventsStack?: RestauranteCateringEventsStack;
+    /** Drafts may omit keys until the conditional stack is filled */
+    movingVendorStack?: Partial<RestauranteMovingVendorStack>;
+    homeBasedStack?: Partial<RestauranteHomeBasedStack>;
+    cateringEventsStack?: Partial<RestauranteCateringEventsStack>;
   };
 
 // ---------------------------------------------------------------------------
@@ -354,7 +355,8 @@ function nonEmpty(s: string | undefined): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-function hasPrimaryContactPath(cta: RestauranteContactCta): boolean {
+/** Exported for preview gating + draft mapper (at least one contact channel). */
+export function hasPrimaryContactPath(cta: RestauranteContactCta): boolean {
   const keys: ContactChannel[] = [
     "websiteUrl",
     "phoneNumber",

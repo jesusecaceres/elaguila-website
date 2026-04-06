@@ -60,6 +60,7 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
   if (nonEmpty(listing.dealerName)) return true;
   if (Boolean(listing.dealerLogo)) return true;
   if (nonEmpty(listing.dealerPhone)) return true;
+  if (nonEmpty(listing.dealerWhatsapp ?? undefined)) return true;
   if (nonEmpty(listing.dealerAddress)) return true;
   if (nonEmpty(listing.dealerWebsite ?? undefined)) return true;
 

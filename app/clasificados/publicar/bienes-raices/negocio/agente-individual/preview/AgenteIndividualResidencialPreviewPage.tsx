@@ -30,6 +30,9 @@ import {
   buildPropertyDetailRows,
   buildQuickFacts,
   buildSecondAgentSocialHrefs,
+  effectiveAgente2TelefonoPersonal,
+  effectiveAgenteTelefonoOficina,
+  effectiveAgenteTelefonoPersonal,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
   formatPreviewPhoneDisplay,
@@ -38,6 +41,7 @@ import {
   hasBrandBlockVisible,
   hasSecondAgentRailContent,
   hrefFromUserInput,
+  previewWhatsappClickHref,
   restPhotoIndicesAfterCover,
   trim,
   type AgenteResPreviewLocale,
@@ -213,8 +217,18 @@ export function AgenteIndividualResidencialPreviewPage({
   /** BR Negocio lane is fixed to `agente_individual` (see `BrNegocioSellerTipo`). */
   const showPrimaryAgentVisual = true;
   const showSecondAgentRail = hasSecondAgentRailContent(data);
-  const agente2PhoneDisplay = formatPreviewPhoneDisplay(trim(data.agente2Telefono));
   const agente2LicenseLine = trim(data.agente2Licencia) ? `${p.licenciaAgente} ${trim(data.agente2Licencia)}` : "";
+  const agentePersonalRaw = effectiveAgenteTelefonoPersonal(data);
+  const agenteOfficeRaw = effectiveAgenteTelefonoOficina(data);
+  const agentePersonalOk = digitsOnly(agentePersonalRaw).length >= 10;
+  const agenteOfficeOk = digitsOnly(agenteOfficeRaw).length >= 10;
+  const agenteCardSiteHref = hrefFromUserInput(data.agenteSitioWeb);
+  const agente2PersonalRaw = effectiveAgente2TelefonoPersonal(data);
+  const agente2OfficeRaw = trim(data.agente2TelefonoOficina);
+  const agente2PersonalOk = digitsOnly(agente2PersonalRaw).length >= 10;
+  const agente2OfficeOk = digitsOnly(agente2OfficeRaw).length >= 10;
+  const agente2WaHref = previewWhatsappClickHref(data.agente2Whatsapp);
+  const agente2SiteHref = hrefFromUserInput(data.agente2SitioWeb);
 
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
@@ -232,7 +246,15 @@ export function AgenteIndividualResidencialPreviewPage({
   const hasVideoInLightbox = Boolean(g.videoDataUrl || g.videoExternalHref);
   const videoSlideIndex = photoUrlsOrdered.length;
 
-  const phoneCardDisplay = formatPreviewPhoneDisplay(trim(data.telefonoPrincipal));
+  const showPrimaryContactStrip =
+    agentePersonalOk || agenteOfficeOk || trim(data.correoPrincipal) || Boolean(agenteCardSiteHref);
+  const showAgente2ContactStrip =
+    agente2PersonalOk ||
+    agente2OfficeOk ||
+    trim(data.agente2Correo) ||
+    Boolean(agente2WaHref) ||
+    Boolean(agente2SiteHref);
+
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <header
@@ -663,6 +685,17 @@ export function AgenteIndividualResidencialPreviewPage({
                         <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
                           {p.brokerAsesor}
                         </h4>
+                        {brokerSupportBlock.fotoDataUrl ? (
+                          <div className="mb-2 max-w-[100px]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={brokerSupportBlock.fotoDataUrl}
+                              alt=""
+                              className="aspect-square w-full max-h-[100px] rounded-md border object-cover"
+                              style={{ borderColor: BORDER }}
+                            />
+                          </div>
+                        ) : null}
                         <p className={`${typo.body} font-semibold`}>{brokerSupportBlock.name}</p>
                         {brokerSupportBlock.title ? (
                           <p className={`${typo.bodySm} mt-0.5`} style={{ color: MUTED }}>
@@ -683,13 +716,36 @@ export function AgenteIndividualResidencialPreviewPage({
                             {brokerSupportBlock.email}
                           </a>
                         ) : null}
-                        {brokerSupportBlock.phone ? (
+                        {digitsOnly(brokerSupportBlock.personalPhone).length >= 10 ? (
                           <a
-                            href={`tel:${digitsOnly(brokerSupportBlock.phone)}`}
-                            className={`mt-1 block ${typo.body} font-semibold`}
+                            href={`tel:${digitsOnly(brokerSupportBlock.personalPhone)}`}
+                            className={`mt-2 block ${typo.bodySm} font-semibold`}
                             style={{ color: CHARCOAL }}
                           >
-                            {formatPreviewPhoneDisplay(brokerSupportBlock.phone)}
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
+                            {formatPreviewPhoneDisplay(brokerSupportBlock.personalPhone)}
+                          </a>
+                        ) : null}
+                        {digitsOnly(brokerSupportBlock.officePhone).length >= 10 ? (
+                          <a
+                            href={`tel:${digitsOnly(brokerSupportBlock.officePhone)}`}
+                            className={`mt-1 block ${typo.bodySm} font-semibold`}
+                            style={{ color: CHARCOAL }}
+                          >
+                            <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
+                            {formatPreviewPhoneDisplay(brokerSupportBlock.officePhone)}
+                          </a>
+                        ) : null}
+                        {brokerSupportBlock.whatsappHref ? (
+                          <a
+                            href={brokerSupportBlock.whatsappHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`mt-2 inline-flex items-center gap-1 ${typo.bodySm} font-semibold`}
+                            style={{ color: "#128C7E" }}
+                          >
+                            {p.whatsapp}
+                            <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
                           </a>
                         ) : null}
                         {brokerSupportBlock.website ? (
@@ -904,11 +960,51 @@ export function AgenteIndividualResidencialPreviewPage({
                         {agente2LicenseLine}
                       </p>
                     ) : null}
-                    {agente2PhoneDisplay || trim(data.agente2Correo) ? (
-                      <div className="mt-2 space-y-0.5 text-center">
-                        {agente2PhoneDisplay ? <p className="text-xs font-semibold">{agente2PhoneDisplay}</p> : null}
+                    {showAgente2ContactStrip ? (
+                      <div className="mt-2 space-y-1 text-center">
+                        {agente2PersonalOk ? (
+                          <p className="text-[11px] leading-snug">
+                            <span className="font-semibold text-[#5C5346]">{p.telPersonal}:</span>{" "}
+                            <a href={`tel:${digitsOnly(agente2PersonalRaw)}`} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
+                              {formatPreviewPhoneDisplay(agente2PersonalRaw)}
+                            </a>
+                          </p>
+                        ) : null}
+                        {agente2OfficeOk ? (
+                          <p className="text-[11px] leading-snug">
+                            <span className="font-semibold text-[#5C5346]">{p.telOficina}:</span>{" "}
+                            <a href={`tel:${digitsOnly(agente2OfficeRaw)}`} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
+                              {formatPreviewPhoneDisplay(agente2OfficeRaw)}
+                            </a>
+                          </p>
+                        ) : null}
+                        {agente2WaHref ? (
+                          <p className="text-[11px]">
+                            <a
+                              href={agente2WaHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-semibold text-[#128C7E] underline-offset-2 hover:underline"
+                            >
+                              {p.whatsapp}
+                            </a>
+                          </p>
+                        ) : null}
                         {trim(data.agente2Correo) ? (
                           <p className={`truncate text-[11px] opacity-90`}>{trim(data.agente2Correo)}</p>
+                        ) : null}
+                        {agente2SiteHref ? (
+                          <p className="text-[11px]">
+                            <a
+                              href={agente2SiteHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-semibold text-[#B8954A] underline-offset-2 hover:underline"
+                            >
+                              {p.sitioWeb}
+                              <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
+                            </a>
+                          </p>
                         ) : null}
                       </div>
                     ) : null}
@@ -949,16 +1045,38 @@ export function AgenteIndividualResidencialPreviewPage({
                   </div>
                 ) : null}
 
-                {trim(data.telefonoPrincipal) || trim(data.correoPrincipal) ? (
+                {showPrimaryContactStrip ? (
                   <div
-                    className="mt-3 space-y-0.5 rounded-md px-2 py-2 text-center"
+                    className="mt-3 space-y-1 rounded-md px-2 py-2 text-center"
                     style={{ background: "rgba(44,36,22,0.04)" }}
                   >
-                    {trim(data.telefonoPrincipal) ? (
-                      <p className="text-sm font-semibold tracking-tight">{phoneCardDisplay}</p>
+                    {agentePersonalOk ? (
+                      <p className={`${typo.bodySm} font-semibold tracking-tight`}>
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
+                        {formatPreviewPhoneDisplay(agentePersonalRaw)}
+                      </p>
+                    ) : null}
+                    {agenteOfficeOk ? (
+                      <p className={`${typo.bodySm} font-semibold tracking-tight`}>
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
+                        {formatPreviewPhoneDisplay(agenteOfficeRaw)}
+                      </p>
                     ) : null}
                     {trim(data.correoPrincipal) ? (
                       <p className={`truncate ${typo.bodySm} opacity-90`}>{trim(data.correoPrincipal)}</p>
+                    ) : null}
+                    {agenteCardSiteHref ? (
+                      <p className={typo.bodySm}>
+                        <a
+                          href={agenteCardSiteHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-1 font-semibold text-[#B8954A] underline-offset-2 hover:underline"
+                        >
+                          {p.sitioWeb}
+                          <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
+                        </a>
+                      </p>
                     ) : null}
                   </div>
                 ) : null}

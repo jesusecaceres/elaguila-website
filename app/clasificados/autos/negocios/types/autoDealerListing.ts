@@ -119,6 +119,8 @@ export type AutoDealerListing = {
   dealerName?: string;
   dealerLogo?: string | null;
   dealerPhone?: string;
+  /** Business WhatsApp (display as typed; normalized for wa.me links in preview). */
+  dealerWhatsapp?: string | null;
   dealerAddress?: string;
   dealerHours?: DealerHoursEntry[];
   dealerWebsite?: string | null;

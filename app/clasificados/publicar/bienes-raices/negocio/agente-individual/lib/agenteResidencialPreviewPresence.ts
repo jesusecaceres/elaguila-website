@@ -59,6 +59,10 @@ export function hasAgentOrContactSurface(s: AgenteIndividualResidencialFormState
       trim(s.agenteFotoDataUrl) ||
       trim(s.agenteLicencia) ||
       trim(s.telefonoPrincipal) ||
+      trim(s.agenteTelefonoPersonal) ||
+      trim(s.agenteTelefonoOficina) ||
+      trim(s.agenteWhatsapp) ||
+      trim(s.agenteSitioWeb) ||
       trim(s.correoPrincipal) ||
       trim(s.agenteAreaServicio) ||
       trim(s.agenteIdiomas),

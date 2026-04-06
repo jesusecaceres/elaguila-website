@@ -16,8 +16,16 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
     st(state.agenteNombre) ||
     st(state.correoPrincipal) ||
     st(state.telefonoPrincipal) ||
+    st(state.agenteTelefonoPersonal) ||
+    st(state.agenteTelefonoOficina) ||
+    st(state.agenteWhatsapp) ||
+    st(state.agenteSitioWeb) ||
     st(state.agente2Nombre) ||
     st(state.agente2Telefono) ||
+    st(state.agente2TelefonoPersonal) ||
+    st(state.agente2TelefonoOficina) ||
+    st(state.agente2Whatsapp) ||
+    st(state.agente2SitioWeb) ||
     st(state.agente2Correo)
   )
     return true;
@@ -25,6 +33,10 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
     st(state.brokerNombre) ||
     st(state.brokerEmail) ||
     st(state.brokerTelefono) ||
+    st(state.brokerFotoDataUrl) ||
+    st(state.brokerTelefonoPersonal) ||
+    st(state.brokerTelefonoOficina) ||
+    st(state.brokerWhatsapp) ||
     st(state.brokerSitioWeb) ||
     st(state.brokerInstagram) ||
     st(state.brokerFacebook) ||

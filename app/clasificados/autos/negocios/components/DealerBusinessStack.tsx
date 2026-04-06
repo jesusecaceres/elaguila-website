@@ -2,11 +2,12 @@
 
 import { FiCalendar, FiClock, FiGlobe, FiMapPin, FiMessageCircle, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
-import { SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
+import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-icons/si";
 import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
 import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "../lib/dealerDraftSanitize";
+import { whatsAppHrefFromDisplay } from "../lib/dealerWhatsappHref";
 import { formatAddressLine, formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
@@ -72,6 +73,9 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
   const phoneDisplay = formatUsPhoneDisplay(data.dealerPhone);
   const phoneForTel = phoneDigitsForTel(data.dealerPhone);
   const showPhone = nonEmpty(data.dealerPhone) && (phoneDisplay.length > 0 || phoneForTel.length > 0);
+
+  const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
+  const showWhatsapp = Boolean(waHref);
 
   const addressLine = formatAddressLine(data.dealerAddress);
 
@@ -209,6 +213,17 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
           showIdentity || showWebSocialBlock ? "mt-5 border-t border-[color:var(--lx-nav-border)] pt-5 max-lg:border-[color:var(--lx-nav-border)]/80" : ""
         }`}
       >
+        {showWhatsapp && waHref ? (
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${BTN_PRIMARY} gap-2`}
+          >
+            <SiWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
+            {sb.whatsappCta}
+          </a>
+        ) : null}
         <button type="button" className={BTN_PRIMARY}>
           {sb.availability}
         </button>

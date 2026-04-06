@@ -1,4 +1,5 @@
 import { brCanonicalNorCalCity } from "@/app/clasificados/bienes-raices/shared/brNorCalCity";
+import { digitsOnly } from "../application/utils/phoneMask";
 import type {
   BrNegocioCategoriaPropiedad,
   BrNegocioSellerTipo,
@@ -24,6 +25,9 @@ export type AgenteResOpenHouseSlot = {
   fin: string;
   notas: string;
 };
+
+/** Qué número usa el CTA «Llamar» cuando hay personal y oficina. */
+export type AgentePrincipalLlamadas = "personal" | "oficina";
 
 export const AGENTE_RES_MAX_OPEN_HOUSE_SLOTS = 4;
 
@@ -129,8 +133,21 @@ export type AgenteIndividualResidencialFormState = {
   agenteTitulo: string;
   /** professionalCard.agentLicense */
   agenteLicencia: string;
-  /** Tarjeta: teléfono mostrado; respaldo para CTAs si el destino dedicado va vacío. */
+  /**
+   * @deprecated Migración de borradores; hidratar a `agenteTelefonoPersonal` al fusionar.
+   * No editar en el formulario nuevo (paso 7 usa teléfonos estructurados).
+   */
   telefonoPrincipal: string;
+  /** Teléfono personal del agente principal (tarjeta / respaldo CTAs). */
+  agenteTelefonoPersonal: string;
+  /** Teléfono de oficina del agente principal. */
+  agenteTelefonoOficina: string;
+  /** WhatsApp del agente principal (solo este número para el CTA WA si no hay override en paso 8). */
+  agenteWhatsapp: string;
+  /** Sitio web del agente (CTA «Ver sitio web» tras override del paso 8). */
+  agenteSitioWeb: string;
+  /** Número que alimenta «Llamar» cuando hay personal y oficina con dígitos válidos. */
+  agentePrincipalLlamadas: AgentePrincipalLlamadas;
   /** Tarjeta: correo mostrado; respaldo para «Solicitar información». */
   correoPrincipal: string;
 
@@ -163,7 +180,13 @@ export type AgenteIndividualResidencialFormState = {
   agente2Nombre: string;
   agente2Titulo: string;
   agente2Licencia: string;
+  /** @deprecated Migración; usar `agente2TelefonoPersonal`. */
   agente2Telefono: string;
+  agente2TelefonoPersonal: string;
+  agente2TelefonoOficina: string;
+  agente2Whatsapp: string;
+  agente2SitioWeb: string;
+  agente2PrincipalLlamadas: AgentePrincipalLlamadas;
   agente2Correo: string;
   /** Redes del segundo agente (vista previa: iconos en la tarjeta secundaria). */
   agente2SocialInstagram: string;
@@ -175,10 +198,16 @@ export type AgenteIndividualResidencialFormState = {
 
   /** Broker o asesor de apoyo — sección inferior en vista previa, no rail. */
   mostrarBrokerAsesor: boolean;
+  brokerFotoDataUrl: string;
   brokerNombre: string;
   brokerTitulo: string;
   brokerLicencia: string;
+  /** @deprecated Migración; usar `brokerTelefonoPersonal`. */
   brokerTelefono: string;
+  brokerTelefonoPersonal: string;
+  brokerTelefonoOficina: string;
+  brokerWhatsapp: string;
+  brokerPrincipalLlamadas: AgentePrincipalLlamadas;
   brokerEmail: string;
   brokerSitioWeb: string;
   brokerInstagram: string;
@@ -459,6 +488,11 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     agenteTitulo: "",
     agenteLicencia: "",
     telefonoPrincipal: "",
+    agenteTelefonoPersonal: "",
+    agenteTelefonoOficina: "",
+    agenteWhatsapp: "",
+    agenteSitioWeb: "",
+    agentePrincipalLlamadas: "personal",
     correoPrincipal: "",
 
     marcaNombre: "",
@@ -483,6 +517,11 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     agente2Titulo: "",
     agente2Licencia: "",
     agente2Telefono: "",
+    agente2TelefonoPersonal: "",
+    agente2TelefonoOficina: "",
+    agente2Whatsapp: "",
+    agente2SitioWeb: "",
+    agente2PrincipalLlamadas: "personal",
     agente2Correo: "",
     agente2SocialInstagram: "",
     agente2SocialFacebook: "",
@@ -492,10 +531,15 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     agente2SocialOtro: "",
 
     mostrarBrokerAsesor: false,
+    brokerFotoDataUrl: "",
     brokerNombre: "",
     brokerTitulo: "",
     brokerLicencia: "",
     brokerTelefono: "",
+    brokerTelefonoPersonal: "",
+    brokerTelefonoOficina: "",
+    brokerWhatsapp: "",
+    brokerPrincipalLlamadas: "personal",
     brokerEmail: "",
     brokerSitioWeb: "",
     brokerInstagram: "",
@@ -595,6 +639,10 @@ function inferMostrarSegundoAgente(
       trim(peek.agente2Titulo) ||
       trim(peek.agente2Licencia) ||
       trim(peek.agente2Telefono) ||
+      trim(peek.agente2TelefonoPersonal) ||
+      trim(peek.agente2TelefonoOficina) ||
+      trim(peek.agente2Whatsapp) ||
+      trim(peek.agente2SitioWeb) ||
       trim(peek.agente2Correo) ||
       trim(peek.agente2SocialInstagram) ||
       trim(peek.agente2SocialFacebook) ||
@@ -616,7 +664,11 @@ function inferMostrarBrokerAsesor(
     trim(peek.brokerNombre) ||
       trim(peek.brokerTitulo) ||
       trim(peek.brokerLicencia) ||
+      trim(peek.brokerFotoDataUrl) ||
       trim(peek.brokerTelefono) ||
+      trim(peek.brokerTelefonoPersonal) ||
+      trim(peek.brokerTelefonoOficina) ||
+      trim(peek.brokerWhatsapp) ||
       trim(peek.brokerEmail) ||
       trim(peek.brokerSitioWeb) ||
       trim(peek.brokerInstagram) ||
@@ -636,10 +688,63 @@ function migrateLegacyAsesorFinancieroToBroker(s: AgenteIndividualResidencialFor
   return {
     ...s,
     brokerNombre: n,
-    brokerTelefono: trim(s.brokerTelefono) || trim(s.asesorTelefono),
+    brokerTelefonoPersonal: trim(s.brokerTelefonoPersonal) || trim(s.brokerTelefono) || trim(s.asesorTelefono),
     brokerEmail: trim(s.brokerEmail) || trim(s.asesorEmail),
     mostrarBrokerAsesor: true,
   };
+}
+
+function hasTenDigits(raw: string): boolean {
+  return digitsOnly(trim(raw)).length >= 10;
+}
+
+function normalizePrincipalLlamadas(
+  choice: unknown,
+  personalOk: boolean,
+  officeOk: boolean,
+): AgentePrincipalLlamadas {
+  if (personalOk && officeOk) {
+    return choice === "oficina" ? "oficina" : "personal";
+  }
+  return "personal";
+}
+
+/** Hidrata campos nuevos desde campos legacy tras fusionar borrador. */
+export function hydrateContactFieldsFromLegacy(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialFormState {
+  let out = { ...s };
+
+  if (!trim(out.agenteTelefonoPersonal) && trim(out.telefonoPrincipal)) {
+    out = { ...out, agenteTelefonoPersonal: out.telefonoPrincipal };
+  }
+  if (!trim(out.agente2TelefonoPersonal) && trim(out.agente2Telefono)) {
+    out = { ...out, agente2TelefonoPersonal: out.agente2Telefono };
+  }
+  if (!trim(out.brokerTelefonoPersonal) && trim(out.brokerTelefono)) {
+    out = { ...out, brokerTelefonoPersonal: out.brokerTelefono };
+  }
+
+  const agP = trim(out.agenteTelefonoPersonal) || trim(out.telefonoPrincipal);
+  const agO = trim(out.agenteTelefonoOficina);
+  out = {
+    ...out,
+    agentePrincipalLlamadas: normalizePrincipalLlamadas(out.agentePrincipalLlamadas, hasTenDigits(agP), hasTenDigits(agO)),
+  };
+
+  const a2p = trim(out.agente2TelefonoPersonal) || trim(out.agente2Telefono);
+  const a2o = trim(out.agente2TelefonoOficina);
+  out = {
+    ...out,
+    agente2PrincipalLlamadas: normalizePrincipalLlamadas(out.agente2PrincipalLlamadas, hasTenDigits(a2p), hasTenDigits(a2o)),
+  };
+
+  const brP = trim(out.brokerTelefonoPersonal) || trim(out.brokerTelefono);
+  const brO = trim(out.brokerTelefonoOficina);
+  out = {
+    ...out,
+    brokerPrincipalLlamadas: normalizePrincipalLlamadas(out.brokerPrincipalLlamadas, hasTenDigits(brP), hasTenDigits(brO)),
+  };
+
+  return out;
 }
 
 export function mergePartialAgenteIndividualResidencial(
@@ -765,10 +870,11 @@ export function mergePartialAgenteIndividualResidencial(
   };
 
   const withLegacyBroker = migrateLegacyAsesorFinancieroToBroker(merged);
-
-  return {
+  const inferred = {
     ...withLegacyBroker,
     mostrarSegundoAgente: inferMostrarSegundoAgente(flat, nested, withLegacyBroker),
     mostrarBrokerAsesor: inferMostrarBrokerAsesor(flat, nested, withLegacyBroker),
   };
+
+  return hydrateContactFieldsFromLegacy(inferred);
 }

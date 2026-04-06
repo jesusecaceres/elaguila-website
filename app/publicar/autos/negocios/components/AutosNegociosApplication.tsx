@@ -222,8 +222,9 @@ export function AutosNegociosApplication() {
                   className={INPUT}
                   placeholder={t.app.placeholders.monthly}
                   value={listing.monthlyEstimate ?? ""}
-                  onChange={(e) => setListingPatch({ monthlyEstimate: e.target.value || undefined })}
+                  onChange={(e) => setListingPatch({ monthlyEstimate: e.target.value.trim() ? e.target.value : undefined })}
                 />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.monthlyOptional}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.mileage}</label>
@@ -502,6 +503,18 @@ export function AutosNegociosApplication() {
                   value={listing.dealerPhone ?? ""}
                   onChange={(e) => setListingPatch({ dealerPhone: e.target.value || undefined })}
                 />
+              </div>
+              <div>
+                <label className={LABEL}>{t.app.labels.whatsapp}</label>
+                <input
+                  className={INPUT}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder={t.app.placeholders.whatsapp}
+                  value={listing.dealerWhatsapp ?? ""}
+                  onChange={(e) => setListingPatch({ dealerWhatsapp: e.target.value.trim() ? e.target.value : undefined })}
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.whatsapp}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.website}</label>

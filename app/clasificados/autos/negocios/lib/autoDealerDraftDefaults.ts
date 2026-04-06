@@ -79,6 +79,7 @@ export function createEmptyListing(): AutoDealerListing {
     dealerName: undefined,
     dealerLogo: undefined,
     dealerPhone: undefined,
+    dealerWhatsapp: undefined,
     dealerAddress: undefined,
     dealerHours: [],
     dealerWebsite: undefined,
