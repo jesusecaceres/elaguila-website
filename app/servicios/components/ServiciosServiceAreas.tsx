@@ -13,14 +13,14 @@ export function ServiciosServiceAreas({ profile, lang }: { profile: ServiciosPro
 
   return (
     <section
-      className="rounded-2xl border p-6 shadow-sm md:p-8"
+      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.serviceAreas}</h2>
 
       <ul className="mt-5 flex flex-col gap-2">
         {areas.map((a) => (
-          <li key={a.id} className="flex items-center gap-2 text-sm font-medium text-[color:var(--lx-text-2)]">
+          <li key={a.id} className="flex items-start gap-2 text-sm font-medium leading-snug text-[color:var(--lx-text-2)]">
             {a.kind === "neighborhood" ? (
               <FiHome className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
             ) : (

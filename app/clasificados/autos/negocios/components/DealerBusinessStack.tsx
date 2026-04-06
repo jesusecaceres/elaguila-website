@@ -6,7 +6,7 @@ import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-
 import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
-import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "../lib/dealerDraftSanitize";
+import { safeExternalHref } from "../lib/dealerDraftSanitize";
 import { resolveDealerBookingHref, resolveDealerOfficePhone } from "../lib/dealerContactResolve";
 import { whatsAppHrefFromDisplay } from "../lib/dealerWhatsappHref";
 import { formatAddressLine, formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
@@ -65,11 +65,6 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
     return Boolean(u && safeExternalHref(u));
   });
   const hours = filterDealerHoursForDisplay(data.dealerHours);
-  const ratingVal = sanitizeDealerRating(data.dealerRating);
-  const reviewVal = sanitizeReviewCount(data.dealerReviewCount);
-  const rOk = ratingVal !== undefined;
-  const cOk = reviewVal !== undefined;
-  const showRatingRow = rOk || cOk;
 
   const officePhoneRaw = resolveDealerOfficePhone(data);
   const phoneDisplay = formatUsPhoneDisplay(officePhoneRaw);
@@ -87,9 +82,10 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
   const webHref = webRaw ? safeExternalHref(data.dealerWebsite) : undefined;
   const websiteClickHref = hrefForUserWebsiteUrl(data.dealerWebsite) ?? webHref ?? undefined;
 
-  const showWebsiteRow = nonEmpty(webRaw);
+  /** Only render “Ver sitio web” when we have a safe destination (no dead / non-clickable row). */
+  const showWebsiteCta = Boolean(websiteClickHref);
   const showSocialCluster = socials.length > 0;
-  const showWebSocialBlock = showIdentity && (showWebsiteRow || showSocialCluster);
+  const showWebSocialBlock = showIdentity && (showWebsiteCta || showSocialCluster);
 
   const bookingHref = resolveDealerBookingHref(data);
   const showSchedule = Boolean(bookingHref);
@@ -130,21 +126,6 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
                 {data.dealerName?.trim()}
               </h2>
             ) : null}
-            {showRatingRow ? (
-              <p className="mt-2 text-sm text-[color:var(--lx-muted)] max-lg:mt-2.5 max-lg:text-[15px]">
-                {rOk ? (
-                  <span className="font-semibold tabular-nums text-[color:var(--lx-gold)] max-lg:inline-flex max-lg:items-center max-lg:rounded-full max-lg:border max-lg:border-[color:var(--lx-gold-border)]/45 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-2.5 max-lg:py-0.5 max-lg:text-sm max-lg:font-bold lg:font-semibold lg:text-[color:var(--lx-gold)]">
-                    {ratingVal!.toFixed(1)}
-                  </span>
-                ) : null}
-                {rOk && cOk ? <span aria-hidden> · </span> : null}
-                {cOk ? (
-                  <span className="font-medium text-[color:var(--lx-text-2)] max-lg:font-semibold max-lg:text-[color:var(--lx-text)]">
-                    {d.reviewsLine(reviewVal!)}
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
           </div>
 
           {(showPhone || nonEmpty(addressLine)) && (
@@ -181,17 +162,15 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
 
       {showWebSocialBlock ? (
         <div className="mt-5 border-t border-[color:var(--lx-nav-border)] pt-5 max-lg:border-[color:var(--lx-nav-border)]/80">
-          {showWebsiteRow && websiteClickHref ? (
+          {showWebsiteCta && websiteClickHref ? (
             <a href={websiteClickHref} target="_blank" rel="noopener noreferrer" className={BTN_WEBSITE_CLUSTER}>
               <TbWorldWww className="h-[18px] w-[18px] shrink-0" aria-hidden />
               {sb.viewWebsite}
             </a>
-          ) : showWebsiteRow && webRaw ? (
-            <span className={`${BTN_WEBSITE_CLUSTER} pointer-events-none opacity-80`}>{webRaw}</span>
           ) : null}
 
           {showSocialCluster ? (
-            <div className={`flex flex-wrap justify-center gap-2.5 max-lg:gap-3 lg:justify-start ${showWebsiteRow ? "mt-4" : ""}`}>
+            <div className={`flex flex-wrap justify-center gap-2.5 max-lg:gap-3 lg:justify-start ${showWebsiteCta ? "mt-4" : ""}`}>
               {socials.map((key) => {
                 const raw = data.dealerSocials?.[key]?.trim();
                 if (!raw) return null;

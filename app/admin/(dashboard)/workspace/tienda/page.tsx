@@ -67,7 +67,15 @@ export default function AdminWorkspaceTiendaPage() {
       />
 
       <div className={`${adminCardBase} mb-6 border-[#C9B46A]/35 bg-[#FFFCF7] p-4 text-sm text-[#5C5346]`}>
-        <p className="font-semibold text-[#1E1810]">Orden sugerido para capacitación</p>
+        <p className="font-semibold text-[#1E1810]">Textos e imágenes de la vitrina</p>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Edición con persistencia:{" "}
+          <Link href="/admin/workspace/tienda/storefront" className="font-bold text-[#6B5B2E] underline">
+            Abrir editor de vitrina (hero, secciones, portadas)
+          </Link>
+          .
+        </p>
+        <p className="mt-3 font-semibold text-[#1E1810]">Orden sugerido para capacitación</p>
         <ol className="mt-2 list-inside list-decimal space-y-1 text-xs text-[#7A7164]">
           <li>Vitrina pública → ver resultado.</li>
           <li>Catálogo → artículos, fotos, precios y destacados.</li>

@@ -8,6 +8,7 @@ import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/ap
 import type { RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   RESTAURANTE_BUSINESS_TYPES,
+  RESTAURANTE_CONTACT_PLACEHOLDERS,
   RESTAURANTE_CUISINES,
   RESTAURANTE_EVENT_SIZES,
   RESTAURANTE_HIGHLIGHTS,
@@ -17,6 +18,7 @@ import {
   RESTAURANTE_PRICE_LEVELS,
   RESTAURANTE_SERVICE_MODES,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
+import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/application/RestauranteUploadRow";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
@@ -52,6 +54,8 @@ function FieldLabel({ children, optional }: { children: React.ReactNode; optiona
 export default function RestauranteApplicationClient() {
   const { hydrated, draft, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
+  /** Display names for last picked files (draft stores data URLs only). */
+  const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumValidPreview(draft), [draft]);
   const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
@@ -66,6 +70,9 @@ export default function RestauranteApplicationClient() {
   const goPreview = useCallback(() => {
     if (!satisfiesRestauranteServiceModes(draft.serviceModes)) {
       setServiceErr(true);
+      requestAnimationFrame(() => {
+        document.getElementById("restaurantes-section-b")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
       return;
     }
     setServiceErr(false);
@@ -158,6 +165,7 @@ export default function RestauranteApplicationClient() {
         </button>
         <Link
           href={PREVIEW_HREF}
+          title="Abre la vista previa con el borrador guardado, sin validar modos de servicio."
           className="inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
         >
           Abrir vista previa
@@ -173,8 +181,26 @@ export default function RestauranteApplicationClient() {
         </button>
       </div>
 
+      <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+        <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> exige al menos un{" "}
+        <strong>modo de servicio</strong> en la sección B (regla de publicación mínima) y te lleva al resultado.{" "}
+        <strong className="text-[color:var(--lx-text-2)]">Ver borrador (sin validar B)</strong> abre la misma vista con lo
+        guardado aunque falte B — útil para revisar fotos o texto.
+      </p>
+
       {serviceErr ? (
-        <p className="mt-3 text-sm font-medium text-red-700">Selecciona al menos un modo de servicio (sección B).</p>
+        <div
+          className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+          role="alert"
+          aria-live="polite"
+        >
+          <p className="font-semibold">No se puede usar &quot;Abrir vista previa&quot; todavía</p>
+          <p className="mt-1">
+            Elige al menos un <strong>modo de servicio</strong> en la sección B (comer en local, para llevar, entrega,
+            etc.). Es obligatorio para el botón principal; puedes usar &quot;Ver borrador (sin validar B)&quot; si solo
+            quieres revisar el diseño.
+          </p>
+        </div>
       ) : null}
       {!minPreviewOk ? (
         <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
@@ -245,21 +271,24 @@ export default function RestauranteApplicationClient() {
             </div>
             <div>
               <FieldLabel optional>Cocinas adicionales</FieldLabel>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {RESTAURANTE_CUISINES.map((o) => (
-                  <label key={o.key} className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={(draft.additionalCuisines ?? []).includes(o.key)}
-                      onChange={() => {
-                        const cur = draft.additionalCuisines ?? [];
-                        const next = cur.includes(o.key) ? cur.filter((k) => k !== o.key) : [...cur, o.key];
-                        setDraftPatch({ additionalCuisines: next });
-                      }}
-                    />
-                    {o.labelEs}
-                  </label>
-                ))}
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Misma lista que arriba; desplázate si hay muchas opciones.</p>
+              <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 p-3">
+                <div className="flex flex-wrap gap-2">
+                  {RESTAURANTE_CUISINES.map((o) => (
+                    <label key={o.key} className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={(draft.additionalCuisines ?? []).includes(o.key)}
+                        onChange={() => {
+                          const cur = draft.additionalCuisines ?? [];
+                          const next = cur.includes(o.key) ? cur.filter((k) => k !== o.key) : [...cur, o.key];
+                          setDraftPatch({ additionalCuisines: next });
+                        }}
+                      />
+                      {o.labelEs}
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             <div>
@@ -339,9 +368,22 @@ export default function RestauranteApplicationClient() {
         </section>
 
         {/* B */}
-        <section className={CARD}>
+        <section id="restaurantes-section-b" className={CARD}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
-          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Selecciona al menos un modo de servicio.</p>
+          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
+            Selecciona al menos un <strong className="font-semibold text-[color:var(--lx-text-2)]">modo de servicio</strong>{" "}
+            (obligatorio para abrir la vista previa).
+          </p>
+          <div className="mt-4 rounded-xl border border-[color:var(--lx-gold-border)]/35 bg-[color:var(--lx-nav-hover)]/50 px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+            <p className="font-semibold text-[color:var(--lx-text)]">Leonix cubre muchos modelos</p>
+            <p className="mt-1.5">
+              Puedes combinar lo que aplica: <strong>negocio desde casa</strong>, <strong>ubicación móvil</strong>,{" "}
+              <strong>food truck</strong>, <strong>pop-up</strong>, <strong>chef personal</strong>,{" "}
+              <strong>catering / eventos</strong> y más. Activa los interruptores de abajo; las secciones{" "}
+              <strong>I</strong> (móvil), <strong>J</strong> (desde casa) y <strong>K</strong> (catering/eventos) solo
+              aparecen cuando correspondan — no quita tu flujo actual.
+            </p>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {RESTAURANTE_SERVICE_MODES.map((o) => (
               <label
@@ -489,6 +531,7 @@ export default function RestauranteApplicationClient() {
                 <FieldLabel optional>{lab}</FieldLabel>
                 <input
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                  placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS[key] ?? undefined}
                   value={(draft[key] as string | undefined) ?? ""}
                   onChange={(e) => setDraftPatch({ [key]: e.target.value || undefined } as Partial<RestauranteListingDraft>)}
                 />
@@ -496,37 +539,81 @@ export default function RestauranteApplicationClient() {
             ))}
             <div className="sm:col-span-2">
               <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
-              <input
-                type="file"
+              <RestauranteUploadRow
+                buttonLabel="Subir archivo"
+                helperText="PDF o imagen. Se usa solo en tu navegador para la vista previa."
                 accept="image/*,application/pdf"
-                className="mt-1 text-sm"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
+                selectedLabel={uploadLabels.menu ?? (draft.menuFile ? "Archivo guardado en el borrador" : null)}
+                onFilesSelected={async (files) => {
+                  const f = files?.[0];
                   if (!f) {
                     setDraftPatch({ menuFile: undefined });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.menu;
+                      return n;
+                    });
                     return;
                   }
-                  const data = await readFileAsDataUrl(f);
-                  setDraftPatch({ menuFile: data });
+                  setUploadLabels((p) => ({ ...p, menu: f.name }));
+                  setDraftPatch({ menuFile: await readFileAsDataUrl(f) });
                 }}
               />
+              {draft.menuFile ? (
+                <button
+                  type="button"
+                  className="mt-2 text-xs font-semibold text-red-800 underline"
+                  onClick={() => {
+                    setDraftPatch({ menuFile: undefined });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.menu;
+                      return n;
+                    });
+                  }}
+                >
+                  Quitar archivo
+                </button>
+              ) : null}
             </div>
             <div className="sm:col-span-2">
               <FieldLabel optional>Folleto (archivo)</FieldLabel>
-              <input
-                type="file"
+              <RestauranteUploadRow
+                buttonLabel="Subir archivo"
+                helperText="Imagen o PDF."
                 accept="image/*,application/pdf"
-                className="mt-1 text-sm"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
+                selectedLabel={uploadLabels.brochure ?? (draft.brochureFile ? "Archivo guardado en el borrador" : null)}
+                onFilesSelected={async (files) => {
+                  const f = files?.[0];
                   if (!f) {
                     setDraftPatch({ brochureFile: undefined });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.brochure;
+                      return n;
+                    });
                     return;
                   }
-                  const data = await readFileAsDataUrl(f);
-                  setDraftPatch({ brochureFile: data });
+                  setUploadLabels((p) => ({ ...p, brochure: f.name }));
+                  setDraftPatch({ brochureFile: await readFileAsDataUrl(f) });
                 }}
               />
+              {draft.brochureFile ? (
+                <button
+                  type="button"
+                  className="mt-2 text-xs font-semibold text-red-800 underline"
+                  onClick={() => {
+                    setDraftPatch({ brochureFile: undefined });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.brochure;
+                      return n;
+                    });
+                  }}
+                >
+                  Quitar archivo
+                </button>
+              ) : null}
             </div>
             <label className="inline-flex items-center gap-2 text-sm sm:col-span-2">
               <input
@@ -660,19 +747,24 @@ export default function RestauranteApplicationClient() {
                     <FieldLabel optional>Enlace al menú</FieldLabel>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
                       value={dish.menuLink ?? ""}
                       onChange={(e) => patchFeatured(i, { menuLink: e.target.value || undefined })}
                     />
                   </div>
                   <div className="sm:col-span-2">
                     <FieldLabel>Imagen</FieldLabel>
-                    <input
-                      type="file"
+                    <RestauranteUploadRow
+                      buttonLabel="Subir imagen"
+                      helperText="Foto del plato."
                       accept="image/*"
-                      className="mt-1 text-sm"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
+                      selectedLabel={
+                        uploadLabels[`featured-${i}`] ?? (dish.image ? "Imagen guardada en el borrador" : null)
+                      }
+                      onFilesSelected={async (files) => {
+                        const f = files?.[0];
                         if (!f) return;
+                        setUploadLabels((p) => ({ ...p, [`featured-${i}`]: f.name }));
                         patchFeatured(i, { image: await readFileAsDataUrl(f) });
                       }}
                     />
@@ -703,36 +795,65 @@ export default function RestauranteApplicationClient() {
           <div className="mt-4 grid gap-4">
             <div>
               <FieldLabel>Foto principal (hero)</FieldLabel>
-              <input
-                type="file"
+              <RestauranteUploadRow
+                buttonLabel="Subir imagen"
+                helperText="Imagen principal del anuncio."
                 accept="image/*"
-                className="mt-1 text-sm"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
+                selectedLabel={uploadLabels.hero ?? (draft.heroImage ? "Imagen guardada en el borrador" : null)}
+                onFilesSelected={async (files) => {
+                  const f = files?.[0];
                   if (!f) {
                     setDraftPatch({ heroImage: "" });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.hero;
+                      return n;
+                    });
                     return;
                   }
+                  setUploadLabels((p) => ({ ...p, hero: f.name }));
                   setDraftPatch({ heroImage: await readFileAsDataUrl(f) });
                 }}
               />
               {draft.heroImage ? (
-                <div className="relative mt-2 aspect-[16/9] w-full max-w-lg overflow-hidden rounded-xl border">
-                  <Image src={draft.heroImage} alt="" fill className="object-cover" unoptimized />
-                </div>
+                <>
+                  <div className="relative mt-2 aspect-[16/9] w-full max-w-lg overflow-hidden rounded-xl border">
+                    <Image src={draft.heroImage} alt="" fill className="object-cover" unoptimized />
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold text-red-800 underline"
+                    onClick={() => {
+                      setDraftPatch({ heroImage: "" });
+                      setUploadLabels((p) => {
+                        const n = { ...p };
+                        delete n.hero;
+                        return n;
+                      });
+                    }}
+                  >
+                    Quitar imagen
+                  </button>
+                </>
               ) : null}
             </div>
             <div>
               <FieldLabel optional>Galería general (reordenar con botones)</FieldLabel>
-              <input
-                type="file"
-                multiple
+              <RestauranteUploadRow
+                buttonLabel="Agregar fotos"
+                helperText="Puedes elegir varias a la vez."
                 accept="image/*"
-                className="mt-1 text-sm"
-                onChange={async (e) => {
-                  const files = Array.from(e.target.files ?? []);
+                multiple
+                selectedLabel={
+                  (draft.galleryImages?.length ?? 0) > 0
+                    ? `${draft.galleryImages!.length} foto(s) en la galería`
+                    : null
+                }
+                onFilesSelected={async (files) => {
+                  const list = files ? Array.from(files) : [];
                   const urls: string[] = [];
-                  for (const f of files) urls.push(await readFileAsDataUrl(f));
+                  for (const f of list) urls.push(await readFileAsDataUrl(f));
+                  if (!urls.length) return;
                   const next = [...(draft.galleryImages ?? []), ...urls];
                   setDraftPatch({ galleryImages: next, galleryOrder: next.map((_, i) => String(i)) });
                 }}
@@ -792,15 +913,21 @@ export default function RestauranteApplicationClient() {
               ).map(([field, lab]) => (
                 <div key={field}>
                   <FieldLabel optional>{lab}</FieldLabel>
-                  <input
-                    type="file"
-                    multiple
+                  <RestauranteUploadRow
+                    buttonLabel="Agregar fotos"
+                    helperText="Añade a la colección."
                     accept="image/*"
-                    className="mt-1 text-sm"
-                    onChange={async (e) => {
-                      const files = Array.from(e.target.files ?? []);
+                    multiple
+                    selectedLabel={
+                      ((draft[field] as string[] | undefined) ?? []).length > 0
+                        ? `${((draft[field] as string[] | undefined) ?? []).length} foto(s)`
+                        : null
+                    }
+                    onFilesSelected={async (files) => {
+                      const list = files ? Array.from(files) : [];
                       const urls: string[] = [];
-                      for (const f of files) urls.push(await readFileAsDataUrl(f));
+                      for (const f of list) urls.push(await readFileAsDataUrl(f));
+                      if (!urls.length) return;
                       const cur = (draft[field] as string[] | undefined) ?? [];
                       setDraftPatch({ [field]: [...cur, ...urls] } as Partial<RestauranteListingDraft>);
                     }}
@@ -810,24 +937,48 @@ export default function RestauranteApplicationClient() {
             </div>
             <div>
               <FieldLabel optional>Video (archivo)</FieldLabel>
-              <input
-                type="file"
+              <RestauranteUploadRow
+                buttonLabel="Subir video"
+                helperText="Archivo de video para vista previa local."
                 accept="video/*"
-                className="mt-1 text-sm"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
+                selectedLabel={uploadLabels.video ?? (draft.videoFile ? "Video guardado en el borrador" : null)}
+                onFilesSelected={async (files) => {
+                  const f = files?.[0];
                   if (!f) {
                     setDraftPatch({ videoFile: undefined });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.video;
+                      return n;
+                    });
                     return;
                   }
+                  setUploadLabels((p) => ({ ...p, video: f.name }));
                   setDraftPatch({ videoFile: await readFileAsDataUrl(f) });
                 }}
               />
+              {draft.videoFile ? (
+                <button
+                  type="button"
+                  className="mt-2 text-xs font-semibold text-red-800 underline"
+                  onClick={() => {
+                    setDraftPatch({ videoFile: undefined });
+                    setUploadLabels((p) => {
+                      const n = { ...p };
+                      delete n.video;
+                      return n;
+                    });
+                  }}
+                >
+                  Quitar video
+                </button>
+              ) : null}
             </div>
             <div>
               <FieldLabel optional>Video (URL)</FieldLabel>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.videoUrl}
                 value={draft.videoUrl ?? ""}
                 onChange={(e) => setDraftPatch({ videoUrl: e.target.value || undefined })}
               />
@@ -1059,27 +1210,35 @@ export default function RestauranteApplicationClient() {
 
         {/* L */}
         <section className={CARD}>
-          <SectionTitle>L · Confianza externa</SectionTitle>
-          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Enlaces y datos externos; Leonix no muestra reseñas nativas aquí.</p>
+          <SectionTitle>L · Confianza y reputación en Leonix</SectionTitle>
+          <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">
+            Aquí refuerzas la <strong className="font-medium text-[color:var(--lx-text-2)]">confianza</strong> dentro del
+            anuncio: resumen de reputación, testimonio y, si quieres, un resumen asistido. Los enlaces a otras plataformas
+            son <strong className="font-medium text-[color:var(--lx-text-2)]">opcionales</strong> — no son el centro de la
+            experiencia; sirven como respaldo si ya tienes presencia allá.
+          </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <FieldLabel optional>Google Reviews (URL)</FieldLabel>
+              <FieldLabel optional>Enlace a reseñas (Google u otro) — opcional</FieldLabel>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.googleReviewUrl}
                 value={draft.googleReviewUrl ?? ""}
                 onChange={(e) => setDraftPatch({ googleReviewUrl: e.target.value || undefined })}
               />
             </div>
             <div className="sm:col-span-2">
-              <FieldLabel optional>Yelp (URL)</FieldLabel>
+              <FieldLabel optional>Otro enlace de prueba social — opcional</FieldLabel>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.yelpReviewUrl}
                 value={draft.yelpReviewUrl ?? ""}
                 onChange={(e) => setDraftPatch({ yelpReviewUrl: e.target.value || undefined })}
               />
             </div>
             <div>
-              <FieldLabel optional>Calificación externa (0–5)</FieldLabel>
+              <FieldLabel optional>Resumen de calificación (0–5)</FieldLabel>
+              <p className="mt-0.5 text-xs text-[color:var(--lx-muted)]">Si publicas una nota agregada, sin sustituir reseñas nativas de Leonix.</p>
               <input
                 type="number"
                 step="0.1"
@@ -1095,7 +1254,7 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Número de reseñas externas</FieldLabel>
+              <FieldLabel optional>Cantidad de opiniones (referencia)</FieldLabel>
               <input
                 type="number"
                 min={0}
@@ -1109,36 +1268,66 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div className="sm:col-span-2">
-              <FieldLabel optional>Testimonio breve</FieldLabel>
+              <FieldLabel optional>Testimonio o frase de cliente</FieldLabel>
               <textarea
                 className="mt-1 min-h-[72px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.testimonialSnippet ?? ""}
                 onChange={(e) => setDraftPatch({ testimonialSnippet: e.target.value || undefined })}
               />
             </div>
-            <label className="inline-flex items-center gap-2 text-sm sm:col-span-2">
+            <label className="flex cursor-pointer items-start gap-2 text-sm sm:col-span-2">
               <input
                 type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-[color:var(--lx-nav-border)]"
                 checked={Boolean(draft.aiSummaryEnabled)}
                 onChange={(e) => setDraftPatch({ aiSummaryEnabled: e.target.checked })}
               />
-              Permitir resumen de confianza (IA) cuando haya enlaces externos
+              <span>
+                <span className="font-semibold text-[color:var(--lx-text)]">Resumen corto asistido (opcional)</span>
+                <span className="mt-0.5 block text-xs text-[color:var(--lx-muted)]">
+                  Puede ayudar a sintetizar tu reputación para el anuncio en Leonix cuando haya datos o enlaces útiles.
+                </span>
+              </span>
             </label>
           </div>
         </section>
       </div>
 
-      <div className="mt-12 flex flex-wrap gap-3 border-t border-[color:var(--lx-nav-border)] pt-8">
-        <button
-          type="button"
-          onClick={goPreview}
-          className="rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
-        >
-          Vista previa
-        </button>
-        <span className="self-center text-xs text-[color:var(--lx-muted)]">
-          Modo de servicio: {serviceOk ? "OK" : "falta elegir al menos uno"}
-        </span>
+      <div className="mt-12 space-y-3 border-t border-[color:var(--lx-nav-border)] pt-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <button
+            type="button"
+            onClick={goPreview}
+            className="rounded-full bg-[color:var(--lx-gold)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
+          >
+            Vista previa
+          </button>
+          <Link
+            href={PREVIEW_HREF}
+            title="Abre la vista previa con el borrador guardado, sin validar modos de servicio."
+            className="inline-flex w-fit items-center rounded-full border border-[color:var(--lx-nav-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+          >
+            Abrir vista previa
+          </Link>
+          <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-md">
+            {serviceOk ? (
+              <span className="font-medium text-emerald-800">
+                Modos de servicio (B): listos — el botón &quot;Vista previa&quot; puede abrir.
+              </span>
+            ) : (
+              <span>
+                <span className="font-semibold text-amber-900">Modos de servicio (B): pendiente.</span> Elige al menos uno
+                para usar &quot;Vista previa&quot; (validación). &quot;Abrir vista previa&quot; sigue disponible sin
+                validación.
+              </span>
+            )}
+          </p>
+        </div>
+        <p className="max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)]">
+          <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> exige modos de servicio en B.{" "}
+          <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> muestra el borrador guardado tal
+          cual.
+        </p>
       </div>
     </div>
   );

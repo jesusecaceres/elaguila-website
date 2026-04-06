@@ -59,7 +59,7 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
 
   return (
     <section
-      className="rounded-2xl border p-6 shadow-sm md:p-8"
+      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.gallery}</h2>
@@ -89,7 +89,7 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
                 alt={g.alt}
                 fill
                 className="object-cover"
-                sizes="(max-width: 768px) 50vw, 25vw"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                 unoptimized={serviciosImageUnoptimized(g.url)}
               />
             </div>

@@ -35,7 +35,7 @@ export function ServiciosTrustSection({ profile, lang }: { profile: ServiciosPro
 
   return (
     <section
-      className="rounded-2xl border p-6 shadow-sm md:p-8"
+      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.trust}</h2>
@@ -43,12 +43,12 @@ export function ServiciosTrustSection({ profile, lang }: { profile: ServiciosPro
         {items.map((t) => (
           <div
             key={t.id}
-            className="flex items-center gap-4 rounded-xl border border-black/[0.06] bg-[#3B66AD]/[0.04] px-4 py-4"
+            className="flex min-w-0 items-start gap-3 rounded-xl border border-black/[0.06] bg-[#3B66AD]/[0.04] px-3 py-3.5 sm:items-center sm:gap-4 sm:px-4 sm:py-4"
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm sm:h-12 sm:w-12">
               <TrustIcon icon={t.icon} />
             </div>
-            <p className="text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{t.label}</p>
+            <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{t.label}</p>
           </div>
         ))}
       </div>

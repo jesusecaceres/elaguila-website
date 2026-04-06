@@ -12,8 +12,11 @@ export function TiendaHero(props: {
   ctaPrimary: { label: string; href: string };
   ctaSecondary: { label: string; href: string };
   supportingLine: string;
+  /** Optional HTTPS (or same-origin) URLs — override code defaults in `tiendaHeroAssets`. */
+  heroTileImages?: Partial<Record<keyof typeof tiendaHeroAssets, string>>;
 }) {
-  const { lang, eyebrow, headline, subhead, ctaPrimary, ctaSecondary, supportingLine } = props;
+  const { lang, eyebrow, headline, subhead, ctaPrimary, ctaSecondary, supportingLine, heroTileImages } = props;
+  const assets = { ...tiendaHeroAssets, ...heroTileImages };
 
   const step1 = lang === "en" ? "Pick your product" : "Elige tu producto";
   const step2 = lang === "en" ? "Upload or design" : "Sube o diseña";
@@ -72,7 +75,7 @@ export function TiendaHero(props: {
             <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.35)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(201,168,74,0.15)]">
               <div className="relative h-[140px] w-full sm:h-[160px]">
                 <TiendaRemoteFillImage
-                  primarySrc={tiendaHeroAssets.businessCards}
+                  primarySrc={assets.businessCards}
                   fallbackSrc={tiendaHeroLiterals.businessCards}
                   alt={lang === "en" ? "Premium business cards stack" : "Montón de tarjetas de presentación premium"}
                   className="object-cover object-center"
@@ -97,7 +100,7 @@ export function TiendaHero(props: {
             <div className="relative overflow-hidden rounded-3xl border border-[rgba(201,168,74,0.22)] bg-[rgba(0,0,0,0.35)] shadow-[0_18px_60px_rgba(0,0,0,0.4)]">
               <div className="relative h-[140px] w-full sm:h-[160px]">
                 <TiendaRemoteFillImage
-                  primarySrc={tiendaHeroAssets.bannersSigns}
+                  primarySrc={assets.bannersSigns}
                   fallbackSrc={tiendaHeroLiterals.bannersSigns}
                   alt={lang === "en" ? "Event display and large-format presence" : "Presencia en evento y gran formato"}
                   className="object-cover object-center"
@@ -122,7 +125,7 @@ export function TiendaHero(props: {
               <div className="relative flex min-h-[168px] flex-col sm:flex-row">
                 <div className="relative h-[120px] w-full sm:h-auto sm:w-[44%] shrink-0">
                   <TiendaRemoteFillImage
-                    primarySrc={tiendaHeroAssets.printWorkflow}
+                    primarySrc={assets.printWorkflow}
                     fallbackSrc={tiendaHeroLiterals.printWorkflow}
                     alt={lang === "en" ? "Files and order planning" : "Archivos y planificación del pedido"}
                     className="object-cover object-center sm:object-cover"
@@ -160,7 +163,7 @@ export function TiendaHero(props: {
               <div className="grid grid-cols-2 gap-2 border-t border-[rgba(255,255,255,0.08)] bg-black/25 px-3 py-3 sm:grid-cols-4">
                 {[
                   {
-                    src: tiendaHeroAssets.thumbFlyers,
+                    src: assets.thumbFlyers,
                     fallback: tiendaHeroLiterals.thumbFlyers,
                     labelEn: "Flyers",
                     labelEs: "Volantes",
@@ -168,7 +171,7 @@ export function TiendaHero(props: {
                     altEs: "Hojas de marketing impreso",
                   },
                   {
-                    src: tiendaHeroAssets.thumbBrochures,
+                    src: assets.thumbBrochures,
                     fallback: tiendaHeroLiterals.thumbBrochures,
                     labelEn: "Brochures",
                     labelEs: "Brochures",
@@ -176,7 +179,7 @@ export function TiendaHero(props: {
                     altEs: "Brochure plegado impreso",
                   },
                   {
-                    src: tiendaHeroAssets.thumbStickers,
+                    src: assets.thumbStickers,
                     fallback: tiendaHeroLiterals.thumbStickers,
                     labelEn: "Stickers",
                     labelEs: "Stickers",
@@ -184,7 +187,7 @@ export function TiendaHero(props: {
                     altEs: "Impresión de stickers y etiquetas",
                   },
                   {
-                    src: tiendaHeroAssets.thumbPromo,
+                    src: assets.thumbPromo,
                     fallback: tiendaHeroLiterals.thumbPromo,
                     labelEn: "Promo",
                     labelEs: "Promo",

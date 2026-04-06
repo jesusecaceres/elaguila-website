@@ -32,15 +32,21 @@ function tierMinHeight(tier: MerchTier): string {
   }
 }
 
-export function TiendaCategoryCard(props: { category: TiendaCategory; lang: Lang; density?: MerchTier }) {
-  const { category, lang, density: densityProp } = props;
+export function TiendaCategoryCard(props: {
+  category: TiendaCategory;
+  lang: Lang;
+  density?: MerchTier;
+  /** Admin storefront override — must be https: or same-origin path. */
+  coverPrimaryOverride?: string | null;
+}) {
+  const { category, lang, density: densityProp, coverPrimaryOverride } = props;
   const a = accentStyles(category.accent);
   const title = lang === "en" ? category.title.en : category.title.es;
   const desc = lang === "en" ? category.description.en : category.description.es;
   const eyebrow = category.eyebrow ? (lang === "en" ? category.eyebrow.en : category.eyebrow.es) : null;
 
   const slug = category.slug as TiendaCategorySlug;
-  const coverPrimary = tiendaCategoryCoverPrimary(slug);
+  const coverPrimary = coverPrimaryOverride?.trim() || tiendaCategoryCoverPrimary(slug);
   const coverLiteral = tiendaCategoryCoverLiteral(slug);
   const isBusinessCards = slug === "business-cards";
   const tier = densityProp ?? merchTierForCategorySlug(slug);

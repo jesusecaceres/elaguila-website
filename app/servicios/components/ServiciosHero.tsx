@@ -19,8 +19,8 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
   const reviewCount = hero.reviewCount;
 
   return (
-    <section className="relative w-full overflow-hidden rounded-2xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] md:rounded-3xl">
-      <div className="relative aspect-[21/9] min-h-[220px] w-full sm:min-h-[280px] md:aspect-[2.4/1] md:min-h-[320px]">
+    <section className="relative w-full overflow-hidden rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
+      <div className="relative min-h-[200px] w-full aspect-[5/4] sm:aspect-[21/9] sm:min-h-[240px] md:aspect-[2.4/1] md:min-h-[320px]">
         {hero.coverImageUrl ? (
           <Image
             src={hero.coverImageUrl}
@@ -41,9 +41,9 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" aria-hidden />
 
-        <div className="absolute inset-0 flex flex-col justify-end p-4 pb-6 md:p-8 lg:flex-row lg:items-end lg:justify-start">
+        <div className="absolute inset-0 flex flex-col justify-end p-3 pb-4 sm:p-4 sm:pb-6 md:p-8 lg:flex-row lg:items-end lg:justify-start">
           <div
-            className="w-full max-w-xl rounded-2xl border p-5 shadow-xl md:p-7"
+            className="w-full max-w-xl rounded-xl border p-4 shadow-xl sm:rounded-2xl sm:p-5 md:p-7"
             style={{
               backgroundColor: "rgba(255,255,255,0.97)",
               borderColor: SV.border,
@@ -111,7 +111,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                 {hero.locationSummary ? (
                   <p className="mt-4 flex items-start gap-2 text-sm text-[color:var(--lx-text-2)]">
                     <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
-                    <span>{hero.locationSummary}</span>
+                    <span className="min-w-0 break-words">{hero.locationSummary}</span>
                   </p>
                 ) : null}
               </div>

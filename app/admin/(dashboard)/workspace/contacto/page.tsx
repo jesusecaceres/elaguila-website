@@ -30,10 +30,18 @@ export default function AdminWorkspaceContactoPage() {
     <div>
       <AdminPageHeader
         title="Contacto — cómo te encuentran"
-        subtitle="Experiencia pública de contacto: datos de llegada, horarios, mapa y mensajes del formulario. Campos guía hasta exista almacén de configuración."
+        subtitle="La página `/contacto` tiene formulario persistente en el editor enlazado arriba. Estos bloques siguen siendo guía de alcance para capacitación."
         eyebrow="Workspace · Contacto"
         helperText="Lo que ve el visitante en la página de contacto. El inbox interno de pedidos de Tienda sigue en Pedidos; incidencias generales en Support."
       />
+
+      <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
+        <strong>Editor persistente:</strong>{" "}
+        <Link href="/admin/workspace/contacto/content" className="font-bold underline">
+          Abrir formulario de `/contacto`
+        </Link>{" "}
+        (intro, horario, email, teléfono, dirección, aviso).
+      </div>
 
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">
         <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página Contacto del sitio y mensajes coherentes con{" "}

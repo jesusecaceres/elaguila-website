@@ -1,6 +1,6 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { resolveDealerBookingHref, resolveDealerOfficePhone } from "./dealerContactResolve";
-import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "./dealerDraftSanitize";
+import { safeExternalHref } from "./dealerDraftSanitize";
 import { deriveHeroImageUrls } from "./autoDealerHeroImages";
 import { filterDealerHoursForDisplay } from "./dealerHoursDisplay";
 import { hasListingVideo } from "./autoDealerVideo";
@@ -76,8 +76,6 @@ export function hasSidebarCta(data: AutoDealerListing): boolean {
 export function hasDealerCard(data: AutoDealerListing): boolean {
   const soc = data.dealerSocials ?? {};
   const hasHours = filterDealerHoursForDisplay(data.dealerHours).length > 0;
-  const hasRating = sanitizeDealerRating(data.dealerRating) !== undefined;
-  const hasReviews = sanitizeReviewCount(data.dealerReviewCount) !== undefined;
   return (
     nonEmpty(data.dealerName) ||
     Boolean(data.dealerLogo) ||
@@ -87,9 +85,7 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
     nonEmpty(data.dealerAddress) ||
     hasHours ||
     nonEmpty(data.dealerWebsite ?? undefined) ||
-    Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u))) ||
-    hasRating ||
-    hasReviews
+    Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u)))
   );
 }
 

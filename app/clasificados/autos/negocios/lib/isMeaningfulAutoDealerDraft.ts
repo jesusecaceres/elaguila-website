@@ -70,14 +70,6 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
   if (hours.some((r) => nonEmpty(r.day))) return true;
 
   if (Object.values(listing.dealerSocials ?? {}).some((u) => nonEmpty(u))) return true;
-  if (listing.dealerRating !== undefined && Number.isFinite(listing.dealerRating)) return true;
-  if (
-    listing.dealerReviewCount !== undefined &&
-    Number.isFinite(listing.dealerReviewCount) &&
-    listing.dealerReviewCount > 0
-  ) {
-    return true;
-  }
 
   if ((listing.relatedDealerListings?.length ?? 0) > 0) return true;
 

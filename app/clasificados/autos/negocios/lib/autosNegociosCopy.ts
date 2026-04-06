@@ -29,8 +29,6 @@ export type AutosNegociosCopy = {
     hints: Record<string, string>;
     actions: { preview: string; reset: string };
     dealer: {
-      rating: string;
-      reviews: string;
       socialHeading: string;
       applyHoursTemplate: string;
       addHoursRow: string;
@@ -132,8 +130,6 @@ export type AutosNegociosCopy = {
       videoAria: string;
     };
     dealer: {
-      reviewsLine: (n: number) => string;
-      websiteCta: string;
       logoAltFallback: string;
       hoursHeading: string;
     };
@@ -244,8 +240,6 @@ const ES: AutosNegociosCopy = {
     },
     actions: { preview: "Ver vista previa", reset: "Reiniciar borrador" },
     dealer: {
-      rating: "Calificación del negocio (1–5)",
-      reviews: "Total de reseñas",
       socialHeading: "Redes sociales",
       applyHoursTemplate: "Aplicar plantilla de horario (Lun–Dom)",
       addHoursRow: "Añadir fila de horario",
@@ -392,8 +386,6 @@ const ES: AutosNegociosCopy = {
       videoAria: "Abrir video del vehículo",
     },
     dealer: {
-      reviewsLine: (n) => `(${n} reseñas)`,
-      websiteCta: "Sitio web del concesionario",
       logoAltFallback: "Concesionario",
       hoursHeading: "Horario",
     },
@@ -537,8 +529,6 @@ const EN: AutosNegociosCopy = {
     },
     actions: { preview: "View preview", reset: "Reset draft" },
     dealer: {
-      rating: "Business rating (1–5)",
-      reviews: "Review count",
       socialHeading: "Social links",
       applyHoursTemplate: "Apply Mon–Sun schedule template",
       addHoursRow: "Add hours row",
@@ -685,8 +675,6 @@ const EN: AutosNegociosCopy = {
       videoAria: "Open vehicle video",
     },
     dealer: {
-      reviewsLine: (n) => `(${n} reviews)`,
-      websiteCta: "Dealership website",
       logoAltFallback: "Dealership",
       hoursHeading: "Hours",
     },

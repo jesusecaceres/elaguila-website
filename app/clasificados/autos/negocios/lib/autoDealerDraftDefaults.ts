@@ -93,8 +93,6 @@ export function createEmptyListing(): AutoDealerListing {
     dealerWebsite: undefined,
     dealerBookingUrl: undefined,
     dealerSocials: {},
-    dealerRating: undefined,
-    dealerReviewCount: undefined,
     relatedDealerListings: [],
   };
 }

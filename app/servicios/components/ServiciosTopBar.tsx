@@ -136,11 +136,11 @@ function ServiciosTopBarInner({ lang, editBackHref }: { lang: ServiciosLang; edi
       className="sticky top-0 z-50 border-b border-black/[0.06] backdrop-blur-md"
       style={{ backgroundColor: "rgba(249, 248, 246, 0.92)" }}
     >
-      <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-4 py-3 md:px-6">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 md:px-6">
         {editBackHref ? (
           <Link
             href={editBackHref}
-            className="shrink-0 text-[11px] font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline"
+            className="shrink-0 py-2 text-[11px] font-semibold leading-snug text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline sm:py-0"
           >
             {t.editBack}
           </Link>

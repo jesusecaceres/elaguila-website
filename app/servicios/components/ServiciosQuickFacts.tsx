@@ -34,10 +34,10 @@ export function ServiciosQuickFacts({ facts }: { facts: ServiciosQuickFact[] }) 
         return (
           <div
             key={`${f.kind}-${f.label}`}
-            className="inline-flex min-w-0 items-center gap-2 rounded-full border border-black/[0.08] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--lx-text-2)] shadow-sm sm:text-[13px]"
+            className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-black/[0.08] bg-white px-3 py-2.5 text-xs font-semibold text-[color:var(--lx-text-2)] shadow-sm sm:py-2 sm:text-[13px]"
           >
             <Icon className="h-4 w-4 shrink-0 text-[#3B66AD]" aria-hidden />
-            <span className="leading-snug">{f.label}</span>
+            <span className="min-w-0 break-words leading-snug">{f.label}</span>
           </div>
         );
       })}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { tiendaCopy, pick } from "./data/tiendaCopy";
+import { pick } from "./data/tiendaCopy";
 import { tiendaCategoryBySlug } from "./data/tiendaCategories";
 import {
   merchTierForCategorySlug,
@@ -15,6 +15,12 @@ import { TiendaCTA } from "./components/TiendaCTA";
 import { normalizeLang, tiendaPublicContactPath } from "./utils/tiendaRouting";
 import { listTiendaCatalogItemsPublic, fetchPrimaryImageUrlForItems } from "@/app/lib/tienda/tiendaCatalogQueries";
 import { TiendaCatalogItemCard } from "./components/catalog/TiendaCatalogItemCard";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import type { TiendaStorefrontPayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import {
+  applyCategoryCardCopyOverrides,
+  mergeTiendaStorefrontCopy,
+} from "@/app/lib/tienda/mergeTiendaStorefrontCopy";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +48,10 @@ export default async function TiendaPage(props: {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
 
+  const { payload: storefrontRaw } = await getSiteSectionPayload("tienda_storefront");
+  const storefrontPatch = storefrontRaw as unknown as TiendaStorefrontPayload;
+  const copy = mergeTiendaStorefrontCopy(storefrontPatch);
+
   const { items: featuredCatalog } = await listTiendaCatalogItemsPublic({ featuredStorefront: true });
   const featuredThumbs = await fetchPrimaryImageUrlForItems(featuredCatalog.map((i) => i.id));
 
@@ -51,20 +61,21 @@ export default async function TiendaPage(props: {
         {/* 1) HERO */}
         <TiendaHero
           lang={lang}
-          eyebrow={pick(tiendaCopy.hero.eyebrow, lang)}
-          headline={pick(tiendaCopy.hero.headline, lang)}
-          subhead={pick(tiendaCopy.hero.subhead, lang)}
-          ctaPrimary={{ label: pick(tiendaCopy.hero.ctaPrimary, lang), href: "#shop" }}
-          ctaSecondary={{ label: pick(tiendaCopy.hero.ctaSecondary, lang), href: tiendaPublicContactPath() }}
-          supportingLine={pick(tiendaCopy.hero.supportingLine, lang)}
+          eyebrow={pick(copy.hero.eyebrow, lang)}
+          headline={pick(copy.hero.headline, lang)}
+          subhead={pick(copy.hero.subhead, lang)}
+          ctaPrimary={{ label: pick(copy.hero.ctaPrimary, lang), href: "#shop" }}
+          ctaSecondary={{ label: pick(copy.hero.ctaSecondary, lang), href: tiendaPublicContactPath() }}
+          supportingLine={pick(copy.hero.supportingLine, lang)}
+          heroTileImages={storefrontPatch?.heroTileImages}
         />
 
         {/* 2) SHOP BY CATEGORY */}
         <section id="shop" className="mt-16 sm:mt-20 scroll-mt-28">
           <TiendaSectionHeading
-            eyebrow={pick(tiendaCopy.sections.categories.eyebrow, lang)}
-            title={pick(tiendaCopy.sections.categories.title, lang)}
-            description={pick(tiendaCopy.sections.categories.description, lang)}
+            eyebrow={pick(copy.sections.categories.eyebrow, lang)}
+            title={pick(copy.sections.categories.title, lang)}
+            description={pick(copy.sections.categories.description, lang)}
           />
 
           <div className="mt-10 space-y-14">
@@ -83,12 +94,15 @@ export default async function TiendaPage(props: {
                     {group.slugs.map((slug) => {
                       const c = tiendaCategoryBySlug[slug];
                       if (!c) return null;
+                      const cat = applyCategoryCardCopyOverrides(c, storefrontPatch?.categoryCardCopy?.[slug]);
+                      const coverUrl = storefrontPatch?.categoryCardCoverUrls?.[slug] ?? null;
                       return (
                         <TiendaCategoryCard
-                          key={c.id}
-                          category={c}
+                          key={cat.id}
+                          category={cat}
                           lang={lang}
                           density={merchTierForCategorySlug(slug)}
+                          coverPrimaryOverride={coverUrl}
                         />
                       );
                     })}
@@ -102,13 +116,9 @@ export default async function TiendaPage(props: {
         {featuredCatalog.length > 0 ? (
           <section className="mt-16 sm:mt-20">
             <TiendaSectionHeading
-              eyebrow={lang === "en" ? "Catalog" : "Catálogo"}
-              title={lang === "en" ? "Featured sourced & promo picks" : "Surtido promo y destacados"}
-              description={
-                lang === "en"
-                  ? "Sourced or specialty picks from the Leonix admin catalog — every card shows imagery and honest pricing notes."
-                  : "Surtido especial desde el catálogo admin de Leonix — cada tarjeta muestra imagen y notas honestas de precio."
-              }
+              eyebrow={pick(copy.sections.featured.eyebrow, lang)}
+              title={pick(copy.sections.featured.title, lang)}
+              description={pick(copy.sections.featured.description, lang)}
             />
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredCatalog.map((item) => (
@@ -126,18 +136,18 @@ export default async function TiendaPage(props: {
         {/* 3) HOW IT WORKS */}
         <section className="mt-16 sm:mt-20">
           <TiendaSectionHeading
-            eyebrow={pick(tiendaCopy.sections.howItWorks.eyebrow, lang)}
-            title={pick(tiendaCopy.sections.howItWorks.title, lang)}
-            description={pick(tiendaCopy.sections.howItWorks.description, lang)}
+            eyebrow={pick(copy.sections.howItWorks.eyebrow, lang)}
+            title={pick(copy.sections.howItWorks.title, lang)}
+            description={pick(copy.sections.howItWorks.description, lang)}
           />
           <div className="mt-8">
             <TiendaHowItWorks
               lang={lang}
-              steps={tiendaCopy.sections.howItWorks.steps.map((s) => ({
+              steps={copy.sections.howItWorks.steps.map((s) => ({
                 title: pick(s.title, lang),
                 body: pick(s.body, lang),
               }))}
-              note={pick(tiendaCopy.sections.howItWorks.note, lang)}
+              note={pick(copy.sections.howItWorks.note, lang)}
             />
           </div>
         </section>
@@ -145,13 +155,13 @@ export default async function TiendaPage(props: {
         {/* 4) TRUST / QUALITY SECTION */}
         <section className="mt-16 sm:mt-20">
           <TiendaSectionHeading
-            eyebrow={pick(tiendaCopy.sections.trust.eyebrow, lang)}
-            title={pick(tiendaCopy.sections.trust.title, lang)}
+            eyebrow={pick(copy.sections.trust.eyebrow, lang)}
+            title={pick(copy.sections.trust.title, lang)}
           />
           <div className="mt-8">
             <TiendaTrustStrip
               lang={lang}
-              items={pick(tiendaCopy.sections.trust.items, lang)}
+              items={pick(copy.sections.trust.items, lang)}
             />
           </div>
         </section>
@@ -160,10 +170,10 @@ export default async function TiendaPage(props: {
         <section className="mt-16 sm:mt-20">
           <TiendaCTA
             lang={lang}
-            title={pick(tiendaCopy.sections.finalCta.title, lang)}
-            body={pick(tiendaCopy.sections.finalCta.body, lang)}
-            primary={{ label: pick(tiendaCopy.sections.finalCta.primary, lang), href: "#shop" }}
-            secondary={{ label: pick(tiendaCopy.sections.finalCta.secondary, lang), href: tiendaPublicContactPath() }}
+            title={pick(copy.sections.finalCta.title, lang)}
+            body={pick(copy.sections.finalCta.body, lang)}
+            primary={{ label: pick(copy.sections.finalCta.primary, lang), href: "#shop" }}
+            secondary={{ label: pick(copy.sections.finalCta.secondary, lang), href: tiendaPublicContactPath() }}
           />
         </section>
       </div>

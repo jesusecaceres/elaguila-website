@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { adminCardBase, adminInputClass } from "../../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary, adminInputClass } from "../../../_components/adminTheme";
 
 const BLOCKS = [
   {
@@ -35,8 +35,16 @@ export default function AdminWorkspaceNosotrosPage() {
         helperText="Cuando exista almacén, aquí vivirá el contenido de /nosotros. Usuarios, pagos y soporte siguen en la barra lateral global."
       />
 
+      <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
+        <strong>Contenido reservado (BD):</strong>{" "}
+        <Link href="/admin/workspace/nosotros/content" className={`${adminBtnSecondary} ml-2 inline-flex`}>
+          Editar borrador Nosotros
+        </Link>
+        <span className="ml-2 text-xs text-[#5C5346]">(aún sin ruta pública dedicada)</span>
+      </div>
+
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">
-        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página Nosotros del sitio público, no operaciones globales. Para datos transversales del sitio, usa{" "}
+        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la futura página Nosotros del sitio público, no operaciones globales. Para datos transversales del sitio, usa{" "}
         <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline">
           ajustes globales
         </Link>

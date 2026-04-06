@@ -3,11 +3,12 @@ import Link from "next/link";
 import { GlobalContactForm } from "@/app/components/contact/GlobalContactForm";
 import {
   LEONIX_GLOBAL_CONTACT_PATH,
-  LEONIX_GLOBAL_EMAIL,
-  LEONIX_GLOBAL_MAILTO,
   LEONIX_MEDIA_BRAND,
 } from "@/app/data/leonixGlobalContact";
 import { LEONIX_TIENDA_CONTACT_PATH } from "@/app/tienda/data/leonixContact";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import { mergeContactoCopy } from "@/app/lib/siteSectionContent/contactoMerge";
 
 type Lang = "es" | "en";
 
@@ -40,39 +41,13 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
   const lang = normalizeLang(sp.lang);
   const swap = lang === "en" ? "es" : "en";
 
-  const copy =
-    lang === "en"
-      ? {
-          h1: "Contact",
-          intro: `Reach ${LEONIX_MEDIA_BRAND} for general questions, partnerships, and editorial or media-related requests.`,
-          business: "Contact details",
-          emailLabel: "Email",
-          hoursLabel: "Hours",
-          hours: "Monday–Friday, 9:00 AM – 5:00 PM Pacific",
-          tiendaTitle: "Print store (Tienda)",
-          tiendaBody:
-            "For business printing, orders, file uploads, and Tienda quotes, use the dedicated Tienda contact page so we route you correctly.",
-          tiendaCta: "Tienda help & contact",
-          langSwitch: "Español",
-        }
-      : {
-          h1: "Contacto",
-          intro: `Comunícate con ${LEONIX_MEDIA_BRAND} para consultas generales, alianzas y temas editoriales o de medios.`,
-          business: "Datos de contacto",
-          emailLabel: "Correo",
-          hoursLabel: "Horario",
-          hours: "Lunes a viernes, 9:00 – 17:00 (Pacífico)",
-          tiendaTitle: "Tienda de impresión",
-          tiendaBody:
-            "Para impresión comercial, pedidos, subida de archivos y cotizaciones de Tienda, usa la página de contacto dedicada para enrutarte bien.",
-          tiendaCta: "Ayuda y contacto Tienda",
-          langSwitch: "English",
-        };
+  const { payload } = await getSiteSectionPayload("contacto");
+  const copy = mergeContactoCopy(lang, payload as unknown as ContactoPayload);
 
   return (
     <main className="min-h-screen w-full bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <div className="pt-28 pb-20 px-6 max-w-4xl mx-auto">
-        <div className="flex justify-end mb-6">
+      <div className="mx-auto max-w-4xl px-6 pt-28 pb-20">
+        <div className="mb-6 flex justify-end">
           <Link
             href={withLang(LEONIX_GLOBAL_CONTACT_PATH, swap)}
             className="text-sm font-medium text-[color:var(--lx-text-2)] hover:text-[color:var(--lx-text)] underline"
@@ -81,33 +56,57 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold text-[color:var(--lx-text)] text-center mb-4">{copy.h1}</h1>
+        {copy.noticeTop ? (
+          <div className="mb-8 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm text-[color:var(--lx-text)]">
+            {copy.noticeTop}
+          </div>
+        ) : null}
 
-        <p className="text-center text-[color:var(--lx-text-2)]/85 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <h1 className="mb-4 text-center text-4xl font-bold text-[color:var(--lx-text)]">{copy.h1}</h1>
+
+        <p className="mx-auto mb-10 max-w-2xl text-center leading-relaxed text-[color:var(--lx-text-2)]/85">
           {copy.intro}
         </p>
 
-        <div className="bg-[color:var(--lx-card)] p-6 rounded-2xl shadow-[0_18px_48px_rgba(42,36,22,0.10)] mb-8 border border-[color:var(--lx-nav-border)]">
-          <h2 className="text-xl font-semibold text-[color:var(--lx-text)] mb-3">{copy.tiendaTitle}</h2>
-          <p className="text-sm text-[color:var(--lx-text-2)]/90 leading-relaxed mb-4">{copy.tiendaBody}</p>
+        <div className="mb-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
+          <h2 className="mb-3 text-xl font-semibold text-[color:var(--lx-text)]">{copy.tiendaTitle}</h2>
+          <p className="mb-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">{copy.tiendaBody}</p>
           <Link
             href={withLang(LEONIX_TIENDA_CONTACT_PATH, lang)}
-            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:opacity-95 transition"
+            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] transition hover:opacity-95"
           >
             {copy.tiendaCta}
           </Link>
         </div>
 
-        <div className="bg-[color:var(--lx-card)] p-6 rounded-2xl shadow-[0_18px_48px_rgba(42,36,22,0.10)] mb-12 border border-[color:var(--lx-nav-border)]">
-          <h2 className="text-2xl font-semibold text-[color:var(--lx-text)] mb-4">{copy.business}</h2>
+        <div className="mb-12 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
+          <h2 className="mb-4 text-2xl font-semibold text-[color:var(--lx-text)]">{copy.business}</h2>
 
           <div className="space-y-3 text-[color:var(--lx-text-2)]/90">
             <p>
               <span className="font-semibold text-[color:var(--lx-text)]">{copy.emailLabel}:</span>{" "}
-              <a href={LEONIX_GLOBAL_MAILTO} className="underline hover:opacity-80">
-                {LEONIX_GLOBAL_EMAIL}
+              <a href={copy.mailto} className="underline hover:opacity-80">
+                {copy.email}
               </a>
             </p>
+
+            {copy.phoneLine ? (
+              <p>
+                <span className="font-semibold text-[color:var(--lx-text)]">
+                  {lang === "en" ? "Phone" : "Teléfono"}:
+                </span>{" "}
+                {copy.phoneLine}
+              </p>
+            ) : null}
+
+            {copy.addressLine ? (
+              <p>
+                <span className="font-semibold text-[color:var(--lx-text)]">
+                  {lang === "en" ? "Address" : "Dirección"}:
+                </span>{" "}
+                {copy.addressLine}
+              </p>
+            ) : null}
 
             <p>
               <span className="font-semibold text-[color:var(--lx-text)]">{copy.hoursLabel}:</span> {copy.hours}

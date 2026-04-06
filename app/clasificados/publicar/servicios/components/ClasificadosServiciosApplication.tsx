@@ -48,9 +48,9 @@ import {
 const DEBOUNCE_MS = 500;
 
 const inputClass =
-  "mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+  "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-snug text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
 const inputWarn = "border-amber-400 bg-amber-50/50";
-const sectionCard = "rounded-2xl border border-neutral-200/90 bg-white p-6 shadow-sm";
+const sectionCard = "rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-sm sm:p-6";
 const labelClass = "text-sm font-semibold text-neutral-800";
 
 function toggleId(list: string[], id: string, on: boolean): string[] {
@@ -74,9 +74,9 @@ function Chip({
       type="button"
       onClick={onClick}
       className={[
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition",
+        "inline-flex min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition active:scale-[0.99] sm:min-h-0 sm:py-1.5",
         selected
-          ? "border-[#3B66AD] bg-[#3B66AD]/10 text-[#1e3a5f]"
+          ? "border-[#3B66AD] bg-[#3B66AD]/10 text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
           : "border-neutral-200 bg-neutral-50/80 text-neutral-700 hover:border-neutral-300",
       ].join(" ")}
     >
@@ -279,43 +279,50 @@ export function ClasificadosServiciosApplication() {
   const publicarHref = `/clasificados/publicar?lang=${lang}`;
 
   return (
-    <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12]">
+    <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
       <header className="border-b border-[#D8C79A]/60 bg-[#FFFDF7]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between lg:max-w-5xl">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-[#3D2C12]">{copy.pageTitle}</h1>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={lang === "es" ? "?lang=en" : "?lang=es"}
-              className="rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-1.5 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
-            >
-              {copy.langToggle}
-            </Link>
-            <Link
-              href={previewHref}
-              onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
-              className="rounded-lg bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#2f5699]"
-            >
-              {copy.previewCta}
-            </Link>
-            <Link
-              href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
-              onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
-              className="rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-1.5 text-xs font-semibold text-[#5D4A25]/90 hover:bg-[#FFF6E7]"
-            >
-              {copy.linkPreviewShell}
-            </Link>
-            <Link href={publicarHref} className="text-sm font-medium text-[#5D4A25]/80 underline hover:text-[#3D2C12]">
-              {copy.linkBack}
-            </Link>
+        <div className="mx-auto max-w-3xl px-4 py-5 sm:py-6 lg:max-w-5xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+            <div className="min-w-0">
+              <h1 className="text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
+            </div>
+            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+              <Link
+                href={previewHref}
+                onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699] sm:w-auto sm:min-w-[12rem]"
+              >
+                {copy.previewCta}
+              </Link>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <Link
+                  href={lang === "es" ? "?lang=en" : "?lang=es"}
+                  className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
+                >
+                  {copy.langToggle}
+                </Link>
+                <Link
+                  href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
+                  onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+                  className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#5D4A25]/90 hover:bg-[#FFF6E7]"
+                >
+                  {copy.linkPreviewShell}
+                </Link>
+                <Link
+                  href={publicarHref}
+                  className="inline-flex min-h-[40px] items-center text-sm font-medium text-[#5D4A25]/80 underline underline-offset-2 hover:text-[#3D2C12]"
+                >
+                  {copy.linkBack}
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
         <p className="mx-auto max-w-5xl px-4 pb-3 text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 pb-24 sm:pb-8 lg:max-w-5xl">
+      <main className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-28 sm:space-y-6 sm:py-8 sm:pb-8 lg:max-w-5xl">
         {/* 1 · Tipo */}
         <section className={sectionCard} aria-labelledby="sec-type">
           <h2 id="sec-type" className="text-lg font-bold text-[#3D2C12]">
@@ -349,7 +356,7 @@ export function ClasificadosServiciosApplication() {
           <h2 id="sec-basic" className="text-lg font-bold text-[#3D2C12]">
             {copy.sections.basic}
           </h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className={labelClass}>{copy.labels.businessName}</label>
               <input
@@ -472,16 +479,16 @@ export function ClasificadosServiciosApplication() {
                 ) : null}
               </div>
               <p className="mt-3 text-xs text-[#5D4A25]/75">{copy.labels.urlFallback}</p>
-              <div className="mt-1 flex gap-2">
+              <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
                 <input
-                  className={inputClass}
+                  className={`${inputClass} sm:min-w-0 sm:flex-1`}
                   placeholder="https://"
                   value={logoUrlDraft}
                   onChange={(e) => setLogoUrlDraft(e.target.value)}
                 />
                 <button
                   type="button"
-                  className="shrink-0 rounded-xl bg-[#3B66AD] px-3 py-2 text-sm font-semibold text-white"
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white sm:px-3"
                   onClick={() => applyUrlFallback("logoUrl", logoUrlDraft, () => setLogoUrlDraft(""))}
                 >
                   {copy.labels.addUrl}
@@ -512,16 +519,16 @@ export function ClasificadosServiciosApplication() {
               </div>
               <div className="mt-2">{state.coverUrl ? <button type="button" className="text-xs font-semibold text-[#3B66AD] underline" onClick={() => setState((s) => ({ ...s, coverUrl: "" }))}>{copy.labels.remove}</button> : null}</div>
               <p className="mt-3 text-xs text-[#5D4A25]/75">{copy.labels.urlFallback}</p>
-              <div className="mt-1 flex gap-2">
+              <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
                 <input
-                  className={inputClass}
+                  className={`${inputClass} sm:min-w-0 sm:flex-1`}
                   placeholder="https://"
                   value={coverUrlDraft}
                   onChange={(e) => setCoverUrlDraft(e.target.value)}
                 />
                 <button
                   type="button"
-                  className="shrink-0 rounded-xl bg-[#3B66AD] px-3 py-2 text-sm font-semibold text-white"
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white sm:px-3"
                   onClick={() => applyUrlFallback("coverUrl", coverUrlDraft, () => setCoverUrlDraft(""))}
                 >
                   {copy.labels.addUrl}
@@ -576,14 +583,18 @@ export function ClasificadosServiciosApplication() {
               <span className="mt-2 text-sm font-semibold text-[#3D2C12]">{copy.labels.upload}</span>
               <span className="mt-1 max-w-sm text-xs text-[#6b5c42]">{copy.labels.dropzone}</span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
               <input
-                className={`${inputClass} max-w-md flex-1`}
+                className={`${inputClass} min-w-0 sm:max-w-md sm:flex-1`}
                 placeholder="https://…"
                 value={galleryUrlDraft}
                 onChange={(e) => setGalleryUrlDraft(e.target.value)}
               />
-              <button type="button" className="rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white" onClick={addGalleryUrl}>
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white"
+                onClick={addGalleryUrl}
+              >
                 {copy.labels.addUrl}
               </button>
             </div>
@@ -603,22 +614,22 @@ export function ClasificadosServiciosApplication() {
                             {fi + 1}
                           </span>
                         </div>
-                        <div className="flex gap-0.5">
+                        <div className="flex gap-1">
                           <button
                             type="button"
-                            className="rounded border border-[#D8C79A]/80 p-1 text-[#3D2C12] hover:bg-white"
+                            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
                             onClick={() => moveFeaturedOrder(fi, -1)}
                             aria-label={copy.labels.moveFeaturedLeft}
                           >
-                            <FiChevronLeft className="h-3.5 w-3.5" />
+                            <FiChevronLeft className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-[#D8C79A]/80 p-1 text-[#3D2C12] hover:bg-white"
+                            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
                             onClick={() => moveFeaturedOrder(fi, 1)}
                             aria-label={copy.labels.moveFeaturedRight}
                           >
-                            <FiChevronRight className="h-3.5 w-3.5" />
+                            <FiChevronRight className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -636,15 +647,15 @@ export function ClasificadosServiciosApplication() {
                   return (
                     <li
                       key={g.id}
-                      className="flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200/90 bg-[#FFFCF7] p-2 sm:flex-nowrap"
+                      className="flex flex-col gap-3 rounded-xl border border-neutral-200/90 bg-[#FFFCF7] p-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:p-2"
                     >
-                      <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 sm:h-24 sm:w-32">
+                      <div className="relative mx-auto h-20 w-full max-w-[11rem] shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 sm:mx-0 sm:h-24 sm:w-32 sm:max-w-none">
                         <Image src={g.url} alt="" fill className="object-cover" unoptimized />
                       </div>
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 sm:justify-end">
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2 sm:justify-end">
                         <button
                           type="button"
-                          className="rounded-lg border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
+                          className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-[#D8C79A]/80 text-[#3D2C12] hover:bg-white"
                           onClick={() => moveGalleryItem(gi, -1)}
                           aria-label={copy.labels.moveUp}
                         >
@@ -652,7 +663,7 @@ export function ClasificadosServiciosApplication() {
                         </button>
                         <button
                           type="button"
-                          className="rounded-lg border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
+                          className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-[#D8C79A]/80 text-[#3D2C12] hover:bg-white"
                           onClick={() => moveGalleryItem(gi, 1)}
                           aria-label={copy.labels.moveDown}
                         >
@@ -662,9 +673,9 @@ export function ClasificadosServiciosApplication() {
                           type="button"
                           onClick={() => toggleFeaturedGallery(g.id)}
                           className={[
-                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                            "inline-flex min-h-[40px] touch-manipulation items-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold sm:py-1",
                             isFeatured
-                              ? "border-[#B28A2F] bg-[#FFF3D6] text-[#6b4f0a]"
+                              ? "border-[#B28A2F] bg-[#FFF3D6] text-[#6b4f0a] ring-1 ring-[#B28A2F]/25"
                               : "border-neutral-200 bg-white text-[#5D4A25]",
                           ].join(" ")}
                         >
@@ -674,7 +685,7 @@ export function ClasificadosServiciosApplication() {
                         </button>
                         <button
                           type="button"
-                          className="rounded-lg p-1.5 text-red-700 hover:bg-red-50"
+                          className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-red-700 hover:bg-red-50"
                           onClick={() =>
                             setState((s) => ({
                               ...s,
@@ -713,9 +724,9 @@ export function ClasificadosServiciosApplication() {
               <FiPlus className="h-4 w-4" aria-hidden />
               {copy.labels.upload}
             </button>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
               <input
-                className={`${inputClass} max-w-md flex-1`}
+                className={`${inputClass} min-w-0 sm:max-w-md sm:flex-1`}
                 placeholder={copy.labels.videoUrlPlaceholder}
                 value={videoUrlDraft}
                 onChange={(e) => setVideoUrlDraft(e.target.value)}
@@ -723,7 +734,7 @@ export function ClasificadosServiciosApplication() {
               <button
                 type="button"
                 disabled={state.videos.length >= 2}
-                className="rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:opacity-50"
                 onClick={addVideoUrl}
               >
                 {copy.labels.addVideoUrl}
@@ -944,7 +955,7 @@ export function ClasificadosServiciosApplication() {
         {/* 9 · Social */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.social}</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
             {(
               [
                 ["socialInstagram", copy.labels.instagram, state.socialInstagram, socialInvalid.ig] as const,
@@ -974,34 +985,39 @@ export function ClasificadosServiciosApplication() {
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.hours}</h2>
           <div className="mt-4 space-y-3">
             {state.hours.map((row) => (
-              <div key={row.day} className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-100 bg-[#FFFCF7] px-3 py-2">
-                <span className="w-28 text-sm font-medium text-[#3D2C12]">{WEEK_DAY_LABELS[row.day][lang]}</span>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={row.closed}
-                    onChange={(e) => updateHour(row.day, { closed: e.target.checked })}
-                    className="h-4 w-4 rounded"
-                  />
-                  {copy.labels.closed}
-                </label>
-                {!row.closed ? (
-                  <>
+              <div
+                key={row.day}
+                className="flex flex-col gap-2 rounded-xl border border-neutral-100 bg-[#FFFCF7] px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:py-2"
+              >
+                <span className="shrink-0 text-sm font-semibold text-[#3D2C12] sm:w-28">{WEEK_DAY_LABELS[row.day][lang]}</span>
+                <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                  <label className="flex min-h-[40px] cursor-pointer items-center gap-2 text-sm">
                     <input
-                      type="time"
-                      className={`${inputClass} w-auto max-w-[140px]`}
-                      value={row.open}
-                      onChange={(e) => updateHour(row.day, { open: e.target.value })}
+                      type="checkbox"
+                      checked={row.closed}
+                      onChange={(e) => updateHour(row.day, { closed: e.target.checked })}
+                      className="h-4 w-4 rounded"
                     />
-                    <span className="text-neutral-500">—</span>
-                    <input
-                      type="time"
-                      className={`${inputClass} w-auto max-w-[140px]`}
-                      value={row.close}
-                      onChange={(e) => updateHour(row.day, { close: e.target.value })}
-                    />
-                  </>
-                ) : null}
+                    {copy.labels.closed}
+                  </label>
+                  {!row.closed ? (
+                    <>
+                      <input
+                        type="time"
+                        className={`${inputClass} w-[min(100%,9rem)] max-w-[140px] sm:w-auto`}
+                        value={row.open}
+                        onChange={(e) => updateHour(row.day, { open: e.target.value })}
+                      />
+                      <span className="text-neutral-500">—</span>
+                      <input
+                        type="time"
+                        className={`${inputClass} w-[min(100%,9rem)] max-w-[140px] sm:w-auto`}
+                        value={row.close}
+                        onChange={(e) => updateHour(row.day, { close: e.target.value })}
+                      />
+                    </>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
@@ -1176,11 +1192,11 @@ export function ClasificadosServiciosApplication() {
         </section>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/95 px-4 py-3 backdrop-blur sm:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
         <Link
           href={previewHref}
           onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
-          className="block w-full rounded-xl bg-[#3B66AD] py-3 text-center text-sm font-bold text-white shadow-sm"
+          className="block min-h-[48px] w-full rounded-xl bg-[#3B66AD] py-3 text-center text-sm font-bold leading-tight text-white shadow-sm active:opacity-95"
         >
           {copy.previewCta}
         </Link>

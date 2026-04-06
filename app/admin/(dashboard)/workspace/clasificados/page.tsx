@@ -66,6 +66,11 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         helperText="Moderación y listados de anuncios viven aquí. Tienda (productos impresos/self-serve) es otro workspace: no mezclar flujos."
       />
 
+      <p className="mb-4 max-w-3xl text-xs text-[#7A7164]">
+        Mapa de propiedad (qué es BD vs código):{" "}
+        <code className="rounded bg-white/80 px-1">app/admin/(dashboard)/workspace/clasificados/FIELD_OWNERSHIP.md</code>
+      </p>
+
       <div className="mb-6 flex flex-wrap gap-2">
         <Link
           href="/admin/workspace/clasificados/servicios"

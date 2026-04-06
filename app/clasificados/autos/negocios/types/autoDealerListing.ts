@@ -134,7 +134,9 @@ export type AutoDealerListing = {
   /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
   dealerBookingUrl?: string | null;
   dealerSocials?: DealerSocials;
+  /** @deprecated Not shown in UI; may remain in older local drafts. */
   dealerRating?: number;
+  /** @deprecated Not shown in UI; may remain in older local drafts. */
   dealerReviewCount?: number;
   relatedDealerListings?: RelatedDealerListing[];
 };

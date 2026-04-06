@@ -45,10 +45,10 @@ function variantSurface(v: ServiciosServiceVisualVariant | undefined): { gradien
 }
 
 function gridClass(count: number): string {
-  if (count === 1) return "grid grid-cols-1 gap-4 max-w-2xl mx-auto";
-  if (count === 2) return "grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-4xl mx-auto sm:max-w-5xl";
-  if (count === 3) return "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
-  return "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4";
+  if (count === 1) return "grid grid-cols-1 gap-4 max-w-2xl mx-auto w-full";
+  if (count === 2) return "grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-4xl mx-auto w-full sm:max-w-5xl";
+  if (count === 3) return "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 w-full";
+  return "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 w-full";
 }
 
 export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
@@ -58,7 +58,7 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
 
   return (
     <section
-      className="rounded-2xl border p-6 shadow-sm md:p-8"
+      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.services}</h2>

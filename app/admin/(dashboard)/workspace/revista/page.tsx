@@ -2,21 +2,61 @@ import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminCardBase, adminBtnPrimary, adminBtnSecondary, adminInputClass } from "../../../_components/adminTheme";
 import { getMagazineManifestForAdmin } from "../../../_lib/magazineAdminData";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import type { RevistaSpotlightPayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import { saveRevistaSpotlightAction } from "@/app/admin/revistaSpotlightActions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminWorkspaceRevistaPage() {
+export default async function AdminWorkspaceRevistaPage(props: { searchParams?: Promise<{ saved?: string }> }) {
+  const sp = props.searchParams ? await props.searchParams : {};
   const manifest = await getMagazineManifestForAdmin();
   const featured = manifest.featured;
+  const { payload: spotRaw } = await getSiteSectionPayload("revista_spotlight");
+  const spot = spotRaw as unknown as RevistaSpotlightPayload;
 
   return (
     <div>
       <AdminPageHeader
         title="Revista — números y portada"
-        subtitle="Aquí vive la operación de la revista pública: número destacado, archivo por año/mes, y formularios de carga cuando exista almacenamiento. Los datos actuales salen de `public/magazine/editions.json`."
+        subtitle="El número destacado y el archivo siguen viniendo de `public/magazine/editions.json`. Abajo puedes guardar notas editoriales para este workspace (no cambian el JSON todavía)."
         eyebrow="Workspace · Revista"
         helperText="Número en portada y archivo público. No es el catálogo de Tienda ni la cola de Clasificados."
       />
+
+      {sp.saved === "1" ? (
+        <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
+          Notas del workspace guardadas.
+        </div>
+      ) : null}
+
+      <form action={saveRevistaSpotlightAction} className={`${adminCardBase} mb-8 space-y-3 p-6`}>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Notas internas / archivo (texto libre)</h2>
+        <p className="text-xs text-[#7A7164]">
+          Para alinear al equipo antes de automatizar el manifiesto. No afecta `/magazine` hasta que una página pública lea estos campos.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Nota workspace ES</label>
+            <textarea name="note_es" className={adminInputClass} rows={3} defaultValue={spot.workspaceNoteEs ?? ""} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Nota workspace EN</label>
+            <textarea name="note_en" className={adminInputClass} rows={3} defaultValue={spot.workspaceNoteEn ?? ""} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Texto archivo (ES)</label>
+            <textarea name="archive_es" className={adminInputClass} rows={2} defaultValue={spot.archiveBlurbEs ?? ""} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Texto archivo (EN)</label>
+            <textarea name="archive_en" className={adminInputClass} rows={2} defaultValue={spot.archiveBlurbEn ?? ""} />
+          </div>
+        </div>
+        <button type="submit" className={adminBtnSecondary}>
+          Guardar notas
+        </button>
+      </form>
 
       <div className="mb-6 rounded-2xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-4 text-sm text-[#5C5346]">
         <p className="font-semibold text-[#1E1810]">Qué controla este workspace</p>

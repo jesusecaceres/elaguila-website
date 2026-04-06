@@ -1,0 +1,14 @@
+/** Stable keys for `site_section_content.section_key`. */
+export const SITE_SECTION_KEYS = [
+  "tienda_storefront",
+  "home_marketing",
+  "contacto",
+  "nosotros",
+  "revista_spotlight",
+] as const;
+
+export type SiteSectionKey = (typeof SITE_SECTION_KEYS)[number];
+
+export function isSiteSectionKey(s: string): s is SiteSectionKey {
+  return (SITE_SECTION_KEYS as readonly string[]).includes(s);
+}

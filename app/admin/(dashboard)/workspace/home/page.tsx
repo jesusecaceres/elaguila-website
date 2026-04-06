@@ -22,33 +22,23 @@ export default function AdminWorkspaceHomePage() {
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4`}>
         <p className="text-sm text-[#2C4A22]">
-          <strong>Tip para el equipo:</strong> edita aquí la narrativa de la portada. Para el registro de módulos que puede tocar varias rutas, abre{" "}
+          <strong>Contenido persistente:</strong>{" "}
+          <Link href="/admin/workspace/home/content" className="font-bold underline">
+            Abrir editor de la portada `/home`
+          </Link>{" "}
+          (textos bilingües e imagen). Para interruptores que afectan varias rutas, usa{" "}
           <Link href="/admin/site-settings" className="font-bold underline">
-            Ajustes globales del sitio (módulos)
+            Ajustes globales del sitio
           </Link>
           .
         </p>
       </div>
 
       <div className={`${adminCardBase} mb-8 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Hero y anuncios (esqueleto)</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Resumen</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Persistencia futura (Supabase o JSON). Estos campos enseñan qué controlará esta pantalla.
+          La home pública (`/home`) ya lee copy desde la base (`site_section_content`, clave `home_marketing`). Los módulos listados abajo siguen siendo referencia de alcance; la prioridad/visibilidad granular sigue en Ajustes globales cuando exista persistencia allí.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Titular hero (ES)</label>
-            <input className={adminInputClass} disabled placeholder="Texto principal de la portada" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Subtítulo / soporte</label>
-            <input className={adminInputClass} disabled placeholder="Línea de apoyo bajo el hero" />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-xs font-semibold text-[#5C5346]">Anuncio breve (franja superior)</label>
-            <input className={adminInputClass} disabled placeholder="Ej.: horario festivo, mantenimiento" />
-          </div>
-        </div>
       </div>
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#7A7164]">Módulos de la home (referencia)</h2>

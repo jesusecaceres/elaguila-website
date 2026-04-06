@@ -22,7 +22,7 @@ export function ServiciosActionPanelAreasMap({
 
   return (
     <div
-      className="rounded-2xl border p-5 shadow-sm"
+      className="rounded-2xl border p-4 shadow-sm sm:p-5"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h3 className="text-sm font-bold text-[color:var(--lx-text)]">{L.serviceAreas}</h3>

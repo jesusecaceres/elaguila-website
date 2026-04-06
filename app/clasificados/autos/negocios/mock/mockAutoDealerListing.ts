@@ -81,8 +81,6 @@ export const mockAutoDealerListing: AutoDealerListing = {
     tiktok: "https://tiktok.com/@example",
     website: "https://example.com/dealer",
   },
-  dealerRating: 4.8,
-  dealerReviewCount: 126,
   relatedDealerListings: [
     {
       id: "r1",

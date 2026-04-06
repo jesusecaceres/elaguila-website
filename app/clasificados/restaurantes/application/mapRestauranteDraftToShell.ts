@@ -220,12 +220,25 @@ function buildStacks(d: RestauranteListingDraft): ShellStackSection[] {
 
 function buildTrustLight(d: RestauranteListingDraft): RestaurantDetailShellData["trustLight"] {
   const parts: string[] = [];
+  if (nonEmpty(d.testimonialSnippet)) {
+    parts.push(`«${d.testimonialSnippet!.trim()}»`);
+  }
   if (d.externalRatingValue != null && d.externalReviewCount != null) {
-    parts.push(`${d.externalRatingValue.toFixed(1)}★ · ${d.externalReviewCount} reseñas externas`);
-  } else if (d.externalRatingValue != null) parts.push(`${d.externalRatingValue.toFixed(1)}★ (externo)`);
-  if (nonEmpty(d.testimonialSnippet)) parts.push(d.testimonialSnippet!.trim());
-  if (d.aiSummaryEnabled && parts.length === 0 && (nonEmpty(d.googleReviewUrl) || nonEmpty(d.yelpReviewUrl))) {
-    parts.push("Resumen de confianza basado en enlaces externos (Leonix no muestra reseñas nativas aquí).");
+    parts.push(
+      `Referencia opcional en Leonix: ${d.externalRatingValue.toFixed(1)}★ · ${d.externalReviewCount} menciones públicas (si aplica).`
+    );
+  } else if (d.externalRatingValue != null) {
+    parts.push(`Referencia opcional: ${d.externalRatingValue.toFixed(1)}★.`);
+  }
+  if (d.aiSummaryEnabled) {
+    parts.push(
+      "Resumen breve de reputación en Leonix (opcional): puede combinar tu testimonio y datos que indiques."
+    );
+  }
+  if (!parts.length && (nonEmpty(d.googleReviewUrl) || nonEmpty(d.yelpReviewUrl))) {
+    parts.push(
+      "En Leonix la confianza se construye en tu página: puedes añadir enlaces de respaldo opcionales si te sirven."
+    );
   }
   if (!parts.length) return undefined;
   const external =
@@ -233,7 +246,7 @@ function buildTrustLight(d: RestauranteListingDraft): RestaurantDetailShellData[
   return {
     summaryLine: parts.join(" "),
     externalTrustHref: external || undefined,
-    externalTrustLabel: external ? "Ver enlace externo" : undefined,
+    externalTrustLabel: external ? "Material de respaldo (opcional)" : undefined,
   };
 }
 

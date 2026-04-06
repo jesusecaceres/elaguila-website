@@ -67,7 +67,7 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-[#3B66AD]/20 px-5 py-6 shadow-md transition hover:border-[#3B66AD]/35 hover:shadow-lg"
+      className="relative overflow-hidden rounded-2xl border border-[#3B66AD]/20 px-4 py-5 shadow-md transition hover:border-[#3B66AD]/35 hover:shadow-lg sm:px-5 sm:py-6"
       style={{
         background: `linear-gradient(135deg, rgba(59,102,173,0.12) 0%, rgba(255,255,255,0.95) 55%, rgba(59,102,173,0.08) 100%)`,
       }}
@@ -77,11 +77,11 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
         aria-hidden
       />
       {promo.hrefSafe ? (
-        <Link href={promo.hrefSafe} className="relative flex gap-4 no-underline">
+        <Link href={promo.hrefSafe} className="relative flex min-w-0 gap-3 no-underline sm:gap-4">
           {mainBlock}
         </Link>
       ) : (
-        <div className="relative flex gap-4">{mainBlock}</div>
+        <div className="relative flex min-w-0 gap-3 sm:gap-4">{mainBlock}</div>
       )}
       {assetLine}
     </div>

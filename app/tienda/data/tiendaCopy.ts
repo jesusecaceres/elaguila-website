@@ -31,11 +31,14 @@ export const tiendaCopy = {
       },
     },
     featured: {
-      eyebrow: { es: "Listo para ordenar", en: "Ready to order" },
-      title: { es: "Más vendidos", en: "Best sellers" },
+      eyebrow: { es: "Catálogo", en: "Catalog" },
+      title: {
+        es: "Surtido promo y destacados",
+        en: "Featured sourced & promo picks",
+      },
       description: {
-        es: "Productos con rutas de pedido claras: constructor de tarjetas, subida de archivos para impresión, y referencias de precio en la revisión del pedido.",
-        en: "Products with clear ordering paths: a card builder, file upload for print jobs, and reference pricing on order review.",
+        es: "Surtido especial desde el catálogo admin de Leonix — cada tarjeta muestra imagen y notas honestas de precio.",
+        en: "Sourced or specialty picks from the Leonix admin catalog — every card shows imagery and honest pricing notes.",
       },
     },
     howItWorks: {

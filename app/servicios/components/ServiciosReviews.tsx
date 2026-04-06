@@ -21,16 +21,16 @@ export function ServiciosReviews({ profile, lang }: { profile: ServiciosProfileR
 
   return (
     <section
-      className="rounded-2xl border p-6 shadow-sm md:p-8"
+      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.reviews}</h2>
 
-      <ul className="mt-5 space-y-4">
+      <ul className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
         {reviews.map((r) => (
           <li
             key={r.id}
-            className="flex gap-4 rounded-xl border border-black/[0.05] bg-[color:var(--lx-section)]/80 p-4"
+            className="flex gap-3 rounded-xl border border-black/[0.05] bg-[color:var(--lx-section)]/80 p-3 sm:gap-4 sm:p-4"
           >
             {r.avatarUrl ? (
               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-black/[0.08]">

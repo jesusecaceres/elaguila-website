@@ -9,6 +9,7 @@ import type {
 
 export type TaxonomyOption<T extends string = string> = { key: T; labelEs: string };
 
+/** Controlled business types — keys stable for drafts; labels clarified for QA. */
 export const RESTAURANTE_BUSINESS_TYPES: TaxonomyOption<RestauranteBusinessTypeKey>[] = [
   { key: "sit_down", labelEs: "Restaurante de mesa" },
   { key: "fast_casual", labelEs: "Fast casual" },
@@ -19,21 +20,59 @@ export const RESTAURANTE_BUSINESS_TYPES: TaxonomyOption<RestauranteBusinessTypeK
   { key: "ghost_kitchen", labelEs: "Cocina oculta / delivery" },
   { key: "catering_only", labelEs: "Solo catering" },
   { key: "personal_chef", labelEs: "Chef personal" },
-  { key: "pop_up", labelEs: "Pop-up" },
+  { key: "pop_up", labelEs: "Pop-up / temporal" },
+  { key: "home_based_food", labelEs: "Negocio desde casa / comida en casa" },
+  { key: "street_vendor", labelEs: "Puesto / stand / street food" },
   { key: "other", labelEs: "Otro" },
 ];
 
+/**
+ * Primary / secondary / additional cuisines share this single catalog.
+ * Keys are stable strings; unknown legacy keys still render via `labelForCuisine` fallback.
+ */
 export const RESTAURANTE_CUISINES: TaxonomyOption<RestauranteCuisineKey>[] = [
-  { key: "mexican", labelEs: "Mexicana" },
-  { key: "italian", labelEs: "Italiana" },
   { key: "american", labelEs: "Americana" },
-  { key: "mediterranean", labelEs: "Mediterránea" },
-  { key: "asian", labelEs: "Asiática" },
-  { key: "seafood", labelEs: "Mariscos" },
+  { key: "argentinian", labelEs: "Argentina" },
+  { key: "asian", labelEs: "Asiática (general)" },
   { key: "bbq", labelEs: "BBQ / parrilla" },
-  { key: "vegetarian", labelEs: "Vegetariana" },
+  { key: "brazilian", labelEs: "Brasileña" },
+  { key: "breakfast_brunch", labelEs: "Desayuno / brunch" },
+  { key: "burgers", labelEs: "Hamburguesas" },
+  { key: "cafe_food", labelEs: "Cafetería" },
+  { key: "cambodian", labelEs: "Camboyana" },
+  { key: "chinese", labelEs: "China" },
+  { key: "colombian", labelEs: "Colombiana" },
+  { key: "cuban", labelEs: "Cubana" },
+  { key: "dessert", labelEs: "Postres / repostería" },
+  { key: "filipino", labelEs: "Filipina" },
+  { key: "french", labelEs: "Francesa" },
   { key: "fusion", labelEs: "Fusión" },
-  { key: "dessert", labelEs: "Postres" },
+  { key: "greek", labelEs: "Griega" },
+  { key: "halal", labelEs: "Halal" },
+  { key: "honduran", labelEs: "Hondureña" },
+  { key: "hot_dogs", labelEs: "Hot dogs / snacks" },
+  { key: "indian", labelEs: "India" },
+  { key: "italian", labelEs: "Italiana" },
+  { key: "japanese", labelEs: "Japonesa (general)" },
+  { key: "korean", labelEs: "Coreana" },
+  { key: "latin_mixed", labelEs: "Latina (varias)" },
+  { key: "mediterranean", labelEs: "Mediterránea" },
+  { key: "mexican", labelEs: "Mexicana" },
+  { key: "middle_eastern", labelEs: "Medio Oriente / oriente medio" },
+  { key: "nicaraguan", labelEs: "Nicaragüense" },
+  { key: "peruvian", labelEs: "Peruana" },
+  { key: "pizza", labelEs: "Pizza" },
+  { key: "salvadoran", labelEs: "Salvadoreña" },
+  { key: "seafood", labelEs: "Mariscos" },
+  { key: "soul_southern", labelEs: "Soul / sur de EE. UU." },
+  { key: "spanish", labelEs: "Española" },
+  { key: "sushi", labelEs: "Sushi / japonesa sushi" },
+  { key: "tex_mex", labelEs: "Tex-Mex" },
+  { key: "thai", labelEs: "Tailandesa" },
+  { key: "vegan", labelEs: "Vegana" },
+  { key: "vegetarian", labelEs: "Vegetariana" },
+  { key: "venezuelan", labelEs: "Venezolana" },
+  { key: "vietnamese", labelEs: "Vietnamita" },
   { key: "other", labelEs: "Otra" },
 ];
 
@@ -124,3 +163,22 @@ export function labelForHighlight(key: string): string {
 export function labelForServiceMode(key: RestauranteServiceMode): string {
   return RESTAURANTE_SERVICE_MODES.find((x) => x.key === key)?.labelEs ?? key;
 }
+
+/** Section D / G — subtle examples only (not submitted as defaults). */
+export const RESTAURANTE_CONTACT_PLACEHOLDERS: Record<string, string> = {
+  websiteUrl: "https://tusitio.com",
+  phoneNumber: "(408) 555-0142",
+  email: "nombre@negocio.com",
+  whatsAppNumber: "14085550142",
+  instagramUrl: "https://instagram.com/tu_negocio",
+  facebookUrl: "https://facebook.com/tu_negocio",
+  tiktokUrl: "https://tiktok.com/@tu_negocio",
+  youtubeUrl: "https://youtube.com/@tu_negocio",
+  reservationUrl: "https://tusitio.com/reservas",
+  orderUrl: "https://tusitio.com/pedido",
+  menuUrl: "https://tusitio.com/menu",
+  verUbicacionUrl: "https://maps.google.com/?q=...",
+  videoUrl: "https://youtube.com/watch?v=…",
+  googleReviewUrl: "https://maps.google.com/...",
+  yelpReviewUrl: "https://yelp.com/biz/...",
+};

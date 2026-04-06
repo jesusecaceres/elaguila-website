@@ -557,24 +557,6 @@ export function AutosNegociosApplication() {
                   onChange={(e) => setListingPatch({ dealerAddress: e.target.value || undefined })}
                 />
               </div>
-              <div>
-                <label className={LABEL}>{t.app.dealer.rating}</label>
-                <input
-                  className={INPUT}
-                  inputMode="decimal"
-                  value={listing.dealerRating ?? ""}
-                  onChange={(e) => setListingPatch({ dealerRating: parseOptFloat(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{t.app.dealer.reviews}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.dealerReviewCount ?? ""}
-                  onChange={(e) => setListingPatch({ dealerReviewCount: parseOptInt(e.target.value) })}
-                />
-              </div>
             </div>
 
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.dealer.socialHeading}</p>

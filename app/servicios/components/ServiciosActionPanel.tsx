@@ -26,9 +26,9 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
   return (
-    <div className="flex flex-col gap-5 lg:sticky lg:top-5 lg:self-start">
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
       <div
-        className="rounded-2xl border p-6 shadow-md"
+        className="rounded-2xl border p-4 shadow-md sm:p-6"
         style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadow }}
       >
         {featured ? (
@@ -83,13 +83,13 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             social.tiktok ||
             social.linkedin ||
             social.whatsapp) ? (
-            <div className={`flex flex-wrap gap-2 ${phone || website ? "mt-4" : ""}`}>
+            <div className={`flex flex-wrap gap-2 sm:gap-2.5 ${phone || website ? "mt-4" : ""}`}>
               {social.instagram ? (
                 <a
                   href={social.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   aria-label="Instagram"
                 >
                   <FaInstagram className="h-4 w-4" aria-hidden />
@@ -100,7 +100,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   href={social.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   aria-label="Facebook"
                 >
                   <FaFacebook className="h-4 w-4" aria-hidden />
@@ -111,7 +111,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   href={social.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   aria-label="YouTube"
                 >
                   <FaYoutube className="h-4 w-4" aria-hidden />
@@ -122,7 +122,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   href={social.tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   aria-label="TikTok"
                 >
                   <FaTiktok className="h-4 w-4" aria-hidden />
@@ -133,7 +133,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   href={social.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   aria-label="LinkedIn"
                 >
                   <FaLinkedin className="h-4 w-4" aria-hidden />
@@ -144,7 +144,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
                   href={social.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#25D366] shadow-sm transition hover:border-[#25D366]/45"
+                  className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#25D366] shadow-sm transition hover:border-[#25D366]/45 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   aria-label="WhatsApp"
                 >
                   <FaWhatsapp className="h-5 w-5" aria-hidden />
@@ -156,7 +156,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
           {primaryCta ? (
             <button
               type="button"
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97]"
+              className="mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]"
               style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
             >
               <FiZap className="h-5 w-5" aria-hidden />
@@ -166,12 +166,12 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
 
           {phone || profile.contact.messageEnabled === true ? (
             <div
-              className={`grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-2" : "grid-cols-1"} ${primaryCta ? "mt-3" : "mt-5"}`}
+              className={`grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} ${primaryCta ? "mt-3" : "mt-5"}`}
             >
               {phone && telHref ? (
                 <a
                   href={telHref}
-                  className="flex items-center justify-center rounded-xl border border-black/[0.1] bg-white py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
+                  className="flex min-h-[44px] items-center justify-center rounded-xl border border-black/[0.1] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
                 >
                   <FiPhone className="mr-2 h-4 w-4 text-[#3B66AD]" aria-hidden />
                   {L.call}
@@ -180,7 +180,7 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
               {profile.contact.messageEnabled ? (
                 <button
                   type="button"
-                  className="flex items-center justify-center rounded-xl border border-black/[0.1] bg-white py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
+                  className="flex min-h-[44px] items-center justify-center rounded-xl border border-black/[0.1] bg-white px-3 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[#3B66AD]/35"
                 >
                   <FiMessageCircle className="mr-2 h-4 w-4 text-[#3B66AD]" aria-hidden />
                   {L.message}
