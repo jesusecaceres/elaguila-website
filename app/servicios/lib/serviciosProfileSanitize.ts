@@ -9,6 +9,7 @@ import type {
   ServiciosServiceCard,
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
+import { isAllowedServiciosImageUrl } from "./serviciosMediaUrl";
 
 const BADGE_KINDS = new Set<ServiciosHeroBadgeKind>([
   "verified",
@@ -128,12 +129,7 @@ export function filterServices(services: ServiciosServiceCard[] | undefined): Se
     const imageUrl = trimText(s.imageUrl);
     const imageAlt = trimText(s.imageAlt) || title;
     if (!title || !imageUrl) continue;
-    try {
-      const u = new URL(imageUrl);
-      if (u.protocol !== "http:" && u.protocol !== "https:") continue;
-    } catch {
-      continue;
-    }
+    if (!isAllowedServiciosImageUrl(imageUrl)) continue;
     out.push({
       id: s.id,
       title,
@@ -153,12 +149,7 @@ export function filterGallery(items: ServiciosGalleryImage[] | undefined): Servi
     const url = trimText(g.url);
     const alt = trimText(g.alt) || "Gallery image";
     if (!url) continue;
-    try {
-      const u = new URL(url);
-      if (u.protocol !== "http:" && u.protocol !== "https:") continue;
-    } catch {
-      continue;
-    }
+    if (!isAllowedServiciosImageUrl(url)) continue;
     out.push({ id: g.id, url, alt });
   }
   return out;

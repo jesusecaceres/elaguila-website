@@ -1,46 +1,26 @@
 import type { Metadata } from "next";
-import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
-import { getServiciosWireProfileFromSample } from "@/app/servicios/data/demoServiciosBusinessProfile";
-import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
-import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
+import { Suspense } from "react";
+import { ClasificadosServiciosPreviewClient } from "./ClasificadosServiciosPreviewClient";
 
-/**
- * Clasificados-facing **output preview** for Servicios (premium business showcase).
- * Uses the same shell as `/servicios/perfil/[slug]`: draft sample → wire profile → `resolveServiciosProfile` → `ServiciosProfileView`.
- * Application form wiring comes in a later phase.
- */
-
-type PageProps = {
-  searchParams?: Promise<{ lang?: string }>;
+export const metadata: Metadata = {
+  title: "Vista previa · Servicios · Leonix Clasificados",
+  description: "Vista previa del perfil de negocio (borrador de la aplicación o ejemplo).",
+  alternates: {
+    canonical: "/clasificados/publicar/servicios/preview",
+  },
+  openGraph: {
+    title: "Vista previa · Servicios · Leonix",
+    description: "Vista previa del perfil de negocio en Servicios.",
+    url: "/clasificados/publicar/servicios/preview",
+    siteName: "LEONIX",
+    type: "website",
+  },
 };
 
-export async function generateMetadata(props: PageProps): Promise<Metadata> {
-  const sp = (await props.searchParams) ?? {};
-  const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
-  const wire = getServiciosWireProfileFromSample("expert", lang);
-  const profile = resolveServiciosProfile(wire);
-  const title = `${profile.identity.businessName} · Vista previa · Leonix Servicios`;
-  return {
-    title,
-    description:
-      profile.about?.text?.slice(0, 155) ??
-      "Vista previa del perfil de negocio en Leonix Servicios (Clasificados).",
-    alternates: {
-      canonical: "/clasificados/publicar/servicios/preview",
-    },
-    openGraph: {
-      title,
-      type: "website",
-      url: "/clasificados/publicar/servicios/preview",
-    },
-  };
-}
-
-export default async function ClasificadosServiciosPreviewPage(props: PageProps) {
-  const sp = (await props.searchParams) ?? {};
-  const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
-  const wire = getServiciosWireProfileFromSample("expert", lang);
-  const profile = resolveServiciosProfile(wire);
-
-  return <ServiciosProfileView profile={profile} lang={lang} />;
+export default function ClasificadosServiciosPreviewPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />}>
+      <ClasificadosServiciosPreviewClient />
+    </Suspense>
+  );
 }

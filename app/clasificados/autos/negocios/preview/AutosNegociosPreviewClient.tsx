@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
-import { AUTOS_NEGOCIOS_DRAFT_KEY, loadAutosNegociosDraftResolved } from "../lib/autosNegociosDraftStorage";
+import { loadAutosNegociosDraftResolved } from "../lib/autosNegociosDraftStorage";
+import {
+  migrateLegacyAutosNegociosDraftJsonToNamespace,
+  resolveAutosNegociosDraftNamespace,
+  storageEventAffectsAutosNegociosDraft,
+} from "../lib/autosNegociosDraftNamespace";
 import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { normalizeLoadedListing } from "../lib/autoDealerDraftDefaults";
@@ -37,7 +42,9 @@ async function resolvePreviewState(): Promise<{
     };
   }
 
-  const d = await loadAutosNegociosDraftResolved();
+  const namespace = await resolveAutosNegociosDraftNamespace();
+  migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
+  const d = await loadAutosNegociosDraftResolved(namespace);
   const normalized = normalizeLoadedListing(d?.listing);
   if (isMeaningfulAutoDealerDraft(normalized)) {
     return { mode: "draft", listing: normalized };
@@ -93,7 +100,7 @@ export function AutosNegociosPreviewClient() {
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (e.key === AUTOS_NEGOCIOS_DRAFT_KEY || e.key === null) void refresh();
+      if (storageEventAffectsAutosNegociosDraft(e.key)) void refresh();
     }
     function onFocus() {
       void refresh();

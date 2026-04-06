@@ -37,6 +37,25 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
   const websiteHref = safeExternalWebsiteHref(contactIn.websiteUrl);
   const websiteLabel = trimText(contactIn.websiteLabel);
 
+  const rawSocial = contactIn.socialLinks;
+  let socialLinks: ServiciosProfileResolved["contact"]["socialLinks"];
+  if (rawSocial && typeof rawSocial === "object") {
+    const out: NonNullable<typeof socialLinks> = {};
+    const ig = safeExternalWebsiteHref(rawSocial.instagramUrl);
+    if (ig) out.instagram = ig;
+    const fb = safeExternalWebsiteHref(rawSocial.facebookUrl);
+    if (fb) out.facebook = fb;
+    const yt = safeExternalWebsiteHref(rawSocial.youtubeUrl);
+    if (yt) out.youtube = yt;
+    const tk = safeExternalWebsiteHref(rawSocial.tiktokUrl);
+    if (tk) out.tiktok = tk;
+    const li = safeExternalWebsiteHref(rawSocial.linkedinUrl);
+    if (li) out.linkedin = li;
+    const wa = safeExternalWebsiteHref(rawSocial.whatsappUrl);
+    if (wa) out.whatsapp = wa;
+    if (Object.keys(out).length > 0) socialLinks = out;
+  }
+
   const areasBlock = input.serviceAreas;
   const mapImageUrl = normalizeMapImageUrl(areasBlock?.mapImageUrl);
   const areaItems = filterServiceAreas(areasBlock?.items);
@@ -84,6 +103,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
       primaryCtaLabel: trimText(contactIn.primaryCtaLabel) || undefined,
       isFeatured: contactIn.isFeatured === true,
       featuredLabel: trimText(contactIn.featuredLabel) || undefined,
+      socialLinks,
     },
     quickFacts: filterQuickFacts(input.quickFacts),
     about: sanitizeAbout(input.about),

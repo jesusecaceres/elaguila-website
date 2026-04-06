@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
+import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { SV } from "./serviciosDesignTokens";
 
 export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
@@ -14,13 +15,22 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.gallery}</h2>
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <div
+        className={`mt-6 grid grid-cols-2 gap-3 md:gap-4 ${items.length <= 2 ? "md:grid-cols-2 md:max-w-2xl md:mx-auto" : "md:grid-cols-4"}`}
+      >
         {items.map((g) => (
           <div
             key={g.id}
             className="relative aspect-[5/4] overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03]"
           >
-            <Image src={g.url} alt={g.alt} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
+            <Image
+              src={g.url}
+              alt={g.alt}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 25vw"
+              unoptimized={serviciosImageUnoptimized(g.url)}
+            />
           </div>
         ))}
       </div>

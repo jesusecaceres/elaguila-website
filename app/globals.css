@@ -78,3 +78,14 @@ body {
   background: var(--lx-gold);
   color: var(--lx-text);
 }
+
+/*
+ * Autos Negocios preview: desktop uses a sidebar that spans title+gallery rows.
+ * On narrow viewports that grid placement overlaps the title band; reset row span < lg.
+ */
+@media (max-width: 1023px) {
+  .autos-negocios-preview-dealer-aside {
+    grid-row-start: auto !important;
+    grid-row-end: auto !important;
+  }
+}

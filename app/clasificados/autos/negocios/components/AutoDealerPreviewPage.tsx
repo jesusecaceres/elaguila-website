@@ -171,7 +171,7 @@ export function AutoDealerPreviewPage({
           ) : null}
 
           <aside
-            className="flex min-w-0 flex-col gap-0 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:gap-6 lg:self-start"
+            className="autos-negocios-preview-dealer-aside flex min-w-0 flex-col gap-0 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:gap-6 lg:self-start"
             style={{
               gridRowStart: leftRowCount > 0 ? 1 : undefined,
               gridRowEnd: leftRowCount > 0 ? `span ${leftRowCount}` : undefined,

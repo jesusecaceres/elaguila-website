@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
+import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { meaningfulReviews } from "../lib/serviciosProfileSanitize";
 import { hasReviewsSectionResolved } from "../lib/serviciosProfilePresence";
 import { ServiciosStarRating } from "./ServiciosStarRating";
@@ -43,7 +44,14 @@ export function ServiciosReviews({ profile, lang }: { profile: ServiciosProfileR
           >
             {r.avatarUrl ? (
               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-black/[0.08]">
-                <Image src={r.avatarUrl} alt="" fill className="object-cover" sizes="44px" />
+                <Image
+                  src={r.avatarUrl}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="44px"
+                  unoptimized={serviciosImageUnoptimized(r.avatarUrl)}
+                />
               </div>
             ) : (
               <div

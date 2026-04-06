@@ -101,6 +101,16 @@ export type ServiciosHeroBlock = {
   locationSummary?: string;
 };
 
+/** Optional social URLs (wire) — sanitized in resolver */
+export type ServiciosContactSocialLinks = {
+  instagramUrl?: string;
+  facebookUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
+  linkedinUrl?: string;
+  whatsappUrl?: string;
+};
+
 /** Contact & primary actions (sticky panel) */
 export type ServiciosContactBlock = {
   phone?: string;
@@ -111,6 +121,7 @@ export type ServiciosContactBlock = {
   primaryCtaLabel?: string;
   isFeatured?: boolean;
   featuredLabel?: string;
+  socialLinks?: ServiciosContactSocialLinks;
 };
 
 export type ServiciosAboutBlock = {
@@ -168,6 +179,15 @@ export type ServiciosProfileResolved = {
     primaryCtaLabel?: string;
     isFeatured: boolean;
     featuredLabel?: string;
+    /** Sanitized external URLs only */
+    socialLinks?: {
+      instagram?: string;
+      facebook?: string;
+      youtube?: string;
+      tiktok?: string;
+      linkedin?: string;
+      whatsapp?: string;
+    };
   };
   quickFacts: ServiciosQuickFact[];
   about?: ServiciosAboutBlock;

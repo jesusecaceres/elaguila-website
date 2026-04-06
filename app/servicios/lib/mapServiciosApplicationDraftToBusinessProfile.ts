@@ -93,6 +93,24 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
     if (fl) contact.featuredLabel = fl;
   }
 
+  const c = draft.contact;
+  const socialLinks: NonNullable<ServiciosContactBlock["socialLinks"]> = {};
+  const sIg = trim(c?.socialInstagramUrl);
+  if (sIg) socialLinks.instagramUrl = sIg;
+  const sFb = trim(c?.socialFacebookUrl);
+  if (sFb) socialLinks.facebookUrl = sFb;
+  const sYt = trim(c?.socialYoutubeUrl);
+  if (sYt) socialLinks.youtubeUrl = sYt;
+  const sTk = trim(c?.socialTiktokUrl);
+  if (sTk) socialLinks.tiktokUrl = sTk;
+  const sLi = trim(c?.socialLinkedinUrl);
+  if (sLi) socialLinks.linkedinUrl = sLi;
+  const sWa = trim(c?.socialWhatsappUrl);
+  if (sWa) socialLinks.whatsappUrl = sWa;
+  if (Object.keys(socialLinks).length > 0) {
+    contact.socialLinks = socialLinks;
+  }
+
   const quickFacts = mapQuickFacts(draft.quickFacts);
   const about = mapAbout(draft.about);
   const services = mapServices(draft.services);

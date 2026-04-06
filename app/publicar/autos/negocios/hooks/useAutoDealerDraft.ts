@@ -8,6 +8,12 @@ import {
   saveAutosNegociosDraftResolved,
   type AutosNegociosDraftV1,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
+import {
+  autosNegociosDraftNamespaceFromUserId,
+  migrateLegacyAutosNegociosDraftJsonToNamespace,
+  resolveAutosNegociosDraftNamespace,
+} from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildVehicleTitle } from "../lib/autoDealerTitle";
 import {
   createEmptyListing,
@@ -27,23 +33,60 @@ export function useAutoDealerDraft() {
   const overrideRef = useRef(vehicleTitleOverride);
   overrideRef.current = vehicleTitleOverride;
 
+  const namespaceRef = useRef<string | null>(null);
+
+  const hydrateFromNamespace = useCallback(async (namespace: string) => {
+    migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
+    const d = await loadAutosNegociosDraftResolved(namespace);
+    if (d) {
+      setVehicleTitleOverride(d.vehicleTitleOverride);
+      setListing(normalizeLoadedListing(d.listing));
+    } else {
+      setVehicleTitleOverride(false);
+      setListing(createEmptyListing());
+    }
+  }, []);
+
   const persist = useCallback(async (next: AutoDealerListing, override: boolean) => {
+    const ns = namespaceRef.current;
+    if (!ns) return;
     const normalized = normalizeLoadedListing(next);
     const payload: AutosNegociosDraftV1 = { v: 1, vehicleTitleOverride: override, listing: normalized };
-    await saveAutosNegociosDraftResolved(payload);
+    await saveAutosNegociosDraftResolved(ns, payload);
   }, []);
 
   useEffect(() => {
-    const run = async () => {
-      const d = await loadAutosNegociosDraftResolved();
-      if (d) {
-        setVehicleTitleOverride(d.vehicleTitleOverride);
-        setListing(normalizeLoadedListing(d.listing));
-      }
-      setHydrated(true);
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    const bootstrap = async () => {
+      const ns = await resolveAutosNegociosDraftNamespace();
+      if (cancelled) return;
+      namespaceRef.current = ns;
+      await hydrateFromNamespace(ns);
+      if (!cancelled) setHydrated(true);
     };
-    void run();
-  }, []);
+
+    void bootstrap();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "INITIAL_SESSION") return;
+      const nextNs = session?.user?.id
+        ? autosNegociosDraftNamespaceFromUserId(session.user.id)
+        : autosNegociosDraftNamespaceFromUserId(null);
+      if (namespaceRef.current === nextNs) return;
+      namespaceRef.current = nextNs;
+      migrateLegacyAutosNegociosDraftJsonToNamespace(nextNs);
+      await hydrateFromNamespace(nextNs);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [hydrateFromNamespace]);
 
   const setListingPatch = useCallback(
     (patch: Partial<AutoDealerListing>) => {
@@ -112,11 +155,14 @@ export function useAutoDealerDraft() {
   );
 
   const resetDraft = useCallback(() => {
+    const ns = namespaceRef.current;
     const empty = createEmptyListing();
     overrideRef.current = false;
     setVehicleTitleOverride(false);
     setListing(empty);
-    clearAutosNegociosDraft();
+    if (ns) {
+      clearAutosNegociosDraft(ns);
+    }
   }, []);
 
   return {

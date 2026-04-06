@@ -1,5 +1,5 @@
 import { FiClock, FiGlobe, FiMapPin, FiMessageCircle, FiPhone, FiZap } from "react-icons/fi";
-import { FaStar } from "react-icons/fa";
+import { FaFacebook, FaInstagram, FaLinkedin, FaStar, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
@@ -20,7 +20,8 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
   const websiteLabel = profile.contact.websiteLabel?.trim() || L.visitWebsite;
   const hours = profile.contact.hours;
   const location = profile.hero.locationSummary?.trim();
-  const primaryCta = profile.contact.primaryCtaLabel?.trim() || L.requestQuote;
+  const primaryCta = profile.contact.primaryCtaLabel?.trim();
+  const social = profile.contact.socialLinks;
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
@@ -75,18 +76,97 @@ export function ServiciosActionPanel({ profile, lang }: { profile: ServiciosProf
             </a>
           ) : null}
 
-          <button
-            type="button"
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97]"
-            style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
-          >
-            <FiZap className="h-5 w-5" aria-hidden />
-            {primaryCta}
-          </button>
+          {social &&
+          (social.instagram ||
+            social.facebook ||
+            social.youtube ||
+            social.tiktok ||
+            social.linkedin ||
+            social.whatsapp) ? (
+            <div className={`flex flex-wrap gap-2 ${phone || website ? "mt-4" : ""}`}>
+              {social.instagram ? (
+                <a
+                  href={social.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  aria-label="Instagram"
+                >
+                  <FaInstagram className="h-4 w-4" aria-hidden />
+                </a>
+              ) : null}
+              {social.facebook ? (
+                <a
+                  href={social.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  aria-label="Facebook"
+                >
+                  <FaFacebook className="h-4 w-4" aria-hidden />
+                </a>
+              ) : null}
+              {social.youtube ? (
+                <a
+                  href={social.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  aria-label="YouTube"
+                >
+                  <FaYoutube className="h-4 w-4" aria-hidden />
+                </a>
+              ) : null}
+              {social.tiktok ? (
+                <a
+                  href={social.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  aria-label="TikTok"
+                >
+                  <FaTiktok className="h-4 w-4" aria-hidden />
+                </a>
+              ) : null}
+              {social.linkedin ? (
+                <a
+                  href={social.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#3B66AD] shadow-sm transition hover:border-[#3B66AD]/35"
+                  aria-label="LinkedIn"
+                >
+                  <FaLinkedin className="h-4 w-4" aria-hidden />
+                </a>
+              ) : null}
+              {social.whatsapp ? (
+                <a
+                  href={social.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[0.08] bg-white text-[#25D366] shadow-sm transition hover:border-[#25D366]/45"
+                  aria-label="WhatsApp"
+                >
+                  <FaWhatsapp className="h-5 w-5" aria-hidden />
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
+          {primaryCta ? (
+            <button
+              type="button"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97]"
+              style={{ backgroundColor: SV.blue, boxShadow: "0 12px 32px rgba(59,102,173,0.28)" }}
+            >
+              <FiZap className="h-5 w-5" aria-hidden />
+              {primaryCta}
+            </button>
+          ) : null}
 
           {phone || profile.contact.messageEnabled === true ? (
             <div
-              className={`mt-3 grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-2" : "grid-cols-1"}`}
+              className={`grid gap-2 ${phone && profile.contact.messageEnabled === true ? "grid-cols-2" : "grid-cols-1"} ${primaryCta ? "mt-3" : "mt-5"}`}
             >
               {phone && telHref ? (
                 <a

@@ -3,6 +3,7 @@ import { FiMapPin } from "react-icons/fi";
 import { FaCheckCircle } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
+import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
 
@@ -28,6 +29,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
             className="object-cover"
             sizes="(max-width: 1280px) 100vw, 1280px"
             priority
+            unoptimized={serviciosImageUnoptimized(hero.coverImageUrl)}
           />
         ) : (
           <div
@@ -57,6 +59,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                     fill
                     className="object-cover"
                     sizes="72px"
+                    unoptimized={serviciosImageUnoptimized(hero.logoUrl)}
                   />
                 </div>
               ) : (
@@ -65,7 +68,7 @@ export function ServiciosHero({ profile, lang }: { profile: ServiciosProfileReso
                   style={{ background: SV.blue }}
                   aria-hidden
                 >
-                  {identity.businessName.slice(0, 1)}
+                  {(identity.businessName.trim().charAt(0) || "?").toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">

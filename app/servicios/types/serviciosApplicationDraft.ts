@@ -52,6 +52,13 @@ export type ServiciosApplicationContactDraft = {
   primaryCtaLabel?: string;
   isFeatured?: boolean;
   featuredLabel?: string;
+  /** Raw advertiser URLs — mapped to wire `socialLinks` */
+  socialInstagramUrl?: string;
+  socialFacebookUrl?: string;
+  socialYoutubeUrl?: string;
+  socialTiktokUrl?: string;
+  socialLinkedinUrl?: string;
+  socialWhatsappUrl?: string;
 };
 
 export type ServiciosApplicationAboutDraft = {

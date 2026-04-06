@@ -4,6 +4,7 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { hasItems } from "../lib/serviciosProfilePrimitives";
 import { hasSidebarServiceAreasMapResolved } from "../lib/serviciosProfilePresence";
+import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { SV } from "./serviciosDesignTokens";
 
 /** Map + compact list under the action panel (requires sanitized map image URL). */
@@ -41,7 +42,14 @@ export function ServiciosActionPanelAreasMap({
         </ul>
       ) : null}
       <div className="relative mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-black/[0.06]">
-        <Image src={mapUrl!} alt="" fill className="object-cover" sizes="360px" />
+        <Image
+          src={mapUrl!}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="360px"
+          unoptimized={serviciosImageUnoptimized(mapUrl!)}
+        />
       </div>
     </div>
   );
