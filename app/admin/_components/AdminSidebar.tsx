@@ -5,17 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import newLogo from "../../../public/logo.png";
 
+/** Global operations only — website sections live under `/admin/workspace` (second-layer nav). */
 const NAV: Array<{ href: string; label: string; icon: string; badgeFrom?: "tienda" }> = [
-  { href: "/admin", label: "Dashboard", icon: "◆" },
-  { href: "/admin/tienda/orders", label: "Tienda Orders", icon: "🛒", badgeFrom: "tienda" },
-  { href: "/admin/tienda/catalog", label: "Tienda Catalog", icon: "📚" },
+  { href: "/admin", label: "Dashboard", icon: "◆", badgeFrom: "tienda" },
   { href: "/admin/usuarios", label: "Users", icon: "◎" },
-  { href: "/admin/clasificados", label: "Ads", icon: "📣" },
-  { href: "/admin/categories", label: "Categories", icon: "▤" },
-  { href: "/admin/magazine", label: "Magazine", icon: "📰" },
-  { href: "/admin/website-content", label: "Website Content", icon: "🌐" },
-  { href: "/admin/support", label: "Support", icon: "💬" },
   { href: "/admin/payments", label: "Payments", icon: "💳" },
+  { href: "/admin/support", label: "Support", icon: "💬" },
   { href: "/admin/team", label: "Team", icon: "👥" },
   { href: "/admin/activity-log", label: "Activity Log", icon: "📋" },
   { href: "/admin/settings", label: "Settings", icon: "⚙" },
@@ -36,7 +31,7 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
         </div>
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Leonix</p>
-          <p className="text-sm font-bold text-[#1E1810]">Operations</p>
+          <p className="text-sm font-bold text-[#1E1810]">Global admin</p>
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
@@ -70,6 +65,14 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
         <div className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3">
           <p className="text-xs font-semibold text-[#1E1810]">Leonix Admin</p>
           <p className="text-[11px] text-[#7A7164]">Signed in via cookie</p>
+          <div className="mt-2 space-y-1.5 text-[11px] font-semibold text-[#5C5346]">
+            <Link className="block text-[#6B5B2E] underline underline-offset-2" href="/admin/workspace">
+              Website sections (workspaces)
+            </Link>
+            <Link className="block text-[#6B5B2E] underline underline-offset-2" href="/admin/site-settings">
+              Site modules (global)
+            </Link>
+          </div>
           <Link className="mt-2 block text-center text-xs font-bold text-[#6B5B2E] underline" href="/">
             View site →
           </Link>

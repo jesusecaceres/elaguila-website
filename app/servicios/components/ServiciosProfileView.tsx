@@ -19,13 +19,16 @@ import { SV } from "./serviciosDesignTokens";
 export function ServiciosProfileView({
   profile,
   lang,
+  editBackHref,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** Clasificados draft preview — subtle return to the application */
+  editBackHref?: string;
 }) {
   return (
     <div className="min-h-screen pb-16" style={{ backgroundColor: SV.bg }}>
-      <ServiciosTopBar lang={lang} />
+      <ServiciosTopBar lang={lang} editBackHref={editBackHref} />
 
       <main className="mx-auto max-w-[1280px] px-4 pb-10 pt-6 md:px-6 md:pt-8">
         {hasHeroIdentityResolved(profile) ? <ServiciosHero profile={profile} lang={lang} /> : null}

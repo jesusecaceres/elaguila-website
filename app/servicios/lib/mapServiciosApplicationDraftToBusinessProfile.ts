@@ -4,6 +4,7 @@ import type {
   ServiciosBusinessProfile,
   ServiciosContactBlock,
   ServiciosGalleryImage,
+  ServiciosGalleryVideo,
   ServiciosHeroBadge,
   ServiciosHeroBlock,
   ServiciosIdentity,
@@ -115,6 +116,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const about = mapAbout(draft.about);
   const services = mapServices(draft.services);
   const gallery = mapGallery(draft.gallery);
+  const galleryVideos = mapGalleryVideos(draft.galleryVideos);
   const trust = mapTrust(draft.trust);
   const reviews = mapReviews(draft.reviews);
   const serviceAreas = mapServiceAreas(draft.serviceAreas);
@@ -130,6 +132,12 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (about) out.about = about;
   if (services.length) out.services = services;
   if (gallery.length) out.gallery = gallery;
+  const featuredIds =
+    Array.isArray(draft.featuredGalleryIds) && draft.featuredGalleryIds.length
+      ? draft.featuredGalleryIds.map((id) => trim(id)).filter(Boolean).slice(0, 4)
+      : [];
+  if (featuredIds.length) out.featuredGalleryIds = featuredIds;
+  if (galleryVideos.length) out.galleryVideos = galleryVideos;
   if (trust.length) out.trust = trust;
   if (reviews.length) out.reviews = reviews;
   if (serviceAreas) out.serviceAreas = serviceAreas;
@@ -179,15 +187,19 @@ function mapServices(raw: ServiciosApplicationDraft["services"]): ServiciosServi
   for (const s of raw) {
     if (!s || typeof s.id !== "string") continue;
     const title = trim(s.title);
+    if (!title) continue;
     const imageUrl = trim(s.imageUrl);
-    if (!title || !imageUrl) continue;
-    out.push({
+    const visualVariant = s.visualVariant;
+    if (!imageUrl && !visualVariant) continue;
+    const row: ServiciosServiceCard = {
       id: trim(s.id) || s.id,
       title,
       secondaryLine: trim(s.secondaryLine) || "",
-      imageUrl,
       imageAlt: trim(s.imageAlt) || title,
-    });
+    };
+    if (imageUrl) row.imageUrl = imageUrl;
+    if (visualVariant) row.visualVariant = visualVariant;
+    out.push(row);
   }
   return out;
 }
@@ -204,6 +216,23 @@ function mapGallery(raw: ServiciosApplicationDraft["gallery"]): ServiciosGallery
       url,
       alt: trim(g.alt) || "",
     });
+  }
+  return out;
+}
+
+function mapGalleryVideos(raw: ServiciosApplicationDraft["galleryVideos"]): ServiciosGalleryVideo[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ServiciosGalleryVideo[] = [];
+  for (const v of raw) {
+    if (!v || typeof v.id !== "string") continue;
+    const url = trim(v.url);
+    if (!url) continue;
+    out.push({
+      id: trim(v.id) || v.id,
+      url,
+      isPrimary: v.isPrimary === true,
+    });
+    if (out.length >= 2) break;
   }
   return out;
 }
@@ -237,7 +266,6 @@ function mapReviews(raw: ServiciosApplicationDraft["reviews"]): ServiciosReview[
       authorName,
       quote,
     };
-    if (typeof r.rating === "number" && !Number.isNaN(r.rating)) row.rating = r.rating;
     const av = trim(r.avatarUrl);
     if (av) row.avatarUrl = av;
     out.push(row);
@@ -275,8 +303,12 @@ function mapPromo(raw: ServiciosApplicationDraft["promo"]): ServiciosPromoOffer 
   const id = trim(raw.id) || "promo";
   const footnote = trim(raw.footnote);
   const href = trim(raw.href);
+  const assetImageUrl = trim(raw.assetImageUrl);
+  const assetPdfUrl = trim(raw.assetPdfUrl);
   const promo: ServiciosPromoOffer = { id, headline };
   if (footnote) promo.footnote = footnote;
   if (href) promo.href = href;
+  if (assetImageUrl) promo.assetImageUrl = assetImageUrl;
+  if (assetPdfUrl) promo.assetPdfUrl = assetPdfUrl;
   return promo;
 }

@@ -52,6 +52,8 @@ export type AutosNegociosCopy = {
     dropzone: string;
     addPhotos: string;
     pickerHint: string;
+    /** Explains multi-select in picker; some mobile OSes only return one file per action. */
+    pickerMultiNote: string;
     singleUrl: string;
     batchUrls: string;
     addUrls: string;
@@ -272,6 +274,8 @@ const ES: AutosNegociosCopy = {
     dropzone: "Arrastra imágenes aquí o usa el botón",
     addPhotos: "Añadir fotos",
     pickerHint: "Se abrirá el selector de archivos del sistema.",
+    pickerMultiNote:
+      "En escritorio puedes elegir varias fotos a la vez. En algunos teléfonos el selector solo permite una por vez: vuelve a pulsar «Añadir fotos» para más.",
     singleUrl: "Enlace de una imagen",
     batchUrls: "Varias URLs (una por línea)",
     addUrls: "Agregar URLs",
@@ -560,6 +564,8 @@ const EN: AutosNegociosCopy = {
     dropzone: "Drag images here or use the button",
     addPhotos: "Add photos",
     pickerHint: "Your system file picker will open.",
+    pickerMultiNote:
+      "On desktop you can pick several photos at once. Some phones only allow one file per pick—tap “Add photos” again to add more.",
     singleUrl: "Image URL",
     batchUrls: "Multiple URLs (one per line)",
     addUrls: "Add URLs",

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiImage, FiPlus, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiChevronUp, FiImage, FiPlus, FiStar, FiTrash2, FiUpload } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import {
   BUSINESS_TYPE_PRESETS,
@@ -30,6 +30,7 @@ import {
   isProbablyValidWebUrl,
   newGalleryId,
   newTestimonialId,
+  newVideoId,
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
 
@@ -85,9 +86,13 @@ export function ClasificadosServiciosApplication() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const offerImageInputRef = useRef<HTMLInputElement>(null);
+  const offerPdfInputRef = useRef<HTMLInputElement>(null);
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
   const [coverUrlDraft, setCoverUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
+  const [videoUrlDraft, setVideoUrlDraft] = useState("");
 
   useEffect(() => {
     const s = readClasificadosServiciosApplicationFromBrowser();
@@ -147,17 +152,82 @@ export function ClasificadosServiciosApplication() {
       const url = await readFileAsDataUrl(f);
       additions.push({ id: newGalleryId(), url, source: "file" as const });
     }
-    setState((prev) => ({ ...prev, gallery: [...prev.gallery, ...additions].slice(0, 24) }));
+    setState((prev) => {
+      const gallery = [...prev.gallery, ...additions].slice(0, 24);
+      const gIds = new Set(gallery.map((g) => g.id));
+      let fg = prev.featuredGalleryIds.filter((id) => gIds.has(id));
+      for (const a of additions) {
+        if (fg.length >= 4) break;
+        if (!fg.includes(a.id)) fg.push(a.id);
+      }
+      return { ...prev, gallery, featuredGalleryIds: fg.slice(0, 4) };
+    });
   };
 
   const addGalleryUrl = () => {
     const raw = galleryUrlDraft.trim();
     if (!raw || !isProbablyValidWebUrl(raw)) return;
+    const id = newGalleryId();
+    setState((prev) => {
+      const gallery = [...prev.gallery, { id, url: normalizeHttpUrl(raw), source: "url" as const }].slice(0, 24);
+      const gIds = new Set(gallery.map((g) => g.id));
+      let fg = prev.featuredGalleryIds.filter((x) => gIds.has(x));
+      if (fg.length < 4 && !fg.includes(id)) fg.push(id);
+      return { ...prev, gallery, featuredGalleryIds: fg.slice(0, 4) };
+    });
+    setGalleryUrlDraft("");
+  };
+
+  const toggleFeaturedGallery = (id: string) => {
+    setState((prev) => {
+      let fg = [...prev.featuredGalleryIds];
+      if (fg.includes(id)) fg = fg.filter((x) => x !== id);
+      else {
+        if (fg.length >= 4) fg = fg.slice(1);
+        fg.push(id);
+      }
+      return { ...prev, featuredGalleryIds: fg.slice(0, 4) };
+    });
+  };
+
+  const moveGalleryItem = (index: number, delta: number) => {
+    setState((prev) => {
+      const next = index + delta;
+      if (next < 0 || next >= prev.gallery.length) return prev;
+      const gallery = [...prev.gallery];
+      const [m] = gallery.splice(index, 1);
+      gallery.splice(next, 0, m!);
+      return { ...prev, gallery };
+    });
+  };
+
+  const addVideoFile = async (file: File | null) => {
+    if (!file?.type.startsWith("video/")) return;
+    const url = await readFileAsDataUrl(file);
     setState((prev) => ({
       ...prev,
-      gallery: [...prev.gallery, { id: newGalleryId(), url: normalizeHttpUrl(raw), source: "url" as const }].slice(0, 24),
+      videos: [...prev.videos, { id: newVideoId(), url, source: "file" as const }].slice(0, 2),
     }));
-    setGalleryUrlDraft("");
+  };
+
+  const addVideoUrl = () => {
+    const raw = videoUrlDraft.trim();
+    if (!raw || !isProbablyValidWebUrl(raw)) return;
+    setState((prev) => ({
+      ...prev,
+      videos: [
+        ...prev.videos,
+        { id: newVideoId(), url: normalizeHttpUrl(raw), source: "url" as const },
+      ].slice(0, 2),
+    }));
+    setVideoUrlDraft("");
+  };
+
+  const setPrimaryVideoId = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      videos: prev.videos.map((v) => ({ ...v, isPrimary: v.id === id })),
+    }));
   };
 
   const applyUrlFallback = (field: "logoUrl" | "coverUrl", draft: string, clearDraft: () => void) => {
@@ -192,9 +262,19 @@ export function ClasificadosServiciosApplication() {
             >
               {copy.langToggle}
             </Link>
+            <button
+              type="button"
+              onClick={() => {
+                writeClasificadosServiciosApplicationToBrowser(state);
+                window.location.assign(`/clasificados/publicar/servicios/preview?lang=${lang}`);
+              }}
+              className="rounded-lg bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#2f5699]"
+            >
+              {copy.previewCta}
+            </button>
             <Link
               href={previewHref}
-              className="rounded-lg border border-[#3B66AD]/40 bg-[#3B66AD]/8 px-3 py-1.5 text-sm font-semibold text-[#2a4d7c]"
+              className="rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-1.5 text-xs font-semibold text-[#5D4A25]/90 hover:bg-[#FFF6E7]"
             >
               {copy.linkPreviewShell}
             </Link>
@@ -326,6 +406,11 @@ export function ClasificadosServiciosApplication() {
             {copy.sections.media}
           </h2>
           <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.dropzone}</p>
+          <ul className="mt-3 list-inside list-disc space-y-1 text-xs leading-relaxed text-[#6b5c42]">
+            <li>{copy.labels.galleryFeaturedHint}</li>
+            <li>{copy.labels.galleryMoreHint}</li>
+            <li>{copy.labels.videosHint}</li>
+          </ul>
 
           <div className="mt-6 grid gap-8 lg:grid-cols-2">
             <div>
@@ -423,7 +508,7 @@ export function ClasificadosServiciosApplication() {
               onClick={() => galleryInputRef.current?.click()}
               className="mt-2 inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45"
             >
-              <FiPlus className="h-4 w-4" aria-hidden />
+              <FiUpload className="h-4 w-4" aria-hidden />
               {copy.labels.upload}
             </button>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -440,22 +525,133 @@ export function ClasificadosServiciosApplication() {
             {state.gallery.length === 0 ? (
               <p className="mt-4 text-sm text-[#8a7a62]">{copy.labels.emptyGallery}</p>
             ) : (
-              <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {state.gallery.map((g) => (
-                  <li key={g.id} className="relative aspect-[4/3] overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
-                    <Image src={g.url} alt="" fill className="object-cover" unoptimized />
-                    <button
-                      type="button"
-                      className="absolute right-1 top-1 rounded-full bg-black/55 p-1.5 text-white hover:bg-black/75"
-                      onClick={() => setState((s) => ({ ...s, gallery: s.gallery.filter((x) => x.id !== g.id) }))}
-                      aria-label={copy.labels.remove}
+              <ul className="mt-4 space-y-3">
+                {state.gallery.map((g, gi) => {
+                  const isFeatured = state.featuredGalleryIds.includes(g.id);
+                  return (
+                    <li
+                      key={g.id}
+                      className="flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200/90 bg-[#FFFCF7] p-2 sm:flex-nowrap"
                     >
-                      <FiTrash2 className="h-3.5 w-3.5" />
-                    </button>
+                      <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 sm:h-24 sm:w-32">
+                        <Image src={g.url} alt="" fill className="object-cover" unoptimized />
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 sm:justify-end">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
+                          onClick={() => moveGalleryItem(gi, -1)}
+                          aria-label={copy.labels.moveUp}
+                        >
+                          <FiChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-[#D8C79A]/80 p-1.5 text-[#3D2C12] hover:bg-white"
+                          onClick={() => moveGalleryItem(gi, 1)}
+                          aria-label={copy.labels.moveDown}
+                        >
+                          <FiChevronDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleFeaturedGallery(g.id)}
+                          className={[
+                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                            isFeatured
+                              ? "border-[#B28A2F] bg-[#FFF3D6] text-[#6b4f0a]"
+                              : "border-neutral-200 bg-white text-[#5D4A25]",
+                          ].join(" ")}
+                        >
+                          <FiStar className={isFeatured ? "h-3.5 w-3.5 text-[#B28A2F]" : "h-3.5 w-3.5"} aria-hidden />
+                          {copy.labels.featuredToggle}
+                          {isFeatured ? ` (${state.featuredGalleryIds.indexOf(g.id) + 1}/4)` : ""}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg p-1.5 text-red-700 hover:bg-red-50"
+                          onClick={() =>
+                            setState((s) => ({
+                              ...s,
+                              gallery: s.gallery.filter((x) => x.id !== g.id),
+                              featuredGalleryIds: s.featuredGalleryIds.filter((fid) => fid !== g.id),
+                            }))
+                          }
+                          aria-label={copy.labels.remove}
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-10 border-t border-[#D8C79A]/40 pt-8">
+            <p className={labelClass}>{lang === "en" ? "Videos" : "Videos"}</p>
+            <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.videosHint}</p>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => void addVideoFile(e.target.files?.[0] ?? null)}
+            />
+            <button
+              type="button"
+              onClick={() => videoInputRef.current?.click()}
+              disabled={state.videos.length >= 2}
+              className="mt-2 inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiPlus className="h-4 w-4" aria-hidden />
+              {copy.labels.upload}
+            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <input
+                className={`${inputClass} max-w-md flex-1`}
+                placeholder={copy.labels.videoUrlPlaceholder}
+                value={videoUrlDraft}
+                onChange={(e) => setVideoUrlDraft(e.target.value)}
+              />
+              <button
+                type="button"
+                disabled={state.videos.length >= 2}
+                className="rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                onClick={addVideoUrl}
+              >
+                {copy.labels.addVideoUrl}
+              </button>
+            </div>
+            {state.videos.length > 0 ? (
+              <ul className="mt-4 space-y-3">
+                {state.videos.map((v) => (
+                  <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2">
+                    <span className="min-w-0 truncate text-xs font-medium text-[#3D2C12]">{v.url.slice(0, 72)}{v.url.length > 72 ? "…" : ""}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-[#5D4A25]">
+                        <input
+                          type="radio"
+                          name="primary-video"
+                          checked={v.isPrimary === true}
+                          onChange={() => setPrimaryVideoId(v.id)}
+                          className="h-3.5 w-3.5 text-[#3B66AD]"
+                        />
+                        {copy.labels.videoPrimary}
+                      </label>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-700 hover:underline"
+                        onClick={() => setState((s) => ({ ...s, videos: s.videos.filter((x) => x.id !== v.id) }))}
+                      >
+                        {copy.labels.remove}
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
-            )}
+            ) : null}
           </div>
         </section>
 
@@ -463,6 +659,7 @@ export function ClasificadosServiciosApplication() {
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.about}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/80">{copy.labels.aboutHelper}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.aboutServicesGapNote}</p>
           <label className={`mt-4 block ${labelClass}`}>{copy.labels.about}</label>
           <textarea
             className={inputClass}
@@ -494,6 +691,13 @@ export function ClasificadosServiciosApplication() {
                   </Chip>
                 ))}
               </div>
+              <label className={`mt-6 block ${labelClass}`}>{copy.labels.customService}</label>
+              <input
+                className={inputClass}
+                placeholder={copy.labels.customServicePlaceholder}
+                value={state.customServiceLabel}
+                onChange={(e) => setState((s) => ({ ...s, customServiceLabel: e.target.value }))}
+              />
             </section>
 
             <section className={sectionCard}>
@@ -541,7 +745,19 @@ export function ClasificadosServiciosApplication() {
         {/* 8 · Contact */}
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.contact}</h2>
-          <p className="mt-2 text-sm font-medium text-[#5D4A25]">{lang === "es" ? "Métodos de contacto visibles" : "Visible contact methods"}</p>
+          <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+              checked={state.leonixVerifiedInterest}
+              onChange={(e) => setState((s) => ({ ...s, leonixVerifiedInterest: e.target.checked }))}
+            />
+            <span>
+              <span className="font-semibold text-[#3D2C12]">{copy.labels.leonixVerified}</span>
+              <span className="mt-0.5 block text-xs font-normal text-[#5D4A25]/85">{copy.labels.leonixVerifiedHint}</span>
+            </span>
+          </label>
+          <p className="mt-6 text-sm font-medium text-[#5D4A25]">{lang === "es" ? "Métodos de contacto visibles" : "Visible contact methods"}</p>
           <div className="mt-3 flex flex-wrap gap-3">
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
@@ -767,6 +983,66 @@ export function ClasificadosServiciosApplication() {
             onChange={(e) => setState((s) => ({ ...s, offerLink: e.target.value }))}
           />
           {offerLinkInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerImage}</label>
+          <input
+            ref={offerImageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (!f?.type.startsWith("image/")) return;
+              void readFileAsDataUrl(f).then((url) => setState((s) => ({ ...s, offerImageUrl: url })));
+            }}
+          />
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
+              onClick={() => offerImageInputRef.current?.click()}
+            >
+              {copy.labels.upload}
+            </button>
+            {state.offerImageUrl ? (
+              <button
+                type="button"
+                className="text-xs font-semibold text-red-700 hover:underline"
+                onClick={() => setState((s) => ({ ...s, offerImageUrl: "" }))}
+              >
+                {copy.labels.remove}
+              </button>
+            ) : null}
+          </div>
+          <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerPdf}</label>
+          <input
+            ref={offerPdfInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (!f || f.type !== "application/pdf") return;
+              void readFileAsDataUrl(f).then((url) => setState((s) => ({ ...s, offerPdfUrl: url })));
+            }}
+          />
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
+              onClick={() => offerPdfInputRef.current?.click()}
+            >
+              {copy.labels.upload}
+            </button>
+            {state.offerPdfUrl ? (
+              <button
+                type="button"
+                className="text-xs font-semibold text-red-700 hover:underline"
+                onClick={() => setState((s) => ({ ...s, offerPdfUrl: "" }))}
+              >
+                {copy.labels.remove}
+              </button>
+            ) : null}
+          </div>
         </section>
       </main>
     </div>

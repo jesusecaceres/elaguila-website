@@ -18,7 +18,7 @@ export function AdminQuickActionsRail() {
             Go →
           </button>
         </form>
-        <form className="mt-3 space-y-2" action="/admin/clasificados" method="get">
+        <form className="mt-3 space-y-2" action="/admin/workspace/clasificados" method="get">
           <label className="sr-only" htmlFor="rail-ad-q">
             Ad search
           </label>
@@ -55,7 +55,11 @@ export function AdminQuickActionsRail() {
         >
           🪞 Switch to user dashboard (replica)
         </button>
-        <Link href="/admin/clasificados" className={`${adminBtnSecondary} w-full justify-center text-xs`}>
+        <Link
+          href="/admin/workspace/clasificados"
+          className={`${adminBtnSecondary} w-full justify-center text-xs`}
+          title="Workspace Clasificados — cola de anuncios"
+        >
           ✓ Quick verify ad (open Ads)
         </Link>
         <Link href="/admin/team" className={`${adminBtnDark} w-full justify-center text-xs`}>

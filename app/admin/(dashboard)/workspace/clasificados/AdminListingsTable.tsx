@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteListingAction } from "../../actions";
+import { deleteListingAction } from "../../../actions";
 import { useState } from "react";
-import { adminTableWrap } from "../../_components/adminTheme";
+import { adminTableWrap } from "../../../_components/adminTheme";
 import { listingPlanFromDetailPairs } from "@/app/dashboard/lib/dashboardListingMeta";
 import {
   computeEnVentaVisibilityRenewalVm,
@@ -46,7 +46,6 @@ function formatAdminDateTime(ms: number): string {
   }
 }
 
-/** Compact En Venta plan / boost / manual-renew state for support (admin). */
 function enVentaVisibilityAdminLine(row: Row): string {
   if ((row.category ?? "").toLowerCase() !== "en-venta") return "—";
   const plan = listingPlanFromDetailPairs(row.detail_pairs);

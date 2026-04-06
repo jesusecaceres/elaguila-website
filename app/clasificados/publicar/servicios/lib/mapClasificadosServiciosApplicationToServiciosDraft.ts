@@ -3,10 +3,8 @@ import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfi
 import type { ServiciosTrustItem } from "@/app/servicios/types/serviciosBusinessProfile";
 import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
+import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { normalizeHttpUrl } from "./socialAndUrlHelpers";
-
-const DEFAULT_SERVICE_IMAGE =
-  "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&h=400&fit=crop";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -69,23 +67,15 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       label: lang === "en" ? "Bilingual" : "Bilingüe",
     });
   }
-
-  const imgPool: string[] = [];
-  for (const g of state.gallery) {
-    const u = g.url.trim();
-    if (u && !imgPool.includes(u)) imgPool.push(u);
+  if (state.leonixVerifiedInterest === true) {
+    heroBadges.unshift({
+      kind: "verified",
+      label: lang === "en" ? "Verified on Leonix" : "Verificado Leonix",
+    });
   }
-  if (state.coverUrl.trim() && !imgPool.includes(state.coverUrl.trim())) imgPool.push(state.coverUrl.trim());
-  if (state.logoUrl.trim() && !imgPool.includes(state.logoUrl.trim())) imgPool.push(state.logoUrl.trim());
-
-  const serviceImageFor = (index: number): string => {
-    if (imgPool.length === 0) return DEFAULT_SERVICE_IMAGE;
-    return imgPool[index % imgPool.length]!;
-  };
 
   const services: NonNullable<ServiciosApplicationDraft["services"]> = [];
   if (preset) {
-    let si = 0;
     for (const id of state.selectedServiceIds) {
       const chip = preset.suggestedServices.find((c) => c.id === id);
       if (!chip) continue;
@@ -94,11 +84,21 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
         id: `svc_${id}`,
         title,
         secondaryLine: "",
-        imageUrl: serviceImageFor(si),
         imageAlt: title,
+        visualVariant: inferServiceVisualVariant(chip.id, chip.es, chip.en),
       });
-      si += 1;
     }
+  }
+  const customLabel = state.customServiceLabel.trim();
+  if (customLabel) {
+    const title = customLabel.slice(0, 96);
+    services.push({
+      id: "svc_custom",
+      title,
+      secondaryLine: "",
+      imageAlt: title,
+      visualVariant: "default",
+    });
   }
 
   const quickFacts: NonNullable<ServiciosApplicationDraft["quickFacts"]> = [];
@@ -205,6 +205,19 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     alt: lang === "en" ? "Gallery image" : "Imagen de galería",
   }));
 
+  const galleryIdSet = new Set(gallery.map((g) => g.id));
+  const featuredGalleryIds = state.featuredGalleryIds.filter((id) => galleryIdSet.has(id)).slice(0, 4);
+
+  const galleryVideosRaw = state.videos
+    .map((v) => ({
+      id: v.id,
+      url: v.url.trim(),
+      isPrimary: v.isPrimary === true,
+    }))
+    .filter((v) => v.url.length > 0)
+    .slice(0, 2);
+  galleryVideosRaw.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+
   const offerTitle = state.offerTitle.trim();
 
   const about: ServiciosApplicationDraft["about"] | undefined =
@@ -233,6 +246,8 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (about && (about.aboutText || about.specialtiesLine)) draft.about = about;
   if (services.length) draft.services = services;
   if (gallery.length) draft.gallery = gallery;
+  if (featuredGalleryIds.length) draft.featuredGalleryIds = featuredGalleryIds;
+  if (galleryVideosRaw.length) draft.galleryVideos = galleryVideosRaw;
   if (trust.length) draft.trust = trust;
   if (reviews.length) draft.reviews = reviews;
   if (serviceAreas && (serviceAreas.items?.length || serviceAreas.mapImageUrl)) draft.serviceAreas = serviceAreas;
@@ -242,6 +257,8 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       headline: offerTitle,
       footnote: state.offerDetails.trim() || undefined,
       href: state.offerLink.trim() ? normalizeHttpUrl(state.offerLink.trim()) : undefined,
+      assetImageUrl: state.offerImageUrl.trim() || undefined,
+      assetPdfUrl: state.offerPdfUrl.trim() || undefined,
     };
   }
 

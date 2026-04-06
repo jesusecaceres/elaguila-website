@@ -4,7 +4,6 @@ import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { meaningfulReviews } from "../lib/serviciosProfileSanitize";
 import { hasReviewsSectionResolved } from "../lib/serviciosProfilePresence";
-import { ServiciosStarRating } from "./ServiciosStarRating";
 import { SV } from "./serviciosDesignTokens";
 
 function initials(name: string) {
@@ -19,8 +18,6 @@ export function ServiciosReviews({ profile, lang }: { profile: ServiciosProfileR
   if (!hasReviewsSectionResolved(profile)) return null;
 
   const reviews = meaningfulReviews(profile.reviews);
-  const rating = profile.hero.rating;
-  const count = profile.hero.reviewCount;
 
   return (
     <section
@@ -28,13 +25,6 @@ export function ServiciosReviews({ profile, lang }: { profile: ServiciosProfileR
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.reviews}</h2>
-
-      {rating != null && count != null ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-black/[0.06] pb-5">
-          <ServiciosStarRating value={rating} />
-          <span className="text-sm font-semibold">{L.reviewsSummary(rating, count)}</span>
-        </div>
-      ) : null}
 
       <ul className="mt-5 space-y-4">
         {reviews.map((r) => (
@@ -63,11 +53,6 @@ export function ServiciosReviews({ profile, lang }: { profile: ServiciosProfileR
             )}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[color:var(--lx-text)]">{r.authorName}</p>
-              {r.rating != null ? (
-                <div className="mt-1">
-                  <ServiciosStarRating value={r.rating} size="sm" />
-                </div>
-              ) : null}
               <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">&ldquo;{r.quote}&rdquo;</p>
             </div>
           </li>

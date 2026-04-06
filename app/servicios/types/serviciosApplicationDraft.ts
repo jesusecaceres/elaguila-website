@@ -8,6 +8,7 @@
 import type {
   ServiciosHeroBadgeKind,
   ServiciosQuickFactKind,
+  ServiciosServiceVisualVariant,
   ServiciosTrustItem,
 } from "./serviciosBusinessProfile";
 
@@ -70,14 +71,21 @@ export type ServiciosApplicationServiceDraft = {
   id: string;
   title: string;
   secondaryLine?: string;
-  imageUrl: string;
+  imageUrl?: string;
   imageAlt?: string;
+  visualVariant?: ServiciosServiceVisualVariant;
 };
 
 export type ServiciosApplicationGalleryItemDraft = {
   id: string;
   url: string;
   alt?: string;
+};
+
+export type ServiciosApplicationGalleryVideoDraft = {
+  id: string;
+  url: string;
+  isPrimary?: boolean;
 };
 
 export type ServiciosApplicationTrustRowDraft = {
@@ -110,6 +118,8 @@ export type ServiciosApplicationPromoDraft = {
   headline: string;
   footnote?: string;
   href?: string;
+  assetImageUrl?: string;
+  assetPdfUrl?: string;
 };
 
 export type ServiciosApplicationQuickFactDraft = {
@@ -128,6 +138,8 @@ export type ServiciosApplicationDraft = {
   about?: ServiciosApplicationAboutDraft;
   services?: ServiciosApplicationServiceDraft[];
   gallery?: ServiciosApplicationGalleryItemDraft[];
+  featuredGalleryIds?: string[];
+  galleryVideos?: ServiciosApplicationGalleryVideoDraft[];
   trust?: ServiciosApplicationTrustRowDraft[];
   reviews?: ServiciosApplicationReviewDraft[];
   serviceAreas?: ServiciosApplicationServiceAreasDraft;

@@ -57,5 +57,11 @@ export function ClasificadosServiciosPreviewClient() {
     return <div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />;
   }
 
-  return <ServiciosProfileView profile={profile} lang={lang} />;
+  return (
+    <ServiciosProfileView
+      profile={profile}
+      lang={lang}
+      editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
+    />
+  );
 }

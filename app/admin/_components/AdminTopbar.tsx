@@ -31,7 +31,7 @@ export function AdminTopbar({
         onSubmit={(e) => {
           e.preventDefault();
           const s = q.trim();
-          if (s) router.push(`/admin/clasificados?q=${encodeURIComponent(s)}`);
+          if (s) router.push(`/admin/workspace/clasificados?q=${encodeURIComponent(s)}`);
         }}
       >
         <label htmlFor="admin-global-search" className="sr-only">
@@ -43,7 +43,8 @@ export function AdminTopbar({
             id="admin-global-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search anything…"
+            placeholder="Buscar en anuncios (título, ciudad, ID)…"
+            title="Abre el workspace Clasificados con el texto como filtro"
             className={`${adminInputClass} pl-10`}
           />
         </div>
@@ -73,7 +74,11 @@ export function AdminTopbar({
           LX
         </div>
         {showCreate ? (
-          <Link href="/admin/clasificados" className={adminBtnPrimary}>
+          <Link
+            href="/admin/workspace/clasificados"
+            className={adminBtnPrimary}
+            title="Ir a la cola de Clasificados (moderación y enlaces)"
+          >
             + Create
           </Link>
         ) : null}

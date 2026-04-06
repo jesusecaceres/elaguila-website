@@ -10,7 +10,19 @@ import {
   coerceBrNegocioCategoriaPropiedad,
   coerceBrNegocioSellerTipo,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import type { TipoPropiedadCodigo } from "./agenteResidencialTipoMeta";
+import {
+  normalizeResidencialTipoPropiedadCodigo,
+  type TipoPropiedadCodigo,
+} from "./agenteResidencialTipoMeta";
+import type { ComercialDestacadoId, TerrenoDestacadoId } from "./agenteComercialTerrenoMeta";
+import {
+  COMERCIAL_DESTACADOS_DEFS,
+  normalizeComercialTipoCodigo,
+  normalizeTerrenoTipoCodigo,
+  TERRENO_DESTACADOS_DEFS,
+  type ComercialTipoCodigo,
+  type TerrenoTipoCodigo,
+} from "./agenteComercialTerrenoMeta";
 
 export type { TipoPropiedadCodigo };
 
@@ -88,8 +100,26 @@ export type AgenteIndividualResidencialFormState = {
   estadoAnuncio: AgenteResidencialEstadoAnuncio;
 
   tipoPropiedadCodigo: TipoPropiedadCodigo;
+  /** @deprecated Solo migración; el UI residencial ya no usa texto libre de tipo. */
   tipoPropiedadOtro: string;
   subtipoPropiedad: string;
+
+  comercialTipoCodigo: ComercialTipoCodigo;
+  comercialSubtipoPropiedad: string;
+  comercialUso: string;
+  comercialOficinas: string;
+  comercialNiveles: string;
+  comercialZonificacion: string;
+  comercialAccesoCarga: boolean;
+
+  terrenoTipoCodigo: TerrenoTipoCodigo;
+  terrenoSubtipoPropiedad: string;
+  terrenoUsoZonificacion: string;
+  terrenoAcceso: string;
+  terrenoServicios: string;
+  terrenoTopografia: string;
+  terrenoListoConstruir: boolean;
+  terrenoCercado: boolean;
 
   listadoUrl: string;
   listadoArchivoDataUrl: string;
@@ -121,6 +151,8 @@ export type AgenteIndividualResidencialFormState = {
   condicionPropiedad: AgenteResidencialCondicionPropiedad;
 
   destacados: Record<AgenteResidencialDestacadoId, boolean>;
+  destacadosComercial: Record<ComercialDestacadoId, boolean>;
+  destacadosTerreno: Record<TerrenoDestacadoId, boolean>;
 
   descripcionPrincipal: string;
   notasAdicionales: string;
@@ -335,12 +367,14 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
   if (typeof p.direccion === "string") out.direccion = p.direccion;
   if (typeof p.estadoAnuncio === "string") out.estadoAnuncio = mapEstadoLegacy(p.estadoAnuncio);
 
-  if (typeof p.tipoPropiedadCodigo === "string") out.tipoPropiedadCodigo = p.tipoPropiedadCodigo as TipoPropiedadCodigo;
+  if (typeof p.tipoPropiedadCodigo === "string") {
+    out.tipoPropiedadCodigo = normalizeResidencialTipoPropiedadCodigo(p.tipoPropiedadCodigo);
+  }
   if (typeof p.tipoPropiedadOtro === "string") out.tipoPropiedadOtro = p.tipoPropiedadOtro;
   if (typeof p.subtipoPropiedad === "string") out.subtipoPropiedad = p.subtipoPropiedad;
 
   if (typeof p.tipoPropiedad === "string" && trim(p.tipoPropiedad) && !out.tipoPropiedadCodigo) {
-    out.tipoPropiedadCodigo = "otro";
+    out.tipoPropiedadCodigo = "casa";
     out.tipoPropiedadOtro = trim(p.tipoPropiedad);
   }
 
@@ -426,12 +460,34 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
     out.destacados = { ...out.destacados, ...next } as Record<AgenteResidencialDestacadoId, boolean>;
   }
 
+  const destCom = p.destacadosComercial as Record<string, boolean> | undefined;
+  if (destCom && typeof destCom === "object") {
+    const next: Partial<Record<ComercialDestacadoId, boolean>> = {};
+    for (const d of COMERCIAL_DESTACADOS_DEFS) {
+      if (typeof destCom[d.id] === "boolean") next[d.id] = destCom[d.id];
+    }
+    out.destacadosComercial = { ...out.destacadosComercial, ...next } as Record<ComercialDestacadoId, boolean>;
+  }
+
+  const destTer = p.destacadosTerreno as Record<string, boolean> | undefined;
+  if (destTer && typeof destTer === "object") {
+    const next: Partial<Record<TerrenoDestacadoId, boolean>> = {};
+    for (const d of TERRENO_DESTACADOS_DEFS) {
+      if (typeof destTer[d.id] === "boolean") next[d.id] = destTer[d.id];
+    }
+    out.destacadosTerreno = { ...out.destacadosTerreno, ...next } as Record<TerrenoDestacadoId, boolean>;
+  }
+
   return out;
 }
 
 export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndividualResidencialFormState {
   const destacados = {} as Record<AgenteResidencialDestacadoId, boolean>;
   for (const d of AGENTE_RES_DESTACADOS_DEFS) destacados[d.id] = false;
+  const destacadosComercial = {} as Record<ComercialDestacadoId, boolean>;
+  for (const d of COMERCIAL_DESTACADOS_DEFS) destacadosComercial[d.id] = false;
+  const destacadosTerreno = {} as Record<TerrenoDestacadoId, boolean>;
+  for (const d of TERRENO_DESTACADOS_DEFS) destacadosTerreno[d.id] = false;
 
   return {
     tipoPublicacionFijo: "venta_residencial",
@@ -449,6 +505,23 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     tipoPropiedadCodigo: "casa",
     tipoPropiedadOtro: "",
     subtipoPropiedad: "",
+
+    comercialTipoCodigo: "oficina",
+    comercialSubtipoPropiedad: "",
+    comercialUso: "",
+    comercialOficinas: "",
+    comercialNiveles: "",
+    comercialZonificacion: "",
+    comercialAccesoCarga: false,
+
+    terrenoTipoCodigo: "lote_residencial",
+    terrenoSubtipoPropiedad: "",
+    terrenoUsoZonificacion: "",
+    terrenoAcceso: "",
+    terrenoServicios: "",
+    terrenoTopografia: "",
+    terrenoListoConstruir: false,
+    terrenoCercado: false,
 
     listadoUrl: "",
     listadoArchivoDataUrl: "",
@@ -479,6 +552,8 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     condicionPropiedad: "buena",
 
     destacados,
+    destacadosComercial,
+    destacadosTerreno,
 
     descripcionPrincipal: "",
     notasAdicionales: "",
@@ -789,18 +864,32 @@ export function mergePartialAgenteIndividualResidencial(
         ? legacy.permitirEnviarMensaje
         : nested.permitirSolicitarInformacion ?? base.permitirSolicitarInformacion;
 
-  const tipoPropiedadCodigo =
-    flat.tipoPropiedadCodigo ??
-    nested.tipoPropiedadCodigo ??
-    (typeof legacy.tipoPropiedad === "string" && trim(legacy.tipoPropiedad)
-      ? ("otro" as TipoPropiedadCodigo)
-      : base.tipoPropiedadCodigo);
+  const rawResidencialTipo =
+    (flat.tipoPropiedadCodigo as TipoPropiedadCodigo | "otro" | undefined) ??
+    (nested.tipoPropiedadCodigo as TipoPropiedadCodigo | "otro" | undefined) ??
+    base.tipoPropiedadCodigo;
+  const tipoPropiedadCodigo = normalizeResidencialTipoPropiedadCodigo(rawResidencialTipo);
 
-  const tipoPropiedadOtro =
-    typeof flat.tipoPropiedadOtro === "string"
-      ? flat.tipoPropiedadOtro
-      : nested.tipoPropiedadOtro ??
-        (typeof legacy.tipoPropiedad === "string" && trim(legacy.tipoPropiedad) ? trim(legacy.tipoPropiedad) : base.tipoPropiedadOtro);
+  let subtipoPropiedad =
+    typeof flat.subtipoPropiedad === "string"
+      ? flat.subtipoPropiedad
+      : nested.subtipoPropiedad ?? base.subtipoPropiedad;
+  const freeTipoLegacy =
+    trim(String(flat.tipoPropiedadOtro ?? "")) ||
+    trim(String(nested.tipoPropiedadOtro ?? "")) ||
+    (typeof legacy.tipoPropiedad === "string" ? trim(legacy.tipoPropiedad) : "");
+  if (rawResidencialTipo === "otro" && freeTipoLegacy && !trim(subtipoPropiedad)) {
+    subtipoPropiedad = freeTipoLegacy;
+  }
+
+  const tipoPropiedadOtro = "";
+
+  const comercialTipoCodigo = normalizeComercialTipoCodigo(
+    flat.comercialTipoCodigo ?? nested.comercialTipoCodigo ?? base.comercialTipoCodigo,
+  );
+  const terrenoTipoCodigo = normalizeTerrenoTipoCodigo(
+    flat.terrenoTipoCodigo ?? nested.terrenoTipoCodigo ?? base.terrenoTipoCodigo,
+  );
 
   const fotosDataUrls = Array.isArray(flat.fotosDataUrls)
     ? flat.fotosDataUrls
@@ -857,7 +946,10 @@ export function mergePartialAgenteIndividualResidencial(
     listadoArchivoNombre,
     permitirSolicitarInformacion,
     tipoPropiedadCodigo,
+    subtipoPropiedad,
     tipoPropiedadOtro,
+    comercialTipoCodigo,
+    terrenoTipoCodigo,
     telefonoPrincipal,
     correoPrincipal,
     fotosDataUrls,
@@ -866,6 +958,16 @@ export function mergePartialAgenteIndividualResidencial(
       ...base.destacados,
       ...(nested.destacados ?? {}),
       ...(flat.destacados ?? {}),
+    },
+    destacadosComercial: {
+      ...base.destacadosComercial,
+      ...(nested.destacadosComercial ?? {}),
+      ...(flat.destacadosComercial ?? {}),
+    },
+    destacadosTerreno: {
+      ...base.destacadosTerreno,
+      ...(nested.destacadosTerreno ?? {}),
+      ...(flat.destacadosTerreno ?? {}),
     },
   };
 

@@ -4,6 +4,18 @@ import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndiv
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import {
+  COMERCIAL_SUBTIPO_POR_TIPO,
+  COMERCIAL_SUBVALUE_LABEL_EN,
+  COMERCIAL_TIPO_LABEL_EN,
+  COMERCIAL_TIPO_OPCIONES,
+  TERRENO_SUBTIPO_POR_TIPO,
+  TERRENO_SUBVALUE_LABEL_EN,
+  TERRENO_TIPO_LABEL_EN,
+  TERRENO_TIPO_OPCIONES,
+  type ComercialTipoCodigo,
+  type TerrenoTipoCodigo,
+} from "../schema/agenteComercialTerrenoMeta";
+import {
   SUBTIPO_POR_TIPO,
   SUBTIPO_SUBVALUE_LABEL_EN,
   TIPO_PROPIEDAD_LABEL_EN,
@@ -29,62 +41,130 @@ export function Step01TipoAnuncio({
   setState: React.Dispatch<React.SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
-  const codigo = state.tipoPropiedadCodigo;
-  const subtipos = SUBTIPO_POR_TIPO[codigo];
-  const showSubtipoDropdown = subtipos.length > 0 && codigo !== "otro";
+  const cat = state.categoriaPropiedad;
 
-  const tipoLabel = (value: TipoPropiedadCodigo) =>
+  const subIntro =
+    cat === "comercial" ? t.step01.subComercial : cat === "terreno_lote" ? t.step01.subTerreno : t.step01.subResidencial;
+
+  const ventaHint =
+    cat === "comercial"
+      ? t.step01.tipoPublicacionHintComercial
+      : cat === "terreno_lote"
+        ? t.step01.tipoPublicacionHintTerreno
+        : t.step01.tipoPublicacionHintResidencial;
+
+  const ventaLabel =
+    cat === "comercial"
+      ? t.step01.ventaComercial
+      : cat === "terreno_lote"
+        ? t.step01.ventaTerreno
+        : t.step01.ventaResidencial;
+
+  const residencialCodigo = state.tipoPropiedadCodigo;
+  const residencialSubtipos = SUBTIPO_POR_TIPO[residencialCodigo];
+  const showResidencialSubtipo = residencialSubtipos.length > 0;
+
+  const tipoResLabel = (value: TipoPropiedadCodigo) =>
     lang === "en" ? TIPO_PROPIEDAD_LABEL_EN[value] : TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === value)?.label ?? value;
 
-  const subtipoOptionLabel = (value: string, fallback: string) =>
+  const subtipoResOptionLabel = (value: string, fallback: string) =>
     lang === "en" ? SUBTIPO_SUBVALUE_LABEL_EN[value] ?? fallback : fallback;
+
+  const comercialSubtipos = COMERCIAL_SUBTIPO_POR_TIPO[state.comercialTipoCodigo];
+  const showComercialSubtipo = comercialSubtipos.length > 0;
+
+  const subtipoComercialOptionLabel = (value: string, fallback: string) =>
+    lang === "en" ? COMERCIAL_SUBVALUE_LABEL_EN[value] ?? fallback : fallback;
+
+  const terrenoCodigo = state.terrenoTipoCodigo;
+  const terrenoSubtipos = TERRENO_SUBTIPO_POR_TIPO[terrenoCodigo];
+  const showTerrenoSubtipo = terrenoSubtipos.length > 0;
+
+  const subtipoTerrenoOptionLabel = (value: string, fallback: string) =>
+    lang === "en" ? TERRENO_SUBVALUE_LABEL_EN[value] ?? fallback : fallback;
 
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{t.step01.title}</h2>
-      <p className={aiSubClass}>{t.step01.sub}</p>
+      <p className={aiSubClass}>{subIntro}</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <AiField label={t.step01.tipoPublicacion} hint={t.step01.tipoPublicacionHint}>
+        <AiField label={t.step01.tipoPublicacion} hint={ventaHint}>
           <div className="mt-1.5 flex items-center gap-2">
-            <input className={aiInputClass} readOnly value={t.step01.ventaResidencial} aria-readonly />
+            <input className={aiInputClass} readOnly value={ventaLabel} aria-readonly />
           </div>
-        </AiField>
-        <AiField label={t.step01.tipoPropiedad}>
-          <select
-            className={aiInputClass}
-            value={codigo}
-            onChange={(e) => {
-              const next = e.target.value as TipoPropiedadCodigo;
-              setState((s) => ({
-                ...s,
-                tipoPropiedadCodigo: next,
-                tipoPropiedadOtro: next === "otro" ? s.tipoPropiedadOtro : "",
-                subtipoPropiedad: next === "otro" ? "" : SUBTIPO_POR_TIPO[next].length ? "" : s.subtipoPropiedad,
-              }));
-            }}
-          >
-            {TIPO_PROPIEDAD_OPCIONES.map((o) => (
-              <option key={o.value} value={o.value}>
-                {tipoLabel(o.value)}
-              </option>
-            ))}
-          </select>
         </AiField>
 
-        {codigo === "otro" ? (
-          <div className="sm:col-span-2">
-            <AiField label={t.step01.especificaTipo} hint={t.step01.especificaTipoHint}>
-              <input
-                className={aiInputClass}
-                value={state.tipoPropiedadOtro}
-                onChange={(e) => setState((s) => ({ ...s, tipoPropiedadOtro: e.target.value }))}
-                autoComplete="off"
-              />
-            </AiField>
-          </div>
+        {cat === "residencial" ? (
+          <AiField label={t.step01.tipoPropiedad}>
+            <select
+              className={aiInputClass}
+              value={residencialCodigo}
+              onChange={(e) => {
+                const next = e.target.value as TipoPropiedadCodigo;
+                setState((s) => ({
+                  ...s,
+                  tipoPropiedadCodigo: next,
+                  tipoPropiedadOtro: "",
+                  subtipoPropiedad: "",
+                }));
+              }}
+            >
+              {TIPO_PROPIEDAD_OPCIONES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {tipoResLabel(o.value)}
+                </option>
+              ))}
+            </select>
+          </AiField>
         ) : null}
 
-        {showSubtipoDropdown ? (
+        {cat === "comercial" ? (
+          <AiField label={t.step01.tipoComercial}>
+            <select
+              className={aiInputClass}
+              value={state.comercialTipoCodigo}
+              onChange={(e) => {
+                const next = e.target.value as ComercialTipoCodigo;
+                setState((s) => ({
+                  ...s,
+                  comercialTipoCodigo: next,
+                  comercialSubtipoPropiedad: "",
+                }));
+              }}
+            >
+              {COMERCIAL_TIPO_OPCIONES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {lang === "en" ? COMERCIAL_TIPO_LABEL_EN[o.value] : o.label}
+                </option>
+              ))}
+            </select>
+          </AiField>
+        ) : null}
+
+        {cat === "terreno_lote" ? (
+          <AiField label={t.step01.tipoTerreno}>
+            <select
+              className={aiInputClass}
+              value={terrenoCodigo}
+              onChange={(e) => {
+                const next = e.target.value as TerrenoTipoCodigo;
+                setState((s) => ({
+                  ...s,
+                  terrenoTipoCodigo: next,
+                  terrenoSubtipoPropiedad: "",
+                }));
+              }}
+            >
+              {TERRENO_TIPO_OPCIONES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {lang === "en" ? TERRENO_TIPO_LABEL_EN[o.value] : o.label}
+                </option>
+              ))}
+            </select>
+          </AiField>
+        ) : null}
+
+        {cat === "residencial" && showResidencialSubtipo ? (
           <div className="sm:col-span-2">
             <AiField label={t.step01.subtipo} hint={t.step01.subtipoHint}>
               <select
@@ -92,23 +172,48 @@ export function Step01TipoAnuncio({
                 value={state.subtipoPropiedad}
                 onChange={(e) => setState((s) => ({ ...s, subtipoPropiedad: e.target.value }))}
               >
-                {subtipos.map((o) => (
+                {residencialSubtipos.map((o) => (
                   <option key={o.value || "none"} value={o.value}>
-                    {subtipoOptionLabel(o.value, o.label)}
+                    {subtipoResOptionLabel(o.value, o.label)}
                   </option>
                 ))}
               </select>
             </AiField>
           </div>
-        ) : codigo === "otro" ? (
+        ) : null}
+
+        {cat === "comercial" && showComercialSubtipo ? (
           <div className="sm:col-span-2">
-            <AiField label={t.step01.detalleAdicional} hint={t.step01.detalleAdicionalHint}>
-              <input
+            <AiField label={t.step01.subtipo} hint={t.step01.subtipoHint}>
+              <select
                 className={aiInputClass}
-                value={state.subtipoPropiedad}
-                onChange={(e) => setState((s) => ({ ...s, subtipoPropiedad: e.target.value }))}
-                autoComplete="off"
-              />
+                value={state.comercialSubtipoPropiedad}
+                onChange={(e) => setState((s) => ({ ...s, comercialSubtipoPropiedad: e.target.value }))}
+              >
+                {comercialSubtipos.map((o) => (
+                  <option key={o.value || "none"} value={o.value}>
+                    {subtipoComercialOptionLabel(o.value, o.label)}
+                  </option>
+                ))}
+              </select>
+            </AiField>
+          </div>
+        ) : null}
+
+        {cat === "terreno_lote" && showTerrenoSubtipo ? (
+          <div className="sm:col-span-2">
+            <AiField label={t.step01.subtipo} hint={t.step01.subtipoHint}>
+              <select
+                className={aiInputClass}
+                value={state.terrenoSubtipoPropiedad}
+                onChange={(e) => setState((s) => ({ ...s, terrenoSubtipoPropiedad: e.target.value }))}
+              >
+                {terrenoSubtipos.map((o) => (
+                  <option key={o.value || "none"} value={o.value}>
+                    {subtipoTerrenoOptionLabel(o.value, o.label)}
+                  </option>
+                ))}
+              </select>
             </AiField>
           </div>
         ) : null}

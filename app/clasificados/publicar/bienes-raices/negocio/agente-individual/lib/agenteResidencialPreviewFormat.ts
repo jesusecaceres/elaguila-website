@@ -15,6 +15,22 @@ import {
   TIPO_PROPIEDAD_LABEL_EN,
   TIPO_PROPIEDAD_OPCIONES,
 } from "../schema/agenteResidencialTipoMeta";
+import {
+  COMERCIAL_DESTACADO_EN,
+  COMERCIAL_DESTACADOS_DEFS,
+  COMERCIAL_TIPO_LABEL_EN,
+  COMERCIAL_TIPO_OPCIONES,
+  labelComercialSubtipo,
+  labelComercialSubtipoEn,
+  TERRENO_DESTACADO_EN,
+  TERRENO_DESTACADOS_DEFS,
+  TERRENO_TIPO_LABEL_EN,
+  TERRENO_TIPO_OPCIONES,
+  labelTerrenoSubtipo,
+  labelTerrenoSubtipoEn,
+  type ComercialDestacadoId,
+  type TerrenoDestacadoId,
+} from "../schema/agenteComercialTerrenoMeta";
 import { digitsOnly, formatUsPhoneDisplay } from "../application/utils/phoneMask";
 
 export function trim(s: unknown): string {
@@ -77,13 +93,16 @@ export function formatEstadoAnuncioLabel(
   return STATUS_LABEL[s.estadoAnuncio] ?? STATUS_LABEL.disponible;
 }
 
-/** Fixed lane line under title; matches `tipoPublicacionFijo` for this Negocio agente-individual residencial flow. */
+/** Línea fija bajo el título según categoría BR (mismo slot de UI). */
 export function formatTipoPublicacionFijoLine(
   s: AgenteIndividualResidencialFormState,
   locale: AgenteResPreviewLocale = "es",
 ): string {
-  if (s.tipoPublicacionFijo === "venta_residencial") {
-    return locale === "en" ? "Residential sale" : "Venta residencial";
+  if (s.categoriaPropiedad === "comercial") {
+    return locale === "en" ? "Commercial sale" : "Venta comercial";
+  }
+  if (s.categoriaPropiedad === "terreno_lote") {
+    return locale === "en" ? "Land / lot sale" : "Venta terreno / lote";
   }
   return locale === "en" ? "Residential sale" : "Venta residencial";
 }
@@ -127,24 +146,44 @@ export function listadoBloqueHref(s: AgenteIndividualResidencialFormState): stri
   return null;
 }
 
-export function formatTipoPropiedadLine(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale = "es"): string {
+function formatResidencialTipoPropiedadLine(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale): string {
   const opt = TIPO_PROPIEDAD_OPCIONES.find((x) => x.value === s.tipoPropiedadCodigo);
-  const base =
-    s.tipoPropiedadCodigo === "otro"
-      ? trim(s.tipoPropiedadOtro)
-      : locale === "en"
-        ? TIPO_PROPIEDAD_LABEL_EN[s.tipoPropiedadCodigo] ?? opt?.label ?? ""
-        : opt?.label ?? "";
-  let sub = "";
-  if (s.tipoPropiedadCodigo === "otro") {
+  const base = locale === "en" ? TIPO_PROPIEDAD_LABEL_EN[s.tipoPropiedadCodigo] ?? opt?.label ?? "" : opt?.label ?? "";
+  let sub =
+    locale === "en"
+      ? labelForSubtipoEn(s.tipoPropiedadCodigo, s.subtipoPropiedad)
+      : labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
+  if (!sub && trim(s.subtipoPropiedad)) {
     sub = trim(s.subtipoPropiedad);
-  } else {
-    sub =
-      locale === "en"
-        ? labelForSubtipoEn(s.tipoPropiedadCodigo, s.subtipoPropiedad)
-        : labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
   }
   return [base, sub].filter(Boolean).join(" · ") || "—";
+}
+
+export function formatComercialTipoLine(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale): string {
+  const opt = COMERCIAL_TIPO_OPCIONES.find((x) => x.value === s.comercialTipoCodigo);
+  const base =
+    locale === "en" ? COMERCIAL_TIPO_LABEL_EN[s.comercialTipoCodigo] ?? opt?.label ?? "" : opt?.label ?? "";
+  const sub =
+    locale === "en"
+      ? labelComercialSubtipoEn(s.comercialTipoCodigo, s.comercialSubtipoPropiedad)
+      : labelComercialSubtipo(s.comercialTipoCodigo, s.comercialSubtipoPropiedad);
+  return [base, sub].filter(Boolean).join(" · ") || "—";
+}
+
+export function formatTerrenoTipoLine(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale): string {
+  const opt = TERRENO_TIPO_OPCIONES.find((x) => x.value === s.terrenoTipoCodigo);
+  const base = locale === "en" ? TERRENO_TIPO_LABEL_EN[s.terrenoTipoCodigo] ?? opt?.label ?? "" : opt?.label ?? "";
+  const sub =
+    locale === "en"
+      ? labelTerrenoSubtipoEn(s.terrenoTipoCodigo, s.terrenoSubtipoPropiedad)
+      : labelTerrenoSubtipo(s.terrenoTipoCodigo, s.terrenoSubtipoPropiedad);
+  return [base, sub].filter(Boolean).join(" · ") || "—";
+}
+
+export function formatTipoPropiedadLine(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale = "es"): string {
+  if (s.categoriaPropiedad === "comercial") return formatComercialTipoLine(s, locale);
+  if (s.categoriaPropiedad === "terreno_lote") return formatTerrenoTipoLine(s, locale);
+  return formatResidencialTipoPropiedadLine(s, locale);
 }
 
 export function buildLocationLine(s: AgenteIndividualResidencialFormState): string {
@@ -193,9 +232,27 @@ export function labelDestacadoForPublishStep(
   return locale === "en" ? DESTACADO_EN[id] : def.label;
 }
 
-export function buildPropertyDetailRows(
+export function labelDestacadoComercialForPublishStep(
+  id: ComercialDestacadoId,
+  locale: AgenteResPreviewLocale,
+): string {
+  const def = COMERCIAL_DESTACADOS_DEFS.find((d) => d.id === id);
+  if (!def) return "";
+  return locale === "en" ? COMERCIAL_DESTACADO_EN[id] : def.label;
+}
+
+export function labelDestacadoTerrenoForPublishStep(
+  id: TerrenoDestacadoId,
+  locale: AgenteResPreviewLocale,
+): string {
+  const def = TERRENO_DESTACADOS_DEFS.find((d) => d.id === id);
+  if (!def) return "";
+  return locale === "en" ? TERRENO_DESTACADO_EN[id] : def.label;
+}
+
+function buildResidencialPropertyDetailRows(
   s: AgenteIndividualResidencialFormState,
-  locale: AgenteResPreviewLocale = "es",
+  locale: AgenteResPreviewLocale,
 ): PropertyDetailRow[] {
   const condLab = locale === "en" ? COND_LABEL_EN[s.condicionPropiedad] : COND_LABEL[s.condicionPropiedad];
   const L =
@@ -236,10 +293,125 @@ export function buildPropertyDetailRows(
   return all.filter((r) => trim(r.value) !== "" && r.value !== "—");
 }
 
+function buildCommercialPropertyDetailRows(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale,
+): PropertyDetailRow[] {
+  const condLab = locale === "en" ? COND_LABEL_EN[s.condicionPropiedad] : COND_LABEL[s.condicionPropiedad];
+  const si = locale === "en" ? "Yes" : "Sí";
+  const L =
+    locale === "en"
+      ? {
+          tipo: "Property type",
+          uso: "Commercial use",
+          interior: "Interior size",
+          lote: "Lot size",
+          oficinas: "Offices",
+          ban: "Baths",
+          niveles: "Levels",
+          est: "Parking",
+          zona: "Zoning",
+          cond: "Condition",
+          carga: "Loading access",
+        }
+      : {
+          tipo: "Tipo de propiedad",
+          uso: "Uso comercial",
+          interior: "Tamaño interior",
+          lote: "Tamaño del lote",
+          oficinas: "Oficinas",
+          ban: "Baños",
+          niveles: "Niveles",
+          est: "Estacionamientos",
+          zona: "Zonificación",
+          cond: "Condición",
+          carga: "Acceso de carga",
+        };
+  const rows: PropertyDetailRow[] = [
+    { label: L.tipo, value: formatComercialTipoLine(s, locale) },
+  ];
+  if (trim(s.comercialUso)) rows.push({ label: L.uso, value: trim(s.comercialUso) });
+  if (trim(s.tamanoInteriorSqft)) rows.push({ label: L.interior, value: trim(s.tamanoInteriorSqft) });
+  if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: trim(s.tamanoLoteSqft) });
+  if (trim(s.comercialOficinas)) rows.push({ label: L.oficinas, value: trim(s.comercialOficinas) });
+  if (trim(s.banos)) rows.push({ label: L.ban, value: trim(s.banos) });
+  if (trim(s.comercialNiveles)) rows.push({ label: L.niveles, value: trim(s.comercialNiveles) });
+  if (trim(s.estacionamientos)) rows.push({ label: L.est, value: trim(s.estacionamientos) });
+  if (trim(s.comercialZonificacion)) rows.push({ label: L.zona, value: trim(s.comercialZonificacion) });
+  rows.push({ label: L.cond, value: condLab ?? "—" });
+  if (s.comercialAccesoCarga) rows.push({ label: L.carga, value: si });
+  return rows.filter((r) => trim(r.value) !== "" && r.value !== "—");
+}
+
+function buildTerrenoPropertyDetailRows(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale,
+): PropertyDetailRow[] {
+  const si = locale === "en" ? "Yes" : "Sí";
+  const L =
+    locale === "en"
+      ? {
+          tipo: "Property type",
+          lote: "Lot size",
+          uso: "Use / zoning",
+          acceso: "Access",
+          servicios: "Utilities / services",
+          topo: "Topography",
+          listo: "Ready to build",
+          cercado: "Fenced",
+        }
+      : {
+          tipo: "Tipo de propiedad",
+          lote: "Tamaño del lote",
+          uso: "Uso / zonificación",
+          acceso: "Acceso",
+          servicios: "Servicios disponibles",
+          topo: "Topografía",
+          listo: "Listo para construir",
+          cercado: "Cercado",
+        };
+  const rows: PropertyDetailRow[] = [{ label: L.tipo, value: formatTerrenoTipoLine(s, locale) }];
+  if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: trim(s.tamanoLoteSqft) });
+  if (trim(s.terrenoUsoZonificacion)) rows.push({ label: L.uso, value: trim(s.terrenoUsoZonificacion) });
+  if (trim(s.terrenoAcceso)) rows.push({ label: L.acceso, value: trim(s.terrenoAcceso) });
+  if (trim(s.terrenoServicios)) rows.push({ label: L.servicios, value: trim(s.terrenoServicios) });
+  if (trim(s.terrenoTopografia)) rows.push({ label: L.topo, value: trim(s.terrenoTopografia) });
+  if (s.terrenoListoConstruir) rows.push({ label: L.listo, value: si });
+  if (s.terrenoCercado) rows.push({ label: L.cercado, value: si });
+  return rows.filter((r) => trim(r.value) !== "" && r.value !== "—");
+}
+
+export function buildPropertyDetailRows(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): PropertyDetailRow[] {
+  if (s.categoriaPropiedad === "comercial") return buildCommercialPropertyDetailRows(s, locale);
+  if (s.categoriaPropiedad === "terreno_lote") return buildTerrenoPropertyDetailRows(s, locale);
+  return buildResidencialPropertyDetailRows(s, locale);
+}
+
 export function buildDestacadosLabels(
   s: AgenteIndividualResidencialFormState,
   locale: AgenteResPreviewLocale = "es",
 ): string[] {
+  if (s.categoriaPropiedad === "comercial") {
+    const out: string[] = [];
+    for (const def of COMERCIAL_DESTACADOS_DEFS) {
+      if (s.destacadosComercial?.[def.id]) {
+        out.push(locale === "en" ? COMERCIAL_DESTACADO_EN[def.id] : def.label);
+      }
+    }
+    return out;
+  }
+  if (s.categoriaPropiedad === "terreno_lote") {
+    const out: string[] = [];
+    for (const def of TERRENO_DESTACADOS_DEFS) {
+      if (s.destacadosTerreno?.[def.id]) {
+        out.push(locale === "en" ? TERRENO_DESTACADO_EN[def.id] : def.label);
+      }
+    }
+    return out;
+  }
   const out: string[] = [];
   for (const def of AGENTE_RES_DESTACADOS_DEFS) {
     if (s.destacados?.[def.id]) {
@@ -316,12 +488,54 @@ export type QuickFactKey =
   | "tamano_interior"
   | "estacionamientos"
   | "ano_construccion"
-  | "tamano_lote";
+  | "tamano_lote"
+  | "oficinas"
+  | "niveles";
 
 export type QuickFactItem = { key: QuickFactKey; label: string; value: string };
 
 export function buildQuickFacts(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale = "es"): QuickFactItem[] {
-  const rows: Array<[QuickFactKey, string, string]> =
+  const out: QuickFactItem[] = [];
+  const pushRows = (rows: Array<[QuickFactKey, string, string]>) => {
+    for (const [key, label, raw] of rows) {
+      const v = trim(raw);
+      if (v) out.push({ key, label, value: v });
+    }
+  };
+
+  if (s.categoriaPropiedad === "comercial") {
+    pushRows(
+      locale === "en"
+        ? [
+            ["tamano_interior", "Interior (sq ft)", s.tamanoInteriorSqft],
+            ["tamano_lote", "Lot (sq ft)", s.tamanoLoteSqft],
+            ["oficinas", "Offices", s.comercialOficinas],
+            ["banos", "Baths", s.banos],
+            ["niveles", "Levels", s.comercialNiveles],
+            ["estacionamientos", "Parking", s.estacionamientos],
+          ]
+        : [
+            ["tamano_interior", "Interior (ft²)", s.tamanoInteriorSqft],
+            ["tamano_lote", "Lote (ft²)", s.tamanoLoteSqft],
+            ["oficinas", "Oficinas", s.comercialOficinas],
+            ["banos", "Baños", s.banos],
+            ["niveles", "Niveles", s.comercialNiveles],
+            ["estacionamientos", "Estacionamientos", s.estacionamientos],
+          ],
+    );
+    return out;
+  }
+
+  if (s.categoriaPropiedad === "terreno_lote") {
+    pushRows(
+      locale === "en"
+        ? [["tamano_lote", "Lot (sq ft)", s.tamanoLoteSqft]]
+        : [["tamano_lote", "Lote (ft²)", s.tamanoLoteSqft]],
+    );
+    return out;
+  }
+
+  pushRows(
     locale === "en"
       ? [
           ["recamaras", "Beds", s.recamaras],
@@ -338,12 +552,8 @@ export function buildQuickFacts(s: AgenteIndividualResidencialFormState, locale:
           ["estacionamientos", "Estacionamientos", s.estacionamientos],
           ["ano_construccion", "Año", s.anoConstruccion],
           ["tamano_lote", "Lote (ft²)", s.tamanoLoteSqft],
-        ];
-  const out: QuickFactItem[] = [];
-  for (const [key, label, raw] of rows) {
-    const v = trim(raw);
-    if (v) out.push({ key, label, value: v });
-  }
+        ],
+  );
   return out;
 }
 

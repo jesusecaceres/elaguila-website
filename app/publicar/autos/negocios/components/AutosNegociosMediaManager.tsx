@@ -46,6 +46,16 @@ function reindex(images: MediaImageEntry[]): MediaImageEntry[] {
   return sortByOrder(images).map((x, i) => ({ ...x, sortOrder: i }));
 }
 
+/** Some mobile pickers omit MIME or use HEIC; avoid dropping valid photos from multi-select. */
+function isLikelyImageFile(f: File): boolean {
+  if (f.type.startsWith("image/")) return true;
+  if (f.type === "image/heic" || f.type === "image/heif") return true;
+  if (!f.type || f.type === "application/octet-stream") {
+    return /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif|svg)$/i.test(f.name);
+  }
+  return false;
+}
+
 export function AutosNegociosMediaManager({
   listing,
   setListingPatch,
@@ -79,20 +89,16 @@ export function AutosNegociosMediaManager({
     async (files: FileList | null) => {
       if (!files?.length) return;
       const base = sortByOrder(listing.mediaImages ?? []);
-      const filesArr = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      const filesArr = Array.from(files).filter(isLikelyImageFile);
       if (!filesArr.length) return;
-      const additions: MediaImageEntry[] = [];
-      for (let i = 0; i < filesArr.length; i++) {
-        const f = filesArr[i]!;
-        const url = await readFileAsDataUrl(f);
-        additions.push({
-          id: newMediaImageId(),
-          url,
-          sourceType: "file",
-          isPrimary: base.length === 0 && i === 0,
-          sortOrder: base.length + i,
-        });
-      }
+      const dataUrls = await Promise.all(filesArr.map((f) => readFileAsDataUrl(f)));
+      const additions: MediaImageEntry[] = dataUrls.map((url, i) => ({
+        id: newMediaImageId(),
+        url,
+        sourceType: "file" as const,
+        isPrimary: base.length === 0 && i === 0,
+        sortOrder: base.length + i,
+      }));
       const merged = reindex([...base, ...additions]);
       commitImages(ensureOnePrimary(merged));
     },
@@ -258,14 +264,14 @@ export function AutosNegociosMediaManager({
     : `${DROPZONE_BASE} border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]`;
 
   return (
-    <section className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)]">
+    <section className="min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5">
       <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{copy.app.sections.media}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{m.sectionIntro}</p>
 
       <input
         ref={photoInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,image/heic,image/heif,.heic,.heif"
         multiple
         className="sr-only"
         tabIndex={-1}
@@ -292,6 +298,7 @@ export function AutosNegociosMediaManager({
           {m.addPhotos}
         </button>
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.pickerHint}</p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{m.pickerMultiNote}</p>
       </div>
 
       <div className="mt-5">
@@ -351,10 +358,10 @@ export function AutosNegociosMediaManager({
                 className="aspect-[4/3] w-full shrink-0 rounded-lg object-cover sm:h-20 sm:w-28 sm:aspect-auto"
               />
               <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className={`inline-flex min-h-[36px] items-center gap-0.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                    className={`inline-flex min-h-[44px] items-center gap-0.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
                       img.isPrimary
                         ? "border-[color:var(--lx-gold)] bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]"
                         : "border-[color:var(--lx-nav-border)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
@@ -367,7 +374,7 @@ export function AutosNegociosMediaManager({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, -1)}
                     aria-label={m.before}
                   >
@@ -375,7 +382,7 @@ export function AutosNegociosMediaManager({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[10px] font-bold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                     onClick={() => move(img.id, 1)}
                     aria-label={m.after}
                   >
@@ -383,7 +390,7 @@ export function AutosNegociosMediaManager({
                   </button>
                   <button
                     type="button"
-                    className="ml-auto inline-flex min-h-[36px] items-center gap-0.5 rounded-full border border-red-200 px-2.5 py-1 text-[10px] font-bold text-red-800 hover:bg-red-50"
+                    className="ml-auto inline-flex min-h-[44px] items-center gap-0.5 rounded-full border border-red-200 px-3 py-1.5 text-[10px] font-bold text-red-800 hover:bg-red-50"
                     onClick={() => remove(img.id)}
                   >
                     <FiTrash2 className="h-3 w-3" aria-hidden />

@@ -4,6 +4,8 @@ export type ClasificadosServiciosCopy = {
   pageTitle: string;
   pageSubtitle: string;
   saveHint: string;
+  /** Primary CTA — saves draft and opens preview */
+  previewCta: string;
   linkPreviewShell: string;
   linkBack: string;
   langToggle: string;
@@ -70,6 +72,22 @@ export type ClasificadosServiciosCopy = {
     replace: string;
     emptyGallery: string;
     invalidUrl: string;
+    galleryFeaturedHint: string;
+    galleryMoreHint: string;
+    videosHint: string;
+    videoUrlPlaceholder: string;
+    addVideoUrl: string;
+    videoPrimary: string;
+    customService: string;
+    customServicePlaceholder: string;
+    aboutServicesGapNote: string;
+    leonixVerified: string;
+    leonixVerifiedHint: string;
+    offerImage: string;
+    offerPdf: string;
+    moveUp: string;
+    moveDown: string;
+    featuredToggle: string;
   };
 };
 
@@ -78,6 +96,7 @@ const es: ClasificadosServiciosCopy = {
   pageSubtitle:
     "Un solo formulario para tu vitrina premium en Leonix. Completa cada sección; podrás refinar el texto con herramientas externas si lo deseas.",
   saveHint: "Borrador guardado en este navegador.",
+  previewCta: "Ver vista previa",
   linkPreviewShell: "Ver ejemplo de página pública (solo diseño)",
   linkBack: "Volver a categorías",
   langToggle: "English",
@@ -137,7 +156,7 @@ const es: ClasificadosServiciosCopy = {
     offerLink: "Enlace (opcional)",
     offerNote: "Más adelante podrá vincularse al ecosistema de cupones Leonix.",
     testimonialsNote:
-      "No uses ratings inventados como sistema principal de reseñas. Estos testimonios son opcionales y sujetos a moderación futura.",
+      "No son reseñas públicas con estrellas de Leonix: son testimonios opcionales que tú proporcionas. Podrían moderarse más adelante.",
     dropzone: "Arrastra imágenes o haz clic para subir",
     upload: "Subir archivo",
     urlFallback: "O pega una URL de imagen",
@@ -146,6 +165,24 @@ const es: ClasificadosServiciosCopy = {
     replace: "Cambiar",
     emptyGallery: "Aún no hay fotos en la galería.",
     invalidUrl: "Revisa el formato del enlace (https://…)",
+    galleryFeaturedHint:
+      "Selecciona las 4 imágenes principales que quieres mostrar en tu anuncio (icono de estrella).",
+    galleryMoreHint: "Las imágenes adicionales podrán verse al abrir la galería.",
+    videosHint: "Puedes agregar hasta 2 videos (archivo o enlace, por ejemplo YouTube).",
+    videoUrlPlaceholder: "https://… (YouTube o archivo en línea)",
+    addVideoUrl: "Añadir video por URL",
+    videoPrimary: "Video principal / tour",
+    customService: "Otro servicio",
+    customServicePlaceholder: "Ej.: instalación de marcos a medida",
+    aboutServicesGapNote:
+      "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
+    leonixVerified: "Mostrar interés en Verificado Leonix",
+    leonixVerifiedHint: "Es un distintivo de confianza; la verificación real se confirma en un paso posterior.",
+    offerImage: "Imagen de la oferta (opcional)",
+    offerPdf: "PDF / archivo de la oferta (opcional)",
+    moveUp: "Arriba",
+    moveDown: "Abajo",
+    featuredToggle: "Principal en anuncio",
   },
 };
 
@@ -154,6 +191,7 @@ const en: ClasificadosServiciosCopy = {
   pageSubtitle:
     "One guided form for your premium Leonix showcase. Complete each section; you can polish copy with external tools if needed.",
   saveHint: "Draft saved in this browser.",
+  previewCta: "Preview",
   linkPreviewShell: "View example public page (design only)",
   linkBack: "Back to categories",
   langToggle: "Español",
@@ -213,7 +251,7 @@ const en: ClasificadosServiciosCopy = {
     offerLink: "Link (optional)",
     offerNote: "Later this can connect to Leonix coupon tools.",
     testimonialsNote:
-      "Do not use fake star ratings as the main review system. Testimonials are optional and may be moderated later.",
+      "These are optional testimonials you provide — not Leonix public star reviews. They may be moderated later.",
     dropzone: "Drag images or click to upload",
     upload: "Upload file",
     urlFallback: "Or paste an image URL",
@@ -222,6 +260,24 @@ const en: ClasificadosServiciosCopy = {
     replace: "Replace",
     emptyGallery: "No gallery photos yet.",
     invalidUrl: "Check the link format (https://…)",
+    galleryFeaturedHint:
+      "Pick up to 4 main photos for your listing (star toggle). Those appear in the hero gallery grid.",
+    galleryMoreHint: "Additional photos will be available when the expanded gallery opens.",
+    videosHint: "You can add up to 2 videos (upload or URL, e.g. YouTube).",
+    videoUrlPlaceholder: "https://… (YouTube or direct file)",
+    addVideoUrl: "Add video URL",
+    videoPrimary: "Primary / tour video",
+    customService: "Other service",
+    customServicePlaceholder: "e.g. custom trim installation",
+    aboutServicesGapNote:
+      "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
+    leonixVerified: "Show interest in Leonix Verified",
+    leonixVerifiedHint: "A trust badge; real verification is confirmed in a later step.",
+    offerImage: "Offer image (optional)",
+    offerPdf: "Offer PDF / file (optional)",
+    moveUp: "Up",
+    moveDown: "Down",
+    featuredToggle: "Featured on listing",
   },
 };
 

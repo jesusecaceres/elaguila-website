@@ -7,12 +7,17 @@ import {
   AGENTE_RES_MAX_OPEN_HOUSE_SLOTS,
   type AgenteResOpenHouseSlot,
 } from "../schema/agenteIndividualResidencialFormState";
+import { COMERCIAL_DESTACADOS_DEFS, TERRENO_DESTACADOS_DEFS } from "../schema/agenteComercialTerrenoMeta";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
 import type { BrAgenteResidencialCopy } from "../application/brAgenteResidencialCopy";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
-import { labelDestacadoForPublishStep } from "../lib/agenteResidencialPreviewFormat";
+import {
+  labelDestacadoComercialForPublishStep,
+  labelDestacadoForPublishStep,
+  labelDestacadoTerrenoForPublishStep,
+} from "../lib/agenteResidencialPreviewFormat";
 
 export function Step04DetallesEsenciales({
   state,
@@ -23,82 +28,247 @@ export function Step04DetallesEsenciales({
 }) {
   const { t } = useBrAgenteResidencialCopy();
   const c = t.previewFormat.condicion;
+  const cat = state.categoriaPropiedad;
+
+  const condicionSelect = (
+    <AiField label={t.step04.condicion} hint={t.step04.condicionHint}>
+      <select
+        className={aiInputClass}
+        value={state.condicionPropiedad}
+        onChange={(e) =>
+          setState((s) => ({
+            ...s,
+            condicionPropiedad: e.target.value as AgenteIndividualResidencialFormState["condicionPropiedad"],
+          }))
+        }
+      >
+        <option value="excelente">{c.excelente}</option>
+        <option value="buena">{c.buena}</option>
+        <option value="regular">{c.regular}</option>
+        <option value="necesita_reparacion">{c.necesita_reparacion}</option>
+      </select>
+    </AiField>
+  );
 
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{t.step04.title}</h2>
       <p className={aiSubClass}>{t.step04.sub}</p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <AiField label={t.step04.recamaras}>
-          <input
-            className={aiInputClass}
-            value={state.recamaras}
-            onChange={(e) => setState((s) => ({ ...s, recamaras: e.target.value }))}
-            inputMode="numeric"
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step04.banos}>
-          <input className={aiInputClass} value={state.banos} onChange={(e) => setState((s) => ({ ...s, banos: e.target.value }))} autoComplete="off" />
-        </AiField>
-        <AiField label={t.step04.mediosBanos} hint={t.step04.mediosHint}>
-          <input
-            className={aiInputClass}
-            value={state.mediosBanos}
-            onChange={(e) => setState((s) => ({ ...s, mediosBanos: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step04.tamanoInterior} hint={t.step04.tamanoInteriorHint}>
-          <input
-            className={aiInputClass}
-            value={state.tamanoInteriorSqft}
-            onChange={(e) => setState((s) => ({ ...s, tamanoInteriorSqft: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
-          <input
-            className={aiInputClass}
-            value={state.tamanoLoteSqft}
-            onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step04.estacionamientos}>
-          <input
-            className={aiInputClass}
-            value={state.estacionamientos}
-            onChange={(e) => setState((s) => ({ ...s, estacionamientos: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step04.ano}>
-          <input
-            className={aiInputClass}
-            value={state.anoConstruccion}
-            onChange={(e) => setState((s) => ({ ...s, anoConstruccion: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step04.condicion} hint={t.step04.condicionHint}>
-          <select
-            className={aiInputClass}
-            value={state.condicionPropiedad}
-            onChange={(e) =>
-              setState((s) => ({
-                ...s,
-                condicionPropiedad: e.target.value as AgenteIndividualResidencialFormState["condicionPropiedad"],
-              }))
-            }
-          >
-            <option value="excelente">{c.excelente}</option>
-            <option value="buena">{c.buena}</option>
-            <option value="regular">{c.regular}</option>
-            <option value="necesita_reparacion">{c.necesita_reparacion}</option>
-          </select>
-        </AiField>
-      </div>
+      {cat === "residencial" ? (
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <AiField label={t.step04.recamaras}>
+            <input
+              className={aiInputClass}
+              value={state.recamaras}
+              onChange={(e) => setState((s) => ({ ...s, recamaras: e.target.value }))}
+              inputMode="numeric"
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.banos}>
+            <input className={aiInputClass} value={state.banos} onChange={(e) => setState((s) => ({ ...s, banos: e.target.value }))} autoComplete="off" />
+          </AiField>
+          <AiField label={t.step04.mediosBanos} hint={t.step04.mediosHint}>
+            <input
+              className={aiInputClass}
+              value={state.mediosBanos}
+              onChange={(e) => setState((s) => ({ ...s, mediosBanos: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.tamanoInterior} hint={t.step04.tamanoInteriorHint}>
+            <input
+              className={aiInputClass}
+              value={state.tamanoInteriorSqft}
+              onChange={(e) => setState((s) => ({ ...s, tamanoInteriorSqft: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
+            <input
+              className={aiInputClass}
+              value={state.tamanoLoteSqft}
+              onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.estacionamientos}>
+            <input
+              className={aiInputClass}
+              value={state.estacionamientos}
+              onChange={(e) => setState((s) => ({ ...s, estacionamientos: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.ano}>
+            <input
+              className={aiInputClass}
+              value={state.anoConstruccion}
+              onChange={(e) => setState((s) => ({ ...s, anoConstruccion: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          {condicionSelect}
+        </div>
+      ) : null}
+
+      {cat === "comercial" ? (
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <AiField label={t.step04.tamanoInterior} hint={t.step04.tamanoInteriorHint}>
+            <input
+              className={aiInputClass}
+              value={state.tamanoInteriorSqft}
+              onChange={(e) => setState((s) => ({ ...s, tamanoInteriorSqft: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
+            <input
+              className={aiInputClass}
+              value={state.tamanoLoteSqft}
+              onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <div className="sm:col-span-2">
+            <AiField label={t.step04.usoComercial} hint={t.step04.usoComercialHint}>
+              <input
+                className={aiInputClass}
+                value={state.comercialUso}
+                onChange={(e) => setState((s) => ({ ...s, comercialUso: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          </div>
+          <AiField label={t.step04.oficinasComercial} hint={t.step04.oficinasComercialHint}>
+            <input
+              className={aiInputClass}
+              value={state.comercialOficinas}
+              onChange={(e) => setState((s) => ({ ...s, comercialOficinas: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.banos}>
+            <input className={aiInputClass} value={state.banos} onChange={(e) => setState((s) => ({ ...s, banos: e.target.value }))} autoComplete="off" />
+          </AiField>
+          <AiField label={t.step04.nivelesComercial} hint={t.step04.nivelesComercialHint}>
+            <input
+              className={aiInputClass}
+              value={state.comercialNiveles}
+              onChange={(e) => setState((s) => ({ ...s, comercialNiveles: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <AiField label={t.step04.estacionamientos}>
+            <input
+              className={aiInputClass}
+              value={state.estacionamientos}
+              onChange={(e) => setState((s) => ({ ...s, estacionamientos: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <div className="sm:col-span-2">
+            <AiField label={t.step04.zonificacionComercial} hint={t.step04.zonificacionComercialHint}>
+              <input
+                className={aiInputClass}
+                value={state.comercialZonificacion}
+                onChange={(e) => setState((s) => ({ ...s, comercialZonificacion: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          </div>
+          {condicionSelect}
+          <div className="sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                checked={state.comercialAccesoCarga}
+                onChange={(e) => setState((s) => ({ ...s, comercialAccesoCarga: e.target.checked }))}
+              />
+              <span>
+                <span className="font-semibold">{t.step04.accesoCarga}</span>
+                <span className="mt-0.5 block text-xs text-[#5C5346]/90">{t.step04.accesoCargaHint}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      ) : null}
+
+      {cat === "terreno_lote" ? (
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
+              <input
+                className={aiInputClass}
+                value={state.tamanoLoteSqft}
+                onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          </div>
+          <div className="sm:col-span-2">
+            <AiField label={t.step04.usoZonificacionTerreno} hint={t.step04.usoZonificacionTerrenoHint}>
+              <input
+                className={aiInputClass}
+                value={state.terrenoUsoZonificacion}
+                onChange={(e) => setState((s) => ({ ...s, terrenoUsoZonificacion: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          </div>
+          <AiField label={t.step04.accesoTerreno} hint={t.step04.accesoTerrenoHint}>
+            <input
+              className={aiInputClass}
+              value={state.terrenoAcceso}
+              onChange={(e) => setState((s) => ({ ...s, terrenoAcceso: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+          <div className="sm:col-span-2">
+            <AiField label={t.step04.serviciosTerreno} hint={t.step04.serviciosTerrenoHint}>
+              <input
+                className={aiInputClass}
+                value={state.terrenoServicios}
+                onChange={(e) => setState((s) => ({ ...s, terrenoServicios: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          </div>
+          <div className="sm:col-span-2">
+            <AiField label={t.step04.topografiaTerreno} hint={t.step04.topografiaTerrenoHint}>
+              <input
+                className={aiInputClass}
+                value={state.terrenoTopografia}
+                onChange={(e) => setState((s) => ({ ...s, terrenoTopografia: e.target.value }))}
+                autoComplete="off"
+              />
+            </AiField>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                checked={state.terrenoListoConstruir}
+                onChange={(e) => setState((s) => ({ ...s, terrenoListoConstruir: e.target.checked }))}
+              />
+              <span className="font-semibold">{t.step04.listoConstruirTerreno}</span>
+            </label>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                checked={state.terrenoCercado}
+                onChange={(e) => setState((s) => ({ ...s, terrenoCercado: e.target.checked }))}
+              />
+              <span className="font-semibold">{t.step04.cercadoTerreno}</span>
+            </label>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -112,28 +282,67 @@ export function Step05Caracteristicas({
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
   const loc = lang === "en" ? "en" : "es";
+  const cat = state.categoriaPropiedad;
 
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{t.step05.title}</h2>
       <p className={aiSubClass}>{t.step05.sub}</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        {AGENTE_RES_DESTACADOS_DEFS.map((def) => (
-          <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
-              checked={Boolean(state.destacados[def.id])}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  destacados: { ...s.destacados, [def.id]: e.target.checked },
-                }))
-              }
-            />
-            {labelDestacadoForPublishStep(def.id, loc)}
-          </label>
-        ))}
+        {cat === "residencial"
+          ? AGENTE_RES_DESTACADOS_DEFS.map((def) => (
+              <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                  checked={Boolean(state.destacados[def.id])}
+                  onChange={(e) =>
+                    setState((s) => ({
+                      ...s,
+                      destacados: { ...s.destacados, [def.id]: e.target.checked },
+                    }))
+                  }
+                />
+                {labelDestacadoForPublishStep(def.id, loc)}
+              </label>
+            ))
+          : null}
+        {cat === "comercial"
+          ? COMERCIAL_DESTACADOS_DEFS.map((def) => (
+              <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                  checked={Boolean(state.destacadosComercial[def.id])}
+                  onChange={(e) =>
+                    setState((s) => ({
+                      ...s,
+                      destacadosComercial: { ...s.destacadosComercial, [def.id]: e.target.checked },
+                    }))
+                  }
+                />
+                {labelDestacadoComercialForPublishStep(def.id, loc)}
+              </label>
+            ))
+          : null}
+        {cat === "terreno_lote"
+          ? TERRENO_DESTACADOS_DEFS.map((def) => (
+              <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                  checked={Boolean(state.destacadosTerreno[def.id])}
+                  onChange={(e) =>
+                    setState((s) => ({
+                      ...s,
+                      destacadosTerreno: { ...s.destacadosTerreno, [def.id]: e.target.checked },
+                    }))
+                  }
+                />
+                {labelDestacadoTerrenoForPublishStep(def.id, loc)}
+              </label>
+            ))
+          : null}
       </div>
     </section>
   );

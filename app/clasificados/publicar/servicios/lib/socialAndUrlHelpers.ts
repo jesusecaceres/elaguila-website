@@ -33,3 +33,10 @@ export function newTestimonialId(): string {
   }
   return `tst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
+
+export function newVideoId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `vid_${crypto.randomUUID()}`;
+  }
+  return `vid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}

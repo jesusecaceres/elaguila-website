@@ -4,6 +4,7 @@ import type {
   DayKey,
   GalleryItem,
   TestimonialRow,
+  VideoItem,
 } from "./clasificadosServiciosApplicationTypes";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
 
@@ -23,6 +24,12 @@ function isTestimonial(v: unknown): v is TestimonialRow {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
   return typeof o.id === "string" && typeof o.authorName === "string" && typeof o.quote === "string";
+}
+
+function isVideoItem(v: unknown): v is VideoItem {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.id === "string" && typeof o.url === "string" && (o.source === "file" || o.source === "url");
 }
 
 /**
@@ -84,6 +91,22 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     secondaryCtaIds = o.secondaryCtaIds.filter((x): x is string => typeof x === "string");
   }
 
+  let featuredGalleryIds = d.featuredGalleryIds;
+  if (Array.isArray(o.featuredGalleryIds)) {
+    featuredGalleryIds = o.featuredGalleryIds.filter((x): x is string => typeof x === "string").slice(0, 4);
+  }
+
+  let videos: VideoItem[] = d.videos;
+  if (Array.isArray(o.videos)) {
+    videos = o.videos.filter(isVideoItem).slice(0, 2);
+  }
+
+  const galleryIdSet = new Set(gallery.map((g) => g.id));
+  featuredGalleryIds = featuredGalleryIds.filter((id) => galleryIdSet.has(id)).slice(0, 4);
+  if (featuredGalleryIds.length === 0 && gallery.length > 0) {
+    featuredGalleryIds = gallery.slice(0, 4).map((g) => g.id);
+  }
+
   return {
     businessTypeId: str("businessTypeId", d.businessTypeId),
     businessName: str("businessName", d.businessName),
@@ -96,9 +119,13 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     logoUrl: str("logoUrl", d.logoUrl),
     coverUrl: str("coverUrl", d.coverUrl),
     gallery,
+    featuredGalleryIds,
+    videos,
     aboutText: str("aboutText", d.aboutText),
     specialtiesLine: str("specialtiesLine", d.specialtiesLine),
     selectedServiceIds,
+    customServiceLabel: str("customServiceLabel", d.customServiceLabel),
+    leonixVerifiedInterest: bool("leonixVerifiedInterest", d.leonixVerifiedInterest),
     selectedReasonIds,
     selectedQuickFactIds,
     enableCall: bool("enableCall", d.enableCall),
@@ -117,5 +144,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     offerTitle: str("offerTitle", d.offerTitle),
     offerDetails: str("offerDetails", d.offerDetails),
     offerLink: str("offerLink", d.offerLink),
+    offerImageUrl: str("offerImageUrl", d.offerImageUrl),
+    offerPdfUrl: str("offerPdfUrl", d.offerPdfUrl),
   };
 }

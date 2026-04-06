@@ -1,5 +1,6 @@
 import type {
   ServiciosGalleryImage,
+  ServiciosGalleryVideo,
   ServiciosHeroBadge,
   ServiciosHeroBadgeKind,
   ServiciosHoursSummary,
@@ -7,9 +8,19 @@ import type {
   ServiciosReview,
   ServiciosServiceArea,
   ServiciosServiceCard,
+  ServiciosServiceVisualVariant,
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
-import { isAllowedServiciosImageUrl } from "./serviciosMediaUrl";
+import { isAllowedServiciosImageUrl, isAllowedServiciosVideoUrl } from "./serviciosMediaUrl";
+
+const SERVICE_VARIANTS = new Set<ServiciosServiceVisualVariant>([
+  "instalacion",
+  "mantenimiento",
+  "reparacion",
+  "consulta",
+  "emergencia",
+  "default",
+]);
 
 const BADGE_KINDS = new Set<ServiciosHeroBadgeKind>([
   "verified",
@@ -43,6 +54,15 @@ export function safePromoHref(raw: string | undefined | null): string | null {
   const t = trimText(raw);
   if (!t) return null;
   if (t.startsWith("/") && !t.startsWith("//")) return t;
+  return safeExternalWebsiteHref(t);
+}
+
+/** Promo attachments: https or local-first data URLs (image / PDF) */
+export function safePromoAssetHref(raw: string | undefined | null): string | null {
+  const t = trimText(raw);
+  if (!t) return null;
+  if (t.startsWith("data:image/")) return t;
+  if (t.startsWith("data:application/pdf")) return t;
   return safeExternalWebsiteHref(t);
 }
 
@@ -125,20 +145,58 @@ export function filterServices(services: ServiciosServiceCard[] | undefined): Se
   for (const s of services) {
     if (!s || typeof s.id !== "string") continue;
     const title = trimText(s.title);
+    if (!title) continue;
     const secondaryLine = trimText(s.secondaryLine);
     const imageUrl = trimText(s.imageUrl);
     const imageAlt = trimText(s.imageAlt) || title;
-    if (!title || !imageUrl) continue;
-    if (!isAllowedServiciosImageUrl(imageUrl)) continue;
-    out.push({
-      id: s.id,
-      title,
-      secondaryLine: secondaryLine || "—",
-      imageUrl,
-      imageAlt,
-    });
+    const vvRaw = trimText(s.visualVariant as string);
+    const visualVariant =
+      vvRaw && SERVICE_VARIANTS.has(vvRaw as ServiciosServiceVisualVariant)
+        ? (vvRaw as ServiciosServiceVisualVariant)
+        : undefined;
+    const hasImage = Boolean(imageUrl && isAllowedServiciosImageUrl(imageUrl));
+    if (hasImage) {
+      const row: ServiciosServiceCard = {
+        id: s.id,
+        title,
+        secondaryLine: secondaryLine || "—",
+        imageUrl,
+        imageAlt,
+      };
+      if (visualVariant) row.visualVariant = visualVariant;
+      out.push(row);
+      continue;
+    }
+    if (visualVariant) {
+      out.push({
+        id: s.id,
+        title,
+        secondaryLine: secondaryLine || "—",
+        imageAlt,
+        visualVariant,
+      });
+    }
   }
   return out;
+}
+
+export function filterGalleryVideos(videos: ServiciosGalleryVideo[] | undefined): ServiciosGalleryVideo[] {
+  if (!Array.isArray(videos)) return [];
+  const tmp: ServiciosGalleryVideo[] = [];
+  for (const v of videos) {
+    if (!v || typeof v.id !== "string") continue;
+    const url = trimText(v.url);
+    if (!url || !isAllowedServiciosVideoUrl(url)) continue;
+    tmp.push({
+      id: trimText(v.id) || v.id,
+      url,
+      isPrimary: v.isPrimary === true,
+    });
+    if (tmp.length >= 2) break;
+  }
+  const primary = tmp.filter((x) => x.isPrimary);
+  const rest = tmp.filter((x) => !x.isPrimary);
+  return [...primary, ...rest].slice(0, 2);
 }
 
 export function filterGallery(items: ServiciosGalleryImage[] | undefined): ServiciosGalleryImage[] {

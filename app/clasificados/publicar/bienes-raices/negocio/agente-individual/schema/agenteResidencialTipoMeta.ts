@@ -1,8 +1,9 @@
 /**
- * Catálogo de tipo / subtipo residencial (solo esta variante).
+ * Catálogo de tipo / subtipo residencial (BR Negocio · categoría Residencial).
+ * Sin opción «Otro».
  */
 
-export type TipoPropiedadCodigo = "casa" | "condominio" | "townhome" | "apartamento" | "multifamiliar" | "otro";
+export type TipoPropiedadCodigo = "casa" | "condominio" | "townhome" | "apartamento" | "multifamiliar";
 
 export const TIPO_PROPIEDAD_OPCIONES: ReadonlyArray<{ value: TipoPropiedadCodigo; label: string }> = [
   { value: "casa", label: "Casa" },
@@ -10,8 +11,16 @@ export const TIPO_PROPIEDAD_OPCIONES: ReadonlyArray<{ value: TipoPropiedadCodigo
   { value: "townhome", label: "Townhome" },
   { value: "apartamento", label: "Apartamento" },
   { value: "multifamiliar", label: "Multifamiliar" },
-  { value: "otro", label: "Otro" },
 ];
+
+const ALL_TIPOS: TipoPropiedadCodigo[] = ["casa", "condominio", "townhome", "apartamento", "multifamiliar"];
+
+/** Migra borradores con `otro` o valores desconocidos → `casa`. */
+export function normalizeResidencialTipoPropiedadCodigo(raw: unknown): TipoPropiedadCodigo {
+  const v = typeof raw === "string" ? raw : "";
+  if (v === "otro") return "casa";
+  return ALL_TIPOS.includes(v as TipoPropiedadCodigo) ? (v as TipoPropiedadCodigo) : "casa";
+}
 
 /** Valor vacío = sin detalle adicional (opcional). */
 export const SUBTIPO_POR_TIPO: Record<TipoPropiedadCodigo, ReadonlyArray<{ value: string; label: string }>> = {
@@ -43,7 +52,6 @@ export const SUBTIPO_POR_TIPO: Record<TipoPropiedadCodigo, ReadonlyArray<{ value
     { value: "varias_unidades", label: "Varias unidades en el sitio" },
     { value: "duplex", label: "Dúplex / dos unidades" },
   ],
-  otro: [],
 };
 
 export function labelForSubtipo(codigo: TipoPropiedadCodigo, subvalor: string): string {
@@ -60,7 +68,6 @@ export const TIPO_PROPIEDAD_LABEL_EN: Record<TipoPropiedadCodigo, string> = {
   townhome: "Townhome",
   apartamento: "Apartment",
   multifamiliar: "Multifamily",
-  otro: "Other",
 };
 
 /** English labels for subtype `value` keys (shared across types where values collide). */

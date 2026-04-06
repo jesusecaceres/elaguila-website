@@ -35,18 +35,36 @@ export type ServiciosHeroBadge = {
   label: string;
 };
 
+/** Leonix-controlled service card look — used when no business-specific photo is provided */
+export type ServiciosServiceVisualVariant =
+  | "instalacion"
+  | "mantenimiento"
+  | "reparacion"
+  | "consulta"
+  | "emergencia"
+  | "default";
+
 export type ServiciosServiceCard = {
   id: string;
   title: string;
   secondaryLine: string;
-  imageUrl: string;
+  /** When omitted, shell renders a variant pattern card */
+  imageUrl?: string;
   imageAlt: string;
+  visualVariant?: ServiciosServiceVisualVariant;
 };
 
 export type ServiciosGalleryImage = {
   id: string;
   url: string;
   alt: string;
+};
+
+/** Optional tour / promo videos (draft-safe https or data: URLs) */
+export type ServiciosGalleryVideo = {
+  id: string;
+  url: string;
+  isPrimary?: boolean;
 };
 
 export type ServiciosTrustItem = {
@@ -80,6 +98,9 @@ export type ServiciosPromoOffer = {
   footnote?: string;
   /** Internal or relative promo link — sanitized before render */
   href?: string;
+  /** Optional supporting assets (local-first data URLs or https) — Phase 5 can wire uploads */
+  assetImageUrl?: string;
+  assetPdfUrl?: string;
 };
 
 /** Identity — required for a routable profile */
@@ -146,6 +167,9 @@ export type ServiciosBusinessProfile = {
   about?: ServiciosAboutBlock;
   services?: ServiciosServiceCard[];
   gallery?: ServiciosGalleryImage[];
+  /** Up to four gallery image ids, in display order, for the main shell grid; remainder are "more" */
+  featuredGalleryIds?: string[];
+  galleryVideos?: ServiciosGalleryVideo[];
   trust?: ServiciosTrustItem[];
   reviews?: ServiciosReview[];
   serviceAreas?: ServiciosServiceAreasBlock;
@@ -192,10 +216,22 @@ export type ServiciosProfileResolved = {
   quickFacts: ServiciosQuickFact[];
   about?: ServiciosAboutBlock;
   services: ServiciosServiceCard[];
+  /** Main shell grid (up to four featured, or full gallery when no featured ids) */
   gallery: ServiciosGalleryImage[];
+  /** Additional gallery images (future lightbox); empty when legacy / no featured split */
+  galleryMore: ServiciosGalleryImage[];
+  /** Up to two sanitized video URLs (https or draft data: URLs) */
+  galleryVideos: ServiciosGalleryVideo[];
   trust: ServiciosTrustItem[];
   reviews: ServiciosReview[];
   serviceAreas: { items: ServiciosServiceArea[]; mapImageUrl?: string };
   /** Sanitized offer — only safe href exposed for links */
-  promo?: { id: string; headline: string; footnote?: string; hrefSafe?: string };
+  promo?: {
+    id: string;
+    headline: string;
+    footnote?: string;
+    hrefSafe?: string;
+    assetImageHrefSafe?: string;
+    assetPdfHrefSafe?: string;
+  };
 };

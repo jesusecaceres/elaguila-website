@@ -61,6 +61,13 @@ export type GalleryItem = {
   source: "file" | "url";
 };
 
+export type VideoItem = {
+  id: string;
+  url: string;
+  source: "file" | "url";
+  isPrimary?: boolean;
+};
+
 export type TestimonialRow = {
   id: string;
   authorName: string;
@@ -80,9 +87,16 @@ export type ClasificadosServiciosApplicationState = {
   logoUrl: string;
   coverUrl: string;
   gallery: GalleryItem[];
+  /** Up to four gallery ids, in display order, for the main shell grid */
+  featuredGalleryIds: string[];
+  videos: VideoItem[];
   aboutText: string;
   specialtiesLine: string;
   selectedServiceIds: string[];
+  /** Short free-text service when presets do not cover it */
+  customServiceLabel: string;
+  /** Interest in Leonix verification (badge shown in preview; real verification is a later step) */
+  leonixVerifiedInterest: boolean;
   selectedReasonIds: string[];
   selectedQuickFactIds: string[];
   /** contact method toggles */
@@ -103,4 +117,7 @@ export type ClasificadosServiciosApplicationState = {
   offerTitle: string;
   offerDetails: string;
   offerLink: string;
+  /** Local-first promo attachments (data URLs or https) — publish wiring comes later */
+  offerImageUrl: string;
+  offerPdfUrl: string;
 };

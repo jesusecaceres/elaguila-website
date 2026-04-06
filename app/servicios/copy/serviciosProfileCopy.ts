@@ -22,6 +22,10 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       visitWebsite: "Visit website",
       featured: "Featured",
       reviewsSummary: (rating: number, count: number) => `${rating} (${count} reviews)`,
+      galleryMore: "More photos",
+      promoViewImage: "View image",
+      promoViewPdf: "View PDF",
+      videoTour: "Video",
     };
   }
   return {
@@ -44,5 +48,9 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     visitWebsite: "Visitar sitio web",
     featured: "Destacado",
     reviewsSummary: (rating: number, count: number) => `${rating} (${count} reseñas)`,
+    galleryMore: "Más fotos",
+    promoViewImage: "Ver imagen",
+    promoViewPdf: "Ver PDF",
+    videoTour: "Video",
   };
 }

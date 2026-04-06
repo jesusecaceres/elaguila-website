@@ -23,6 +23,8 @@ export function mergeStateForBusinessTypeChange(
     ? prev.primaryCtaId
     : (p.primaryCtaOptions[0]?.id ?? "");
 
+  const gIds = new Set(prev.gallery.map((g) => g.id));
+
   return {
     ...prev,
     businessTypeId: newTypeId,
@@ -31,5 +33,6 @@ export function mergeStateForBusinessTypeChange(
     selectedQuickFactIds: prev.selectedQuickFactIds.filter((id) => qSet.has(id)),
     primaryCtaId,
     secondaryCtaIds: prev.secondaryCtaIds.filter((id) => secondarySet.has(id)),
+    featuredGalleryIds: prev.featuredGalleryIds.filter((id) => gIds.has(id)).slice(0, 4),
   };
 }

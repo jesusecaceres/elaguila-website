@@ -91,6 +91,9 @@ export default function CityAutocomplete({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const blurTimerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  /** Latest value for blur timeout — avoids stale closure overwriting after quick refocus/type. */
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   const suggestions = useMemo(() => getSuggestions(value), [value]);
   const showPanel = open && value.trim().length >= 1;
@@ -108,13 +111,14 @@ export default function CityAutocomplete({
   const handleBlur = useCallback(() => {
     blurTimerRef.current = window.setTimeout(() => {
       blurTimerRef.current = null;
-      const canon = normalizeToCanonical(value);
+      const v = valueRef.current;
+      const canon = normalizeToCanonical(v);
       if (canon) onChange(canon);
-      else if (stripInvalidOnBlur && value.trim()) onChange("");
+      else if (stripInvalidOnBlur && v.trim()) onChange("");
       setOpen(false);
       setHighlightedIndex(-1);
     }, BLUR_DELAY_MS);
-  }, [value, onChange, stripInvalidOnBlur]);
+  }, [onChange, stripInvalidOnBlur]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {

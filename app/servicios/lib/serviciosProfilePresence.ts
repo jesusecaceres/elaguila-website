@@ -21,11 +21,18 @@ export function hasAboutSection(p: ServiciosBusinessProfile): boolean {
 }
 
 export function hasServicesSection(p: ServiciosBusinessProfile): boolean {
-  return Array.isArray(p.services) && p.services.some((s) => s && nonEmpty(s.title) && nonEmpty(s.imageUrl));
+  if (!Array.isArray(p.services)) return false;
+  return p.services.some((s) => {
+    if (!s || !nonEmpty(s.title)) return false;
+    if (nonEmpty(s.imageUrl)) return true;
+    return Boolean(s.visualVariant);
+  });
 }
 
 export function hasGallerySection(p: ServiciosBusinessProfile): boolean {
-  return Array.isArray(p.gallery) && p.gallery.some((g) => g && nonEmpty(g.url));
+  const imgs = Array.isArray(p.gallery) && p.gallery.some((g) => g && nonEmpty(g.url));
+  const vids = Array.isArray(p.galleryVideos) && p.galleryVideos.some((v) => v && nonEmpty(v.url));
+  return imgs || vids;
 }
 
 export function hasTrustSection(p: ServiciosBusinessProfile): boolean {
@@ -74,7 +81,7 @@ export function hasServicesSectionResolved(p: ServiciosProfileResolved): boolean
 }
 
 export function hasGallerySectionResolved(p: ServiciosProfileResolved): boolean {
-  return p.gallery.length > 0;
+  return p.gallery.length > 0 || p.galleryMore.length > 0 || p.galleryVideos.length > 0;
 }
 
 export function hasTrustSectionResolved(p: ServiciosProfileResolved): boolean {

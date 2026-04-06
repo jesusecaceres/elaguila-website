@@ -1,4 +1,9 @@
-import { createEmptyAgenteIndividualResidencialState, type AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
+import { COMERCIAL_DESTACADOS_DEFS, TERRENO_DESTACADOS_DEFS } from "../schema/agenteComercialTerrenoMeta";
+import {
+  AGENTE_RES_DESTACADOS_DEFS,
+  createEmptyAgenteIndividualResidencialState,
+  type AgenteIndividualResidencialFormState,
+} from "../schema/agenteIndividualResidencialFormState";
 
 function st(v: unknown): string {
   return String(v ?? "").trim();
@@ -69,5 +74,53 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
     st(state.agente2SocialOtro)
   )
     return true;
+
+  if (state.categoriaPropiedad === "residencial") {
+    if (state.tipoPropiedadCodigo !== e.tipoPropiedadCodigo) return true;
+    if (st(state.subtipoPropiedad)) return true;
+    if (
+      st(state.recamaras) ||
+      st(state.banos) ||
+      st(state.mediosBanos) ||
+      st(state.tamanoInteriorSqft) ||
+      st(state.tamanoLoteSqft) ||
+      st(state.estacionamientos) ||
+      st(state.anoConstruccion)
+    )
+      return true;
+    if (AGENTE_RES_DESTACADOS_DEFS.some((d) => state.destacados[d.id])) return true;
+  }
+  if (state.categoriaPropiedad === "comercial") {
+    if (state.comercialTipoCodigo !== e.comercialTipoCodigo) return true;
+    if (st(state.comercialSubtipoPropiedad)) return true;
+    if (
+      st(state.comercialUso) ||
+      st(state.comercialOficinas) ||
+      st(state.comercialNiveles) ||
+      st(state.comercialZonificacion) ||
+      st(state.banos) ||
+      st(state.tamanoInteriorSqft) ||
+      st(state.tamanoLoteSqft) ||
+      st(state.estacionamientos)
+    )
+      return true;
+    if (state.comercialAccesoCarga) return true;
+    if (COMERCIAL_DESTACADOS_DEFS.some((d) => state.destacadosComercial[d.id])) return true;
+  }
+  if (state.categoriaPropiedad === "terreno_lote") {
+    if (state.terrenoTipoCodigo !== e.terrenoTipoCodigo) return true;
+    if (st(state.terrenoSubtipoPropiedad)) return true;
+    if (
+      st(state.tamanoLoteSqft) ||
+      st(state.terrenoUsoZonificacion) ||
+      st(state.terrenoAcceso) ||
+      st(state.terrenoServicios) ||
+      st(state.terrenoTopografia)
+    )
+      return true;
+    if (state.terrenoListoConstruir || state.terrenoCercado) return true;
+    if (TERRENO_DESTACADOS_DEFS.some((d) => state.destacadosTerreno[d.id])) return true;
+  }
+
   return false;
 }

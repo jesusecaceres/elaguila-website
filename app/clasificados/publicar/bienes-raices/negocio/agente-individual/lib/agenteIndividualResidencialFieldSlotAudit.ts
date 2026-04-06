@@ -4,10 +4,10 @@
  *
  * A. HERO / SUMMARY — wired: titulo, precio, ciudad, areaCiudad, direccion, estadoAnuncio (PreviewPage + format).
  *     tipoPublicacionFijo — wired: formatTipoPublicacionFijoLine → operation line under title.
- * B. QUICK FACTS — wired: buildQuickFacts (recamaras, banos, tamanoInteriorSqft, estacionamientos, anoConstruccion, tamanoLoteSqft).
+ * B. QUICK FACTS — wired: buildQuickFacts by categoriaPropiedad (residencial: beds/baths/sqft/year/lot; comercial: interior/lot/offices/baths/levels/parking; terreno: lot).
  * C. GALLERY — wired: buildGalleryModel (fotosDataUrls, fotoPortadaIndex, videoUrl|videoDataUrl, tourUrl|tourDataUrl, brochureUrl|brochureDataUrl).
- * D. PROPERTY DETAILS — wired: buildPropertyDetailRows (tipo*, condicion, recamaras, banos, mediosBanos, tamano*, estacionamientos, anoConstruccion).
- * E. FEATURES — wired: buildDestacadosLabels / AGENTE_RES_DESTACADOS_DEFS.
+ * D. PROPERTY DETAILS — wired: buildPropertyDetailRows by categoriaPropiedad (residencial / comercial / terreno_lote row sets).
+ * E. FEATURES — wired: buildDestacadosLabels + residencial/comercial/terreno destacados defs.
  * F. DESCRIPTION — wired: descripcionPrincipal, notasAdicionales.
  * G. AGENT CARD — wired: agenteFotoDataUrl, agenteNombre, agenteTitulo, agenteLicencia, agenteTelefonoPersonal/Oficina, agenteWhatsapp, agentePrincipalLlamadas, agenteSitioWeb, correoPrincipal (legacy telefonoPrincipal migrado), agenteAreaServicio, agenteIdiomas.
  * H. MARCA — wired behind mostrarMarcaEnTarjeta: marcaNombre, marcaLogoDataUrl, marcaLicencia, marcaSitioWeb (hasBrandBlockVisible + rail).

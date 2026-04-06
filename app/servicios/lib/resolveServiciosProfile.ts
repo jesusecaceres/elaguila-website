@@ -1,6 +1,7 @@
-import type { ServiciosBusinessProfile, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import type { ServiciosBusinessProfile, ServiciosGalleryImage, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import {
   filterGallery,
+  filterGalleryVideos,
   filterHeroBadges,
   filterQuickFacts,
   filterServiceAreas,
@@ -13,6 +14,7 @@ import {
   normalizeRating,
   normalizeReviewCount,
   safeExternalWebsiteHref,
+  safePromoAssetHref,
   safePromoHref,
   sanitizePhoneDisplay,
   sanitizeTelHref,
@@ -64,21 +66,29 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
   let promo: ServiciosProfileResolved["promo"];
   if (promoIn && trimText(promoIn.headline)) {
     const hrefSafe = safePromoHref(promoIn.href) ?? undefined;
+    const assetImageHrefSafe = safePromoAssetHref(promoIn.assetImageUrl) ?? undefined;
+    const assetPdfHrefSafe = safePromoAssetHref(promoIn.assetPdfUrl) ?? undefined;
     promo = {
       id: trimText(promoIn.id) || "promo",
       headline: trimText(promoIn.headline),
       footnote: trimText(promoIn.footnote) || undefined,
       hrefSafe,
     };
+    if (assetImageHrefSafe) promo.assetImageHrefSafe = assetImageHrefSafe;
+    if (assetPdfHrefSafe) promo.assetPdfHrefSafe = assetPdfHrefSafe;
   }
 
+  /** Testimonials: quote + author only (no self-serve per-quote stars) */
   const reviews = meaningfulReviews(input.reviews).map((r) => ({
-    ...r,
+    id: r.id,
     authorName: trimText(r.authorName),
     quote: trimText(r.quote),
-    rating: normalizeRating(r.rating),
     avatarUrl: r.avatarUrl ? safeExternalWebsiteHref(r.avatarUrl) ?? undefined : undefined,
   }));
+
+  const allGallery = filterGallery(input.gallery);
+  const { gallery, galleryMore } = splitFeaturedGallery(allGallery, input.featuredGalleryIds);
+  const galleryVideos = filterGalleryVideos(input.galleryVideos);
 
   return {
     identity: { slug, businessName },
@@ -108,7 +118,9 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
     quickFacts: filterQuickFacts(input.quickFacts),
     about: sanitizeAbout(input.about),
     services: filterServices(input.services),
-    gallery: filterGallery(input.gallery),
+    gallery,
+    galleryMore,
+    galleryVideos,
     trust: filterTrustItems(input.trust),
     reviews,
     serviceAreas: {
@@ -116,6 +128,30 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
       mapImageUrl: mapImageUrl,
     },
     promo,
+  };
+}
+
+function splitFeaturedGallery(
+  all: ServiciosGalleryImage[],
+  featuredIds: string[] | undefined,
+): { gallery: ServiciosGalleryImage[]; galleryMore: ServiciosGalleryImage[] } {
+  const ids = (featuredIds ?? []).map((id) => trimText(id)).filter(Boolean).slice(0, 4);
+  if (ids.length === 0) {
+    return { gallery: all, galleryMore: [] };
+  }
+  const byId = new Map(all.map((g) => [g.id, g]));
+  const featured: ServiciosGalleryImage[] = [];
+  for (const id of ids) {
+    const g = byId.get(id);
+    if (g) featured.push(g);
+  }
+  if (featured.length === 0) {
+    return { gallery: all, galleryMore: [] };
+  }
+  const featuredSet = new Set(featured.map((g) => g.id));
+  return {
+    gallery: featured,
+    galleryMore: all.filter((g) => !featuredSet.has(g.id)),
   };
 }
 

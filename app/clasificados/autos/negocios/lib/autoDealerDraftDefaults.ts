@@ -2,12 +2,18 @@ import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerLis
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDealerHeroImages";
 
-/** NorCal canonical city when possible; preserves unknown non-empty text for safe backward compatibility. */
+/**
+ * NorCal canonical city when possible; preserves in-progress typing.
+ * Do not `.trim()` the full string: autosave runs on every keystroke and would
+ * swallow the trailing space in "San " before the user types "Jose".
+ */
 function normalizeCityField(raw: string | undefined): string | undefined {
-  const t = raw?.trim();
-  if (!t) return undefined;
-  const canon = getCanonicalCityName(t);
-  return canon || t;
+  if (raw === undefined || raw === "") return undefined;
+  const leadingTrimmed = raw.replace(/^\s+/, "");
+  if (!leadingTrimmed) return undefined;
+  const canon = getCanonicalCityName(leadingTrimmed);
+  if (canon) return canon;
+  return leadingTrimmed;
 }
 
 /** Digits only, max 5 — partial OK in draft; treat full 5 as structured ZIP. */

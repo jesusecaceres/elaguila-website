@@ -11,8 +11,10 @@ import {
   BiArea,
   BiBath,
   BiBed,
+  BiBuilding,
   BiCalendar,
   BiCar,
+  BiLayer,
   BiShapeSquare,
 } from "react-icons/bi";
 import { FiExternalLink, FiMapPin, FiVideo } from "react-icons/fi";
@@ -100,6 +102,8 @@ const QUICK_FACT_ICON: Record<
   estacionamientos: BiCar,
   ano_construccion: BiCalendar,
   tamano_lote: BiShapeSquare,
+  oficinas: BiBuilding,
+  niveles: BiLayer,
 };
 
 function anchorPropsForHref(href: string, downloadFallback?: string | null) {

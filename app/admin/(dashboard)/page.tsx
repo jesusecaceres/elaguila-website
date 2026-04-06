@@ -29,6 +29,21 @@ export default async function AdminHomePage() {
           subtitle="Welcome back — here’s what’s happening today in operations."
         />
 
+        <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF7]/95 p-4 text-sm text-[#5C5346]">
+          <p className="font-semibold text-[#1E1810]">Website editing (sections)</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Public pages are grouped under workspaces — not the same links as the live site menu. Global toggles that cross many pages live in Site modules.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold">
+            <Link href="/admin/workspace" className="text-[#6B5B2E] underline underline-offset-2">
+              Website sections →
+            </Link>
+            <Link href="/admin/site-settings" className="text-[#6B5B2E] underline underline-offset-2">
+              Site modules (global) →
+            </Link>
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <AdminStatCard
             title="Tienda — new orders"
@@ -137,7 +152,7 @@ export default async function AdminHomePage() {
             hint={snap.listingsQueryFallback ? "Count may need DB status alignment." : "Listings in pending/flagged review."}
             icon="📣"
             actionLabel="Review ads"
-            actionHref="/admin/clasificados"
+            actionHref="/admin/workspace/clasificados"
             accent="rose"
           />
           <AdminStatCard
@@ -154,7 +169,7 @@ export default async function AdminHomePage() {
             hint={snap.magazineUpdated ? `Manifest updated: ${snap.magazineUpdated}` : "From public/magazine/editions.json"}
             icon="📰"
             actionLabel="Manage magazines"
-            actionHref="/admin/magazine"
+            actionHref="/admin/workspace/revista"
           />
           <AdminStatCard
             title="Reports / complaints"
@@ -272,7 +287,7 @@ export default async function AdminHomePage() {
               <p className="mt-3 text-xs text-[#5C5346]/90">
                 Admin activity feed: use Activity Log when audit table exists. Placeholder entries only.
               </p>
-              <Link href="/admin/magazine" className="mt-3 inline-flex text-sm font-bold text-[#6B5B2E] underline">
+              <Link href="/admin/workspace/revista" className="mt-3 inline-flex text-sm font-bold text-[#6B5B2E] underline">
                 Open magazine ops →
               </Link>
             </div>

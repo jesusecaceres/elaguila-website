@@ -27,9 +27,13 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     logoUrl: "",
     coverUrl: "",
     gallery: [],
+    featuredGalleryIds: [],
+    videos: [],
     aboutText: "",
     specialtiesLine: "",
     selectedServiceIds: [],
+    customServiceLabel: "",
+    leonixVerifiedInterest: false,
     selectedReasonIds: [],
     selectedQuickFactIds: [],
     enableCall: true,
@@ -48,6 +52,8 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     offerTitle: "",
     offerDetails: "",
     offerLink: "",
+    offerImageUrl: "",
+    offerPdfUrl: "",
   };
 }
 

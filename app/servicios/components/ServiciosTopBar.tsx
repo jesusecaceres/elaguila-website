@@ -17,7 +17,7 @@ function getInitials(input?: string | null) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function ServiciosTopBarInner({ lang }: { lang: ServiciosLang }) {
+function ServiciosTopBarInner({ lang, editBackHref }: { lang: ServiciosLang; editBackHref?: string }) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -39,6 +39,7 @@ function ServiciosTopBarInner({ lang }: { lang: ServiciosLang }) {
             dashboard: "Dashboard",
             listings: "My listings",
             signOut: "Sign out",
+            editBack: "Back to edit",
           }
         : {
             servicios: "Servicios",
@@ -49,6 +50,7 @@ function ServiciosTopBarInner({ lang }: { lang: ServiciosLang }) {
             dashboard: "Panel",
             listings: "Mis anuncios",
             signOut: "Cerrar sesión",
+            editBack: "Volver a editar",
           },
     [lang]
   );
@@ -135,6 +137,14 @@ function ServiciosTopBarInner({ lang }: { lang: ServiciosLang }) {
       style={{ backgroundColor: "rgba(249, 248, 246, 0.92)" }}
     >
       <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-4 py-3 md:px-6">
+        {editBackHref ? (
+          <Link
+            href={editBackHref}
+            className="hidden shrink-0 text-[11px] font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline sm:inline"
+          >
+            {t.editBack}
+          </Link>
+        ) : null}
         <Link href={withLang("/home")} className="flex min-w-0 shrink-0 items-center gap-3 no-underline">
           <span className="relative block h-9 w-[120px] shrink-0 md:h-10 md:w-[140px]">
             <Image src={newLogo} alt="Leonix" className="object-contain object-left" fill sizes="140px" priority />
@@ -260,10 +270,10 @@ function ServiciosTopBarInner({ lang }: { lang: ServiciosLang }) {
   );
 }
 
-export function ServiciosTopBar({ lang }: { lang: ServiciosLang }) {
+export function ServiciosTopBar({ lang, editBackHref }: { lang: ServiciosLang; editBackHref?: string }) {
   return (
     <Suspense fallback={<div className="h-[57px] border-b border-black/5 bg-[#F9F8F6]" />}>
-      <ServiciosTopBarInner lang={lang} />
+      <ServiciosTopBarInner lang={lang} editBackHref={editBackHref} />
     </Suspense>
   );
 }
