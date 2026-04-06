@@ -17,6 +17,14 @@ export default async function AdminWorkspaceRevistaPage() {
         eyebrow="Workspace · Revista"
       />
 
+      <div className="mb-6 rounded-2xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-4 text-sm text-[#5C5346]">
+        <p className="font-semibold text-[#1E1810]">Qué controla este workspace</p>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Solo la sección Revista del sitio público (número en portada y archivo). No sustituye al catálogo de Tienda ni a la cola de Clasificados. La ruta antigua{" "}
+          <code className="rounded bg-white/90 px-1 text-[11px]">/admin/magazine</code> redirige aquí.
+        </p>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className={`${adminCardBase} p-6`}>
           <p className="text-xs font-bold uppercase text-[#7A7164]">Número destacado (featured)</p>
