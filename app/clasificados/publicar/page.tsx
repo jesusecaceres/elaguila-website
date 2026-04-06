@@ -87,7 +87,9 @@ export default function PublicarRootPage() {
           ? `/publicar/autos?${p.toString()}`
           : deepLinkCat === "servicios"
             ? `/clasificados/publicar/servicios?${p.toString()}`
-            : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+            : deepLinkCat === "restaurantes"
+              ? `/publicar/restaurantes?${p.toString()}`
+              : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -186,10 +188,12 @@ export default function PublicarRootPage() {
               const visual = LEONIX_CATEGORY_VISUALS[key];
               const href =
                 key === "autos"
-                  ? withLangParam("/publicar/autos", lang === "en" ? "en" : "es")
+                  ? withLangParam("/publicar/autos", lang)
                   : key === "servicios"
                     ? `/clasificados/publicar/servicios?lang=${lang}`
-                    : `/clasificados/publicar/${key}?lang=${lang}`;
+                    : key === "restaurantes"
+                      ? withLangParam("/publicar/restaurantes", lang)
+                      : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

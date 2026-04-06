@@ -96,7 +96,7 @@ export default async function Page({
 
             <div className="mt-6">
               <Link
-                href={`/clasificados/restaurantes/publicar?${free.toString()}`}
+                href={`/publicar/restaurantes?${free.toString()}`}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/45 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15 transition"
               >
                 {lang === "es" ? "Elegir Gratis y continuar" : "Choose Free & continue"}
@@ -134,7 +134,7 @@ export default async function Page({
 
             <div className="mt-6">
               <Link
-                href={`/clasificados/restaurantes/publicar?${pro.toString()}`}
+                href={`/publicar/restaurantes?${pro.toString()}`}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-400/55 bg-yellow-500/15 px-5 py-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-500/20 transition"
               >
                 {lang === "es" ? "Elegir Pro y continuar" : "Choose Pro & continue"}

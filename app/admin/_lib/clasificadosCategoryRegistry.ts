@@ -72,7 +72,7 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
         sortOrder: i,
         visibility,
         operationalStatus: op,
-        landingTarget: `/clasificados/publicar/${slug}`,
+        landingTarget: slug === "restaurantes" ? `/publicar/restaurantes` : `/clasificados/publicar/${slug}`,
         notes:
           op === "live"
             ? "Primary live Clasificados vertical — taxonomy, publish, preview, dashboard contract."

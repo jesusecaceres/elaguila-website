@@ -274,7 +274,7 @@ export default async function Page({
             {lang === "es" ? "Alertas" : "Alerts"}
           </a>
           <Link
-            href={`/clasificados/restaurantes/publicar?lang=${lang}`}
+            href={`/publicar/restaurantes?lang=${lang}`}
             aria-label="Post a restaurant"
             className="text-center text-sm font-semibold rounded-xl bg-yellow-500 text-black py-2 hover:bg-yellow-400"
           >
