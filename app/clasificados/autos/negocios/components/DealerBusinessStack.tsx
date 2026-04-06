@@ -69,6 +69,8 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
   const officePhoneRaw = resolveDealerOfficePhone(data);
   const phoneDisplay = formatUsPhoneDisplay(officePhoneRaw);
   const phoneForTel = phoneDigitsForTel(officePhoneRaw);
+  /** Require enough digits for a real `tel:` / “Llamar” CTA (avoids dead short fragments). */
+  const validTelForCta = phoneForTel.length >= 10;
   const showPhone = Boolean(officePhoneRaw?.trim()) && (phoneDisplay.length > 0 || phoneForTel.length > 0);
 
   const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
@@ -89,7 +91,7 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
 
   const bookingHref = resolveDealerBookingHref(data);
   const showSchedule = Boolean(bookingHref);
-  const showCallCta = Boolean(phoneForTel);
+  const showCallCta = validTelForCta;
   const showCtaBlock = showWhatsapp || showCallCta || showSchedule;
 
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
@@ -133,7 +135,7 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
               {showPhone ? (
                 <li className={`${ICON_ROW} lg:justify-start`}>
                   <FiPhone className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)] max-lg:h-5 max-lg:w-5" aria-hidden />
-                  {phoneForTel ? (
+                  {phoneForTel && validTelForCta ? (
                     <a
                       href={`tel:${phoneForTel}`}
                       className="font-semibold text-[color:var(--lx-text)] underline-offset-2 hover:underline max-lg:text-[16px]"
@@ -219,7 +221,7 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
                 showCallCta && showSchedule ? "grid-cols-1 sm:grid-cols-2 sm:gap-3 max-lg:grid-cols-2" : "grid-cols-1"
               }`}
             >
-              {showCallCta && phoneForTel ? (
+              {showCallCta ? (
                 <a href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
                   <FiPhone className="h-[18px] w-[18px] shrink-0" aria-hidden />
                   {sb.call}

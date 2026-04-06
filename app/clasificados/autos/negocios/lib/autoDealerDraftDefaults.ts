@@ -151,6 +151,10 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
   merged.city = normalizeCityField(merged.city);
   merged.zip = normalizeZipField(merged.zip);
 
+  // Drop legacy self-entered reputation keys from older drafts (not in product).
+  delete (merged as Record<string, unknown>).dealerRating;
+  delete (merged as Record<string, unknown>).dealerReviewCount;
+
   const officeTrim = merged.dealerPhoneOffice?.trim();
   const legacyPhoneTrim = merged.dealerPhone?.trim();
   if (!officeTrim && legacyPhoneTrim) {
