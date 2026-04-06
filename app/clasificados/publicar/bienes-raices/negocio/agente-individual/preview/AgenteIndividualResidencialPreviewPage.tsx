@@ -7,7 +7,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import leonixMediaWordmark from "@/public/bienes-raices/preview/leonix-media-wordmark.svg";
 import {
   BiArea,
   BiBath,
@@ -253,12 +252,12 @@ export function AgenteIndividualResidencialPreviewPage({
             </div>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(6.5rem,30vw,11rem)]">
               <Image
-                src={leonixMediaWordmark}
-                alt="Leonix Media"
-                width={288}
-                height={44}
-                sizes="(max-width: 640px) 200px, (max-width: 1024px) 240px, 280px"
-                className="h-8 w-auto max-h-9 max-w-[min(280px,58vw)] object-contain object-center sm:h-9 sm:max-h-10 sm:max-w-[min(300px,52vw)]"
+                src="/leonix-preview-wordmark.png"
+                alt="Leonix Media Clasificados"
+                width={640}
+                height={98}
+                sizes="(max-width: 640px) min(220px, 58vw), (max-width: 1024px) 260px, 300px"
+                className="h-auto w-full max-w-[min(240px,58vw)] object-contain object-center sm:max-w-[min(280px,52vw)] lg:max-w-[min(320px,42vw)]"
                 priority
               />
             </div>
@@ -781,16 +780,32 @@ export function AgenteIndividualResidencialPreviewPage({
           >
             <div className="p-3.5 sm:p-4">
               {showBrand ? (
-                <div className="border-b pb-3" style={{ borderColor: "rgba(44,36,22,0.08)" }}>
+                <div
+                  className="mb-4 rounded-xl border px-3 py-3.5 sm:px-4 sm:py-4"
+                  style={{
+                    borderColor: BORDER,
+                    background: "linear-gradient(180deg, rgba(255,252,247,0.98) 0%, rgba(249,246,241,0.92) 100%)",
+                    boxShadow: "0 2px 14px rgba(44,36,22,0.06)",
+                  }}
+                >
                   {trim(data.marcaLogoDataUrl) ? (
-                    <div className="mx-auto mb-2 flex max-w-[148px] justify-center">
+                    <div className="mx-auto mb-2.5 flex h-[4.25rem] w-full max-w-[200px] items-center justify-center sm:h-[4.75rem] sm:max-w-[220px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={trim(data.marcaLogoDataUrl)} alt="" className="max-h-11 w-auto object-contain opacity-[0.97]" />
+                      <img
+                        src={trim(data.marcaLogoDataUrl)}
+                        alt=""
+                        className="max-h-full max-w-full object-contain opacity-[0.98]"
+                      />
                     </div>
                   ) : null}
                   {trim(data.marcaNombre) ? (
-                    <p className={`text-center ${typo.bodySm} font-bold`} style={{ color: MUTED }}>
+                    <p className={`text-center ${typo.bodySm} font-bold leading-snug`} style={{ color: MUTED }}>
                       {trim(data.marcaNombre)}
+                    </p>
+                  ) : null}
+                  {brandLicenseLine ? (
+                    <p className={`mt-1.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
+                      {brandLicenseLine}
                     </p>
                   ) : null}
                   {resolvedBrandSite ? (
@@ -798,17 +813,17 @@ export function AgenteIndividualResidencialPreviewPage({
                       href={resolvedBrandSite}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1.5 flex w-full items-center justify-center gap-1 text-center text-[11px] font-semibold"
+                      className="mt-2 flex w-full items-center justify-center gap-1 text-center text-[11px] font-semibold"
                       style={{ color: BRONZE }}
                     >
-                      Sitio web
+                      {p.sitioWeb}
                       <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
                     </a>
                   ) : null}
                 </div>
               ) : null}
 
-              <div className={showBrand ? "pt-3" : ""}>
+              <div>
                 {showPrimaryAgentVisual ? (
                   <div className="mx-auto w-full max-w-[236px]">
                     {trim(data.agenteFotoDataUrl) ? (
@@ -852,11 +867,6 @@ export function AgenteIndividualResidencialPreviewPage({
                 {agentLicenseLine ? (
                   <p className={`mt-2.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
                     {agentLicenseLine}
-                  </p>
-                ) : null}
-                {brandLicenseLine ? (
-                  <p className={`mt-1.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
-                    {brandLicenseLine}
                   </p>
                 ) : null}
 

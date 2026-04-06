@@ -420,7 +420,10 @@ export function listadoDownloadName(s: AgenteIndividualResidencialFormState): st
 export function hasBrandBlockVisible(s: AgenteIndividualResidencialFormState): boolean {
   return Boolean(
     s.mostrarMarcaEnTarjeta &&
-      (trim(s.marcaNombre) || trim(s.marcaLogoDataUrl) || hrefFromUserInput(s.marcaSitioWeb)),
+      (trim(s.marcaNombre) ||
+        trim(s.marcaLogoDataUrl) ||
+        trim(s.marcaLicencia) ||
+        hrefFromUserInput(s.marcaSitioWeb)),
   );
 }
 
