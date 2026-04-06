@@ -43,6 +43,12 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   const str = (k: string, fallback: string) => (typeof o[k] === "string" ? (o[k] as string) : fallback);
   const bool = (k: string, fallback: boolean) => (typeof o[k] === "boolean" ? (o[k] as boolean) : fallback);
 
+  const offerPrimaryRaw = o.offerPrimaryAsset;
+  let offerPrimaryAsset: ClasificadosServiciosApplicationState["offerPrimaryAsset"] = d.offerPrimaryAsset;
+  if (offerPrimaryRaw === "link" || offerPrimaryRaw === "image" || offerPrimaryRaw === "pdf" || offerPrimaryRaw === "none") {
+    offerPrimaryAsset = offerPrimaryRaw;
+  }
+
   let hours = d.hours;
   if (Array.isArray(o.hours) && o.hours.length === 7) {
     hours = o.hours.map((row, i) => {
@@ -98,7 +104,16 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
 
   let videos: VideoItem[] = d.videos;
   if (Array.isArray(o.videos)) {
-    videos = o.videos.filter(isVideoItem).slice(0, 2);
+    videos = o.videos
+      .filter(isVideoItem)
+      .map((v) => {
+        const row = v as VideoItem;
+        return { ...row, isPrimary: row.isPrimary === true };
+      })
+      .slice(0, 2);
+  }
+  if (videos.length > 0 && !videos.some((v) => v.isPrimary === true)) {
+    videos = videos.map((v, i) => ({ ...v, isPrimary: i === 0 }));
   }
 
   const galleryIdSet = new Set(gallery.map((g) => g.id));
@@ -146,5 +161,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     offerLink: str("offerLink", d.offerLink),
     offerImageUrl: str("offerImageUrl", d.offerImageUrl),
     offerPdfUrl: str("offerPdfUrl", d.offerPdfUrl),
+    offerPrimaryAsset,
+    offerQrLater: bool("offerQrLater", d.offerQrLater),
   };
 }

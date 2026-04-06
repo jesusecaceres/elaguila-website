@@ -11,6 +11,11 @@ import {
   clearBienesRaicesNegocioPublishTempState,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
 import {
+  BR_AGENTE_RES_PREVIEW_DRAFT_KEY,
+  BR_AGENTE_RES_RETURN_KEY,
+  clearAgenteIndividualResidencialPublishTempState,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/previewDraft";
+import {
   EN_VENTA_PREVIEW_DRAFT_KEY_FREE,
   EN_VENTA_PREVIEW_DRAFT_KEY_PRO,
   EN_VENTA_PREVIEW_DRAFT_META_KEY,
@@ -90,6 +95,8 @@ export const CLASSIFIEDS_DRAFT_STORAGE_KEYS = {
     DRAFT_SESSION_ID_KEY,
     BR_NEGOCIO_PREVIEW_DRAFT_KEY,
     BR_NEGOCIO_PREVIEW_RETURN_KEY,
+    BR_AGENTE_RES_PREVIEW_DRAFT_KEY,
+    BR_AGENTE_RES_RETURN_KEY,
     EN_VENTA_PREVIEW_DRAFT_KEY_FREE,
     EN_VENTA_PREVIEW_DRAFT_KEY_PRO,
     EN_VENTA_PREVIEW_DRAFT_META_KEY,
@@ -167,6 +174,7 @@ export function clearAllClassifiedsDrafts(options?: {
     }
     localStorage.removeItem(CLASSIFIEDS_LATEST_APPLICATION_DRAFT_KEY);
     clearBienesRaicesNegocioPublishTempState();
+    clearAgenteIndividualResidencialPublishTempState();
     clearEnVentaPublishTempState();
   } catch {
     // ignore

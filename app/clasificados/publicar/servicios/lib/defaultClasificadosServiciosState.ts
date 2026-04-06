@@ -54,6 +54,8 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     offerLink: "",
     offerImageUrl: "",
     offerPdfUrl: "",
+    offerPrimaryAsset: "none",
+    offerQrLater: false,
   };
 }
 

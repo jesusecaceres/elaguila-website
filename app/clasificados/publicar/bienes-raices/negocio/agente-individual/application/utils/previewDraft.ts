@@ -1,8 +1,17 @@
+import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   createEmptyAgenteIndividualResidencialState,
   mergePartialAgenteIndividualResidencial,
   type AgenteIndividualResidencialFormState,
 } from "../../schema/agenteIndividualResidencialFormState";
+
+/** When JSON merge fails, recover QA routing only if the payload explicitly set a category. */
+function explicitCategoriaInPayload(o: unknown): BrNegocioCategoriaPropiedad | null {
+  if (!o || typeof o !== "object") return null;
+  const v = (o as Record<string, unknown>).categoriaPropiedad;
+  if (v === "residencial" || v === "comercial" || v === "terreno_lote") return v;
+  return null;
+}
 
 /** Aislado del borrador genérico Negocio legacy (`br-negocio-preview-draft`). */
 export const BR_AGENTE_RES_PREVIEW_DRAFT_KEY = "br-negocio-agente-residencial-preview-draft";
@@ -162,7 +171,8 @@ export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormStat
         fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
       );
     } catch {
-      /* fall through */
+      const cat = explicitCategoriaInPayload(fullDraftMediaBridge);
+      if (cat) return mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
     }
   }
   try {
@@ -175,6 +185,8 @@ export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormStat
       if (process.env.NODE_ENV === "development") {
         console.warn("[agente-res preview] merge draft failed", e);
       }
+      const cat = explicitCategoriaInPayload(parsed);
+      if (cat) return mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
       return null;
     }
   } catch {
@@ -220,6 +232,17 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
         } catch (e) {
           if (process.env.NODE_ENV === "development") {
             console.warn("[agente-res preview] merge return draft failed", e);
+          }
+          const cat =
+            explicitCategoriaInPayload(fullDraftMediaBridge) ??
+            explicitCategoriaInPayload(data.state as Record<string, unknown>);
+          if (cat) {
+            const recovered = mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
+            sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
+            fullDraftMediaBridge = null;
+            previewReturnMemory = recovered;
+            scheduleClearReturnMemory();
+            return recovered;
           }
         }
       }

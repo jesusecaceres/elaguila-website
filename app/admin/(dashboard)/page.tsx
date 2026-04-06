@@ -27,19 +27,20 @@ export default async function AdminHomePage() {
         <AdminPageHeader
           title="Leonix Dashboard"
           subtitle="Welcome back — here’s what’s happening today in operations."
+          helperText="La barra lateral es administración global. Para editar secciones del sitio (home, clasificados, tienda…), abre Website sections abajo o en el pie del menú."
         />
 
         <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF7]/95 p-4 text-sm text-[#5C5346]">
           <p className="font-semibold text-[#1E1810]">Website editing (sections)</p>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Public pages are grouped under workspaces — not the same links as the live site menu. Global toggles that cross many pages live in Site modules.
+            Public pages are grouped under workspaces — not the same links as the live site menu. Global toggles that cross many pages live in site-wide settings.
           </p>
           <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold">
             <Link href="/admin/workspace" className="text-[#6B5B2E] underline underline-offset-2">
               Website sections →
             </Link>
             <Link href="/admin/site-settings" className="text-[#6B5B2E] underline underline-offset-2">
-              Site modules (global) →
+              Ajustes globales del sitio →
             </Link>
           </div>
         </div>

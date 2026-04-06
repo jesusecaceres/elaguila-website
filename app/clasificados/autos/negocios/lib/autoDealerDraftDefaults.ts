@@ -84,11 +84,14 @@ export function createEmptyListing(): AutoDealerListing {
     muxPlaybackId: undefined,
     dealerName: undefined,
     dealerLogo: undefined,
+    dealerPhoneOffice: undefined,
     dealerPhone: undefined,
+    dealerPhoneMobile: undefined,
     dealerWhatsapp: undefined,
     dealerAddress: undefined,
     dealerHours: [],
     dealerWebsite: undefined,
+    dealerBookingUrl: undefined,
     dealerSocials: {},
     dealerRating: undefined,
     dealerReviewCount: undefined,
@@ -149,6 +152,13 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
 
   merged.city = normalizeCityField(merged.city);
   merged.zip = normalizeZipField(merged.zip);
+
+  const officeTrim = merged.dealerPhoneOffice?.trim();
+  const legacyPhoneTrim = merged.dealerPhone?.trim();
+  if (!officeTrim && legacyPhoneTrim) {
+    merged.dealerPhoneOffice = legacyPhoneTrim;
+    merged.dealerPhone = undefined;
+  }
 
   merged.heroImages = deriveHeroImageUrls(merged);
   return merged;

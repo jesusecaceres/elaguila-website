@@ -120,6 +120,10 @@ export type ServiciosApplicationPromoDraft = {
   href?: string;
   assetImageUrl?: string;
   assetPdfUrl?: string;
+  /** Application hint for future coupon pipeline (not rendered in shell yet) */
+  primaryAssetKind?: "link" | "image" | "pdf";
+  /** Reserved for QR attachment phase */
+  qrIntent?: boolean;
 };
 
 export type ServiciosApplicationQuickFactDraft = {

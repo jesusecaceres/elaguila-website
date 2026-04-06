@@ -1,4 +1,5 @@
 import type { AutoDealerListing } from "../types/autoDealerListing";
+import { resolveDealerBookingHref, resolveDealerOfficePhone } from "./dealerContactResolve";
 import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "./dealerDraftSanitize";
 import { deriveHeroImageUrls } from "./autoDealerHeroImages";
 import { filterDealerHoursForDisplay } from "./dealerHoursDisplay";
@@ -80,7 +81,9 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
   return (
     nonEmpty(data.dealerName) ||
     Boolean(data.dealerLogo) ||
-    nonEmpty(data.dealerPhone) ||
+    nonEmpty(resolveDealerOfficePhone(data)) ||
+    nonEmpty(data.dealerWhatsapp ?? undefined) ||
+    Boolean(resolveDealerBookingHref(data)) ||
     nonEmpty(data.dealerAddress) ||
     hasHours ||
     nonEmpty(data.dealerWebsite ?? undefined) ||

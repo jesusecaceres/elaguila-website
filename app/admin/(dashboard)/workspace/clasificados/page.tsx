@@ -63,6 +63,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         title="Clasificados — anuncios"
         subtitle="Cola operativa para todas las categorías. En Venta es el estándar vivo — usa las herramientas de moderación abajo. El registro de categorías y reportes siguen enlazados aquí."
         eyebrow="Workspace · Clasificados"
+        helperText="Moderación y listados de anuncios viven aquí. Tienda (productos impresos/self-serve) es otro workspace: no mezclar flujos."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">

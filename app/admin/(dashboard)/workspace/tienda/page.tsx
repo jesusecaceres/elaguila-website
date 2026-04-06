@@ -2,59 +2,77 @@ import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminCardBase, adminBtnSecondary } from "../../../_components/adminTheme";
 
-const AREAS = [
+type TiendaWorkspaceArea = {
+  title: string;
+  body: string;
+  href: string;
+  cta: string;
+  openInNewTab?: boolean;
+};
+
+const AREAS: TiendaWorkspaceArea[] = [
   {
-    title: "Pedidos (inbox)",
-    body: "Bandeja de órdenes self-serve: estados, notas internas, archivos del cliente. El contador sin leer sigue en la barra superior.",
-    href: "/admin/tienda/orders",
-    cta: "Abrir pedidos",
+    title: "Vitrina pública",
+    body: "Así ve el visitante el escaparate en `/tienda`. El contenido editable (textos, fotos, precios, visibilidad) se gestiona en el catálogo admin.",
+    href: "/tienda",
+    cta: "Abrir vitrina en nueva pestaña",
+    openInNewTab: true,
   },
   {
-    title: "Catálogo (artículos)",
-    body: "Alta/edición de ítems, visibilidad, textos y metadatos de producto. Las rutas de CRUD no cambian.",
+    title: "Categorías de producto",
+    body: "Familias y slugs de Tienda viven en el registro de categorías del código; usa el listado del catálogo para alinear cada artículo con su categoría pública.",
+    href: "/admin/tienda/catalog",
+    cta: "Ir al catálogo",
+  },
+  {
+    title: "Artículos del catálogo",
+    body: "Alta, edición, visibilidad y metadatos por ítem. Es el mismo CRUD que ya usas: rutas bajo `/admin/tienda/catalog`.",
     href: "/admin/tienda/catalog",
     cta: "Abrir catálogo",
   },
   {
     title: "Imágenes y foto principal",
-    body: "Gestión de activos por ítem y elección de imagen principal — dentro de cada ficha del catálogo.",
+    body: "Subidas por producto y elección de imagen principal dentro de cada ficha del catálogo (sin flujo paralelo).",
     href: "/admin/tienda/catalog",
-    cta: "Ir al catálogo",
+    cta: "Elegir en cada artículo",
   },
   {
     title: "Precios y reglas",
-    body: "Campos de precio y notas por ítem en la ficha; reglas de visibilidad y modo self-serve según el registro.",
+    body: "Precio base, etiqueta visible, modo de precios y CTA por ítem en la ficha; reglas de self-serve según el tipo de producto.",
     href: "/admin/tienda/catalog",
     cta: "Editar en catálogo",
   },
   {
     title: "Destacados en vitrina",
-    body: "Marcar ítems para el escaparate público (`featuredStorefront` en catálogo admin + consultas públicas).",
+    body: "Marcar ítems para el escaparate (`featuredStorefront` y consultas públicas) desde la administración del catálogo.",
     href: "/admin/tienda/catalog",
     cta: "Gestionar destacados",
   },
   {
-    title: "Categorías públicas (referencia)",
-    body: "Las familias y slugs de Tienda viven en código/registro de producto; esta tarjeta enlaza al catálogo para alinear contenido con cada categoría.",
-    href: "/admin/tienda/catalog",
-    cta: "Ver ítems por categoría",
+    title: "Pedidos (inbox)",
+    body: "Bandeja de órdenes self-serve: estados, notas internas y archivos del cliente. El contador sin leer sigue en el encabezado y en el Dashboard global.",
+    href: "/admin/tienda/orders",
+    cta: "Abrir pedidos",
   },
-] as const;
+];
 
 export default function AdminWorkspaceTiendaPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Tienda — operación de la vitrina"
-        subtitle="Todo el CRUD real sigue en las rutas /admin/tienda/catalog y /admin/tienda/orders. Esta página agrupa el mapa mental del equipo: qué tocar para pedidos, fotos, precios y destacados."
+        title="Tienda — workspace de la vitrina"
+        subtitle="Mapa operativo del equipo: mismas rutas de CRUD que ya funcionan bajo `/admin/tienda/*`. Esta página no reemplaza formularios; orienta qué abrir para cada tarea."
         eyebrow="Workspace · Tienda"
+        helperText="Usa la franja “Dentro de Tienda” cuando estés en pedidos o catálogo para saltar entre áreas sin volver al menú global."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#C9B46A]/35 bg-[#FFFCF7] p-4 text-sm text-[#5C5346]`}>
-        <p className="font-semibold text-[#1E1810]">Cómo usar este workspace</p>
-        <p className="mt-1 text-xs text-[#7A7164]">
-          Las tarjetas son accesos directos al mismo admin que ya conoces; no movimos formularios para no romper flujos probados. El contador de pedidos sin leer sigue en la campana del encabezado y en el Dashboard.
-        </p>
+        <p className="font-semibold text-[#1E1810]">Orden sugerido para capacitación</p>
+        <ol className="mt-2 list-inside list-decimal space-y-1 text-xs text-[#7A7164]">
+          <li>Vitrina pública → ver resultado.</li>
+          <li>Catálogo → artículos, fotos, precios y destacados.</li>
+          <li>Pedidos → cumplimiento después de la compra.</li>
+        </ol>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -62,7 +80,11 @@ export default function AdminWorkspaceTiendaPage() {
           <div key={a.title} className={`${adminCardBase} p-5`}>
             <h2 className="font-bold text-[#1E1810]">{a.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{a.body}</p>
-            <Link href={a.href} className={`${adminBtnSecondary} mt-4 inline-flex`}>
+            <Link
+              href={a.href}
+              className={`${adminBtnSecondary} mt-4 inline-flex`}
+              {...(a.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            >
               {a.cta} →
             </Link>
           </div>

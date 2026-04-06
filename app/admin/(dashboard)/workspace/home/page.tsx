@@ -17,6 +17,7 @@ export default function AdminWorkspaceHomePage() {
         title="Home — portada principal"
         subtitle="Lo que ves en `/` (hero, anuncios, destacados de clasificados en home, etc.). Los interruptores que afectan a todo el sitio viven en Ajustes globales del sitio."
         eyebrow="Workspace · Home"
+        helperText="Primera impresión del visitante: hero y bloques de la página de inicio. Si tu cambio es transversal (varias rutas), revisa Ajustes globales del sitio."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4`}>

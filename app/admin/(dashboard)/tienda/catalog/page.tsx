@@ -93,11 +93,12 @@ export default async function AdminTiendaCatalogListPage({
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="Tienda catalog"
-        subtitle="Admin-managed products for Tienda — bilingual copy, pricing labels, CTAs, and images. Source of truth lives in Supabase."
+        title="Catálogo de Tienda"
+        subtitle="Artículos que alimentan la vitrina: textos, precios, CTAs, visibilidad e imágenes. La fuente de verdad está en Supabase."
+        helperText="Abre un artículo para subir fotos, elegir la imagen principal y ajustar precios. Los destacados en vitrina se controlan desde los mismos registros."
         rightSlot={
           <Link href="/admin/tienda/catalog/new" className={adminBtnPrimary}>
-            + New item
+            + Nuevo artículo
           </Link>
         }
       />

@@ -118,12 +118,21 @@ export type AutoDealerListing = {
   muxPlaybackId?: string | null;
   dealerName?: string;
   dealerLogo?: string | null;
+  /** Primary public office phone for display + “Llamar” / `tel:`. */
+  dealerPhoneOffice?: string;
+  /**
+   * @deprecated Loaded drafts migrate this into `dealerPhoneOffice` on normalize; do not write from new UI.
+   */
   dealerPhone?: string;
+  /** Optional direct/mobile line — persisted only; not shown as a second call CTA on preview. */
+  dealerPhoneMobile?: string;
   /** Business WhatsApp (display as typed; normalized for wa.me links in preview). */
   dealerWhatsapp?: string | null;
   dealerAddress?: string;
   dealerHours?: DealerHoursEntry[];
   dealerWebsite?: string | null;
+  /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
+  dealerBookingUrl?: string | null;
   dealerSocials?: DealerSocials;
   dealerRating?: number;
   dealerReviewCount?: number;

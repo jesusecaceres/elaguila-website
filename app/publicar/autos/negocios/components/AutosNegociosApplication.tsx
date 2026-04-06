@@ -496,13 +496,25 @@ export function AutosNegociosApplication() {
                 />
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.phone}</label>
+                <label className={LABEL}>{t.app.labels.phoneOffice}</label>
                 <input
                   className={INPUT}
                   inputMode="tel"
-                  value={listing.dealerPhone ?? ""}
-                  onChange={(e) => setListingPatch({ dealerPhone: e.target.value || undefined })}
+                  autoComplete="tel"
+                  value={listing.dealerPhoneOffice ?? ""}
+                  onChange={(e) => setListingPatch({ dealerPhoneOffice: e.target.value || undefined })}
                 />
+              </div>
+              <div>
+                <label className={LABEL}>{t.app.labels.phoneMobile}</label>
+                <input
+                  className={INPUT}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={listing.dealerPhoneMobile ?? ""}
+                  onChange={(e) => setListingPatch({ dealerPhoneMobile: e.target.value || undefined })}
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.phoneMobile}</p>
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.whatsapp}</label>
@@ -524,6 +536,18 @@ export function AutosNegociosApplication() {
                   value={listing.dealerWebsite ?? ""}
                   onChange={(e) => setListingPatch({ dealerWebsite: e.target.value.trim() || undefined })}
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>{t.app.labels.bookingUrl}</label>
+                <input
+                  className={INPUT}
+                  placeholder={t.app.placeholders.https}
+                  value={listing.dealerBookingUrl ?? ""}
+                  onChange={(e) =>
+                    setListingPatch({ dealerBookingUrl: e.target.value.trim() ? e.target.value : undefined })
+                  }
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.bookingUrl}</p>
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.address}</label>

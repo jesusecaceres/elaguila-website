@@ -140,7 +140,7 @@ function ServiciosTopBarInner({ lang, editBackHref }: { lang: ServiciosLang; edi
         {editBackHref ? (
           <Link
             href={editBackHref}
-            className="hidden shrink-0 text-[11px] font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline sm:inline"
+            className="shrink-0 text-[11px] font-semibold text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline"
           >
             {t.editBack}
           </Link>

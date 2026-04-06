@@ -100,8 +100,9 @@ export default async function AdminTiendaOrderDetailPage({ params }: { params: P
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <AdminPageHeader
-          title={`Order ${orderView.order_ref}`}
-          subtitle={`Internal ID ${orderView.id} · Source ${orderView.source_type} · Flow ${flowLabel}`}
+          title={`Pedido ${orderView.order_ref}`}
+          subtitle={`ID interno ${orderView.id} · Origen ${orderView.source_type} · Flujo ${flowLabel}`}
+          helperText="Revisa archivos del cliente, notas internas y estado de cumplimiento. Para dudas generales del usuario, abre Support en el menú global."
         />
         <div className="flex flex-col items-end gap-2">
           <Link href="/admin/tienda/orders" className="text-sm font-bold text-[#6B5B2E] underline">

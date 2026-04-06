@@ -54,7 +54,7 @@ export default function AdminWorkspaceHubPage() {
         <p className="font-semibold text-[#1E1810]">Módulos que cruzan varias páginas</p>
         <p className="mt-1 text-xs text-[#7A7164]">
           Interruptores o listas que afectan más de una ruta viven en{" "}
-          <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline">
+          <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline" title="Módulos y conmutadores transversales">
             Ajustes globales del sitio
           </Link>
           .

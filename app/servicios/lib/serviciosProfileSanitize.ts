@@ -159,7 +159,7 @@ export function filterServices(services: ServiciosServiceCard[] | undefined): Se
       const row: ServiciosServiceCard = {
         id: s.id,
         title,
-        secondaryLine: secondaryLine || "—",
+        secondaryLine: secondaryLine,
         imageUrl,
         imageAlt,
       };
@@ -171,7 +171,7 @@ export function filterServices(services: ServiciosServiceCard[] | undefined): Se
       out.push({
         id: s.id,
         title,
-        secondaryLine: secondaryLine || "—",
+        secondaryLine: secondaryLine,
         imageAlt,
         visualVariant,
       });

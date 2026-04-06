@@ -310,5 +310,6 @@ function mapPromo(raw: ServiciosApplicationDraft["promo"]): ServiciosPromoOffer 
   if (href) promo.href = href;
   if (assetImageUrl) promo.assetImageUrl = assetImageUrl;
   if (assetPdfUrl) promo.assetPdfUrl = assetPdfUrl;
+  // primaryAssetKind / qrIntent are draft-only until publish tooling consumes them
   return promo;
 }

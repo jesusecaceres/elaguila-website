@@ -59,10 +59,12 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
 
   if (nonEmpty(listing.dealerName)) return true;
   if (Boolean(listing.dealerLogo)) return true;
-  if (nonEmpty(listing.dealerPhone)) return true;
+  if (nonEmpty(listing.dealerPhoneOffice ?? listing.dealerPhone)) return true;
+  if (nonEmpty(listing.dealerPhoneMobile)) return true;
   if (nonEmpty(listing.dealerWhatsapp ?? undefined)) return true;
   if (nonEmpty(listing.dealerAddress)) return true;
   if (nonEmpty(listing.dealerWebsite ?? undefined)) return true;
+  if (nonEmpty(listing.dealerBookingUrl ?? undefined)) return true;
 
   const hours = listing.dealerHours ?? [];
   if (hours.some((r) => nonEmpty(r.day))) return true;

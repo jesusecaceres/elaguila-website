@@ -45,8 +45,8 @@ function variantSurface(v: ServiciosServiceVisualVariant | undefined): { gradien
 }
 
 function gridClass(count: number): string {
-  if (count === 1) return "grid grid-cols-1 gap-4 max-w-xl mx-auto";
-  if (count === 2) return "grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-3xl mx-auto";
+  if (count === 1) return "grid grid-cols-1 gap-4 max-w-2xl mx-auto";
+  if (count === 2) return "grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-4xl mx-auto sm:max-w-5xl";
   if (count === 3) return "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
   return "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4";
 }
@@ -73,7 +73,12 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
               key={s.id}
               className="group overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-sm transition hover:shadow-md"
             >
-              <div className="relative aspect-[4/3] w-full overflow-hidden">
+              <div
+                className={[
+                  "relative w-full overflow-hidden",
+                  items.length <= 2 ? "aspect-[4/3] sm:aspect-[5/3]" : "aspect-[4/3]",
+                ].join(" ")}
+              >
                 {hasPhoto && s.imageUrl ? (
                   <>
                     <Image
@@ -91,7 +96,9 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
                       }}
                     >
                       <h3 className="text-sm font-bold leading-snug text-white drop-shadow-sm">{s.title}</h3>
-                      <p className="mt-0.5 text-xs font-medium text-white/90">{s.secondaryLine}</p>
+                      {s.secondaryLine.trim() ? (
+                        <p className="mt-0.5 text-xs font-medium text-white/90">{s.secondaryLine}</p>
+                      ) : null}
                     </div>
                   </>
                 ) : (
@@ -105,7 +112,9 @@ export function ServiciosServicesGrid({ profile, lang }: { profile: ServiciosPro
                     />
                     <Icon className="relative z-[1] mb-3 h-8 w-8 text-white/90 drop-shadow" aria-hidden />
                     <h3 className="relative z-[1] text-sm font-bold leading-snug text-white drop-shadow-sm">{s.title}</h3>
-                    <p className="relative z-[1] mt-1 text-xs font-medium text-white/85">{s.secondaryLine}</p>
+                    {s.secondaryLine.trim() ? (
+                      <p className="relative z-[1] mt-1 text-xs font-medium text-white/85">{s.secondaryLine}</p>
+                    ) : null}
                   </div>
                 )}
               </div>

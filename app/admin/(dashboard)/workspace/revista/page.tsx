@@ -15,6 +15,7 @@ export default async function AdminWorkspaceRevistaPage() {
         title="Revista — números y portada"
         subtitle="Aquí vive la operación de la revista pública: número destacado, archivo por año/mes, y formularios de carga cuando exista almacenamiento. Los datos actuales salen de `public/magazine/editions.json`."
         eyebrow="Workspace · Revista"
+        helperText="Número en portada y archivo público. No es el catálogo de Tienda ni la cola de Clasificados."
       />
 
       <div className="mb-6 rounded-2xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-4 text-sm text-[#5C5346]">

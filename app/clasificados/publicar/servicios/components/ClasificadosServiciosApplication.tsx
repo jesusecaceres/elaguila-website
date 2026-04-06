@@ -4,7 +4,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiChevronDown, FiChevronUp, FiImage, FiPlus, FiStar, FiTrash2, FiUpload } from "react-icons/fi";
+import {
+  FiCheck,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+  FiChevronUp,
+  FiImage,
+  FiPlus,
+  FiStar,
+  FiTrash2,
+  FiUpload,
+} from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import {
   BUSINESS_TYPE_PRESETS,
@@ -93,6 +104,7 @@ export function ClasificadosServiciosApplication() {
   const [coverUrlDraft, setCoverUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
+  const [galleryZoneActive, setGalleryZoneActive] = useState(false);
 
   useEffect(() => {
     const s = readClasificadosServiciosApplicationFromBrowser();
@@ -201,25 +213,44 @@ export function ClasificadosServiciosApplication() {
     });
   };
 
+  const moveFeaturedOrder = (featuredIndex: number, delta: number) => {
+    setState((prev) => {
+      const fg = [...prev.featuredGalleryIds];
+      const j = featuredIndex + delta;
+      if (j < 0 || j >= fg.length) return prev;
+      const a = fg[featuredIndex]!;
+      fg[featuredIndex] = fg[j]!;
+      fg[j] = a;
+      return { ...prev, featuredGalleryIds: fg };
+    });
+  };
+
   const addVideoFile = async (file: File | null) => {
     if (!file?.type.startsWith("video/")) return;
     const url = await readFileAsDataUrl(file);
-    setState((prev) => ({
-      ...prev,
-      videos: [...prev.videos, { id: newVideoId(), url, source: "file" as const }].slice(0, 2),
-    }));
+    setState((prev) => {
+      const row = { id: newVideoId(), url, source: "file" as const };
+      const next = [...prev.videos, row].slice(0, 2);
+      if (prev.videos.length === 0) {
+        return { ...prev, videos: [{ ...row, isPrimary: true }] };
+      }
+      const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? prev.videos[0]!.id;
+      return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
+    });
   };
 
   const addVideoUrl = () => {
     const raw = videoUrlDraft.trim();
     if (!raw || !isProbablyValidWebUrl(raw)) return;
-    setState((prev) => ({
-      ...prev,
-      videos: [
-        ...prev.videos,
-        { id: newVideoId(), url: normalizeHttpUrl(raw), source: "url" as const },
-      ].slice(0, 2),
-    }));
+    setState((prev) => {
+      const row = { id: newVideoId(), url: normalizeHttpUrl(raw), source: "url" as const };
+      const next = [...prev.videos, row].slice(0, 2);
+      if (prev.videos.length === 0) {
+        return { ...prev, videos: [{ ...row, isPrimary: true }] };
+      }
+      const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? prev.videos[0]!.id;
+      return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
+    });
     setVideoUrlDraft("");
   };
 
@@ -262,18 +293,16 @@ export function ClasificadosServiciosApplication() {
             >
               {copy.langToggle}
             </Link>
-            <button
-              type="button"
-              onClick={() => {
-                writeClasificadosServiciosApplicationToBrowser(state);
-                window.location.assign(`/clasificados/publicar/servicios/preview?lang=${lang}`);
-              }}
+            <Link
+              href={previewHref}
+              onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
               className="rounded-lg bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#2f5699]"
             >
               {copy.previewCta}
-            </button>
+            </Link>
             <Link
-              href={previewHref}
+              href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
+              onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
               className="rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-1.5 text-xs font-semibold text-[#5D4A25]/90 hover:bg-[#FFF6E7]"
             >
               {copy.linkPreviewShell}
@@ -286,7 +315,7 @@ export function ClasificadosServiciosApplication() {
         <p className="mx-auto max-w-5xl px-4 pb-3 text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 lg:max-w-5xl">
+      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 pb-24 sm:pb-8 lg:max-w-5xl">
         {/* 1 · Tipo */}
         <section className={sectionCard} aria-labelledby="sec-type">
           <h2 id="sec-type" className="text-lg font-bold text-[#3D2C12]">
@@ -409,6 +438,7 @@ export function ClasificadosServiciosApplication() {
           <ul className="mt-3 list-inside list-disc space-y-1 text-xs leading-relaxed text-[#6b5c42]">
             <li>{copy.labels.galleryFeaturedHint}</li>
             <li>{copy.labels.galleryMoreHint}</li>
+            <li>{copy.labels.galleryMultiSelectHint}</li>
             <li>{copy.labels.videosHint}</li>
           </ul>
 
@@ -502,15 +532,50 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-10">
             <p className={labelClass}>{copy.labels.gallery}</p>
-            <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => void addGalleryFiles(e.target.files)} />
-            <button
-              type="button"
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void addGalleryFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && galleryInputRef.current?.click()}
               onClick={() => galleryInputRef.current?.click()}
-              className="mt-2 inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setGalleryZoneActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                const rel = e.relatedTarget as Node | null;
+                if (rel && e.currentTarget.contains(rel)) return;
+                setGalleryZoneActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setGalleryZoneActive(false);
+                void addGalleryFiles(e.dataTransfer.files);
+              }}
+              className={[
+                "mt-2 flex min-h-[100px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition",
+                galleryZoneActive
+                  ? "border-[#3B66AD] bg-[#3B66AD]/5"
+                  : "border-[#D8C79A]/80 bg-[#FFFCF7] hover:border-[#3B66AD]/45",
+              ].join(" ")}
             >
-              <FiUpload className="h-4 w-4" aria-hidden />
-              {copy.labels.upload}
-            </button>
+              <FiUpload className="h-7 w-7 text-[#B28A2F]" aria-hidden />
+              <span className="mt-2 text-sm font-semibold text-[#3D2C12]">{copy.labels.upload}</span>
+              <span className="mt-1 max-w-sm text-xs text-[#6b5c42]">{copy.labels.dropzone}</span>
+            </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <input
                 className={`${inputClass} max-w-md flex-1`}
@@ -522,6 +587,46 @@ export function ClasificadosServiciosApplication() {
                 {copy.labels.addUrl}
               </button>
             </div>
+            {state.featuredGalleryIds.length > 0 ? (
+              <div className="mt-6 rounded-xl border border-[#D8C79A]/50 bg-[#FFFCF7]/80 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#5D4A25]">{copy.labels.featuredStripTitle}</p>
+                <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.featuredStripHint}</p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {state.featuredGalleryIds.map((fid, fi) => {
+                    const g = state.gallery.find((x) => x.id === fid);
+                    if (!g) return null;
+                    return (
+                      <div key={fid} className="flex flex-col items-center gap-1">
+                        <div className="relative h-16 w-20 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 sm:h-[72px] sm:w-[104px]">
+                          <Image src={g.url} alt="" fill className="object-cover" unoptimized />
+                          <span className="absolute left-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            {fi + 1}
+                          </span>
+                        </div>
+                        <div className="flex gap-0.5">
+                          <button
+                            type="button"
+                            className="rounded border border-[#D8C79A]/80 p-1 text-[#3D2C12] hover:bg-white"
+                            onClick={() => moveFeaturedOrder(fi, -1)}
+                            aria-label={copy.labels.moveFeaturedLeft}
+                          >
+                            <FiChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded border border-[#D8C79A]/80 p-1 text-[#3D2C12] hover:bg-white"
+                            onClick={() => moveFeaturedOrder(fi, 1)}
+                            aria-label={copy.labels.moveFeaturedRight}
+                          >
+                            <FiChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
             {state.gallery.length === 0 ? (
               <p className="mt-4 text-sm text-[#8a7a62]">{copy.labels.emptyGallery}</p>
             ) : (
@@ -1043,8 +1148,43 @@ export function ClasificadosServiciosApplication() {
               </button>
             ) : null}
           </div>
+          <p className={`mt-6 ${labelClass}`}>{copy.labels.offerPrimaryLabel}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(
+              [
+                ["none", copy.labels.offerPrimaryNone] as const,
+                ["link", copy.labels.offerPrimaryLink] as const,
+                ["image", copy.labels.offerPrimaryImage] as const,
+                ["pdf", copy.labels.offerPrimaryPdf] as const,
+              ] as const
+            ).map(([val, lab]) => (
+              <Chip key={val} selected={state.offerPrimaryAsset === val} onClick={() => setState((s) => ({ ...s, offerPrimaryAsset: val }))}>
+                {lab}
+              </Chip>
+            ))}
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerAssetContractNote}</p>
+          <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm text-[#5D4A25]">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
+              checked={state.offerQrLater}
+              onChange={(e) => setState((s) => ({ ...s, offerQrLater: e.target.checked }))}
+            />
+            <span>{copy.labels.offerQrLater}</span>
+          </label>
         </section>
       </main>
+
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/95 px-4 py-3 backdrop-blur sm:hidden">
+        <Link
+          href={previewHref}
+          onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+          className="block w-full rounded-xl bg-[#3B66AD] py-3 text-center text-sm font-bold text-white shadow-sm"
+        >
+          {copy.previewCta}
+        </Link>
+      </div>
     </div>
   );
 }

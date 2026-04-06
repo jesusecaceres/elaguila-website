@@ -97,7 +97,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       title,
       secondaryLine: "",
       imageAlt: title,
-      visualVariant: "default",
+      visualVariant: inferServiceVisualVariant("custom_otro", title, title),
     });
   }
 
@@ -252,6 +252,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (reviews.length) draft.reviews = reviews;
   if (serviceAreas && (serviceAreas.items?.length || serviceAreas.mapImageUrl)) draft.serviceAreas = serviceAreas;
   if (offerTitle) {
+    const pa = state.offerPrimaryAsset;
     draft.promo = {
       id: "promo-clasificados",
       headline: offerTitle,
@@ -259,6 +260,8 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       href: state.offerLink.trim() ? normalizeHttpUrl(state.offerLink.trim()) : undefined,
       assetImageUrl: state.offerImageUrl.trim() || undefined,
       assetPdfUrl: state.offerPdfUrl.trim() || undefined,
+      ...(pa === "link" || pa === "image" || pa === "pdf" ? { primaryAssetKind: pa } : {}),
+      ...(state.offerQrLater === true ? { qrIntent: true } : {}),
     };
   }
 

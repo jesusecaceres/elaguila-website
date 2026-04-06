@@ -64,8 +64,9 @@ export const mockAutoDealerListing: AutoDealerListing = {
   videoUrl: "https://example.com/walkaround",
   dealerName: "Bay Prestige Motors",
   dealerLogo: IMG.dealer,
-  dealerPhone: "(408) 555-0142",
+  dealerPhoneOffice: "(408) 555-0142",
   dealerWhatsapp: "+1 408 555 0199",
+  dealerBookingUrl: "https://example.com/book-test-drive",
   dealerAddress: "1855 W San Carlos St, San José, CA 95128",
   dealerHours: [
     { day: "Lun–Vie", open: "09:00", close: "19:00", closed: false },

@@ -1,8 +1,12 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
-import { applyBrNegocioBranchQuery } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import {
+  applyBrNegocioBranchQuery,
+  BR_NEGOCIO_Q_PROPIEDAD,
+  parseBrNegocioPropiedadParam,
+} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
@@ -46,9 +50,16 @@ export default function AgenteIndividualResidencialApplication() {
   useLayoutEffect(() => {
     const boot = bootstrapAgenteIndividualResidencialApplicationState();
     setState(applyBrNegocioBranchQuery(boot, searchParams));
-    // Branch query is applied once on entry; draft/bootstrap owns subsequent state.
+    // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const propiedadParam = searchParams?.get(BR_NEGOCIO_Q_PROPIEDAD) ?? null;
+  useEffect(() => {
+    const prop = parseBrNegocioPropiedadParam(propiedadParam);
+    if (!prop) return;
+    setState((s) => (s.categoriaPropiedad === prop ? s : { ...s, categoriaPropiedad: prop }));
+  }, [propiedadParam]);
 
   const stepLabels = t.stepLabels;
   const total = stepLabels.length;

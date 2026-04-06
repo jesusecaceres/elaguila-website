@@ -88,6 +88,18 @@ export type ClasificadosServiciosCopy = {
     moveUp: string;
     moveDown: string;
     featuredToggle: string;
+    galleryMultiSelectHint: string;
+    featuredStripTitle: string;
+    featuredStripHint: string;
+    moveFeaturedLeft: string;
+    moveFeaturedRight: string;
+    offerPrimaryLabel: string;
+    offerPrimaryNone: string;
+    offerPrimaryLink: string;
+    offerPrimaryImage: string;
+    offerPrimaryPdf: string;
+    offerQrLater: string;
+    offerAssetContractNote: string;
   };
 };
 
@@ -168,6 +180,11 @@ const es: ClasificadosServiciosCopy = {
     galleryFeaturedHint:
       "Selecciona las 4 imágenes principales que quieres mostrar en tu anuncio (icono de estrella).",
     galleryMoreHint: "Las imágenes adicionales podrán verse al abrir la galería.",
+    galleryMultiSelectHint: "Puedes elegir varias fotos a la vez desde el selector de archivos.",
+    featuredStripTitle: "Orden en la galería principal",
+    featuredStripHint: "Así aparecerán en la vista previa. Usa las flechas para cambiar el orden.",
+    moveFeaturedLeft: "Mover antes",
+    moveFeaturedRight: "Mover después",
     videosHint: "Puedes agregar hasta 2 videos (archivo o enlace, por ejemplo YouTube).",
     videoUrlPlaceholder: "https://… (YouTube o archivo en línea)",
     addVideoUrl: "Añadir video por URL",
@@ -180,6 +197,14 @@ const es: ClasificadosServiciosCopy = {
     leonixVerifiedHint: "Es un distintivo de confianza; la verificación real se confirma en un paso posterior.",
     offerImage: "Imagen de la oferta (opcional)",
     offerPdf: "PDF / archivo de la oferta (opcional)",
+    offerPrimaryLabel: "Prioridad del cupón (cuando hay varios recursos)",
+    offerPrimaryNone: "Sin prioridad fija",
+    offerPrimaryLink: "Enlace",
+    offerPrimaryImage: "Imagen",
+    offerPrimaryPdf: "PDF",
+    offerQrLater: "Quiero incluir un código QR en una fase posterior",
+    offerAssetContractNote:
+      "Enlace, imagen y PDF pueden convivir; esto solo indica cuál destacar primero cuando publiquemos el cupón.",
     moveUp: "Arriba",
     moveDown: "Abajo",
     featuredToggle: "Principal en anuncio",
@@ -191,7 +216,7 @@ const en: ClasificadosServiciosCopy = {
   pageSubtitle:
     "One guided form for your premium Leonix showcase. Complete each section; you can polish copy with external tools if needed.",
   saveHint: "Draft saved in this browser.",
-  previewCta: "Preview",
+  previewCta: "View preview",
   linkPreviewShell: "View example public page (design only)",
   linkBack: "Back to categories",
   langToggle: "Español",
@@ -263,6 +288,11 @@ const en: ClasificadosServiciosCopy = {
     galleryFeaturedHint:
       "Pick up to 4 main photos for your listing (star toggle). Those appear in the hero gallery grid.",
     galleryMoreHint: "Additional photos will be available when the expanded gallery opens.",
+    galleryMultiSelectHint: "You can select multiple photos at once in the file picker.",
+    featuredStripTitle: "Order in the main gallery",
+    featuredStripHint: "This is how they appear in preview. Use arrows to reorder.",
+    moveFeaturedLeft: "Move earlier",
+    moveFeaturedRight: "Move later",
     videosHint: "You can add up to 2 videos (upload or URL, e.g. YouTube).",
     videoUrlPlaceholder: "https://… (YouTube or direct file)",
     addVideoUrl: "Add video URL",
@@ -275,6 +305,14 @@ const en: ClasificadosServiciosCopy = {
     leonixVerifiedHint: "A trust badge; real verification is confirmed in a later step.",
     offerImage: "Offer image (optional)",
     offerPdf: "Offer PDF / file (optional)",
+    offerPrimaryLabel: "Coupon priority when multiple assets exist",
+    offerPrimaryNone: "No fixed priority",
+    offerPrimaryLink: "Link",
+    offerPrimaryImage: "Image",
+    offerPrimaryPdf: "PDF",
+    offerQrLater: "Plan to add a QR code in a later step",
+    offerAssetContractNote:
+      "Link, image, and PDF can coexist; this only sets which asset to emphasize first when coupon publishing ships.",
     moveUp: "Up",
     moveDown: "Down",
     featuredToggle: "Featured on listing",

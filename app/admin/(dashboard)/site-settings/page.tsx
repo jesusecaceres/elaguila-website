@@ -18,6 +18,7 @@ export default function AdminGlobalSiteSettingsPage() {
         title="Ajustes globales del sitio"
         subtitle="Módulos y conmutadores que pueden cruzar varias secciones. La portada principal (hero, anuncios en la home) se edita en Website sections → Home — no aquí."
         eyebrow="Global admin"
+        helperText="Piensa en esto como interruptores y listas que afectan más de una página. Si solo tocas la portada, ve al workspace Home."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#C9B46A]/40 bg-[#FFFCF7] p-4`}>

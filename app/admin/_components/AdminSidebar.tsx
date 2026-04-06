@@ -70,7 +70,7 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
               Website sections (workspaces)
             </Link>
             <Link className="block text-[#6B5B2E] underline underline-offset-2" href="/admin/site-settings">
-              Site modules (global)
+              Ajustes globales del sitio
             </Link>
           </div>
           <Link className="mt-2 block text-center text-xs font-bold text-[#6B5B2E] underline" href="/">

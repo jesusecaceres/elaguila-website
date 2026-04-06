@@ -120,4 +120,11 @@ export type ClasificadosServiciosApplicationState = {
   /** Local-first promo attachments (data URLs or https) — publish wiring comes later */
   offerImageUrl: string;
   offerPdfUrl: string;
+  /**
+   * Which attachment the advertiser treats as primary (UI + future publish).
+   * Does not change the promo shell in this phase.
+   */
+  offerPrimaryAsset: "none" | "link" | "image" | "pdf";
+  /** Placeholder intent for a future QR asset on the coupon card */
+  offerQrLater: boolean;
 };

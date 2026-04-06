@@ -56,8 +56,9 @@ export default async function AdminTiendaOrdersPage({
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="Tienda orders"
-        subtitle="Fulfillment inbox — sourced from Supabase (not email). Search by reference, customer, product, or UUID."
+        title="Pedidos de Tienda"
+        subtitle="Bandeja de cumplimiento: datos en Supabase (no por correo). Busca por referencia, cliente, producto o UUID."
+        helperText="Esto es la cola de impresión / self-serve de la tienda. Dudas generales de usuarios siguen en Support en el menú global."
       />
 
       {counts.dataUnavailable ? (

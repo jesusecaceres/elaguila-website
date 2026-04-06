@@ -32,6 +32,7 @@ export default function AdminWorkspaceNosotrosPage() {
         title="Nosotros — quiénes somos"
         subtitle="Todo lo que alimenta la sección pública “acerca de”: narrativa, equipo, medios y CTAs. Persistencia pendiente; esta vista enseña qué documentar antes de cablear CMS."
         eyebrow="Workspace · Nosotros"
+        helperText="Cuando exista almacén, aquí vivirá el contenido de /nosotros. Usuarios, pagos y soporte siguen en la barra lateral global."
       />
 
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">

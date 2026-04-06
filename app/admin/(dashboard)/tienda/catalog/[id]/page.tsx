@@ -77,8 +77,9 @@ export default async function AdminTiendaCatalogEditPage(props: { params: Promis
   return (
     <div className="space-y-8 max-w-4xl">
       <AdminPageHeader
-        title="Edit catalog item"
-        subtitle={`ID ${item.id} · last updated ${new Date(item.updated_at).toLocaleString()}`}
+        title="Editar artículo del catálogo"
+        subtitle={`ID ${item.id} · última actualización ${new Date(item.updated_at).toLocaleString()}`}
+        helperText="Esta ficha concentra textos, precios, visibilidad, imágenes y foto principal — es el mismo flujo que ya usabas; solo cambiamos el encabezado para el equipo."
         rightSlot={
           <div className="flex flex-wrap gap-2">
             {publicHref ? (

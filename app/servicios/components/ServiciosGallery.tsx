@@ -29,10 +29,17 @@ function VideoTile({ v, lang }: { v: ServiciosGalleryVideo; lang: ServiciosLang 
 
 function mainGridClass(count: number): string {
   if (count <= 0) return "";
-  if (count === 1) return "grid grid-cols-1 gap-3 md:gap-4 max-w-3xl mx-auto";
-  if (count === 2) return "grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto md:max-w-4xl";
-  if (count === 3) return "grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3";
+  if (count === 1) return "grid grid-cols-1 gap-4 md:gap-5 max-w-4xl mx-auto";
+  if (count === 2) return "grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 max-w-5xl mx-auto";
+  if (count === 3) return "grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4";
   return "grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4";
+}
+
+/** Featured image tile aspect — larger when fewer photos */
+function mainTileAspectClass(count: number): string {
+  if (count === 1) return "aspect-[16/10] sm:aspect-[2/1] max-h-[min(420px,70vh)] sm:max-h-[min(480px,65vh)]";
+  if (count === 2) return "aspect-[5/4] sm:aspect-[3/2]";
+  return "aspect-[5/4]";
 }
 
 export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
@@ -75,7 +82,7 @@ export function ServiciosGallery({ profile, lang }: { profile: ServiciosProfileR
           {mains.map((g) => (
             <div
               key={g.id}
-              className="relative aspect-[5/4] overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03]"
+              className={`relative overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03] ${mainTileAspectClass(mains.length)}`}
             >
               <Image
                 src={g.url}

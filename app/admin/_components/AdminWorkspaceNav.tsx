@@ -14,6 +14,14 @@ const SECTIONS: WorkspaceNavItem[] = [
   { href: "/admin/workspace/contacto", label: "Contacto", hint: "Contact & hours" },
 ];
 
+const TIENDA_CRUD_PREFIX = "/admin/tienda";
+
+function isSectionActive(pathname: string, item: WorkspaceNavItem): boolean {
+  if (pathname === item.href || pathname.startsWith(`${item.href}/`)) return true;
+  if (item.href === "/admin/workspace/tienda" && pathname.startsWith(`${TIENDA_CRUD_PREFIX}/`)) return true;
+  return false;
+}
+
 function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
 }
@@ -46,12 +54,13 @@ export function AdminWorkspaceNav() {
       </div>
       <nav className="flex flex-wrap gap-1.5 sm:gap-2" aria-label="Website section workspaces">
         {SECTIONS.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = isSectionActive(pathname, item);
           return (
             <Link
               key={item.href}
               href={item.href}
               title={item.hint}
+              aria-current={active ? "page" : undefined}
               className={cx(
                 "inline-flex min-h-[2.25rem] items-center rounded-xl border px-3 py-1.5 text-xs font-semibold transition sm:text-sm",
                 active

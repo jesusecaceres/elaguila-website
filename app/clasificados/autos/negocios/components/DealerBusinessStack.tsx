@@ -1,12 +1,13 @@
 "use client";
 
-import { FiCalendar, FiClock, FiGlobe, FiMapPin, FiMessageCircle, FiPhone } from "react-icons/fi";
+import { FiCalendar, FiClock, FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-icons/si";
 import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
 import { safeExternalHref, sanitizeDealerRating, sanitizeReviewCount } from "../lib/dealerDraftSanitize";
+import { resolveDealerBookingHref, resolveDealerOfficePhone } from "../lib/dealerContactResolve";
 import { whatsAppHrefFromDisplay } from "../lib/dealerWhatsappHref";
 import { formatAddressLine, formatUsPhoneDisplay, hrefForUserWebsiteUrl, phoneDigitsForTel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
@@ -70,9 +71,10 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
   const cOk = reviewVal !== undefined;
   const showRatingRow = rOk || cOk;
 
-  const phoneDisplay = formatUsPhoneDisplay(data.dealerPhone);
-  const phoneForTel = phoneDigitsForTel(data.dealerPhone);
-  const showPhone = nonEmpty(data.dealerPhone) && (phoneDisplay.length > 0 || phoneForTel.length > 0);
+  const officePhoneRaw = resolveDealerOfficePhone(data);
+  const phoneDisplay = formatUsPhoneDisplay(officePhoneRaw);
+  const phoneForTel = phoneDigitsForTel(officePhoneRaw);
+  const showPhone = Boolean(officePhoneRaw?.trim()) && (phoneDisplay.length > 0 || phoneForTel.length > 0);
 
   const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
   const showWhatsapp = Boolean(waHref);
@@ -88,6 +90,11 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
   const showWebsiteRow = nonEmpty(webRaw);
   const showSocialCluster = socials.length > 0;
   const showWebSocialBlock = showIdentity && (showWebsiteRow || showSocialCluster);
+
+  const bookingHref = resolveDealerBookingHref(data);
+  const showSchedule = Boolean(bookingHref);
+  const showCallCta = Boolean(phoneForTel);
+  const showCtaBlock = showWhatsapp || showCallCta || showSchedule;
 
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
 
@@ -150,11 +157,11 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
                       href={`tel:${phoneForTel}`}
                       className="font-semibold text-[color:var(--lx-text)] underline-offset-2 hover:underline max-lg:text-[16px]"
                     >
-                      {phoneDisplay || data.dealerPhone?.trim()}
+                      {phoneDisplay || officePhoneRaw?.trim()}
                     </a>
                   ) : (
                     <span className="font-semibold text-[color:var(--lx-text)] max-lg:text-[16px]">
-                      {phoneDisplay || data.dealerPhone?.trim()}
+                      {phoneDisplay || officePhoneRaw?.trim()}
                     </span>
                   )}
                 </li>
@@ -208,40 +215,52 @@ export function DealerBusinessStack({ data, className }: { data: AutoDealerListi
         </div>
       ) : null}
 
-      <div
-        className={`flex flex-col gap-3 max-lg:gap-3.5 ${
-          showIdentity || showWebSocialBlock ? "mt-5 border-t border-[color:var(--lx-nav-border)] pt-5 max-lg:border-[color:var(--lx-nav-border)]/80" : ""
-        }`}
-      >
-        {showWhatsapp && waHref ? (
-          <a
-            href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${BTN_PRIMARY} gap-2`}
-          >
-            <SiWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
-            {sb.whatsappCta}
-          </a>
-        ) : null}
-        <button type="button" className={BTN_PRIMARY}>
-          {sb.availability}
-        </button>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3 max-lg:grid-cols-3 max-lg:gap-2">
-          <button type="button" className={BTN_SECONDARY}>
-            <FiPhone className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            {sb.call}
-          </button>
-          <button type="button" className={BTN_SECONDARY}>
-            <FiMessageCircle className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            {sb.chat}
-          </button>
-          <button type="button" className={BTN_SECONDARY}>
-            <FiCalendar className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            <span className="max-[380px]:[font-size:11px]">{sb.scheduleDrive}</span>
-          </button>
+      {showCtaBlock ? (
+        <div
+          className={`flex flex-col gap-3 max-lg:gap-3.5 ${
+            showIdentity || showWebSocialBlock
+              ? "mt-5 border-t border-[color:var(--lx-nav-border)] pt-5 max-lg:border-[color:var(--lx-nav-border)]/80"
+              : ""
+          }`}
+        >
+          {showWhatsapp && waHref ? (
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${BTN_PRIMARY} gap-2`}
+            >
+              <SiWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
+              {sb.whatsappCta}
+            </a>
+          ) : null}
+          {showCallCta || showSchedule ? (
+            <div
+              className={`grid gap-2.5 max-lg:gap-2 ${
+                showCallCta && showSchedule ? "grid-cols-1 sm:grid-cols-2 sm:gap-3 max-lg:grid-cols-2" : "grid-cols-1"
+              }`}
+            >
+              {showCallCta && phoneForTel ? (
+                <a href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
+                  <FiPhone className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                  {sb.call}
+                </a>
+              ) : null}
+              {showSchedule && bookingHref ? (
+                <a
+                  href={bookingHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_SECONDARY}
+                >
+                  <FiCalendar className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                  <span className="max-[380px]:[font-size:11px]">{sb.scheduleAppointment}</span>
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
 
       {hours.length > 0 ? (
         <div className="mt-5 border-t border-[color:var(--lx-nav-border)] pt-5 max-lg:border-[color:var(--lx-nav-border)]/80">

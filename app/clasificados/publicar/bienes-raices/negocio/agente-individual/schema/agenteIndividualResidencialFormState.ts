@@ -9,6 +9,7 @@ import {
   BR_NEGOCIO_DEFAULT_SELLER,
   coerceBrNegocioCategoriaPropiedad,
   coerceBrNegocioSellerTipo,
+  parseBrNegocioPropiedadParam,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   normalizeResidencialTipoPropiedadCodigo,
@@ -359,6 +360,13 @@ function migrateLegacyFlatFields(legacy: Record<string, unknown>, out: Partial<A
 function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndividualResidencialFormState> {
   const out: Partial<AgenteIndividualResidencialFormState> = {};
   migrateLegacyFlatFields(p, out);
+
+  if (typeof p.categoriaPropiedad === "string") {
+    out.categoriaPropiedad = coerceBrNegocioCategoriaPropiedad(p.categoriaPropiedad);
+  } else if (typeof p.propiedad === "string") {
+    const pr = parseBrNegocioPropiedadParam(p.propiedad);
+    if (pr) out.categoriaPropiedad = pr;
+  }
 
   if (typeof p.titulo === "string") out.titulo = p.titulo;
   if (typeof p.precio === "string") out.precio = p.precio;
