@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
-import type { AutoDealerListing, VehicleBadge } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { useAutosPrivadoLang } from "@/app/clasificados/autos/privado/lib/useAutosPrivadoLang";
 import { useAutoPrivadoDraft } from "@/app/publicar/autos/privado/hooks/useAutoPrivadoDraft";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import {
-  BADGE_OPTIONS,
   BODY_STYLE_OPTIONS,
   DRIVETRAIN_OPTIONS,
   EXTERIOR_COLOR_OPTIONS,
@@ -71,19 +70,14 @@ export function AutosPrivadoApplication() {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
 
-  function toggleBadge(key: VehicleBadge) {
-    const cur = new Set(listing.badges ?? []);
-    if (cur.has(key)) cur.delete(key);
-    else cur.add(key);
-    setListingPatch({ badges: [...cur] });
-  }
-
   function toggleFeature(label: string) {
     const cur = new Set(listing.features ?? []);
     if (cur.has(label)) cur.delete(label);
     else cur.add(label);
     setListingPatch({ features: [...cur] });
   }
+
+  const siteMessageOn = listing.privadoSiteMessageEnabled !== false;
 
   return (
     <div
@@ -144,7 +138,7 @@ export function AutosPrivadoApplication() {
         </header>
 
         <div className="flex flex-col gap-6">
-          {/* A — Principal */}
+          {/* A — Principal (alineado con Negocios; sin pago mensual ni stock) */}
           <section className={CARD}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.main}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{t.app.sections.mainSub}</p>
@@ -236,16 +230,6 @@ export function AutosPrivadoApplication() {
                 />
               </div>
               <div>
-                <label className={LABEL}>{t.app.labels.monthly}</label>
-                <input
-                  className={INPUT}
-                  placeholder={t.app.placeholders.monthly}
-                  value={listing.monthlyEstimate ?? ""}
-                  onChange={(e) => setListingPatch({ monthlyEstimate: e.target.value.trim() ? e.target.value : undefined })}
-                />
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.monthlyOptional}</p>
-              </div>
-              <div>
                 <label className={LABEL}>{t.app.labels.mileage}</label>
                 <input
                   className={INPUT}
@@ -304,18 +288,10 @@ export function AutosPrivadoApplication() {
                   onChange={(e) => setListingPatch({ vin: e.target.value || undefined })}
                 />
               </div>
-              <div>
-                <label className={LABEL}>{t.app.labels.stock}</label>
-                <input
-                  className={INPUT}
-                  value={listing.stockNumber ?? ""}
-                  onChange={(e) => setListingPatch({ stockNumber: e.target.value || undefined })}
-                />
-              </div>
             </div>
           </section>
 
-          {/* B — Especificaciones */}
+          {/* B — Especificaciones (sin motor, MPG, puertas ni asientos en Privado) */}
           <section className={CARD}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.specs}</h2>
             <div className={`${GRID2} mt-5`}>
@@ -345,14 +321,6 @@ export function AutosPrivadoApplication() {
                 customPlaceholder={t.app.hints.drivePh}
                 incompleteHint={t.app.hints.drivetrain}
               />
-              <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.engine}</label>
-                <input
-                  className={INPUT}
-                  value={listing.engine ?? ""}
-                  onChange={(e) => setListingPatch({ engine: e.target.value || undefined })}
-                />
-              </div>
               <SelectWithOtherField
                 label={t.app.labels.fuel}
                 options={FUEL_OPTIONS}
@@ -364,32 +332,6 @@ export function AutosPrivadoApplication() {
                 customPlaceholder={t.app.hints.fuelPh}
                 incompleteHint={t.app.hints.fuel}
               />
-              <div>
-                <label className={LABEL}>{t.app.labels.mpgCity}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.mpgCity ?? ""}
-                  onChange={(e) =>
-                    setListingPatch({
-                      mpgCity: e.target.value === "" ? undefined : parseOptInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{t.app.labels.mpgHighway}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.mpgHighway ?? ""}
-                  onChange={(e) =>
-                    setListingPatch({
-                      mpgHighway: e.target.value === "" ? undefined : parseOptInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
               <SelectWithOtherField
                 label={t.app.labels.bodyStyle}
                 options={BODY_STYLE_OPTIONS}
@@ -427,24 +369,6 @@ export function AutosPrivadoApplication() {
                 customPlaceholder={t.app.hints.intPh}
                 incompleteHint={t.app.hints.interior}
               />
-              <div>
-                <label className={LABEL}>{t.app.labels.doors}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.doors ?? ""}
-                  onChange={(e) => setListingPatch({ doors: parseOptInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={LABEL}>{t.app.labels.seats}</label>
-                <input
-                  className={INPUT}
-                  inputMode="numeric"
-                  value={listing.seats ?? ""}
-                  onChange={(e) => setListingPatch({ seats: parseOptInt(e.target.value) })}
-                />
-              </div>
               <SelectWithOtherField
                 label={t.app.labels.titleStatus}
                 options={TITLE_STATUS_OPTIONS}
@@ -461,28 +385,9 @@ export function AutosPrivadoApplication() {
             </div>
           </section>
 
-          {/* C — Insignias y destacados */}
+          {/* C — Destacados (solo equipamiento; sin insignias de concesionario) */}
           <section className={CARD}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.badges}</h2>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {BADGE_OPTIONS.map(({ key }) => {
-                const label = t.taxonomy.badges.find((b) => b.key === key)?.label ?? key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleBadge(key)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-                      (listing.badges ?? []).includes(key)
-                        ? "border-[color:var(--lx-gold)] bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]"
-                        : "border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.equipmentHeading}</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {FEATURE_OPTIONS.map((f, i) => (
@@ -507,13 +412,13 @@ export function AutosPrivadoApplication() {
             hideDealerLogo
           />
 
-          {/* E — Vendedor / contacto (Privado: sin web, reservas, redes ni horarios) */}
+          {/* E — Vendedor / contacto */}
           <section className={CARD}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.dealer}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
               {lang === "es"
-                ? "Solo nombre y formas de contacto — sin sitio web, citas ni redes sociales en este paquete."
-                : "Name and contact channels only — no website, booking, or social profiles in this package."}
+                ? "Nombre y canales de contacto. Sin sitio web, citas ni redes en este paquete."
+                : "Name and contact channels. No website, booking, or social profiles in this package."}
             </p>
             <div className={`${GRID2} mt-5`}>
               <div className="sm:col-span-2">
@@ -545,6 +450,31 @@ export function AutosPrivadoApplication() {
                   onChange={(e) => setListingPatch({ dealerWhatsapp: e.target.value.trim() ? e.target.value : undefined })}
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.whatsapp}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>{t.app.labels.sellerEmail}</label>
+                <input
+                  className={INPUT}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={listing.dealerEmail ?? ""}
+                  onChange={(e) => setListingPatch({ dealerEmail: e.target.value.trim() ? e.target.value : undefined })}
+                />
+              </div>
+              <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3">
+                <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[color:var(--lx-text)]">
+                  <input
+                    type="checkbox"
+                    checked={siteMessageOn}
+                    onChange={(e) => setListingPatch({ privadoSiteMessageEnabled: e.target.checked })}
+                    className="mt-0.5 rounded border-[color:var(--lx-nav-border)]"
+                  />
+                  <span>
+                    {t.app.labels.siteMessageCta}
+                    <span className="mt-1 block text-xs font-normal text-[color:var(--lx-muted)]">{t.app.labels.siteMessageCtaHint}</span>
+                  </span>
+                </label>
               </div>
             </div>
           </section>

@@ -5,13 +5,13 @@ import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
 
 type Lang = "es" | "en";
 
-export function GlobalContactForm(props: { lang: Lang }) {
-  const { lang } = props;
+export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }) {
+  const { lang, initialMessage } = props;
   const en = lang === "en";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => (initialMessage ?? "").slice(0, 12000));
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

@@ -17,7 +17,15 @@ function getInitials(input?: string | null) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function ServiciosTopBarInner({ lang, editBackHref }: { lang: ServiciosLang; editBackHref?: string }) {
+function ServiciosTopBarInner({
+  lang,
+  editBackHref,
+  beforeEditBackNavigate,
+}: {
+  lang: ServiciosLang;
+  editBackHref?: string;
+  beforeEditBackNavigate?: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -140,6 +148,7 @@ function ServiciosTopBarInner({ lang, editBackHref }: { lang: ServiciosLang; edi
         {editBackHref ? (
           <Link
             href={editBackHref}
+            onClick={() => beforeEditBackNavigate?.()}
             className="shrink-0 py-2 text-[11px] font-semibold leading-snug text-[color:var(--lx-muted)] underline-offset-4 hover:text-[#3B66AD] hover:underline sm:py-0"
           >
             {t.editBack}
@@ -270,10 +279,18 @@ function ServiciosTopBarInner({ lang, editBackHref }: { lang: ServiciosLang; edi
   );
 }
 
-export function ServiciosTopBar({ lang, editBackHref }: { lang: ServiciosLang; editBackHref?: string }) {
+export function ServiciosTopBar({
+  lang,
+  editBackHref,
+  beforeEditBackNavigate,
+}: {
+  lang: ServiciosLang;
+  editBackHref?: string;
+  beforeEditBackNavigate?: () => void;
+}) {
   return (
     <Suspense fallback={<div className="h-[57px] border-b border-black/5 bg-[#F9F8F6]" />}>
-      <ServiciosTopBarInner lang={lang} editBackHref={editBackHref} />
+      <ServiciosTopBarInner lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
     </Suspense>
   );
 }

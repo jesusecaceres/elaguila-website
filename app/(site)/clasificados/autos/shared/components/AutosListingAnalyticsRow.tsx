@@ -23,10 +23,13 @@ export function AutosListingAnalyticsRow({
   metrics,
   labels,
   className = "",
+  variant = "default",
 }: {
   metrics: AutosListingAnalyticsSnapshot;
   labels: Labels;
   className?: string;
+  /** `compact` keeps a 2×2 grid at all breakpoints (lighter Privado preview). */
+  variant?: "default" | "compact";
 }) {
   const v = Math.max(0, Math.floor(metrics.views));
   const s = Math.max(0, Math.floor(metrics.saves));
@@ -49,14 +52,28 @@ export function AutosListingAnalyticsRow({
         <FiBarChart2 className="h-3.5 w-3.5 text-[color:var(--lx-gold)]" aria-hidden />
         <span>{labels.kicker}</span>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+      <div
+        className={
+          variant === "compact"
+            ? "grid grid-cols-2 gap-2 sm:gap-2.5"
+            : "grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3"
+        }
+      >
         {items.map((it) => (
-          <div key={it.key} className={CELL}>
+          <div key={it.key} className={variant === "compact" ? `${CELL} py-2.5 sm:px-3 sm:py-3` : CELL}>
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
               {it.icon}
               <span className="truncate">{it.label}</span>
             </div>
-            <p className="text-xl font-bold tabular-nums tracking-tight text-[color:var(--lx-text)] sm:text-2xl">{it.value}</p>
+            <p
+              className={
+                variant === "compact"
+                  ? "text-lg font-bold tabular-nums tracking-tight text-[color:var(--lx-text)] sm:text-xl"
+                  : "text-xl font-bold tabular-nums tracking-tight text-[color:var(--lx-text)] sm:text-2xl"
+              }
+            >
+              {it.value}
+            </p>
           </div>
         ))}
       </div>

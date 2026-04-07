@@ -80,8 +80,8 @@ export default function RestaurantePreviewClient() {
               Solo aparecen bloques con datos: los campos vacíos no generan secciones vacías ni texto de relleno.
             </li>
             <li>
-              El borrador se lee desde este navegador (local). Si no ves cambios, vuelve a publicar desde la misma
-              pestaña.
+              El borrador es el de esta sesión (misma pestaña): texto, medios y orden de galería coinciden con lo que
+              guardaste al editar. Si cierras la pestaña o el navegador, el borrador de esta sesión ya no estará disponible.
             </li>
           </ul>
         </div>

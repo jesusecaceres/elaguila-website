@@ -68,3 +68,35 @@ export const WEEK_DAY_LABELS: Record<DayKey, { es: string; en: string }> = {
   sat: { es: "Sábado", en: "Saturday" },
   sun: { es: "Domingo", en: "Sunday" },
 };
+
+/** True when the draft differs from a fresh empty form (leave-guard + abandon flows). */
+export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServiciosApplicationState): boolean {
+  if (s.businessTypeId.trim()) return true;
+  if (s.businessName.trim()) return true;
+  if (s.city.trim()) return true;
+  if (s.serviceAreaNotes.trim()) return true;
+  if (s.phone.trim() || s.website.trim() || s.whatsapp.trim()) return true;
+  if (s.logoUrl.trim() || s.coverUrl.trim()) return true;
+  if (s.gallery.length > 0 || s.videos.length > 0) return true;
+  if (s.aboutText.trim() || s.specialtiesLine.trim()) return true;
+  if (s.selectedServiceIds.length > 0 || s.customServiceLabel.trim()) return true;
+  if (s.selectedReasonIds.length > 0 || s.selectedQuickFactIds.length > 0) return true;
+  if (s.primaryCtaId.trim() || s.secondaryCtaIds.length > 0) return true;
+  if (s.leonixVerifiedInterest) return true;
+  if (
+    s.socialInstagram.trim() ||
+    s.socialFacebook.trim() ||
+    s.socialYoutube.trim() ||
+    s.socialTiktok.trim() ||
+    s.socialLinkedin.trim()
+  ) {
+    return true;
+  }
+  if (s.testimonials.length > 0) return true;
+  if (s.offerTitle.trim() || s.offerDetails.trim() || s.offerLink.trim() || s.offerImageUrl.trim() || s.offerPdfUrl.trim()) {
+    return true;
+  }
+  if (s.offerQrLater) return true;
+  if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
+  return false;
+}

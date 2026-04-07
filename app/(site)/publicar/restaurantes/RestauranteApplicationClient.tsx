@@ -174,8 +174,9 @@ export default function RestauranteApplicationClient() {
           Los campos completados aparecerán en la vista previa. Los campos vacíos no se mostrarán al comprador.
         </p>
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
-          Borrador guardado en este navegador (clave <code className="rounded bg-[color:var(--lx-section)] px-1">restaurantes-draft</code>
-          ).
+          Borrador en esta sesión del navegador: se mantiene al ir a vista previa, volver y actualizar la página en la
+          misma pestaña; al cerrar la pestaña o el navegador se descarta. Clave{" "}
+          <code className="rounded bg-[color:var(--lx-section)] px-1">restaurantes-draft</code> (almacenamiento de sesión).
         </p>
       </div>
 

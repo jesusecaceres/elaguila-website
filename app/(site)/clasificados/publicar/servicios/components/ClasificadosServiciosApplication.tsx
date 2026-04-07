@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FiCheck,
   FiChevronDown,
@@ -17,6 +17,11 @@ import {
   FiUpload,
 } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
+import {
+  clearLeonixReturningToEditSessionFlag,
+  markPublishFlowOpeningPreview,
+  useLeonixPublishLeaveGuard,
+} from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   BUSINESS_TYPE_PRESETS,
   chipLabel,
@@ -32,11 +37,16 @@ import type {
 } from "../lib/clasificadosServiciosApplicationTypes";
 import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTypes";
 import {
+  clearClasificadosServiciosApplicationFromBrowser,
   readClasificadosServiciosApplicationFromBrowser,
   writeClasificadosServiciosApplicationToBrowser,
 } from "../lib/clasificadosServiciosStorage";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
-import { createDefaultClasificadosServiciosState, WEEK_DAY_LABELS } from "../lib/defaultClasificadosServiciosState";
+import {
+  clasificadosServiciosApplicationHasProgress,
+  createDefaultClasificadosServiciosState,
+  WEEK_DAY_LABELS,
+} from "../lib/defaultClasificadosServiciosState";
 import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
 import {
   isProbablyValidWebUrl,
@@ -109,6 +119,10 @@ export function ClasificadosServiciosApplication() {
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
 
+  useLayoutEffect(() => {
+    clearLeonixReturningToEditSessionFlag();
+  }, []);
+
   useEffect(() => {
     const s = readClasificadosServiciosApplicationFromBrowser();
     if (s) setState(s);
@@ -120,6 +134,17 @@ export function ClasificadosServiciosApplication() {
     const t = window.setTimeout(() => writeClasificadosServiciosApplicationToBrowser(state), DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
+
+  useLeonixPublishLeaveGuard({
+    lang,
+    isDirty: hydrated && clasificadosServiciosApplicationHasProgress(state),
+    muxAssetIds: [],
+  });
+
+  const persistStateAndMarkOpeningPreview = useCallback(() => {
+    markPublishFlowOpeningPreview();
+    writeClasificadosServiciosApplicationToBrowser(state);
+  }, [state]);
 
   const preset = useMemo(() => getBusinessTypePreset(state.businessTypeId), [state.businessTypeId]);
 
@@ -308,7 +333,7 @@ export function ClasificadosServiciosApplication() {
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
                 <Link
                   href={previewHref}
-                  onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+                  onClick={persistStateAndMarkOpeningPreview}
                   className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699] sm:w-auto sm:min-w-[10rem]"
                 >
                   {copy.previewCta}
@@ -330,13 +355,14 @@ export function ClasificadosServiciosApplication() {
                 </Link>
                 <Link
                   href={`/clasificados/publicar/servicios/preview?lang=${lang}&sample=expert`}
-                  onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+                  onClick={persistStateAndMarkOpeningPreview}
                   className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C79A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#5D4A25]/90 hover:bg-[#FFF6E7]"
                 >
                   {copy.linkPreviewShell}
                 </Link>
                 <Link
                   href={publicarHref}
+                  onClick={() => clearClasificadosServiciosApplicationFromBrowser()}
                   className="inline-flex min-h-[40px] items-center text-sm font-medium text-[#5D4A25]/80 underline underline-offset-2 hover:text-[#3D2C12]"
                 >
                   {copy.linkBack}
@@ -775,7 +801,10 @@ export function ClasificadosServiciosApplication() {
               <ul className="mt-4 space-y-3">
                 {state.videos.map((v) => (
                   <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2">
-                    <span className="min-w-0 truncate text-xs font-medium text-[#3D2C12]">{v.url.slice(0, 72)}{v.url.length > 72 ? "…" : ""}</span>
+                    <span className="min-w-0 truncate text-xs font-medium text-[#3D2C12]">
+                      {(v.url ?? "").slice(0, 72)}
+                      {(v.url ?? "").length > 72 ? "…" : ""}
+                    </span>
                     <div className="flex flex-wrap items-center gap-2">
                       <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-[#5D4A25]">
                         <input
@@ -1226,7 +1255,7 @@ export function ClasificadosServiciosApplication() {
       <div className="fixed bottom-0 left-0 right-0 z-30 flex gap-2 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
         <Link
           href={previewHref}
-          onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+          onClick={persistStateAndMarkOpeningPreview}
           className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-xl bg-[#3B66AD] px-2 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm active:opacity-95"
         >
           {copy.previewCta}

@@ -89,6 +89,15 @@ export function formatCityStateLabel(city?: string, state?: string): string {
   return c || st || "";
 }
 
+/** City, state, and optional 5-digit ZIP for listing location lines (filters use the same stored fields). */
+export function formatCityStateZipLine(city?: string, state?: string, zip?: string): string {
+  const base = formatCityStateLabel(city, state);
+  const z = zip?.replace(/\D/g, "").slice(0, 5) ?? "";
+  if (z.length === 5) return base ? `${base} · ${z}` : z;
+  if (z.length > 0) return base ? `${base} · ${z}` : z;
+  return base;
+}
+
 /** Safe http(s) href for website / social fields; rejects unparseable junk. */
 export function hrefForUserWebsiteUrl(input: string | undefined | null): string | undefined {
   return safeExternalHref(input);

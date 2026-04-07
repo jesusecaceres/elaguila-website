@@ -1,11 +1,17 @@
 "use client";
 
-import { FiPhone } from "react-icons/fi";
+import Link from "next/link";
+import { FiMail, FiMessageCircle, FiPhone } from "react-icons/fi";
 import { SiWhatsapp } from "react-icons/si";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { resolveDealerOfficePhone } from "@/app/clasificados/autos/negocios/lib/dealerContactResolve";
-import { whatsAppHrefFromDisplay } from "@/app/clasificados/autos/negocios/lib/dealerWhatsappHref";
 import { formatUsPhoneDisplay, phoneDigitsForTel } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
+import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import {
+  buildPrivadoSellerMailtoHref,
+  buildPrivadoSiteMessageHref,
+  buildPrivadoWhatsappInterestHref,
+} from "../lib/privadoContactIntent";
 
 const BTN_PRIMARY =
   "inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
@@ -16,10 +22,12 @@ const BTN_SECONDARY =
 /** Private seller contact only — no website, booking, hours, or socials. */
 export function PrivadoContactStrip({
   data,
+  lang,
   labels,
 }: {
   data: AutoDealerListing;
-  labels: { call: string; whatsapp: string; seller: string };
+  lang: AutosNegociosLang;
+  labels: { call: string; whatsapp: string; messageSite: string; emailSeller: string; seller: string };
 }) {
   const office = resolveDealerOfficePhone(data);
   const phoneDisplay = formatUsPhoneDisplay(office);
@@ -27,27 +35,55 @@ export function PrivadoContactStrip({
   /** Same threshold as Negocios `DealerBusinessStack`: avoid dead `tel:` short fragments. */
   const validTelForCta = phoneForTel.length >= 10;
   const showCall = validTelForCta && Boolean(phoneForTel);
-  const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
-  const showWa = Boolean(waHref);
-  const seller = data.dealerName?.trim();
 
-  if (!showCall && !showWa && !seller) return null;
+  const waHref = buildPrivadoWhatsappInterestHref(data, lang);
+  const showWa = Boolean(waHref);
+
+  const siteMessageEnabled = data.privadoSiteMessageEnabled !== false;
+  const messageHref = buildPrivadoSiteMessageHref(lang, data);
+  const showMessage = siteMessageEnabled;
+
+  const mailtoHref = buildPrivadoSellerMailtoHref(data, lang);
+  const showEmail = Boolean(mailtoHref);
+
+  const seller = data.dealerName?.trim();
+  const hasAnyCta = showCall || showWa || showMessage || showEmail;
+  if (!seller && !hasAnyCta) return null;
 
   return (
     <section className="min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-6">
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{labels.seller}</p>
       {seller ? <h2 className="mt-2 text-lg font-extrabold text-[color:var(--lx-text)]">{seller}</h2> : null}
       <div className={`mt-4 flex flex-col gap-3 ${seller ? "" : "mt-0"}`}>
+        {showCall && phoneForTel ? (
+          <a href={`tel:${phoneForTel}`} className={`${BTN_PRIMARY} flex-col gap-0.5 py-3`}>
+            <span className="inline-flex items-center gap-2">
+              <FiPhone className="h-5 w-5 shrink-0" aria-hidden />
+              {labels.call}
+            </span>
+            {phoneDisplay || office ? (
+              <span className="max-w-full truncate text-center text-xs font-semibold tabular-nums opacity-90">
+                {phoneDisplay || office}
+              </span>
+            ) : null}
+          </a>
+        ) : null}
         {showWa && waHref ? (
-          <a href={waHref} target="_blank" rel="noopener noreferrer" className={`${BTN_PRIMARY} gap-2`}>
-            <SiWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
+          <a href={waHref} target="_blank" rel="noopener noreferrer" className={`${BTN_SECONDARY} gap-2`}>
+            <SiWhatsapp className="h-5 w-5 shrink-0 text-[#25D366]" aria-hidden />
             {labels.whatsapp}
           </a>
         ) : null}
-        {showCall && phoneForTel ? (
-          <a href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
-            <FiPhone className="h-[18px] w-[18px] shrink-0" aria-hidden />
-            {labels.call} · {phoneDisplay || office}
+        {showMessage ? (
+          <Link href={messageHref} className={`${BTN_SECONDARY} gap-2`}>
+            <FiMessageCircle className="h-5 w-5 shrink-0" aria-hidden />
+            {labels.messageSite}
+          </Link>
+        ) : null}
+        {showEmail && mailtoHref ? (
+          <a href={mailtoHref} className={`${BTN_SECONDARY} gap-2`}>
+            <FiMail className="h-5 w-5 shrink-0" aria-hidden />
+            {labels.emailSeller}
           </a>
         ) : null}
       </div>

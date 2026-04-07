@@ -135,6 +135,12 @@ export type AutoDealerListing = {
   dealerPhoneMobile?: string;
   /** Business WhatsApp (display as typed; normalized for wa.me links in preview). */
   dealerWhatsapp?: string | null;
+  /** Private-seller / optional email for “Email” CTA (Privado); omitted in Negocios UI today. */
+  dealerEmail?: string | null;
+  /**
+   * Privado: when false, hide the site “Message” CTA on preview. Default is treated as enabled when unset.
+   */
+  privadoSiteMessageEnabled?: boolean;
   dealerAddress?: string;
   dealerHours?: DealerHoursEntry[];
   dealerWebsite?: string | null;

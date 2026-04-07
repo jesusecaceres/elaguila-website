@@ -36,6 +36,7 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
 
   if (nonEmpty(listing.city)) return true;
   if (nonEmpty(listing.state)) return true;
+  if (nonEmpty(listing.zip)) return true;
   if (nonEmpty(listing.vin)) return true;
   if (nonEmpty(listing.stockNumber)) return true;
 
@@ -62,6 +63,7 @@ export function isMeaningfulAutoDealerDraft(listing: AutoDealerListing): boolean
   if (nonEmpty(listing.dealerPhoneOffice ?? listing.dealerPhone)) return true;
   if (nonEmpty(listing.dealerPhoneMobile)) return true;
   if (nonEmpty(listing.dealerWhatsapp ?? undefined)) return true;
+  if (nonEmpty(listing.dealerEmail ?? undefined)) return true;
   if (nonEmpty(listing.dealerAddress)) return true;
   if (nonEmpty(listing.dealerWebsite ?? undefined)) return true;
   if (nonEmpty(listing.dealerBookingUrl ?? undefined)) return true;

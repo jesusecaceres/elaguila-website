@@ -5,6 +5,7 @@ import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDra
 import { clearBienesRaicesNegocioPublishTempState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/utils/bienesRaicesPreviewDraft";
 import { clearAgenteIndividualResidencialPublishTempState } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/previewDraft";
 import { clearEnVentaPublishTempState } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import { clearClasificadosServiciosApplicationFromBrowser } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosStorage";
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import { createEmptyBienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
@@ -148,6 +149,7 @@ export function abandonLeonixPublishFlowClient(opts: { muxAssetIds: string[]; us
   clearBienesRaicesNegocioPublishTempState();
   clearAgenteIndividualResidencialPublishTempState();
   clearEnVentaPublishTempState();
+  clearClasificadosServiciosApplicationFromBrowser();
   clearAllClassifiedsDrafts();
   const ids = [...new Set(opts.muxAssetIds.map((s) => String(s ?? "").trim()).filter(Boolean))].slice(0, 16);
   if (!ids.length) return;

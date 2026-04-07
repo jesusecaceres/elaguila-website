@@ -123,6 +123,10 @@ export type AutosNegociosCopy = {
       priceAdvertised: string;
       whatsappCta: string;
       call: string;
+      /** Site contact form (used by Autos Privado preview). */
+      messageSite: string;
+      /** mailto: to seller email (Privado). */
+      emailSeller: string;
       scheduleAppointment: string;
       viewWebsite: string;
     };
@@ -354,6 +358,8 @@ const ES: AutosNegociosCopy = {
       priceAdvertised: "Precio anunciado",
       whatsappCta: "WhatsApp",
       call: "Llamar",
+      messageSite: "Mensaje",
+      emailSeller: "Correo",
       scheduleAppointment: "Agendar cita",
       viewWebsite: "Ver sitio web",
     },
@@ -651,6 +657,8 @@ const EN: AutosNegociosCopy = {
       priceAdvertised: "Advertised price",
       whatsappCta: "WhatsApp",
       call: "Call",
+      messageSite: "Message",
+      emailSeller: "Email",
       scheduleAppointment: "Schedule appointment",
       viewWebsite: "View website",
     },

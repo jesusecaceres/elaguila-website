@@ -3,7 +3,7 @@ import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsD
 
 const COMPRESSION_OPTS = { maxSizeMB: 1, maxWidthOrHeight: 1920 };
 
-/** Shrink large photos so localStorage draft saves succeed more often (Leonix-style). */
+/** Shrink large photos so session draft saves succeed more often (Leonix-style). */
 export async function compressRestauranteImageFile(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
   try {

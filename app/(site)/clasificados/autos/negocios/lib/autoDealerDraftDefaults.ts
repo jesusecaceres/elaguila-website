@@ -89,6 +89,8 @@ export function createEmptyListing(): AutoDealerListing {
     dealerPhone: undefined,
     dealerPhoneMobile: undefined,
     dealerWhatsapp: undefined,
+    dealerEmail: undefined,
+    privadoSiteMessageEnabled: undefined,
     dealerAddress: undefined,
     dealerHours: [],
     dealerWebsite: undefined,

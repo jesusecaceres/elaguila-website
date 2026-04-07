@@ -14,3 +14,15 @@ export function whatsAppHrefFromDisplay(raw: string | undefined | null): string 
   if (d.length < 11) return null;
   return `https://wa.me/${d}`;
 }
+
+/** `wa.me` accepts an optional `text` query for a prefilled chat message. */
+export function whatsAppHrefFromDisplayWithText(
+  raw: string | undefined | null,
+  prefilledText?: string | null,
+): string | null {
+  const base = whatsAppHrefFromDisplay(raw);
+  if (!base) return null;
+  const msg = prefilledText?.trim();
+  if (!msg) return base;
+  return `${base}?text=${encodeURIComponent(msg)}`;
+}

@@ -12,7 +12,7 @@ export type ServiciosPublishReadinessResult = {
 function hasContactMethod(state: ClasificadosServiciosApplicationState): boolean {
   if (state.enableCall && state.phone.trim().replace(/\D/g, "").length >= 8) return true;
   if (state.enableWebsite && state.website.trim() && isProbablyValidWebUrl(state.website)) return true;
-  if (state.enableWhatsapp && state.whatsapp.replace(/\D/g, "").length >= 8) return true;
+  if (state.enableWhatsapp && String(state.whatsapp ?? "").replace(/\D/g, "").length >= 8) return true;
   return false;
 }
 

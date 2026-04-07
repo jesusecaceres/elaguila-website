@@ -20,15 +20,18 @@ export function ServiciosProfileView({
   profile,
   lang,
   editBackHref,
+  beforeEditBackNavigate,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   /** Clasificados draft preview — subtle return to the application */
   editBackHref?: string;
+  /** Same-tab preview → edit handoff (Leonix publish flow session flags). */
+  beforeEditBackNavigate?: () => void;
 }) {
   return (
     <div className="min-h-screen overflow-x-hidden pb-16" style={{ backgroundColor: SV.bg }}>
-      <ServiciosTopBar lang={lang} editBackHref={editBackHref} />
+      <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
 
       <main className="mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:pt-6 md:px-6 md:pt-8">
         {hasHeroIdentityResolved(profile) ? <ServiciosHero profile={profile} lang={lang} /> : null}

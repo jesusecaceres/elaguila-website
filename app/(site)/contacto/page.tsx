@@ -36,9 +36,13 @@ export async function generateMetadata(props: {
   return { title, description, openGraph: { title, description } };
 }
 
-export default async function ContactoPage(props: { searchParams?: Promise<{ lang?: string }> }) {
+export default async function ContactoPage(props: {
+  searchParams?: Promise<{ lang?: string; prefillMessage?: string }>;
+}) {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
+  const prefillRaw = typeof sp.prefillMessage === "string" ? sp.prefillMessage : "";
+  const prefillMessage = prefillRaw ? prefillRaw.slice(0, 12000) : undefined;
   const swap = lang === "en" ? "es" : "en";
 
   const { payload } = await getSiteSectionPayload("contacto");
@@ -126,7 +130,7 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
           </div>
         </div>
 
-        <GlobalContactForm lang={lang} />
+        <GlobalContactForm lang={lang} initialMessage={prefillMessage} />
       </div>
     </main>
   );

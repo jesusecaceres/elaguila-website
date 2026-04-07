@@ -6,10 +6,12 @@ import { AUTOS_LISTING_ANALYTICS_DRAFT_DEMO } from "@/app/clasificados/autos/sha
 export const mockAutosPrivadoListing: AutoDealerListing = {
   ...mockAutoDealerListing,
   autosLane: "privado",
+  badges: [],
   listingAnalytics: AUTOS_LISTING_ANALYTICS_DRAFT_DEMO,
   dealerName: "Alex Martínez",
   dealerPhoneOffice: "(408) 555-0142",
   dealerWhatsapp: "+1 408 555 0199",
+  dealerEmail: "alex.martinez@example.com",
   dealerLogo: undefined,
   dealerPhoneMobile: undefined,
   dealerBookingUrl: undefined,
@@ -19,4 +21,5 @@ export const mockAutosPrivadoListing: AutoDealerListing = {
   dealerSocials: undefined,
   relatedDealerListings: undefined,
   stockNumber: undefined,
+  monthlyEstimate: undefined,
 };

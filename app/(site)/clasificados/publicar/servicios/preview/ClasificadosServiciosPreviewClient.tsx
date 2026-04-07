@@ -1,7 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
 import { getServiciosWireProfileFromSample } from "@/app/servicios/data/demoServiciosBusinessProfile";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
@@ -23,6 +24,10 @@ export function ClasificadosServiciosPreviewClient() {
   const searchParams = useSearchParams();
   const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
   const forceExpert = searchParams?.get("sample") === "expert";
+
+  useLayoutEffect(() => {
+    clearLeonixPreviewNavSessionFlag();
+  }, []);
 
   const [source, setSource] = useState<Source>("loading");
   const [appDraft, setAppDraft] = useState<ServiciosApplicationDraft | null>(null);
@@ -62,6 +67,7 @@ export function ClasificadosServiciosPreviewClient() {
       profile={profile}
       lang={lang}
       editBackHref={`/clasificados/publicar/servicios?lang=${lang}`}
+      beforeEditBackNavigate={markPublishFlowReturningToEdit}
     />
   );
 }

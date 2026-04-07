@@ -31,8 +31,16 @@ import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleCo
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
 
-export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
+export function VehicleSpecsGrid({
+  data,
+  hiddenRowKeys,
+}: {
+  data: AutoDealerListing;
+  /** Optional row keys to omit (e.g. Privado shell hides inventory-only rows). */
+  hiddenRowKeys?: readonly string[];
+}) {
   const { t } = useAutosNegociosPreviewCopy();
+  const hidden = new Set(hiddenRowKeys ?? []);
   const rowsL = t.preview.specs.rows;
 
   function conditionLabel(c: AutoDealerListing["condition"]): string | undefined {
@@ -88,7 +96,9 @@ export function VehicleSpecsGrid({ data }: { data: AutoDealerListing }) {
     { key: "mi", label: rowsL.mi, value: mileageStr, icon: <BiTachometer className="h-5 w-5" /> },
   ];
 
-  const visible = rows.filter((r) => r.value !== undefined && String(r.value).trim() !== "");
+  const visible = rows.filter(
+    (r) => !hidden.has(r.key) && r.value !== undefined && String(r.value).trim() !== "",
+  );
   if (visible.length === 0) return null;
 
   const { title, subtitle } = t.preview.specs;

@@ -12,8 +12,8 @@ export const AUTOS_PRIVADO_PRODUCT = {
     "Premium listing layout (title, specs, highlights, description)",
     "Image gallery + optional video",
     "Location (city / state / ZIP contract)",
-    "Call CTA + optional WhatsApp",
-    "Basic analytics strip (same vocabulary as dashboard)",
+    "CTA stack: call, optional WhatsApp (prefilled interest text), Leonix message form, optional seller email",
+    "Lightweight 2×2 analytics strip (views / saves / shares / contacts vocabulary)",
     "Results-card participation (distinct Privado presentation)",
   ],
   excludes: [
