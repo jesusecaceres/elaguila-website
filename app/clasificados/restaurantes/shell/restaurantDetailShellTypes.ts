@@ -49,6 +49,10 @@ export type ShellHighlightTag = {
 export type ShellGalleryItem = {
   /** Optional when video tile uses gradient fallback */
   imageUrl?: string;
+  /** Inline playable source (e.g. data:video/… or blob URL) */
+  videoSrc?: string;
+  /** External link (YouTube, Vimeo, etc.) when no file src */
+  videoRemoteUrl?: string;
   alt: string;
   category: "interior" | "food" | "exterior" | "video";
   countOverlay?: number;

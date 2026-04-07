@@ -69,7 +69,7 @@ export function useRestauranteDraft() {
   }, []);
 
   const persist = useCallback((next: RestauranteListingDraft) => {
-    saveRestauranteDraftToStorage(next);
+    return saveRestauranteDraftToStorage(next);
   }, []);
 
   const setDraftPatch = useCallback(

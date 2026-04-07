@@ -1,4 +1,5 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import { resolveRestauranteGallerySequence } from "./restauranteGalleryMediaSequence";
 import { hasPrimaryContactPath, RESTAURANTE_SHELL_HIGHLIGHT_CAP } from "./restauranteListingApplicationModel";
 import { computeShellHoursPreview } from "./restauranteHoursPreview";
 import type { RestauranteServiceMode } from "./restauranteListingApplicationModel";
@@ -188,20 +189,33 @@ function buildGallery(d: RestauranteListingDraft): ShellGalleryItem[] {
   (d.interiorImages ?? []).forEach((url, i) => push(url, `Interior ${i + 1}`, "interior"));
   (d.foodImages ?? []).forEach((url, i) => push(url, `Platillo ${i + 1}`, "food"));
   (d.exteriorImages ?? []).forEach((url, i) => push(url, `Exterior ${i + 1}`, "exterior"));
-  const imgs = [...(d.galleryImages ?? [])];
-  const orderIdx = (d.galleryOrder ?? []).map((s) => Number(String(s))).filter((n) => Number.isFinite(n) && n >= 0);
-  const ordered =
-    orderIdx.length === imgs.length && orderIdx.length > 0
-      ? orderIdx.map((i) => imgs[i]).filter(Boolean)
-      : imgs;
-  ordered.forEach((url, i) => push(url, `Galería ${i + 1}`, "interior"));
-  if (nonEmpty(d.videoFile)) {
-    const vf = d.videoFile!;
-    const isDataVideo = vf.startsWith("data:video");
-    out.push(
-      isDataVideo ? { alt: "Video", category: "video" } : { imageUrl: vf, alt: "Video", category: "video" }
-    );
-  } else if (nonEmpty(d.videoUrl)) out.push({ alt: "Video", category: "video" });
+
+  const seq = resolveRestauranteGallerySequence(d);
+  const imgs = d.galleryImages ?? [];
+  let galleryOrdinal = 0;
+  for (const e of seq) {
+    if (e === "v") {
+      if (nonEmpty(d.videoFile)) {
+        const vf = d.videoFile!;
+        const isDataVideo = vf.startsWith("data:video");
+        if (isDataVideo) {
+          out.push({ alt: "Video", category: "video", videoSrc: vf });
+        } else {
+          out.push({ imageUrl: vf, alt: "Video", category: "video", videoSrc: vf });
+        }
+      } else if (nonEmpty(d.videoUrl)) {
+        out.push({
+          alt: "Video",
+          category: "video",
+          videoRemoteUrl: normalizeUrl(d.videoUrl!),
+        });
+      }
+    } else {
+      const url = imgs[e];
+      galleryOrdinal += 1;
+      push(url, `Galería ${galleryOrdinal}`, "interior");
+    }
+  }
   return out.slice(0, 24);
 }
 
@@ -350,6 +364,7 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
     (d.interiorImages?.some(nonEmpty) ?? false) ||
     (d.exteriorImages?.some(nonEmpty) ?? false);
   if (anyImg) return false;
+  if (nonEmpty(d.videoFile) || nonEmpty(d.videoUrl)) return false;
   if (nonEmpty(d.longDescription)) return false;
   if (d.highlights?.length) return false;
   return true;
@@ -358,6 +373,12 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
 export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): RestaurantDetailShellData {
   const hp = computeShellHoursPreview(d);
   const cuisineLine = buildCuisineLine(d);
+  const seq = resolveRestauranteGallerySequence(d);
+  const imgs = d.galleryImages ?? [];
+  const firstGalIdx = seq.find((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length);
+  const firstGal = firstGalIdx != null ? imgs[firstGalIdx] : undefined;
+  const heroResolved = nonEmpty(d.heroImage) ? d.heroImage : nonEmpty(firstGal) ? firstGal : undefined;
+
   const quick = buildQuickInfo(d, hp.scheduleSummary).filter((q) => nonEmpty(q.value));
   const highlights = (d.highlights ?? [])
     .filter(nonEmpty)
@@ -384,7 +405,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
 
   return {
     id: d.draftListingId,
-    heroImageUrl: nonEmpty(d.heroImage) ? d.heroImage : undefined,
+    heroImageUrl: nonEmpty(heroResolved) ? heroResolved : undefined,
     heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,

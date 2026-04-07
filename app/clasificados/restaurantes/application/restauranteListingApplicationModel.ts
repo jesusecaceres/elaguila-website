@@ -6,6 +6,8 @@
  * @see `getCanonicalCityName` — `cityCanonical` must match NorCal pipeline output where applicable.
  */
 
+import { resolveRestauranteGallerySequence } from "./restauranteGalleryMediaSequence";
+
 // ---------------------------------------------------------------------------
 // Shared primitives
 // ---------------------------------------------------------------------------
@@ -101,6 +103,8 @@ export type RestauranteGalleryMedia = {
   galleryImages?: RestauranteFileRef[];
   /** Display order: indices or media ids — implementation-specific */
   galleryOrder?: string[];
+  /** Mixed gallery + video order for preview/editor (Leonix-style strip). */
+  galleryMediaSequence?: Array<number | "v">;
   videoFile?: RestauranteFileRef;
   videoUrl?: string;
   foodImages?: RestauranteFileRef[];
@@ -438,6 +442,11 @@ export function satisfiesRestauranteMinimumValidPreview(
     | "shortSummary"
     | "cityCanonical"
     | "heroImage"
+    | "galleryImages"
+    | "galleryMediaSequence"
+    | "galleryOrder"
+    | "videoFile"
+    | "videoUrl"
   > &
     RestauranteContactCta &
     RestauranteWeeklyHours
@@ -447,7 +456,13 @@ export function satisfiesRestauranteMinimumValidPreview(
   if (!nonEmpty(row.primaryCuisine)) return false;
   if (!nonEmpty(row.shortSummary)) return false;
   if (!nonEmpty(row.cityCanonical)) return false;
-  if (!nonEmpty(row.heroImage)) return false;
+  if (!nonEmpty(row.heroImage)) {
+    const seq = resolveRestauranteGallerySequence(row);
+    const imgs = row.galleryImages ?? [];
+    const firstIdx = seq.find((x): x is number => typeof x === "number" && Number.isFinite(x) && x >= 0 && x < imgs.length);
+    const firstGal = firstIdx != null ? imgs[firstIdx] : undefined;
+    if (!nonEmpty(firstGal)) return false;
+  }
   if (!hasPrimaryContactPath(row)) return false;
   if (!hasOperatingSignal(row)) return false;
   return true;

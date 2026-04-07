@@ -69,7 +69,7 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
 
   const openPreview = () => {
     persistNow();
-    window.open(`/servicios/perfil/preview?lang=${lang}`, "_blank", "noopener,noreferrer");
+    window.open(`/clasificados/publicar/servicios/preview?lang=${lang}`, "_blank", "noopener,noreferrer");
   };
 
   const missingLabel = (key: string) => {
@@ -94,7 +94,11 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              href={lang === "es" ? "/servicios/publicar?lang=en" : "/servicios/publicar?lang=es"}
+              href={
+                lang === "es"
+                  ? "/clasificados/publicar/servicios?lang=en"
+                  : "/clasificados/publicar/servicios?lang=es"
+              }
               className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
             >
               {lang === "es" ? "English" : "Español"}

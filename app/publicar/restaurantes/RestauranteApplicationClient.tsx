@@ -24,6 +24,9 @@ import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/applicatio
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { satisfiesRestauranteMinimumValidPreview, satisfiesRestauranteServiceModes } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
+import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
+import { RestaurantePublishMediaStrip } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaStrip";
+import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
@@ -65,7 +68,7 @@ function FieldLabel({ children, optional }: { children: React.ReactNode; optiona
 }
 
 export default function RestauranteApplicationClient() {
-  const { hydrated, draft, setDraftPatch, resetDraft } = useRestauranteDraft();
+  const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
   /** Display names for last picked files (draft stores data URLs only). */
   const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
@@ -974,7 +977,7 @@ export default function RestauranteApplicationClient() {
                         const f = files?.[0];
                         if (!f) return;
                         setUploadLabels((p) => ({ ...p, [`featured-${i}`]: f.name }));
-                        patchFeatured(i, { image: await readFileAsDataUrl(f) });
+                        patchFeatured(i, { image: await readRestauranteImageAsDataUrl(f) });
                       }}
                     />
                     {dish.image ? (
@@ -1021,7 +1024,7 @@ export default function RestauranteApplicationClient() {
                     return;
                   }
                   setUploadLabels((p) => ({ ...p, hero: f.name }));
-                  setDraftPatch({ heroImage: await readFileAsDataUrl(f) });
+                  setDraftPatch({ heroImage: await readRestauranteImageAsDataUrl(f) });
                 }}
               />
               {draft.heroImage ? (
@@ -1046,72 +1049,13 @@ export default function RestauranteApplicationClient() {
                 </>
               ) : null}
             </div>
-            <div>
-              <FieldLabel optional>Galería general (reordenar con botones)</FieldLabel>
-              <RestauranteUploadRow
-                buttonLabel="Agregar fotos"
-                helperText="Puedes elegir varias a la vez."
-                accept="image/*"
-                multiple
-                selectedLabel={
-                  (draft.galleryImages?.length ?? 0) > 0
-                    ? `${draft.galleryImages!.length} foto(s) en la galería`
-                    : null
-                }
-                onFilesSelected={async (files) => {
-                  const list = files ? Array.from(files) : [];
-                  const urls: string[] = [];
-                  for (const f of list) urls.push(await readFileAsDataUrl(f));
-                  if (!urls.length) return;
-                  const next = [...(draft.galleryImages ?? []), ...urls];
-                  setDraftPatch({ galleryImages: next, galleryOrder: next.map((_, i) => String(i)) });
-                }}
-              />
-              <ul className="mt-3 space-y-2">
-                {(draft.galleryImages ?? []).map((url, i) => (
-                  <li key={`${i}-${url.slice(0, 24)}`} className="flex items-center gap-2 rounded-lg border p-2">
-                    <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded">
-                      <Image src={url} alt="" fill className="object-cover" unoptimized />
-                    </div>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-[color:var(--lx-text-2)] disabled:opacity-30"
-                      disabled={i === 0}
-                      onClick={() => {
-                        const imgs = [...(draft.galleryImages ?? [])];
-                        [imgs[i - 1], imgs[i]] = [imgs[i], imgs[i - 1]];
-                        setDraftPatch({ galleryImages: imgs, galleryOrder: imgs.map((_, j) => String(j)) });
-                      }}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-[color:var(--lx-text-2)] disabled:opacity-30"
-                      disabled={i === (draft.galleryImages ?? []).length - 1}
-                      onClick={() => {
-                        const imgs = [...(draft.galleryImages ?? [])];
-                        [imgs[i + 1], imgs[i]] = [imgs[i], imgs[i + 1]];
-                        setDraftPatch({ galleryImages: imgs, galleryOrder: imgs.map((_, j) => String(j)) });
-                      }}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="ml-auto text-xs text-red-700 underline"
-                      onClick={() => {
-                        const imgs = [...(draft.galleryImages ?? [])];
-                        imgs.splice(i, 1);
-                        setDraftPatch({ galleryImages: imgs, galleryOrder: imgs.map((_, j) => String(j)) });
-                      }}
-                    >
-                      Quitar
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <RestaurantePublishMediaStrip
+              draft={draft}
+              draftRef={draftRef}
+              setDraftPatch={setDraftPatch}
+              uploadLabels={uploadLabels}
+              setUploadLabels={setUploadLabels}
+            />
             <div className="grid gap-3 sm:grid-cols-3">
               {(
                 [
@@ -1135,7 +1079,7 @@ export default function RestauranteApplicationClient() {
                     onFilesSelected={async (files) => {
                       const list = files ? Array.from(files) : [];
                       const urls: string[] = [];
-                      for (const f of list) urls.push(await readFileAsDataUrl(f));
+                      for (const f of list) urls.push(await readRestauranteImageAsDataUrl(f));
                       if (!urls.length) return;
                       const cur = (draft[field] as string[] | undefined) ?? [];
                       setDraftPatch({ [field]: [...cur, ...urls] } as Partial<RestauranteListingDraft>);
@@ -1145,51 +1089,27 @@ export default function RestauranteApplicationClient() {
               ))}
             </div>
             <div>
-              <FieldLabel optional>Video (archivo)</FieldLabel>
-              <RestauranteUploadRow
-                buttonLabel="Subir video"
-                helperText="Archivo de video para vista previa local."
-                accept="video/*"
-                selectedLabel={uploadLabels.video ?? (draft.videoFile ? "Video guardado en el borrador" : null)}
-                onFilesSelected={async (files) => {
-                  const f = files?.[0];
-                  if (!f) {
-                    setDraftPatch({ videoFile: undefined });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.video;
-                      return n;
-                    });
-                    return;
-                  }
-                  setUploadLabels((p) => ({ ...p, video: f.name }));
-                  setDraftPatch({ videoFile: await readFileAsDataUrl(f) });
-                }}
-              />
-              {draft.videoFile ? (
-                <button
-                  type="button"
-                  className="mt-2 text-xs font-semibold text-red-800 underline"
-                  onClick={() => {
-                    setDraftPatch({ videoFile: undefined });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.video;
-                      return n;
-                    });
-                  }}
-                >
-                  Quitar video
-                </button>
-              ) : null}
-            </div>
-            <div>
               <FieldLabel optional>Video (URL)</FieldLabel>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.videoUrl}
                 value={draft.videoUrl ?? ""}
-                onChange={(e) => setDraftPatch({ videoUrl: e.target.value || undefined })}
+                onChange={(e) => {
+                  const v = e.target.value || undefined;
+                  const cur = draftRef.current;
+                  const hasFile = !!(cur.videoFile?.trim());
+                  let seq = cur.galleryMediaSequence ?? resolveRestauranteGallerySequence(cur);
+                  const hasVideo = hasFile || !!v?.trim();
+                  if (hasVideo) {
+                    if (!seq.includes("v")) seq = [...seq, "v"];
+                  } else {
+                    seq = seq.filter((x) => x !== "v");
+                  }
+                  setDraftPatch({
+                    videoUrl: v,
+                    galleryMediaSequence: seq.length ? seq : undefined,
+                  });
+                }}
               />
             </div>
           </div>

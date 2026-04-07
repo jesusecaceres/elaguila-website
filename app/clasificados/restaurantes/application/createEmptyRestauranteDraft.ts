@@ -81,6 +81,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     heroImage: "",
     galleryImages: [],
     galleryOrder: [],
+    galleryMediaSequence: undefined,
     videoFile: undefined,
     videoUrl: undefined,
     foodImages: [],
@@ -123,6 +124,17 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   merged.highlights = Array.isArray(merged.highlights) ? merged.highlights : [];
   merged.galleryImages = Array.isArray(merged.galleryImages) ? merged.galleryImages : [];
   merged.galleryOrder = Array.isArray(merged.galleryOrder) ? merged.galleryOrder : [];
+  merged.movingVendor = merged.movingVendor === true;
+  merged.galleryMediaSequence = Array.isArray(merged.galleryMediaSequence)
+    ? merged.galleryMediaSequence
+        .map((x: unknown) => {
+          if (x === "v" || x === "video") return "v" as const;
+          const n = typeof x === "number" ? x : Number(x);
+          if (Number.isFinite(n)) return n as number;
+          return null;
+        })
+        .filter((x): x is number | "v" => x !== null)
+    : undefined;
   merged.foodImages = Array.isArray(merged.foodImages) ? merged.foodImages : [];
   merged.interiorImages = Array.isArray(merged.interiorImages) ? merged.interiorImages : [];
   merged.exteriorImages = Array.isArray(merged.exteriorImages) ? merged.exteriorImages : [];

@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiMail, FiMapPin, FiPhone, FiVideo, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
+import { FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
+import { RestauranteShellGalleryBlock } from "./RestauranteShellGalleryBlock";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -266,58 +267,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
 
           {/* 6. GALLERY */}
           {showGallery ? (
-            <section id="media" aria-labelledby="gallery-heading">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <h2 id="gallery-heading" className="text-xl font-bold tracking-tight text-[color:var(--lx-text)]">
-                  Galería
-                </h2>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {data.gallery!.map((g, idx) => (
-                  <div
-                    key={`${g.alt}-${idx}`}
-                    className={`relative aspect-square overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] ${
-                      g.category === "video" ? "ring-2 ring-[color:var(--lx-gold)]/35" : ""
-                    }`}
-                  >
-                    {g.imageUrl ? (
-                      <Image
-                        src={g.imageUrl}
-                        alt={g.alt}
-                        fill
-                        unoptimized={g.imageUrl.startsWith("data:")}
-                        className="object-cover"
-                        sizes="(max-width:1024px) 50vw, 25vw"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#1a1814]" aria-hidden />
-                    )}
-                    {g.countOverlay != null ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">
-                        +{g.countOverlay}
-                      </span>
-                    ) : null}
-                    {g.category === "video" ? (
-                      <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg">
-                          <FiVideo className="h-5 w-5" aria-hidden />
-                        </span>
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-              {data.galleryCta ? (
-                <div className="mt-5">
-                  <a
-                    href={data.galleryCta.href}
-                    className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
-                  >
-                    {data.galleryCta.label}
-                  </a>
-                </div>
-              ) : null}
-            </section>
+            <RestauranteShellGalleryBlock gallery={data.gallery!} galleryCta={data.galleryCta} />
           ) : null}
 
           {/* 8. ABOUT */}

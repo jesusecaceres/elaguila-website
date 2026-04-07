@@ -22,12 +22,14 @@ export function loadRestauranteDraftFromStorage(): RestauranteListingDraft | nul
   }
 }
 
-export function saveRestauranteDraftToStorage(draft: RestauranteListingDraft): void {
-  if (typeof window === "undefined") return;
+export function saveRestauranteDraftToStorage(draft: RestauranteListingDraft): boolean {
+  if (typeof window === "undefined") return false;
   try {
     window.localStorage.setItem(RESTAURANTES_DRAFT_STORAGE_KEY, JSON.stringify(wrap(draft)));
+    return true;
   } catch {
     /* quota / private mode */
+    return false;
   }
 }
 
