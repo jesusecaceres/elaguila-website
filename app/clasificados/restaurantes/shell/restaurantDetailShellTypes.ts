@@ -95,6 +95,8 @@ export type RestaurantDetailShellData = {
   heroImageAlt?: string;
   businessName: string;
   cuisineTypeLine?: string;
+  /** Custom “Otra” / supplemental taxonomy labels — short chips under the cuisine line */
+  taxonomyChips?: { key: string; label: string }[];
   summaryShort?: string;
   trustRating?: {
     average: number;

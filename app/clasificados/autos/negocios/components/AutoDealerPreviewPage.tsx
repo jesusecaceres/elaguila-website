@@ -25,6 +25,8 @@ import { VehicleHighlights } from "./VehicleHighlights";
 import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
+import { AUTOS_LISTING_ANALYTICS_DRAFT_DEMO } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
 
 const MAIN_CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-5";
@@ -56,9 +58,14 @@ export function AutoDealerPreviewPage({
   const showHighlights = hasHighlightsSection(data);
   const showDesc = hasDescriptionSection(data);
 
+  const showAnalyticsStrip = showTitle || showGallery;
+  const analyticsMetrics = data.listingAnalytics ?? AUTOS_LISTING_ANALYTICS_DRAFT_DEMO;
+  const pa = t.preview.analytics;
+
   let r = 1;
   const titleRow = showTitle ? r++ : undefined;
   const galleryRow = showGallery ? r++ : undefined;
+  const analyticsRow = showAnalyticsStrip ? r++ : undefined;
   const specsRow = showSpecs ? r++ : undefined;
   const highlightsRow = showHighlights ? r++ : undefined;
   const descRow = showDesc ? r++ : undefined;
@@ -77,6 +84,7 @@ export function AutoDealerPreviewPage({
   let ord = 1;
   const orderTitle = showTitle ? ord++ : undefined;
   const orderGallery = showGallery ? ord++ : undefined;
+  const orderAnalytics = showAnalyticsStrip ? ord++ : undefined;
   const orderAside = ord++;
   const orderSpecs = showSpecs ? ord++ : undefined;
   const orderHi = showHighlights ? ord++ : undefined;
@@ -167,6 +175,22 @@ export function AutoDealerPreviewPage({
           {showGallery ? (
             <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
               <AutoGallery data={data} />
+            </div>
+          ) : null}
+
+          {showAnalyticsStrip ? (
+            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: analyticsRow, order: orderAnalytics }}>
+              <AutosListingAnalyticsRow
+                metrics={analyticsMetrics}
+                labels={{
+                  kicker: pa.kicker,
+                  views: pa.views,
+                  saves: pa.saves,
+                  shares: pa.shares,
+                  contacts: pa.contacts,
+                  footnote: pa.footnote,
+                }}
+              />
             </div>
           ) : null}
 

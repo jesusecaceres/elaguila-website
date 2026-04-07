@@ -695,7 +695,7 @@ export function Step07InformacionProfesional({
             <AiField label={s7.x}>
               <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
-            <AiField label={s7.otroSocial}>
+            <AiField label={s7.enlaceSocialAdicional}>
               <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
           </div>
@@ -910,7 +910,7 @@ export function Step07InformacionProfesional({
                     autoComplete="off"
                   />
                 </AiField>
-                <AiField label={s7.otroSocial}>
+                <AiField label={s7.enlaceSocialAdicional}>
                   <input
                     className={aiInputClass}
                     type="url"
@@ -1074,7 +1074,7 @@ export function Step07InformacionProfesional({
             <AiField label={s7.brokerX}>
               <input className={aiInputClass} type="url" value={state.brokerX} onChange={(e) => setState((s) => ({ ...s, brokerX: e.target.value }))} placeholder="https://" />
             </AiField>
-            <AiField label={s7.brokerOtro}>
+            <AiField label={s7.brokerEnlaceAdicional}>
               <input className={aiInputClass} type="url" value={state.brokerOtro} onChange={(e) => setState((s) => ({ ...s, brokerOtro: e.target.value }))} placeholder="https://" />
             </AiField>
           </div>

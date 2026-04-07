@@ -107,6 +107,11 @@ export type ServiciosPromoOffer = {
 export type ServiciosIdentity = {
   slug: string;
   businessName: string;
+  /**
+   * Leonix-controlled verification (e.g. published listing from ops).
+   * Never set from advertiser self-serve; resolver injects the hero badge when true.
+   */
+  leonixVerified?: boolean;
 };
 
 /** Hero banner + overlay card */

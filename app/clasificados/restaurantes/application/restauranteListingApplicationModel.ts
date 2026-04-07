@@ -187,6 +187,20 @@ export type RestauranteInternalContract = {
 // A. Business identity (cityCanonical + zip live once on composed listing — see below)
 // ---------------------------------------------------------------------------
 
+/**
+ * Optional text when the user picks taxonomy value `other` / `other_lang`.
+ * Keeps controlled keys in draft while surfacing a short custom label in UI/preview.
+ */
+export type RestauranteTaxonomyOtherSupplements = {
+  businessTypeCustom?: string;
+  primaryCuisineCustom?: string;
+  secondaryCuisineCustom?: string;
+  /** When "other" is checked under cocinas adicionales */
+  additionalCuisineOtherCustom?: string;
+  languageOtherCustom?: string;
+  serviceModeOtherCustom?: string;
+};
+
 export type RestauranteBusinessIdentity = {
   businessName: string;
   businessType: RestauranteBusinessTypeKey;
@@ -274,6 +288,7 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
   RestauranteLocationDetails &
   RestauranteGalleryMedia &
   RestauranteTrustFields &
+  RestauranteTaxonomyOtherSupplements &
   RestauranteInternalContract & {
     featuredDishes?: RestauranteFeaturedDish[];
     highlights?: RestauranteHighlightKey[];

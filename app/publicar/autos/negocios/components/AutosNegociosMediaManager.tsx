@@ -60,10 +60,13 @@ export function AutosNegociosMediaManager({
   listing,
   setListingPatch,
   copy,
+  /** Hide dealership logo block (e.g. Autos Privado lane). */
+  hideDealerLogo = false,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
   copy: AutosNegociosCopy;
+  hideDealerLogo?: boolean;
 }) {
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
@@ -501,70 +504,74 @@ export function AutosNegociosMediaManager({
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.videoChooseMode}</p>
       ) : null}
 
-      <input
-        ref={logoInputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={(e) => {
-          void onLogoFile(e.target.files);
-        }}
-      />
-
-      <h3 className={SUBHEAD}>{m.logoHeading}</h3>
-      <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{m.logoUrlHint}</p>
-
-      <div className="mt-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
-        <label className={LABEL}>{m.logoUrlLabel}</label>
-        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
+      {!hideDealerLogo ? (
+        <>
           <input
-            className={`${INPUT} sm:min-w-0 sm:flex-1`}
-            placeholder={copy.app.placeholders.https}
-            value={logoUrlDraft}
-            onChange={(e) => setLogoUrlDraft(e.target.value)}
-          />
-          <button type="button" className={BTN_SECONDARY} onClick={applyLogoUrl}>
-            {m.useLogoUrl}
-          </button>
-        </div>
-        {logo && !logo.startsWith("data:") ? (
-          <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
-            {m.logoUrlSaved}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="mt-3">
-        <button type="button" className={BTN_PRIMARY} onClick={() => logoInputRef.current?.click()}>
-          <FiUpload className="h-4 w-4" aria-hidden />
-          {m.uploadLogo}
-        </button>
-        <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{m.uploadLogoHint}</p>
-      </div>
-
-      {logo ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo} alt="" className="h-16 w-16 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[color:var(--lx-text)]">{m.logoPreviewTitle}</p>
-            <p className="text-[11px] text-[color:var(--lx-muted)]">
-              {logo.startsWith("data:") ? m.logoPreviewFile : m.logoPreviewUrl}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="text-xs font-bold text-red-800 underline"
-            onClick={() => {
-              setLogoUrlDraft("");
-              setListingPatch({ dealerLogo: undefined });
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(e) => {
+              void onLogoFile(e.target.files);
             }}
-          >
-            {m.removeLogo}
-          </button>
-        </div>
+          />
+
+          <h3 className={SUBHEAD}>{m.logoHeading}</h3>
+          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{m.logoUrlHint}</p>
+
+          <div className="mt-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
+            <label className={LABEL}>{m.logoUrlLabel}</label>
+            <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <input
+                className={`${INPUT} sm:min-w-0 sm:flex-1`}
+                placeholder={copy.app.placeholders.https}
+                value={logoUrlDraft}
+                onChange={(e) => setLogoUrlDraft(e.target.value)}
+              />
+              <button type="button" className={BTN_SECONDARY} onClick={applyLogoUrl}>
+                {m.useLogoUrl}
+              </button>
+            </div>
+            {logo && !logo.startsWith("data:") ? (
+              <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
+                {m.logoUrlSaved}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-3">
+            <button type="button" className={BTN_PRIMARY} onClick={() => logoInputRef.current?.click()}>
+              <FiUpload className="h-4 w-4" aria-hidden />
+              {m.uploadLogo}
+            </button>
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{m.uploadLogoHint}</p>
+          </div>
+
+          {logo ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logo} alt="" className="h-16 w-16 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[color:var(--lx-text)]">{m.logoPreviewTitle}</p>
+                <p className="text-[11px] text-[color:var(--lx-muted)]">
+                  {logo.startsWith("data:") ? m.logoPreviewFile : m.logoPreviewUrl}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-xs font-bold text-red-800 underline"
+                onClick={() => {
+                  setLogoUrlDraft("");
+                  setListingPatch({ dealerLogo: undefined });
+                }}
+              >
+                {m.removeLogo}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </section>
   );

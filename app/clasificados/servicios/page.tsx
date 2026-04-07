@@ -1,142 +1,76 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import Navbar from "../../components/Navbar";
-import { appendLangToPath, buildCategoryBrowseUrl } from "@/app/clasificados/lib/hubUrl";
-import { SERVICIOS_GROUPS } from "./shared/fields/serviciosTaxonomy";
+import { ServiciosDirectoryLocalSection } from "./ServiciosDirectoryLocalSection";
+import { listServiciosPublicListingsFromDb } from "./lib/serviciosPublicListingsServer";
 
-type Lang = "es" | "en";
+export const metadata: Metadata = {
+  title: "Servicios · Leonix Clasificados",
+  description: "Directorio de servicios locales (fundación de listados públicos).",
+};
 
-const CATEGORY = "servicios";
+type PageProps = { searchParams?: Promise<{ lang?: string }> };
 
-const COPY = {
-  es: {
-    title: "Servicios",
-    subtitle: "Encuentra plomería, jardinería, mecánica y más en tu zona.",
-    searchPlaceholder: "Buscar: plomero, jardinería, limpieza…",
-    locationPlaceholder: "Ciudad o ZIP",
-    buttonView: "Ver anuncios",
-    buttonPost: "Publicar anuncio",
-    exploreCategory: "Explorar por categoría",
-    hint: "Usa el botón para ver resultados con filtros.",
-    ctaPost: "Publicar anuncio",
-    ctaView: "Ver anuncios",
-    todo: "Todo",
-  },
-  en: {
-    title: "Services",
-    subtitle: "Find plumbing, landscaping, mechanic services and more near you.",
-    searchPlaceholder: "Search: plumber, landscaping, cleaning…",
-    locationPlaceholder: "City or ZIP",
-    buttonView: "View listings",
-    buttonPost: "Post listing",
-    exploreCategory: "Browse by category",
-    hint: "Use the button below to see results with filters.",
-    ctaPost: "Post listing",
-    ctaView: "View listings",
-    todo: "All",
-  },
-} as const;
-
-function buildBrowseUrl(cat: string, lang: Lang, q?: string, city?: string, group?: string) {
-  return buildCategoryBrowseUrl(cat, lang, { q, city, sv_grp: group });
-}
-
-const CATEGORY_PILLS: { key: string; labelEs: string; labelEn: string }[] = [
-  { key: "rentas", labelEs: "Rentas", labelEn: "Rentals" },
-  { key: "en-venta", labelEs: "En venta", labelEn: "For sale" },
-  { key: "empleos", labelEs: "Empleos", labelEn: "Jobs" },
-  { key: "servicios", labelEs: "Servicios", labelEn: "Services" },
-  { key: "restaurantes", labelEs: "Restaurantes", labelEn: "Restaurants" },
-  { key: "travel", labelEs: "Viajes", labelEn: "Travel" },
-  { key: "autos", labelEs: "Autos", labelEn: "Autos" },
-  { key: "clases", labelEs: "Clases", labelEn: "Classes" },
-  { key: "comunidad", labelEs: "Comunidad", labelEn: "Community" },
-];
-
-export default function Page() {
-  const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
-  const t = COPY[lang];
-
-  const listaHref = useMemo(() => buildBrowseUrl(CATEGORY, lang), [lang]);
-  const postHref = useMemo(() => `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`, [lang]);
+export default async function ClasificadosServiciosDirectoryPage(props: PageProps) {
+  const sp = (await props.searchParams) ?? {};
+  const lang = sp.lang === "en" ? "en" : "es";
+  const rows = await listServiciosPublicListingsFromDb();
+  const dbSlugList = rows.map((r) => r.slug);
 
   return (
-    <div className="min-h-screen bg-[#D9D9D9] text-[#111111] pb-20 bg-[radial-gradient(ellipse_at_top,rgba(169,140,42,0.10),transparent_60%)]">
-      <Navbar />
-
-      <div className="sticky top-14 z-30 border-b border-black/10 bg-[#D9D9D9]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2">
-          <Link href={postHref} className="rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
-            {t.ctaPost}
-          </Link>
-          <Link href={listaHref} className="rounded-full border border-[#C9B46A]/70 bg-[#F5F5F5] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#EFEFEF] transition">
-            {t.ctaView}
+    <div className="min-h-screen bg-[#F9F8F6] text-neutral-900">
+      <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#3B66AD]">
+              Leonix Clasificados
+            </p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
+              {lang === "en" ? "Services" : "Servicios"}
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600">
+              {lang === "en"
+                ? "Foundation for public discovery — filters and richer results will layer in next."
+                : "Base para descubrimiento público: filtros y resultados más ricos vendrán después."}
+            </p>
+          </div>
+          <Link
+            href={`/clasificados/publicar/servicios?lang=${lang}`}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:border-[#3B66AD]/35"
+          >
+            {lang === "en" ? "Create listing" : "Crear anuncio"}
           </Link>
         </div>
+
+        <section className="mt-10">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+            {lang === "en" ? "Recent listings" : "Anuncios recientes"}
+          </h2>
+          {rows.length === 0 ? (
+            <p className="mt-3 rounded-2xl border border-dashed border-neutral-200 bg-white/80 px-4 py-8 text-center text-sm text-neutral-600">
+              {lang === "en"
+                ? "No public listings yet — publish from the Servicios application when you’re ready."
+                : "Aún no hay anuncios públicos: publica desde la aplicación de Servicios cuando estés listo."}
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {rows.map((r) => (
+                <li key={r.slug}>
+                  <Link
+                    href={`/clasificados/servicios/${encodeURIComponent(r.slug)}?lang=${lang}`}
+                    className="flex flex-col rounded-2xl border border-neutral-200/90 bg-white px-4 py-4 shadow-sm transition hover:border-[#3B66AD]/35"
+                  >
+                    <span className="font-semibold text-neutral-900">{r.business_name}</span>
+                    <span className="text-sm text-neutral-600">{r.city}</span>
+                    <span className="mt-1 text-xs text-neutral-400">{r.slug}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <ServiciosDirectoryLocalSection lang={lang} dbSlugs={dbSlugList} />
       </div>
-
-      <main className="mx-auto max-w-4xl px-4 pt-6 pb-12">
-        <h1 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight">
-          {t.title}
-        </h1>
-        <p className="mt-2 text-[#111111] text-base">{t.subtitle}</p>
-
-        <section className="mt-6 rounded-2xl border border-[#111111]/10 bg-[#F5F5F5] px-4 py-3">
-          <p className="text-xs font-semibold text-[#111111]/80">{t.exploreCategory}</p>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
-              <Link
-                key={key}
-                href={appendLangToPath(`/clasificados/${key}`, lang)}
-                className="shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#F8F6F0] px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
-              >
-                {lang === "es" ? labelEs : labelEn}
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-xl border border-[#C9B46A]/25 bg-[#F5F5F5] shadow-sm p-3 ring-1 ring-[#C9B46A]/10">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-stretch">
-            <div className="relative min-w-0">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>⌕</span>
-              <input type="text" placeholder={t.searchPlaceholder} className="w-full rounded-lg border border-[#C9B46A]/30 bg-white py-2 pl-8 pr-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-1 focus:ring-[#A98C2A]/20" aria-label={t.searchPlaceholder} readOnly onFocus={(e) => e.target.blur()} />
-            </div>
-            <Link href={listaHref} className="flex items-center rounded-lg border border-[#C9B46A]/30 bg-white px-3 py-2 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-36"><span className="truncate">{t.locationPlaceholder}</span></Link>
-          </div>
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Link
-              href={listaHref}
-              className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-3 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
-            >
-              {t.todo}
-            </Link>
-            {SERVICIOS_GROUPS.map(({ key, labelEs, labelEn }) => (
-              <Link
-                key={key}
-                href={buildBrowseUrl(CATEGORY, lang, undefined, undefined, key)}
-                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
-              >
-                {lang === "es" ? labelEs : labelEn}
-              </Link>
-            ))}
-          </div>
-          <p className="mt-1.5 text-[11px] text-[#111111]/70">{t.hint}</p>
-        </section>
-
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <Link href={listaHref} className="inline-flex justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] hover:opacity-95 transition">
-            {t.buttonView}
-          </Link>
-          <Link href={postHref} className="inline-flex justify-center rounded-xl border border-[#C9B46A]/50 bg-[#F5F5F5] px-5 py-3 text-sm font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-            {t.buttonPost}
-          </Link>
-        </div>
-      </main>
     </div>
   );
 }

@@ -17,6 +17,8 @@ import {
   RESTAURANTE_PICKUP_DAYS,
   RESTAURANTE_PRICE_LEVELS,
   RESTAURANTE_SERVICE_MODES,
+  TAXONOMY_KEY_OTHER,
+  TAXONOMY_KEY_OTHER_LANG,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/application/RestauranteUploadRow";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
@@ -27,6 +29,12 @@ const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
+
+const PRIMARY_OP_CARD =
+  "flex h-full flex-col rounded-2xl border-2 border-[color:var(--lx-gold-border)]/50 bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-4 shadow-[0_4px_20px_-8px_rgba(42,36,22,0.12)]";
+
+const OTHER_INPUT =
+  "mt-1.5 w-full max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
 
 const DAY_ROWS: { key: keyof Pick<RestauranteListingDraft, "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday">; label: string }[] = [
   { key: "monday", label: "Lunes" },
@@ -92,7 +100,11 @@ export default function RestauranteApplicationClient() {
     (key: string) => {
       const cur = draft.languagesSpoken ?? [];
       const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
-      setDraftPatch({ languagesSpoken: next });
+      const patch: Partial<RestauranteListingDraft> = { languagesSpoken: next };
+      if (key === TAXONOMY_KEY_OTHER_LANG && cur.includes(key) && !next.includes(key)) {
+        patch.languageOtherCustom = undefined;
+      }
+      setDraftPatch(patch);
     },
     [draft.languagesSpoken, setDraftPatch]
   );
@@ -101,7 +113,11 @@ export default function RestauranteApplicationClient() {
     (mode: RestauranteServiceMode) => {
       const cur = draft.serviceModes ?? [];
       const next = cur.includes(mode) ? cur.filter((m) => m !== mode) : [...cur, mode];
-      setDraftPatch({ serviceModes: next });
+      const patch: Partial<RestauranteListingDraft> = { serviceModes: next };
+      if (mode === TAXONOMY_KEY_OTHER && cur.includes(mode) && !next.includes(mode)) {
+        patch.serviceModeOtherCustom = undefined;
+      }
+      setDraftPatch(patch);
       setServiceErr(false);
     },
     [draft.serviceModes, setDraftPatch]
@@ -227,7 +243,13 @@ export default function RestauranteApplicationClient() {
               <select
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.businessType}
-                onChange={(e) => setDraftPatch({ businessType: e.target.value })}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDraftPatch({
+                    businessType: v,
+                    businessTypeCustom: v === TAXONOMY_KEY_OTHER ? draft.businessTypeCustom : undefined,
+                  });
+                }}
               >
                 <option value="">Seleccionar…</option>
                 {RESTAURANTE_BUSINESS_TYPES.map((o) => (
@@ -237,13 +259,31 @@ export default function RestauranteApplicationClient() {
                 ))}
               </select>
             </div>
+            {draft.businessType === TAXONOMY_KEY_OTHER ? (
+              <div>
+                <FieldLabel>Especifica el tipo (Otro)</FieldLabel>
+                <input
+                  className={OTHER_INPUT}
+                  maxLength={80}
+                  placeholder="Ej. cocina oculta especializada"
+                  value={draft.businessTypeCustom ?? ""}
+                  onChange={(e) => setDraftPatch({ businessTypeCustom: e.target.value || undefined })}
+                />
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel>Cocina principal</FieldLabel>
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.primaryCuisine}
-                  onChange={(e) => setDraftPatch({ primaryCuisine: e.target.value })}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDraftPatch({
+                      primaryCuisine: v,
+                      primaryCuisineCustom: v === TAXONOMY_KEY_OTHER ? draft.primaryCuisineCustom : undefined,
+                    });
+                  }}
                 >
                   <option value="">Seleccionar…</option>
                   {RESTAURANTE_CUISINES.map((o) => (
@@ -258,7 +298,13 @@ export default function RestauranteApplicationClient() {
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.secondaryCuisine ?? ""}
-                  onChange={(e) => setDraftPatch({ secondaryCuisine: e.target.value || undefined })}
+                  onChange={(e) => {
+                    const v = e.target.value || undefined;
+                    setDraftPatch({
+                      secondaryCuisine: v,
+                      secondaryCuisineCustom: v === TAXONOMY_KEY_OTHER ? draft.secondaryCuisineCustom : undefined,
+                    });
+                  }}
                 >
                   <option value="">—</option>
                   {RESTAURANTE_CUISINES.map((o) => (
@@ -269,6 +315,30 @@ export default function RestauranteApplicationClient() {
                 </select>
               </div>
             </div>
+            {draft.primaryCuisine === TAXONOMY_KEY_OTHER ? (
+              <div>
+                <FieldLabel>Especifica la cocina principal (Otra)</FieldLabel>
+                <input
+                  className={OTHER_INPUT}
+                  maxLength={80}
+                  placeholder="Ej. Sichuan, Oaxaca, fusión indo-mexicana…"
+                  value={draft.primaryCuisineCustom ?? ""}
+                  onChange={(e) => setDraftPatch({ primaryCuisineCustom: e.target.value || undefined })}
+                />
+              </div>
+            ) : null}
+            {draft.secondaryCuisine === TAXONOMY_KEY_OTHER ? (
+              <div>
+                <FieldLabel>Especifica la cocina secundaria (Otra)</FieldLabel>
+                <input
+                  className={OTHER_INPUT}
+                  maxLength={80}
+                  placeholder="Breve descripción"
+                  value={draft.secondaryCuisineCustom ?? ""}
+                  onChange={(e) => setDraftPatch({ secondaryCuisineCustom: e.target.value || undefined })}
+                />
+              </div>
+            ) : null}
             <div>
               <FieldLabel optional>Cocinas adicionales</FieldLabel>
               <p className="mt-1 text-xs text-[color:var(--lx-muted)]">Misma lista que arriba; desplázate si hay muchas opciones.</p>
@@ -282,7 +352,11 @@ export default function RestauranteApplicationClient() {
                         onChange={() => {
                           const cur = draft.additionalCuisines ?? [];
                           const next = cur.includes(o.key) ? cur.filter((k) => k !== o.key) : [...cur, o.key];
-                          setDraftPatch({ additionalCuisines: next });
+                          const patch: Partial<RestauranteListingDraft> = { additionalCuisines: next };
+                          if (o.key === TAXONOMY_KEY_OTHER && cur.includes(o.key) && !next.includes(o.key)) {
+                            patch.additionalCuisineOtherCustom = undefined;
+                          }
+                          setDraftPatch(patch);
                         }}
                       />
                       {o.labelEs}
@@ -290,6 +364,18 @@ export default function RestauranteApplicationClient() {
                   ))}
                 </div>
               </div>
+              {(draft.additionalCuisines ?? []).includes(TAXONOMY_KEY_OTHER) ? (
+                <div className="mt-3">
+                  <FieldLabel optional>Especifica “Otra” en cocinas adicionales</FieldLabel>
+                  <input
+                    className={OTHER_INPUT}
+                    maxLength={80}
+                    placeholder="Una línea, p. ej. comida nikkei"
+                    value={draft.additionalCuisineOtherCustom ?? ""}
+                    onChange={(e) => setDraftPatch({ additionalCuisineOtherCustom: e.target.value || undefined })}
+                  />
+                </div>
+              ) : null}
             </div>
             <div>
               <FieldLabel>Resumen corto</FieldLabel>
@@ -363,6 +449,18 @@ export default function RestauranteApplicationClient() {
                   </label>
                 ))}
               </div>
+              {(draft.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) ? (
+                <div className="mt-3 max-w-md">
+                  <FieldLabel optional>Especifica el idioma (Otro)</FieldLabel>
+                  <input
+                    className={OTHER_INPUT}
+                    maxLength={48}
+                    placeholder="Ej. portugués, ASL…"
+                    value={draft.languageOtherCustom ?? ""}
+                    onChange={(e) => setDraftPatch({ languageOtherCustom: e.target.value || undefined })}
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -372,19 +470,107 @@ export default function RestauranteApplicationClient() {
           <SectionTitle>B · Modelo de operación</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
             Selecciona al menos un <strong className="font-semibold text-[color:var(--lx-text-2)]">modo de servicio</strong>{" "}
-            (obligatorio para abrir la vista previa).
+            más abajo (obligatorio para la vista previa con el botón principal).
           </p>
           <div className="mt-4 rounded-xl border border-[color:var(--lx-gold-border)]/35 bg-[color:var(--lx-nav-hover)]/50 px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            <p className="font-semibold text-[color:var(--lx-text)]">Leonix cubre muchos modelos</p>
+            <p className="font-semibold text-[color:var(--lx-text)]">Tres formas de operar que abren más preguntas</p>
             <p className="mt-1.5">
-              Puedes combinar lo que aplica: <strong>negocio desde casa</strong>, <strong>ubicación móvil</strong>,{" "}
-              <strong>food truck</strong>, <strong>pop-up</strong>, <strong>chef personal</strong>,{" "}
-              <strong>catering / eventos</strong> y más. Activa los interruptores de abajo; las secciones{" "}
-              <strong>I</strong> (móvil), <strong>J</strong> (desde casa) y <strong>K</strong> (catering/eventos) solo
-              aparecen cuando correspondan — no quita tu flujo actual.
+              Los interruptores destacados controlan si aparecen las secciones <strong>I</strong>, <strong>J</strong> o{" "}
+              <strong>K</strong>. El resto de opciones (comer en local, para llevar, food truck, etc.) siguen abajo; puedes
+              combinarlas sin perder flexibilidad.
             </p>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+
+          <p className="mt-6 text-sm font-semibold text-[color:var(--lx-text)]">Modelo principal (desbloquea secciones I / J / K)</p>
+          <div className="mt-3 grid gap-4 md:grid-cols-3">
+            <div className={PRIMARY_OP_CARD}>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                  checked={Boolean(draft.movingVendor)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    const patch: Partial<RestauranteListingDraft> = { movingVendor: checked };
+                    if (checked) patch.movingVendorStack = { ...draft.movingVendorStack };
+                    setDraftPatch(patch);
+                  }}
+                />
+                <span className="min-w-0">
+                  <span className="block text-base font-bold text-[color:var(--lx-text)]">Ubicación móvil</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                    Al activarlo, se muestra la sección <strong className="text-[color:var(--lx-text-2)]">I · Ubicación móvil</strong>{" "}
+                    (ruta, paradas, avisos).
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div className={PRIMARY_OP_CARD}>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                  checked={Boolean(draft.homeBasedBusiness)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    const patch: Partial<RestauranteListingDraft> = { homeBasedBusiness: checked };
+                    if (checked) patch.homeBasedStack = { ...draft.homeBasedStack };
+                    setDraftPatch(patch);
+                  }}
+                />
+                <span className="min-w-0">
+                  <span className="block text-base font-bold text-[color:var(--lx-text)]">Desde casa</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                    Activa la sección <strong className="text-[color:var(--lx-text-2)]">J · Negocio desde casa</strong>{" "}
+                    (recogida, ventanas, avisos).
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div className={PRIMARY_OP_CARD}>
+              <div className="text-base font-bold text-[color:var(--lx-text)]">Catering y eventos</div>
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                Si marcas al menos una opción, aparece la sección{" "}
+                <strong className="text-[color:var(--lx-text-2)]">K · Catering y eventos</strong>.
+              </p>
+              <div className="mt-3 space-y-2.5">
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-[color:var(--lx-nav-border)]"
+                    checked={Boolean(draft.cateringAvailable)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      const patch: Partial<RestauranteListingDraft> = { cateringAvailable: checked };
+                      if (checked) patch.cateringEventsStack = { ...draft.cateringEventsStack };
+                      setDraftPatch(patch);
+                    }}
+                  />
+                  Catering
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-[color:var(--lx-nav-border)]"
+                    checked={Boolean(draft.eventFoodService)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      const patch: Partial<RestauranteListingDraft> = { eventFoodService: checked };
+                      if (checked) patch.cateringEventsStack = { ...draft.cateringEventsStack };
+                      setDraftPatch(patch);
+                    }}
+                  />
+                  Comida para eventos
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">Modos de servicio (lista canónica)</p>
+          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+            Obligatorio: al menos una opción para usar el botón «Vista previa».
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {RESTAURANTE_SERVICE_MODES.map((o) => (
               <label
                 key={o.key}
@@ -399,22 +585,35 @@ export default function RestauranteApplicationClient() {
               </label>
             ))}
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {(draft.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) ? (
+            <div className="mt-3 max-w-lg">
+              <FieldLabel optional>Especifica el modo de servicio (Otro)</FieldLabel>
+              <input
+                className={OTHER_INPUT}
+                maxLength={64}
+                placeholder="Ej. venta en ferias, solo suscripciones…"
+                value={draft.serviceModeOtherCustom ?? ""}
+                onChange={(e) => setDraftPatch({ serviceModeOtherCustom: e.target.value || undefined })}
+              />
+            </div>
+          ) : null}
+
+          <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">Canal y opciones de servicio</p>
+          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+            Complementa el modelo: local, entrega, reservas, food truck, pop-up, chef, etc.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {(
               [
                 ["dineIn", "Comer en local"],
                 ["takeout", "Para llevar"],
                 ["delivery", "Entrega"],
                 ["reservationsAvailable", "Reservas"],
-                ["cateringAvailable", "Catering"],
                 ["preorderRequired", "Preorden obligatoria"],
                 ["pickupAvailable", "Recogida"],
-                ["homeBasedBusiness", "Desde casa"],
-                ["movingVendor", "Ubicación móvil"],
                 ["foodTruck", "Food truck"],
                 ["popUp", "Pop-up"],
                 ["personalChef", "Chef personal"],
-                ["eventFoodService", "Comida para eventos"],
               ] as const
             ).map(([key, label]) => (
               <label key={key} className="inline-flex items-center gap-2 text-sm">
@@ -423,13 +622,7 @@ export default function RestauranteApplicationClient() {
                   checked={Boolean(draft[key])}
                   onChange={(e) => {
                     const checked = e.target.checked;
-                    const patch: Partial<RestauranteListingDraft> = { [key]: checked };
-                    if (key === "movingVendor" && checked) patch.movingVendorStack = { ...draft.movingVendorStack };
-                    if (key === "homeBasedBusiness" && checked) patch.homeBasedStack = { ...draft.homeBasedStack };
-                    if ((key === "cateringAvailable" || key === "eventFoodService") && checked) {
-                      patch.cateringEventsStack = { ...draft.cateringEventsStack };
-                    }
-                    setDraftPatch(patch);
+                    setDraftPatch({ [key]: checked } as Partial<RestauranteListingDraft>);
                   }}
                 />
                 {label}

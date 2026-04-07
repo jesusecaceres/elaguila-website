@@ -22,7 +22,7 @@ export function parseBrNegocioPropiedadParam(raw: string | null | undefined): Br
   return null;
 }
 
-/** Legacy drafts/URLs may use `otro`; map away for the simplified selector. */
+/** Unknown or legacy category values map to the default (structured categories only). */
 export function coerceBrNegocioCategoriaPropiedad(raw: unknown): BrNegocioCategoriaPropiedad {
   const s = typeof raw === "string" ? raw : "";
   if (s === "residencial" || s === "comercial" || s === "terreno_lote") return s;

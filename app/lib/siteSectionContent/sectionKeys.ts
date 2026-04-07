@@ -1,5 +1,6 @@
 /** Stable keys for `site_section_content.section_key`. */
 export const SITE_SECTION_KEYS = [
+  "global_site",
   "tienda_storefront",
   "home_marketing",
   "contacto",

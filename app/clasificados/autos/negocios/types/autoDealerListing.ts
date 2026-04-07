@@ -3,6 +3,8 @@
  * Preview and live route share the same shape. Optional fields omit from UI when empty.
  */
 
+import type { AutosListingAnalyticsSnapshot } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
+
 export type VehicleBadge =
   | "certified"
   | "new"
@@ -61,6 +63,11 @@ export type VideoSourceType = "url" | "file" | null;
 export type VideoDraftUploadStatus = "local_preview" | "pending_mux" | "ready" | "error" | null;
 
 export type AutoDealerListing = {
+  /**
+   * Which Autos paid shell to render in preview/live.
+   * `privado` = private seller lane (no dealership stack). Omit / `negocios` = dealer lane.
+   */
+  autosLane?: "negocios" | "privado";
   vehicleTitle?: string;
   year?: number;
   make?: string;
@@ -134,5 +141,7 @@ export type AutoDealerListing = {
   /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
   dealerBookingUrl?: string | null;
   dealerSocials?: DealerSocials;
+  /** Engagement snapshot for preview / live analytics strip. */
+  listingAnalytics?: AutosListingAnalyticsSnapshot;
   relatedDealerListings?: RelatedDealerListing[];
 };

@@ -6,6 +6,19 @@ export type ClasificadosServiciosCopy = {
   saveHint: string;
   /** Primary CTA — saves draft and opens preview */
   previewCta: string;
+  /** Transitional publish (readiness-gated; no payments) */
+  publishCta: string;
+  publishModalTitle: string;
+  publishModalIntro: string;
+  publishMissingTitle: string;
+  publishClose: string;
+  publishSubmit: string;
+  publishBusy: string;
+  publishError: string;
+  publishLocalNote: string;
+  listingPhaseDraft: string;
+  listingPhasePreview: string;
+  listingPhasePublish: string;
   linkPreviewShell: string;
   linkBack: string;
   langToggle: string;
@@ -109,6 +122,20 @@ const es: ClasificadosServiciosCopy = {
     "Un solo formulario para tu vitrina premium en Leonix. Completa cada sección; podrás refinar el texto con herramientas externas si lo deseas.",
   saveHint: "Borrador guardado en este navegador.",
   previewCta: "Ver vista previa",
+  publishCta: "Publicar",
+  publishModalTitle: "Publicar listado",
+  publishModalIntro:
+    "Revisamos que tu perfil tenga lo esencial. Esto es una base de publicación; el pago y el panel completo vienen después.",
+  publishMissingTitle: "Completa lo siguiente para continuar:",
+  publishClose: "Seguir editando",
+  publishSubmit: "Publicar ahora",
+  publishBusy: "Publicando…",
+  publishError: "No se pudo publicar. Intenta de nuevo.",
+  publishLocalNote:
+    "Se guardó en este navegador porque la nube no está disponible. Otros dispositivos no verán el listado hasta que haya servidor.",
+  listingPhaseDraft: "Borrador · sigue completando tu perfil.",
+  listingPhasePreview: "Listo para vista previa · revisa el diseño antes de publicar.",
+  listingPhasePublish: "Listo para publicar · puedes enviar tu listado.",
   linkPreviewShell: "Ver ejemplo de página pública (solo diseño)",
   linkBack: "Volver a categorías",
   langToggle: "English",
@@ -194,7 +221,8 @@ const es: ClasificadosServiciosCopy = {
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
     leonixVerified: "Mostrar interés en Verificado Leonix",
-    leonixVerifiedHint: "Es un distintivo de confianza; la verificación real se confirma en un paso posterior.",
+    leonixVerifiedHint:
+      "No otorga el distintivo: Leonix lo asigna en un paso controlado. Esto solo registra tu interés.",
     offerImage: "Imagen de la oferta (opcional)",
     offerPdf: "PDF / archivo de la oferta (opcional)",
     offerPrimaryLabel: "Prioridad del cupón (cuando hay varios recursos)",
@@ -217,6 +245,20 @@ const en: ClasificadosServiciosCopy = {
     "One guided form for your premium Leonix showcase. Complete each section; you can polish copy with external tools if needed.",
   saveHint: "Draft saved in this browser.",
   previewCta: "View preview",
+  publishCta: "Publish",
+  publishModalTitle: "Publish listing",
+  publishModalIntro:
+    "We check that your profile has the essentials. This is a publish foundation; payments and the full dashboard come later.",
+  publishMissingTitle: "Complete the following to continue:",
+  publishClose: "Keep editing",
+  publishSubmit: "Publish now",
+  publishBusy: "Publishing…",
+  publishError: "Could not publish. Please try again.",
+  publishLocalNote:
+    "Saved on this browser because cloud publish isn’t available. Other devices won’t see it until the server is configured.",
+  listingPhaseDraft: "Draft · keep filling out your profile.",
+  listingPhasePreview: "Preview-ready · review the layout before publishing.",
+  listingPhasePublish: "Publish-ready · you can submit your listing.",
   linkPreviewShell: "View example public page (design only)",
   linkBack: "Back to categories",
   langToggle: "Español",
@@ -302,7 +344,8 @@ const en: ClasificadosServiciosCopy = {
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
     leonixVerified: "Show interest in Leonix Verified",
-    leonixVerifiedHint: "A trust badge; real verification is confirmed in a later step.",
+    leonixVerifiedHint:
+      "This does not grant the badge — Leonix assigns verification in a controlled step. This only records your interest.",
     offerImage: "Offer image (optional)",
     offerPdf: "Offer PDF / file (optional)",
     offerPrimaryLabel: "Coupon priority when multiple assets exist",

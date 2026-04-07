@@ -35,6 +35,7 @@ import {
   readClasificadosServiciosApplicationFromBrowser,
   writeClasificadosServiciosApplicationToBrowser,
 } from "../lib/clasificadosServiciosStorage";
+import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { createDefaultClasificadosServiciosState, WEEK_DAY_LABELS } from "../lib/defaultClasificadosServiciosState";
 import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
 import {
@@ -44,6 +45,7 @@ import {
   newVideoId,
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
+import { ServiciosPublishModal } from "./ServiciosPublishModal";
 
 const DEBOUNCE_MS = 500;
 
@@ -105,6 +107,7 @@ export function ClasificadosServiciosApplication() {
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   useEffect(() => {
     const s = readClasificadosServiciosApplicationFromBrowser();
@@ -119,6 +122,20 @@ export function ClasificadosServiciosApplication() {
   }, [state, hydrated]);
 
   const preset = useMemo(() => getBusinessTypePreset(state.businessTypeId), [state.businessTypeId]);
+
+  const listingPhase = useMemo(() => {
+    const r = evaluateServiciosPublishReadiness(state, lang);
+    if (r.ok) return "publish" as const;
+    if (state.businessTypeId && state.businessName.trim().length >= 2) return "preview" as const;
+    return "draft" as const;
+  }, [state, lang]);
+
+  const listingPhaseLine =
+    listingPhase === "publish"
+      ? copy.listingPhasePublish
+      : listingPhase === "preview"
+        ? copy.listingPhasePreview
+        : copy.listingPhaseDraft;
 
   const setBusinessType = useCallback((id: string) => {
     setState((prev) => mergeStateForBusinessTypeChange(prev, id));
@@ -288,13 +305,22 @@ export function ClasificadosServiciosApplication() {
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-              <Link
-                href={previewHref}
-                onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699] sm:w-auto sm:min-w-[12rem]"
-              >
-                {copy.previewCta}
-              </Link>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+                <Link
+                  href={previewHref}
+                  onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
+                  className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699] sm:w-auto sm:min-w-[10rem]"
+                >
+                  {copy.previewCta}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setPublishOpen(true)}
+                  className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border-2 border-[#3B66AD]/40 bg-white px-4 text-sm font-bold text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:w-auto sm:min-w-[10rem]"
+                >
+                  {copy.publishCta}
+                </button>
+              </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Link
                   href={lang === "es" ? "?lang=en" : "?lang=es"}
@@ -319,7 +345,12 @@ export function ClasificadosServiciosApplication() {
             </div>
           </div>
         </div>
-        <p className="mx-auto max-w-5xl px-4 pb-3 text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
+        <div className="mx-auto max-w-5xl px-4 pb-3">
+          <p className="text-xs text-[#8a7a62]">{hydrated ? copy.saveHint : "…"}</p>
+          {hydrated ? (
+            <p className="mt-1 text-xs font-medium text-[#6b5c42]">{listingPhaseLine}</p>
+          ) : null}
+        </div>
       </header>
 
       <main className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-28 sm:space-y-6 sm:py-8 sm:pb-8 lg:max-w-5xl">
@@ -1192,15 +1223,31 @@ export function ClasificadosServiciosApplication() {
         </section>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-30 flex gap-2 border-t border-[#D8C79A]/60 bg-[#FFFDF7]/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
         <Link
           href={previewHref}
           onClick={() => writeClasificadosServiciosApplicationToBrowser(state)}
-          className="block min-h-[48px] w-full rounded-xl bg-[#3B66AD] py-3 text-center text-sm font-bold leading-tight text-white shadow-sm active:opacity-95"
+          className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-xl bg-[#3B66AD] px-2 py-3 text-center text-sm font-bold leading-tight text-white shadow-sm active:opacity-95"
         >
           {copy.previewCta}
         </Link>
+        <button
+          type="button"
+          onClick={() => setPublishOpen(true)}
+          className="flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-2 py-3 text-center text-sm font-bold leading-tight text-[#2f5699] shadow-sm active:opacity-95"
+        >
+          {copy.publishCta}
+        </button>
       </div>
+
+      <ServiciosPublishModal
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        state={state}
+        lang={lang}
+        copy={copy}
+        onPersistDraft={() => writeClasificadosServiciosApplicationToBrowser(state)}
+      />
     </div>
   );
 }

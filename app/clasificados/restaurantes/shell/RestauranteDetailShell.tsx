@@ -112,6 +112,19 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
               {data.cuisineTypeLine ? (
                 <p className="mt-2 text-[15px] font-medium text-white/88 sm:text-base">{data.cuisineTypeLine}</p>
               ) : null}
+              {data.taxonomyChips?.length ? (
+                <div className="mt-2 flex flex-wrap gap-2" aria-label="Detalles de categoría">
+                  {data.taxonomyChips.map((c) => (
+                    <span
+                      key={c.key}
+                      title={c.label}
+                      className="max-w-full min-w-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-left text-[11px] font-semibold leading-snug text-white/95 sm:text-xs"
+                    >
+                      <span className="line-clamp-2 break-words">{c.label}</span>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               {data.summaryShort ? (
                 <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/92 sm:text-base">
                   {data.summaryShort}

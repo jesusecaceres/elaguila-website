@@ -1,11 +1,15 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { hasPrimaryContactPath, RESTAURANTE_SHELL_HIGHLIGHT_CAP } from "./restauranteListingApplicationModel";
 import { computeShellHoursPreview } from "./restauranteHoursPreview";
+import type { RestauranteServiceMode } from "./restauranteListingApplicationModel";
 import {
   labelForBusinessType,
   labelForCuisine,
   labelForHighlight,
+  labelForLanguage,
   labelForServiceMode,
+  TAXONOMY_KEY_OTHER,
+  TAXONOMY_KEY_OTHER_LANG,
 } from "./restauranteTaxonomy";
 import type {
   RestaurantDetailShellData,
@@ -18,6 +22,75 @@ import type {
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
+}
+
+const CHIP_LABEL_MAX = 52;
+
+function clampChipLabel(s: string, max = CHIP_LABEL_MAX): string {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function cuisineToken(key: string, custom?: string): string {
+  const k = key.trim();
+  if (k === TAXONOMY_KEY_OTHER) {
+    if (nonEmpty(custom)) return `Otra: ${clampChipLabel(custom!)}`;
+    return labelForCuisine(TAXONOMY_KEY_OTHER);
+  }
+  return labelForCuisine(k);
+}
+
+function formatLanguagesForQuickInfo(d: RestauranteListingDraft): string {
+  const langs = d.languagesSpoken?.filter(nonEmpty) ?? [];
+  if (!langs.length) return "";
+  return langs
+    .map((k) => {
+      if (k === TAXONOMY_KEY_OTHER_LANG) {
+        if (nonEmpty(d.languageOtherCustom)) return `Otro: ${clampChipLabel(d.languageOtherCustom!, 36)}`;
+        return labelForLanguage(k);
+      }
+      return labelForLanguage(k);
+    })
+    .join(", ");
+}
+
+function formatServiceModesForQuickInfo(d: RestauranteListingDraft): string {
+  const modes = d.serviceModes ?? [];
+  if (!modes.length) return "";
+  return modes
+    .map((m) =>
+      m === (TAXONOMY_KEY_OTHER as RestauranteServiceMode) && nonEmpty(d.serviceModeOtherCustom)
+        ? `Otro: ${clampChipLabel(d.serviceModeOtherCustom!)}`
+        : labelForServiceMode(m)
+    )
+    .join(" · ");
+}
+
+function buildTaxonomyChips(d: RestauranteListingDraft): { key: string; label: string }[] | undefined {
+  const chips: { key: string; label: string }[] = [];
+  if (d.businessType?.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.businessTypeCustom)) {
+    chips.push({ key: "tax-bt", label: `Tipo: ${clampChipLabel(d.businessTypeCustom!)}` });
+  }
+  if (d.primaryCuisine?.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.primaryCuisineCustom)) {
+    chips.push({ key: "tax-c0", label: `Cocina: ${clampChipLabel(d.primaryCuisineCustom!)}` });
+  }
+  if (d.secondaryCuisine?.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.secondaryCuisineCustom)) {
+    chips.push({ key: "tax-c1", label: `Cocina 2.ª: ${clampChipLabel(d.secondaryCuisineCustom!)}` });
+  }
+  if ((d.additionalCuisines ?? []).includes(TAXONOMY_KEY_OTHER) && nonEmpty(d.additionalCuisineOtherCustom)) {
+    chips.push({ key: "tax-ca", label: `Cocina +: ${clampChipLabel(d.additionalCuisineOtherCustom!)}` });
+  }
+  if ((d.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) && nonEmpty(d.languageOtherCustom)) {
+    chips.push({ key: "tax-lang", label: `Idioma: ${clampChipLabel(d.languageOtherCustom!)}` });
+  }
+  if (
+    (d.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) &&
+    nonEmpty(d.serviceModeOtherCustom)
+  ) {
+    chips.push({ key: "tax-svc", label: `Modo: ${clampChipLabel(d.serviceModeOtherCustom!)}` });
+  }
+  return chips.length ? chips : undefined;
 }
 
 function normalizeUrl(raw: string): string {
@@ -52,10 +125,13 @@ function websiteDisplayFromUrl(url: string): string {
 
 function buildCuisineLine(d: RestauranteListingDraft): string | undefined {
   const parts: string[] = [];
-  if (nonEmpty(d.primaryCuisine)) parts.push(labelForCuisine(d.primaryCuisine.trim()));
-  if (nonEmpty(d.secondaryCuisine)) parts.push(labelForCuisine(d.secondaryCuisine!.trim()));
-  const add = d.additionalCuisines?.filter(nonEmpty).map(labelForCuisine) ?? [];
-  parts.push(...add);
+  if (nonEmpty(d.primaryCuisine)) parts.push(cuisineToken(d.primaryCuisine, d.primaryCuisineCustom));
+  if (nonEmpty(d.secondaryCuisine)) parts.push(cuisineToken(d.secondaryCuisine!, d.secondaryCuisineCustom));
+  for (const k of d.additionalCuisines?.filter(nonEmpty) ?? []) {
+    const t = k.trim();
+    if (t === TAXONOMY_KEY_OTHER) parts.push(cuisineToken(t, d.additionalCuisineOtherCustom));
+    else parts.push(labelForCuisine(t));
+  }
   const line = parts.filter(Boolean).join(" · ");
   return line || undefined;
 }
@@ -65,11 +141,18 @@ function buildQuickInfo(d: RestauranteListingDraft, scheduleSummary: string): Sh
   const loc = [d.neighborhood, d.cityCanonical].filter(nonEmpty).join(" · ");
   if (loc) items.push({ key: "neighborhood", label: "Zona", value: loc });
   if (d.priceLevel) items.push({ key: "price", label: "Precio", value: d.priceLevel });
-  if (nonEmpty(d.businessType)) items.push({ key: "businessType", label: "Tipo", value: labelForBusinessType(d.businessType) });
+  if (nonEmpty(d.businessType)) {
+    let bt = labelForBusinessType(d.businessType);
+    if (d.businessType.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.businessTypeCustom)) {
+      bt = `Otro: ${clampChipLabel(d.businessTypeCustom!)}`;
+    }
+    items.push({ key: "businessType", label: "Tipo", value: bt });
+  }
   const sum = scheduleSummary.length > 140 ? `${scheduleSummary.slice(0, 140)}…` : scheduleSummary;
   items.push({ key: "hours", label: "Horario", value: sum || "—" });
-  const svc = d.serviceModes?.length ? d.serviceModes.map(labelForServiceMode).join(" · ") : "";
-  const lang = d.languagesSpoken?.filter(nonEmpty).length ? `Idiomas: ${d.languagesSpoken!.filter(nonEmpty).join(", ")}` : "";
+  const svc = formatServiceModesForQuickInfo(d);
+  const langStr = formatLanguagesForQuickInfo(d);
+  const lang = langStr ? `Idiomas: ${langStr}` : "";
   if (svc || lang) items.push({ key: "service", label: "Servicio", value: [svc, lang].filter(Boolean).join(" · ") });
   return items;
 }
@@ -305,6 +388,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
+    taxonomyChips: buildTaxonomyChips(d),
     summaryShort: nonEmpty(d.shortSummary) ? d.shortSummary.trim() : undefined,
     trustRating,
     hoursPreview: hp,

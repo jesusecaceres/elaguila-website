@@ -27,7 +27,6 @@ export const mockAgenteIndividualResidencialListing: AgenteIndividualResidencial
   direccion: "87 N King Rd",
   estadoAnuncio: "disponible",
   tipoPropiedadCodigo: "casa",
-  tipoPropiedadOtro: "",
   subtipoPropiedad: "Unifamiliar",
   listadoUrl: "https://example.com/listado-propiedad",
   listadoArchivoDataUrl: "",

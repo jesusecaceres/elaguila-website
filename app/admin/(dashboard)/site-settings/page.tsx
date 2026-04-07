@@ -1,95 +1,102 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnPrimary, adminInputClass } from "../../_components/adminTheme";
-import { getWebsiteContentScaffold } from "../../_lib/websiteContentScaffold";
+import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "../../_components/adminTheme";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import type { GlobalSitePayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import { mergeGlobalSite } from "@/app/lib/siteSectionContent/globalSiteMerge";
+import { saveGlobalSiteAction } from "@/app/admin/globalSiteActions";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Global site modules / toggles that can affect more than the homepage alone.
- * Homepage-specific blocks (hero, announcements on `/`) belong in **Website sections → Home**.
- */
-export default function AdminGlobalSiteSettingsPage() {
-  const modules = getWebsiteContentScaffold().sort((a, b) => a.sortOrder - b.sortOrder);
+export default async function AdminGlobalSiteSettingsPage(props: { searchParams?: Promise<{ saved?: string }> }) {
+  const sp = props.searchParams ? await props.searchParams : {};
+  const { payload, updatedAt, error } = await getSiteSectionPayload("global_site");
+  const patch = payload as unknown as GlobalSitePayload;
+  const g = mergeGlobalSite(patch);
 
   return (
     <div>
       <AdminPageHeader
         title="Ajustes globales del sitio"
-        subtitle="Módulos y conmutadores que pueden cruzar varias secciones. La portada principal (hero, anuncios en la home) se edita en Website sections → Home — no aquí."
+        subtitle="Avisos y franjas que pueden mostrarse en muchas páginas (debajo del menú principal). No sustituye al editor de la portada `/home`."
         eyebrow="Global admin"
-        helperText="Piensa en esto como interruptores y listas que afectan más de una página. Si solo tocas la portada, ve al workspace Home."
+        helperText="Activa cada franja con la casilla y escribe texto. Idioma en el sitio: parámetro ?lang= (como el resto de páginas públicas)."
+        rightSlot={
+          <Link href="/admin/workspace/home" className={adminBtnSecondary}>
+            Editor Home `/home`
+          </Link>
+        }
       />
 
-      <div className={`${adminCardBase} mb-6 border-[#C9B46A]/40 bg-[#FFFCF7] p-4`}>
-        <p className="text-sm font-semibold text-[#1E1810]">¿Dónde edito qué?</p>
-        <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#5C5346]">
-          <li>
-            <strong>Home (portada):</strong>{" "}
-            <Link href="/admin/workspace/home" className="font-bold text-[#6B5B2E] underline">
-              Website sections → Home
-            </Link>
-          </li>
-          <li>
-            <strong>Clasificados, Tienda, Nosotros, Revista, Contacto:</strong> cada uno tiene su workspace bajo{" "}
-            <Link href="/admin/workspace" className="font-bold text-[#6B5B2E] underline">
-              Website sections
-            </Link>
-            .
-          </li>
-        </ul>
-      </div>
+      {sp.saved === "1" ? (
+        <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Guardado.</div>
+      ) : null}
 
-      <div className={`${adminCardBase} mb-8 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Conmutadores globales (esqueleto)</h2>
-        <p className="mt-1 text-xs text-[#7A7164]">
-          Controles solo visuales hasta exista almacén de configuración (Supabase / JSON versionado).
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <label className="flex items-center gap-2 text-sm font-semibold text-[#3D3428]">
-            <input type="checkbox" disabled className="h-4 w-4 rounded border-[#E8DFD0]" defaultChecked />
-            Hero visible (global)
-          </label>
-          <label className="flex items-center gap-2 text-sm font-semibold text-[#3D3428]">
-            <input type="checkbox" disabled className="h-4 w-4 rounded border-[#E8DFD0]" defaultChecked />
-            Franja de anuncios
-          </label>
-          <label className="flex items-center gap-2 text-sm font-semibold text-[#3D3428]">
-            <input type="checkbox" disabled className="h-4 w-4 rounded border-[#E8DFD0]" />
-            Promo estacional
-          </label>
+      {error ? (
+        <div className={`${adminCardBase} mb-6 border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
+          No se pudo leer la base: {error}
         </div>
-        <button type="button" disabled className={`${adminBtnPrimary} mt-4 opacity-60`}>
-          Publicar cambios (sin cablear)
-        </button>
-      </div>
+      ) : null}
 
-      <div className="grid gap-4">
-        {modules.map((m) => (
-          <div key={m.id} className={`${adminCardBase} p-5`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase text-[#7A7164]">Módulo · orden {m.sortOrder}</p>
-                <h3 className="text-lg font-bold text-[#1E1810]">{m.label}</h3>
-                <p className="mt-1 max-w-2xl text-sm text-[#5C5346]/95">{m.description}</p>
-                {m.notes ? <p className="mt-2 text-xs text-[#A67C52]">{m.notes}</p> : null}
-              </div>
-              <span className="rounded-full bg-[#FBF7EF] px-3 py-1 text-xs font-bold uppercase text-[#5C4E2E]">
-                {m.visibility}
-              </span>
+      <p className="mb-4 text-xs text-[#7A7164]">Última actualización: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
+
+      <form action={saveGlobalSiteAction} className={`${adminCardBase} space-y-6 p-6`}>
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Aviso general (sitio)</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">Línea informativa (horarios especiales, mantenimiento corto, etc.).</p>
+          <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#3D3428]">
+            <input
+              type="checkbox"
+              name="toggle_notice"
+              defaultChecked={g.toggles.showSitewideNotice}
+              className="h-4 w-4 rounded border-[#E8DFD0]"
+            />
+            Mostrar aviso
+          </label>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-semibold text-[#5C5346]">Texto ES</label>
+              <textarea name="notice_es" className={adminInputClass} rows={2} defaultValue={g.notice.es} />
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold text-[#5C5346]">Referencia de titular / copy</label>
-                <input className={adminInputClass} disabled placeholder="Clave CMS futura" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[#5C5346]">Prioridad de colocación</label>
-                <input className={adminInputClass} disabled placeholder="1–100" />
-              </div>
+            <div>
+              <label className="text-xs font-semibold text-[#5C5346]">Texto EN</label>
+              <textarea name="notice_en" className={adminInputClass} rows={2} defaultValue={g.notice.en} />
             </div>
           </div>
-        ))}
+        </section>
+
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Franja promocional global</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">Segunda franja opcional (tono promo / campaña). Independiente del aviso.</p>
+          <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#3D3428]">
+            <input
+              type="checkbox"
+              name="toggle_promo"
+              defaultChecked={g.toggles.showGlobalPromoStrip}
+              className="h-4 w-4 rounded border-[#E8DFD0]"
+            />
+            Mostrar franja promo
+          </label>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-semibold text-[#5C5346]">Texto ES</label>
+              <textarea name="promo_es" className={adminInputClass} rows={2} defaultValue={g.promo.es} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#5C5346]">Texto EN</label>
+              <textarea name="promo_en" className={adminInputClass} rows={2} defaultValue={g.promo.en} />
+            </div>
+          </div>
+        </section>
+
+        <button type="submit" className={adminBtnPrimary}>
+          Guardar ajustes globales
+        </button>
+      </form>
+
+      <div className={`${adminCardBase} mt-8 p-4 text-xs text-[#7A7164]`}>
+        <strong className="text-[#5C5346]">Código vs contenido:</strong> el menú, pie y estructura responsive siguen en código. Aquí solo se guardan
+        textos y encendido/apagado de estas dos franjas.
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 /**
  * Tipos, subtipos y destacados para categorías Comercial y Terreno/lote (BR Negocio).
- * Sin opción «Otro».
+ * Catálogos cerrados (sin tipo comodín).
  */
 
 export type ComercialTipoCodigo =

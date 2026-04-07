@@ -104,7 +104,6 @@ export function Step01TipoAnuncio({
                 setState((s) => ({
                   ...s,
                   tipoPropiedadCodigo: next,
-                  tipoPropiedadOtro: "",
                   subtipoPropiedad: "",
                 }));
               }}

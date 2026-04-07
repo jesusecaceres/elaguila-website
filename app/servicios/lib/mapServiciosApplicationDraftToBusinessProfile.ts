@@ -43,6 +43,9 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
     slug: trim(draft.identity?.slug) || "profile",
     businessName: trim(draft.identity?.businessName),
   };
+  if (draft.identity?.leonixVerified === true) {
+    identity.leonixVerified = true;
+  }
 
   const hero: ServiciosHeroBlock = {};
   const cat = buildHeroCategoryLineFromDraft(draft.hero);

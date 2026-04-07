@@ -16,6 +16,8 @@ import type {
 export type ServiciosApplicationIdentityDraft = {
   slug: string;
   businessName: string;
+  /** Ops / published source only — not set from the advertiser form */
+  leonixVerified?: boolean;
 };
 
 /**

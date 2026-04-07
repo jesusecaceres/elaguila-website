@@ -64,6 +64,10 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
 
         <h1 className="mb-4 text-center text-4xl font-bold text-[color:var(--lx-text)]">{copy.h1}</h1>
 
+        {copy.subhead ? (
+          <p className="mx-auto mb-4 max-w-2xl text-center text-lg text-[color:var(--lx-text-2)]/90">{copy.subhead}</p>
+        ) : null}
+
         <p className="mx-auto mb-10 max-w-2xl text-center leading-relaxed text-[color:var(--lx-text-2)]/85">
           {copy.intro}
         </p>
@@ -111,6 +115,14 @@ export default async function ContactoPage(props: { searchParams?: Promise<{ lan
             <p>
               <span className="font-semibold text-[color:var(--lx-text)]">{copy.hoursLabel}:</span> {copy.hours}
             </p>
+
+            {copy.mapUrl ? (
+              <p>
+                <a href={copy.mapUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
+                  {lang === "en" ? "Open map" : "Abrir mapa"}
+                </a>
+              </p>
+            ) : null}
           </div>
         </div>
 

@@ -19,6 +19,14 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   const L = content[lang];
   const magazineLink = `/magazine?lang=${lang}`;
 
+  const primaryHref = content.ctaPrimaryHref || magazineLink;
+  const secondaryHref = content.ctaSecondaryHref || null;
+
+  const announcementText = L.announcement.trim();
+  const showAnnouncement = content.modules.showAnnouncement && announcementText.length > 0;
+
+  const showPromo = content.modules.showSecondaryLine && L.promoStrip.trim() !== "";
+
   return (
     <main
       className="relative min-h-screen w-full overflow-hidden text-[color:var(--lx-text)]"
@@ -38,6 +46,12 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
         }}
         aria-hidden
       />
+
+      {showAnnouncement && announcementText ? (
+        <div className="relative z-20 border-b border-amber-200/60 bg-amber-50/95 px-4 py-2 text-center text-sm font-medium text-amber-950">
+          {announcementText}
+        </div>
+      ) : null}
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 pt-16 pb-14 text-center">
         <motion.h1
@@ -67,33 +81,69 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
           {L.precedent}
         </motion.p>
 
+        {content.modules.showCallouts && content.callouts.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="mt-6 flex flex-wrap justify-center gap-2"
+          >
+            {content.callouts.map((c) => {
+              const label = lang === "en" ? (c.labelEn || c.labelEs) : (c.labelEs || c.labelEn);
+              if (!label) return null;
+              return (
+                <a
+                  key={`${c.href}-${label}`}
+                  href={c.href}
+                  className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:opacity-95"
+                >
+                  {label}
+                </a>
+              );
+            })}
+          </motion.div>
+        ) : null}
+
         <motion.div
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.22, duration: 0.9 }}
           className="mt-7 md:mt-8 flex flex-col items-center"
         >
-          <a href={magazineLink} className="block">
-            <div className="rounded-2xl border border-[color:var(--lx-nav-border)] overflow-hidden shadow-[0_18px_48px_rgba(42,36,22,0.12)] hover:shadow-[0_22px_60px_rgba(42,36,22,0.14)] transition-all duration-300 bg-[color:var(--lx-card)]">
-              <div className="w-80 sm:w-[26rem] md:w-[30rem]">
-                <img
-                  src={content.coverImageSrc}
-                  alt={L.coverAlt}
-                  className="w-full h-auto object-cover"
-                />
+          {content.modules.showHeroImage ? (
+            <a href={primaryHref} className="block">
+              <div className="rounded-2xl border border-[color:var(--lx-nav-border)] overflow-hidden shadow-[0_18px_48px_rgba(42,36,22,0.12)] hover:shadow-[0_22px_60px_rgba(42,36,22,0.14)] transition-all duration-300 bg-[color:var(--lx-card)]">
+                <div className="w-80 sm:w-[26rem] md:w-[30rem]">
+                  <img src={content.coverImageSrc} alt={L.coverAlt} className="w-full h-auto object-cover" />
+                </div>
               </div>
-            </div>
-          </a>
+            </a>
+          ) : null}
 
           <div className="mt-4 flex flex-col items-center gap-2">
             <a
-              href={magazineLink}
+              href={primaryHref}
               className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-dark)] px-7 py-3 text-sm md:text-base font-semibold text-[color:var(--lx-cta-light)] shadow-[0_10px_28px_rgba(42,36,22,0.18)] hover:bg-[color:var(--lx-cta-dark-hover)] transition-all duration-300"
             >
               {L.ctaPrimary}
             </a>
 
-            <p className="text-xs md:text-sm text-[color:var(--lx-muted)]">{L.ctaSecondary}</p>
+            {content.modules.showSecondaryLine ? (
+              secondaryHref ? (
+                <a
+                  href={secondaryHref}
+                  className="text-xs md:text-sm font-medium text-[color:var(--lx-muted)] underline underline-offset-2 hover:opacity-90"
+                >
+                  {L.ctaSecondary}
+                </a>
+              ) : (
+                <p className="text-xs md:text-sm text-[color:var(--lx-muted)]">{L.ctaSecondary}</p>
+              )
+            ) : null}
+
+            {showPromo ? (
+              <p className="mt-2 max-w-xl text-xs md:text-sm text-[color:var(--lx-text-2)]/90">{L.promoStrip}</p>
+            ) : null}
           </div>
         </motion.div>
       </div>

@@ -600,7 +600,7 @@ function numeroParaLlamar(s: AgenteIndividualResidencialFormState): string {
   return resolved ? resolved : "";
 }
 
-/** WhatsApp del rail: solo override CTA o campo WhatsApp del agente (sin fallback a otros teléfonos). */
+/** WhatsApp del rail: solo override CTA o campo WhatsApp del agente (sin fallback a más números). */
 function numeroParaWhatsapp(s: AgenteIndividualResidencialFormState): string {
   const cta = trim(s.ctaNumeroWhatsapp);
   if (digitsOnly(cta).length >= 10) return cta;

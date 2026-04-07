@@ -42,6 +42,10 @@ export type TiendaStorefrontPayload = {
   categoryCardCoverUrls?: Record<string, string>;
   /** Optional title/description overrides per category slug. */
   categoryCardCopy?: Record<string, { title?: Partial<BilingualText>; description?: Partial<BilingualText> }>;
+  /** Reorder category cards within the primary storefront group (valid slugs only; rest follow code order). */
+  homepageCategorySlugs?: string[];
+  /** Optional promo band between hero and “Shop by category” on `/tienda`. */
+  storefrontPromoStrip?: Partial<BilingualText>;
   /** Optional hero tile / thumb image URLs (HTTPS). Falls back to code assets. */
   heroTileImages?: Partial<
     Record<
@@ -51,7 +55,15 @@ export type TiendaStorefrontPayload = {
   >;
 };
 
-/** `/home` magazine gateway — merges over inline defaults in `app/home/page.tsx`. */
+/** Single bilingual row for optional homepage link chips (e.g. clasificados categories). */
+export type HomeFeaturedCallout = {
+  labelEs: string;
+  labelEn: string;
+  /** Path or https URL */
+  href: string;
+};
+
+/** `/home` magazine gateway — merges over inline defaults in `app/home/HomeMarketingClient.tsx`. */
 export type HomeMarketingPayload = {
   title?: Partial<BilingualText>;
   identity?: Partial<BilingualText>;
@@ -61,10 +73,29 @@ export type HomeMarketingPayload = {
   /** Public path e.g. `/home_thumbnail.png` or absolute HTTPS */
   coverImageSrc?: string;
   coverAlt?: Partial<BilingualText>;
+  /** Thin strip above the hero (operational or promo line). */
+  announcementBar?: Partial<BilingualText>;
+  /** Optional strip below primary CTA (secondary promo). */
+  promoStrip?: Partial<BilingualText>;
+  /** When set, primary CTA uses this href (path or https). Default: magazine with current `lang`. */
+  ctaPrimaryHref?: string;
+  /** When set, secondary line becomes a link (otherwise plain text under CTA). */
+  ctaSecondaryHref?: string;
+  /** Visibility for blocks that already exist in the `/home` template (not new section types). */
+  modules?: {
+    showAnnouncement?: boolean;
+    showHeroImage?: boolean;
+    showSecondaryLine?: boolean;
+    showCallouts?: boolean;
+  };
+  /** Up to 5 optional link chips (manual URLs — not auto-synced with Clasificados registry). */
+  featuredCallouts?: HomeFeaturedCallout[];
 };
 
 /** `/contacto` — merges over static copy; still uses GlobalContactForm behavior. */
 export type ContactoPayload = {
+  headline?: Partial<BilingualText>;
+  subheadline?: Partial<BilingualText>;
   intro?: Partial<BilingualText>;
   hours?: Partial<BilingualText>;
   phone?: string;
@@ -72,14 +103,38 @@ export type ContactoPayload = {
   address?: Partial<BilingualText>;
   mapUrl?: string;
   noticeBanner?: Partial<BilingualText>;
+  /** Optional copy for the Tienda card (defaults stay in merge). */
+  tiendaCard?: {
+    title?: Partial<BilingualText>;
+    body?: Partial<BilingualText>;
+    cta?: Partial<BilingualText>;
+  };
 };
 
-/** Future `/nosotros` page — persisted for when the public route ships. */
+/** Sitewide bars — read in root layout; not the `/home` editor. */
+export type GlobalSitePayload = {
+  sitewideNotice?: Partial<BilingualText>;
+  globalPromoStrip?: Partial<BilingualText>;
+  toggles?: {
+    showSitewideNotice?: boolean;
+    showGlobalPromoStrip?: boolean;
+  };
+};
+
+/** `/about` (Nosotros) — merged in `nosotrosMerge`. */
 export type NosotrosPayload = {
   heroTitle?: Partial<BilingualText>;
   lead?: Partial<BilingualText>;
   mission?: Partial<BilingualText>;
+  vision?: Partial<BilingualText>;
+  values?: Partial<BilingualText>;
+  /** Hero or inline image URL (https or /path). */
+  mediaImageSrc?: string;
+  mediaImageAlt?: Partial<BilingualText>;
   ctaPrimary?: Partial<BilingualText>;
+  ctaPrimaryHref?: string;
+  ctaSecondary?: Partial<BilingualText>;
+  ctaSecondaryHref?: string;
 };
 
 /** Revista workspace — copy around manifest; featured issue still from editions.json. */

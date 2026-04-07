@@ -69,9 +69,9 @@ export default function AdminWorkspaceTiendaPage() {
       <div className={`${adminCardBase} mb-6 border-[#C9B46A]/35 bg-[#FFFCF7] p-4 text-sm text-[#5C5346]`}>
         <p className="font-semibold text-[#1E1810]">Textos e imágenes de la vitrina</p>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Edición con persistencia:{" "}
+          Editor con guardado en base: hero, franja promo bajo el hero, orden de tarjetas de categoría, portadas por slug y textos de secciones —{" "}
           <Link href="/admin/workspace/tienda/storefront" className="font-bold text-[#6B5B2E] underline">
-            Abrir editor de vitrina (hero, secciones, portadas)
+            abrir editor de vitrina
           </Link>
           .
         </p>

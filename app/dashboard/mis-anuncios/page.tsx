@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { deleteMuxAssetsForListingRecordClient } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
+import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
 import { isListingBoosted, listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
@@ -180,6 +181,8 @@ export default function MyListingsPage() {
             statActive: "Active",
             statViews: "Views",
             statMsg: "Messages",
+            statSaves: "Saves",
+            statShares: "Shares",
             loading: "Loading…",
             empty: "No listings in this view.",
             emptyAll: "You don't have any listings yet.",
@@ -431,6 +434,18 @@ export default function MyListingsPage() {
     return s;
   }, [listings, analyticsByListing]);
 
+  const totalSavesSum = useMemo(() => {
+    let s = 0;
+    for (const x of listings) s += analyticsByListing[x.id]?.saves ?? 0;
+    return s;
+  }, [listings, analyticsByListing]);
+
+  const totalSharesSum = useMemo(() => {
+    let s = 0;
+    for (const x of listings) s += analyticsByListing[x.id]?.shares ?? 0;
+    return s;
+  }, [listings, analyticsByListing]);
+
   const firstPreview = listings[0];
   const firstStats = firstPreview ? analyticsByListing[firstPreview.id] : undefined;
   const previewTitle = firstPreview?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
@@ -494,11 +509,13 @@ export default function MyListingsPage() {
             </Link>
           </header>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[
               { label: t.statActive, value: totalActive, icon: "📣" },
               { label: t.statViews, value: totalViewsSum, icon: "👁" },
               { label: t.statMsg, value: totalMessages, icon: "💬" },
+              { label: t.statSaves, value: totalSavesSum, icon: "🔖" },
+              { label: t.statShares, value: totalSharesSum, icon: "↗" },
             ].map((c) => (
               <div
                 key={c.label}
@@ -594,6 +611,37 @@ export default function MyListingsPage() {
                         busy,
                       }
                     : null;
+
+                if ((x.category ?? "").toLowerCase() === "autos") {
+                  return (
+                    <AutosClassifiedListingManageCard
+                      key={x.id}
+                      row={{
+                        id: x.id,
+                        title: x.title,
+                        price: x.price,
+                        city: x.city,
+                        status: x.status,
+                        created_at: x.created_at,
+                      }}
+                      lang={lang}
+                      priceText={priceText}
+                      dateText={dateText}
+                      busy={busy}
+                      onDelete={() => deleteListing(x.id)}
+                      thumbUrl={thumbUrl}
+                      analytics={{
+                        views: stats?.views ?? 0,
+                        uniqueViews: stats?.uniqueViews ?? 0,
+                        messages: stats?.messages ?? 0,
+                        saves: stats?.saves ?? 0,
+                        shares: stats?.shares ?? 0,
+                        profileClicks: stats?.profileClicks ?? 0,
+                      }}
+                      maxViews={maxViews}
+                    />
+                  );
+                }
 
                 if (x.category === "en-venta") {
                   return (

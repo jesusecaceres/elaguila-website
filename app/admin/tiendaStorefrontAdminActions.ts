@@ -113,6 +113,20 @@ function formDataToPayload(formData: FormData): TiendaStorefrontPayload {
     }
   }
 
+  const orderRaw = str(formData, "homepage_category_order");
+  if (orderRaw) {
+    payload.homepageCategorySlugs = orderRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  const promoEs = str(formData, "storefront_promo_es");
+  const promoEn = str(formData, "storefront_promo_en");
+  if (promoEs || promoEn) {
+    payload.storefrontPromoStrip = { es: promoEs, en: promoEn };
+  }
+
   return payload;
 }
 

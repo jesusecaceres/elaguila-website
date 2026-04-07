@@ -1,4 +1,9 @@
-import type { ServiciosBusinessProfile, ServiciosGalleryImage, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import type {
+  ServiciosBusinessProfile,
+  ServiciosGalleryImage,
+  ServiciosProfileResolved,
+  ServiciosLang,
+} from "../types/serviciosBusinessProfile";
 import {
   filterGallery,
   filterGalleryVideos,
@@ -23,8 +28,9 @@ import {
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
+ * `lang` controls injected Leonix verification copy when `identity.leonixVerified` is set by ops.
  */
-export function resolveServiciosProfile(input: ServiciosBusinessProfile): ServiciosProfileResolved {
+export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: ServiciosLang = "es"): ServiciosProfileResolved {
   const slug = trimText(input.identity?.slug) || "profile";
   const businessName =
     trimText(input.identity?.businessName) || humanizeSlug(slug);
@@ -90,6 +96,18 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
   const { gallery, galleryMore } = splitFeaturedGallery(allGallery, input.featuredGalleryIds);
   const galleryVideos = filterGalleryVideos(input.galleryVideos);
 
+  const withoutAdvertiserVerified = filterHeroBadges(heroIn.badges).filter((b) => b.kind !== "verified");
+  const heroBadges =
+    input.identity?.leonixVerified === true
+      ? [
+          {
+            kind: "verified" as const,
+            label: lang === "en" ? "Leonix Verified" : "Leonix Verificado",
+          },
+          ...withoutAdvertiserVerified,
+        ]
+      : withoutAdvertiserVerified;
+
   return {
     identity: { slug, businessName },
     hero: {
@@ -100,7 +118,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile): Servic
       coverImageAlt: trimText(heroIn.coverImageAlt) || undefined,
       rating,
       reviewCount: reviewCount !== undefined && reviewCount > 0 ? reviewCount : undefined,
-      badges: filterHeroBadges(heroIn.badges),
+      badges: heroBadges,
       locationSummary: trimText(heroIn.locationSummary) || undefined,
     },
     contact: {

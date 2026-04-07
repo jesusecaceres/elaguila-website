@@ -1,6 +1,6 @@
 /**
  * Catálogo de tipo / subtipo residencial (BR Negocio · categoría Residencial).
- * Sin opción «Otro».
+ * Catálogo cerrado (sin tipo comodín).
  */
 
 export type TipoPropiedadCodigo = "casa" | "condominio" | "townhome" | "apartamento" | "multifamiliar";
@@ -15,10 +15,10 @@ export const TIPO_PROPIEDAD_OPCIONES: ReadonlyArray<{ value: TipoPropiedadCodigo
 
 const ALL_TIPOS: TipoPropiedadCodigo[] = ["casa", "condominio", "townhome", "apartamento", "multifamiliar"];
 
-/** Migra borradores con `otro` o valores desconocidos → `casa`. */
+/** Migra códigos legacy o desconocidos al catálogo actual (sin tipo comodín). */
 export function normalizeResidencialTipoPropiedadCodigo(raw: unknown): TipoPropiedadCodigo {
   const v = typeof raw === "string" ? raw : "";
-  if (v === "otro") return "casa";
+  if (String(v).toLowerCase() === "otro") return "casa";
   return ALL_TIPOS.includes(v as TipoPropiedadCodigo) ? (v as TipoPropiedadCodigo) : "casa";
 }
 

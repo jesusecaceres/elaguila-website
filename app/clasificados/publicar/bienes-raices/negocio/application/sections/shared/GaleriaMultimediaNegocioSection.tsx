@@ -576,7 +576,7 @@ export function GaleriaMultimediaNegocioSection({
 
         <BrField
           label="Tour virtual (enlace)"
-          hint="Matterport, Insta360 u otro recorrido. Debe ser una URL https completa."
+          hint="Matterport, Insta360 o un recorrido 360° similar. Debe ser una URL https completa."
         >
           <div className="flex flex-wrap gap-2">
             <input

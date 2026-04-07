@@ -50,7 +50,7 @@ export function ClasificadosServiciosPreviewClient() {
       source === "expert"
         ? getServiciosWireProfileFromSample("expert", lang)
         : mapServiciosApplicationDraftToBusinessProfile(appDraft!);
-    return resolveServiciosProfile(wire);
+    return resolveServiciosProfile(wire, lang);
   }, [source, appDraft, lang]);
 
   if (!profile) {

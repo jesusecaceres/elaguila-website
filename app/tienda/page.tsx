@@ -21,6 +21,7 @@ import {
   applyCategoryCardCopyOverrides,
   mergeTiendaStorefrontCopy,
 } from "@/app/lib/tienda/mergeTiendaStorefrontCopy";
+import { applyCategorySlugOrder } from "./utils/categorySlugOrder";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,17 @@ export default async function TiendaPage(props: {
           heroTileImages={storefrontPatch?.heroTileImages}
         />
 
+        {(() => {
+          const pe = storefrontPatch?.storefrontPromoStrip?.es?.trim();
+          const pen = storefrontPatch?.storefrontPromoStrip?.en?.trim();
+          const line = lang === "en" ? (pen || pe) : (pe || pen);
+          return line ? (
+            <div className="mt-8 rounded-2xl border border-[rgba(201,168,74,0.35)] bg-[rgba(201,168,74,0.08)] px-4 py-3 text-center text-sm text-[rgba(255,247,226,0.92)]">
+              {line}
+            </div>
+          ) : null;
+        })()}
+
         {/* 2) SHOP BY CATEGORY */}
         <section id="shop" className="mt-16 sm:mt-20 scroll-mt-28">
           <TiendaSectionHeading
@@ -91,7 +103,7 @@ export default async function TiendaPage(props: {
                     {desc ? <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgba(255,255,255,0.58)]">{desc}</p> : null}
                   </div>
                   <div className={`mt-6 ${gridClass}`}>
-                    {group.slugs.map((slug) => {
+                    {applyCategorySlugOrder(group.slugs, storefrontPatch?.homepageCategorySlugs).map((slug) => {
                       const c = tiendaCategoryBySlug[slug];
                       if (!c) return null;
                       const cat = applyCategoryCardCopyOverrides(c, storefrontPatch?.categoryCardCopy?.[slug]);

@@ -32,7 +32,7 @@ export function ServiciosPreviewClient() {
   const profile = useMemo(() => {
     if (!draft) return null;
     const wire = mapServiciosApplicationDraftToBusinessProfile(draft);
-    return resolveServiciosProfile(wire);
+    return resolveServiciosProfile(wire, lang);
   }, [draft]);
 
   if (!profile) {

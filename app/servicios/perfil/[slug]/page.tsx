@@ -15,7 +15,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const sp = (await props.searchParams) ?? {};
   const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
   const raw = getServiciosProfileBySlug(slug, lang);
-  const profile = resolveServiciosProfile(raw);
+  const profile = resolveServiciosProfile(raw, lang);
   const title = `${profile.identity.businessName} · Leonix Servicios`;
   return {
     title,
@@ -37,7 +37,7 @@ export default async function ServiciosPerfilPage(props: PageProps) {
   if (!slug || slug.length > 200) notFound();
 
   const raw = getServiciosProfileBySlug(slug, lang);
-  const profile = resolveServiciosProfile(raw);
+  const profile = resolveServiciosProfile(raw, lang);
 
   return <ServiciosProfileView profile={profile} lang={lang} />;
 }

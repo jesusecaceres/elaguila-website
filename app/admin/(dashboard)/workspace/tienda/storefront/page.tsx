@@ -6,6 +6,7 @@ import type { TiendaStorefrontPayload } from "@/app/lib/siteSectionContent/paylo
 import { mergeTiendaStorefrontCopy } from "@/app/lib/tienda/mergeTiendaStorefrontCopy";
 import { saveTiendaStorefrontFormAction } from "@/app/admin/tiendaStorefrontAdminActions";
 import { TIENDA_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaCategories";
+import { TIENDA_HOMEPAGE_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaMerchandising";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,33 @@ export default async function AdminTiendaStorefrontPage(props: { searchParams?: 
             <Field label="Mini stickers" name="tile_thumbStickers" defaultValue={patch.heroTileImages?.thumbStickers ?? ""} />
             <Field label="Mini promo" name="tile_thumbPromo" defaultValue={patch.heroTileImages?.thumbPromo ?? ""} />
           </div>
+        </section>
+
+        <section className={`${adminCardBase} space-y-4 p-6`}>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Franja promo (vitrina)</h2>
+          <p className="text-xs text-[#7A7164]">Aparece debajo del hero en `/tienda`, antes de las categorías. Vacío = oculta.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-semibold text-[#5C5346]">Texto ES</label>
+              <textarea name="storefront_promo_es" className={adminInputClass} rows={2} defaultValue={patch.storefrontPromoStrip?.es ?? ""} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#5C5346]">Texto EN</label>
+              <textarea name="storefront_promo_en" className={adminInputClass} rows={2} defaultValue={patch.storefrontPromoStrip?.en ?? ""} />
+            </div>
+          </div>
+        </section>
+
+        <section className={`${adminCardBase} space-y-4 p-6`}>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Orden de tarjetas (grupo principal)</h2>
+          <p className="text-xs text-[#7A7164]">
+            Lista de slugs separados por coma. Solo afecta el bloque “Impresión y promo” en la vitrina. Slugs inválidos se ignoran.
+          </p>
+          <Field
+            label="Orden (ej. business-cards, flyers, …)"
+            name="homepage_category_order"
+            defaultValue={(patch.homepageCategorySlugs ?? [...TIENDA_HOMEPAGE_CATEGORY_SLUGS]).join(", ")}
+          />
         </section>
 
         <section className={`${adminCardBase} space-y-4 p-6`}>

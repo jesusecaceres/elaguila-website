@@ -66,10 +66,13 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         helperText="Moderación y listados de anuncios viven aquí. Tienda (productos impresos/self-serve) es otro workspace: no mezclar flujos."
       />
 
-      <p className="mb-4 max-w-3xl text-xs text-[#7A7164]">
-        Mapa de propiedad (qué es BD vs código):{" "}
-        <code className="rounded bg-white/80 px-1">app/admin/(dashboard)/workspace/clasificados/FIELD_OWNERSHIP.md</code>
-      </p>
+      <div className={`${adminCardBase} mb-4 max-w-3xl p-4 text-xs text-[#5C5346]`}>
+        <strong className="text-[#1E1810]">Destacados en la portada `/home`:</strong> no se generan solos desde esta cola. En{" "}
+        <Link href="/admin/workspace/home/content" className="font-bold text-[#6B5B2E] underline">
+          Home → contenido
+        </Link>{" "}
+        puedes enlazar manualmente a categorías o rutas públicas (chips). Aquí moderas anuncios en Supabase.
+      </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Link

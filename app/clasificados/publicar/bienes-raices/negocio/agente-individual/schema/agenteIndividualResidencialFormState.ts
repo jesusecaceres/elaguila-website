@@ -101,8 +101,6 @@ export type AgenteIndividualResidencialFormState = {
   estadoAnuncio: AgenteResidencialEstadoAnuncio;
 
   tipoPropiedadCodigo: TipoPropiedadCodigo;
-  /** @deprecated Solo migración; el UI residencial ya no usa texto libre de tipo. */
-  tipoPropiedadOtro: string;
   subtipoPropiedad: string;
 
   comercialTipoCodigo: ComercialTipoCodigo;
@@ -378,12 +376,13 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
   if (typeof p.tipoPropiedadCodigo === "string") {
     out.tipoPropiedadCodigo = normalizeResidencialTipoPropiedadCodigo(p.tipoPropiedadCodigo);
   }
-  if (typeof p.tipoPropiedadOtro === "string") out.tipoPropiedadOtro = p.tipoPropiedadOtro;
   if (typeof p.subtipoPropiedad === "string") out.subtipoPropiedad = p.subtipoPropiedad;
 
   if (typeof p.tipoPropiedad === "string" && trim(p.tipoPropiedad) && !out.tipoPropiedadCodigo) {
     out.tipoPropiedadCodigo = "casa";
-    out.tipoPropiedadOtro = trim(p.tipoPropiedad);
+    if (!trim(String(out.subtipoPropiedad ?? ""))) {
+      out.subtipoPropiedad = trim(p.tipoPropiedad);
+    }
   }
 
   if (typeof p.enlaceListado === "string") out.listadoUrl = p.enlaceListado;
@@ -511,7 +510,6 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     estadoAnuncio: "disponible",
 
     tipoPropiedadCodigo: "casa",
-    tipoPropiedadOtro: "",
     subtipoPropiedad: "",
 
     comercialTipoCodigo: "oficina",
@@ -873,9 +871,10 @@ export function mergePartialAgenteIndividualResidencial(
         : nested.permitirSolicitarInformacion ?? base.permitirSolicitarInformacion;
 
   const rawResidencialTipo =
-    (flat.tipoPropiedadCodigo as TipoPropiedadCodigo | "otro" | undefined) ??
-    (nested.tipoPropiedadCodigo as TipoPropiedadCodigo | "otro" | undefined) ??
+    (flat.tipoPropiedadCodigo as string | undefined) ??
+    (nested.tipoPropiedadCodigo as string | undefined) ??
     base.tipoPropiedadCodigo;
+  const legacyTipoEraOtro = String(rawResidencialTipo).toLowerCase() === "otro";
   const tipoPropiedadCodigo = normalizeResidencialTipoPropiedadCodigo(rawResidencialTipo);
 
   let subtipoPropiedad =
@@ -883,14 +882,13 @@ export function mergePartialAgenteIndividualResidencial(
       ? flat.subtipoPropiedad
       : nested.subtipoPropiedad ?? base.subtipoPropiedad;
   const freeTipoLegacy =
-    trim(String(flat.tipoPropiedadOtro ?? "")) ||
-    trim(String(nested.tipoPropiedadOtro ?? "")) ||
+    trim(String((legacy as Record<string, unknown>).tipoPropiedadOtro ?? "")) ||
+    trim(String((flat as Record<string, unknown>).tipoPropiedadOtro ?? "")) ||
+    trim(String((nested as Record<string, unknown>).tipoPropiedadOtro ?? "")) ||
     (typeof legacy.tipoPropiedad === "string" ? trim(legacy.tipoPropiedad) : "");
-  if (rawResidencialTipo === "otro" && freeTipoLegacy && !trim(subtipoPropiedad)) {
+  if (legacyTipoEraOtro && freeTipoLegacy && !trim(subtipoPropiedad)) {
     subtipoPropiedad = freeTipoLegacy;
   }
-
-  const tipoPropiedadOtro = "";
 
   const comercialTipoCodigo = normalizeComercialTipoCodigo(
     flat.comercialTipoCodigo ?? nested.comercialTipoCodigo ?? base.comercialTipoCodigo,
@@ -955,7 +953,6 @@ export function mergePartialAgenteIndividualResidencial(
     permitirSolicitarInformacion,
     tipoPropiedadCodigo,
     subtipoPropiedad,
-    tipoPropiedadOtro,
     comercialTipoCodigo,
     terrenoTipoCodigo,
     telefonoPrincipal,
@@ -986,5 +983,7 @@ export function mergePartialAgenteIndividualResidencial(
     mostrarBrokerAsesor: inferMostrarBrokerAsesor(flat, nested, withLegacyBroker),
   };
 
-  return hydrateContactFieldsFromLegacy(inferred);
+  const hydrated = hydrateContactFieldsFromLegacy(inferred);
+  delete (hydrated as Record<string, unknown>).tipoPropiedadOtro;
+  return hydrated;
 }

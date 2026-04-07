@@ -111,6 +111,14 @@ export type AutosNegociosCopy = {
       stock: string;
       priceLabel: string;
     };
+    analytics: {
+      kicker: string;
+      views: string;
+      saves: string;
+      shares: string;
+      contacts: string;
+      footnote: string;
+    };
     sidebar: {
       priceAdvertised: string;
       whatsappCta: string;
@@ -332,6 +340,15 @@ const ES: AutosNegociosCopy = {
       vin: "VIN",
       stock: "N.º de stock",
       priceLabel: "Precio",
+    },
+    analytics: {
+      kicker: "Rendimiento",
+      views: "Vistas",
+      saves: "Guardados",
+      shares: "Compartidos",
+      contacts: "Contactos",
+      footnote:
+        "Cifras de ejemplo en borrador. Tras publicar, verás métricas reales en tu panel y aquí cuando estén conectadas.",
     },
     sidebar: {
       priceAdvertised: "Precio anunciado",
@@ -621,6 +638,14 @@ const EN: AutosNegociosCopy = {
       vin: "VIN",
       stock: "Stock #",
       priceLabel: "Price",
+    },
+    analytics: {
+      kicker: "Performance",
+      views: "Views",
+      saves: "Saves",
+      shares: "Shares",
+      contacts: "Contacts",
+      footnote: "Sample figures while drafting. After publish, real metrics will appear in your dashboard and here when wired.",
     },
     sidebar: {
       priceAdvertised: "Advertised price",

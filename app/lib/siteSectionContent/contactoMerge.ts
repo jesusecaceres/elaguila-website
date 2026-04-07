@@ -3,6 +3,7 @@ import { LEONIX_GLOBAL_EMAIL, LEONIX_GLOBAL_MAILTO, LEONIX_MEDIA_BRAND } from "@
 
 export type ContactoResolvedCopy = {
   h1: string;
+  subhead: string | null;
   intro: string;
   business: string;
   emailLabel: string;
@@ -16,11 +17,13 @@ export type ContactoResolvedCopy = {
   tiendaTitle: string;
   tiendaBody: string;
   tiendaCta: string;
+  mapUrl: string | null;
   langSwitch: string;
 };
 
 const BASE_EN: Omit<ContactoResolvedCopy, "langSwitch"> = {
   h1: "Contact",
+  subhead: null,
   intro: `Reach ${LEONIX_MEDIA_BRAND} for general questions, partnerships, and editorial or media-related requests.`,
   business: "Contact details",
   emailLabel: "Email",
@@ -35,10 +38,12 @@ const BASE_EN: Omit<ContactoResolvedCopy, "langSwitch"> = {
   tiendaBody:
     "For business printing, orders, file uploads, and Tienda quotes, use the dedicated Tienda contact page so we route you correctly.",
   tiendaCta: "Tienda help & contact",
+  mapUrl: null,
 };
 
 const BASE_ES: Omit<ContactoResolvedCopy, "langSwitch"> = {
   h1: "Contacto",
+  subhead: null,
   intro: `Comunícate con ${LEONIX_MEDIA_BRAND} para consultas generales, alianzas y temas editoriales o de medios.`,
   business: "Datos de contacto",
   emailLabel: "Correo",
@@ -53,6 +58,7 @@ const BASE_ES: Omit<ContactoResolvedCopy, "langSwitch"> = {
   tiendaBody:
     "Para impresión comercial, pedidos, subida de archivos y cotizaciones de Tienda, usa la página de contacto dedicada para enrutarte bien.",
   tiendaCta: "Ayuda y contacto Tienda",
+  mapUrl: null,
 };
 
 function s(v: string | undefined, fb: string): string {
@@ -69,8 +75,17 @@ export function mergeContactoCopy(lang: "es" | "en", patch: ContactoPayload | nu
   }
   const email = s(patch.email, base.email);
   const mailto = email.includes("@") ? `mailto:${email}` : base.mailto;
+  const h1 = s(lang === "en" ? patch.headline?.en : patch.headline?.es, base.h1);
+  const subRaw = lang === "en" ? patch.subheadline?.en : patch.subheadline?.es;
+  const subhead = subRaw !== undefined && subRaw.trim() !== "" ? subRaw.trim() : null;
+
+  const tiendaTitle = s(lang === "en" ? patch.tiendaCard?.title?.en : patch.tiendaCard?.title?.es, base.tiendaTitle);
+  const tiendaBody = s(lang === "en" ? patch.tiendaCard?.body?.en : patch.tiendaCard?.body?.es, base.tiendaBody);
+  const tiendaCta = s(lang === "en" ? patch.tiendaCard?.cta?.en : patch.tiendaCard?.cta?.es, base.tiendaCta);
+
   return {
-    h1: base.h1,
+    h1,
+    subhead,
     intro: s(lang === "en" ? patch.intro?.en : patch.intro?.es, base.intro),
     business: base.business,
     emailLabel: base.emailLabel,
@@ -81,9 +96,10 @@ export function mergeContactoCopy(lang: "es" | "en", patch: ContactoPayload | nu
     phoneLine: patch.phone?.trim() ? patch.phone.trim() : null,
     addressLine: s(lang === "en" ? patch.address?.en : patch.address?.es, "") || null,
     noticeTop: s(lang === "en" ? patch.noticeBanner?.en : patch.noticeBanner?.es, "") || null,
-    tiendaTitle: base.tiendaTitle,
-    tiendaBody: base.tiendaBody,
-    tiendaCta: base.tiendaCta,
+    tiendaTitle,
+    tiendaBody,
+    tiendaCta,
+    mapUrl: patch.mapUrl?.trim() || null,
     langSwitch: lang === "en" ? "Español" : "English",
   };
 }

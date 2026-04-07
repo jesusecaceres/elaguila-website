@@ -164,6 +164,14 @@ export function labelForServiceMode(key: RestauranteServiceMode): string {
   return RESTAURANTE_SERVICE_MODES.find((x) => x.key === key)?.labelEs ?? key;
 }
 
+export function labelForLanguage(key: string): string {
+  return RESTAURANTE_LANGUAGES.find((x) => x.key === key)?.labelEs ?? key;
+}
+
+/** Stable catalog keys for “Otra” supplemental text fields */
+export const TAXONOMY_KEY_OTHER = "other" as const;
+export const TAXONOMY_KEY_OTHER_LANG = "other_lang" as const;
+
 /** Section D / G — subtle examples only (not submitted as defaults). */
 export const RESTAURANTE_CONTACT_PLACEHOLDERS: Record<string, string> = {
   websiteUrl: "https://tusitio.com",

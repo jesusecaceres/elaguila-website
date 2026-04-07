@@ -37,6 +37,7 @@ export const WEEKDAY_HOURS_TEMPLATE: DealerHoursEntry[] = [
 
 export function createEmptyListing(): AutoDealerListing {
   return {
+    autosLane: undefined,
     vehicleTitle: undefined,
     year: undefined,
     make: undefined,
@@ -93,6 +94,7 @@ export function createEmptyListing(): AutoDealerListing {
     dealerWebsite: undefined,
     dealerBookingUrl: undefined,
     dealerSocials: {},
+    listingAnalytics: undefined,
     relatedDealerListings: [],
   };
 }

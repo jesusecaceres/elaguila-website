@@ -41,4 +41,7 @@ export async function upsertSiteSectionJsonAction(sectionKey: string, payloadJso
   if (sectionKey === "contacto") {
     revalidatePath("/contacto");
   }
+  if (sectionKey === "global_site") {
+    revalidatePath("/", "layout");
+  }
 }

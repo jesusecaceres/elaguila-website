@@ -95,7 +95,7 @@ export type ClasificadosServiciosApplicationState = {
   selectedServiceIds: string[];
   /** Short free-text service when presets do not cover it */
   customServiceLabel: string;
-  /** Interest in Leonix verification (badge shown in preview; real verification is a later step) */
+  /** Interest in Leonix verification — does not grant a badge; ops-controlled later */
   leonixVerifiedInterest: boolean;
   selectedReasonIds: string[];
   selectedQuickFactIds: string[];

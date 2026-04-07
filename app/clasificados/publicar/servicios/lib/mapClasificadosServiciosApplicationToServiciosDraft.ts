@@ -5,22 +5,11 @@ import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { normalizeHttpUrl } from "./socialAndUrlHelpers";
+import { slugifyServiciosBusinessName } from "./serviciosSlug";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 const TRUST_ICONS: ServiciosTrustItem["icon"][] = ["shield", "shieldCheck", "star", "clock", "heart", "check"];
-
-function slugifyBusinessName(name: string): string {
-  const s = name
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 72);
-  return s || "borrador";
-}
 
 function waMeUrl(raw: string): string | undefined {
   const d = raw.replace(/\D/g, "");
@@ -47,7 +36,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
 ): ServiciosApplicationDraft {
   const preset = getBusinessTypePreset(state.businessTypeId);
   const businessName = state.businessName.trim();
-  const slug = slugifyBusinessName(businessName || "borrador");
+  const slug = slugifyServiciosBusinessName(businessName || "borrador");
 
   const categoryLine = preset ? (lang === "en" ? preset.labelEn : preset.labelEs) : undefined;
 
@@ -67,12 +56,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       label: lang === "en" ? "Bilingual" : "Bilingüe",
     });
   }
-  if (state.leonixVerifiedInterest === true) {
-    heroBadges.unshift({
-      kind: "verified",
-      label: lang === "en" ? "Verified on Leonix" : "Verificado Leonix",
-    });
-  }
+  /* Leonix “Verificado” is not granted from advertiser interest — see resolver + published listings. */
 
   const services: NonNullable<ServiciosApplicationDraft["services"]> = [];
   if (preset) {

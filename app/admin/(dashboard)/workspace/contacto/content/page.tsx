@@ -20,8 +20,8 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
       <AdminPageHeader
         eyebrow="Workspace · Contacto"
         title="Página `/contacto`"
-        subtitle="Textos de introducción, horario, correo visible y avisos. El formulario sigue siendo el componente global; la lógica de envío no cambia aquí."
-        helperText="Vacío = texto por defecto del código. El email público sigue siendo mailto salvo que indiques otro."
+        subtitle="Titular, introducción, datos y aviso. El formulario de envío sigue siendo el componente global (webhook/API no se edita aquí)."
+        helperText="Vacío = texto por defecto del código. El bloque Tienda puede personalizarse abajo."
         rightSlot={
           <Link href="/admin/workspace/contacto" className={adminBtnSecondary}>
             ← Vista workspace
@@ -36,7 +36,23 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
       <p className="text-xs text-[#7A7164]">Última actualización: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
 
       <form action={saveContactoSectionAction} className={`${adminCardBase} space-y-4 p-6`}>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Introducción</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Titular</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="H1 ES" name="headline_es" defaultValue={patch.headline?.es ?? ""} placeholder={es.h1} />
+          <Field label="H1 EN" name="headline_en" defaultValue={patch.headline?.en ?? ""} placeholder={en.h1} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Subtítulo ES (opcional)</label>
+            <textarea name="subhead_es" className={adminInputClass} rows={2} defaultValue={patch.subheadline?.es ?? ""} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Subtítulo EN (opcional)</label>
+            <textarea name="subhead_en" className={adminInputClass} rows={2} defaultValue={patch.subheadline?.en ?? ""} />
+          </div>
+        </div>
+
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Introducción</h2>
         <div className="grid gap-3">
           <div>
             <label className="text-xs font-semibold text-[#5C5346]">Intro ES</label>
@@ -66,13 +82,35 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
             <label className="text-xs font-semibold text-[#5C5346]">Dirección EN</label>
             <textarea name="address_en" className={adminInputClass} rows={2} defaultValue={patch.address?.en ?? ""} />
           </div>
-          <Field label="URL de mapa (opcional)" name="map_url" defaultValue={patch.mapUrl ?? ""} />
+          <Field label="URL de mapa (Maps u otra)" name="map_url" defaultValue={patch.mapUrl ?? ""} />
         </div>
         <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Aviso superior (opcional)</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Aviso ES" name="notice_es" defaultValue={patch.noticeBanner?.es ?? ""} />
           <Field label="Aviso EN" name="notice_en" defaultValue={patch.noticeBanner?.en ?? ""} />
         </div>
+
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Tarjeta Tienda (bloque medio)</h2>
+        <p className="text-xs text-[#7A7164]">Textos del recuadro que enlaza a la ayuda de Tienda. Vacío = valores por defecto.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Título ES" name="tienda_title_es" defaultValue={patch.tiendaCard?.title?.es ?? ""} placeholder={es.tiendaTitle} />
+          <Field label="Título EN" name="tienda_title_en" defaultValue={patch.tiendaCard?.title?.en ?? ""} placeholder={en.tiendaTitle} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Cuerpo ES</label>
+            <textarea name="tienda_body_es" className={adminInputClass} rows={2} defaultValue={patch.tiendaCard?.body?.es ?? ""} placeholder={es.tiendaBody} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#5C5346]">Cuerpo EN</label>
+            <textarea name="tienda_body_en" className={adminInputClass} rows={2} defaultValue={patch.tiendaCard?.body?.en ?? ""} placeholder={en.tiendaBody} />
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="CTA ES" name="tienda_cta_es" defaultValue={patch.tiendaCard?.cta?.es ?? ""} placeholder={es.tiendaCta} />
+          <Field label="CTA EN" name="tienda_cta_en" defaultValue={patch.tiendaCard?.cta?.en ?? ""} placeholder={en.tiendaCta} />
+        </div>
+
         <button type="submit" className={`${adminBtnPrimary} mt-4`}>
           Guardar contacto
         </button>

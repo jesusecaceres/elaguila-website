@@ -35,7 +35,6 @@ export const FILLED_SHELL_AGENTE_INDIVIDUAL_RESIDENCIAL: AgenteIndividualResiden
   direccion: "87 N King Rd",
   estadoAnuncio: "disponible",
   tipoPropiedadCodigo: "casa",
-  tipoPropiedadOtro: "",
   subtipoPropiedad: "Unifamiliar",
   listadoUrl: "https://example.com/listado-informacion-basica",
   listadoArchivoDataUrl: "",

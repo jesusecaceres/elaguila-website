@@ -30,9 +30,9 @@ export default function AdminWorkspaceNosotrosPage() {
     <div>
       <AdminPageHeader
         title="Nosotros — quiénes somos"
-        subtitle="Todo lo que alimenta la sección pública “acerca de”: narrativa, equipo, medios y CTAs. Persistencia pendiente; esta vista enseña qué documentar antes de cablear CMS."
+        subtitle="La página pública es `/about` (textos bilingües desde la base). El mapa de bloques de abajo es guía de capacitación; el editor real está en Contenido."
         eyebrow="Workspace · Nosotros"
-        helperText="Cuando exista almacén, aquí vivirá el contenido de /nosotros. Usuarios, pagos y soporte siguen en la barra lateral global."
+        helperText="Usuarios, pagos y soporte siguen en la barra lateral global. No uses esta página para pedidos de Tienda."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
