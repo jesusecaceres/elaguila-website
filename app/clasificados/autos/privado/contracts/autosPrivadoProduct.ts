@@ -3,6 +3,11 @@
  * Lighter than Negocios: no dealership business stack, inventory, or dealer-only CTAs.
  */
 export const AUTOS_PRIVADO_PRODUCT = {
+  /** Canonical routes — keep in sync with `app/publicar/autos/privado` and preview app routes. */
+  routes: {
+    publish: "/publicar/autos/privado",
+    preview: "/clasificados/autos/privado/preview",
+  },
   includes: [
     "Premium listing layout (title, specs, highlights, description)",
     "Image gallery + optional video",

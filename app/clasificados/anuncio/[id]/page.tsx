@@ -35,6 +35,7 @@ import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayou
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
+import { AutosAnuncioAnalyticsStrip } from "../../autos/listing/components/AutosAnuncioAnalyticsStrip";
 import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnuncioLiveTypes";
 type Lang = "es" | "en";
 
@@ -1070,6 +1071,7 @@ export default function AnuncioDetallePage() {
                       )}
                     </div>
                   )}
+                  {listing.category === "autos" && <AutosAnuncioAnalyticsStrip listingId={listing.id} lang={lang} />}
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">

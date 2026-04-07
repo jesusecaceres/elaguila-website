@@ -209,10 +209,15 @@ export type RestauranteBusinessIdentity = {
   additionalCuisines?: RestauranteCuisineKey[];
   shortSummary: string;
   longDescription?: string;
-  /** Canonical city string from controlled selector (shared with location) */
+  /**
+   * Canonical NorCal city string — single source of truth for discovery, results, and cards.
+   * Prefer `CityAutocomplete` / shared catalog; avoid parallel free-text “city” fields.
+   */
   cityCanonical: string;
   neighborhood?: string;
-  /** Normalized 5-digit when US; optional depending on flow */
+  /**
+   * Optional US ZIP (e.g. 5 digits). Used with `cityCanonical` for results-driving filters; not a second “city”.
+   */
   zipCode?: string;
   priceLevel?: RestaurantePriceLevel;
   languagesSpoken?: string[];

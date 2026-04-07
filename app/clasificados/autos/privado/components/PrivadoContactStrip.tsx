@@ -24,7 +24,9 @@ export function PrivadoContactStrip({
   const office = resolveDealerOfficePhone(data);
   const phoneDisplay = formatUsPhoneDisplay(office);
   const phoneForTel = phoneDigitsForTel(office);
-  const showCall = Boolean(phoneForTel);
+  /** Same threshold as Negocios `DealerBusinessStack`: avoid dead `tel:` short fragments. */
+  const validTelForCta = phoneForTel.length >= 10;
+  const showCall = validTelForCta && Boolean(phoneForTel);
   const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
   const showWa = Boolean(waHref);
   const seller = data.dealerName?.trim();

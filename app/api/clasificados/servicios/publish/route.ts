@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { getBusinessTypePreset } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize";
 import { mapClasificadosServiciosApplicationToServiciosDraft } from "@/app/clasificados/publicar/servicios/lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { evaluateServiciosPublishReadiness } from "@/app/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
@@ -63,6 +64,9 @@ export async function POST(req: Request) {
   let wire = mapServiciosApplicationDraftToBusinessProfile(draft);
   wire = stripAdvertiserVerificationFlags(wire);
 
+  const preset = getBusinessTypePreset(state.businessTypeId);
+  const internalGroup = preset?.internalGroup ?? null;
+
   let persisted = false;
   if (isSupabaseAdminConfigured()) {
     try {
@@ -79,6 +83,7 @@ export async function POST(req: Request) {
             business_name: businessName,
             city,
             profile_json: wire,
+            internal_group: internalGroup,
             updated_at: now,
           })
           .eq("slug", slug);
@@ -89,6 +94,7 @@ export async function POST(req: Request) {
           business_name: businessName,
           city,
           profile_json: wire,
+          internal_group: internalGroup,
           leonix_verified: false,
           published_at: now,
           updated_at: now,

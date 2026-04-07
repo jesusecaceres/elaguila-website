@@ -21,10 +21,16 @@ function hasAtLeastOneService(state: ClasificadosServiciosApplicationState): boo
   return state.selectedServiceIds.length > 0;
 }
 
-/** At least one hero/gallery image: cover, or any gallery item (featured strip derives from these). */
+/**
+ * Cover satisfies hero visuals; otherwise require at least one gallery image marked for the main strip
+ * (`featuredGalleryIds` intersecting `gallery`).
+ */
 function hasFeaturedVisual(state: ClasificadosServiciosApplicationState): boolean {
   if (state.coverUrl.trim().length > 0) return true;
-  return state.gallery.length > 0;
+  if (state.gallery.length === 0) return false;
+  const galleryIds = new Set(state.gallery.map((g) => g.id));
+  const featured = state.featuredGalleryIds.filter((id) => galleryIds.has(id));
+  return featured.length >= 1;
 }
 
 const LABELS = {
@@ -34,7 +40,10 @@ const LABELS = {
   contact: { es: "Al menos un método de contacto (teléfono, sitio o WhatsApp)", en: "At least one contact method (phone, website, or WhatsApp)" },
   about: { es: "Texto “Sobre el negocio”", en: "“About the business” text" },
   services: { es: "Al menos un servicio", en: "At least one service" },
-  media: { es: "Al menos una imagen (portada o galería)", en: "At least one image (cover or gallery)" },
+  media: {
+    es: "Portada o al menos una imagen destacada en la galería principal",
+    en: "Cover image or at least one image in the main gallery strip",
+  },
 } as const;
 
 /**

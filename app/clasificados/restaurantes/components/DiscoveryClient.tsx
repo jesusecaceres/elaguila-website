@@ -34,7 +34,7 @@ function buildUrl(lang: Lang, next: DiscoveryState) {
   if (next.diet) params.set("diet", next.diet);
 
   const qs = params.toString();
-  return `/clasificados/restaurantes?${qs}`;
+  return `/clasificados/restaurantes/resultados?${qs}`;
 }
 
 export default function DiscoveryClient({ lang, initial }: { lang: Lang; initial: DiscoveryState }) {

@@ -13,22 +13,22 @@ function findLegacyServiciosListing(id: string): { id: string; category: string;
 }
 
 type PageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
   searchParams?: Promise<{ lang?: string }>;
 };
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
-  const { id } = await props.params;
+  const { slug } = await props.params;
   const sp = (await props.searchParams) ?? {};
   const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
 
-  const legacy = findLegacyServiciosListing(id);
+  const legacy = findLegacyServiciosListing(slug);
   if (legacy) {
     const title = legacy.title?.[lang] ?? legacy.title?.es ?? "Servicio";
     return { title: `${title} · Servicios · Leonix` };
   }
 
-  const row = await getServiciosPublicListingBySlugFromDb(id);
+  const row = await getServiciosPublicListingBySlugFromDb(slug);
   if (row) {
     const wire = { ...row.profile_json };
     wire.identity.leonixVerified = row.leonix_verified === true;
@@ -51,15 +51,15 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
  * Public URL shape: `/clasificados/servicios/[slug-or-id]?lang=es|en`
  */
 export default async function ClasificadosServiciosDynamicPage(props: PageProps) {
-  const { id } = await props.params;
+  const { slug } = await props.params;
   const sp = (await props.searchParams) ?? {};
   const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
 
-  if (findLegacyServiciosListing(id)) {
-    return <LegacyServiciosSampleProfile listingId={id} />;
+  if (findLegacyServiciosListing(slug)) {
+    return <LegacyServiciosSampleProfile listingId={slug} />;
   }
 
-  const row = await getServiciosPublicListingBySlugFromDb(id);
+  const row = await getServiciosPublicListingBySlugFromDb(slug);
   if (row) {
     const wire = { ...row.profile_json };
     wire.identity.leonixVerified = row.leonix_verified === true;
@@ -73,5 +73,5 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     );
   }
 
-  return <ServiciosPublicSlugClient slug={id} lang={lang} />;
+  return <ServiciosPublicSlugClient slug={slug} lang={lang} />;
 }

@@ -6,7 +6,7 @@ import { restaurants } from "../../data/restaurants";
 import RestaurantCard from "../components/RestaurantCard";
 import { AlertsPanel } from "./components/R3Widgets";
 import DiscoveryClient from "./components/DiscoveryClient";
-import { RESTAURANTES_CUISINE_CHIPS, RESTAURANTES_LANDING_CATEGORY_PILLS } from "./shared/fields/restaurantesTaxonomy";
+import { RESTAURANTES_LANDING_CATEGORY_PILLS, RESTAURANTES_LANDING_CUISINE_QUICK } from "./shared/fields/restaurantesTaxonomy";
 
 type Lang = "es" | "en";
 
@@ -65,10 +65,8 @@ export default async function Page({
   });
 
 
-  const listaHref = `/clasificados/restaurantes?lang=${lang}`;
+  const listaHref = `/clasificados/restaurantes/resultados?lang=${lang}`;
   const postHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=restaurantes&lang=${lang}`)}`;
-  const cuisineChips = RESTAURANTES_CUISINE_CHIPS[lang];
-
   return (
     <div className="min-h-screen bg-[#D9D9D9] text-[#111111]">
       <Navbar />
@@ -105,9 +103,13 @@ export default async function Page({
             <Link href={listaHref} className="flex items-center rounded-lg border border-[#C9B46A]/30 bg-white px-3 py-2 text-sm text-[#111111]/80 hover:bg-[#EFEFEF] transition sm:w-36"><span className="truncate">{lang === "es" ? "Ciudad o ZIP" : "City or ZIP"}</span></Link>
           </div>
           <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {cuisineChips.map((label) => (
-              <Link key={label} href={`${listaHref}&cuisine=${encodeURIComponent(label)}`} className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition">
-                {label}
+            {RESTAURANTES_LANDING_CUISINE_QUICK.map(({ key, es, en }) => (
+              <Link
+                key={key}
+                href={`${listaHref}&cuisine=${encodeURIComponent(key)}`}
+                className="shrink-0 rounded-full border border-[#111111]/15 bg-white px-2.5 py-1.5 text-xs font-medium text-[#111111] hover:bg-[#EFEFEF] transition"
+              >
+                {lang === "es" ? es : en}
               </Link>
             ))}
           </div>

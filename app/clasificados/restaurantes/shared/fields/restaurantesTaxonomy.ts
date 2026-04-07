@@ -17,8 +17,14 @@ export const RESTAURANTES_LANDING_CATEGORY_PILLS: RestaurantesLandingCategoryPil
   { key: "comunidad", es: "Comunidad", en: "Community" },
 ];
 
-/** Cuisine quick-filter labels for lista `cuisine` param (language-specific display). */
-export const RESTAURANTES_CUISINE_CHIPS: Record<"es" | "en", string[]> = {
-  es: ["Mexicana", "Italiana", "Americana", "Asiática", "Mariscos", "Otro"],
-  en: ["Mexican", "Italian", "American", "Asian", "Seafood", "Other"],
-};
+/**
+ * Landing quick chips → canonical `cuisine` keys for `/clasificados/restaurantes/resultados`.
+ */
+export const RESTAURANTES_LANDING_CUISINE_QUICK: { key: string; es: string; en: string }[] = [
+  { key: "mexican", es: "Mexicana", en: "Mexican" },
+  { key: "italian", es: "Italiana", en: "Italian" },
+  { key: "american", es: "Americana", en: "American" },
+  { key: "asian", es: "Asiática", en: "Asian" },
+  { key: "seafood", es: "Mariscos", en: "Seafood" },
+  { key: "other", es: "Otro", en: "Other" },
+];

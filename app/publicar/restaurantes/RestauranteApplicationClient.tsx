@@ -30,8 +30,13 @@ const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
 
+/** Stacks I / J / K — visually dominant vs. canonical service modes + channel rows below */
 const PRIMARY_OP_CARD =
-  "flex h-full flex-col rounded-2xl border-2 border-[color:var(--lx-gold-border)]/50 bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-4 shadow-[0_4px_20px_-8px_rgba(42,36,22,0.12)]";
+  "flex h-full flex-col rounded-2xl border-2 border-[color:var(--lx-gold-border)]/70 bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25";
+
+/** Secondary fulfillment toggles — lighter visual weight */
+const SECONDARY_CHANNEL_CLUSTER =
+  "rounded-2xl border border-dashed border-[color:var(--lx-nav-border)]/90 bg-[color:var(--lx-section)]/40 p-4";
 
 const OTHER_INPUT =
   "mt-1.5 w-full max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
@@ -468,21 +473,14 @@ export default function RestauranteApplicationClient() {
         {/* B */}
         <section id="restaurantes-section-b" className={CARD}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
-          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-            Selecciona al menos un <strong className="font-semibold text-[color:var(--lx-text-2)]">modo de servicio</strong>{" "}
-            más abajo (obligatorio para la vista previa con el botón principal).
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
+            Interruptores principales (stacks I · J · K)
           </p>
-          <div className="mt-4 rounded-xl border border-[color:var(--lx-gold-border)]/35 bg-[color:var(--lx-nav-hover)]/50 px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            <p className="font-semibold text-[color:var(--lx-text)]">Tres formas de operar que abren más preguntas</p>
-            <p className="mt-1.5">
-              Los interruptores destacados controlan si aparecen las secciones <strong>I</strong>, <strong>J</strong> o{" "}
-              <strong>K</strong>. El resto de opciones (comer en local, para llevar, food truck, etc.) siguen abajo; puedes
-              combinarlas sin perder flexibilidad.
-            </p>
-          </div>
-
-          <p className="mt-6 text-sm font-semibold text-[color:var(--lx-text)]">Modelo principal (desbloquea secciones I / J / K)</p>
-          <div className="mt-3 grid gap-4 md:grid-cols-3">
+          <p className="mt-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+            Estos tres bloques van primero: cada uno puede abrir un apartado extra del formulario (no sustituyen los modos
+            de servicio de más abajo).
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className={PRIMARY_OP_CARD}>
               <label className="flex cursor-pointer items-start gap-3">
                 <input
@@ -566,11 +564,27 @@ export default function RestauranteApplicationClient() {
             </div>
           </div>
 
-          <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">Modos de servicio (lista canónica)</p>
+          <div className="mt-8 border-t border-[color:var(--lx-nav-border)] pt-6">
+            <p className="text-sm font-semibold text-[color:var(--lx-text)]">Lista operativa y modos de servicio</p>
+            <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
+              Selecciona al menos un{" "}
+              <strong className="font-semibold text-[color:var(--lx-text-2)]">modo de servicio</strong> en la lista
+              canónica (obligatorio para la vista previa con el botón principal). Las casillas de canal complementan el
+              modelo.
+            </p>
+            <div className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/35 bg-[color:var(--lx-nav-hover)]/40 px-4 py-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
+              <strong className="text-[color:var(--lx-text)]">Nota:</strong> lo de arriba solo controla si ves las secciones{" "}
+              <strong>I</strong> (móvil), <strong>J</strong> (desde casa) y <strong>K</strong> (catering/eventos). Todo lo
+              siguiente es independiente y se puede combinar.
+            </div>
+          </div>
+
+          <p className="mt-6 text-sm font-semibold text-[color:var(--lx-text)]">Modos de servicio (lista canónica)</p>
           <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
             Obligatorio: al menos una opción para usar el botón «Vista previa».
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 rounded-2xl border border-[color:var(--lx-nav-border)]/85 bg-white/50 p-3 sm:p-4">
+            <div className="flex flex-wrap gap-2">
             {RESTAURANTE_SERVICE_MODES.map((o) => (
               <label
                 key={o.key}
@@ -584,6 +598,7 @@ export default function RestauranteApplicationClient() {
                 {o.labelEs}
               </label>
             ))}
+            </div>
           </div>
           {(draft.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) ? (
             <div className="mt-3 max-w-lg">
@@ -600,9 +615,10 @@ export default function RestauranteApplicationClient() {
 
           <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">Canal y opciones de servicio</p>
           <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-            Complementa el modelo: local, entrega, reservas, food truck, pop-up, chef, etc.
+            Complementa el modelo: local, entrega, reservas, food truck, pop-up, chef, etc. (peso visual menor que los
+            interruptores de arriba).
           </p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${SECONDARY_CHANNEL_CLUSTER}`}>
             {(
               [
                 ["dineIn", "Comer en local"],

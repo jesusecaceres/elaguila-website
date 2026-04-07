@@ -53,7 +53,7 @@ export default function RestaurantePreviewClient() {
 
   return (
     <RestaurantesShellChrome lang="es">
-      <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-5 lg:px-6">
+      <div className="mx-auto max-w-[1280px] space-y-4 px-4 pt-4 md:px-5 lg:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href={EDIT_HREF}
@@ -69,6 +69,21 @@ export default function RestaurantePreviewClient() {
           ) : (
             <p className="text-xs font-medium text-emerald-800 sm:text-right">Vista previa mínima lista (borrador).</p>
           )}
+        </div>
+        <div
+          className="rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[color:var(--lx-section)] px-4 py-3 text-xs leading-relaxed text-[color:var(--lx-text-2)] sm:px-5 sm:text-sm"
+          role="note"
+        >
+          <p className="font-semibold text-[color:var(--lx-text)]">Cómo funciona esta vista</p>
+          <ul className="mt-2 list-inside list-disc space-y-1.5 marker:text-[color:var(--lx-gold)]">
+            <li>
+              Solo aparecen bloques con datos: los campos vacíos no generan secciones vacías ni texto de relleno.
+            </li>
+            <li>
+              El borrador se lee desde este navegador (local). Si no ves cambios, vuelve a publicar desde la misma
+              pestaña.
+            </li>
+          </ul>
         </div>
       </div>
       <RestauranteDetailShell data={shellData} />

@@ -11,6 +11,10 @@ export type AutosClassifiedManageAnalytics = {
   saves: number;
   shares: number;
   profileClicks: number;
+  /** Future `listing_analytics` event types — scaffolded at 0 until DB + instrumentation. */
+  whatsappClicks?: number;
+  websiteClicks?: number;
+  appointmentClicks?: number;
 };
 
 function MiniBars({ value, max }: { value: number; max: number }) {
@@ -74,6 +78,10 @@ export function AutosClassifiedListingManageCard({
           prof: "Perfil",
           perf: "Rendimiento",
           insights: "Misma métrica que en En Venta: vistas, guardados, compartidos y mensajes.",
+          ctaFuture: "CTA (próx.)",
+          wa: "WA",
+          web: "Web",
+          cita: "Cita",
         }
       : {
           autos: "Autos",
@@ -89,6 +97,10 @@ export function AutosClassifiedListingManageCard({
           prof: "Profile",
           perf: "Performance",
           insights: "Same metrics as En Venta: views, saves, shares, and messages.",
+          ctaFuture: "CTAs (soon)",
+          wa: "WA",
+          web: "Web",
+          cita: "Appt",
         };
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -155,6 +167,19 @@ export function AutosClassifiedListingManageCard({
                 {L.prof}: {analytics.profileClicks}
               </span>
             </div>
+          </div>
+
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]/85">{L.ctaFuture}</p>
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-[#5C5346]/95">
+            <span className="rounded-md border border-[#E8DFD0]/80 bg-white/80 px-2 py-0.5">
+              {L.wa}: {analytics.whatsappClicks ?? 0}
+            </span>
+            <span className="rounded-md border border-[#E8DFD0]/80 bg-white/80 px-2 py-0.5">
+              {L.web}: {analytics.websiteClicks ?? 0}
+            </span>
+            <span className="rounded-md border border-[#E8DFD0]/80 bg-white/80 px-2 py-0.5">
+              {L.cita}: {analytics.appointmentClicks ?? 0}
+            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

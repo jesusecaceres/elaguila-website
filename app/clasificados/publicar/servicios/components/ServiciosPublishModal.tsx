@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
+import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosCopy } from "../lib/clasificadosServiciosApplicationCopy";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
@@ -64,7 +65,8 @@ export function ServiciosPublishModal({
       }
 
       if (!data.persisted) {
-        upsertLocalServiciosPublish(data.profile, state.city);
+        const ig = getBusinessTypePreset(state.businessTypeId)?.internalGroup;
+        upsertLocalServiciosPublish(data.profile, state.city, ig ?? null);
       }
 
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?lang=${lang}`);

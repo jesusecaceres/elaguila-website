@@ -637,6 +637,9 @@ export default function MyListingsPage() {
                         saves: stats?.saves ?? 0,
                         shares: stats?.shares ?? 0,
                         profileClicks: stats?.profileClicks ?? 0,
+                        whatsappClicks: 0,
+                        websiteClicks: 0,
+                        appointmentClicks: 0,
                       }}
                       maxViews={maxViews}
                     />

@@ -9,6 +9,8 @@ export type LocalServiciosPublishEntry = {
   businessName: string;
   city: string;
   publishedAt: string;
+  /** Matches `BusinessTypePreset.internalGroup` when known */
+  internalGroup?: string;
   /** Serialized `ServiciosBusinessProfile` */
   profileJson: string;
 };
@@ -39,7 +41,11 @@ function writeStore(s: Store): void {
   }
 }
 
-export function upsertLocalServiciosPublish(profile: ServiciosBusinessProfile, city: string): LocalServiciosPublishEntry {
+export function upsertLocalServiciosPublish(
+  profile: ServiciosBusinessProfile,
+  city: string,
+  internalGroup?: string | null,
+): LocalServiciosPublishEntry {
   const safe: ServiciosBusinessProfile = {
     ...profile,
     identity: { ...profile.identity },
@@ -52,6 +58,7 @@ export function upsertLocalServiciosPublish(profile: ServiciosBusinessProfile, c
     businessName: safe.identity.businessName.trim() || slug,
     city: city.trim(),
     publishedAt: new Date().toISOString(),
+    ...(internalGroup ? { internalGroup } : {}),
     profileJson: JSON.stringify(safe),
   };
   const store = readStore();
@@ -65,7 +72,13 @@ export function readLocalServiciosPublish(slug: string): LocalServiciosPublishEn
   return store.bySlug[slug] ?? null;
 }
 
-export function listLocalServiciosPublishSummaries(): { slug: string; businessName: string; city: string; publishedAt: string }[] {
+export function listLocalServiciosPublishSummaries(): {
+  slug: string;
+  businessName: string;
+  city: string;
+  publishedAt: string;
+  internalGroup?: string;
+}[] {
   const store = readStore();
   return Object.values(store.bySlug)
     .map((e) => ({
@@ -73,6 +86,7 @@ export function listLocalServiciosPublishSummaries(): { slug: string; businessNa
       businessName: e.businessName,
       city: e.city,
       publishedAt: e.publishedAt,
+      ...(e.internalGroup ? { internalGroup: e.internalGroup } : {}),
     }))
     .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
 }
