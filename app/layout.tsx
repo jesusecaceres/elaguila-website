@@ -1,9 +1,6 @@
 import "./globals.css";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import { SiteWideBanners } from "./components/SiteWideBanners";
-import { Suspense } from "react";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://leonixmedia.com"),
@@ -55,16 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
-        {/* Navbar */}
-        <Navbar />
-
-        <SiteWideBanners />
-
-        {/* Page content */}
         <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-
-        {/* Footer */}
-        <Footer />
       </body>
     </html>
   );

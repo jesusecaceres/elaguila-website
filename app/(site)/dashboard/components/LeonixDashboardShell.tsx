@@ -1,0 +1,200 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, type CSSProperties, type ReactNode } from "react";
+import ProBadge from "@/app/clasificados/components/ProBadge";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import newLogo from "../../../../public/logo.png";
+
+type Lang = "es" | "en";
+type Plan = "free" | "pro";
+type ActiveNav = "home" | "listings" | "messages" | "profile" | "saved" | "recent";
+
+const PAGE_BG: CSSProperties = {
+  backgroundColor: "#F3EBDD",
+  backgroundImage: `
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.2), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.45), transparent 52%),
+    radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.1), transparent 50%)
+  `,
+};
+
+function cx(...parts: Array<string | false | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+export function LeonixDashboardShell({
+  lang,
+  activeNav,
+  plan,
+  userName,
+  email,
+  accountRef,
+  children,
+  rightPanel,
+}: {
+  lang: Lang;
+  activeNav: ActiveNav;
+  plan: Plan;
+  userName: string | null;
+  email: string | null;
+  accountRef: string | null;
+  children: ReactNode;
+  rightPanel?: ReactNode;
+}) {
+  const router = useRouter();
+  const L =
+    lang === "es"
+      ? {
+          plan: "Plan",
+          free: "Gratis",
+          pro: "LEONIX Pro",
+          home: "Resumen",
+          profile: "Mi cuenta",
+          listings: "Mis anuncios",
+          messages: "Mensajes",
+          saved: "Anuncios guardados",
+          recent: "Vistos recientemente",
+          activity: "Mi actividad",
+          publish: "Publicar anuncio",
+          signOut: "Cerrar sesión",
+        }
+      : {
+          plan: "Plan",
+          free: "Free",
+          pro: "LEONIX Pro",
+          home: "Overview",
+          profile: "My account",
+          listings: "My listings",
+          messages: "Messages",
+          saved: "Saved listings",
+          recent: "Recently viewed",
+          activity: "My activity",
+          publish: "Post an ad",
+          signOut: "Sign out",
+        };
+
+  const planLabel = plan === "pro" ? L.pro : L.free;
+  const q = `lang=${lang}`;
+
+  const signOut = useCallback(async () => {
+    try {
+      const sb = createSupabaseBrowserClient();
+      await sb.auth.signOut();
+    } catch {
+      /* ignore */
+    }
+    router.push(`/login?redirect=${encodeURIComponent("/dashboard")}`);
+    router.refresh();
+  }, [router]);
+
+  const navItem = (key: ActiveNav, href: string, label: string) => (
+    <Link
+      href={href}
+      className={cx(
+        "block rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+        activeNav === key
+          ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
+          : "text-[#3D3428]/90 hover:bg-[#FFFCF7]/80"
+      )}
+    >
+      {label}
+    </Link>
+  );
+
+  return (
+    <div className="relative min-h-screen text-[#2C2416]" style={PAGE_BG}>
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.035]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        }}
+        aria-hidden
+      />
+      <main className="relative mx-auto max-w-7xl px-4 pb-20 pt-24 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col items-center text-center sm:mb-10">
+          <Image
+            src={newLogo}
+            alt="Leonix"
+            width={88}
+            height={88}
+            className="h-auto w-[min(88px,22vw)] drop-shadow-[0_6px_24px_rgba(42,36,22,0.12)]"
+            priority
+          />
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#7A7164]">Dashboard</p>
+        </div>
+
+        <div
+          className={cx(
+            "grid gap-8 lg:gap-10",
+            rightPanel ? "lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]" : "lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]"
+          )}
+        >
+          <aside className="h-fit rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{L.plan}</span>
+              {plan === "pro" ? (
+                <ProBadge />
+              ) : (
+                <span className="rounded-full border border-[#E8DFD0] bg-[#FAF7F2] px-2.5 py-1 text-[11px] font-bold text-[#5C5346]">
+                  {planLabel}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
+              <p className="text-[15px] font-bold text-[#1E1810]">{userName?.trim() || "—"}</p>
+              <p className="mt-1 text-xs text-[#5C5346]/95">{email || "—"}</p>
+              {accountRef ? (
+                <p className="mt-2 font-mono text-[10px] text-[#7A7164]/90">
+                  #{accountRef}
+                </p>
+              ) : null}
+            </div>
+
+            <nav className="mt-5 space-y-1">
+              {navItem("home", `/dashboard?${q}`, L.home)}
+              {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
+              {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings)}
+              {navItem("messages", `/dashboard/mensajes?${q}`, L.messages)}
+              {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}
+              <div className="pt-3">
+                <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]/90">{L.activity}</p>
+                {navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent)}
+              </div>
+            </nav>
+
+            <Link
+              href={`/clasificados/publicar?${q}`}
+              className={cx(
+                "mt-6 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-[#1E1810]",
+                "bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A]",
+                "shadow-[0_8px_28px_-4px_rgba(201,164,74,0.45),inset_0_1px_0_rgba(255,255,255,0.35)]",
+                "transition hover:brightness-[1.03] active:scale-[0.99]"
+              )}
+            >
+              {L.publish}
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#E8DFD0] bg-transparent py-2.5 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FFFCF7]"
+            >
+              <span aria-hidden className="text-lg leading-none">
+                ⊖
+              </span>
+              {L.signOut}
+            </button>
+          </aside>
+
+          <div className="min-w-0">{children}</div>
+
+          {rightPanel ? <div className="min-w-0 lg:pt-0">{rightPanel}</div> : null}
+        </div>
+      </main>
+    </div>
+  );
+}

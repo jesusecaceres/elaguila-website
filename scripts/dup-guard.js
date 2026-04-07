@@ -5,8 +5,8 @@
  *
  * Behavior:
  * 1) Auto-removes a small set of known safe nested duplicates that have repeatedly appeared:
- *    - app/clasificados/components/components
- *    - app/clasificados/empleos/empleos (and anything under it)
+ *    - app/(site)/clasificados/components/components
+ *    - app/(site)/clasificados/empleos/empleos (and anything under it)
  * 2) Then performs the strict duplicate scan and FAILS the build if anything remains.
  */
 
@@ -14,7 +14,7 @@ const fs = require("fs");
 const path = require("path");
 
 const repoRoot = process.cwd();
-const root = path.join(repoRoot, "app", "clasificados");
+const root = path.join(repoRoot, "app", "(site)", "clasificados");
 
 if (!fs.existsSync(root)) process.exit(0);
 
@@ -62,10 +62,10 @@ const norm = (p) => p.split(path.sep).join("\\"); // windows-style for easy matc
 
 const bad = new Set();
 
-// A) Direct duplicate engine folder: app\clasificados\clasificados\
+// A) Direct duplicate engine folder: app\(site)\clasificados\clasificados\
 for (const d of dirs) {
   const n = norm(d);
-  if (n.includes("\\app\\clasificados\\clasificados\\")) bad.add(d);
+  if (n.includes("\\app\\(site)\\clasificados\\clasificados\\")) bad.add(d);
 }
 
 // B) Any repeated folder name like X\X for key folders
@@ -80,7 +80,7 @@ for (const d of dirs) {
 
 if (bad.size > 0) {
   const list = Array.from(bad).sort();
-  console.error("\n❌ LEONIX DUP GUARD: Duplicate folder patterns detected under app/clasificados.\n");
+  console.error("\n❌ LEONIX DUP GUARD: Duplicate folder patterns detected under app/(site)/clasificados.\n");
   for (const p of list) console.error(" - " + path.relative(repoRoot, p));
   console.error("\nFix: delete/merge duplicates so only canonical routes remain. Build aborted.\n");
   process.exit(1);

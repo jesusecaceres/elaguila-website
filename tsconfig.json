@@ -23,6 +23,23 @@
       }
     ],
     "paths": {
+      "@/app/about/*": ["./app/(site)/about/*"],
+      "@/app/auth/*": ["./app/(site)/auth/*"],
+      "@/app/contact/*": ["./app/(site)/contact/*"],
+      "@/app/contacto/*": ["./app/(site)/contacto/*"],
+      "@/app/coupons/*": ["./app/(site)/coupons/*"],
+      "@/app/cupones/*": ["./app/(site)/cupones/*"],
+      "@/app/dashboard/*": ["./app/(site)/dashboard/*"],
+      "@/app/home/*": ["./app/(site)/home/*"],
+      "@/app/iglesias/*": ["./app/(site)/iglesias/*"],
+      "@/app/legal/*": ["./app/(site)/legal/*"],
+      "@/app/login/*": ["./app/(site)/login/*"],
+      "@/app/magazine/*": ["./app/(site)/magazine/*"],
+      "@/app/noticias/*": ["./app/(site)/noticias/*"],
+      "@/app/publicar/*": ["./app/(site)/publicar/*"],
+      "@/app/servicios/*": ["./app/(site)/servicios/*"],
+      "@/app/tienda/*": ["./app/(site)/tienda/*"],
+      "@/app/clasificados/*": ["./app/(site)/clasificados/*"],
       "@/*": [
         "./*"
       ]
