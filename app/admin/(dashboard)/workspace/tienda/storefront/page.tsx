@@ -46,6 +46,16 @@ export default async function AdminTiendaStorefrontPage(props: { searchParams?: 
         Última actualización en almacén: {updatedAt ? new Date(updatedAt).toLocaleString() : "— (sin fila aún)"}
       </p>
 
+      <div className={`${adminCardBase} border-[#C9B46A]/35 bg-[#FFFCF7] p-4 text-sm text-[#5C5346]`}>
+        <p className="font-semibold text-[#1E1810]">Precio, etiquetas y visibilidad por artículo</p>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Se editan en el catálogo (cada ficha de producto), no aquí. Esta pantalla es marketing de vitrina: textos, imágenes de categoría, orden de tarjetas y franja promo.
+        </p>
+        <Link href="/admin/tienda/catalog" className="mt-2 inline-block text-xs font-bold text-[#6B5B2E] underline">
+          Ir al catálogo admin →
+        </Link>
+      </div>
+
       <form action={saveTiendaStorefrontFormAction} className="space-y-8">
         <section className={`${adminCardBase} space-y-4 p-6`}>
           <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Hero (columna izquierda)</h2>

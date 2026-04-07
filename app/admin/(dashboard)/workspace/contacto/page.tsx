@@ -1,27 +1,19 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { adminCardBase, adminInputClass } from "../../../_components/adminTheme";
+import { adminCardBase } from "../../../_components/adminTheme";
 
-const BLOCKS = [
+const TOPICS = [
   {
-    title: "Canales de contacto",
-    hint: "Teléfono, correo y reglas de desvío (quién contesta ventas vs soporte). Un solo lugar “oficial” evita confusiones en redes.",
-    fields: ["Teléfono visible", "Email público", "Nota interna de enrutamiento"],
+    title: "Canales y horario",
+    body: "Teléfono, correo, horario y dirección viven en el editor persistente (Supabase). No hay campos duplicados en esta página de resumen.",
   },
   {
-    title: "Horarios y disponibilidad",
-    hint: "Texto que ve el visitante (L–V, festivos, cierres). Alinea con mensajes de Tienda si aplica.",
-    fields: ["Copy de horario (ES)", "Aviso de cierre temporal"],
+    title: "Mapa y avisos",
+    body: "URL de mapa y aviso superior opcional — también en el editor. El envío del formulario sigue el mismo componente global (lógica de API no se edita aquí).",
   },
   {
-    title: "Ubicación y mapa",
-    hint: "Dirección formateada, enlace a Maps, o iframe embed — documentar aquí antes de persistir.",
-    fields: ["Dirección multilínea", "URL de mapa / embed"],
-  },
-  {
-    title: "Formulario y CTAs",
-    hint: "Título del formulario, texto de privacidad breve, y qué pasa tras enviar (correo a soporte, ticket, etc.).",
-    fields: ["Título del bloque de formulario", "Texto de ayuda bajo el botón Enviar"],
+    title: "Tarjeta Tienda",
+    body: "Título, cuerpo y CTA del recuadro que enlaza a ayuda Tienda — editables en el editor; vacío = texto por defecto del código.",
   },
 ] as const;
 
@@ -30,44 +22,35 @@ export default function AdminWorkspaceContactoPage() {
     <div>
       <AdminPageHeader
         title="Contacto — cómo te encuentran"
-        subtitle="La página `/contacto` tiene formulario persistente en el editor enlazado arriba. Estos bloques siguen siendo guía de alcance para capacitación."
+        subtitle="El único formulario guardado para `/contacto` está en el editor enlazado abajo. Esta tarjeta resume alcance; no hay campos guardados aquí."
         eyebrow="Workspace · Contacto"
-        helperText="Lo que ve el visitante en la página de contacto. El inbox interno de pedidos de Tienda sigue en Pedidos; incidencias generales en Support."
+        helperText="Pedidos de Tienda (inbox) siguen en Pedidos globales. Incidencias internas en Support. Coordinar CTAs con Nosotros (`/about`)."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
-        <strong>Editor persistente:</strong>{" "}
+        <strong>Editor persistente (BD):</strong>{" "}
         <Link href="/admin/workspace/contacto/content" className="font-bold underline">
           Abrir formulario de `/contacto`
-        </Link>{" "}
-        (intro, horario, email, teléfono, dirección, aviso).
+        </Link>
       </div>
 
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">
-        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página Contacto del sitio y mensajes coherentes con{" "}
+        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página pública Contacto y el bloque de texto alrededor del formulario. Para{" "}
         <Link href="/admin/support" className="font-bold text-[#6B5B2E] underline">
           Support
         </Link>{" "}
-        (operación) y con{" "}
+        (cola operativa) y{" "}
         <Link href="/admin/workspace/nosotros" className="font-bold text-[#6B5B2E] underline">
           Nosotros
         </Link>{" "}
-        (CTAs).
+        usa los enlaces de la barra lateral.
       </p>
 
-      <div className="grid gap-5">
-        {BLOCKS.map((b) => (
-          <section key={b.title} className={`${adminCardBase} p-6`}>
+      <div className="grid gap-4">
+        {TOPICS.map((b) => (
+          <section key={b.title} className={`${adminCardBase} p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">{b.title}</h2>
-            <p className="mt-1 text-sm text-[#7A7164]">{b.hint}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {b.fields.map((label) => (
-                <div key={label}>
-                  <label className="text-xs font-semibold text-[#5C5346]">{label}</label>
-                  <input className={adminInputClass} disabled placeholder="Campo guía — sin guardar aún" title={label} />
-                </div>
-              ))}
-            </div>
+            <p className="mt-2 text-sm text-[#5C5346]/95">{b.body}</p>
           </section>
         ))}
       </div>

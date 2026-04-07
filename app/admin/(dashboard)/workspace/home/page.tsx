@@ -15,9 +15,9 @@ export default function AdminWorkspaceHomePage() {
     <div>
       <AdminPageHeader
         title="Home — portada principal"
-        subtitle="Lo que ves en `/` (hero, anuncios, destacados de clasificados en home, etc.). Los interruptores que afectan a todo el sitio viven en Ajustes globales del sitio."
+        subtitle="La ruta pública es `/home` (entrada a la revista). La pantalla `/` es otra experiencia (selector de idioma) y no se edita aquí. Los avisos bajo el menú de todo el sitio están en Ajustes globales."
         eyebrow="Workspace · Home"
-        helperText="Primera impresión del visitante: hero y bloques de la página de inicio. Si tu cambio es transversal (varias rutas), revisa Ajustes globales del sitio."
+        helperText="Edita textos e imagen en Contenido. Los chips de enlaces son manuales (no sincronizan solos con Clasificados)."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4`}>
@@ -37,7 +37,8 @@ export default function AdminWorkspaceHomePage() {
       <div className={`${adminCardBase} mb-8 p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Resumen</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          La home pública (`/home`) ya lee copy desde la base (`site_section_content`, clave `home_marketing`). Los módulos listados abajo siguen siendo referencia de alcance; la prioridad/visibilidad granular sigue en Ajustes globales cuando exista persistencia allí.
+          La clave <span className="font-mono text-[11px]">home_marketing</span> en la base alimenta la ruta{" "}
+          <span className="font-mono text-[11px]">/home</span>. La tabla de módulos abajo es referencia interna (no escribe en BD); avisos globales bajo el menú: Ajustes globales del sitio.
         </p>
       </div>
 

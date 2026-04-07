@@ -19,7 +19,7 @@ export default async function AdminWorkspaceRevistaPage(props: { searchParams?: 
     <div>
       <AdminPageHeader
         title="Revista — números y portada"
-        subtitle="El número destacado y el archivo siguen viniendo de `public/magazine/editions.json`. Abajo puedes guardar notas editoriales para este workspace (no cambian el JSON todavía)."
+        subtitle="El número destacado y el listado de archivo público siguen definidos en public/magazine/editions.json (no en la base). Abajo solo se guardan notas internas (clave revista_spotlight)."
         eyebrow="Workspace · Revista"
         helperText="Número en portada y archivo público. No es el catálogo de Tienda ni la cola de Clasificados."
       />

@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 export type WorkspaceNavItem = { href: string; label: string; hint?: string };
 
 const SECTIONS: WorkspaceNavItem[] = [
-  { href: "/admin/workspace/home", label: "Home", hint: "Homepage & landing" },
-  { href: "/admin/workspace/clasificados", label: "Clasificados", hint: "Listings & moderation" },
-  { href: "/admin/workspace/tienda", label: "Tienda", hint: "Storefront & catalog" },
-  { href: "/admin/workspace/nosotros", label: "Nosotros", hint: "About the company" },
-  { href: "/admin/workspace/revista", label: "Revista", hint: "Magazine & issues" },
-  { href: "/admin/workspace/contacto", label: "Contacto", hint: "Contact & hours" },
+  { href: "/admin/workspace/home", label: "Home", hint: "Ruta pública /home (revista) — no la pantalla /" },
+  { href: "/admin/workspace/clasificados", label: "Clasificados", hint: "Moderación de anuncios en Supabase" },
+  { href: "/admin/workspace/tienda", label: "Tienda", hint: "Vitrina /tienda + enlaces al catálogo y pedidos" },
+  { href: "/admin/workspace/nosotros", label: "Nosotros", hint: "Página pública /about" },
+  { href: "/admin/workspace/revista", label: "Revista", hint: "Manifiesto editions.json + notas internas" },
+  { href: "/admin/workspace/contacto", label: "Contacto", hint: "Página /contacto (formulario global)" },
 ];
 
 const TIENDA_CRUD_PREFIX = "/admin/tienda";

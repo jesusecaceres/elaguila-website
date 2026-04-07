@@ -1,27 +1,23 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnSecondary, adminInputClass } from "../../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary } from "../../../_components/adminTheme";
 
-const BLOCKS = [
+const TOPICS = [
   {
     title: "Historia y posicionamiento",
-    hint: "Titular, párrafos largos, bloques de valores y línea de tiempo corta. Define el tono que verá el visitante en /nosotros.",
-    fields: ["Titular principal (ES)", "Párrafo de apertura", "Bullets de valores (3–5)"],
+    body: "Titular, lead, misión, visión y valores — todo se guarda en el editor y se muestra en `/about`.",
   },
   {
     title: "Equipo y liderazgo",
-    hint: "Quién está detrás de Leonix: roles, fotos opcionales, enlaces a LinkedIn o biografías breves.",
-    fields: ["Sección “Equipo” visible sí/no", "Notas internas de actualización"],
+    body: "Galería de equipo o biografías extensas aún no tienen campos dedicados; el texto largo puede ir en lead/valores hasta que exista sección propia.",
   },
   {
     title: "Medios y credibilidad",
-    hint: "Logotipos de partners, menciones en prensa, galería ligera. Mantén alineado con marca y peso de página.",
-    fields: ["Carrusel / galería (referencia)", "PDF o enlaces de prensa"],
+    body: "Imagen opcional (URL) en el editor; logos de partners en bloque adicional siguen siendo decisión de diseño (no hay carrusel persistido aún).",
   },
   {
     title: "Llamadas a la acción",
-    hint: "Botones primarios (contacto, trabajar con nosotros). Deben coincidir con mensajes del workspace Contacto.",
-    fields: ["Texto botón primario", "URL o ancla destino"],
+    body: "Dos CTAs con URL (p. ej. contacto y tienda). Alinea mensajes con Contacto y con la barra global si aplica.",
   },
 ] as const;
 
@@ -38,32 +34,23 @@ export default function AdminWorkspaceNosotrosPage() {
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
         <strong>Contenido reservado (BD):</strong>{" "}
         <Link href="/admin/workspace/nosotros/content" className={`${adminBtnSecondary} ml-2 inline-flex`}>
-          Editar borrador Nosotros
+          Editor de contenido (`/about`)
         </Link>
-        <span className="ml-2 text-xs text-[#5C5346]">(aún sin ruta pública dedicada)</span>
       </div>
 
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">
-        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la futura página Nosotros del sitio público, no operaciones globales. Para datos transversales del sitio, usa{" "}
+        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página pública `/about`, no operaciones globales. Para datos transversales del sitio, usa{" "}
         <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline">
           ajustes globales
         </Link>
         .
       </p>
 
-      <div className="grid gap-5">
-        {BLOCKS.map((b) => (
-          <section key={b.title} className={`${adminCardBase} p-6`}>
+      <div className="grid gap-4">
+        {TOPICS.map((b) => (
+          <section key={b.title} className={`${adminCardBase} p-5`}>
             <h2 className="text-base font-bold text-[#1E1810]">{b.title}</h2>
-            <p className="mt-1 text-sm text-[#7A7164]">{b.hint}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {b.fields.map((label) => (
-                <div key={label}>
-                  <label className="text-xs font-semibold text-[#5C5346]">{label}</label>
-                  <input className={adminInputClass} disabled placeholder="Campo guía — sin guardar aún" title={label} />
-                </div>
-              ))}
-            </div>
+            <p className="mt-2 text-sm text-[#5C5346]/95">{b.body}</p>
           </section>
         ))}
       </div>

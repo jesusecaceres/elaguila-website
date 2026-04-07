@@ -613,15 +613,27 @@ export function BusinessCardBuilderShell(props: {
         />
 
         <div className="mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px] xl:grid-rows-[auto_minmax(0,1fr)]">
-          <div className="order-1 min-w-0 xl:order-2 xl:col-start-1 xl:row-start-2">
-            <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)]">
+          <div
+            className={[
+              "order-1 min-w-0 xl:order-2 xl:col-start-1 xl:row-start-2",
+              "max-xl:sticky max-xl:top-14 max-xl:z-20 max-xl:-mx-4 max-xl:px-4 max-xl:pb-3",
+              "max-xl:border-b max-xl:border-[rgba(255,255,255,0.1)] max-xl:bg-[#070708]/95 max-xl:backdrop-blur-md max-xl:shadow-[0_12px_32px_rgba(0,0,0,0.55)]",
+              "xl:relative xl:top-auto xl:z-auto xl:mx-0 xl:border-0 xl:bg-transparent xl:shadow-none xl:backdrop-blur-none",
+            ].join(" ")}
+          >
+            <h2 className="text-sm font-semibold text-[rgba(255,247,226,0.82)] max-xl:pt-1">
               {bcPick(businessCardBuilderCopy.previewTitle, lang)}
             </h2>
             <p className="mt-1.5 max-w-xl text-[11px] leading-relaxed text-[rgba(255,255,255,0.48)]">
               {bcPick(businessCardBuilderCopy.studioPreviewDisclaimer, lang)}
             </p>
-            <div className="mt-4 flex justify-center">
-              <div className="w-full max-w-[min(100%,560px)] origin-top scale-[1.02] sm:scale-105">
+            <p className="mt-2 hidden max-xl:block text-[11px] text-[rgba(201,168,74,0.85)]">
+              {lang === "en"
+                ? "Preview stays pinned while you scroll — adjust fields below without losing sight of the card."
+                : "La vista previa permanece fija al desplazar: editas abajo sin perder la tarjeta de vista."}
+            </p>
+            <div className="mt-4 flex justify-center max-xl:mt-3">
+              <div className="w-full max-w-[min(100%,560px)] origin-top scale-[1.02] sm:scale-105 max-xl:max-h-[min(38vh,300px)] max-xl:scale-[0.92]">
                 <BusinessCardPreview
                   document={doc}
                   side={doc.activeSide}
@@ -695,7 +707,7 @@ export function BusinessCardBuilderShell(props: {
             />
           </div>
 
-          <div className="order-3 min-w-0 xl:order-3 xl:col-start-2 xl:row-start-2 xl:sticky xl:top-24 self-start xl:max-h-[calc(100vh-6rem)] flex flex-col min-h-0">
+          <div className="order-3 min-w-0 border-t border-[rgba(255,255,255,0.08)] pt-4 max-xl:mt-1 xl:border-t-0 xl:pt-0 xl:order-3 xl:col-start-2 xl:row-start-2 xl:sticky xl:top-24 self-start xl:max-h-[calc(100vh-6rem)] flex flex-col min-h-0">
             <div className="rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] p-1.5 flex gap-1 shrink-0 touch-manipulation">
               <button
                 type="button"
