@@ -123,8 +123,17 @@ export default async function AdminHomeContentPage(props: { searchParams?: Promi
         <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Enlaces destacados (hasta 5)</h2>
         <p className="text-xs text-[#7A7164]">
           Rutas manuales (p. ej. a Clasificados). Debe empezar con <code className="rounded bg-[#FBF7EF] px-1">/</code> o{" "}
-          <code className="rounded bg-[#FBF7EF] px-1">https://</code>.
+          <code className="rounded bg-[#FBF7EF] px-1">https://</code>. El orden guardado es el de los renglones #1–#5 (de izquierda a
+          derecha en la página).
         </p>
+        <div>
+          <label className="text-xs font-semibold text-[#5C5346]">Posición de la fila de chips en el hero</label>
+          <select name="callouts_placement" className={`${adminInputClass} mt-1`} defaultValue={m.calloutsPlacement}>
+            <option value="below_precedent">Debajo de identidad y subtítulo (plantilla clásica)</option>
+            <option value="below_title">Justo debajo del titular principal</option>
+          </select>
+          <p className="mt-1 text-xs text-[#7A7164]">Solo afecta `/home`; no cambia categorías de Tienda ni Clasificados automáticamente.</p>
+        </div>
         {callouts.slice(0, 5).map((c, idx) => (
           <div key={idx} className="grid gap-2 rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3 sm:grid-cols-3">
             <Field label={`Etiqueta ES #${idx + 1}`} name={`callout_${idx + 1}_es`} defaultValue={c.labelEs} />

@@ -42,6 +42,22 @@ export default async function AdminGlobalSiteSettingsPage(props: { searchParams?
 
       <form action={saveGlobalSiteAction} className={`${adminCardBase} space-y-6 p-6`}>
         <section>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Región bajo el menú</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Apaga todo el bloque de franjas (aviso + promo) sin borrar textos — útil en emergencias o pruebas de diseño.
+          </p>
+          <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#3D3428]">
+            <input
+              type="checkbox"
+              name="toggle_banner_region"
+              defaultChecked={g.toggles.showSiteWideBanners}
+              className="h-4 w-4 rounded border-[#E8DFD0]"
+            />
+            Mostrar franjas bajo la navegación
+          </label>
+        </section>
+
+        <section>
           <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Aviso general (sitio)</h2>
           <p className="mt-1 text-xs text-[#7A7164]">Línea informativa (horarios especiales, mantenimiento corto, etc.).</p>
           <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#3D3428]">

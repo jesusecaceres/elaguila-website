@@ -1,15 +1,48 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { adminCardBase, adminBtnSecondary, adminInputClass } from "../../../_components/adminTheme";
-import { getWebsiteContentScaffold } from "../../../_lib/websiteContentScaffold";
+import { adminCardBase, adminBtnSecondary } from "../../../_components/adminTheme";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import { mergeHomeMarketing } from "@/app/lib/siteSectionContent/homeMarketingMerge";
 
 export const dynamic = "force-dynamic";
 
+function yn(v: boolean): string {
+  return v ? "Sí" : "No";
+}
+
 /**
- * Homepage-focused controls. Sitewide module registry / cross-section toggles: `/admin/site-settings`.
+ * Home workspace hub — summary of persisted `home_marketing` (no form here; editor is `/content`).
  */
-export default function AdminWorkspaceHomePage() {
-  const modules = getWebsiteContentScaffold().sort((a, b) => a.sortOrder - b.sortOrder);
+export default async function AdminWorkspaceHomePage() {
+  const { payload, updatedAt } = await getSiteSectionPayload("home_marketing");
+  const m = mergeHomeMarketing(payload as Parameters<typeof mergeHomeMarketing>[0]);
+
+  const hasAnnouncementCopy = m.es.announcement.trim().length > 0 || m.en.announcement.trim().length > 0;
+
+  const rows: { step: string; detail: string }[] = [
+    {
+      step: "1. Aviso fino sobre el hero",
+      detail: `${yn(m.modules.showAnnouncement && hasAnnouncementCopy)} · casilla “Mostrar franja de aviso” + texto en Contenido`,
+    },
+    {
+      step: "2. Titular, identidad y subtítulo",
+      detail: "Siempre visibles (textos en Contenido)",
+    },
+    {
+      step: "3. Enlaces destacados (chips)",
+      detail: `${yn(m.modules.showCallouts && m.callouts.length > 0)} · ${m.callouts.length} enlace(s) válido(s) · posición: ${
+        m.calloutsPlacement === "below_title" ? "bajo titular" : "bajo identidad + subtítulo"
+      }`,
+    },
+    {
+      step: "4. Imagen de portada + CTA primario",
+      detail: `${yn(m.modules.showHeroImage)} · imagen: ${m.coverImageSrc}`,
+    },
+    {
+      step: "5. Línea secundaria / CTA secundario y franja promo",
+      detail: `${yn(m.modules.showSecondaryLine)} · promo con texto: ${yn(m.modules.showSecondaryLine && (m.es.promoStrip.trim() !== "" || m.en.promoStrip.trim() !== ""))}`,
+    },
+  ];
 
   return (
     <div>
@@ -17,61 +50,56 @@ export default function AdminWorkspaceHomePage() {
         title="Home — portada principal"
         subtitle="La ruta pública es `/home` (entrada a la revista). La pantalla `/` es otra experiencia (selector de idioma) y no se edita aquí. Los avisos bajo el menú de todo el sitio están en Ajustes globales."
         eyebrow="Workspace · Home"
-        helperText="Edita textos e imagen en Contenido. Los chips de enlaces son manuales (no sincronizan solos con Clasificados)."
+        helperText="Esta página solo resume lo guardado en la base (clave home_marketing). Para cambiar textos, enlaces y casillas, abre Contenido."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4`}>
         <p className="text-sm text-[#2C4A22]">
-          <strong>Contenido persistente:</strong>{" "}
+          <strong>Editor persistente:</strong>{" "}
           <Link href="/admin/workspace/home/content" className="font-bold underline">
-            Abrir editor de la portada `/home`
-          </Link>{" "}
-          (textos bilingües e imagen). Para interruptores que afectan varias rutas, usa{" "}
+            Abrir contenido de `/home`
+          </Link>
+          {" · "}
           <Link href="/admin/site-settings" className="font-bold underline">
             Ajustes globales del sitio
-          </Link>
-          .
+          </Link>{" "}
+          (franjas bajo la navegación en todas las páginas).
         </p>
       </div>
+
+      <p className="mb-4 text-xs text-[#7A7164]">
+        Última actualización (BD): {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}
+      </p>
 
       <div className={`${adminCardBase} mb-8 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Resumen</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Orden fijo en la plantilla `/home`</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          La clave <span className="font-mono text-[11px]">home_marketing</span> en la base alimenta la ruta{" "}
-          <span className="font-mono text-[11px]">/home</span>. La tabla de módulos abajo es referencia interna (no escribe en BD); avisos globales bajo el menú: Ajustes globales del sitio.
+          Los bloques siguen este orden en código; puedes encender/apagar y editar copy en Contenido. La única variación de orden es la fila de
+          chips (debajo del titular vs. debajo del subtítulo).
         </p>
+        <ul className="mt-4 space-y-3 text-sm text-[#3D3428]">
+          {rows.map((r) => (
+            <li key={r.step} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 px-4 py-3">
+              <p className="font-semibold text-[#1E1810]">{r.step}</p>
+              <p className="mt-1 text-xs text-[#5C5346]/95">{r.detail}</p>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#7A7164]">Módulos de la home (referencia)</h2>
-      <div className="grid gap-4">
-        {modules.map((m) => (
-          <div key={m.id} className={`${adminCardBase} p-5`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase text-[#7A7164]">Orden {m.sortOrder}</p>
-                <h3 className="text-lg font-bold text-[#1E1810]">{m.label}</h3>
-                <p className="mt-1 max-w-2xl text-sm text-[#5C5346]/95">{m.description}</p>
-                {m.notes ? <p className="mt-2 text-xs text-[#A67C52]">{m.notes}</p> : null}
-              </div>
-              <span className="rounded-full bg-[#FBF7EF] px-3 py-1 text-xs font-bold uppercase text-[#5C4E2E]">{m.visibility}</span>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold text-[#5C5346]">Notas internas</label>
-                <input className={adminInputClass} disabled placeholder="Qué controla en la home" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[#5C5346]">Prioridad en página</label>
-                <input className={adminInputClass} disabled placeholder="1–100" />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className={`${adminCardBase} p-6`}>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Casillas de visibilidad (resumen)</h2>
+        <ul className="mt-3 grid gap-2 text-sm text-[#3D3428] sm:grid-cols-2">
+          <li>Aviso superior: {yn(m.modules.showAnnouncement)}</li>
+          <li>Imagen hero: {yn(m.modules.showHeroImage)}</li>
+          <li>Línea secundaria / CTA secundario / soporte promo: {yn(m.modules.showSecondaryLine)}</li>
+          <li>Enlaces destacados: {yn(m.modules.showCallouts)}</li>
+        </ul>
       </div>
 
       <div className="mt-8">
-        <Link href="/admin/site-settings" className={`${adminBtnSecondary} inline-flex`}>
-          Abrir ajustes globales (módulos del sitio) →
+        <Link href="/admin/workspace/home/content" className={`${adminBtnSecondary} inline-flex`}>
+          Editar contenido de `/home` →
         </Link>
       </div>
     </div>

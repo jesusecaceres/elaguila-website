@@ -1,13 +1,13 @@
 import type { GlobalSitePayload } from "./payloadTypes";
 
 export type GlobalSiteResolved = {
-  toggles: { showSitewideNotice: boolean; showGlobalPromoStrip: boolean };
+  toggles: { showSiteWideBanners: boolean; showSitewideNotice: boolean; showGlobalPromoStrip: boolean };
   notice: { es: string; en: string };
   promo: { es: string; en: string };
 };
 
 const EMPTY: GlobalSiteResolved = {
-  toggles: { showSitewideNotice: false, showGlobalPromoStrip: false },
+  toggles: { showSiteWideBanners: true, showSitewideNotice: false, showGlobalPromoStrip: false },
   notice: { es: "", en: "" },
   promo: { es: "", en: "" },
 };
@@ -22,6 +22,7 @@ export function mergeGlobalSite(patch: GlobalSitePayload | Record<string, unknow
   const t = p.toggles ?? {};
   return {
     toggles: {
+      showSiteWideBanners: t.showSiteWideBanners !== false,
       showSitewideNotice: t.showSitewideNotice === true,
       showGlobalPromoStrip: t.showGlobalPromoStrip === true,
     },

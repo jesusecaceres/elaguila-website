@@ -27,6 +27,7 @@ export async function saveGlobalSiteAction(formData: FormData) {
     sitewideNotice: { es: str(formData, "notice_es"), en: str(formData, "notice_en") },
     globalPromoStrip: { es: str(formData, "promo_es"), en: str(formData, "promo_en") },
     toggles: {
+      showSiteWideBanners: on(formData, "toggle_banner_region"),
       showSitewideNotice: on(formData, "toggle_notice"),
       showGlobalPromoStrip: on(formData, "toggle_promo"),
     },

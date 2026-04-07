@@ -90,6 +90,8 @@ export type HomeMarketingPayload = {
   };
   /** Up to 5 optional link chips (manual URLs — not auto-synced with Clasificados registry). */
   featuredCallouts?: HomeFeaturedCallout[];
+  /** Where callout chips render in the hero column. Default: under identity + precedent (current layout). */
+  calloutsPlacement?: "below_precedent" | "below_title";
 };
 
 /** `/contacto` — merges over static copy; still uses GlobalContactForm behavior. */
@@ -116,6 +118,8 @@ export type GlobalSitePayload = {
   sitewideNotice?: Partial<BilingualText>;
   globalPromoStrip?: Partial<BilingualText>;
   toggles?: {
+    /** When false, hides the whole banner stack under the nav (both strips), regardless of copy. */
+    showSiteWideBanners?: boolean;
     showSitewideNotice?: boolean;
     showGlobalPromoStrip?: boolean;
   };

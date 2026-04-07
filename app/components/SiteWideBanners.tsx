@@ -11,6 +11,7 @@ import type { GlobalSitePayload } from "@/app/lib/siteSectionContent/payloadType
 export async function SiteWideBanners() {
   const { payload } = await getSiteSectionPayload("global_site");
   const g = mergeGlobalSite(payload as unknown as GlobalSitePayload);
+  if (!g.toggles.showSiteWideBanners) return null;
 
   return (
     <Suspense fallback={null}>

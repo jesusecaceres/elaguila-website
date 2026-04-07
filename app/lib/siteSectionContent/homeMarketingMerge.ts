@@ -30,6 +30,7 @@ export type HomeMarketingResolved = {
     showSecondaryLine: boolean;
     showCallouts: boolean;
   };
+  calloutsPlacement: "below_precedent" | "below_title";
   callouts: HomeFeaturedCallout[];
 };
 
@@ -63,6 +64,7 @@ const BASE: HomeMarketingResolved = {
     showSecondaryLine: true,
     showCallouts: true,
   },
+  calloutsPlacement: "below_precedent",
   callouts: [],
 };
 
@@ -116,6 +118,7 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
       showSecondaryLine: mod.showSecondaryLine !== false,
       showCallouts: mod.showCallouts !== false,
     },
+    calloutsPlacement: patch.calloutsPlacement === "below_title" ? "below_title" : "below_precedent",
     callouts: parseCallouts(patch.featuredCallouts),
   };
 }

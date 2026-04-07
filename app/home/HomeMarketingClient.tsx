@@ -27,6 +27,30 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
 
   const showPromo = content.modules.showSecondaryLine && L.promoStrip.trim() !== "";
 
+  const calloutsBlock =
+    content.modules.showCallouts && content.callouts.length > 0 ? (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        className="mt-6 flex flex-wrap justify-center gap-2"
+      >
+        {content.callouts.map((c) => {
+          const label = lang === "en" ? (c.labelEn || c.labelEs) : (c.labelEs || c.labelEn);
+          if (!label) return null;
+          return (
+            <a
+              key={`${c.href}-${label}`}
+              href={c.href}
+              className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:opacity-95"
+            >
+              {label}
+            </a>
+          );
+        })}
+      </motion.div>
+    ) : null;
+
   return (
     <main
       className="relative min-h-screen w-full overflow-hidden text-[color:var(--lx-text)]"
@@ -63,6 +87,8 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
           {L.title}
         </motion.h1>
 
+        {content.calloutsPlacement === "below_title" ? calloutsBlock : null}
+
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -81,28 +107,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
           {L.precedent}
         </motion.p>
 
-        {content.modules.showCallouts && content.callouts.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="mt-6 flex flex-wrap justify-center gap-2"
-          >
-            {content.callouts.map((c) => {
-              const label = lang === "en" ? (c.labelEn || c.labelEs) : (c.labelEs || c.labelEn);
-              if (!label) return null;
-              return (
-                <a
-                  key={`${c.href}-${label}`}
-                  href={c.href}
-                  className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:opacity-95"
-                >
-                  {label}
-                </a>
-              );
-            })}
-          </motion.div>
-        ) : null}
+        {content.calloutsPlacement === "below_precedent" ? calloutsBlock : null}
 
         <motion.div
           initial={{ opacity: 0, y: 16, scale: 0.98 }}

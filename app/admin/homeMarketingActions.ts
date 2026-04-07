@@ -54,6 +54,7 @@ export async function saveHomeMarketingAction(formData: FormData) {
       showSecondaryLine: on(formData, "mod_secondary"),
       showCallouts: on(formData, "mod_callouts"),
     },
+    calloutsPlacement: str(formData, "callouts_placement") === "below_title" ? "below_title" : "below_precedent",
     featuredCallouts: parseCallouts(formData),
   };
   const { error } = await upsertSiteSectionPayload("home_marketing", payload as unknown as Record<string, unknown>);
